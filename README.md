@@ -56,6 +56,8 @@ shown so the shape is visible before it is built.
 │   │   ├── train_step1_alexnet_official.py   the original loop, extracted
 │   │   ├── models/ data/               untouched; digests pinned by tests
 │   │   ├── configs/step1.yaml          the settings the capture used
+│   │   ├── requirements.txt            which packages, checked against imports
+│   │   ├── requirements.lock.txt       exact versions, to rebuild a run
 │   │   ├── provenance.json             what came across, and what changed
 │   │   └── README.md                   the science, and the port's deviations
 │   └── VideoGen/                     second pilot, LTX-2              planned
@@ -85,6 +87,7 @@ shown so the shape is visible before it is built.
 │   ├── test_adapterlib.py
 │   ├── test_contract_test.py
 │   ├── test_end_to_end.py            resolve -> adapt -> verify, for real
+│   ├── test_method_requirements.py   declarations match the imports
 │   ├── test_language.py              everything here is in English
 │   └── test_repo_hygiene.py          nothing generated is tracked
 ├── CLAUDE.md                       the working rules                  exists
@@ -148,6 +151,12 @@ python3 -m pip install pyyaml     # only if you want to author in YAML
 `./tests/run-tests.sh` prints whether PyYAML is present, so a skipped test is
 never mistaken for a passing one.
 
+**Each method declares its own training dependencies**, in its
+`requirements.txt` (which packages) and `requirements.lock.txt` (exact
+versions). `tests/test_method_requirements.py` checks a method's declarations
+against what it actually imports, in both directions, and refuses an unpinned
+lock file. The core never imports any of them.
+
 ## Reproducibility: the resolved config
 
 **`config_sha256` is the hinge.** `run_manifest.json` claims that one
@@ -155,17 +164,19 @@ configuration produced one result, and that claim is worth something only if
 the same configuration always hashes the same way. `bin/resolve-config.py`
 produces that canonical form.
 
-Write the authoring configs — `include` lets a method reuse a shared base:
+Write the authoring configs — `include` lets a method reuse a shared base.
+**These keys are illustrative**; each method defines its own, and
+`methods/1_context_prediction/configs/step1.yaml` is a real one:
 
 ```bash
 mkdir -p configs && printf '{"seed":0,"optimizer":{"name":"sgd","lr":0.1,"momentum":0.9}}\n' > configs/base.json
-printf '{"include":["base.json"],"method":"1_context_prediction","optimizer":{"lr":0.03},"data_root":"${DATA_ROOT}"}\n' > configs/ctxpred.json
+printf '{"include":["base.json"],"optimizer":{"lr":0.03},"data_root":"${DATA_ROOT}"}\n' > configs/example.json
 ```
 
 Resolve. Values come from `--set`, never from the environment:
 
 ```bash
-python3 bin/resolve-config.py --config configs/ctxpred.json --out runs/demo/resolved.json --set DATA_ROOT=/mnt/data
+python3 bin/resolve-config.py --config configs/example.json --out runs/demo/resolved.json --set DATA_ROOT=/mnt/data
 ```
 
 ```
@@ -177,7 +188,7 @@ The resolved file is one line, keys sorted, `include` gone, `${DATA_ROOT}`
 gone, and `optimizer.lr` overridden while `momentum` survives the merge:
 
 ```json
-{"data_root":"/mnt/data","method":"1_context_prediction","optimizer":{"lr":0.03,"momentum":0.9,"name":"sgd"},"seed":0}
+{"data_root":"/mnt/data","optimizer":{"lr":0.03,"momentum":0.9,"name":"sgd"},"seed":0}
 ```
 
 Check the hash with anything you like — it is a plain sha256 of those bytes:
@@ -189,7 +200,7 @@ shasum -a 256 runs/demo/resolved.json
 To get the hash without writing anything:
 
 ```bash
-python3 bin/resolve-config.py --config configs/ctxpred.json --print-hash --set DATA_ROOT=/mnt/data
+python3 bin/resolve-config.py --config configs/example.json --print-hash --set DATA_ROOT=/mnt/data
 ```
 
 ### What it refuses, and why
@@ -199,7 +210,7 @@ it was resolved on is not reproducible, so an unset variable stops the run and
 nothing is written:
 
 ```bash
-python3 bin/resolve-config.py --config configs/ctxpred.json --out /tmp/x.json; echo "EXIT=$?"
+python3 bin/resolve-config.py --config configs/example.json --out /tmp/x.json; echo "EXIT=$?"
 ```
 
 ```
@@ -231,6 +242,56 @@ Once per clone, so that the pre-commit hook is active:
 ```bash
 git config core.hooksPath .githooks
 ```
+
+## Training a method
+
+The whole chain, with the one method that is ported. Each step is checked by
+`tests/test_method_1_context_prediction.py`, which runs exactly this sequence
+on synthetic images.
+
+**1. Build the environment.** Only the training needs packages; the tools
+below need nothing installed.
+
+```bash
+python3 -m venv .venv && . .venv/bin/activate
+pip install --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple -r methods/1_context_prediction/requirements.lock.txt -r requirements-tools.lock.txt
+```
+
+Swap the index for a CUDA one (`.../whl/cu121`) to get a GPU build at the same
+versions. See the method's README for what that does and does not guarantee.
+
+`requirements-tools.lock.txt` is PyYAML and nothing else, needed only for step
+2 to read a YAML authoring config. Omit it if your config is JSON. It is not a
+method dependency, and no method declares it.
+
+**2. Resolve the config**, so the run is identified by a hash rather than by a
+file somebody may edit afterwards:
+
+```bash
+python3 bin/resolve-config.py --config methods/1_context_prediction/configs/step1.yaml --out runs/ctxpred/resolved.json --set DATA_ROOT=/path/to/ILSVRC2012
+```
+
+**3. Run the adapter.** It runs from the method's directory, and reaches this
+repository through `PYTHONPATH`:
+
+```bash
+cd methods/1_context_prediction && PYTHONPATH=../.. python3 -m adapter --config ../../runs/ctxpred/resolved.json --out ../../runs/ctxpred/out; echo "EXIT=$?"
+```
+
+**4. Check the result against the contract**, passing the adapter's exit
+status so that both signals have to agree:
+
+```bash
+python3 bin/contract-test.py --out runs/ctxpred/out --config runs/ctxpred/resolved.json --exit-status <the status from step 3>
+```
+
+`runs/ctxpred/out` then holds `encoder.pt`, `metrics.json`,
+`run_manifest.json`, and a `work/` directory with the training run's own
+checkpoints and logs. Nothing is written outside it.
+
+The method's own README covers what it implements, which settings it uses and
+where each came from, and what changed during the port:
+[methods/1_context_prediction/README.md](methods/1_context_prediction/README.md).
 
 ## Checking an adapter's output against the contract
 

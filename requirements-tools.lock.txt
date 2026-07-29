@@ -1,0 +1,3 @@
+# Exact version, verified with the rest of the chain.
+
+PyYAML==6.0.3

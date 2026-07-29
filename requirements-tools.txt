@@ -1,0 +1,10 @@
+# The one optional dependency of the tooling.
+#
+# The core is standard-library only, and every method declares its own
+# training packages. This buys exactly one thing: `bin/resolve-config.py`
+# reading a YAML authoring config. A JSON config needs nothing at all.
+#
+# It belongs here rather than to any method, because no method imports it --
+# and tests/test_method_requirements.py refuses a method that claims it.
+
+PyYAML>=6.0

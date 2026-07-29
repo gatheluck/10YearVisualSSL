@@ -128,10 +128,69 @@ The multi-GPU path is unchanged from the capture: the file still takes the
 original flags, so `torchrun ... train_step1_alexnet_official.py --data_path
 ... --save_dir ...` works as before.
 
-## Requirements
+## The environment
 
-`requirements.txt`, as captured. The adapter and the contract tools need
-nothing installed; the training itself needs torch and torchvision.
+The adapter and the contract tools need nothing installed. **The training
+needs three packages**: `torch`, `numpy` and `Pillow`. Nothing else is
+imported anywhere in this directory, and
+`tests/test_method_requirements.py` checks that in both directions — an
+import that is not declared fails, and a declared package that nothing
+imports fails too.
+
+The file that came across from the capture also listed `timm`, `PyYAML`,
+`tensorboard` and `tqdm`. Those belong to the legacy track and are never
+imported here; they were removed, and the check now prevents that class of
+mistake for every method.
+
+| File | What it is for |
+|---|---|
+| `requirements.txt` | which packages. Floors, not an environment |
+| `requirements.lock.txt` | exact versions, so a recorded run can be rebuilt |
+
+### Any Linux, a laptop, or a cloud VM (CPU)
+
+Verified: this is the path the port was checked on.
+
+```bash
+python3 -m venv .venv && . .venv/bin/activate
+pip install --index-url https://download.pytorch.org/whl/cpu \
+    --extra-index-url https://pypi.org/simple \
+    -r methods/1_context_prediction/requirements.lock.txt
+```
+
+Nothing about it is distribution-specific: a `python3-venv` package and pip
+are all it assumes. On Ubuntu that is `apt install python3-venv`.
+
+### With a GPU
+
+The same versions, from the CUDA wheel index instead of the CPU one — for
+example `https://download.pytorch.org/whl/cu121` to match the CUDA 12.1 the
+capture's conda script asked for.
+
+**Not verified here**: this machine has no GPU, so the CUDA build was never
+installed or run. Only the CPU path above was measured.
+
+### On the cluster
+
+The captured `setup_conda_env.sh` built a conda environment named
+`py3.10_context_prediction` with Python 3.10 and `pytorch-cuda=12.1`. It did
+not come across, because it hard-codes cluster paths and a
+`scripts/activate_runtime.sh` that only exists there. The venv path above
+works on a login node as well, since it needs nothing outside pip.
+
+### **What cannot be reproduced, and why**
+
+**The exact versions the captured cluster runs used are not recoverable.**
+
+- the environment directories (`envs/`) were classified as artifacts and were
+  never captured — deliberately, they are gigabytes of build output
+- `setup_conda_env.sh` pins nothing: `conda install pytorch torchvision
+  torchaudio pytorch-cuda=12.1` resolves to whatever was current that day
+- so the record fixes Python 3.10 and CUDA 12.1, and nothing further
+
+`requirements.lock.txt` therefore pins **the versions this port was verified
+against**, which is an honest lock but a different one. Closing the gap needs
+the versions read off the cluster; that has not been done.
 
 ## What is not here yet
 

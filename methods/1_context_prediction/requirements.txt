@@ -1,18 +1,14 @@
-# Context Prediction Implementation Requirements
+# What this method imports, and nothing else.
+#
+# Checked mechanically by tests/test_method_requirements.py, in both
+# directions: an import that is not declared here fails, and a package
+# declared here that nothing imports fails too. The file that came across from
+# the capture listed timm, PyYAML, tensorboard and tqdm, which belong to the
+# legacy track and are never imported by this one.
+#
+# These are floors, and a floor is not a reproducible environment. Use
+# requirements.lock.txt to rebuild a run.
 
-# Core dependencies
 torch>=2.0.0
-torchvision>=0.15.0
-timm>=0.9.0
-
-# Data and visualization
 numpy>=1.24.0
 Pillow>=9.0.0
-PyYAML>=6.0
-tensorboard>=2.12.0
-
-# Utilities
-tqdm>=4.65.0
-
-# Optional (for distributed training)
-# accelerate>=0.20.0
