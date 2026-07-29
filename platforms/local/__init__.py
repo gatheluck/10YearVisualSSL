@@ -1,1 +1,2 @@
-"""手元で動かす基盤。これが既定であり、これだけで完結する。"""
+"""Runs jobs on the machine you are sitting at. This is the default, and it
+is sufficient on its own."""

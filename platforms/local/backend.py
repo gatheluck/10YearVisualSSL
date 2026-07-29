@@ -1,6 +1,6 @@
-"""手元で動かす基盤。**これが既定であり、これだけで完結する。**
+"""Runs jobs on the local machine. **This is the default and is self-contained.**
 
-コアはこの基盤だけで動く。他の基盤は任意の追加物である。
+The core works with this backend alone. Every other backend is optional.
 """
 
 from __future__ import annotations
@@ -15,13 +15,14 @@ class Backend(_Backend):
     name = "local"
 
     def is_available(self) -> bool:
-        return True          # 手元は常に使える
+        return True          # the local machine is always there
 
     def submit(self, spec: JobSpec) -> JobResult:
-        """同期実行する。終了コードをそのまま返す。
+        """Run synchronously and report the real exit status.
 
-        分散は呼び出し側が RANK / WORLD_SIZE を env に入れて表明する。
-        **ここで暗黙に増やさない。** 暗黙の並列は再現性を壊す。
+        Distribution is declared by the caller through ``RANK`` / ``WORLD_SIZE``
+        in ``spec.env``. **Nothing is fanned out implicitly here:** implicit
+        parallelism would silently change results between runs.
         """
         env = {**os.environ, **spec.env}
         r = subprocess.run(spec.command, cwd=spec.workdir, env=env)

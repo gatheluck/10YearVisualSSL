@@ -1,34 +1,36 @@
-# 実行基盤の分離
+# Execution platform separation
 
-最終更新: 2026-07-29
+Last updated: 2026-07-29
 
-**特定の計算機環境での実行はオプショナル。** コアはどの基盤も前提としない。
-基盤対応は疎結合なモジュールとして分離し、そこからだけ呼ばれる。
+**Running on any particular compute facility is optional.** The core assumes
+no platform. Support for a platform lives in a loosely coupled module and is
+reached only through that module.
 
-**この分離は文書ではなく機構で守る。**
-`tests/test_platform_isolation.py` が破れば落ちる。
-方針を書いただけでは守られないことを実例で確認しているため
-（Capture 側 `docs/DESIGN.md` §5.26）。
+**This separation is held by machinery, not by documentation.**
+`tests/test_platform_isolation.py` fails if it is broken. We have seen, with a
+concrete example, that a policy written down is not a policy that holds
+(Capture repository, `docs/DESIGN.md` §5.26).
 
 ---
 
-## 1. 構造
+## 1. Structure
 
 ```
 platforms/
-  base.py            共通の界面。**特定基盤の語彙を持ち込まない**
-  __init__.py        名前から動的に解決する。**表を持たない**
-  local/backend.py   手元で動かす。これが既定で、これだけで完結する
-  <name>/backend.py  任意の追加物
+  base.py            the shared interface. **No platform vocabulary here**
+  __init__.py        resolves by name, dynamically. **No table**
+  local/backend.py   runs on this machine. The default, and self-contained
+  <name>/backend.py  anything else, all optional
 ```
 
-コアは `platforms.load_backend(name)` で受け取る。**名前は利用者が渡す。**
-コード側に基盤名を書かない。書いた時点でコアがその基盤を知ってしまう。
+The core obtains a backend through `platforms.load_backend(name)`.
+**The name comes from the caller.** No platform name is written in the code:
+the moment one is, the core knows about that platform.
 
 ```python
 from platforms import load_backend, JobSpec
 
-backend = load_backend(args.platform)      # 既定は "local"
+backend = load_backend(args.platform)      # defaults to "local"
 backend.Backend().submit(JobSpec(
     name="ctxpred-step1", command=[...], env_name="py3.10_context_prediction",
     gpus=8, hours=24))
@@ -36,66 +38,71 @@ backend.Backend().submit(JobSpec(
 
 ---
 
-## 2. 界面
+## 2. The interface
 
-`JobSpec` は**必要量を一般語で**表す。
+`JobSpec` states **what is needed, in ordinary words**.
 
-| 欄 | 意味 |
+| Field | Meaning |
 |---|---|
-| `name` | ジョブ名 |
-| `command` | 実行するコマンド |
-| `env_name` | 使う conda 環境の名前 |
-| `gpus` / `hours` | **必要量。** 資源タイプ名やキュー名ではない |
-| `workdir` / `env` | 作業ディレクトリと環境変数 |
+| `name` | job name |
+| `command` | the command to run |
+| `env_name` | the conda environment to use |
+| `gpus` / `hours` | **the amount needed.** Not a resource type or a queue name |
+| `workdir` / `env` | working directory and environment variables |
 
-**資源タイプへの翻訳は各基盤の責務。** コアは翻訳表を持たない。
-翻訳表を共有した時点で、コアがその基盤の語彙を知ることになる。
+**Translating that into a resource type is each backend's job.** The core
+holds no translation table. Sharing one would mean the core knows that
+platform's vocabulary.
 
-`Backend` は2つだけ持つ。
+`Backend` has exactly two methods.
 
-| メソッド | 契約 |
+| Method | Contract |
 |---|---|
-| `is_available()` | **推測せず実際に確かめる。** 投入コマンドの有無など |
-| `submit(spec)` | 実行または投入し、`JobResult` を返す |
+| `is_available()` | **Check, do not assume** — e.g. whether the submit command exists |
+| `submit(spec)` | Run or enqueue, and return a `JobResult` |
 
-`JobResult.exit_status` は、**まだ分からないなら `None`。**
-投入しただけの基盤で `0` を返さない。**0 は「成功した」という意味であり、
-「まだ分からない」を成功と偽ってはいけない。**
+`JobResult.exit_status` is **`None` when the outcome is not yet known.**
+A backend that only enqueues must not return `0`. **0 means "it succeeded",
+and an unknown outcome must never be passed off as a success.**
 
 ---
 
-## 3. 機構が守っていること
+## 3. What the machinery holds
 
-| 検査 | 破ると何が起きるか |
+| Check | What breaking it would cause |
 |---|---|
-| 基盤固有の語彙が `platforms/<name>/` の外に出ない | コアがその基盤に縛られる |
-| `platforms/local/` が必ず存在する | 追加基盤が前提になり、手元で動かせなくなる |
-| 界面に基盤固有の語彙が入らない | 界面が汚れ、分離が形骸化する |
-| `platforms/` の外から特定基盤を import しない | import した時点でコアが知っている |
-| 解決が**表ではなく実体の発見**である | 基盤を足しても見つからない |
-| 両基盤が同じ界面を実装する | 差し替えが効かない |
+| Platform-specific vocabulary stays inside `platforms/<name>/` | the core becomes tied to that platform |
+| `platforms/local/` always exists | an extra platform becomes mandatory and nothing runs locally |
+| No platform-specific vocabulary in the interface | the interface is polluted and the separation is nominal |
+| Nothing outside `platforms/` imports a specific platform | importing it *is* knowing about it |
+| Resolution is **discovery, not a table** | a newly added platform is not found |
+| Both backends implement the same interface | they cannot be swapped |
 
-最後の2つは**挙動で確かめている**。ダミーの基盤を置いて発見されるか、
-実際に `issubclass` が成り立つかを見る。文字列で判定すると、
-docstring の使用例まで「直書き」と誤判定する（実際に誤判定した）。
-
----
-
-## 4. 新しい基盤を足す
-
-1. `platforms/<name>/backend.py` に `Backend(base.Backend)` を書く
-2. `is_available()` で**実際に**使えるかを確かめる
-3. 必要量から資源への翻訳は**その中だけ**に書く
-4. `./tests/run-tests.sh` を通す
-
-**登録は要らない。** 置けば `available_backends()` が見つける。
+The last two are checked **by behaviour**: a dummy backend is dropped in to
+see whether it is discovered, and `issubclass` is evaluated for real. Deciding
+by string matching misfires — it flagged a usage example inside a docstring as
+a hard-coded name (it actually did).
 
 ---
 
-## 5. 決めていないこと
+## 4. Adding a platform
 
-- 非同期の基盤で、投入後に完了を待つ手段（ポーリングか通知か）
-- 複数ノードにまたがる `WORLD_SIZE` の割り当てを誰が決めるか
-- ログの回収方法
+1. Write `Backend(base.Backend)` in `platforms/<name>/backend.py`
+2. Have `is_available()` **actually check** whether it can be used
+3. Keep the need-to-resource translation **inside that module only**
+4. Make `./tests/run-tests.sh` pass
 
-**パイロット2手法を通してから決める。** 先に決めると机上の設計になる。
+**No registration step.** Put the file there and `available_backends()`
+finds it.
+
+---
+
+## 5. Left undecided
+
+- How an asynchronous backend waits for completion after enqueuing
+  (polling or notification)
+- Who assigns `WORLD_SIZE` across several nodes
+- How logs are collected
+
+**These are decided after the two pilot methods are through.** Deciding now
+would produce a design that has never met a real job.

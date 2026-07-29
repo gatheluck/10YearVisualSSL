@@ -1,12 +1,14 @@
-"""実行基盤の共通界面。
+"""Shared interface for execution backends.
 
-**ここに特定の基盤の語彙を持ち込まない。** 持ち込んだ時点で疎結合は崩れる。
-コアは「必要量」を一般語で言い、翻訳は各基盤の責務とする。
+**No backend-specific vocabulary belongs here.** The moment it appears, the
+separation is gone: the core would know about a particular machine.
 
-例: コアは `gpus=8, hours=24` と言う。それを資源タイプ名や
-キュー名へ翻訳するのは、その基盤のモジュールだけが行う。
+The core states *what it needs* in generic terms; translating that into a
+concrete resource is each backend's job. For example the core says
+``gpus=8, hours=24``; mapping that onto a queue or resource-type name is done
+only inside that backend's module.
 
-`tests/test_platform_isolation.py` がこの分離を機構で守る。
+``tests/test_platform_isolation.py`` enforces this separation.
 """
 
 from __future__ import annotations
@@ -17,11 +19,11 @@ from dataclasses import dataclass, field
 
 @dataclass(frozen=True)
 class JobSpec:
-    """コアが表明する「必要なもの」。基盤に依存しない語彙だけで書く。"""
+    """What the core needs. Written only in backend-neutral terms."""
 
     name: str
     command: list[str]
-    env_name: str          # 実行に使う conda 環境の名前
+    env_name: str          # name of the conda environment to run in
     gpus: int = 0
     hours: int = 1
     workdir: str | None = None
@@ -31,20 +33,24 @@ class JobSpec:
 @dataclass(frozen=True)
 class JobResult:
     job_id: str
-    exit_status: int | None      # 非同期の基盤では投入直後は None
+    #: ``None`` while the outcome is genuinely unknown, e.g. right after an
+    #: asynchronous submission. **Never report 0 in that case:** 0 means
+    #: "it succeeded", and calling an unknown outcome a success makes the
+    #: caller treat failed jobs as finished ones.
+    exit_status: int | None
     log_path: str | None = None
 
 
 class Backend(abc.ABC):
-    """実行基盤。同期・非同期のどちらもこの界面で扱う。"""
+    """An execution backend. Both synchronous and asynchronous ones fit here."""
 
-    #: 人が読む識別子。ログと manifest に残す
+    #: Human-readable identifier. Recorded in logs and run manifests.
     name: str = "base"
 
     @abc.abstractmethod
     def submit(self, spec: JobSpec) -> JobResult:
-        """ジョブを実行または投入する。"""
+        """Run or enqueue the job."""
 
     @abc.abstractmethod
     def is_available(self) -> bool:
-        """この基盤が今の環境で使えるか。**推測せず実際に確かめる。**"""
+        """Whether this backend can be used here. **Check, do not assume.**"""

@@ -1,27 +1,31 @@
 #!/usr/bin/env python3
-"""アダプタの出力が契約を満たすかを判定する。
+"""Decide whether an adapter's output satisfies the contract.
 
-**「移植完了」を人の主観でなく機械で決めるための道具。**
-契約の定義は Capture 側リポジトリの `docs/CONTRACT.md`（唯一の正）。
+**This is how "the port is finished" gets decided by a machine rather than by
+opinion.** The contract itself is defined in the Capture repository, in
+`docs/CONTRACT.md`, which is the single source of truth.
 
     contract-test.py --out <dir> --config <resolved.yaml> [--exit-status N]
 
-判定すること（CONTRACT.md §5）:
-  1. 必須ファイルが揃っている
-  2. `run_manifest.json` が解釈でき、必須欄が揃っている
-  3. `config_sha256` が、実際に渡した config と一致する
-  4. `artifacts` の全件が存在し、`sha256` と `bytes` が一致する
-  5. `encoder.pt` が role `encoder` として登録されている
-  6. `metrics.json` が解釈でき、値がすべて数値である
-  7. **`--out` に manifest 未登録のファイルが無い**
+What is checked (CONTRACT.md section 5):
+
+  1. the required files are present
+  2. `run_manifest.json` parses and carries every required field
+  3. `config_sha256` matches the config that was actually handed in
+  4. every listed artifact exists, with matching `sha256` and `bytes`
+  5. `encoder.pt` is registered under the role `encoder`
+  6. `metrics.json` parses and every value is a number
+  7. **no file in `--out` is missing from the manifest**
   8. `finished_at >= started_at`
 
-7 は Capture の索引と同じ考え方。書いたものと残ったものを突き合わせる。
-未登録の出力は「誰も知らない成果物」であり、再現性の穴になる。
+Item 7 mirrors the capture index used on the Capture side: what was written
+and what remains are reconciled against each other. An unlisted output is an
+artifact nobody knows about, which is a hole in reproducibility.
 
-**成功は2つの信号の一致で決める。** 終了コード 0 と `status: "ok"`。
-片方だけに頼らせない（Capture 側 DESIGN §5.16 に、関門が exit 0 を
-返して秘密情報を素通しにした実例がある）。
+**Success requires two signals to agree:** exit status 0 *and*
+`status: "ok"`. Neither is trusted alone. On the Capture side a gate once
+returned exit 0 while reporting detected secrets, and they went straight
+through.
 """
 
 from __future__ import annotations
@@ -51,7 +55,7 @@ def sha256_of(path: Path) -> str:
 
 
 def _is_number(v) -> bool:
-    """bool を数値として通さない。Python では bool は int の派生。"""
+    """Reject bool. In Python bool subclasses int, so it would slip through."""
     return isinstance(v, (int, float)) and not isinstance(v, bool)
 
 
@@ -65,95 +69,98 @@ def check(out: Path, config: Path, exit_status: int | None = None
 
     man_path = out / MANIFEST
     if not man_path.is_file():
-        bad("manifest-missing", f"{MANIFEST} が無い。途中で死んだ可能性がある")
+        bad("manifest-missing",
+            f"{MANIFEST} is absent; the run may have died part-way")
         return 1, {"schema_version": 1, "status": None, "violations": v}
     try:
         man = json.loads(man_path.read_text(encoding="utf-8"))
         if not isinstance(man, dict):
-            raise ValueError("オブジェクトではない")
+            raise ValueError("not an object")
     except (OSError, ValueError) as exc:
-        bad("manifest-unparsable", f"{MANIFEST} を解釈できない: {exc}")
+        bad("manifest-unparsable", f"{MANIFEST} cannot be parsed: {exc}")
         return 1, {"schema_version": 1, "status": None, "violations": v}
 
     for f in REQUIRED_FIELDS:
         if f not in man:
-            bad("manifest-field", f"必須欄がない: {f}")
+            bad("manifest-field", f"required field is missing: {f}")
 
     status = man.get("status")
     if status is not None and status not in STATUSES:
         bad("status-unknown",
-            f"status が {status!r}。使えるのは {', '.join(STATUSES)}")
+            f"status is {status!r}; allowed values are {', '.join(STATUSES)}")
 
-    # 成功は2つの信号の一致で決める
+    # Success requires both signals to agree.
     if exit_status is not None and status in STATUSES:
         agree = (exit_status == 0) == (status == "ok")
         if not agree:
             bad("status-disagreement",
-                f"終了コード {exit_status} と status {status!r} が食い違う。"
-                "どちらかが嘘をついている")
+                f"exit status {exit_status} disagrees with status {status!r}; "
+                "one of the two is lying")
 
     s, f_ = man.get("started_at"), man.get("finished_at")
     if isinstance(s, str) and isinstance(f_, str) and f_ < s:
-        bad("time-order", f"finished_at({f_}) が started_at({s}) より前")
+        bad("time-order", f"finished_at ({f_}) precedes started_at ({s})")
 
     try:
         want = sha256_of(Path(config))
     except OSError as exc:
         want = None
-        bad("config-unreadable", f"config を読めない: {exc}")
+        bad("config-unreadable", f"cannot read the config: {exc}")
     if want and man.get("config_sha256") != want:
         bad("config-mismatch",
-            "config_sha256 が、渡された config と一致しない。"
-            "走ったものと違う設定を見ている")
+            "config_sha256 does not match the config supplied; "
+            "this is not the configuration that ran")
 
     arts = man.get("artifacts")
     listed: set[str] = set()
     roles: dict[str, str] = {}
     if not isinstance(arts, list):
         if "artifacts" in man:
-            bad("manifest-field", "artifacts が配列でない")
+            bad("manifest-field", "artifacts is not an array")
         arts = []
     for a in arts:
         if not isinstance(a, dict) or "path" not in a:
-            bad("artifact-shape", f"artifacts の要素が不正: {a!r}")
+            bad("artifact-shape", f"malformed entry in artifacts: {a!r}")
             continue
         rel = a["path"]
         listed.add(rel)
         roles[rel] = a.get("role", "")
         p = out / rel
         if not p.is_file():
-            bad("artifact-missing", f"登録されているのに無い: {rel}")
+            bad("artifact-missing", f"listed but absent: {rel}")
             continue
         if a.get("sha256") != sha256_of(p):
-            bad("artifact-sha256", f"内容が登録と違う: {rel}")
+            bad("artifact-sha256",
+                f"content differs from what was recorded: {rel}")
         if a.get("bytes") != p.stat().st_size:
-            bad("artifact-bytes", f"サイズが登録と違う: {rel}")
+            bad("artifact-bytes",
+                f"size differs from what was recorded: {rel}")
 
     if not (out / ENCODER).is_file():
-        bad("encoder-missing", f"{ENCODER} が無い")
+        bad("encoder-missing", f"{ENCODER} is absent")
     elif roles.get(ENCODER) != "encoder":
         bad("encoder-role",
-            f"{ENCODER} が role 'encoder' として登録されていない")
+            f"{ENCODER} is not registered under the role 'encoder'")
 
     mp = out / METRICS
     if not mp.is_file():
-        bad("metrics-missing", f"{METRICS} が無い")
+        bad("metrics-missing", f"{METRICS} is absent")
     else:
         try:
             m = json.loads(mp.read_text(encoding="utf-8"))
             metrics = m["metrics"]
             if not isinstance(metrics, dict):
-                raise ValueError("metrics がオブジェクトでない")
+                raise ValueError("metrics is not an object")
         except (OSError, ValueError, KeyError, TypeError) as exc:
-            bad("metrics-unparsable", f"{METRICS} を解釈できない: {exc}")
+            bad("metrics-unparsable", f"{METRICS} cannot be parsed: {exc}")
         else:
             for k, val in metrics.items():
                 if not _is_number(val):
                     bad("metrics-not-numeric",
-                        f"{k} が数値でない: {val!r}。機械が比較できない")
+                        f"{k} is not a number: {val!r}; nothing can compare it")
 
-    # 未登録のファイルを許さない。manifest 自身は自分のハッシュを
-    # 含められない（起動時の鶏卵）ので除く
+    # Unlisted files are not allowed. The manifest cannot contain its own
+    # hash, so it is the single exception.
     for p in sorted(out.rglob("*")):
         if not p.is_file():
             continue
@@ -161,8 +168,8 @@ def check(out: Path, config: Path, exit_status: int | None = None
         if rel == MANIFEST or rel in listed:
             continue
         bad("unlisted-file",
-            f"manifest に登録されていない出力: {rel}。"
-            "誰も知らない成果物は再現性の穴になる")
+            f"output not listed in the manifest: {rel}; "
+            "an artifact nobody knows about is a hole in reproducibility")
 
     ok = not v and status == "ok"
     return (0 if ok else 1), {
@@ -178,7 +185,8 @@ def main() -> int:
     ap.add_argument("--out", required=True, type=Path)
     ap.add_argument("--config", required=True, type=Path)
     ap.add_argument("--exit-status", type=int, default=None,
-                    help="アダプタの終了コード。status と一致するか照合する")
+                    help="the adapter's exit status; checked for agreement "
+                         "with the manifest")
     ap.add_argument("--json", type=Path)
     a = ap.parse_args()
     rc, rep = check(a.out, a.config, a.exit_status)
@@ -188,11 +196,11 @@ def main() -> int:
     for x in rep["violations"]:
         print(f"  VIOLATION [{x['kind']}] {x['detail']}")
     if rc == 0:
-        print("  ok: 契約を満たしています")
+        print("  ok: the contract is satisfied")
     elif not rep["violations"] and rep.get("status") == "failed":
-        print("  失敗として正しく報告されています（契約違反はありません）")
+        print("  reported as a failure, correctly (no contract violations)")
     else:
-        print(f"  *** 契約違反 {len(rep['violations'])} 件 ***")
+        print(f"  *** {len(rep['violations'])} contract violation(s) ***")
     return rc
 
 

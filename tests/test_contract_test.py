@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
-"""contract-test.py の仕様を定義するテスト。
+"""Specification for contract-test.py.
 
-**「移植完了」を人の主観でなく機械で決めるための道具。**
-契約の定義は Capture 側リポジトリの `docs/CONTRACT.md`（唯一の正）。
+**This is how "the port is finished" gets decided by a machine rather than by
+opinion.** The contract is defined in the Capture repository's
+`docs/CONTRACT.md`, which is the single source of truth.
 
-このツールが守る性質:
+What this tool holds:
 
-- **成功は2つの信号の一致で決める。** 終了コード 0 と、
-  `status: "ok"` の妥当な manifest の両方。片方だけに頼らせない
-  （Capture 側 DESIGN §5.16 で、関門が exit 0 を返して秘密情報を
-  素通しにした実例がある）
-- **manifest 未登録のファイルを許さない。** 誰も知らない出力は
-  再現性の穴。Capture の索引（§5.20）と同じ考え方
-- **黙って通さない。** 欠けていたら欠けていると言う
+- **Success needs two signals to agree:** exit status 0 and a well-formed
+  manifest saying `status: "ok"`. Neither is trusted alone; on the Capture
+  side a gate once returned exit 0 while reporting detected secrets
+- **No file may be absent from the manifest.** An output nobody knows about
+  is a hole in reproducibility, the same reasoning as the capture index
+- **Nothing passes quietly.** If something is missing, it is named
 """
 
 from __future__ import annotations
@@ -63,7 +63,7 @@ class Base(unittest.TestCase):
 
     def make_run(self, *, status: str = "ok", extra_files: dict | None = None,
                  drop: tuple[str, ...] = (), **over) -> None:
-        """契約を満たす出力を作る。over で1点だけ壊せるようにする。"""
+        """Build a conforming output; `over` breaks exactly one thing."""
         arts = []
         if "encoder.pt" not in drop:
             a = self.write_out("encoder.pt", b"weights")
@@ -138,10 +138,10 @@ class TestRequiredFiles(Base):
 
 class TestManifestFields(Base):
     def test_every_required_field_is_checked(self):
-        """1つずつ落として、それぞれが検出されることを確かめる。
+        """Drop each field in turn and confirm each one is caught.
 
-        まとめて「必須欄が足りない」と1回テストするだけでは、
-        実際には1欄しか見ていなくても通る。
+        A single test for "some required field is missing" would pass even
+        if only one field were ever inspected.
         """
         required = ("schema_version", "method", "stage", "status",
                     "config_sha256", "started_at", "finished_at",
@@ -154,10 +154,10 @@ class TestManifestFields(Base):
                 del man[field]
                 (self.out / "run_manifest.json").write_text(json.dumps(man))
                 rc, rep = self.check()
-                self.assertEqual(rc, 1, f"{field} が欠けても通る")
+                self.assertEqual(rc, 1, f"passes with {field} removed")
                 self.assertTrue(
                     any(field in v.get("detail", "") for v in rep["violations"]),
-                    f"{field} の欠落が名指しされていない: {rep['violations']}")
+                    f"the missing {field} is not named: {rep['violations']}")
 
     def test_finished_before_started_fails(self):
         self.make_run(started_at="2026-07-29T02:00:00Z",
@@ -168,7 +168,7 @@ class TestManifestFields(Base):
 
 
 class TestConfigIsTheOneThatRan(Base):
-    """渡した config と、走った config が同じであることを示す。"""
+    """Show that the config handed in is the config that ran."""
 
     def test_mismatched_config_sha_fails(self):
         self.make_run(config_sha256="0" * 64)
@@ -220,7 +220,7 @@ class TestArtifacts(Base):
 
 
 class TestNoUnlistedFiles(Base):
-    """誰も知らない出力は再現性の穴。Capture の索引と同じ考え方。"""
+    """An output nobody knows about is a hole. Same idea as the capture index."""
 
     def test_unlisted_file_fails(self):
         self.make_run(extra_files={"stray.log": b"who wrote me"})
@@ -235,7 +235,7 @@ class TestNoUnlistedFiles(Base):
         self.assertEqual(self.check()[0], 1)
 
     def test_the_manifest_itself_is_not_unlisted(self):
-        """manifest は自分自身のハッシュを含められない（起動時の鶏卵）。"""
+        """The manifest cannot contain its own hash; it is the one exception."""
         self.make_run()
         rc, rep = self.check()
         self.assertEqual(rc, 0, rep["violations"])
@@ -257,7 +257,7 @@ class TestMetrics(Base):
                       [v["kind"] for v in rep["violations"]])
 
     def test_non_numeric_metric_fails(self):
-        """文字列の "42.3" は不可。機械が比較できない。"""
+        """The string "42.3" will not do; nothing can compare it."""
         self.make_run()
         body = json.dumps({"schema_version": 1,
                            "metrics": {"top1": "42.3"}}).encode()
@@ -273,7 +273,7 @@ class TestMetrics(Base):
                       [v["kind"] for v in rep["violations"]])
 
     def test_boolean_is_not_accepted_as_a_number(self):
-        """Python では bool は int の派生。素通しにしない。"""
+        """In Python bool subclasses int. Do not let it through."""
         self.make_run()
         body = json.dumps({"schema_version": 1,
                            "metrics": {"converged": True}}).encode()
@@ -287,7 +287,7 @@ class TestMetrics(Base):
 
 
 class TestTwoSignalsMustAgree(Base):
-    """成功は「終了コード 0」と「status: ok」の両方。片方に頼らせない。"""
+    """Success is exit status 0 *and* status ok. Neither alone."""
 
     def test_exit_nonzero_with_ok_status_fails(self):
         self.make_run(status="ok")
@@ -304,7 +304,7 @@ class TestTwoSignalsMustAgree(Base):
                       [v["kind"] for v in rep["violations"]])
 
     def test_failed_status_with_nonzero_exit_is_a_reported_failure(self):
-        """正しく報告された失敗。契約違反ではないが成功でもない。"""
+        """A failure, correctly reported. Not a violation, and not a success."""
         self.make_run(status="failed")
         rc, rep = self.check(exit_status=1)
         self.assertEqual(rc, 1)

@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
-"""すべてのツールがテストの対象になっていることを機構で担保する。
+"""Every tool has to be under test, and that is enforced here.
 
-survey-live.py は TDD 方針を採用する前に書かれ、そのまま
-**テスト0件で運用に入っていた**（2026-07-29 に発覚）。
-方針を文書に書くだけでは守られない。取り残しを機械が見つける。
+One tool in the Capture repository was written before the testing rule was
+adopted and went into production with **zero tests**. Writing the rule down
+did not catch it; a machine did.
 
-「テストがあるか」は、tests/ 配下のどれかが
-そのファイル名に言及しているかで判定する。
-importlib で読み込む方式（load("x", "x.py")）と、
-CLI を subprocess で叩く方式の両方を拾える。
+"Under test" means some file in `tests/` names the tool's filename. That
+covers both styles used here: importing the module, and driving the CLI
+through a subprocess.
 """
 
 from __future__ import annotations
@@ -23,7 +22,8 @@ SELF = Path(__file__).name
 
 
 def _corpus() -> dict[str, str]:
-    """自分自身は除く。除かないと、下のツール一覧が自己満足してしまう。"""
+    """Exclude this file. Otherwise the list of tool names below would
+    satisfy the check by itself."""
     out: dict[str, str] = {}
     for p in sorted(TESTS.glob("test_*.py")):
         if p.name != SELF:
@@ -40,19 +40,19 @@ class TestEveryToolIsUnderTest(unittest.TestCase):
         corpus = _corpus()
         tools = sorted(p.name for p in BIN.glob("*.py"))
         tools += sorted(p.name for p in BIN.glob("*.sh"))
-        self.assertTrue(tools, "bin/ にツールが見つからない")
+        self.assertTrue(tools, "no tools found under bin/")
         missing = [t for t in tools
                    if not any(t in body for body in corpus.values())]
         self.assertEqual(
             missing, [],
-            "テストから一度も参照されていないツールがある。\n"
-            "  tests/test_<name>.py を追加するか、e2e に組み込むこと:\n"
+            "a tool is never referenced from any test.\n"
+            "  add tests/test_<name>.py, or exercise it end to end:\n"
             + "".join(f"    - bin/{m}\n" for m in missing))
 
     def test_guard_itself_does_not_count_as_coverage(self):
-        """このファイルを除外し忘れると、ガードが常に通ってしまう。"""
+        """Forget to exclude this file and the guard always passes."""
         self.assertNotIn(SELF, _corpus(),
-                         "ガード自身が探索対象に入っている")
+                         "the guard itself is inside the corpus it searches")
 
 
 if __name__ == "__main__":

@@ -1,1 +1,1 @@
-"""ABCI 上で動かす基盤。**任意の追加物。** コアはこれを知らない。"""
+"""Runs jobs on ABCI. **Optional.** The core does not know this exists."""

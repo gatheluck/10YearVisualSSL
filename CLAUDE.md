@@ -1,119 +1,134 @@
-# このリポジトリで作業するときの規則
+# Rules for working in this repository
 
-**AI コーディングツール（Claude Code 等）はこのファイルを毎回読み込む。**
-セッションをまたいでも、担当が替わっても、この規則は適用される。
-`~/.claude` 配下の memory はディレクトリ単位でスコープが分かれ、
-別ディレクトリで作業すると読み込まれない。**規則はここに書く。**
+**AI coding tools (Claude Code and the like) read this file on every session.**
+The rules apply across sessions and across whoever is at the keyboard. Memory
+under `~/.claude` is scoped per directory and is not loaded when working
+elsewhere. **Rules belong here.**
+
+This repository is published to the world. **Everything in it is written in
+English** — documentation, comments, docstrings, error messages, test names.
+`tests/test_language.py` enforces this mechanically.
 
 ---
 
-## 必ず守る3点
+## The three that must hold
 
-### 1. 事実に基づくこと
+### 1. Be factual
 
-- **測ってから言う。** 推測を事実として述べない
-- **命名規則・ファイル名・ディレクトリ名は「ラベル」であって根拠ではない。**
-  中身を確認してから分類・断定する
-- 分からないことは「未確認」と書く。空欄を残すのは失敗ではない。
-  **埋まっていない事実を埋まったように見せることが失敗**
-- 数値を引用するときは出所を示す（実機の出力か、文書の記録か、自分の推定か）
-- 自分の過去の報告に誤りを見つけたら、その場で明示的に訂正する
+- **Measure before speaking.** Do not state a guess as a fact
+- **Naming conventions, file names and directory names are labels, not
+  evidence.** Look inside before classifying or concluding
+- Write "not verified" for what is unknown. A blank is not a failure.
+  **Making an unfilled fact look filled is the failure**
+- When quoting a number, say where it came from (real hardware output, a
+  recorded document, or your own estimate)
+- On finding an error in your own earlier report, correct it explicitly, there
+  and then
 
-過去に実際に出した誤報:
+Reports that were actually wrong, in the past:
 
-- `tests/test_<name>.py` の有無だけを見て「`capture-live.py` はテスト無し」と
-  報告した。実際は `tests/test_capture.py` が担当していた
-- `du` が 2.1MB → 9.3MB になったのを「patch が育った」と提示した。
-  実測すると内容は不変で、loose object の格納形式の差だった
-- `backbone/` を重みだと推測したが、実測するとコードだった
+- Judging by the presence of `tests/test_<name>.py` alone, reported
+  "`capture-live.py` has no tests". It was in fact covered by
+  `tests/test_capture.py`
+- Presented `du` going 2.1MB → 9.3MB as "the patch grew". Measurement showed
+  the content was unchanged; it was the loose-object storage format
+- Guessed `backbone/` held weights. Measurement showed it held code
 
-### 2. 厳格なテスト駆動開発
+### 2. Strict test-driven development
 
-- **失敗するテストを先に書き、RED を確認してから実装する**
-- **すべてのコードにテストが要る。** `tests/test_tool_coverage.py` が、
-  テストから一度も参照されていない `bin/` のツールを検出して落ちる
-- **既存コードに後追いでテストを書いたら、変異テストで空振りでないことを示す。**
-  ツールをわざと壊して該当テストが落ちることを実測し、報告に含める。
-  「テストが通った」だけでは何も証明していない
-- **テストを通すためにアサーションを緩めない。** 緩めたように見える変更を
-  したら、変異テストで「前より厳しくなった」ことを示す
-- **判定は必ず終了コードで行う**（`grep` で成功文字列を探すと失敗を見逃す）
+- **Write the failing test first, confirm RED, then implement**
+- **Every piece of code needs a test.** `tests/test_tool_coverage.py` fails on
+  any tool in `bin/` that no test ever references
+- **If tests were written after the fact, prove by mutation that they are not
+  vacuous.** Break the tool deliberately, measure that the relevant test
+  fails, and include that in the report. "The tests passed" proves nothing
+- **Never weaken an assertion to make a test pass.** If a change looks like a
+  weakening, show by mutation that it became *stricter* than before
+- **Decide by exit status** (grepping for a success string misses failures)
 
 ```bash
 ./tests/run-tests.sh; echo "EXIT=$?"
 ```
 
-- **コミットは必ずテストの終了コードで gate する。`;` ではなく `&&` で繋ぐ。**
-  `テスト; コミット` と書くと、赤でもコミットが走る
-  （2026-07-29 に実際にやった。赤のまま push した）
-- **`.githooks/pre-commit` がテストの失敗でコミットを止める。**
-  clone ごとに1回 `git config core.hooksPath .githooks` が要る。
-  文書に3か所書いても守られなかったので機構にした
-- **新しいツールを足すときはテストを先に書く。**
-  `tests/test_tool_coverage.py` が未テストのツールを検出するが、
-  それはコミット後に気づく手段であって、先に書かない理由にはならない
-- 網羅していない部分は隠さず、件数と未検証の関数名を挙げて先に申告する
-- 変異テストの復元に `git checkout --` を使わない。
-  未コミットの変更を巻き戻す（実際に自分の修正を消した）。
-  作業ツリーを別途コピーして退避してから壊すこと
+- **Gate every commit on the test exit status. Join with `&&`, never `;`.**
+  `tests; commit` runs the commit even when red
+  (this actually happened on 2026-07-29; it was pushed red)
+- **`.githooks/pre-commit` stops a commit when tests fail.**
+  Each clone needs `git config core.hooksPath .githooks` once.
+  Writing the rule in three documents did not hold it, so it became machinery
+- **Write the test first when adding a tool.**
+  `tests/test_tool_coverage.py` catches an untested tool, but that is a way to
+  notice after committing, not a reason to skip writing it first
+- Do not hide what is uncovered: state the count and the unverified function
+  names up front
+- Do not restore a mutation with `git checkout --`. It reverts uncommitted
+  work (it deleted one of my own fixes). Copy the tree aside first, then break
+  it
 
-### 報告のしかた（分析より先に「お願いすること」を書く）
+### How to report (what you want done comes before the analysis)
 
-- **応答の冒頭に「やってほしいこと」を番号付きで置く。** 分析・表・根拠は
-  その後ろ。結果だけ並べられても相手は次に進めない
-- コマンドは**1行でコピペできる形**にする。ヒアドキュメント（`<<EOF`）は
-  貼り付け時に壊れるので使わない。`~` ではなく `$HOME` を使う
-- 判断を仰ぐときは**選択肢と、それぞれを選んだ場合にどうなるか**を書く
-- コマンドを渡す前に、フラグの併用が壊れていないか確認する
-  （`-printf` と `-print0` を併記して出力を壊した実例あり）
+- **Open the response with a numbered list of what you want done.** Analysis,
+  tables and evidence come after. A pile of results leaves the reader with no
+  next step
+- Give commands as **a single line that can be pasted**. No heredocs
+  (`<<EOF`) — they break on paste. Use `$HOME`, not `~`
+- When asking for a decision, give **the options and what each one leads to**
+- Verify that the flags actually combine before handing a command over
+  (`-printf` and `-print0` together once corrupted the output)
 
-### 3. ベストプラクティスに従う
+### 3. Follow best practice
 
-- **同じ規則を2箇所に実装しない。** 走査系ごとに分類が食い違い、
-  誤報告を生んだ。過去の不具合の共通原因
-- **沈黙する失敗を作らない。** 読めなかった・省略した・打ち切ったなら、
-  必ずその事実を出力に残す（DESIGN §2.4）
-- **「実際に実行するもの」を検証対象にする。** `dry-run.sh` 自体が
-  テスト下に無かったことがある（DESIGN §5.12、§5.14）
-- **検出器は陽性対照と陰性対照の両方で証明する。** 発火することと、
-  発火した結果が関門を閉じることは別の性質（DESIGN §5.16）
-- 標準ライブラリのみ。ABCI ログインノードで追加依存を要求しない
-- 方針は文書に書くだけでは守られない。**機構にする**
+- **Never implement the same rule twice.** Scanners disagreed on
+  classification and produced false reports. This is the common root of past
+  defects
+- **Build no silent failures.** If something could not be read, was skipped,
+  or was truncated, that fact must appear in the output (DESIGN §2.4)
+- **Verify the thing that actually runs.** `dry-run.sh` itself was once not
+  under test (DESIGN §5.12, §5.14)
+- **Prove a detector with both a positive and a negative control.** Firing,
+  and firing causing the gate to close, are two different properties
+  (DESIGN §5.16)
+- Standard library only. Do not demand extra dependencies on a login node
+- A policy in a document does not hold. **Make it machinery**
 
 ---
 
-## このリポジトリの位置づけ
+## What this repository is
 
-**10年分の視覚 SSL 手法を、一般的な環境で動く形に移植した公開用パッケージ。**
+**A publishable package of ten years of visual SSL methods, ported to run in
+ordinary environments.**
 
-- 原本は ABCI 上にあり、Capture リポジトリ
-  `gatheluck/10YearVisualSSLCapturePrivate`（永久 private）が
-  append-only で記録している。**原本にもそのリポジトリにも、ここから触らない**
-- **設計の正は Capture 側の `docs/DESIGN.md` と `docs/CONTRACT.md`。**
-  矛盾を見つけたら、コードと突き合わせて古いほうを直す
-- 著者コードは複製せず **pinned submodule** で参照する。
-  扱いの判断材料は Capture 側の `docs/INVENTORY.md`
-- 最初は private。監査後に `cvpaperchallenge` へ移して public 化する
+- The originals live on ABCI, and the Capture repository
+  `gatheluck/10YearVisualSSLCapturePrivate` (private forever) records them
+  append-only. **Touch neither the originals nor that repository from here**
+- **The design of record is `docs/DESIGN.md` and `docs/CONTRACT.md` on the
+  Capture side.** On finding a contradiction, compare against the code and fix
+  whichever is stale
+- Author code is never copied; it is referenced as a **pinned submodule**.
+  The basis for that decision is `docs/INVENTORY.md` on the Capture side
+- Private at first. After an audit it moves to `cvpaperchallenge` and is made
+  public
 
-## アダプタ契約
+## The adapter contract
 
-**`contract-test` が「移植完了」を機械で判定する。**
-人の主観で「動いた」と言わない。契約の定義は Capture 側 `docs/CONTRACT.md`。
+**`contract-test` decides "the port is finished" by machine.** Nobody says "it
+worked" from impression. The contract is defined in `docs/CONTRACT.md` on the
+Capture side.
 
 ```bash
-python3 bin/contract-test.py --out <出力先> --config <resolved.yaml> --exit-status <n>
+python3 bin/contract-test.py --out <dir> --config <resolved.yaml> --exit-status <n>
 ```
 
-**成功は「終了コード 0」と「manifest の status: ok」の両方**で決める。
-片方だけに頼らせない。
+**Success is exit status 0 *and* `status: ok` in the manifest.** Neither is
+trusted alone.
 
-## 文脈を失ったときの読む順
+## Reading order when context is lost
 
 ```bash
 cat CLAUDE.md
-# 設計は Capture 側リポジトリ:
-#   docs/DESIGN.md   設計の哲学と根拠
-#   docs/CONTRACT.md アダプタ契約
-#   docs/INVENTORY.md 著者リポジトリの棚卸し
+# The design lives in the Capture repository:
+#   docs/DESIGN.md    the philosophy and the reasoning
+#   docs/CONTRACT.md  the adapter contract
+#   docs/INVENTORY.md the inventory of author repositories
 ./tests/run-tests.sh; echo "EXIT=$?"
 ```

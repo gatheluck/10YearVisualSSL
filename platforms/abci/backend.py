@@ -1,7 +1,7 @@
-"""ABCI 上で動かす基盤。**任意の追加物であり、コアはこれを知らない。**
+"""Runs jobs on ABCI. **Optional; the core never references this module.**
 
-ここが ABCI 固有の語彙を持ってよい唯一の場所。
-`tests/test_platform_isolation.py` が外への漏れを機構で止める。
+This is the one place allowed to hold ABCI-specific vocabulary.
+``tests/test_platform_isolation.py`` stops it from leaking anywhere else.
 """
 
 from __future__ import annotations
@@ -12,23 +12,32 @@ from pathlib import Path
 
 from ..base import Backend as _Backend, JobResult, JobSpec
 
-# 一般語（gpus）から資源タイプへの翻訳。**この翻訳表がここにあることが
-# 疎結合の要点。** コアは資源タイプ名を知らない。
+# Translation from a generic need (GPU count) to a resource type.
+# **Having this table here, and only here, is the whole point:** the core
+# never learns these names.
 RESOURCE_BY_GPUS = {0: "rt_HC", 1: "rt_HG", 8: "rt_HF"}
 
 
 def resource_type(gpus: int) -> str:
-    """必要 GPU 数を資源タイプへ翻訳する。**推測で丸めない。**"""
+    """Translate a GPU count into a resource type. **Never round silently.**
+
+    Rounding would run the job on resources nobody asked for, which changes
+    results without anyone noticing.
+    """
     if gpus not in RESOURCE_BY_GPUS:
         raise ValueError(
-            f"GPU {gpus} 基に対応する資源タイプが表にありません。"
-            f"使えるのは {sorted(RESOURCE_BY_GPUS)}。"
-            "勝手に丸めると意図しない資源で走る")
+            f"no resource type is mapped to {gpus} GPU(s). "
+            f"available: {sorted(RESOURCE_BY_GPUS)}")
     return RESOURCE_BY_GPUS[gpus]
 
 
 def render_script(spec: JobSpec, group: str) -> str:
-    """投入スクリプトを組み立てる。副作用を持たないので単体で検証できる。"""
+    """Build the submission script. Pure, so it can be checked on its own.
+
+    Environment variables are emitted in sorted order: an unstable ordering
+    would make the generated script differ between runs for no reason, and
+    real differences would then be hard to spot.
+    """
     lines = [
         "#!/bin/bash",
         f"#PBS -q {resource_type(spec.gpus)}",
@@ -54,20 +63,21 @@ class Backend(_Backend):
         self.script_dir = Path(script_dir)
 
     def is_available(self) -> bool:
-        """**推測せず実際に確かめる。** 投入コマンドが無ければ使えない。"""
+        """**Check, do not assume.** Without the submit command, this is unusable."""
         return shutil.which("qsub") is not None
 
     def submit(self, spec: JobSpec) -> JobResult:
         if not self.is_available():
             raise RuntimeError(
-                "この環境では投入コマンドが見つかりません。"
-                "手元で動かすなら platforms/local を使ってください")
+                "the submit command is not present in this environment. "
+                "To run here and now, use the local backend instead")
         self.script_dir.mkdir(parents=True, exist_ok=True)
         path = self.script_dir / f"{spec.name}.sh"
         path.write_text(render_script(spec, self.group), encoding="utf-8")
         r = subprocess.run(["qsub", str(path)], capture_output=True, text=True)
         if r.returncode != 0:
-            raise RuntimeError(f"投入に失敗しました: {r.stderr.strip()}")
-        # 投入しただけなので終了コードはまだ分からない。**0 と偽らない。**
+            raise RuntimeError(f"submission failed: {r.stderr.strip()}")
+        # The job was only enqueued, so the outcome is genuinely unknown.
+        # **Do not claim 0.**
         return JobResult(job_id=r.stdout.strip(), exit_status=None,
                          log_path=str(path))

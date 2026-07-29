@@ -1,63 +1,115 @@
 # 10 Year Visual SSL
 
-過去10年の視覚ドメイン自己教師あり学習（SSL）手法を、**ABCI 以外の一般的な
-環境で動く形**に移植した公開用パッケージ。ABCI 対応は疎結合なモジュールとして
-分離し、コアが ABCI を前提としない。
+Ten years of visual-domain self-supervised learning (SSL) methods, ported to
+**run in ordinary environments rather than on one specific supercomputer**.
+Support for ABCI is separated into a loosely coupled module; the core does not
+assume it.
 
-**現在 private。監査後に公開する。**
+**Currently private. It will be published after an audit.**
 
-## 状態
+## What this optimises for
 
-| 部品 | 状態 |
+1. **Reproducibility.** A result that cannot be reproduced is not a result.
+   Every run records the configuration that actually ran, the artifacts it
+   produced, and their hashes, and `bin/contract-test.py` decides by machine
+   whether that record is complete and self-consistent
+2. **Loose coupling to any compute facility.** The default is your own
+   machine, and that path is complete on its own
+
+## Status
+
+| Component | Status |
 |---|---|
-| `bin/contract-test.py` | **実装・テスト済み**。移植完了を機械で判定する |
-| `platforms/` | **実装・テスト済み**。実行基盤の分離。`local` だけで完結する |
-| アダプタ | 未着手。パイロットは `1_context_prediction` と `VideoGen`(LTX-2) |
-| ランチャ | 未着手 |
-| `LICENSE` | **MIT**（Copyright (c) 2026 LIMIT.Lab）|
+| `bin/contract-test.py` | **implemented and tested.** Decides by machine that a port is finished |
+| `platforms/` | **implemented and tested.** Platform separation; `local` is self-contained |
+| adapters | not started. Pilots are `1_context_prediction` and `VideoGen` (LTX-2) |
+| launcher | not started |
+| `LICENSE` | **MIT** (Copyright (c) 2026 LIMIT.Lab) |
 
-## ライセンス
+Because no adapter exists yet, there is no end-to-end reproduction procedure
+to run. The steps below are what exists and can be executed today; the
+reproduction procedure is written here once the first pilot lands.
 
-**このリポジトリのコードは MIT**（`LICENSE`、Copyright (c) 2026 LIMIT.Lab）。
+## Requirements
 
-ただし MIT が及ぶのは**我々が書いたコードだけ**である。
+Python 3.10 or newer, standard library only. Nothing to install.
 
-| 対象 | 扱い |
-|---|---|
-| 我々のコード | MIT |
-| 著者の公開コード | **複製しない。** pinned submodule で参照する。各リポジトリのライセンスがそのまま適用される |
-| 二次的著作物と判定したもの | **このリポジトリに含めない**（Capture 側 `official-manifest.txt` で `derivative` と判定した4件）|
+```bash
+python3 --version
+```
 
-著者リポジトリ31件のライセンスと扱いは Capture 側 `docs/INVENTORY.md` にある。
-**うち12件が非商用ライセンス。** submodule 参照なので再配布は発生しないが、
-**利用の可否は別途の判断が要る。**
+## Running the tests
 
-## 設計文書の在り処
-
-**設計の正は Capture 側リポジトリ**（`gatheluck/10YearVisualSSLCapturePrivate`、
-永久 private）にある。実装がこちらへ移っても出所を1つに保つため。
-
-| 文書 | 内容 |
-|---|---|
-| `docs/DESIGN.md` | 設計の哲学と根拠 |
-| `docs/CONTRACT.md` | **アダプタ契約** |
-| `docs/INVENTORY.md` | 著者リポジトリ31件の棚卸しと扱いの推奨 |
-
-## 実行基盤
-
-**特定の計算機環境での実行はオプショナル。** 既定は手元（`platforms/local`）で、
-それだけで完結する。基盤対応は疎結合なモジュールで、コアはどれも前提としない。
-
-分離は**機構で守っている** — `tests/test_platform_isolation.py`。
-詳細は [docs/PLATFORMS.md](docs/PLATFORMS.md)。
-
-## 開発の進め方
-
-厳格な TDD。**必ず終了コードで判定する。**
+**Decide by exit status.** Grepping the output for a success string misses
+failures.
 
 ```bash
 ./tests/run-tests.sh; echo "EXIT=$?"
-git config core.hooksPath .githooks   # clone ごとに1回
 ```
 
-規則は [CLAUDE.md](CLAUDE.md)。標準ライブラリのみで動く。
+Once per clone, so that the pre-commit hook is active:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+## Checking an adapter's output against the contract
+
+**`contract-test` is how "the port is finished" is decided by a machine**
+rather than by opinion.
+
+```bash
+python3 bin/contract-test.py --out <dir> --config <resolved.yaml> --exit-status <n>
+```
+
+**Success requires two signals to agree:** exit status 0 *and* `status: "ok"`
+in `run_manifest.json`. Neither is trusted alone — on the Capture side a gate
+once returned exit 0 while reporting detected secrets.
+
+The tool also refuses any file in `--out` that the manifest does not list. An
+output nobody knows about is a hole in reproducibility.
+
+## Execution platforms
+
+**Running on any particular compute facility is optional.** The default is
+your own machine (`platforms/local`), and that path is complete on its own.
+Platform support lives in loosely coupled modules, and the core assumes none
+of them.
+
+The separation is **held by machinery** —
+`tests/test_platform_isolation.py`. See [docs/PLATFORMS.md](docs/PLATFORMS.md).
+
+## License
+
+**The code in this repository is MIT** (`LICENSE`,
+Copyright (c) 2026 LIMIT.Lab).
+
+MIT covers **only the code we wrote**.
+
+| Subject | Treatment |
+|---|---|
+| our code | MIT |
+| authors' published code | **never copied.** Referenced as a pinned submodule; each repository's own license applies unchanged |
+| anything judged a derivative work | **not included here** (the 4 entries marked `derivative` in `official-manifest.txt` on the Capture side) |
+
+Licenses and treatment for all 31 author repositories are in
+`docs/INVENTORY.md` on the Capture side. **Twelve of them are
+non-commercial.** Referencing by submodule means no redistribution occurs,
+but **whether they may be used is a separate judgement.**
+
+## Where the design lives
+
+**The design of record is the Capture repository**
+(`gatheluck/10YearVisualSSLCapturePrivate`, private forever), so that there is
+one origin even as the implementation moves here.
+
+| Document | Contents |
+|---|---|
+| `docs/DESIGN.md` | the philosophy and the reasoning |
+| `docs/CONTRACT.md` | **the adapter contract** |
+| `docs/INVENTORY.md` | inventory of the 31 author repositories and recommended treatment |
+
+## Development
+
+Strict TDD. The rules are in [CLAUDE.md](CLAUDE.md). Everything in this
+repository is written in English, enforced by `tests/test_language.py`.

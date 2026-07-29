@@ -1,12 +1,12 @@
-"""実行基盤の解決。**コアは特定の基盤の名前を持たない。**
+"""Backend resolution. **The core does not know any backend by name.**
 
-名前から動的に読み込む。ここに基盤名を並べた表を置くと、
-その時点でコアが基盤を知ってしまう。
+Backends are looked up dynamically. Keeping a hard-coded list here would mean
+the core knows which machines exist, which is exactly what we are avoiding.
 
     from platforms import load_backend
-    backend = load_backend("local")     # 名前は利用者が渡す
+    backend = load_backend(name)     # the caller supplies the name
 
-`tests/test_platform_isolation.py` がこの分離を機構で守る。
+``tests/test_platform_isolation.py`` enforces this separation.
 """
 
 from __future__ import annotations
@@ -21,22 +21,22 @@ __all__ = ["Backend", "JobSpec", "JobResult", "load_backend",
 
 
 def available_backends() -> list[str]:
-    """`platforms/<name>/backend.py` があるものを列挙する。
+    """Every directory under ``platforms/`` that provides ``backend.py``.
 
-    表を持たない。**足したら自動で見つかる。**
+    There is no table to maintain. **Drop one in and it is found.**
     """
     here = Path(__file__).resolve().parent
     return sorted(p.parent.name for p in here.glob("*/backend.py"))
 
 
 def load_backend(name: str):
-    """名前から基盤モジュールを読み込む。
+    """Import a backend module by name.
 
-    見つからないときは、**何が使えるのかを添えて**落とす。
-    「使えません」だけでは利用者が次に何をすべきか分からない。
+    When it is missing, **say what is available**. "Not found" on its own
+    leaves the caller with nothing to act on.
     """
     if name not in available_backends():
         raise ValueError(
-            f"そのような実行基盤はありません: {name!r}。"
-            f"使えるのは {available_backends()}")
+            f"no such execution backend: {name!r}. "
+            f"available: {available_backends()}")
     return importlib.import_module(f"{__name__}.{name}.backend")
