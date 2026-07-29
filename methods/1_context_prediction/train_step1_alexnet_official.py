@@ -163,6 +163,24 @@ def resolve_device(requested: str, local_rank: int) -> torch.device:
     return torch.device("cpu")
 
 
+def make_deterministic() -> None:
+    """Ask torch for reproducible kernels.
+
+    **Added during the port.** Without it torch may choose a kernel by timing,
+    and two runs of the same config on the same machine can differ in the last
+    bits. That defeats the one guarantee that is actually achievable: same
+    environment, same config, same result.
+
+    `warn_only=True` deliberately. An operation with no deterministic
+    implementation then warns instead of aborting, which keeps the method
+    runnable while still saying, in the run's own output, that a step was not
+    reproducible. Aborting would trade a recorded caveat for an unusable port.
+    """
+    torch.use_deterministic_algorithms(True, warn_only=True)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+
 def run(args) -> dict:
     """The original body, unchanged apart from the device and the return.
 
@@ -185,6 +203,7 @@ def run(args) -> dict:
     # num_workers=0 it does not run at all. Measured on CPU, two runs of the
     # same config produced different weights. This changes no distribution --
     # only whether the same draw can be repeated.
+    make_deterministic()
     torch.manual_seed(args.seed)
     random.seed(args.seed)
     np.random.seed(args.seed % 2**32)

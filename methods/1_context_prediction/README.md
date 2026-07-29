@@ -149,26 +149,45 @@ mistake for every method.
 
 ### Any Linux, a laptop, or a cloud VM (CPU)
 
-Verified: this is the path the port was checked on.
+Verified: this is the path the port was checked on, and the environment it
+produces is byte-for-byte the lock file.
 
 ```bash
 python3 -m venv .venv && . .venv/bin/activate
-pip install --index-url https://download.pytorch.org/whl/cpu \
+pip install --require-hashes \
+    --index-url https://download.pytorch.org/whl/cpu \
     --extra-index-url https://pypi.org/simple \
-    -r methods/1_context_prediction/requirements.lock.txt
+    -r methods/1_context_prediction/requirements.lock.txt \
+    -r requirements-tools.lock.txt
 ```
 
 Nothing about it is distribution-specific: a `python3-venv` package and pip
 are all it assumes. On Ubuntu that is `apt install python3-venv`.
 
-### With a GPU
+Use the interpreter named in `.python-version` at the repository root. The
+lock holds cp312 wheels and will not install on another minor version.
 
-The same versions, from the CUDA wheel index instead of the CPU one — for
-example `https://download.pytorch.org/whl/cu121` to match the CUDA 12.1 the
-capture's conda script asked for.
+To confirm the environment is exactly the lock and not merely compatible with
+it:
 
-**Not verified here**: this machine has no GPU, so the CUDA build was never
-installed or run. Only the CPU path above was measured.
+```bash
+diff <(pip freeze | sort) <(grep -E '^[A-Za-z]' methods/1_context_prediction/requirements.lock.txt | sed 's/ \\$//' | sort)
+```
+
+### Rebuilding the lock
+
+When a version has to move, regenerate rather than hand-edit — a hash typed by
+hand is a hash nobody checked:
+
+```bash
+pip freeze | sort > /tmp/closure.txt
+pip download -d /tmp/w --no-deps -r /tmp/closure.txt
+pip download -d /tmp/w --no-deps --only-binary=:all: --platform manylinux_2_28_x86_64 --python-version 3.12 --implementation cp --abi cp312 -r /tmp/closure.txt
+```
+
+then hash each wheel with `shasum -a 256` and list every distinct digest under
+its package. `tests/test_method_requirements.py` fails if any entry loses its
+hash, if the lock stops being a closure, or if a version is not exact.
 
 ### On the cluster
 
@@ -177,6 +196,36 @@ The captured `setup_conda_env.sh` built a conda environment named
 not come across, because it hard-codes cluster paths and a
 `scripts/activate_runtime.sh` that only exists there. The venv path above
 works on a login node as well, since it needs nothing outside pip.
+
+### What reproducibility means here
+
+**Guaranteed: the same environment and the same config give the same bits.**
+`tests/test_method_1_context_prediction.py` measures it — two runs, compared
+by the hash of `encoder.pt`. Holding it took work: the training data stream
+was unseeded (see above), and torch was free to pick kernels by timing until
+`make_deterministic()` was added.
+
+**Not guaranteed, and not achievable: agreement across different hardware.**
+Floating-point addition is not associative, so a different instruction set,
+BLAS or cuDNN reorders the arithmetic and the last bits move. No amount of
+pinning changes that.
+
+**Therefore what must always hold: a difference is explainable.**
+`run_manifest.json` records every installed package and its version, a
+`packages_sha256` over the lot, and the system and machine. Two runs that
+disagree can be compared and the reason found.
+
+Set deliberately, in `make_deterministic()`:
+`torch.use_deterministic_algorithms(True, warn_only=True)`,
+`cudnn.deterministic = True`, `cudnn.benchmark = False`, and
+`CUBLAS_WORKSPACE_CONFIG` from the adapter's entry point, before any CUDA
+context exists. `warn_only=True` is a choice: an operation with no
+deterministic kernel then warns in the run's own output instead of aborting,
+which keeps the method usable while still saying that a step was not
+reproducible.
+
+**Not verified**: none of the CUDA-specific settings has been exercised. This
+machine has no GPU.
 
 ### **What cannot be reproduced, and why**
 

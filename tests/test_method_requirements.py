@@ -64,15 +64,32 @@ def imported_modules(method: Path) -> set[str]:
             if m and m not in sys.stdlib_module_names and m not in LOCAL}
 
 
+def _canon(name: str) -> str:
+    """Distribution names compare case- and separator-insensitively."""
+    return re.sub(r"[-_.]+", "-", name).strip().lower()
+
+
+def requirement_lines(path: Path) -> list[str]:
+    """Requirement lines, with hash continuations folded back in.
+
+    A hashed lock spreads one requirement over several lines with trailing
+    backslashes. Reading it line by line makes a hash look like a requirement
+    that is not pinned -- which is exactly how one of these checks first
+    failed. The rule lives here once so both callers agree.
+    """
+    text = path.read_text(encoding="utf-8").replace("\\\n", " ")
+    out = []
+    for line in text.splitlines():
+        line = line.split("#", 1)[0].strip()
+        if line and not line.startswith("-"):
+            out.append(line)
+    return out
+
+
 def declared_packages(req: Path) -> set[str]:
     """Distribution names in a requirements file, without version specifiers."""
-    out = set()
-    for line in req.read_text(encoding="utf-8").splitlines():
-        line = line.split("#", 1)[0].strip()
-        if not line or line.startswith("-"):
-            continue
-        out.add(re.split(r"[<>=!~\[]", line, 1)[0].strip().lower())
-    return out
+    return {re.split(r"[<>=!~\[]", line, 1)[0].strip().lower()
+            for line in requirement_lines(req)}
 
 
 class TestEveryMethodDeclaresWhatItImports(unittest.TestCase):
@@ -150,11 +167,12 @@ class TestTheOptionalToolingDependency(unittest.TestCase):
         extra, and it buys exactly one thing: YAML authoring."""
         self.assertEqual(declared_packages(self.TOOLS), {"pyyaml"})
 
-    def test_the_tooling_lock_is_exact(self):
-        for line in self.LOCK.read_text(encoding="utf-8").splitlines():
-            line = line.split("#", 1)[0].strip()
-            if line:
-                self.assertIn("==", line, f"{line!r} is not pinned")
+    def test_the_tooling_lock_is_exact_and_hashed(self):
+        lines = requirement_lines(self.LOCK)
+        self.assertTrue(lines, "the tooling lock is empty")
+        for line in lines:
+            self.assertIn("==", line, f"{line!r} is not pinned")
+            self.assertIn("--hash=sha256:", line, f"{line!r} has no hash")
 
     def test_no_method_declares_it(self):
         """It is the launcher's dependency. A method that declared it would
@@ -164,6 +182,113 @@ class TestTheOptionalToolingDependency(unittest.TestCase):
             if req.is_file():
                 with self.subTest(method=m.name):
                     self.assertNotIn("pyyaml", declared_packages(req))
+
+
+class TestTheInterpreterIsPinnedToo(unittest.TestCase):
+    """A lock over packages says nothing about the interpreter running them.
+
+    Nothing in this repository constrained the Python version: no
+    `.python-version`, no `requires-python`, nothing. The same pinned torch
+    behaves differently on a different interpreter, and the lock would have
+    looked satisfied either way.
+    """
+
+    VERSION_FILE = ROOT / ".python-version"
+
+    def test_the_interpreter_version_is_declared(self):
+        self.assertTrue(self.VERSION_FILE.is_file(),
+                        "no .python-version: the interpreter is unconstrained")
+
+    def test_it_is_an_exact_version(self):
+        text = self.VERSION_FILE.read_text(encoding="utf-8").strip()
+        self.assertRegex(text, r"^\d+\.\d+\.\d+$",
+                         f"{text!r} is not an exact version")
+
+    def test_the_declared_minor_matches_what_the_locks_were_built_for(self):
+        """A lock holds wheels built for one ABI. Declaring 3.11 while the
+        wheels are cp312 would install nothing."""
+        declared = self.VERSION_FILE.read_text(encoding="utf-8").strip()
+        major_minor = ".".join(declared.split(".")[:2])
+        for m in method_dirs():
+            lock = m / "requirements.lock.txt"
+            if not lock.is_file():
+                continue
+            text = lock.read_text(encoding="utf-8")
+            if "cp3" in text:
+                with self.subTest(method=m.name):
+                    tag = "cp" + major_minor.replace(".", "")
+                    self.assertIn(tag, text,
+                                  f"the lock holds no {tag} wheels")
+
+
+class TestTheLockIsAClosure(unittest.TestCase):
+    """A lock that names only the direct requirements is not a lock.
+
+    Measured before this: the file pinned 3 packages while 12 were installed.
+    The nine that floated included torch's own dependencies.
+    """
+
+    def test_the_lock_names_more_than_the_direct_requirements(self):
+        for m in method_dirs():
+            req, lock = m / "requirements.txt", m / "requirements.lock.txt"
+            if not (req.is_file() and lock.is_file()):
+                continue
+            with self.subTest(method=m.name):
+                direct, locked = declared_packages(req), declared_packages(lock)
+                self.assertGreater(
+                    len(locked), len(direct),
+                    f"{m.name}: the lock has {len(locked)} packages and the "
+                    f"direct requirements have {len(direct)}; transitive "
+                    "dependencies are not pinned")
+
+    def test_the_lock_contains_the_dependencies_of_what_it_locks(self):
+        """Closure, checked against the packages' own metadata.
+
+        Counting entries was not enough: deleting one transitive dependency
+        left the count above the direct requirements and nothing failed. This
+        reads each locked package's `Requires-Dist` and demands the result be
+        present too.
+
+        Only unconditional requirements are followed. Anything behind an
+        environment marker or an extra may legitimately be absent, and
+        evaluating markers needs a package we do not have.
+        """
+        import importlib.metadata as md
+        for m in method_dirs():
+            lock = m / "requirements.lock.txt"
+            if not lock.is_file():
+                continue
+            locked = {_canon(x) for x in declared_packages(lock)}
+            checked = 0
+            for name in sorted(locked):
+                try:
+                    reqs = md.requires(name) or []
+                except md.PackageNotFoundError:
+                    continue          # not installed here; nothing to read
+                checked += 1
+                for raw in reqs:
+                    if ";" in raw:    # marker or extra: may not apply
+                        continue
+                    dep = _canon(re.split(r"[<>=!~\[ (]", raw, 1)[0])
+                    with self.subTest(method=m.name, package=name, needs=dep):
+                        self.assertIn(
+                            dep, locked,
+                            f"{name} requires {dep}, which the lock omits; "
+                            "the lock is not a closure")
+            if checked == 0:
+                self.skipTest(f"{m.name}: none of its packages are installed "
+                              "here, so the closure cannot be read")
+
+    def test_every_locked_package_carries_a_hash(self):
+        """Without hashes a version can be replaced under the same name."""
+        for m in method_dirs():
+            lock = m / "requirements.lock.txt"
+            if not lock.is_file():
+                continue
+            for line in requirement_lines(lock):
+                with self.subTest(method=m.name, package=line.split("==")[0]):
+                    self.assertIn("--hash=sha256:", line,
+                                  f"{line.split('==')[0]} has no hash")
 
 
 class TestVersionsArePinned(unittest.TestCase):
@@ -188,13 +313,12 @@ class TestVersionsArePinned(unittest.TestCase):
             lock = m / "requirements.lock.txt"
             if not lock.is_file():
                 continue
-            for line in lock.read_text(encoding="utf-8").splitlines():
-                line = line.split("#", 1)[0].strip()
-                if not line or line.startswith("-"):
-                    continue
-                with self.subTest(method=m.name, line=line):
-                    self.assertRegex(
-                        line, r"==",
+            lines = requirement_lines(lock)
+            self.assertTrue(lines, f"{m.name}: the lock is empty")
+            for line in lines:
+                with self.subTest(method=m.name, line=line.split()[0]):
+                    self.assertIn(
+                        "==", line,
                         f"{line!r} is not pinned; a lock file states exactly "
                         "one version")
 
