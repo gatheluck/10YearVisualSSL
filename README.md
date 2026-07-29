@@ -32,6 +32,42 @@ part of the chain that does exist — turning a configuration into the exact
 bytes a run is identified by — is complete, and every command below was run to
 produce the output shown.
 
+## Repository layout
+
+Marked so it cannot overstate what is here: **exists** is in the tree and
+under test; **planned** is not written yet.
+
+```
+bin/                       command-line tools
+  resolve-config.py        authoring config -> canonical resolved JSON   exists
+  contract-test.py         decides by machine that a port is finished    exists
+adapterlib/                the one place a run_manifest.json is written  exists
+methods/                   one directory per method
+  _reference/              a known-good adapter that trains nothing      exists
+    adapter/               python -m adapter --config ... --out ...
+  1_context_prediction/    first pilot                                   planned
+    adapter/                 the port
+    configs/                 authoring configs, YAML or JSON
+    upstream/                pinned submodule to the authors' repository
+  VideoGen/                second pilot (LTX-2)                          planned
+platforms/                 where a job runs. Loosely coupled             exists
+  base.py                  the shared interface, free of platform terms
+  local/                   this machine. The default, self-contained
+  abci/                    optional
+launcher/                  resolves, submits, collects                   planned
+configs/                   shared bases that methods include             planned
+runs/                      run outputs. Not tracked                      planned
+docs/
+  PLATFORMS.md             the platform separation                       exists
+tests/                     one file per unit, plus the end-to-end chain  exists
+```
+
+The design of record is not here — see *Where the design lives* below.
+
+**`methods/_reference` is not an example that might rot.** It is exercised by
+`tests/test_end_to_end.py` through the real chain, so a later adapter can copy
+something known to pass.
+
 ## Requirements
 
 Python 3.10 or newer. **The core needs nothing installed**; it is standard

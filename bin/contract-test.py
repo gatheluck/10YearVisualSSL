@@ -138,15 +138,34 @@ def check(out: Path, config: Path, exit_status: int | None = None
             bad("artifact-bytes",
                 f"size differs from what was recorded: {rel}")
 
+    # A run that reported failure has no outputs to show, because that is
+    # what failing means (CONTRACT section 4). Its integrity is still checked
+    # below -- whatever it did write must be described correctly -- but the
+    # required-file checks belong to a run that claims to have succeeded.
+    failed = status == "failed"
+    reason = man.get("encoder_absent_reason")
+    has_reason = isinstance(reason, str) and reason.strip() != ""
+
     if not (out / ENCODER).is_file():
-        bad("encoder-missing", f"{ENCODER} is absent")
+        # CONTRACT section 3: a method that cannot produce one may say so.
+        # Not producing one quietly is what is forbidden.
+        if not failed and not has_reason:
+            bad("encoder-missing",
+                f"{ENCODER} is absent and no encoder_absent_reason is "
+                "recorded; a method that produces none may say so, but not "
+                "silently")
+    elif has_reason:
+        bad("encoder-contradiction",
+            f"{ENCODER} exists, yet encoder_absent_reason says {reason!r}; "
+            "the two statements contradict each other")
     elif roles.get(ENCODER) != "encoder":
         bad("encoder-role",
             f"{ENCODER} is not registered under the role 'encoder'")
 
     mp = out / METRICS
     if not mp.is_file():
-        bad("metrics-missing", f"{METRICS} is absent")
+        if not failed:
+            bad("metrics-missing", f"{METRICS} is absent")
     else:
         try:
             m = json.loads(mp.read_text(encoding="utf-8"))

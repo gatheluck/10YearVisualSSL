@@ -219,6 +219,80 @@ class TestArtifacts(Base):
         self.assertIn("encoder-role", [v["kind"] for v in rep["violations"]])
 
 
+class TestAnEncoderThatCannotBeProduced(Base):
+    """CONTRACT section 3: some methods produce no encoder.
+
+    Saying so is allowed. Not producing one quietly is not. Before this, the
+    tool refused every absent encoder, which contradicted the contract it is
+    supposed to enforce.
+    """
+
+    def test_absent_with_a_recorded_reason_passes(self):
+        self.make_run(drop=("encoder.pt",),
+                      encoder_absent_reason="this stage trains no encoder")
+        rc, rep = self.check()
+        self.assertEqual(rc, 0, rep["violations"])
+
+    def test_absent_with_no_reason_still_fails(self):
+        self.make_run(drop=("encoder.pt",))
+        rc, rep = self.check()
+        self.assertEqual(rc, 1)
+        self.assertIn("encoder-missing", [v["kind"] for v in rep["violations"]])
+
+    def test_an_empty_reason_does_not_count(self):
+        """A blank string is not an explanation."""
+        self.make_run(drop=("encoder.pt",), encoder_absent_reason="")
+        self.assertEqual(self.check()[0], 1)
+
+    def test_a_reason_alongside_a_real_encoder_is_refused(self):
+        """The two statements contradict each other."""
+        self.make_run(encoder_absent_reason="none produced")
+        rc, rep = self.check()
+        self.assertEqual(rc, 1)
+        self.assertIn("encoder-contradiction",
+                      [v["kind"] for v in rep["violations"]])
+
+
+class TestAFailedRunIsJudgedAsAFailedRun(Base):
+    """CONTRACT section 4: exit != 0 with `failed` is a correctly reported
+    failure, not a contract violation.
+
+    A run that died before saving anything has no encoder and no metrics. That
+    is what dying means; reporting it as a breach of contract buries the real
+    reason under noise.
+    """
+
+    def test_missing_outputs_are_not_violations_when_the_run_failed(self):
+        self.make_run(status="failed", drop=("encoder.pt", "metrics.json"))
+        rc, rep = self.check(exit_status=1)
+        self.assertEqual(rep["violations"], [])
+        self.assertEqual(rc, 1)
+        self.assertEqual(rep["status"], "failed")
+
+    def test_integrity_is_still_checked_on_a_failed_run(self):
+        """Whatever it *did* write must still be described correctly."""
+        self.make_run(status="failed", drop=("encoder.pt",))
+        (self.out / "metrics.json").write_bytes(b"tampered")
+        rc, rep = self.check(exit_status=1)
+        self.assertEqual(rc, 1)
+        self.assertIn("artifact-sha256", [v["kind"] for v in rep["violations"]])
+
+    def test_unlisted_files_are_still_caught_on_a_failed_run(self):
+        self.make_run(status="failed", drop=("encoder.pt",),
+                      extra_files={"stray.log": b"x"})
+        rc, rep = self.check(exit_status=1)
+        self.assertIn("unlisted-file", [v["kind"] for v in rep["violations"]])
+
+    def test_a_successful_run_still_needs_its_outputs(self):
+        """The relaxation must not leak into the success path."""
+        self.make_run(status="ok", drop=("encoder.pt", "metrics.json"))
+        rc, rep = self.check(exit_status=0)
+        self.assertEqual(rc, 1)
+        kinds = [v["kind"] for v in rep["violations"]]
+        self.assertIn("encoder-missing", kinds)
+        self.assertIn("metrics-missing", kinds)
+
+
 class TestNoUnlistedFiles(Base):
     """An output nobody knows about is a hole. Same idea as the capture index."""
 
