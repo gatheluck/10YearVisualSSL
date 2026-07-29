@@ -22,6 +22,7 @@ Three things it refuses rather than guesses:
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from argparse import Namespace
 from pathlib import Path
@@ -186,6 +187,10 @@ def body(ctx: adapterlib.Context) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
+    # cuBLAS reads this once, when the CUDA context is created. Setting it
+    # later has no effect, so it happens here rather than inside the training
+    # run: without it, cuBLAS reductions are free to vary between runs.
+    os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--config", required=True)
     ap.add_argument("--out", required=True)

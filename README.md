@@ -152,10 +152,12 @@ python3 -m pip install pyyaml     # only if you want to author in YAML
 never mistaken for a passing one.
 
 **Each method declares its own training dependencies**, in its
-`requirements.txt` (which packages) and `requirements.lock.txt` (exact
-versions). `tests/test_method_requirements.py` checks a method's declarations
-against what it actually imports, in both directions, and refuses an unpinned
-lock file. The core never imports any of them.
+`requirements.txt` (which packages) and `requirements.lock.txt` (**the full
+closure**, every version exact and every wheel hashed). The interpreter is
+pinned in `.python-version`. `tests/test_method_requirements.py` checks a
+method's declarations against what it actually imports, in both directions,
+refuses a lock that is not a closure, and refuses an entry without a hash. The
+core never imports any of them.
 
 ## Reproducibility: the resolved config
 
@@ -254,7 +256,7 @@ below need nothing installed.
 
 ```bash
 python3 -m venv .venv && . .venv/bin/activate
-pip install --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple -r methods/1_context_prediction/requirements.lock.txt -r requirements-tools.lock.txt
+pip install --require-hashes --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple -r methods/1_context_prediction/requirements.lock.txt -r requirements-tools.lock.txt
 ```
 
 Swap the index for a CUDA one (`.../whl/cu121`) to get a GPU build at the same
@@ -308,6 +310,33 @@ once returned exit 0 while reporting detected secrets.
 
 The tool also refuses any file in `--out` that the manifest does not list. An
 output nobody knows about is a hole in reproducibility.
+
+## What reproducibility means here
+
+Worth stating plainly, because the honest answer is narrower than "it is
+reproducible".
+
+**Guaranteed — and measured.** The same environment and the same config give
+the same bits. `bin/resolve-config.py` makes a config identify itself by hash;
+each method's lock file pins the whole dependency closure with hashes and the
+interpreter is pinned; the ported training path asks torch for deterministic
+kernels; and the tests compare two runs by the hash of the artifact they
+produce.
+
+**Not guaranteed, and not achievable by any means.** Agreement across
+different hardware. Floating-point addition is not associative, so a different
+CPU, GPU, BLAS or cuDNN reorders the arithmetic and the low bits move. No
+amount of pinning changes this, and a project claiming otherwise is
+mismeasuring.
+
+**Therefore, what must always hold: a difference is explainable.** Every
+`run_manifest.json` records the complete set of installed packages with their
+versions, a `packages_sha256` over the lot, and the system and machine. When
+two runs disagree, the manifests say why.
+
+**Not verified.** Only CPU on macOS arm64 has been run end to end. The Linux
+wheels are hashed in the lock but were not executed here, and no CUDA build
+was installed, so the GPU determinism settings are unexercised.
 
 ## Execution platforms
 

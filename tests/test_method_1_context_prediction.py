@@ -483,6 +483,55 @@ class TestASmokeRun(Base):
         self.assertEqual(trainer.resolve_device("auto", 0).type, "cpu")
 
     @needs_torch
+    def test_deterministic_algorithms_are_demanded(self):
+        """**Same environment, same config, same bits** is the guarantee.
+
+        Without this, torch is free to pick a faster kernel whose reduction
+        order varies, and two runs on one machine can differ. Setting it is
+        not enough on its own -- `test_the_same_config_twice_gives_the_same_encoder`
+        measures the outcome -- but the outcome test is cheap to satisfy by
+        accident over two steps, and this is not.
+        """
+        trainer = load("train_step1_alexnet_official",
+                       METHOD / "train_step1_alexnet_official.py")
+        self.assertTrue(callable(trainer.make_deterministic))
+        # Set the opposite of what is wanted first. cudnn.benchmark is False
+        # by default, so asserting it afterwards proved nothing: removing the
+        # line that clears it changed no observable state.
+        torch.backends.cudnn.benchmark = True
+        torch.backends.cudnn.deterministic = False
+        self.addCleanup(torch.use_deterministic_algorithms, False)
+        self.addCleanup(setattr, torch.backends.cudnn, "benchmark", False)
+        trainer.make_deterministic()
+        self.assertTrue(torch.are_deterministic_algorithms_enabled())
+        self.assertFalse(torch.backends.cudnn.benchmark,
+                         "autotuning picks kernels by timing, which varies")
+        self.assertTrue(torch.backends.cudnn.deterministic)
+
+    def test_the_training_run_actually_calls_it(self):
+        """Structural, and needs no torch.
+
+        Setting the flags in a function nobody calls is the same as not
+        setting them. Two CPU steps are too few for the difference to show, so
+        the outcome test cannot catch this on its own.
+        """
+        import ast
+        src = (METHOD / "train_step1_alexnet_official.py").read_text()
+        run_fn = next(n for n in ast.parse(src).body
+                      if isinstance(n, ast.FunctionDef) and n.name == "run")
+        called = {n.func.id for n in ast.walk(run_fn)
+                  if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)}
+        self.assertIn("make_deterministic", called,
+                      "run() never asks for deterministic kernels")
+
+    @needs_torch
+    def test_the_cublas_workspace_is_configured_before_torch_is_used(self):
+        """CUBLAS_WORKSPACE_CONFIG has to be set before the CUDA context
+        exists, so the adapter sets it at entry, not mid-run."""
+        src = (METHOD / "adapter" / "__init__.py").read_text()
+        self.assertIn("CUBLAS_WORKSPACE_CONFIG", src)
+
+    @needs_torch
     def test_cpu_is_honoured_even_where_cuda_exists(self):
         """Pretend CUDA is there, because otherwise `cpu` and `auto` agree and
         dropping the explicit cpu branch changes nothing observable."""

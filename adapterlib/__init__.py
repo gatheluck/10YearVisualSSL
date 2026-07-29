@@ -42,8 +42,10 @@ Two kinds of failure, kept distinct:
 from __future__ import annotations
 
 import hashlib
+import importlib.metadata
 import json
 import os
+import platform
 import socket
 import sys
 import traceback
@@ -62,7 +64,7 @@ METRICS = "metrics.json"
 FIXED_ROLES = {ENCODER: "encoder", METRICS: "metrics"}
 DEFAULT_ROLE = "extra"
 
-__all__ = ["AdapterError", "Context", "run"]
+__all__ = ["AdapterError", "Context", "fingerprint", "run"]
 
 
 class AdapterError(Exception):
@@ -79,6 +81,34 @@ def _sha256(path: Path) -> str:
         for chunk in iter(lambda: f.read(1 << 20), b""):
             h.update(chunk)
     return h.hexdigest()
+
+
+def installed_packages() -> dict:
+    """Every distribution visible to this interpreter, and its version.
+
+    **This is what makes a difference between two runs explainable.** Bitwise
+    agreement across different hardware is not achievable for floating-point
+    work, so the guarantee is narrower and more useful: the same environment
+    reproduces, and when two runs disagree the manifests show why. Before
+    this, `env` held python and hostname alone -- nothing said which torch had
+    produced a result.
+    """
+    out = {}
+    for dist in importlib.metadata.distributions():
+        name = dist.metadata["Name"]
+        if name:
+            out[name] = dist.version or ""
+    return dict(sorted(out.items()))
+
+
+def fingerprint(packages: dict) -> str:
+    """One value for a whole environment, so two runs compare at a glance.
+
+    Sorted before hashing: two identical environments must not look different
+    because a directory happened to be walked in another order.
+    """
+    body = "\n".join(f"{k}=={v}" for k, v in sorted(packages.items()))
+    return hashlib.sha256(body.encode("utf-8")).hexdigest()
 
 
 def _is_number(v: Any) -> bool:
@@ -174,6 +204,21 @@ def _check_encoder(out: Path, reason: str | None) -> None:
             "3); not producing one quietly is not")
 
 
+def _environment() -> dict:
+    packages = installed_packages()
+    return {
+        "python": ".".join(str(x) for x in sys.version_info[:3]),
+        "implementation": platform.python_implementation(),
+        # Different instruction sets reorder floating-point work, so the
+        # machine is part of what identifies a result.
+        "system": platform.system(),
+        "machine": platform.machine(),
+        "hostname": socket.gethostname(),
+        "packages": packages,
+        "packages_sha256": fingerprint(packages),
+    }
+
+
 def run(*, config: Path, out: Path, method: str, stage: str,
         body: Callable[[Context], None],
         upstream: dict | None = None,
@@ -215,8 +260,7 @@ def run(*, config: Path, out: Path, method: str, stage: str,
         "finished_at": finished_at,
         "seed": cfg["seed"],
         "world_size": world_size,
-        "env": {"python": ".".join(str(x) for x in sys.version_info[:3]),
-                "hostname": socket.gethostname()},
+        "env": _environment(),
         "upstream": upstream,
         "artifacts": _collect(out),
     }

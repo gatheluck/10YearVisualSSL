@@ -116,6 +116,54 @@ class TestSuccessPath(Base):
         self.assertEqual(self.manifest()["env"]["python"],
                          ".".join(str(x) for x in sys.version_info[:3]))
 
+    def test_the_installed_packages_are_recorded(self):
+        """**A run that cannot say which torch produced it is not a record.**
+
+        `env` held only python and hostname, so nothing in the manifest
+        identified the environment -- while CONTRACT section 3 shows the
+        library version in the example. Bitwise agreement across machines is
+        not achievable for floating-point work; knowing the environments
+        differed is, and it is the whole of what makes a difference
+        explainable.
+        """
+        self.run_ok()
+        pkgs = self.manifest()["env"]["packages"]
+        self.assertIsInstance(pkgs, dict)
+        self.assertTrue(pkgs, "no packages were recorded")
+        # unittest is standard library, so something installed must appear:
+        # the interpreter always has at least pip or setuptools available in
+        # the environments this runs in.
+        for name, version in pkgs.items():
+            self.assertIsInstance(name, str)
+            self.assertIsInstance(version, str)
+
+    def test_the_package_set_has_a_fingerprint(self):
+        """One value to compare, so two runs can be told apart at a glance."""
+        self.run_ok()
+        env = self.manifest()["env"]
+        want = adapterlib.fingerprint(env["packages"])
+        self.assertEqual(env["packages_sha256"], want)
+        self.assertRegex(env["packages_sha256"], r"^[0-9a-f]{64}$")
+
+    def test_the_fingerprint_changes_with_the_packages(self):
+        """A constant would satisfy the test above."""
+        a = adapterlib.fingerprint({"torch": "2.0.1"})
+        b = adapterlib.fingerprint({"torch": "2.1.0"})
+        self.assertNotEqual(a, b)
+
+    def test_the_fingerprint_ignores_ordering(self):
+        """Two identical environments must not look different."""
+        self.assertEqual(adapterlib.fingerprint({"a": "1", "b": "2"}),
+                         adapterlib.fingerprint({"b": "2", "a": "1"}))
+
+    def test_the_platform_is_recorded(self):
+        """x86_64 and arm64 give different floating-point results. The
+        manifest has to say which one ran."""
+        self.run_ok()
+        env = self.manifest()["env"]
+        for key in ("system", "machine"):
+            self.assertTrue(env.get(key), f"{key} is not recorded")
+
     def test_world_size_defaults_to_one(self):
         self.run_ok(env={})
         self.assertEqual(self.manifest()["world_size"], 1)
