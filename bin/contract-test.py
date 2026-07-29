@@ -5,13 +5,15 @@
 opinion.** The contract itself is defined in the Capture repository, in
 `docs/CONTRACT.md`, which is the single source of truth.
 
-    contract-test.py --out <dir> --config <resolved.yaml> [--exit-status N]
+    contract-test.py --out <dir> --config <resolved.json> [--exit-status N]
 
 What is checked (CONTRACT.md section 5):
 
   1. the required files are present
   2. `run_manifest.json` parses and carries every required field
-  3. `config_sha256` matches the config that was actually handed in
+  3. `config_sha256` matches the config that was actually handed in.
+     The config is the canonical JSON produced by `resolve-config.py`;
+     the hash is taken over its bytes, so this tool needs no parser
   4. every listed artifact exists, with matching `sha256` and `bytes`
   5. `encoder.pt` is registered under the role `encoder`
   6. `metrics.json` parses and every value is a number

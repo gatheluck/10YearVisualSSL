@@ -14,6 +14,13 @@ for f in bin/*.sh .githooks/*; do
   bash -n "$f"; echo "  ok $f"
 done
 echo
+# Optional dependencies are reported before the run, so that a skipped test
+# is never mistaken for a passing one. The machine-checked half of this lives
+# in bin/resolve-config.py, which refuses a YAML config loudly when PyYAML is
+# absent (tests/test_resolve_config.py).
+echo "== optional dependencies =="
+python3 -c 'import importlib.util as u; print("  PyYAML: " + ("present" if u.find_spec("yaml") else "absent -- YAML authoring is unavailable and its tests will be skipped"))'
+echo
 echo "== unit tests =="
 python3 -m unittest discover -s tests -v
 echo

@@ -116,7 +116,7 @@ worked" from impression. The contract is defined in `docs/CONTRACT.md` on the
 Capture side.
 
 ```bash
-python3 bin/contract-test.py --out <dir> --config <resolved.yaml> --exit-status <n>
+python3 bin/contract-test.py --out <dir> --config <resolved.json> --exit-status <n>
 ```
 
 **Success is exit status 0 *and* `status: ok` in the manifest.** Neither is

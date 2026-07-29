@@ -52,8 +52,8 @@ class Base(unittest.TestCase):
         self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
         self.out = self.tmp / "out"
         self.out.mkdir()
-        self.config = self.tmp / "resolved.yaml"
-        self.config.write_text("seed: 0\n", encoding="utf-8")
+        self.config = self.tmp / "resolved.json"
+        self.config.write_text('{"seed":0}\n', encoding="utf-8")
 
     def write_out(self, rel: str, data: bytes) -> dict:
         p = self.out / rel
@@ -178,7 +178,7 @@ class TestConfigIsTheOneThatRan(Base):
 
     def test_config_changed_after_the_run_is_detected(self):
         self.make_run()
-        self.config.write_text("seed: 999\n", encoding="utf-8")
+        self.config.write_text('{"seed":999}\n', encoding="utf-8")
         self.assertEqual(self.check()[0], 1)
 
 

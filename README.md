@@ -20,23 +20,105 @@ assume it.
 
 | Component | Status |
 |---|---|
+| `bin/resolve-config.py` | **implemented and tested.** Produces the canonical resolved config and its `config_sha256` |
 | `bin/contract-test.py` | **implemented and tested.** Decides by machine that a port is finished |
 | `platforms/` | **implemented and tested.** Platform separation; `local` is self-contained |
 | adapters | not started. Pilots are `1_context_prediction` and `VideoGen` (LTX-2) |
 | launcher | not started |
 | `LICENSE` | **MIT** (Copyright (c) 2026 LIMIT.Lab) |
 
-Because no adapter exists yet, there is no end-to-end reproduction procedure
-to run. The steps below are what exists and can be executed today; the
-reproduction procedure is written here once the first pilot lands.
+No adapter exists yet, so a full training run cannot be reproduced today. The
+part of the chain that does exist — turning a configuration into the exact
+bytes a run is identified by — is complete, and every command below was run to
+produce the output shown.
 
 ## Requirements
 
-Python 3.10 or newer, standard library only. Nothing to install.
+Python 3.10 or newer. **The core needs nothing installed**; it is standard
+library only, so it also runs on a login node that forbids extra packages.
 
 ```bash
 python3 --version
 ```
+
+Writing configs in YAML is optional and needs one package. JSON configs need
+nothing, and the resolved artifact is JSON either way.
+
+```bash
+python3 -m pip install pyyaml     # only if you want to author in YAML
+```
+
+`./tests/run-tests.sh` prints whether PyYAML is present, so a skipped test is
+never mistaken for a passing one.
+
+## Reproducibility: the resolved config
+
+**`config_sha256` is the hinge.** `run_manifest.json` claims that one
+configuration produced one result, and that claim is worth something only if
+the same configuration always hashes the same way. `bin/resolve-config.py`
+produces that canonical form.
+
+Write the authoring configs — `include` lets a method reuse a shared base:
+
+```bash
+mkdir -p configs && printf '{"seed":0,"optimizer":{"name":"sgd","lr":0.1,"momentum":0.9}}\n' > configs/base.json
+printf '{"include":["base.json"],"method":"1_context_prediction","optimizer":{"lr":0.03},"data_root":"${DATA_ROOT}"}\n' > configs/ctxpred.json
+```
+
+Resolve. Values come from `--set`, never from the environment:
+
+```bash
+python3 bin/resolve-config.py --config configs/ctxpred.json --out runs/demo/resolved.json --set DATA_ROOT=/mnt/data
+```
+
+```
+  wrote runs/demo/resolved.json
+  config_sha256 0639d99a22108b2548335912300c2905e1b05767feab17091a78ad4f0c47d813
+```
+
+The resolved file is one line, keys sorted, `include` gone, `${DATA_ROOT}`
+gone, and `optimizer.lr` overridden while `momentum` survives the merge:
+
+```json
+{"data_root":"/mnt/data","method":"1_context_prediction","optimizer":{"lr":0.03,"momentum":0.9,"name":"sgd"},"seed":0}
+```
+
+Check the hash with anything you like — it is a plain sha256 of those bytes:
+
+```bash
+shasum -a 256 runs/demo/resolved.json
+```
+
+To get the hash without writing anything:
+
+```bash
+python3 bin/resolve-config.py --config configs/ctxpred.json --print-hash --set DATA_ROOT=/mnt/data
+```
+
+### What it refuses, and why
+
+**The environment is never read.** A config that silently absorbs the machine
+it was resolved on is not reproducible, so an unset variable stops the run and
+nothing is written:
+
+```bash
+python3 bin/resolve-config.py --config configs/ctxpred.json --out /tmp/x.json; echo "EXIT=$?"
+```
+
+```
+  *** data_root: DATA_ROOT is not set. The environment is never consulted -- pass it with --set DATA_ROOT=<value>
+EXIT=1
+```
+
+It also refuses, by name: an `include` that is missing, cyclic, or reaches
+outside the config root; a duplicate key (one value would be dropped without a
+word); `NaN` and `Infinity`; and anything JSON cannot carry. Nothing is
+skipped quietly.
+
+**Why JSON and not YAML for the resolved file:** JSON has a canonical form
+reachable from the standard library, and YAML has neither. `gpus: 8` and
+`gpus: 8.0`, quoted and unquoted strings, differing key order — all change the
+bytes without changing the settings, which would make the hash meaningless.
 
 ## Running the tests
 
@@ -59,7 +141,7 @@ git config core.hooksPath .githooks
 rather than by opinion.
 
 ```bash
-python3 bin/contract-test.py --out <dir> --config <resolved.yaml> --exit-status <n>
+python3 bin/contract-test.py --out <dir> --config runs/demo/resolved.json --exit-status <n>
 ```
 
 **Success requires two signals to agree:** exit status 0 *and* `status: "ok"`
