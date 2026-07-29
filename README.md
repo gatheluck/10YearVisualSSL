@@ -34,32 +34,57 @@ produce the output shown.
 
 ## Repository layout
 
-Marked so it cannot overstate what is here: **exists** is in the tree and
-under test; **planned** is not written yet.
+`exists` is in the tree and under test. `planned` is not written yet, and is
+shown so the shape is visible before it is built.
 
 ```
-bin/                       command-line tools
-  resolve-config.py        authoring config -> canonical resolved JSON   exists
-  contract-test.py         decides by machine that a port is finished    exists
-adapterlib/                the one place a run_manifest.json is written  exists
-methods/                   one directory per method
-  _reference/              a known-good adapter that trains nothing      exists
-    adapter/               python -m adapter --config ... --out ...
-  1_context_prediction/    first pilot                                   planned
-    adapter/                 the port
-    configs/                 authoring configs, YAML or JSON
-    upstream/                pinned submodule to the authors' repository
-  VideoGen/                second pilot (LTX-2)                          planned
-platforms/                 where a job runs. Loosely coupled             exists
-  base.py                  the shared interface, free of platform terms
-  local/                   this machine. The default, self-contained
-  abci/                    optional
-launcher/                  resolves, submits, collects                   planned
-configs/                   shared bases that methods include             planned
-runs/                      run outputs. Not tracked                      planned
-docs/
-  PLATFORMS.md             the platform separation                       exists
-tests/                     one file per unit, plus the end-to-end chain  exists
+10YearVisualSSL/
+├── bin/                            command-line tools                exists
+│   ├── resolve-config.py             authoring config -> canonical resolved JSON
+│   └── contract-test.py              decides by machine that a port is finished
+├── adapterlib/                     the one place a run_manifest.json is written
+│   └── __init__.py                                                    exists
+├── methods/                        one directory per method
+│   ├── _reference/                   known-good adapter; trains nothing exists
+│   │   └── adapter/
+│   │       ├── __init__.py             the body: what this method does
+│   │       └── __main__.py             python -m adapter --config ... --out ...
+│   ├── 1_context_prediction/         first pilot                      planned
+│   │   ├── adapter/                    our code. Imports from third_party/
+│   │   └── configs/
+│   │       └── train.yaml              authoring config (YAML or JSON)
+│   └── VideoGen/                     second pilot, LTX-2              planned
+│       ├── adapter/
+│       └── configs/
+├── third_party/                    authors' code, untouched          planned
+│   ├── deepcontext/                  pinned submodule
+│   ├── ltx2/                         pinned submodule
+│   └── cosmos/                       pinned submodule, used by 2 methods
+├── platforms/                      where a job runs. Loosely coupled  exists
+│   ├── base.py                       the shared interface, free of platform terms
+│   ├── local/backend.py              this machine. The default, self-contained
+│   └── abci/backend.py               optional
+├── launcher/                       resolves, submits, collects        planned
+├── configs/                        shared bases that methods include  planned
+├── runs/                           run outputs. Not tracked           planned
+│   └── <run-id>/
+│       ├── resolved.json             the exact config that ran
+│       └── out/
+│           ├── encoder.pt
+│           ├── metrics.json
+│           └── run_manifest.json
+├── docs/
+│   └── PLATFORMS.md                  the platform separation          exists
+├── tests/                          one file per unit, plus the chain  exists
+│   ├── test_resolve_config.py
+│   ├── test_adapterlib.py
+│   ├── test_contract_test.py
+│   ├── test_end_to_end.py            resolve -> adapt -> verify, for real
+│   ├── test_language.py              everything here is in English
+│   └── test_repo_hygiene.py          nothing generated is tracked
+├── CLAUDE.md                       the working rules                  exists
+├── README.md
+└── LICENSE                         MIT, for our code only             exists
 ```
 
 The design of record is not here — see *Where the design lives* below.
@@ -67,6 +92,37 @@ The design of record is not here — see *Where the design lives* below.
 **`methods/_reference` is not an example that might rot.** It is exercised by
 `tests/test_end_to_end.py` through the real chain, so a later adapter can copy
 something known to pass.
+
+### Where third-party code goes
+
+**`third_party/<name>/`, one pinned submodule per upstream repository, and
+nothing of ours inside it.**
+
+The authors' tree is never edited. Everything we write about a method lives in
+`methods/<name>/adapter/`, which imports from the submodule:
+
+```
+third_party/deepcontext/          <- the authors' repository, at a pinned commit
+methods/1_context_prediction/
+    adapter/__init__.py           <- ours: imports deepcontext, writes the outputs
+```
+
+**One shared directory, not one per method,** because the originals already
+share: measured across the 31 recorded upstream repositories, `cosmos`
+(`444d86120a57`) and `vggt-omega` (`39a0cb8af885`) each appear under two
+different methods **at the same commit**. Per-method placement would make each
+of those two submodules, two clones, and two pins that can drift apart without
+anything noticing.
+
+It also settles a naming question the originals leave open. They spell the
+same idea four ways — `third_party/` (15), `external/` (7), `repo/` (5),
+`repos/` (4). One spelling here.
+
+Where a method needs the upstream code *changed*, the change is a branch on
+our fork and the submodule pins a commit on that branch, so this repository
+still contains no modified copy of anyone's work. Of the 31 recorded
+repositories, 24 are expected to need only an adapter and 7 a patch; the
+per-repository detail is in `docs/INVENTORY.md` on the Capture side.
 
 ## Requirements
 
