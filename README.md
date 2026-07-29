@@ -23,7 +23,9 @@ assume it.
 | `bin/resolve-config.py` | **implemented and tested.** Produces the canonical resolved config and its `config_sha256` |
 | `bin/contract-test.py` | **implemented and tested.** Decides by machine that a port is finished |
 | `platforms/` | **implemented and tested.** Platform separation; `local` is self-contained |
-| adapters | not started. Pilots are `1_context_prediction` and `VideoGen` (LTX-2) |
+| `methods/1_context_prediction` | **step 1 ported and tested.** Verified on CPU end to end; step 2 and linear eval not started |
+| `methods/VideoGen` (LTX-2) | second pilot, not started |
+| `adapterlib/` | **implemented and tested.** The one place a `run_manifest.json` is written |
 | launcher | not started |
 | `LICENSE` | **MIT** (Copyright (c) 2026 LIMIT.Lab) |
 
@@ -49,10 +51,13 @@ shown so the shape is visible before it is built.
 │   │   └── adapter/
 │   │       ├── __init__.py             the body: what this method does
 │   │       └── __main__.py             python -m adapter --config ... --out ...
-│   ├── 1_context_prediction/         first pilot                      planned
-│   │   ├── adapter/                    our code. Imports from third_party/
-│   │   └── configs/
-│   │       └── train.yaml              authoring config (YAML or JSON)
+│   ├── 1_context_prediction/         first pilot, step 1              exists
+│   │   ├── adapter/                    translates the config, calls the original
+│   │   ├── train_step1_alexnet_official.py   the original loop, extracted
+│   │   ├── models/ data/               untouched; digests pinned by tests
+│   │   ├── configs/step1.yaml          the settings the capture used
+│   │   ├── provenance.json             what came across, and what changed
+│   │   └── README.md                   the science, and the port's deviations
 │   └── VideoGen/                     second pilot, LTX-2              planned
 │       ├── adapter/
 │       └── configs/
