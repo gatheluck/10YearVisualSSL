@@ -1,0 +1,19 @@
+# Exact versions, so a recorded run can be rebuilt.
+#
+# **These are the versions this port was verified against**, on CPU:
+# resolve-config -> adapter -> contract-test, end to end, on synthetic images
+# (tests/test_method_1_context_prediction.py). Python 3.12.13.
+#
+# **They are not the versions the captured cluster runs used.** Those are not
+# recoverable: the environment directories were classified as artifacts and
+# never captured, and the capture's setup_conda_env.sh pins nothing
+# ("conda install pytorch torchvision ..."). It asked for Python 3.10 and
+# CUDA 12.1. Reproducing a cluster run byte for byte therefore needs the
+# versions read off the cluster, which has not been done.
+#
+# For a GPU build, install torch from the CUDA wheel index at the same
+# version rather than the default index. See README.md.
+
+torch==2.13.0
+numpy==2.4.4
+Pillow==12.2.0

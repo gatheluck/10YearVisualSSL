@@ -1,0 +1,14 @@
+# What this method imports, and nothing else.
+#
+# Checked mechanically by tests/test_method_requirements.py, in both
+# directions: an import that is not declared here fails, and a package
+# declared here that nothing imports fails too. The file that came across from
+# the capture listed timm, PyYAML, tensorboard and tqdm, which belong to the
+# legacy track and are never imported by this one.
+#
+# These are floors, and a floor is not a reproducible environment. Use
+# requirements.lock.txt to rebuild a run.
+
+torch>=2.0.0
+numpy>=1.24.0
+Pillow>=9.0.0
