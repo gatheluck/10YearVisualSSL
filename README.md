@@ -13,7 +13,23 @@
 | `bin/contract-test.py` | **実装・テスト済み**。移植完了を機械で判定する |
 | アダプタ | 未着手。パイロットは `1_context_prediction` と `VideoGen`(LTX-2) |
 | ランチャ | 未着手 |
-| `LICENSE` | **未定**。MIT の予定だが著作権表示をユーザーが決める |
+| `LICENSE` | **MIT**（Copyright (c) 2026 LIMIT.Lab）|
+
+## ライセンス
+
+**このリポジトリのコードは MIT**（`LICENSE`、Copyright (c) 2026 LIMIT.Lab）。
+
+ただし MIT が及ぶのは**我々が書いたコードだけ**である。
+
+| 対象 | 扱い |
+|---|---|
+| 我々のコード | MIT |
+| 著者の公開コード | **複製しない。** pinned submodule で参照する。各リポジトリのライセンスがそのまま適用される |
+| 二次的著作物と判定したもの | **このリポジトリに含めない**（Capture 側 `official-manifest.txt` で `derivative` と判定した4件）|
+
+著者リポジトリ31件のライセンスと扱いは Capture 側 `docs/INVENTORY.md` にある。
+**うち12件が非商用ライセンス。** submodule 参照なので再配布は発生しないが、
+**利用の可否は別途の判断が要る。**
 
 ## 設計文書の在り処
 
