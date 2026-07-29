@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# テストが通らないコミットを止める。
+#
+# **文書では守られなかったので機構にした。** 2026-07-29、テストが
+# EXIT=1 のまま commit して push した。ルールは CLAUDE.md・memory・
+# DESIGN の3か所に書いてあったが、それでも破られた。
+#
+# 有効化（clone ごとに1回）:
+#   git config core.hooksPath .githooks
+set -Eeuo pipefail
+
+# **git はフックに GIT_DIR などを渡す。** これを残したままテストを走らせると、
+# テストが起動する git が fixture ではなくこのリポジトリを触り、
+# git add が exit 128 で落ちる（2026-07-29 に実際に 120 件エラーになった）。
+# **消してから git を呼ぶ。** 順序を逆にすると、GIT_DIR が壊れている
+# 場面で rev-parse 自体が落ちる（テストがこの順序の誤りを捕まえた）。
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX \
+      GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OBJECT_DIRECTORIES \
+      GIT_QUARANTINE_PATH
+cd "$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+echo "[pre-commit] テストを実行します..."
+if ! ./tests/run-tests.sh > /tmp/pre-commit-tests.log 2>&1; then
+  echo "[pre-commit] *** テストが失敗しています。コミットを中止します ***" >&2
+  tail -25 /tmp/pre-commit-tests.log >&2
+  echo "[pre-commit] 全文: /tmp/pre-commit-tests.log" >&2
+  exit 1
+fi
+echo "[pre-commit] ok"
