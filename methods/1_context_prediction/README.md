@@ -179,6 +179,66 @@ python3 bin/verify-environment.py --lock methods/1_context_prediction/requiremen
 unexplained extra — a correct environment reported as wrong. The tool takes
 the files as arguments so the mistake is not available.
 
+### As a container
+
+`Dockerfile` in this directory builds the same locked environment as an image.
+It is the same lock, installed the same way, so nothing here duplicates the
+venv path — the container is a second way to reach one environment, not a
+second environment.
+
+```bash
+docker build -f methods/1_context_prediction/Dockerfile -t ctxpred .
+```
+
+Build from the **repository root**: the tooling lock and `bin/` live there.
+Podman takes the same command.
+
+Two properties worth knowing:
+
+- **The base image is pinned by digest**, not by tag. `python:3.12.13-slim-bookworm`
+  will mean a different image next month, and an image built from a tag cannot
+  be rebuilt. The digest was read from the registry on 2026-07-30 and covers
+  linux/amd64 and linux/arm64 among others
+- **The build proves its own environment.** `verify-environment.py` runs as a
+  build step, so an image whose contents disagree with the lock **fails to
+  build** rather than existing and misreporting what is in it
+
+Running it:
+
+```bash
+docker run --rm -v "$PWD/runs:/runs" -w /work/methods/1_context_prediction ctxpred python3 -m adapter --config /runs/resolved.json --out /runs/out
+```
+
+On a cluster, where Docker generally needs privileges nobody has, Apptainer
+reads the same image:
+
+```bash
+apptainer build ctxpred.sif docker-daemon://ctxpred:latest
+apptainer exec --bind "$PWD/runs:/runs" ctxpred.sif sh -c 'cd /work/methods/1_context_prediction && python3 -m adapter --config /runs/resolved.json --out /runs/out'
+```
+
+There is deliberately no `ENTRYPOINT`: Docker and Apptainer disagree about how
+one is invoked, and a plain image is driven the same way by both.
+
+#### **What has not been verified**
+
+**This image has never been built.** There is no Docker, Podman or Apptainer
+on the machine the definition was written on. Everything asserted about it is
+checked by reading the file — `tests/test_container.py` — and nothing by
+running it:
+
+| Checked by reading | Not checked at all |
+|---|---|
+| the base image is pinned by digest | that the build succeeds |
+| the Python version matches `.python-version` | that the wheels install on linux/amd64 |
+| `--require-hashes` is used | that the verification step passes inside the image |
+| a fresh venv, not the base image's site-packages | that the adapter runs in the container |
+| both locks are installed, and both exist | that Apptainer accepts the image |
+| the build runs the verification | GPU access under either runtime |
+| nothing unpinned is installed | |
+
+The Apptainer commands above are from its documentation, not from a run.
+
 ### Rebuilding the lock
 
 When a version has to move, regenerate rather than hand-edit — a hash typed by

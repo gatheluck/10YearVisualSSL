@@ -37,40 +37,85 @@ ABCI_MARKERS = (
     "/groups/", "module load", "abci",
 )
 
-# Files to scan. The tests themselves and the prose describing this are out.
-def _scan_targets() -> list[Path]:
-    out: list[Path] = []
-    for p in sorted(ROOT.rglob("*")):
-        if not p.is_file():
+# What the guard is about: **code and configuration must not be tied to a
+# platform.** Prose cannot create that tie -- the README has to be able to say
+# "support for this platform is optional" in order to explain the separation
+# at all -- so documentation is out, and that is a definition of the rule
+# rather than a hole in it. `tests/` and `.githooks/` are out for the same
+# reason: they describe the mechanism.
+#
+# **No suffix list.** One used to sit here holding six extensions, and a
+# `Dockerfile` has none of them, so platform vocabulary could have been
+# written into one and this guard would not have looked. The same narrowing
+# defeated the language guard until it was removed there too. "Which files are
+# text" now has one implementation, imported.
+PROSE_SUFFIXES = (".md", ".rst", ".txt")
+SKIP_DIRS = (".git", "docs", "tests", ".githooks")
+
+
+def _scan_targets(root: Path = ROOT) -> list[Path]:
+    if str(Path(__file__).parent) not in sys.path:
+        sys.path.insert(0, str(Path(__file__).parent))
+    from test_language import classify           # the one implementation
+    found, _ = classify(root)
+    return [p for p in found
+            if p.relative_to(root).parts[0] not in SKIP_DIRS
+            and p.suffix not in PROSE_SUFFIXES]
+
+
+def find_leaks(root: Path = ROOT) -> list[str]:
+    """Marker sightings outside platforms/abci/, as `path: marker`."""
+    leaks = []
+    for p in _scan_targets(root):
+        rel = p.relative_to(root)
+        if rel.parts[:2] == ("platforms", "abci"):
             continue
-        rel = p.relative_to(ROOT)
-        parts = rel.parts
-        if parts[0] in (".git", "docs", "tests", ".githooks"):
-            continue
-        if p.suffix not in (".py", ".sh", ".yaml", ".yml", ".toml", ".cfg"):
-            continue
-        out.append(p)
-    return out
+        text = p.read_text(encoding="utf-8", errors="replace").lower()
+        for marker in ABCI_MARKERS:
+            if marker.lower() in text:
+                leaks.append(f"{rel}: {marker}")
+    return leaks
 
 
 class TestAbciVocabularyIsContained(unittest.TestCase):
     def test_markers_appear_only_under_platforms_abci(self):
-        leaks: list[str] = []
-        for p in _scan_targets():
-            rel = p.relative_to(ROOT)
-            if rel.parts[:2] == ("platforms", "abci"):
-                continue
-            text = p.read_text(encoding="utf-8", errors="replace").lower()
-            for m in ABCI_MARKERS:
-                if m.lower() in text:
-                    leaks.append(f"{rel}: {m}")
-        self.assertEqual(leaks, [],
-                         "machine-specific vocabulary has leaked outside platforms/abci/:\n"
-                         + "\n".join(f"  - {x}" for x in leaks))
+        self.assertEqual(
+            find_leaks(), [],
+            "machine-specific vocabulary has leaked outside platforms/abci/:\n"
+            + "\n".join(f"  - {x}" for x in find_leaks()))
 
     def test_the_scan_actually_looks_at_something(self):
         """With nothing to scan, this check would pass vacuously."""
-        self.assertTrue(_scan_targets(), "nothing to scan")
+        self.assertGreater(len(_scan_targets()), 5)
+
+    def test_a_marker_in_a_file_with_no_suffix_is_caught(self):
+        """The case the old suffix list could not see. A Dockerfile is the
+        one that prompted this, and it has no extension."""
+        import shutil, tempfile
+        d = Path(tempfile.mkdtemp(prefix="isolation-"))
+        self.addCleanup(shutil.rmtree, d, ignore_errors=True)
+        (d / "Dockerfile").write_text("RUN qsub something\n", encoding="utf-8")
+        self.assertIn("Dockerfile: qsub", find_leaks(d))
+
+    def test_prose_may_name_the_platform(self):
+        """**Not a loophole: it is the rule.** The README cannot explain that
+        the platform is optional without naming it, and prose creates no
+        dependency."""
+        import shutil, tempfile
+        d = Path(tempfile.mkdtemp(prefix="isolation-"))
+        self.addCleanup(shutil.rmtree, d, ignore_errors=True)
+        (d / "README.md").write_text("Support for abci is optional.\n",
+                                     encoding="utf-8")
+        self.assertEqual(find_leaks(d), [])
+
+    def test_but_code_beside_that_prose_is_still_scanned(self):
+        """Excluding prose must not excuse the directory it sits in."""
+        import shutil, tempfile
+        d = Path(tempfile.mkdtemp(prefix="isolation-"))
+        self.addCleanup(shutil.rmtree, d, ignore_errors=True)
+        (d / "README.md").write_text("abci is optional\n", encoding="utf-8")
+        (d / "launch.sh").write_text("qsub job.sh\n", encoding="utf-8")
+        self.assertIn("launch.sh: qsub", find_leaks(d))
 
 
 class TestAbciIsOptional(unittest.TestCase):
