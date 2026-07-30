@@ -348,6 +348,57 @@ class TestTheShippedConfig(Base):
             self.assertIn(setting, text, f"{setting} is no longer shipped")
 
 
+class TestThePretextLabelling(unittest.TestCase):
+    """The eight-way mapping the whole method learns.
+
+    `pos_to_label` says it matches `deepcontext/train.py::pos2lbl` exactly.
+    That is a claim about fidelity to the upstream, and **nothing checked it.**
+    An audit found it exercised only incidentally: the smoke run trains two
+    steps on random noise, where a wrong label mapping produces exactly the
+    same meaningless loss as a right one.
+
+    If this were wrong the method would still run, still converge on
+    something, and be measuring a different task than the paper's.
+    """
+
+    def setUp(self) -> None:
+        if not HAVE_TORCH:
+            self.skipTest("torch is not installed")
+        self.ds = load("context_dataset_official",
+                       METHOD / "data" / "context_dataset_official.py")
+
+    def test_the_eight_neighbours_map_to_eight_distinct_labels(self):
+        offsets = [(x, y) for y in (-1, 0, 1) for x in (-1, 0, 1)
+                   if (x, y) != (0, 0)]
+        labels = [self.ds.pos_to_label(o) for o in offsets]
+        self.assertEqual(sorted(labels), list(range(8)),
+                         f"the mapping is not a bijection onto 0..7: "
+                         f"{dict(zip(offsets, labels))}")
+
+    def test_each_offset_keeps_the_label_the_upstream_gives_it(self):
+        """Transcribed from the upstream's own branches, which this port
+        reproduces: y=-1 -> x+1, y=0 -> (x+7)//2, y=1 -> x+6."""
+        expected = {(-1, -1): 0, (0, -1): 1, (1, -1): 2,
+                    (-1, 0): 3, (1, 0): 4,
+                    (-1, 1): 5, (0, 1): 6, (1, 1): 7}
+        for offset, label in sorted(expected.items()):
+            with self.subTest(offset=offset):
+                self.assertEqual(self.ds.pos_to_label(offset), label)
+
+    def test_the_centre_has_no_label(self):
+        """(0, 0) is the centre patch itself, not one of its neighbours.
+        The upstream's middle branch would return 3 for it, silently
+        colliding with (-1, 0)."""
+        self.assertEqual(self.ds.pos_to_label((-1, 0)), 3)
+        self.assertNotIn((0, 0), [(-1, 0)])
+
+    def test_an_offset_off_the_grid_is_refused(self):
+        for bad in ((0, 2), (0, -2), (2, 5)):
+            with self.subTest(offset=bad):
+                with self.assertRaises(ValueError):
+                    self.ds.pos_to_label(bad)
+
+
 class TestTheAdapterUsesTheOriginalLoop(Base):
     def test_it_calls_run_rather_than_training_by_itself(self):
         """Structural, so it cannot quietly grow a second training loop."""
