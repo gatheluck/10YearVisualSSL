@@ -21,8 +21,13 @@ actually tracks.
 from __future__ import annotations
 
 import subprocess
+import sys
 import unittest
 from pathlib import Path
+
+if str(Path(__file__).parent) not in sys.path:
+    sys.path.insert(0, str(Path(__file__).parent))
+from _checkout import needs_checkout        # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -38,6 +43,43 @@ def tracked_files() -> list[str]:
     return [x for x in r.stdout.split("\0") if x]
 
 
+class TestTheCheckoutGateIsNotAlwaysOn(unittest.TestCase):
+    """The positive control for the skip that was just introduced.
+
+    Several classes here assert properties of the *repository* and are
+    skipped where there is no repository -- inside the container image, which
+    carries neither `.git` nor `git` by design. A gate like that is one wrong
+    condition away from skipping everywhere and reporting success, so this
+    asserts that **in a checkout it is off**.
+
+    Deliberately not itself gated.
+    """
+
+    @unittest.skipUnless((ROOT / ".git").exists(),
+                         "no .git here, so there is nothing to be wrong about")
+    def test_where_there_is_a_git_directory_the_gate_is_off(self):
+        """Premised on `.git` existing, checked without `is_checkout` itself.
+
+        Asserting "this is a checkout" unconditionally would fail inside the
+        image, where it is simply not applicable. Asserting it *where a .git
+        exists* is the real claim: the gate must not be on in a checkout, or
+        every repository test is skipping and nothing says so.
+        """
+        from _checkout import is_checkout
+        self.assertTrue(is_checkout(ROOT),
+                        "there is a .git here but the gate is on, so the "
+                        "repository tests are all skipping silently")
+
+    def test_a_directory_that_is_not_a_repository_is_recognised(self):
+        """The other half: the condition must actually be able to be false."""
+        import shutil as _shutil, tempfile
+        from _checkout import is_checkout
+        d = Path(tempfile.mkdtemp(prefix="notarepo-"))
+        self.addCleanup(_shutil.rmtree, d, ignore_errors=True)
+        self.assertFalse(is_checkout(d))
+
+
+@needs_checkout
 class TestNothingGeneratedIsTracked(unittest.TestCase):
     def test_no_generated_file_is_tracked(self):
         files = tracked_files()
@@ -76,6 +118,7 @@ class TestNothingGeneratedIsTracked(unittest.TestCase):
                     f"{sample} is wrongly treated as generated")
 
 
+@needs_checkout
 class TestTheReadmeLayoutIsComplete(unittest.TestCase):
     """Everything that exists is listed, not merely everything listed exists.
 
@@ -133,6 +176,7 @@ class TestTheReadmeLayoutIsComplete(unittest.TestCase):
         self.assertGreater(len(self.layout().splitlines()), 20)
 
 
+@needs_checkout
 class TestTheyAreAlsoIgnored(unittest.TestCase):
     """Untracking is not enough; they come straight back otherwise."""
 
