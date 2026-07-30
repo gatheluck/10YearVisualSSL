@@ -171,8 +171,13 @@ To confirm the environment is exactly the lock and not merely compatible with
 it:
 
 ```bash
-diff <(pip freeze | sort) <(grep -E '^[A-Za-z]' methods/1_context_prediction/requirements.lock.txt | sed 's/ \\$//' | sort)
+python3 bin/verify-environment.py --lock methods/1_context_prediction/requirements.lock.txt --lock requirements-tools.lock.txt
 ```
+
+**Pass every lock the install used.** This used to be a `diff` against
+`pip freeze`, and naming only one of the two files made `PyYAML` look like an
+unexplained extra — a correct environment reported as wrong. The tool takes
+the files as arguments so the mistake is not available.
 
 ### Rebuilding the lock
 
@@ -214,6 +219,13 @@ pinning changes that.
 `run_manifest.json` records every installed package and its version, a
 `packages_sha256` over the lot, and the system and machine. Two runs that
 disagree can be compared and the reason found.
+
+That record is checkable, not merely stored. To ask whether a *finished* run
+used the locked environment — long after the machine is gone:
+
+```bash
+python3 bin/verify-environment.py --lock methods/1_context_prediction/requirements.lock.txt --lock requirements-tools.lock.txt --manifest runs/ctxpred/out/run_manifest.json
+```
 
 Set deliberately, in `make_deterministic()`:
 `torch.use_deterministic_algorithms(True, warn_only=True)`,
