@@ -169,6 +169,65 @@ class TestComparing(Base):
         self.assertEqual(names, sorted(names))
 
 
+class TestBuildVariants(Base):
+    """`torch` is `2.13.0` on macOS and `2.13.0+cpu` on Linux.
+
+    Found by building the container: the same locked version installs under a
+    different *local version identifier* depending on the platform. pip is
+    happy -- PEP 440 says a specifier with no local segment matches any -- and
+    the hash check already guarantees the exact wheel, so the artifact is not
+    in doubt.
+
+    **But `+cpu` versus `+cu121` is the difference between two entirely
+    different runs**, so it is never dropped. A locked version without a local
+    segment accepts one, and the full string is reported; two local segments
+    that disagree is a failure.
+    """
+
+    def test_a_local_segment_is_accepted_where_the_lock_has_none(self):
+        rc, rep = ve.compare({"torch": "2.13.0"}, {"torch": "2.13.0+cpu"})
+        self.assertEqual(rc, 0, rep["differences"])
+
+    def test_and_it_is_reported_rather_than_dropped(self):
+        """**The build variant is the whole point.** Accepting it silently
+        would let a CPU run and a CUDA run look identical in the report."""
+        _, rep = ve.compare({"torch": "2.13.0"}, {"torch": "2.13.0+cpu"})
+        variants = rep["build_variants"]
+        self.assertEqual([v["package"] for v in variants], ["torch"])
+        self.assertEqual(variants[0]["present"], "2.13.0+cpu")
+        self.assertEqual(variants[0]["locked"], "2.13.0")
+
+    def test_two_different_local_segments_are_a_failure(self):
+        """A CPU build where a CUDA build was locked is a different run."""
+        rc, rep = ve.compare({"torch": "2.13.0+cu121"},
+                             {"torch": "2.13.0+cpu"})
+        self.assertEqual(rc, 1)
+        self.assertIn("cu121", str(rep["differences"]))
+
+    def test_the_release_part_must_still_match(self):
+        rc, _ = ve.compare({"torch": "2.13.0"}, {"torch": "2.14.0+cpu"})
+        self.assertEqual(rc, 1)
+
+    def test_a_lock_with_a_local_segment_accepts_the_same_one(self):
+        rc, rep = ve.compare({"torch": "2.13.0+cpu"}, {"torch": "2.13.0+cpu"})
+        self.assertEqual(rc, 0)
+        self.assertEqual(rep["build_variants"], [])
+
+    def test_nothing_is_reported_when_there_is_no_variant(self):
+        _, rep = ve.compare({"torch": "2.13.0"}, {"torch": "2.13.0"})
+        self.assertEqual(rep["build_variants"], [])
+
+    def test_the_command_line_shows_the_variant(self):
+        lock = self.lock("a.txt", {"torch": "2.13.0"})
+        man = self.manifest({"torch": "2.13.0+cpu"})
+        r = subprocess.run(
+            [sys.executable, str(BIN / "verify-environment.py"),
+             "--lock", str(lock), "--manifest", str(man)],
+            capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertIn("2.13.0+cpu", r.stdout, "the variant left no trace")
+
+
 class TestWhatVenvSeeds(Base):
     """`pip` is put there by `python -m venv`, not by any lock.
 

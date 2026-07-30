@@ -291,6 +291,104 @@ class TestTheLockIsAClosure(unittest.TestCase):
                                   f"{line.split('==')[0]} has no hash")
 
 
+# The platforms a lock is expected to be installable on, as substrings that
+# must all appear in one wheel filename. Declared here so that "we support
+# linux arm64" cannot quietly stop being true.
+#
+# Found by building: Docker on Apple silicon builds linux/arm64, whose wheels
+# are `aarch64`. The lock held x86_64 and macOS arm64 only, so pip refused --
+# correctly, and loudly, but the platform should have been covered.
+TARGET_PLATFORMS = {
+    "linux x86_64": ("x86_64",),
+    "linux aarch64": ("aarch64",),
+    "macOS arm64": ("macosx", "arm64"),
+}
+UNIVERSAL = "py3-none-any"
+
+
+def all_locks() -> list[Path]:
+    """Every lock in the repository, not only the methods'.
+
+    The first version of the coverage check looked at method locks alone. The
+    container build then failed on the *tooling* lock, which had the same gap
+    -- a rule applied to some of the things it governs is a rule with a hole
+    in it.
+    """
+    found = [m / "requirements.lock.txt" for m in method_dirs()]
+    found.append(ROOT / "requirements-tools.lock.txt")
+    return [p for p in found if p.is_file()]
+
+
+def wheels_per_package(lock: Path) -> dict:
+    """Package name -> the wheel filenames recorded in its comments.
+
+    The generator writes one `# <filename>` line per distinct wheel directly
+    above the requirement it belongs to.
+    """
+    out, pending = {}, []
+    for raw in lock.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if line.startswith("#"):
+            name = line[1:].strip()
+            if name.endswith((".whl", ".tar.gz")):
+                pending.append(name)
+        elif "==" in line and not line.startswith("-"):
+            out[_canon(line.split("==")[0])] = pending
+            pending = []
+        elif not line:
+            continue
+    return out
+
+
+class TestTheLockCoversEveryTargetPlatform(unittest.TestCase):
+    """A lock that omits a platform is not wrong, but it is not usable there.
+
+    pip refuses an unlisted wheel rather than installing something unverified,
+    which is the behaviour we want -- but the failure arrives at build time,
+    far from the file that caused it. This brings it forward.
+    """
+
+    def test_there_is_more_than_one_lock_to_check(self):
+        """Guards the widening: checking a single file would pass vacuously
+        if the others quietly stopped being found."""
+        self.assertGreater(len(all_locks()), 1)
+
+    def test_every_package_has_a_wheel_for_every_target(self):
+        for lock in all_locks():
+            name = str(lock.relative_to(ROOT))
+            per_package = wheels_per_package(lock)
+            self.assertTrue(per_package, f"{name}: no wheels recorded")
+            for pkg, wheels in sorted(per_package.items()):
+                if any(UNIVERSAL in w for w in wheels):
+                    continue          # pure python: one wheel serves all
+                for label, needles in sorted(TARGET_PLATFORMS.items()):
+                    with self.subTest(lock=name, package=pkg,
+                                      platform=label):
+                        self.assertTrue(
+                            any(all(n in w for n in needles) for w in wheels),
+                            f"{pkg} has no wheel for {label}; installing "
+                            "there would be refused for want of a hash")
+
+    def test_the_number_of_hashes_matches_the_number_of_wheels(self):
+        """The comments and the hashes are written together; if they drift,
+        the check above is reading a filename that no hash belongs to."""
+        for lock in all_locks():
+            per_package = wheels_per_package(lock)
+            for line in requirement_lines(lock):
+                pkg = _canon(line.split("==")[0])
+                with self.subTest(lock=str(lock.relative_to(ROOT)),
+                                  package=pkg):
+                    self.assertEqual(line.count("--hash=sha256:"),
+                                     len(per_package.get(pkg, [])),
+                                     "hashes and recorded wheels disagree")
+
+    def test_the_declared_targets_are_the_ones_we_claim_to_support(self):
+        """Shrinking this silently would make the check above pass by
+        covering less."""
+        self.assertEqual(set(TARGET_PLATFORMS),
+                         {"linux x86_64", "linux aarch64", "macOS arm64"})
+
+
 class TestVersionsArePinned(unittest.TestCase):
     """`torch>=2.0.0` is not a reproducible environment.
 

@@ -49,6 +49,18 @@ class EnvironmentMismatch(Exception):
     """A refusal, always naming what was refused."""
 
 
+def split_local(version: str) -> tuple[str, str]:
+    """A version's release part and its local segment, PEP 440 style.
+
+    `2.13.0+cpu` is the same release as `2.13.0`, built differently. pip
+    installs one against a specifier for the other, and the hash check already
+    fixes the exact wheel -- but `+cpu` and `+cu121` are two different runs, so
+    the segment is never dropped on the floor.
+    """
+    base, _, local = version.partition("+")
+    return base, local
+
+
 def canon(name: str) -> str:
     """Distribution names compare case- and separator-insensitively."""
     return re.sub(r"[-_.]+", "-", name).strip().lower()
@@ -134,7 +146,7 @@ def compare(locked: dict, present: dict) -> tuple[int, dict]:
     ignored = [{"package": original.get(k, k), "version": got[k],
                 "reason": SEEDED_REASON} for k in exempt]
 
-    diffs = []
+    diffs, variants = [], []
     for key in sorted((set(want) | set(got)) - set(exempt)):
         name = original.get(key, key)
         if key not in got:
@@ -149,6 +161,16 @@ def compare(locked: dict, present: dict) -> tuple[int, dict]:
                                     "lock describes it, so this environment "
                                     "cannot be rebuilt from the locks given"})
         elif want[key] != got[key]:
+            want_base, want_local = split_local(want[key])
+            got_base, got_local = split_local(got[key])
+            if want_base == got_base and not want_local and got_local:
+                # Same release, built for this platform. Recorded, not hidden:
+                # the variant is what distinguishes a CPU run from a CUDA one.
+                variants.append({"package": name, "locked": want[key],
+                                 "present": got[key],
+                                 "detail": f"{name} is the {got_local} build "
+                                           f"of {got_base}"})
+                continue
             diffs.append({"kind": "version", "package": name,
                           "locked": want[key], "present": got[key],
                           "detail": f"{name} is {got[key]}, the lock says "
@@ -156,8 +178,10 @@ def compare(locked: dict, present: dict) -> tuple[int, dict]:
     return (0 if not diffs else 1), {
         "schema_version": 1,
         "counts": {"locked": len(want), "present": len(got),
-                   "differences": len(diffs), "ignored": len(ignored)},
+                   "differences": len(diffs), "ignored": len(ignored),
+                   "build_variants": len(variants)},
         "ignored": ignored,
+        "build_variants": variants,
         "differences": diffs,
     }
 
@@ -184,6 +208,9 @@ def main() -> int:
                           encoding="utf-8")
     for i in rep["ignored"]:
         print(f"  ignored: {i['package']} {i['version']} -- {i['reason']}")
+    for v in rep["build_variants"]:
+        print(f"  build variant: {v['detail']} "
+              f"(installed {v['present']}, locked {v['locked']})")
     for d in rep["differences"]:
         print(f"  DIFFERENCE [{d['kind']}] {d['detail']}")
     if rc == 0:
