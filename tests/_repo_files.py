@@ -24,25 +24,41 @@ READMEs say to build the environment at `.venv/` inside the repository, so a
 plain walk reads jinja2, numpy, rich and torch's bundled headers, several of
 which legitimately contain CJK. CI failed on exactly that.
 
-Outside a work tree there is nothing to ask, so everything is a candidate.
-That is the honest answer rather than a convenience: a shipped tree has no
-repository to consult, and every file in it is one we published.
+Outside a work tree there is nothing to ask, so the fallback answers as
+widely as it honestly can: everything present, minus the two things that can
+be *shown* not to be ours -- git's own directory, and directories carrying the
+marker PEP 405 requires of an installed environment. It cannot read
+`.gitignore`, and it does not pretend to.
 """
 
 from __future__ import annotations
 
+import os
 import subprocess
 from pathlib import Path
 
 LS_FILES = ["git", "ls-files", "--cached", "--others", "--exclude-standard",
             "-z"]
 
-# What the fallback must not walk into. git's own directory is not part of
-# what we publish, and its logs quote every branch name ever checked out --
-# which made the no-hard-coded-methods guard report `.git/logs/HEAD` as
-# shared machinery naming a method. Found by running the scan with no git on
-# PATH, which is the only way it shows.
+# What the fallback must not walk into.
+#
+# git's own directory is not part of what we publish, and its logs quote every
+# branch name ever checked out -- which made the no-hard-coded-methods guard
+# report `.git/logs/HEAD` as shared machinery naming a method.
+#
+# An installed environment is not our text either. The READMEs say to build it
+# at `.venv/` inside the repository, and with git available `.gitignore`
+# excludes it; without git the walk read jinja2's bundled CJK and the language
+# guard failed -- the *original* failure this whole scan was written to stop,
+# arriving by the back door.
+#
+# It is found by its marker rather than by its name. `.venv`, `venv`, `env`
+# and `.direnv` are all conventions, and a list of conventions is the listing
+# mistake in miniature: correct until the next person picks a different one.
+# `pyvenv.cfg` is what PEP 405 requires an environment to contain, so an
+# environment identifies itself.
 FALLBACK_SKIP = (".git",)
+VENV_MARKER = "pyvenv.cfg"
 
 
 def git_available(root: Path) -> bool:
@@ -63,15 +79,26 @@ def git_available(root: Path) -> bool:
 def _walk(root: Path) -> list[Path]:
     """The answer where git cannot give one.
 
-    It cannot consult `.gitignore`, so it is deliberately the **wider**
-    answer: everything present except git's own directory. A guard that reads
-    too much fails loudly and gets looked at; one that reads too little passes
-    and says nothing, and this project has already shipped both -- the loud
-    one was fixed in a day, the quiet one ran green for weeks.
+    It cannot consult `.gitignore`, so it is the **wider** answer wherever the
+    difference is unknowable: everything present, minus what is demonstrably
+    not ours. A guard that reads too much fails loudly and gets looked at; one
+    that reads too little passes and says nothing, and this project has
+    shipped both -- the loud one was fixed in a day, the quiet one ran green
+    for weeks. So the two exclusions here are the ones that can be *shown*,
+    not guessed: git's own directory, and directories that declare themselves
+    to be installed environments.
     """
-    return [p for p in sorted(root.rglob("*"))
-            if p.is_file() and not p.is_symlink()
-            and not set(p.relative_to(root).parts) & set(FALLBACK_SKIP)]
+    out = []
+    for base, dirs, files in os.walk(root):
+        here = Path(base)
+        dirs[:] = sorted(d for d in dirs
+                         if d not in FALLBACK_SKIP
+                         and not (here / d / VENV_MARKER).is_file())
+        for name in sorted(files):
+            p = here / name
+            if p.is_file() and not p.is_symlink():
+                out.append(p)
+    return sorted(out)
 
 
 def repository_files(root: Path) -> list[Path]:

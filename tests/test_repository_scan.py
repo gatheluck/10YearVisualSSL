@@ -204,6 +204,49 @@ class TestTheFallbackItself(unittest.TestCase):
         d = self.tree()
         self.assertIn(d / "kept.py", _walk(d))
 
+    def test_an_installed_environment_is_not_our_text(self):
+        """**The original CI failure, arriving by the back door.**
+
+        The READMEs say to build the environment at `.venv/` inside the
+        repository. With git, `.gitignore` excludes it. Without git, the walk
+        read jinja2's bundled CJK and the language guard failed -- which is
+        the exact failure this scan was written to prevent. Found by running
+        the whole suite with no git in a job that had a `.venv`; no local run
+        showed it, because every venv here is made in /tmp.
+        """
+        d = self.tree()
+        env = d / ".venv" / "lib" / "pkg"
+        env.mkdir(parents=True)
+        (d / ".venv" / "pyvenv.cfg").write_text("home = /usr\n",
+                                                encoding="utf-8")
+        (env / "vendored.py").write_text("x = 1\n", encoding="utf-8")
+        self.assertNotIn(env / "vendored.py", _walk(d))
+        self.assertIn(d / "kept.py", _walk(d))
+
+    def test_the_environment_is_found_by_its_marker_not_its_name(self):
+        """`.venv`, `venv`, `env`, `.direnv` are conventions, and a list of
+        conventions is correct until somebody picks a different one. PEP 405
+        requires the marker, so an environment identifies itself."""
+        d = self.tree()
+        for name in ("venv", "env", "whatever-i-called-it"):
+            (d / name).mkdir()
+            (d / name / "pyvenv.cfg").write_text("home = /usr\n",
+                                                 encoding="utf-8")
+            (d / name / "vendored.py").write_text("x = 1\n", encoding="utf-8")
+        walked = _walk(d)
+        for name in ("venv", "env", "whatever-i-called-it"):
+            with self.subTest(directory=name):
+                self.assertNotIn(d / name / "vendored.py", walked)
+
+    def test_a_directory_without_the_marker_is_still_ours(self):
+        """The exclusion must not swallow real content. A directory is only
+        skipped when it says what it is."""
+        d = self.tree()
+        (d / "environments").mkdir()
+        (d / "environments" / "notes.py").write_text("x = 1\n",
+                                                     encoding="utf-8")
+        self.assertIn(d / "environments" / "notes.py", _walk(d))
+
     def test_the_fallback_never_walks_into_git(self):
         """`.git/logs/HEAD` quotes every branch name ever checked out, so the
         method-naming guard read it and reported the repository's own history
