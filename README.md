@@ -334,6 +334,20 @@ mismeasuring.
 versions, a `packages_sha256` over the lot, and the system and machine. When
 two runs disagree, the manifests say why.
 
+And the record is checked, not merely kept. `bin/verify-environment.py`
+answers both halves with one comparison — *is this environment the locked
+one*, and *did that run use it*:
+
+```bash
+python3 bin/verify-environment.py --lock methods/1_context_prediction/requirements.lock.txt --lock requirements-tools.lock.txt [--manifest runs/<id>/out/run_manifest.json]
+```
+
+Any difference fails, including a package no lock mentions: something
+installed that the lock does not describe means the environment cannot be
+rebuilt from it. The one exemption is `pip`, which `python -m venv` seeds
+before any lock is read — and it is *reported* as ignored, with the reason,
+rather than passed over.
+
 **Not verified.** Only CPU on macOS arm64 has been run end to end. The Linux
 wheels are hashed in the lock but were not executed here, and no CUDA build
 was installed, so the GPU determinism settings are unexercised.
