@@ -28,6 +28,10 @@ import sys
 import unittest
 from pathlib import Path
 
+if str(Path(__file__).parent) not in sys.path:
+    sys.path.insert(0, str(Path(__file__).parent))
+from _checkout import needs_checkout        # noqa: E402
+
 ROOT = Path(__file__).resolve().parent.parent
 WORKFLOWS = ROOT / ".github" / "workflows"
 
@@ -83,6 +87,7 @@ def triggers(doc: dict):
     return doc.get("on", doc.get(True))
 
 
+@needs_checkout
 class TestItExists(unittest.TestCase):
     def test_there_is_a_workflow(self):
         self.assertTrue(workflow_files(),
@@ -93,6 +98,7 @@ class TestItExists(unittest.TestCase):
         self.assertIn("tests.yml", [p.name for p in workflow_files()])
 
 
+@needs_checkout
 class TestNothingSwallowsAFailure(unittest.TestCase):
     """Textual, so these hold even without a parser. Each of these is a way
     to have a green tick over a failed command."""
@@ -128,6 +134,7 @@ class TestNothingSwallowsAFailure(unittest.TestCase):
                     or re.search(r"if:\s*always\(\)", bad))
 
 
+@needs_checkout
 class TestWhenItRuns(unittest.TestCase):
     @needs_yaml
     def test_it_runs_on_push_and_on_pull_request(self):
@@ -171,6 +178,7 @@ class TestWhenItRuns(unittest.TestCase):
                     self.assertIn("event_name", str(spec["if"]))
 
 
+@needs_checkout
 class TestWhatItRuns(unittest.TestCase):
     @needs_yaml
     def test_the_suite_is_run_by_its_own_script(self):
@@ -247,6 +255,7 @@ class TestWhatItRuns(unittest.TestCase):
                 self.assertIn("unittest discover", runs_of(doc, "locked"))
 
 
+@needs_checkout
 class TestEveryMethodIsExercised(unittest.TestCase):
     """A method CI never installs is a method CI never tests.
 
@@ -354,6 +363,7 @@ class TestEveryMethodIsExercised(unittest.TestCase):
                               "the suite never runs inside the image")
 
 
+@needs_checkout
 class TestItIsReproducibleToo(unittest.TestCase):
     """The same discipline as everywhere else: pinned, and on the platform
     being claimed."""

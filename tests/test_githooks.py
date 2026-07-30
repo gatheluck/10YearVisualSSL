@@ -14,13 +14,19 @@ import shutil
 import stat
 import subprocess
 import tempfile
+import sys
 import unittest
 from pathlib import Path
+
+if str(Path(__file__).parent) not in sys.path:
+    sys.path.insert(0, str(Path(__file__).parent))
+from _checkout import needs_checkout        # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 HOOK = ROOT / ".githooks" / "pre-commit"
 
 
+@needs_checkout
 class TestHookExists(unittest.TestCase):
     def test_hook_is_present(self):
         self.assertTrue(HOOK.is_file(), "the pre-commit hook is missing")
@@ -34,6 +40,7 @@ class TestHookExists(unittest.TestCase):
         self.assertIn("tests/run-tests.sh", HOOK.read_text(encoding="utf-8"))
 
 
+@needs_checkout
 class TestHookBehaviour(unittest.TestCase):
     """Drive the hook's branches for real, with a stand-in test script."""
 
