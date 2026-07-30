@@ -46,6 +46,7 @@ shown so the shape is visible before it is built.
 │   ├── resolve-config.py             authoring config -> canonical resolved JSON
 │   ├── launch.py                     resolve, submit, verify, record
 │   ├── verify-environment.py         is this the locked environment?
+│   ├── mutate.py                     break the code, check the tests notice
 │   └── contract-test.py              decides by machine that a port is finished
 ├── adapterlib/                     the one place a run_manifest.json is written
 │   └── __init__.py                                                    exists
@@ -100,6 +101,8 @@ shown so the shape is visible before it is built.
 │   ├── test_method_requirements.py   declarations match the imports
 │   ├── test_launch.py                resolve -> submit -> verify -> record
 │   ├── test_ci.py                    the workflow runs what it claims
+│   ├── test_mutate.py                the mutation tool cannot lie
+│   ├── test_no_hard_coded_methods.py shared machinery discovers methods
 │   ├── test_language.py              everything here is in English
 │   └── test_repo_hygiene.py          nothing generated is tracked
 ├── .github/workflows/tests.yml     CI: the suite on linux x86_64      exists
@@ -479,6 +482,24 @@ one origin even as the implementation moves here.
 | `docs/DESIGN.md` | the philosophy and the reasoning |
 | `docs/CONTRACT.md` | **the adapter contract** |
 | `docs/INVENTORY.md` | inventory of the 31 author repositories and recommended treatment |
+
+## Guards against repeated mistakes
+
+Six kinds of mistake recurred often enough here to be worth mechanising
+rather than remembering. They are listed with their counts in
+[CLAUDE.md](CLAUDE.md); the mechanisms are:
+
+| Mechanism | What it prevents |
+|---|---|
+| `bin/mutate.py` | assertions that cannot fail, and mutation reports that lie. An absent or ambiguous anchor is an error, bytecode is never reused, and it refuses to mutate anything outside its own copy |
+| `tests/test_no_hard_coded_methods.py` | shared machinery naming one method. A list looks right until the second method arrives |
+| `tests/test_repo_hygiene.py` | the README layout drifting from the tree — in **both** directions |
+| `tests/test_ci.py` | a CI job that cannot fail |
+| `tests/test_language.py`, `tests/test_platform_isolation.py` | prose and platform vocabulary leaking where they do not belong |
+
+Each was written after the same mistake had been made two or three times. The
+counts are in the commit history and are not flattering; they are recorded
+because a mistake nobody counted is a mistake that recurs.
 
 ## Development
 

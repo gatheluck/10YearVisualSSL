@@ -65,6 +65,50 @@ Reports that were actually wrong, in the past:
   work (it deleted one of my own fixes). Copy the tree aside first, then break
   it
 
+### The six mistakes made repeatedly here
+
+Counted from the commit history, not from memory. Each one was found *after*
+it had been reported as finished, several times over. **Read this list before
+writing a test**, and use the mechanism named against each.
+
+| Mistake | Times | Mechanism |
+|---|---|---|
+| **A substring match over too wide a scope** | 3 | Compare *whole entries*, never `x in whole_file`. Parse the structure — instructions, entries, lines — and match names exactly |
+| **An edit that silently did nothing** | 3 | Never `str.replace` without asserting the anchor first. Prefer an editor that fails on a missing match |
+| **A rule applied to only some of what it governs** | 3 | **Discover, never list.** `tests/test_no_hard_coded_methods.py` refuses a shared file that names one method |
+| **An assertion that could not fail** | 2 | `bin/mutate.py`. A guard with no killed mutant is not a guard |
+| **A mutation harness that lied** | 2 | `bin/mutate.py` — an absent or ambiguous anchor is an error, and bytecode is never reused |
+| **A simulation that was not faithful** | 2 | Verify the *absence* you are simulating before trusting the result (`shutil.which("git")` is `None`, and so on) |
+
+Concrete instances, so the shapes are recognisable:
+
+- `".git" in text` matched `.github`; `"launch.py"` matched `test_launch.py`;
+  `"venv"`, `"checkpoint_dir"` and `LIVE_ROOT` each matched **a comment saying
+  the thing was absent**
+- a test asserted no key began with `classifier` — the head is `fc7`, so it
+  could never fire. Another used `-I`, which discards `PYTHONPATH`, so it
+  never tested what it claimed. Another asserted `cudnn.benchmark` was
+  `False`, which is the default
+- CI installed one method's lock, so a second method's tests skipped in
+  silence while the job reported success
+- an image simulation ran on a machine that had `git`, so a class needing
+  `git` passed locally and failed in the container
+
+**Where a mistake recurs, the fix is a mechanism, not more care.** If it
+cannot be mechanised, say so plainly rather than promising attention.
+
+### Mutation testing is not optional
+
+```bash
+python3 bin/mutate.py --spec <spec.json>; echo "EXIT=$?"
+```
+
+Every guard gets a mutation that it must kill. A surviving mutant is **either
+a missing test or an equivalent mutant, and the difference must be
+established by measurement**, not asserted — an equivalent mutant is claimed
+only after showing the two forms behave identically on the whole valid input
+domain.
+
 ### How to report (what you want done comes before the analysis)
 
 - **Open the response with a numbered list of what you want done.** Analysis,

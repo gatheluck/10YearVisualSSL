@@ -18,7 +18,7 @@ So an adapter supplies only the part that is actually method-specific:
 
     raise SystemExit(adapterlib.run(
         config=args.config, out=args.out,
-        method="1_context_prediction", stage="step1", body=body))
+        method="<this method>", stage="step1", body=body))
 
 Everything the contract requires -- times, hashes, the artifact listing, both
 success signals -- is produced here, once.
