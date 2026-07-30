@@ -21,7 +21,10 @@ Two kinds of check below, deliberately:
 
 from __future__ import annotations
 
+import os
 import re
+import shutil
+import sys
 import unittest
 from pathlib import Path
 
@@ -36,10 +39,9 @@ except ImportError:
 
 needs_yaml = unittest.skipUnless(HAVE_YAML, "PyYAML is not installed")
 
-# The locks the documented install uses. Naming one and not the other is the
-# mistake that once made a correct environment look broken.
-LOCKS = ("methods/1_context_prediction/requirements.lock.txt",
-         "requirements-tools.lock.txt")
+# The tooling lock is the same for every method; the method lock comes from
+# the matrix. Naming a method here would be the very list this file forbids.
+TOOLING_LOCK = "requirements-tools.lock.txt"
 
 
 def workflow_files() -> list[Path]:
@@ -55,6 +57,25 @@ def parsed() -> dict:
     for p in workflow_files():
         out[p.name] = yaml.safe_load(p.read_text(encoding="utf-8"))
     return out
+
+
+def runs_of(doc: dict, job: str) -> str:
+    """The shell of one job.
+
+    Joining every job's steps and searching that was how five mutations
+    survived: a check satisfied by one job hid its removal from another.
+    """
+    spec = doc["jobs"][job]
+    return "\n".join(str(st.get("run", "")) for st in spec.get("steps", []))
+
+
+def discovery_script(doc: dict) -> str:
+    """The python the discover job runs, lifted out of its heredoc."""
+    text = runs_of(doc, "discover")
+    # After the newline, not after the marker: the rest of that line is shell
+    # redirection, and including it made the script a syntax error.
+    start = text.index("\n", text.index("<<'PY'")) + 1
+    return text[start:text.index("\nPY", start)]
 
 
 def triggers(doc: dict):
@@ -176,6 +197,12 @@ class TestWhatItRuns(unittest.TestCase):
 
     @needs_yaml
     def test_the_install_is_hash_checked_and_names_every_lock(self):
+        """Both locks, with the method's one coming from the matrix.
+
+        This used to name method 1's lock literally, which is how a second
+        method arrived uncovered. It now requires the pair without naming
+        either method.
+        """
         for name, doc in parsed().items():
             installs = [str(s.get("run", ""))
                         for spec in doc["jobs"].values()
@@ -185,8 +212,10 @@ class TestWhatItRuns(unittest.TestCase):
                 self.assertTrue(installs, "nothing is installed anywhere")
                 for ins in installs:
                     self.assertIn("--require-hashes", ins)
-                    for lock in LOCKS:
-                        self.assertIn(lock, ins, f"{lock} is not installed")
+                    self.assertIn(TOOLING_LOCK, ins)
+                    self.assertIn("matrix.", ins,
+                                  "the method lock is not from the matrix")
+                    self.assertIn("requirements.lock.txt", ins)
 
     @needs_yaml
     def test_the_environment_is_verified_against_the_locks(self):
@@ -201,13 +230,128 @@ class TestWhatItRuns(unittest.TestCase):
 
     @needs_yaml
     def test_the_container_is_built_and_exercised(self):
+        """Built, checked against the lock, and made to run the suite.
+
+        It used to run a hand-written contract chain that only ever fitted
+        one method. Running the suite inside the image covers the same chain
+        -- each method's smoke tests are that chain -- and covers every
+        method rather than the one the chain was written for.
+        """
         for name, doc in parsed().items():
             runs = " ".join(
                 str(s.get("run", "")) for spec in doc["jobs"].values()
                 for s in spec.get("steps", []))
             with self.subTest(file=name):
+                self.assertIn("docker build", runs_of(doc, "container"))
+                self.assertIn("verify-environment.py", runs_of(doc, "locked"))
+                self.assertIn("unittest discover", runs_of(doc, "locked"))
+
+
+class TestEveryMethodIsExercised(unittest.TestCase):
+    """A method CI never installs is a method CI never tests.
+
+    The `locked` job named one method's lock, so when the second method
+    arrived **all twelve of its dependent tests skipped in CI** and the job
+    still reported success. Skips are reported, but a green tick over twelve
+    silent skips is exactly the "something checked and it was fine" that this
+    file exists to prevent.
+
+    Methods must be **discovered, not listed**: a hand-written matrix is a
+    list that goes stale the moment a method is added, which is the mistake
+    this repository has now made three times.
+    """
+
+    def method_locks(self) -> list[str]:
+        return sorted(
+            str(p.relative_to(ROOT))
+            for p in (ROOT / "methods").glob("*/requirements.lock.txt"))
+
+    def test_there_is_more_than_one_method_to_cover(self):
+        """With one method a per-method matrix proves nothing."""
+        self.assertGreater(len(self.method_locks()), 1)
+
+    @needs_yaml
+    def test_the_methods_are_discovered_rather_than_listed(self):
+        """Any method name written into the workflow is a name that can rot."""
+        for name, doc in parsed().items():
+            text = (WORKFLOWS / name).read_text()
+            for lock in self.method_locks():
+                method = lock.split("/")[1]
+                with self.subTest(file=name, method=method):
+                    self.assertNotIn(
+                        f"methods/{method}/", text,
+                        f"{method} is named in the workflow; methods must be "
+                        "discovered so a new one is covered without an edit")
+
+    @needs_yaml
+    def test_each_per_method_job_runs_over_the_matrix(self):
+        """Checked job by job. A matrix on one of them is not a matrix on the
+        other, and joining their text hid exactly that."""
+        for name, doc in parsed().items():
+            for job in ("locked", "container"):
+                with self.subTest(file=name, job=job):
+                    spec = doc["jobs"][job]
+                    self.assertIn("matrix", str(spec.get("strategy", "")),
+                                  f"{job} does not run over the matrix")
+                    self.assertIn("matrix.", runs_of(doc, job),
+                                  f"{job} never uses the matrix value")
+
+    @needs_yaml
+    def test_the_discovery_finds_methods_by_looking(self):
+        """Run the script itself, against a tree it has never seen."""
+        import subprocess, tempfile
+        doc = parsed()["tests.yml"]
+        script = discovery_script(doc)
+        d = Path(tempfile.mkdtemp(prefix="discover-"))
+        self.addCleanup(shutil.rmtree, d, ignore_errors=True)
+        for m in ("aaa_first", "zzz_second"):
+            (d / "methods" / m).mkdir(parents=True)
+            (d / "methods" / m / "requirements.lock.txt").write_text("x==1\n")
+        env = {**os.environ, "GITHUB_OUTPUT": str(d / "out.txt")}
+        r = subprocess.run([sys.executable, "-c", script], cwd=d, env=env,
+                           capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("aaa_first", r.stdout)
+        self.assertIn("zzz_second", r.stdout,
+                      "the discovery found only some of the methods")
+
+    @needs_yaml
+    def test_the_discovery_refuses_to_find_nothing(self):
+        """An empty matrix runs no jobs and reports success -- the quietest
+        possible way for the suite to stop running."""
+        import subprocess, tempfile
+        script = discovery_script(parsed()["tests.yml"])
+        d = Path(tempfile.mkdtemp(prefix="discover-"))
+        self.addCleanup(shutil.rmtree, d, ignore_errors=True)
+        (d / "methods").mkdir()
+        r = subprocess.run([sys.executable, "-c", script], cwd=d,
+                           capture_output=True, text=True)
+        self.assertNotEqual(r.returncode, 0,
+                            "finding no methods was reported as success")
+
+    @needs_yaml
+    def test_the_matrix_comes_from_a_discovery_step(self):
+        for name, doc in parsed().items():
+            jobs = doc["jobs"]
+            with self.subTest(file=name):
+                matrixed = [j for j, spec in jobs.items()
+                            if "matrix" in str(spec.get("strategy", ""))]
+                self.assertTrue(matrixed, "no job runs over a matrix")
+                for j in matrixed:
+                    self.assertIn("needs", jobs[j],
+                                  f"{j} has a matrix that nothing computes")
+
+    @needs_yaml
+    def test_the_container_job_builds_and_exercises_each_image(self):
+        """All three, in the container job specifically."""
+        for name, doc in parsed().items():
+            runs = runs_of(doc, "container")
+            with self.subTest(file=name):
                 self.assertIn("docker build", runs)
-                self.assertIn("contract-test.py", runs)
+                self.assertIn("verify-environment.py", runs,
+                              "the image is never checked against its lock")
+                self.assertIn("unittest discover", runs,
+                              "the suite never runs inside the image")
 
 
 class TestItIsReproducibleToo(unittest.TestCase):

@@ -2,9 +2,13 @@
 #
 # The hook is machinery, but machinery on one machine: it needs
 # `git config core.hooksPath .githooks` per clone, `--no-verify` skips it, and
-# it only ever tested the platform the committer happened to be using. Every
-# end-to-end check so far ran on macOS arm64, while the deployment target is
-# linux x86_64. These jobs run there.
+# it only ever tested the platform the committer was using. Every end-to-end
+# check before this ran on macOS arm64; the deployment target is linux x86_64.
+#
+# **Methods are discovered, not listed.** A hand-written matrix is a list, and
+# a list goes stale the moment a method is added -- which is how the second
+# method arrived with twelve of its tests silently skipping in CI while the
+# job still reported success.
 #
 # Actions are pinned by commit SHA rather than by tag, for the same reason the
 # container's base image is pinned by digest: a tag is a moving target, and a
@@ -31,11 +35,34 @@ jobs:
       - name: Run the suite with no dependencies installed
         run: ./tests/run-tests.sh
 
-  # The locked environment, on the platform it is actually deployed to. The
-  # wheels for linux x86_64 were hashed but had never been installed outside a
-  # container, and the suite had never run natively on amd64 at all.
-  locked:
+  # Every method that has a lock, found by looking rather than by listing.
+  discover:
     runs-on: ubuntu-latest
+    outputs:
+      methods: ${{ steps.find.outputs.methods }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+      - id: find
+        name: Find the methods that declare a locked environment
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, pathlib
+          found = sorted(p.parent.name for p in
+                         pathlib.Path("methods").glob("*/requirements.lock.txt"))
+          if not found:
+              raise SystemExit("no method declares a lock; nothing would run")
+          print("methods=" + json.dumps(found))
+          PY
+
+  # Each method's locked environment, on the platform it is deployed to, with
+  # that method's own tests actually running rather than skipping.
+  locked:
+    needs: discover
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        method: ${{ fromJSON(needs.discover.outputs.methods) }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
@@ -47,44 +74,42 @@ jobs:
           .venv/bin/pip install --require-hashes \
             --index-url https://download.pytorch.org/whl/cpu \
             --extra-index-url https://pypi.org/simple \
-            -r methods/1_context_prediction/requirements.lock.txt \
+            -r "methods/${{ matrix.method }}/requirements.lock.txt" \
             -r requirements-tools.lock.txt
       - name: Check the environment is the locked one
         run: |
           .venv/bin/python bin/verify-environment.py \
-            --lock methods/1_context_prediction/requirements.lock.txt \
+            --lock "methods/${{ matrix.method }}/requirements.lock.txt" \
             --lock requirements-tools.lock.txt
       - name: Run the whole suite
         run: .venv/bin/python -m unittest discover -s tests -v
 
-  # Slower, so it runs before a merge rather than on every push. It was built
-  # once by hand and nothing re-checked it; a lock or Dockerfile change could
-  # break the build silently.
+  # Slower, so it runs before a merge rather than on every push. Built once by
+  # hand originally, with nothing re-checking it since.
   container:
+    needs: discover
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        method: ${{ fromJSON(needs.discover.outputs.methods) }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
       - name: Build the image
-        run: docker build -f methods/1_context_prediction/Dockerfile -t ctxpred .
-      - name: Run the contract chain inside it
         run: |
-          mkdir -p runs && chmod 777 runs
-          docker run --rm -v "$PWD/runs:/runs" ctxpred python3 -c "
-          import random
-          from PIL import Image
-          from pathlib import Path
-          rng = random.Random(0)
-          for s in ('train', 'val'):
-              d = Path('/runs/data') / s / 'c0'
-              d.mkdir(parents=True, exist_ok=True)
-              for i in range(3):
-                  im = Image.new('RGB', (400, 400))
-                  im.putdata([(rng.randrange(256),) * 3 for _ in range(160000)])
-                  im.save(d / f'{i}.jpg')
-          "
-          printf '%s\n' '{"stage":"step1","seed":42,"data_root":"/runs/data","device":"cpu","train":{"max_steps":2,"batch_size":2,"num_workers":0,"lr":1.0e-05,"save_every_steps":2,"eval_every_steps":2,"eval_batches":1}}' > runs/cfg.json
-          docker run --rm -v "$PWD/runs:/runs" -w /work/methods/1_context_prediction ctxpred \
-            python3 -m adapter --config /runs/cfg.json --out /runs/out
-          docker run --rm -v "$PWD/runs:/runs" -w /work ctxpred \
-            python3 bin/contract-test.py --out /runs/out --config /runs/cfg.json --exit-status 0
+          docker build -f "methods/${{ matrix.method }}/Dockerfile" \
+            -t "method-image" .
+      - name: Check the image is the locked environment
+        run: |
+          docker run --rm -w /work method-image \
+            python3 bin/verify-environment.py \
+              --lock "methods/${{ matrix.method }}/requirements.lock.txt" \
+              --lock requirements-tools.lock.txt
+      # The whole suite, inside the image. That covers the contract chain --
+      # resolve, adapt, contract-test -- as the method's own smoke tests run
+      # it, rather than a hand-written chain that only ever fitted one method.
+      - name: Run the suite inside the image
+        run: |
+          docker run --rm -w /work method-image \
+            python3 -m unittest discover -s tests -v
