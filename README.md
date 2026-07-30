@@ -349,15 +349,22 @@ rebuilt from it. The one exemption is `pip`, which `python -m venv` seeds
 before any lock is read — and it is *reported* as ignored, with the reason,
 rather than passed over.
 
-**Not verified.** Only CPU on macOS arm64 has been run end to end. The Linux
-wheels are hashed in the lock but were not executed here, and no CUDA build
-was installed, so the GPU determinism settings are unexercised. The container
-definition (`methods/1_context_prediction/Dockerfile`, which builds the same
-locked environment as an image and is readable by both Docker and Apptainer)
-**has never been built** — there is no container runtime on the machine it was
-written on. Its properties are checked by reading, in
-`tests/test_container.py`, and the method's README lists exactly what that
-does and does not cover.
+**Measured, on 2026-07-30.** The container was built and run on both
+architectures Docker offers here, and the chain completed on each:
+
+```
+linux/arm64   same config twice -> encoder.pt bd90b98ef87dea0265bb…  (identical)
+linux/amd64   same config twice -> encoder.pt cbf177068c3dcd6583f5…  (identical)
+```
+
+The two architectures **disagree with each other**, which is the guarantee
+working rather than failing — and the manifests record `aarch64` and `x86_64`,
+so the disagreement is explained rather than mysterious.
+
+**Not verified.** Apptainer, and any GPU: neither is available on the machine
+this was written on, so the `apptainer` commands in the method's README come
+from its documentation rather than from a run, and the CUDA determinism
+settings are unexercised.
 
 ## Execution platforms
 

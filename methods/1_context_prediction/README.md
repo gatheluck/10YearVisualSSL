@@ -220,24 +220,34 @@ apptainer exec --bind "$PWD/runs:/runs" ctxpred.sif sh -c 'cd /work/methods/1_co
 There is deliberately no `ENTRYPOINT`: Docker and Apptainer disagree about how
 one is invoked, and a plain image is driven the same way by both.
 
-#### **What has not been verified**
+#### What was measured, and what was not
 
-**This image has never been built.** There is no Docker, Podman or Apptainer
-on the machine the definition was written on. Everything asserted about it is
-checked by reading the file — `tests/test_container.py` — and nothing by
-running it:
+The image **has now been built and run**, on 2026-07-30, for both
+architectures Docker offers on this machine:
 
-| Checked by reading | Not checked at all |
-|---|---|
-| the base image is pinned by digest | that the build succeeds |
-| the Python version matches `.python-version` | that the wheels install on linux/amd64 |
-| `--require-hashes` is used | that the verification step passes inside the image |
-| a fresh venv, not the base image's site-packages | that the adapter runs in the container |
-| both locks are installed, and both exist | that Apptainer accepts the image |
-| the build runs the verification | GPU access under either runtime |
-| nothing unpinned is installed | |
+| | linux/arm64 | linux/amd64 |
+|---|---|---|
+| build, including the self-verification step | passes | passes |
+| identity inside | Python 3.12.13, torch 2.13.0+cpu | Python 3.12.13, torch 2.13.0+cpu |
+| `resolve-config` → adapter → `contract-test` | exit 0 | exit 0 |
+| the run's recorded environment vs the locks | matches | matches |
+| the same config twice | **byte-identical** | **byte-identical** |
 
-The Apptainer commands above are from its documentation, not from a run.
+**And across the two, deliberately not identical:**
+
+```
+arm64  encoder.pt bd90b98ef87dea0265bb…   val_loss 2.4203052520751953
+amd64  encoder.pt cbf177068c3dcd6583f5…   val_loss 2.7717556953430176
+```
+
+That is the guarantee working, not failing. Floating-point addition is not
+associative, so a different instruction set reorders the arithmetic. What must
+hold is that the difference is explainable, and it is: the manifests record
+`aarch64` and `x86_64`.
+
+Still not verified: **Apptainer**, and **any GPU**. Neither is available here,
+so the `apptainer` commands above come from its documentation rather than from
+a run, and the CUDA determinism settings remain unexercised.
 
 ### Rebuilding the lock
 
