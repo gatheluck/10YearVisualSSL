@@ -52,6 +52,7 @@ shown so the shape is visible before it is built.
 │   │       ├── __init__.py             the body: what this method does
 │   │       └── __main__.py             python -m adapter --config ... --out ...
 │   ├── 1_context_prediction/         first pilot, step 1              exists
+│   │   ├── Dockerfile                  the locked environment as an image
 │   │   ├── adapter/                    translates the config, calls the original
 │   │   ├── train_step1_alexnet_official.py   the original loop, extracted
 │   │   ├── models/ data/               untouched; digests pinned by tests
@@ -350,7 +351,13 @@ rather than passed over.
 
 **Not verified.** Only CPU on macOS arm64 has been run end to end. The Linux
 wheels are hashed in the lock but were not executed here, and no CUDA build
-was installed, so the GPU determinism settings are unexercised.
+was installed, so the GPU determinism settings are unexercised. The container
+definition (`methods/1_context_prediction/Dockerfile`, which builds the same
+locked environment as an image and is readable by both Docker and Apptainer)
+**has never been built** — there is no container runtime on the machine it was
+written on. Its properties are checked by reading, in
+`tests/test_container.py`, and the method's README lists exactly what that
+does and does not cover.
 
 ## Execution platforms
 

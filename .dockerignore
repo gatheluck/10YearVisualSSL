@@ -1,0 +1,17 @@
+# Keep the build context small and stable.
+#
+# .git changes on every commit and would invalidate the layer cache for a
+# change the image does not contain. runs/ holds outputs, which have no place
+# in an image that is supposed to produce them. The rest is generated.
+
+.git
+.github
+runs
+__pycache__
+*.py[cod]
+.venv
+venv
+*.egg-info
+.pytest_cache
+.mypy_cache
+.ruff_cache
