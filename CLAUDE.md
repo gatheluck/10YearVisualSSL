@@ -65,7 +65,7 @@ Reports that were actually wrong, in the past:
   work (it deleted one of my own fixes). Copy the tree aside first, then break
   it
 
-### The six mistakes made repeatedly here
+### The seven mistakes made repeatedly here
 
 Counted from the commit history, not from memory. Each one was found *after*
 it had been reported as finished, several times over. **Read this list before
@@ -78,10 +78,17 @@ writing a test**, and use the mechanism named against each.
 | **A rule applied to only some of what it governs** | 3 | **Discover, never list.** `tests/test_no_hard_coded_methods.py` refuses a shared file that names one method |
 | **An assertion that could not fail** | 2 | `bin/mutate.py`. A guard with no killed mutant is not a guard |
 | **A mutation harness that lied** | 2 | `bin/mutate.py` — an absent or ambiguous anchor is an error, and bytecode is never reused |
-| **A simulation that was not faithful** | 2 | Verify the *absence* you are simulating before trusting the result (`shutil.which("git")` is `None`, and so on) |
+| **A simulation that was not faithful** | 3 | Verify the *absence* you are simulating before trusting the result (`shutil.which("git")` is `None`, and so on). The third time, the simulation was faithful and simply **was not run** before pushing |
+| **The same rule implemented twice** | 2 | One implementation, imported. `tests/_repo_files.py` owns "which files belong to this repository"; `tests/test_repository_scan.py` refuses a second copy and proves the one that exists works with git removed from `PATH` |
 
 Concrete instances, so the shapes are recognisable:
 
+- two copies of "which files belong to this repository" agreed in every
+  environment that had git, and diverged in the container image, which has
+  none: one fell back to a filesystem walk, the other raised. **Copies do not
+  announce themselves by disagreeing -- they agree until the one case that
+  matters.** The fix was never to skip the failing scan; answering a red CI by
+  testing less is how a suite rots
 - `".git" in text` matched `.github`; `"launch.py"` matched `test_launch.py`;
   `"venv"`, `"checkpoint_dir"` and `LIVE_ROOT` each matched **a comment saying
   the thing was absent**

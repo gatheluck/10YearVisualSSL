@@ -27,7 +27,7 @@ from pathlib import Path
 
 if str(Path(__file__).parent) not in sys.path:
     sys.path.insert(0, str(Path(__file__).parent))
-from _checkout import needs_checkout        # noqa: E402
+from _checkout import has_git, needs_checkout   # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -55,20 +55,44 @@ class TestTheCheckoutGateIsNotAlwaysOn(unittest.TestCase):
     Deliberately not itself gated.
     """
 
-    @unittest.skipUnless((ROOT / ".git").exists(),
-                         "no .git here, so there is nothing to be wrong about")
-    def test_where_there_is_a_git_directory_the_gate_is_off(self):
-        """Premised on `.git` existing, checked without `is_checkout` itself.
+    @unittest.skipUnless((ROOT / ".git").exists() and has_git(),
+                         "no .git or no git here, so the gate is on for a "
+                         "reason and there is nothing to be wrong about")
+    def test_where_there_is_a_git_directory_and_git_the_gate_is_off(self):
+        """Premised on a usable checkout, checked without `is_checkout`.
 
         Asserting "this is a checkout" unconditionally would fail inside the
         image, where it is simply not applicable. Asserting it *where a .git
-        exists* is the real claim: the gate must not be on in a checkout, or
-        every repository test is skipping and nothing says so.
+        and a git both exist* is the real claim: the gate must not be on in a
+        checkout, or every repository test is skipping and nothing says so.
+
+        **`and has_git()` was missing and the premise was therefore false.**
+        A checkout on a machine with no git installed -- a minimal container
+        with the tree mounted into it -- has a `.git`, cannot run git, and is
+        correctly gated; this then asserted that it was not, and failed. The
+        container job cannot see that combination, because it has no `.git`
+        either. Running the whole suite with git removed from `PATH` did.
         """
         from _checkout import is_checkout
         self.assertTrue(is_checkout(ROOT),
-                        "there is a .git here but the gate is on, so the "
-                        "repository tests are all skipping silently")
+                        "there is a .git and a git here but the gate is on, "
+                        "so the repository tests are all skipping silently")
+
+    def test_without_git_the_gate_is_on_whatever_else_is_true(self):
+        """The case just carved out of the premise above, asserted rather
+        than merely excluded. A `.git` that cannot be read is not a checkout,
+        and claiming otherwise would send every repository test into a git
+        call that raises instead of skipping."""
+        from _checkout import is_checkout
+        import _checkout
+        real, _checkout.has_git = _checkout.has_git, lambda: False
+        try:
+            self.assertFalse(is_checkout(ROOT))
+        finally:
+            _checkout.has_git = real
+        self.assertEqual(is_checkout(ROOT), (ROOT / ".git").exists()
+                         and has_git(), "restoring has_git did not restore "
+                         "the answer, so the test above leaked")
 
     def test_a_directory_that_is_not_a_repository_is_recognised(self):
         """The other half: the condition must actually be able to be false."""

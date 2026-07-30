@@ -28,6 +28,7 @@ from pathlib import Path
 if str(Path(__file__).parent) not in sys.path:
     sys.path.insert(0, str(Path(__file__).parent))
 from _checkout import needs_git            # noqa: E402
+from _repo_files import repository_files   # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -48,33 +49,12 @@ MAX_BYTES = 8 << 20
 ALLOWLIST: tuple[str, ...] = ()
 
 
-def _candidates(root: Path) -> list[Path]:
-    """The files that belong to this repository.
-
-    **Installed dependencies are not this repository's text.** The READMEs
-    say to build the environment at `.venv/` inside the repository, so a
-    plain walk reads jinja2, numpy, rich and torch's bundled headers --
-    several of which legitimately contain CJK. CI failed on exactly that; no
-    local run had, because every venv here had been made in /tmp.
-
-    The rule is git's own -- tracked, plus untracked and not ignored -- so it
-    is derived rather than listed and cannot go stale. It still covers a file
-    written a moment ago and never added, which matters because the
-    pre-commit hook runs before anything is committed.
-
-    Outside a work tree there is nothing to ask, so everything is a candidate.
-    """
-    try:
-        out = subprocess.run(
-            ["git", "ls-files", "--cached", "--others", "--exclude-standard",
-             "-z"], cwd=root, capture_output=True, text=True, timeout=60)
-    except (OSError, subprocess.SubprocessError):
-        out = None
-    if out is None or out.returncode != 0:
-        return [p for p in sorted(root.rglob("*"))
-                if p.is_file() and not p.is_symlink()]
-    paths = [root / rel for rel in out.stdout.split("\0") if rel]
-    return sorted(p for p in paths if p.is_file() and not p.is_symlink())
+# Which files belong to the repository is asked by three guards, so it is
+# answered in exactly one place. It used to be answered here and again in
+# test_no_hard_coded_methods.py, and the two diverged: this one degraded to a
+# filesystem walk where git was unavailable and that one raised, so the same
+# scan crashed in the container image while this one passed.
+_candidates = repository_files
 
 
 def classify(root: Path, max_bytes: int = MAX_BYTES

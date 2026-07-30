@@ -24,10 +24,13 @@ Prose is exempt: the README has to be able to say which methods are ported.
 
 from __future__ import annotations
 
-import re
-import subprocess
+import sys
 import unittest
 from pathlib import Path
+
+if str(Path(__file__).parent) not in sys.path:
+    sys.path.insert(0, str(Path(__file__).parent))
+from _repo_files import repository_files   # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 METHODS = ROOT / "methods"
@@ -48,20 +51,21 @@ def method_names() -> list[str]:
                   if p.is_dir() and not p.name.startswith("."))
 
 
-def repository_files() -> list[Path]:
-    """Tracked, plus untracked and not ignored.
+def scanned_files() -> list[Path]:
+    """Tracked, plus untracked and not ignored -- `_repo_files` decides.
 
-    Listing only tracked files let a brand new file escape until it was
-    staged: this guard passed while the file that broke it sat untracked in
-    the tree, and only the commit hook caught it. The same rule as the
-    language guard, for the same reason.
+    **This was a second implementation of that rule and it diverged.** It
+    raised where git was unavailable, so three tests here errored inside the
+    container image -- which ships with no `.git` and no git binary by design
+    -- while the language guard, asking the identical question through its
+    own copy of the code, degraded to a filesystem walk and passed.
+
+    The answer was not to skip this scan where git is missing. A guard that
+    stops running in the one environment that most resembles what we publish
+    is worth less than no guard, and answering a red CI by testing less is
+    how a suite rots. The answer was for there to be one implementation.
     """
-    r = subprocess.run(
-        ["git", "ls-files", "--cached", "--others", "--exclude-standard",
-         "-z"], cwd=ROOT, capture_output=True, text=True)
-    if r.returncode != 0:
-        raise RuntimeError(f"git ls-files failed: {r.stderr.strip()}")
-    return [ROOT / x for x in r.stdout.split("\0") if x]
+    return repository_files(ROOT)
 
 
 def may_name(path: Path, method: str) -> bool:
@@ -83,7 +87,7 @@ class TestSharedMachineryDiscoversMethods(unittest.TestCase):
 
     def test_no_shared_file_names_a_method(self):
         offenders = []
-        for path in repository_files():
+        for path in scanned_files():
             if not path.is_file():
                 continue
             try:
@@ -108,10 +112,10 @@ class TestSharedMachineryDiscoversMethods(unittest.TestCase):
         probe = ROOT / "tests" / "_scan_probe_tmp.py"
         probe.write_text("# temporary\n", encoding="utf-8")
         self.addCleanup(probe.unlink, missing_ok=True)
-        self.assertIn(probe, repository_files())
+        self.assertIn(probe, scanned_files())
 
     def test_the_scan_reads_something(self):
-        self.assertGreater(len(repository_files()), 20)
+        self.assertGreater(len(scanned_files()), 20)
 
     def test_a_shared_file_naming_a_method_would_be_caught(self):
         """The detector, checked against a case it must reject."""

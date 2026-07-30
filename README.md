@@ -103,6 +103,8 @@ shown so the shape is visible before it is built.
 │   ├── test_ci.py                    the workflow runs what it claims
 │   ├── test_mutate.py                the mutation tool cannot lie
 │   ├── test_no_hard_coded_methods.py shared machinery discovers methods
+│   ├── test_repository_scan.py       one scan, and it works without git
+│   ├── _repo_files.py                which files belong to the repository
 │   ├── test_language.py              everything here is in English
 │   └── test_repo_hygiene.py          nothing generated is tracked
 ├── .github/workflows/tests.yml     CI: the suite on linux x86_64      exists
@@ -485,7 +487,7 @@ one origin even as the implementation moves here.
 
 ## Guards against repeated mistakes
 
-Six kinds of mistake recurred often enough here to be worth mechanising
+Seven kinds of mistake recurred often enough here to be worth mechanising
 rather than remembering. They are listed with their counts in
 [CLAUDE.md](CLAUDE.md); the mechanisms are:
 
@@ -496,10 +498,17 @@ rather than remembering. They are listed with their counts in
 | `tests/test_repo_hygiene.py` | the README layout drifting from the tree — in **both** directions |
 | `tests/test_ci.py` | a CI job that cannot fail |
 | `tests/test_language.py`, `tests/test_platform_isolation.py` | prose and platform vocabulary leaking where they do not belong |
+| `tests/test_repository_scan.py` | the same rule implemented twice. Two copies of "which files belong to this repository" agreed everywhere git existed and diverged inside the container image. It pins one implementation, and proves the scan works with git actually removed from `PATH` |
 
 Each was written after the same mistake had been made two or three times. The
 counts are in the commit history and are not flattering; they are recorded
 because a mistake nobody counted is a mistake that recurs.
+
+The last row was added after the fourth occurrence, in the commit that
+introduced the row above it -- which is the honest measure of how little a
+written rule achieves on its own. What the guards do not cover, the container
+job does: it runs the suite in an image with no `.git`, no `.github` and no
+git binary, which is the closest thing here to what a reader downloads.
 
 ## Development
 
