@@ -10,5 +10,7 @@
 # requirements.lock.txt to rebuild a run.
 
 torch>=2.0.0
+# Linear evaluation reads ImageFolder and the standard transforms.
+torchvision>=0.15.0
 numpy>=1.24.0
 Pillow>=9.0.0

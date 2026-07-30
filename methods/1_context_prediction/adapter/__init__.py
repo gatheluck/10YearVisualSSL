@@ -30,15 +30,27 @@ from pathlib import Path
 import adapterlib
 
 METHOD = "1_context_prediction"
-STAGE = "step1"
 
-# Every training setting the original takes, and no others. Kept as a set so
-# that a missing one and an unknown one are both named rather than absorbed.
-TRAIN_KEYS = frozenset({
-    "max_steps", "batch_size", "num_workers", "lr",
-    "save_every_steps", "eval_every_steps", "eval_batches",
-})
-TOP_KEYS = frozenset({"seed", "data_root", "device", "train"})
+# **The stage comes from the config, not from a flag.** The contract fixes the
+# adapter's arguments at exactly two, and says anything else that affects the
+# result belongs in the config (CONTRACT section 2). A --stage flag would be an
+# input that `config_sha256` does not cover.
+#
+# Each stage declares exactly the keys it reads, so a setting the stage never
+# looks at cannot sit in a config claiming to have had an effect.
+STAGES = {
+    "step1": {
+        "top": frozenset({"seed", "data_root", "device", "train"}),
+        "train": frozenset({"max_steps", "batch_size", "num_workers", "lr",
+                            "save_every_steps", "eval_every_steps",
+                            "eval_batches"}),
+    },
+    "linear_eval": {
+        "top": frozenset({"seed", "data_root", "device", "train", "encoder"}),
+        "train": frozenset({"epochs", "batch_size", "feature_batch_size",
+                            "num_workers", "lr", "img_size"}),
+    },
+}
 DEVICES = ("auto", "cuda", "cpu")
 ENCODER_PREFIX = "encoder."
 
@@ -69,6 +81,21 @@ def _named(missing, unknown, where: str) -> None:
             "ignored is a setting that never took effect")
 
 
+def stage_of(config: dict) -> str:
+    """Which stage the config asks for. Refused rather than defaulted."""
+    stage = config.get("stage")
+    if stage is None:
+        raise ConfigError(
+            "config: missing stage. It is not defaulted: the stage decides "
+            f"what runs, so it belongs inside config_sha256. Known stages: "
+            f"{', '.join(sorted(STAGES))}")
+    if stage not in STAGES:
+        raise ConfigError(
+            f"config: stage is {stage!r}; known stages are "
+            f"{', '.join(sorted(STAGES))}")
+    return stage
+
+
 def to_args(config: dict, out: Path) -> Namespace:
     """Translate the resolved config into the original's arguments."""
     if "resume" in config:
@@ -76,13 +103,16 @@ def to_args(config: dict, out: Path) -> Namespace:
             "resume is not supported by this adapter yet. The original "
             "supports it; until this adapter records what was resumed from, "
             "accepting the key would hide it")
-    _named(TOP_KEYS - set(config), set(config) - TOP_KEYS, "config")
+    stage = stage_of(config)
+    top_keys = STAGES[stage]["top"] | {"stage"}
+    _named(top_keys - set(config), set(config) - top_keys, "config")
 
     train = config["train"]
     if not isinstance(train, dict):
         raise ConfigError(f"config: train is {type(train).__name__}, "
                           "not a mapping")
-    _named(TRAIN_KEYS - set(train), set(train) - TRAIN_KEYS, "config.train")
+    train_keys = STAGES[stage]["train"]
+    _named(train_keys - set(train), set(train) - train_keys, "config.train")
 
     device = config["device"]
     if device not in DEVICES:
@@ -90,21 +120,28 @@ def to_args(config: dict, out: Path) -> Namespace:
             f"config: device is {device!r}; expected one of "
             f"{', '.join(DEVICES)}")
 
+    common = dict(data_path=str(config["data_root"]),
+                  save_dir=str(Path(out) / WORK),
+                  seed=int(config["seed"]), device=device, gpu=0)
+    if stage == "step1":
+        return Namespace(
+            **common, resume="", allow_resume=False,
+            max_steps=int(train["max_steps"]),
+            batch_size=int(train["batch_size"]),
+            num_workers=int(train["num_workers"]),
+            lr=float(train["lr"]),
+            save_every_steps=int(train["save_every_steps"]),
+            eval_every_steps=int(train["eval_every_steps"]),
+            eval_batches=int(train["eval_batches"]),
+        )
     return Namespace(
-        data_path=str(config["data_root"]),
-        save_dir=str(Path(out) / WORK),
-        seed=int(config["seed"]),
-        device=device,
-        gpu=0,
-        resume="",
-        allow_resume=False,
-        max_steps=int(train["max_steps"]),
+        **common, checkpoint=None, encoder=str(config["encoder"]),
+        epochs=int(train["epochs"]),
         batch_size=int(train["batch_size"]),
+        feature_batch_size=int(train["feature_batch_size"]),
         num_workers=int(train["num_workers"]),
         lr=float(train["lr"]),
-        save_every_steps=int(train["save_every_steps"]),
-        eval_every_steps=int(train["eval_every_steps"]),
-        eval_batches=int(train["eval_batches"]),
+        img_size=int(train["img_size"]),
     )
 
 
@@ -165,24 +202,59 @@ def load_final_state(out: Path, _load=None) -> dict:
 
 
 def run_training(config: dict, out: Path, _run=None) -> dict:
-    """Call the original training run and return metrics fit for the contract.
+    """Call the original run for this stage, and return contract-fit metrics.
 
     `_run` exists so the translation can be tested without a GPU or a dataset;
-    it defaults to the original.
+    it defaults to the original for the stage the config names.
     """
+    stage = stage_of(config)
     if _run is None:
-        from train_step1_alexnet_official import run as _run
+        if stage == "step1":
+            from train_step1_alexnet_official import run as _run
+        else:
+            from evaluate_linear_official import run as _run
     args = to_args(config, out)
     Path(args.save_dir).mkdir(parents=True, exist_ok=True)
-    return _usable_metrics(_run(args))
+    raw = _run(args)
+    if stage == "step1":
+        return _usable_metrics(raw)
+    return _eval_metrics(raw)
+
+
+# The accuracies the linear evaluation reports. Named, for the same reason
+# EVAL_METRICS is named for step 1: a run that produced none must not look
+# populated because some other number happened to be present.
+LINEAR_EVAL_METRICS = ("best_top1_acc", "best_top5_acc",
+                       "final_top1_acc", "final_top5_acc")
+
+
+def _eval_metrics(results: dict) -> dict:
+    metrics, unusable = {}, 0
+    for k in LINEAR_EVAL_METRICS:
+        v = results.get(k)
+        if isinstance(v, bool) or not isinstance(v, (int, float)):
+            unusable += 1
+            continue
+        metrics[k] = v
+    if unusable:
+        metrics["metrics_unavailable"] = unusable
+    return metrics
+
+
+# This stage evaluates an encoder and produces a classifier. CONTRACT section
+# 3 allows producing no encoder only when the reason is recorded.
+NO_ENCODER_REASON = ("this stage evaluates a frozen encoder and produces a "
+                     "linear classifier; the encoder it read is named in "
+                     "work/results.json")
 
 
 def body(ctx: adapterlib.Context) -> None:
     import torch
     metrics = run_training(ctx.config, ctx.out)
-    state = load_final_state(ctx.out)
-    torch.save(extract_encoder(state["state_dict"]),
-               Path(ctx.out) / "encoder.pt")
+    if stage_of(ctx.config) == "step1":
+        state = load_final_state(ctx.out)
+        torch.save(extract_encoder(state["state_dict"]),
+                   Path(ctx.out) / "encoder.pt")
     ctx.write_metrics(metrics)
 
 
@@ -196,8 +268,13 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--out", required=True)
     a = ap.parse_args(argv)
     try:
-        return adapterlib.run(config=a.config, out=a.out, method=METHOD,
-                              stage=STAGE, body=body)
+        import json
+        cfg = json.loads(Path(a.config).read_text(encoding="utf-8"))
+        stage = stage_of(cfg)
+        return adapterlib.run(
+            config=a.config, out=a.out, method=METHOD, stage=stage, body=body,
+            encoder_absent_reason=(None if stage == "step1"
+                                   else NO_ENCODER_REASON))
     except (adapterlib.AdapterError, ConfigError) as exc:
         # A refusal, not a run result. Leave no manifest behind.
         print(f"  *** {exc}", file=sys.stderr)
