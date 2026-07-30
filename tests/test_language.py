@@ -233,6 +233,41 @@ class TestOnlyThisRepositorysFilesAreScanned(unittest.TestCase):
         found, _ = classify(d)
         self.assertIn(d / "loose.md", found)
 
+    def test_a_tracked_file_cannot_be_hidden_by_gitignore(self):
+        """**The disarm vector for this scoping rule, closed by git itself.**
+
+        Narrowing the scan to "what git considers part of the repository"
+        raises an obvious question: can someone hide an offending file by
+        listing it in `.gitignore`? No -- gitignore has no effect on a file
+        that is already tracked. Nothing the repository ships can escape.
+
+        That holds by git's semantics rather than by our code, which is
+        exactly why it is pinned here: the day it stops holding, this fails
+        instead of the guard quietly going blind.
+        """
+        d = self._repo()
+        (d / "ours.md").write_text(JAPANESE, encoding="utf-8")
+        self._git(d, "add", "ours.md")
+        self._git(d, "commit", "-qm", "add")
+        (d / ".gitignore").write_text("ours.md\n", encoding="utf-8")
+        found, _ = classify(d)
+        self.assertIn(d / "ours.md", found,
+                      "a tracked file was hidden by .gitignore")
+
+    def test_only_files_that_are_never_committed_escape(self):
+        """States the boundary the other way round, so it cannot drift.
+
+        An untracked, ignored file is not part of the repository and is not
+        published. The moment it is tracked, it is scanned again.
+        """
+        d = self._repo()
+        (d / ".gitignore").write_text("scratch.md\n", encoding="utf-8")
+        (d / "scratch.md").write_text(JAPANESE, encoding="utf-8")
+        self.assertNotIn(d / "scratch.md", classify(d)[0])
+        self._git(d, "add", "-f", "scratch.md")
+        self.assertIn(d / "scratch.md", classify(d)[0],
+                      "tracking it did not bring it back under the guard")
+
     def test_the_real_repository_still_has_plenty_to_scan(self):
         """Narrowing the scope must not empty it."""
         found, _ = classify(ROOT)
