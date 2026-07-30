@@ -34,6 +34,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
+if str(Path(__file__).parent) not in sys.path:
+    sys.path.insert(0, str(Path(__file__).parent))
+from _method_import import load_from        # noqa: E402
+
 ROOT = Path(__file__).resolve().parent.parent
 METHOD = ROOT / "methods" / "1_context_prediction"
 BIN = ROOT / "bin"
@@ -50,19 +54,9 @@ needs_torch = unittest.skipUnless(HAVE_TORCH,
 
 
 def load(name: str, path: Path):
-    if str(METHOD) not in sys.path:
-        sys.path.insert(0, str(METHOD))
-    if name in sys.modules:
-        return sys.modules[name]
-    spec = importlib.util.spec_from_file_location(name, path)
-    mod = importlib.util.module_from_spec(spec)
-    sys.modules[name] = mod
-    try:
-        spec.loader.exec_module(mod)
-    except BaseException:
-        del sys.modules[name]
-        raise
-    return mod
+    """Delegates to the shared helper: two methods define `data` and `models`,
+    and whichever test file imports first would otherwise win."""
+    return load_from(METHOD, name, path)
 
 
 adapter = load("ctxpred_adapter", METHOD / "adapter" / "__init__.py")

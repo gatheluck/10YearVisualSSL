@@ -1,0 +1,19 @@
+# What this method imports, and nothing else. Checked in both directions by
+# tests/test_method_requirements.py.
+#
+# tensorboard is here because the captured trainer writes event files through
+# torch.utils.tensorboard. It brings eight packages with it (measured), which
+# is a real cost -- but the alternative was making the original's logging
+# conditional, and that is a behaviour change to keep a lock file small.
+#
+# Pillow is deliberately absent: torchvision needs it and the lock therefore
+# contains it, but nothing here imports it. The guard caught it copied over
+# from the captured requirements, which is the mistake it exists for.
+#
+# These are floors. Use requirements.lock.txt to rebuild a run.
+
+torch>=2.0.0
+torchvision>=0.15.0
+numpy>=1.21.0
+PyYAML>=6.0
+tensorboard>=2.11.0

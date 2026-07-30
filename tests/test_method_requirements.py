@@ -58,6 +58,13 @@ def local_modules(method: Path) -> set[str]:
 DISTRIBUTION = {"PIL": "Pillow", "yaml": "PyYAML", "cv2": "opencv-python",
                 "sklearn": "scikit-learn", "skimage": "scikit-image"}
 
+# A dotted import can require a distribution that its top-level name does not
+# mention. `from torch.utils.tensorboard import SummaryWriter` needs
+# `tensorboard` installed, and a scan of top-level names sees only `torch` --
+# so the declaration looked unused and the requirement looked absent. Found
+# when the second method came across.
+IMPLIED = {"torch.utils.tensorboard": "tensorboard"}
+
 
 def method_dirs() -> list[Path]:
     if not METHODS.is_dir():
@@ -67,15 +74,21 @@ def method_dirs() -> list[Path]:
 
 
 def imported_modules(method: Path) -> set[str]:
-    """Top-level third-party modules imported anywhere under the method."""
+    """Third-party distributions the method needs, however it imports them."""
     found: set[str] = set()
     for py in sorted(method.rglob("*.py")):
         tree = ast.parse(py.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
+            dotted = []
             if isinstance(node, ast.Import):
-                found.update(a.name.split(".")[0] for a in node.names)
+                dotted = [a.name for a in node.names]
             elif isinstance(node, ast.ImportFrom) and node.level == 0:
-                found.add((node.module or "").split(".")[0])
+                dotted = [node.module or ""]
+            for name in dotted:
+                found.add(name.split(".")[0])
+                for prefix, dist in IMPLIED.items():
+                    if name == prefix or name.startswith(prefix + "."):
+                        found.add(dist)
     local = local_modules(method)
     return {m for m in found
             if m and m not in sys.stdlib_module_names and m not in local}
@@ -209,14 +222,27 @@ class TestTheOptionalToolingDependency(unittest.TestCase):
             self.assertIn("==", line, f"{line!r} is not pinned")
             self.assertIn("--hash=sha256:", line, f"{line!r} has no hash")
 
-    def test_no_method_declares_it(self):
-        """It is the launcher's dependency. A method that declared it would
-        be claiming to import something it does not."""
+    def test_a_method_declares_it_only_if_it_imports_it(self):
+        """This used to say *no* method may declare it, and that was true
+        while none imported it.
+
+        `methods/2_vae` imports `yaml` directly in its trainer, so the old
+        claim is now false -- measurement, not preference. The rule that
+        survives is the derived one: declaring it is allowed exactly when it
+        is imported, which is what the two-directional check already enforces
+        for every package. Stated here so the reasoning is not lost.
+        """
         for m in method_dirs():
             req = m / "requirements.txt"
-            if req.is_file():
-                with self.subTest(method=m.name):
-                    self.assertNotIn("pyyaml", declared_packages(req))
+            if not req.is_file():
+                continue
+            declares = "pyyaml" in declared_packages(req)
+            imports = "yaml" in {x.lower() for x in imported_modules(m)}
+            with self.subTest(method=m.name):
+                self.assertEqual(
+                    declares, imports,
+                    f"{m.name}: declares PyYAML={declares} but "
+                    f"imports yaml={imports}")
 
 
 class TestTheInterpreterIsPinnedToo(unittest.TestCase):
@@ -333,10 +359,17 @@ class TestTheLockIsAClosure(unittest.TestCase):
 # Found by building: Docker on Apple silicon builds linux/arm64, whose wheels
 # are `aarch64`. The lock held x86_64 and macOS arm64 only, so pip refused --
 # correctly, and loudly, but the platform should have been covered.
+# Each target is satisfied by a wheel matching any one of its patterns, and a
+# pattern is satisfied when every substring in it appears in the filename.
+#
+# `universal2` was added after grpcio and protobuf ship macOS wheels built for
+# both architectures at once: `grpcio-...-macosx_11_0_universal2.whl` does
+# support arm64, and reading it as a gap would have been the checker being
+# wrong about the world rather than the lock being incomplete.
 TARGET_PLATFORMS = {
-    "linux x86_64": ("x86_64",),
-    "linux aarch64": ("aarch64",),
-    "macOS arm64": ("macosx", "arm64"),
+    "linux x86_64": [("x86_64",)],
+    "linux aarch64": [("aarch64",)],
+    "macOS arm64": [("macosx", "arm64"), ("macosx", "universal2")],
 }
 UNIVERSAL = "py3-none-any"
 
@@ -396,11 +429,12 @@ class TestTheLockCoversEveryTargetPlatform(unittest.TestCase):
             for pkg, wheels in sorted(per_package.items()):
                 if any(UNIVERSAL in w for w in wheels):
                     continue          # pure python: one wheel serves all
-                for label, needles in sorted(TARGET_PLATFORMS.items()):
+                for label, patterns in sorted(TARGET_PLATFORMS.items()):
                     with self.subTest(lock=name, package=pkg,
                                       platform=label):
                         self.assertTrue(
-                            any(all(n in w for n in needles) for w in wheels),
+                            any(all(n in w for n in pat)
+                                for w in wheels for pat in patterns),
                             f"{pkg} has no wheel for {label}; installing "
                             "there would be refused for want of a hash")
 
