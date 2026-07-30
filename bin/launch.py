@@ -3,7 +3,8 @@
 
     launch.py --config <authoring.yaml|json> --method <name>
               [--platform local] [--set KEY=VALUE ...]
-              [--gpus N] [--hours H] [--runs-dir runs] [--again]
+              [--gpus N] [--hours H] [--processes 1]
+              [--runs-dir runs] [--again]
     launch.py --verify-only <run-dir>
 
 The pieces existed and nothing joined them. A scheduler backend could submit
@@ -114,6 +115,26 @@ def resolve(config: Path, into: Path, sets: dict) -> Path:
     return out
 
 
+def job_environment(gpus: int, processes: int = 1) -> dict:
+    """What the job runs with. **Stated, never inherited.**
+
+    The contract makes the launcher responsible for the distribution
+    variables. Leaving them unset does not mean "one process" -- it means
+    whatever the surrounding shell happens to hold, and `adapterlib` records
+    WORLD_SIZE in the manifest. A value left over from something else would
+    have been written into the results as a fact about the run.
+
+    Multi-process fan-out is not implemented. Rather than quietly running one
+    process where several were asked for, that is refused; see the caller.
+    """
+    return {
+        "PYTHONPATH": str(ROOT),
+        "WORLD_SIZE": str(processes),
+        "RANK": "0",
+        "LOCAL_RANK": "0",
+    }
+
+
 def method_dir(name: str) -> Path:
     d = ROOT / "methods" / name
     if not (d / "adapter").is_dir():
@@ -142,7 +163,14 @@ def verify(run: Path, exit_status: int) -> tuple[bool, str]:
 
 
 def launch(config: Path, method: str, runs_dir: Path, platform: str,
-           sets: dict, gpus: int, hours: int, again: bool) -> tuple[int, dict]:
+           sets: dict, gpus: int, hours: int, again: bool,
+           processes: int = 1) -> tuple[int, dict]:
+    if processes != 1:
+        raise LaunchError(
+            f"--processes {processes}: multi-process fan-out is not "
+            "implemented. Running one process where several were asked for "
+            "would produce a result that looks like the one requested, so "
+            "this is refused rather than approximated")
     md = method_dir(method)
     mod = backend_for(platform)
 
@@ -174,7 +202,7 @@ def launch(config: Path, method: str, runs_dir: Path, platform: str,
                  "--config", str((run / RESOLVED).resolve()),
                  "--out", str((run / OUT).resolve())],
         env_name=method, gpus=gpus, hours=hours, workdir=str(md),
-        env={"PYTHONPATH": str(ROOT)},
+        env=job_environment(gpus=gpus, processes=processes),
     )
     result = mod.Backend().submit(spec)
 
@@ -238,7 +266,11 @@ def main() -> int:
     ap.add_argument("--method")
     ap.add_argument("--platform", default=DEFAULT_PLATFORM)
     ap.add_argument("--set", action="append", default=[], metavar="KEY=VALUE")
-    ap.add_argument("--gpus", type=int, default=0)
+    ap.add_argument("--gpus", type=int, default=0,
+                    help="a resource request for the scheduler. It does not "
+                         "imply how many processes run")
+    ap.add_argument("--processes", type=int, default=1,
+                    help="processes to fan out to. Only 1 is implemented")
     ap.add_argument("--hours", type=int, default=1)
     ap.add_argument("--runs-dir", type=Path, default=ROOT / "runs")
     ap.add_argument("--again", action="store_true",
@@ -253,7 +285,8 @@ def main() -> int:
             if not (a.config and a.method):
                 raise LaunchError("--config and --method are both required")
             rc, record = launch(a.config, a.method, a.runs_dir, a.platform,
-                                parse_set(a.set), a.gpus, a.hours, a.again)
+                                parse_set(a.set), a.gpus, a.hours, a.again,
+                                a.processes)
     except LaunchError as exc:
         print(f"  *** {exc}", file=sys.stderr)
         return 2

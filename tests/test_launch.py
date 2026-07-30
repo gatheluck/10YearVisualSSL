@@ -200,6 +200,60 @@ class TestSubmitting(Base):
         self.assertNotEqual(r.returncode, 0)
 
 
+class TestTheJobEnvironment(Base):
+    """CONTRACT section 2 makes the launcher responsible for these.
+
+    It set only PYTHONPATH, so the adapter fell back to whatever the shell
+    happened to hold. `adapterlib` reads WORLD_SIZE from the environment and
+    records it in the manifest, so a developer with WORLD_SIZE left over from
+    something else would have had it written into their results.
+
+    Multi-process fan-out is a separate matter and is not implemented; what is
+    fixed here is that the single-process case is *stated* rather than
+    inherited.
+    """
+
+    def env_of(self, **over) -> dict:
+        return launch.job_environment(**over)
+
+    def test_the_single_process_ranks_are_stated_not_inherited(self):
+        env = self.env_of(gpus=0)
+        self.assertEqual(env["WORLD_SIZE"], "1")
+        self.assertEqual(env["RANK"], "0")
+        self.assertEqual(env["LOCAL_RANK"], "0")
+
+    def test_they_override_whatever_the_shell_holds(self):
+        """The hazard this closes: a stale WORLD_SIZE in someone's shell being
+        recorded as a fact about the run."""
+        os.environ["WORLD_SIZE"] = "99"
+        self.addCleanup(os.environ.pop, "WORLD_SIZE", None)
+        self.launch_reference()
+        run = next(p for p in self.runs.iterdir() if p.is_dir())
+        man = json.loads((run / "out" / "run_manifest.json").read_text())
+        self.assertEqual(man["world_size"], 1,
+                         "the shell's WORLD_SIZE reached the manifest")
+
+    def test_the_python_path_still_reaches_the_adapter(self):
+        self.assertIn("PYTHONPATH", self.env_of(gpus=0))
+
+    def test_asking_for_more_than_one_process_is_refused_for_now(self):
+        """**Not silently run as one process.** Fan-out is not implemented,
+        and quietly giving one process where several were asked for would
+        produce a result that looks like the one requested."""
+        r = self.launch_reference("--gpus", "8", "--processes", "8",
+                                  expect=None)
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("fan-out", (r.stdout + r.stderr).lower())
+
+    def test_gpus_alone_does_not_imply_fan_out(self):
+        """--gpus is a resource request for the scheduler. It says nothing
+        about how many processes run, so it must not silently change it."""
+        self.launch_reference("--gpus", "8")
+        run = next(p for p in self.runs.iterdir() if p.is_dir())
+        man = json.loads((run / "out" / "run_manifest.json").read_text())
+        self.assertEqual(man["world_size"], 1)
+
+
 class TestVerifying(Base):
     """Running is not the same as having run correctly."""
 
