@@ -93,7 +93,11 @@ class TestTheyAreAlsoIgnored(unittest.TestCase):
         for sample in ("platforms/__pycache__/base.cpython-312.pyc",
                        "platforms/__pycache__/",
                        "platforms/__pycache__/whatever-else",
-                       "bin/x.pyc", ".mypy_cache/x", "pkg.egg-info/PKG-INFO"):
+                       "bin/x.pyc", ".mypy_cache/x", "pkg.egg-info/PKG-INFO",
+                       # The README tells people to create this here, and
+                       # nothing ignored it: `git status` offered a whole
+                       # virtual environment as untracked, ready to commit.
+                       ".venv/", ".venv/lib/python3.12/site-packages/x.py"):
             with self.subTest(sample=sample):
                 r = subprocess.run(["git", "check-ignore", "-q", sample],
                                    cwd=ROOT)

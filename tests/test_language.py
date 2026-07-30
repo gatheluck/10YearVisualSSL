@@ -19,6 +19,7 @@ from __future__ import annotations
 import os
 import re
 import shutil
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -42,6 +43,35 @@ MAX_BYTES = 8 << 20
 ALLOWLIST: tuple[str, ...] = ()
 
 
+def _candidates(root: Path) -> list[Path]:
+    """The files that belong to this repository.
+
+    **Installed dependencies are not this repository's text.** The READMEs
+    say to build the environment at `.venv/` inside the repository, so a
+    plain walk reads jinja2, numpy, rich and torch's bundled headers --
+    several of which legitimately contain CJK. CI failed on exactly that; no
+    local run had, because every venv here had been made in /tmp.
+
+    The rule is git's own -- tracked, plus untracked and not ignored -- so it
+    is derived rather than listed and cannot go stale. It still covers a file
+    written a moment ago and never added, which matters because the
+    pre-commit hook runs before anything is committed.
+
+    Outside a work tree there is nothing to ask, so everything is a candidate.
+    """
+    try:
+        out = subprocess.run(
+            ["git", "ls-files", "--cached", "--others", "--exclude-standard",
+             "-z"], cwd=root, capture_output=True, text=True, timeout=60)
+    except (OSError, subprocess.SubprocessError):
+        out = None
+    if out is None or out.returncode != 0:
+        return [p for p in sorted(root.rglob("*"))
+                if p.is_file() and not p.is_symlink()]
+    paths = [root / rel for rel in out.stdout.split("\0") if rel]
+    return sorted(p for p in paths if p.is_file() and not p.is_symlink())
+
+
 def classify(root: Path, max_bytes: int = MAX_BYTES
              ) -> tuple[list[Path], list[tuple[str, str]]]:
     """Split the tree into files to read and files not read, with reasons.
@@ -55,9 +85,7 @@ def classify(root: Path, max_bytes: int = MAX_BYTES
     """
     found: list[Path] = []
     skipped: list[tuple[str, str]] = []
-    for p in sorted(root.rglob("*")):
-        if p.is_symlink() or not p.is_file():
-            continue
+    for p in _candidates(root):
         rel = str(p.relative_to(root))
         if p.relative_to(root).parts[0] in SKIP_DIRS:
             continue
@@ -139,6 +167,78 @@ class TestEverythingIsEnglish(unittest.TestCase):
                        "x = 1  # ok", "", "0123456789 !?-_/"):
             with self.subTest(sample=sample):
                 self.assertIsNone(CJK.search(sample))
+
+
+class TestOnlyThisRepositorysFilesAreScanned(unittest.TestCase):
+    """Installed dependencies are not this repository's text.
+
+    **Found by CI on its first run.** The README says to create the virtual
+    environment at `.venv/` inside the repository, so the guard began reading
+    jinja2, numpy, rich and torch's bundled headers -- several of which
+    legitimately contain CJK -- and failed. Locally every venv had been made
+    in /tmp, so it never showed.
+
+    The rule is git's own: what git tracks, plus what is untracked and not
+    ignored. Derived rather than listed, so it cannot go stale, and it still
+    covers a file written a moment ago and not yet added.
+    """
+
+    def _tree(self) -> Path:
+        d = Path(tempfile.mkdtemp(prefix="langscope-"))
+        self.addCleanup(shutil.rmtree, d, ignore_errors=True)
+        return d
+
+    def _git(self, d: Path, *args):
+        subprocess.run(["git", *args], cwd=d, check=True,
+                       capture_output=True)
+
+    def _repo(self) -> Path:
+        d = self._tree()
+        self._git(d, "init", "-q")
+        self._git(d, "config", "user.email", "t@example.com")
+        self._git(d, "config", "user.name", "t")
+        return d
+
+    def test_an_ignored_directory_is_not_scanned(self):
+        d = self._repo()
+        (d / ".gitignore").write_text(".venv\n", encoding="utf-8")
+        vend = d / ".venv" / "pkg"
+        vend.mkdir(parents=True)
+        (vend / "third_party.py").write_text(JAPANESE, encoding="utf-8")
+        found, _ = classify(d)
+        self.assertNotIn(vend / "third_party.py", found)
+
+    def test_a_tracked_file_is_scanned(self):
+        d = self._repo()
+        (d / "ours.py").write_text("x = 1\n", encoding="utf-8")
+        self._git(d, "add", "ours.py")
+        found, _ = classify(d)
+        self.assertIn(d / "ours.py", found)
+
+    def test_a_brand_new_file_is_scanned_before_it_is_added(self):
+        """**The gap that matters.** Scanning only tracked files would let a
+        new file through until somebody committed it -- and the pre-commit
+        hook runs before that."""
+        d = self._repo()
+        (d / ".gitignore").write_text(".venv\n", encoding="utf-8")
+        (d / "brand_new.md").write_text(JAPANESE, encoding="utf-8")
+        found, _ = classify(d)
+        self.assertIn(d / "brand_new.md", found)
+
+    def test_outside_a_repository_everything_is_scanned(self):
+        """The tests above build temporary repositories; other callers pass
+        plain directories, and those must not silently scan nothing."""
+        d = self._tree()
+        (d / "loose.md").write_text(JAPANESE, encoding="utf-8")
+        found, _ = classify(d)
+        self.assertIn(d / "loose.md", found)
+
+    def test_the_real_repository_still_has_plenty_to_scan(self):
+        """Narrowing the scope must not empty it."""
+        found, _ = classify(ROOT)
+        self.assertGreater(len(found), 20)
+        names = {p.name for p in found}
+        self.assertIn("README.md", names)
 
 
 class TestTheGuardCannotBeSilentlyDisarmed(unittest.TestCase):

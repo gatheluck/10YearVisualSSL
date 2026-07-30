@@ -1,0 +1,90 @@
+# Everything the pre-commit hook runs, run again where nobody can skip it.
+#
+# The hook is machinery, but machinery on one machine: it needs
+# `git config core.hooksPath .githooks` per clone, `--no-verify` skips it, and
+# it only ever tested the platform the committer happened to be using. Every
+# end-to-end check so far ran on macOS arm64, while the deployment target is
+# linux x86_64. These jobs run there.
+#
+# Actions are pinned by commit SHA rather than by tag, for the same reason the
+# container's base image is pinned by digest: a tag is a moving target, and a
+# run that cannot be repeated proves less than it appears to.
+
+name: tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  # The claim that the core needs nothing installed, checked on Linux.
+  core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
+        with:
+          python-version-file: .python-version
+      - name: Run the suite with no dependencies installed
+        run: ./tests/run-tests.sh
+
+  # The locked environment, on the platform it is actually deployed to. The
+  # wheels for linux x86_64 were hashed but had never been installed outside a
+  # container, and the suite had never run natively on amd64 at all.
+  locked:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
+        with:
+          python-version-file: .python-version
+      - name: Install from the lock, hash-checked
+        run: |
+          python3 -m venv .venv
+          .venv/bin/pip install --require-hashes \
+            --index-url https://download.pytorch.org/whl/cpu \
+            --extra-index-url https://pypi.org/simple \
+            -r methods/1_context_prediction/requirements.lock.txt \
+            -r requirements-tools.lock.txt
+      - name: Check the environment is the locked one
+        run: |
+          .venv/bin/python bin/verify-environment.py \
+            --lock methods/1_context_prediction/requirements.lock.txt \
+            --lock requirements-tools.lock.txt
+      - name: Run the whole suite
+        run: .venv/bin/python -m unittest discover -s tests -v
+
+  # Slower, so it runs before a merge rather than on every push. It was built
+  # once by hand and nothing re-checked it; a lock or Dockerfile change could
+  # break the build silently.
+  container:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+      - name: Build the image
+        run: docker build -f methods/1_context_prediction/Dockerfile -t ctxpred .
+      - name: Run the contract chain inside it
+        run: |
+          mkdir -p runs && chmod 777 runs
+          docker run --rm -v "$PWD/runs:/runs" ctxpred python3 -c "
+          import random
+          from PIL import Image
+          from pathlib import Path
+          rng = random.Random(0)
+          for s in ('train', 'val'):
+              d = Path('/runs/data') / s / 'c0'
+              d.mkdir(parents=True, exist_ok=True)
+              for i in range(3):
+                  im = Image.new('RGB', (400, 400))
+                  im.putdata([(rng.randrange(256),) * 3 for _ in range(160000)])
+                  im.save(d / f'{i}.jpg')
+          "
+          printf '%s\n' '{"stage":"step1","seed":42,"data_root":"/runs/data","device":"cpu","train":{"max_steps":2,"batch_size":2,"num_workers":0,"lr":1.0e-05,"save_every_steps":2,"eval_every_steps":2,"eval_batches":1}}' > runs/cfg.json
+          docker run --rm -v "$PWD/runs:/runs" -w /work/methods/1_context_prediction ctxpred \
+            python3 -m adapter --config /runs/cfg.json --out /runs/out
+          docker run --rm -v "$PWD/runs:/runs" -w /work ctxpred \
+            python3 bin/contract-test.py --out /runs/out --config /runs/cfg.json --exit-status 0

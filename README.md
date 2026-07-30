@@ -90,8 +90,10 @@ shown so the shape is visible before it is built.
 │   ├── test_contract_test.py
 │   ├── test_end_to_end.py            resolve -> adapt -> verify, for real
 │   ├── test_method_requirements.py   declarations match the imports
+│   ├── test_ci.py                    the workflow runs what it claims
 │   ├── test_language.py              everything here is in English
 │   └── test_repo_hygiene.py          nothing generated is tracked
+├── .github/workflows/tests.yml     CI: the suite on linux x86_64      exists
 ├── CLAUDE.md                       the working rules                  exists
 ├── README.md
 └── LICENSE                         MIT, for our code only             exists
@@ -233,6 +235,25 @@ reachable from the standard library, and YAML has neither. `gpus: 8` and
 bytes without changing the settings, which would make the hash meaningless.
 
 ## Running the tests
+
+Every push runs them on linux x86_64 as well —
+[`.github/workflows/tests.yml`](.github/workflows/tests.yml). The pre-commit
+hook is machinery, but machinery on one machine: it needs configuring per
+clone, `--no-verify` skips it, and it only ever exercises the platform the
+committer happens to have. CI closes all three, and it is where the linux
+x86_64 claim is actually checked — everything end-to-end before it ran on
+macOS arm64.
+
+| Job | When | What |
+|---|---|---|
+| `core` | every push | the suite with **nothing installed** |
+| `locked` | every push | install from the lock hash-checked, verify the environment, run everything |
+| `container` | pull requests | build the image and run the contract chain inside it |
+
+The workflow is itself under test (`tests/test_ci.py`): **a CI job that cannot
+fail is worse than no CI**, so `continue-on-error`, `|| true`, `set +e` and
+`if: always()` are refused, and the actions are pinned to commit SHAs rather
+than tags.
 
 **Decide by exit status.** Grepping the output for a success string misses
 failures.

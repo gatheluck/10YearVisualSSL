@@ -5,6 +5,11 @@ __pycache__/
 *.py[cod]
 *.so
 *.egg-info/
+# The READMEs tell people to build the environment at .venv/ inside the
+# repository. Nothing ignored it, so `git status` offered a whole virtual
+# environment as untracked -- and the language guard read its contents.
+.venv/
+venv/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
