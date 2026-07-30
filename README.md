@@ -25,8 +25,8 @@ assume it.
 | `platforms/` | **implemented and tested.** Platform separation; `local` is self-contained |
 | `methods/1_context_prediction` | **step 1 and linear evaluation ported and tested.** Verified on CPU end to end. Step 2 (ViT) belongs to the legacy track and was not brought across |
 | `methods/VideoGen` (LTX-2) | second pilot, not started |
+| `bin/launch.py` | **implemented and tested.** One command: resolve, submit, verify, record |
 | `adapterlib/` | **implemented and tested.** The one place a `run_manifest.json` is written |
-| launcher | not started |
 | `LICENSE` | **MIT** (Copyright (c) 2026 LIMIT.Lab) |
 
 No adapter exists yet, so a full training run cannot be reproduced today. The
@@ -43,6 +43,8 @@ shown so the shape is visible before it is built.
 10YearVisualSSL/
 ├── bin/                            command-line tools                exists
 │   ├── resolve-config.py             authoring config -> canonical resolved JSON
+│   ├── launch.py                     resolve, submit, verify, record
+│   ├── verify-environment.py         is this the locked environment?
 │   └── contract-test.py              decides by machine that a port is finished
 ├── adapterlib/                     the one place a run_manifest.json is written
 │   └── __init__.py                                                    exists
@@ -73,10 +75,11 @@ shown so the shape is visible before it is built.
 │   ├── base.py                       the shared interface, free of platform terms
 │   ├── local/backend.py              this machine. The default, self-contained
 │   └── abci/backend.py               optional
-├── launcher/                       resolves, submits, collects        planned
+
 ├── configs/                        shared bases that methods include  planned
-├── runs/                           run outputs. Not tracked           planned
-│   └── <run-id>/
+├── runs/                           run outputs. Not tracked           exists
+│   └── <method>-<config sha>/        named after the config, not the clock
+│       ├── launch.json               what was asked, and how it turned out
 │       ├── resolved.json             the exact config that ran
 │       └── out/
 │           ├── encoder.pt
@@ -90,6 +93,7 @@ shown so the shape is visible before it is built.
 │   ├── test_contract_test.py
 │   ├── test_end_to_end.py            resolve -> adapt -> verify, for real
 │   ├── test_method_requirements.py   declarations match the imports
+│   ├── test_launch.py                resolve -> submit -> verify -> record
 │   ├── test_ci.py                    the workflow runs what it claims
 │   ├── test_language.py              everything here is in English
 │   └── test_repo_hygiene.py          nothing generated is tracked
@@ -317,6 +321,43 @@ checkpoints and logs. Nothing is written outside it.
 The method's own README covers what it implements, which settings it uses and
 where each came from, and what changed during the port:
 [methods/1_context_prediction/README.md](methods/1_context_prediction/README.md).
+
+## One command for a whole run
+
+The steps above are what the launcher does, in order, so that nobody has to
+remember the order:
+
+```bash
+python3 bin/launch.py --config methods/1_context_prediction/configs/step1.yaml --method 1_context_prediction --set DATA_ROOT=/path/to/ILSVRC2012
+```
+
+It resolves the config, submits the job through the chosen platform, verifies
+the outputs against the contract, and records the invocation. Three decisions
+worth knowing:
+
+- **The run directory is named after the configuration**, not the clock:
+  `runs/<method>-<config_sha256[:12]>/`. Two runs of one experiment then
+  collide, which is information rather than a nuisance — you meant to change
+  something and did not. `--again` repeats one deliberately
+- **`--gpus` and `--hours` are launcher arguments, not config keys.** How long
+  a scheduler is asked to allow does not change the result, and folding it
+  into the config would make two identical experiments hash differently. What
+  *does* affect the result, `WORLD_SIZE`, is recorded by the run itself
+- **A submitted job is not a finished one.** Where the platform can report how
+  it went, the launcher verifies immediately; where it can only queue the work
+  it says `submitted` and stops, rather than checking an output directory
+  nothing has written yet. `--verify-only <run-dir>` finishes the job later
+
+Alongside the outputs it writes `launch.json`: the authoring config, the
+substitutions, the platform, the resources and the verdict. The manifest says
+what the run *did*; this says what was *asked of it*.
+
+```
+runs/_reference-dd6145f9edb6/
+├── launch.json          what was asked, and how it turned out
+├── resolved.json        the exact config that ran
+└── out/                 encoder.pt, metrics.json, run_manifest.json
+```
 
 ## Checking an adapter's output against the contract
 

@@ -76,6 +76,63 @@ class TestNothingGeneratedIsTracked(unittest.TestCase):
                     f"{sample} is wrongly treated as generated")
 
 
+class TestTheReadmeLayoutIsComplete(unittest.TestCase):
+    """Everything that exists is listed, not merely everything listed exists.
+
+    An audit checked the layout one way round -- every entry marked `exists`
+    was really there -- and passed while **two tools were missing from it
+    entirely**. Both had been added by an edit whose anchor silently failed to
+    match, so nothing was written and nothing complained.
+
+    This checks the other direction, which is the one that rots.
+    """
+
+    def layout(self) -> str:
+        text = (ROOT / "README.md").read_text(encoding="utf-8")
+        start = text.index("## Repository layout")
+        return text[start:text.index("```", text.index("```", start) + 3)]
+
+    def entries(self) -> set[str]:
+        """The names the tree draws, matched whole.
+
+        Not a substring search over the block: `test_launch.py` contains
+        `launch.py`, so deleting the tool's own line left the check passing.
+        """
+        import re
+        out = set()
+        for line in self.layout().splitlines():
+            m = re.search(r"(?:├──|└──)\s+(\S+)", line)
+            if m:
+                out.add(m.group(1).rstrip("/"))
+        return out
+
+    def test_every_tool_is_in_the_layout(self):
+        tools = sorted(p.name for p in (ROOT / "bin").glob("*.py"))
+        self.assertTrue(tools, "no tools found to check")
+        drawn = self.entries()
+        for name in tools:
+            with self.subTest(tool=name):
+                self.assertIn(name, drawn, f"bin/{name} is not in the layout")
+
+    def test_the_entry_reader_finds_the_tree(self):
+        """Against an empty set every check above passes vacuously."""
+        self.assertGreater(len(self.entries()), 20)
+        self.assertIn("bin", self.entries())
+
+    def test_every_top_level_directory_is_in_the_layout(self):
+        drawn = self.entries()
+        tracked = {f.split("/")[0] for f in tracked_files() if "/" in f}
+        for name in sorted(tracked):
+            if name.startswith("."):
+                continue          # dot-directories are covered where relevant
+            with self.subTest(directory=name):
+                self.assertIn(name, drawn, f"{name}/ is not in the layout")
+
+    def test_the_layout_block_was_actually_found(self):
+        """Against an empty block every check above passes vacuously."""
+        self.assertGreater(len(self.layout().splitlines()), 20)
+
+
 class TestTheyAreAlsoIgnored(unittest.TestCase):
     """Untracking is not enough; they come straight back otherwise."""
 
