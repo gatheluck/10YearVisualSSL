@@ -37,6 +37,11 @@ def is_checkout(root: Path = ROOT) -> bool:
     return r.returncode == 0 and r.stdout.strip() == "true"
 
 
+needs_git = unittest.skipUnless(
+    has_git(),
+    "git is not installed: these build a repository to test against, and the "
+    "container image has no git binary")
+
 needs_checkout = unittest.skipUnless(
     is_checkout(),
     "not a git checkout: these assert properties of the repository, and the "

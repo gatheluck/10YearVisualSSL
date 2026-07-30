@@ -20,9 +20,14 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
+
+if str(Path(__file__).parent) not in sys.path:
+    sys.path.insert(0, str(Path(__file__).parent))
+from _checkout import needs_git            # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -169,6 +174,7 @@ class TestEverythingIsEnglish(unittest.TestCase):
                 self.assertIsNone(CJK.search(sample))
 
 
+@needs_git
 class TestOnlyThisRepositorysFilesAreScanned(unittest.TestCase):
     """Installed dependencies are not this repository's text.
 
