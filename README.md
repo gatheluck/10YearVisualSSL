@@ -23,7 +23,7 @@ assume it.
 | `bin/resolve-config.py` | **implemented and tested.** Produces the canonical resolved config and its `config_sha256` |
 | `bin/contract-test.py` | **implemented and tested.** Decides by machine that a port is finished |
 | `platforms/` | **implemented and tested.** Platform separation; `local` is self-contained |
-| `methods/1_context_prediction` | **step 1 ported and tested.** Verified on CPU end to end; step 2 and linear eval not started |
+| `methods/1_context_prediction` | **step 1 and linear evaluation ported and tested.** Verified on CPU end to end. Step 2 (ViT) belongs to the legacy track and was not brought across |
 | `methods/VideoGen` (LTX-2) | second pilot, not started |
 | `adapterlib/` | **implemented and tested.** The one place a `run_manifest.json` is written |
 | launcher | not started |
@@ -57,6 +57,7 @@ shown so the shape is visible before it is built.
 │   │   ├── train_step1_alexnet_official.py   the original loop, extracted
 │   │   ├── models/ data/               untouched; digests pinned by tests
 │   │   ├── configs/step1.yaml          the settings the capture used
+│   │   ├── configs/linear_eval.yaml    stage 2: frozen-features evaluation
 │   │   ├── requirements.txt            which packages, checked against imports
 │   │   ├── requirements.lock.txt       exact versions, to rebuild a run
 │   │   ├── provenance.json             what came across, and what changed

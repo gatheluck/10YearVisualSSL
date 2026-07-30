@@ -1,0 +1,36 @@
+# Linear evaluation of an encoder that step 1 produced.
+# Doersch et al., ICCV 2015 -- the standard frozen-features protocol.
+#
+# The encoder is frozen, features are extracted once, and a single linear
+# layer is trained on top. The values below are the ones the captured cluster
+# runs used.
+#
+#   python3 bin/resolve-config.py \
+#       --config methods/1_context_prediction/configs/linear_eval.yaml \
+#       --out runs/lineval/resolved.json \
+#       --set DATA_ROOT=/path/to/ILSVRC2012 \
+#       --set ENCODER=runs/ctxpred/out/encoder.pt
+
+stage: linear_eval
+
+seed: 42
+
+# ImageNet root, with train/ and val/ as labelled directories.
+data_root: "${DATA_ROOT}"
+
+# **The previous stage's contract artifact.** encoder.pt as step 1 wrote it:
+# the encoder alone, without the pretext head. A training checkpoint from the
+# cluster is also accepted; the evaluator tells the two apart by their keys
+# and prints which it read.
+encoder: "${ENCODER}"
+
+device: auto
+
+train:
+  epochs: 100
+  batch_size: 256
+  feature_batch_size: 256
+  num_workers: 8
+  lr: 0.1
+  # Features are taken at 224, the usual ImageNet evaluation size.
+  img_size: 224

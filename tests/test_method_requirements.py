@@ -32,9 +32,25 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 METHODS = ROOT / "methods"
 
-# Modules that come from the repository rather than from an index.
-LOCAL = {"adapterlib", "adapter", "data", "models",
-         "train_step1_alexnet_official"}
+def local_modules(method: Path) -> set[str]:
+    """Modules that come from the repository rather than from an index.
+
+    **Derived, not listed.** A hand-maintained list went stale the moment a
+    method gained a second file: `evaluate_linear_official` was reported as an
+    undeclared third-party package, and that false positive masked the real
+    one (torchvision). Anything importable from the method directory or from
+    the repository root is local by construction.
+    """
+    names = set()
+    for base in (method, ROOT):
+        if not base.is_dir():
+            continue
+        for p in base.iterdir():
+            if p.is_dir() and (p / "__init__.py").is_file():
+                names.add(p.name)
+            elif p.suffix == ".py":
+                names.add(p.stem)
+    return names
 
 # Import name -> distribution name, where they differ. Anything imported and
 # not listed here is assumed to install under its own name; the completeness
@@ -60,8 +76,9 @@ def imported_modules(method: Path) -> set[str]:
                 found.update(a.name.split(".")[0] for a in node.names)
             elif isinstance(node, ast.ImportFrom) and node.level == 0:
                 found.add((node.module or "").split(".")[0])
+    local = local_modules(method)
     return {m for m in found
-            if m and m not in sys.stdlib_module_names and m not in LOCAL}
+            if m and m not in sys.stdlib_module_names and m not in local}
 
 
 def _canon(name: str) -> str:
@@ -144,6 +161,24 @@ class TestEveryMethodDeclaresWhatItImports(unittest.TestCase):
     def test_the_distribution_table_is_used_where_it_must_be(self):
         """Guard the mapping itself: PIL does not install as `pil`."""
         self.assertEqual(DISTRIBUTION["PIL"], "Pillow")
+
+    def test_a_methods_own_modules_are_recognised_as_local(self):
+        """The false positive that masked a real one. A module sitting in the
+        method directory is not something pip can install."""
+        for m in method_dirs():
+            local = local_modules(m)
+            for p in m.glob("*.py"):
+                with self.subTest(method=m.name, module=p.stem):
+                    self.assertIn(p.stem, local)
+            self.assertIn("adapterlib", local,
+                          "the repository's own package is not recognised")
+
+    def test_a_real_third_party_import_is_still_seen(self):
+        """Widening what counts as local must not swallow everything."""
+        found = set()
+        for m in method_dirs():
+            found |= imported_modules(m)
+        self.assertIn("torch", found)
 
 
 class TestTheOptionalToolingDependency(unittest.TestCase):

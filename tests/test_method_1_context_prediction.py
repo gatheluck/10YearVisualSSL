@@ -107,7 +107,11 @@ class Base(unittest.TestCase):
         self.out = self.tmp / "out"
 
     def config(self, **over) -> dict:
-        cfg = {"seed": 42, "data_root": str(self.tmp / "data"),
+        # `stage` became required when linear evaluation was added: the
+        # contract fixes the adapter's arguments at two, so the stage lives in
+        # the config and is inside config_sha256.
+        cfg = {"stage": "step1", "seed": 42,
+               "data_root": str(self.tmp / "data"),
                "device": "cpu", "train": dict(BASE_TRAIN)}
         for k, v in over.items():
             if k == "train" and v is not None:
@@ -169,7 +173,7 @@ class TestConfigTranslation(Base):
         self.assertIn("learning_rate", str(e.exception))
 
     def test_a_missing_top_level_key_is_refused_by_name(self):
-        for key in ("seed", "data_root", "device", "train"):
+        for key in ("stage", "seed", "data_root", "device", "train"):
             with self.subTest(key=key):
                 cfg = self.config()
                 del cfg[key]
@@ -339,8 +343,8 @@ class TestTheShippedConfig(Base):
     def test_it_carries_the_settings_the_capture_used(self):
         """Pinned so a later edit cannot quietly change the baseline."""
         text = (METHOD / "configs" / "step1.yaml").read_text()
-        for setting in ("seed: 42", "lr: 1.0e-5", "batch_size: 64",
-                        "max_steps: 1000000"):
+        for setting in ("stage: step1", "seed: 42", "lr: 1.0e-5",
+                        "batch_size: 64", "max_steps: 1000000"):
             self.assertIn(setting, text, f"{setting} is no longer shipped")
 
 

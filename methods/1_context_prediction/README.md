@@ -1,4 +1,4 @@
-# 1_context_prediction — step 1
+# 1_context_prediction — step 1 and linear evaluation
 
 Doersch, Gupta and Efros, *Unsupervised Visual Representation Learning by
 Context Prediction*, ICCV 2015.
@@ -127,6 +127,58 @@ holding the original's own checkpoints, `run_config.json` and
 The multi-GPU path is unchanged from the capture: the file still takes the
 original flags, so `torchrun ... train_step1_alexnet_official.py --data_path
 ... --save_dir ...` works as before.
+
+## Stage 2: linear evaluation
+
+The standard frozen-features protocol: the encoder is frozen, features are
+extracted once, and a single linear layer is trained on top.
+
+**This is the first stage that consumes another stage's output.** Step 1 emits
+`encoder.pt` because the contract says so; if nothing can read it, the
+contract is decorative. This reads it.
+
+```bash
+python3 bin/resolve-config.py \
+    --config methods/1_context_prediction/configs/linear_eval.yaml \
+    --out runs/lineval/resolved.json \
+    --set DATA_ROOT=/path/to/ILSVRC2012 \
+    --set ENCODER=runs/ctxpred/out/encoder.pt
+cd methods/1_context_prediction
+PYTHONPATH=../.. python3 -m adapter \
+    --config ../../runs/lineval/resolved.json --out ../../runs/lineval/out
+```
+
+Two things this settled:
+
+**The stage comes from the config, not a flag.** The contract fixes the
+adapter's arguments at exactly two and says anything else affecting the result
+belongs in the config (CONTRACT section 2). A `--stage` flag would have been
+an input `config_sha256` does not cover. So every config now declares
+`stage:`, and each stage declares exactly the keys it reads — a setting the
+stage never looks at cannot sit in a config claiming to have had an effect.
+
+**It produces no encoder, and says so.** It evaluates one and produces a
+classifier. CONTRACT section 3 permits that only with a recorded reason; that
+mechanism existed since the contract was written and had never been reached
+until now. `run_manifest.json` carries `encoder_absent_reason`.
+
+The evaluator accepts either input and tells them apart by their keys, never
+by guessing:
+
+| Input | Where it comes from |
+|---|---|
+| `encoder.pt` | the contract: the encoder alone, unprefixed |
+| a training checkpoint | the cluster's own runs: `{"state_dict": <whole model>}` |
+
+Anything else is refused. Loading the wrong one would evaluate an
+untrained encoder and report a number that looks like a result.
+
+It needed no device work — the original already chose CPU when no GPU was
+present. It did need seeding, for the same reason step 1 did.
+
+`torchvision` entered the method's dependencies here (`ImageFolder` and the
+standard transforms), which `tests/test_method_requirements.py` caught as an
+undeclared import before anything ran.
 
 ## The environment
 
