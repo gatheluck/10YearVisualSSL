@@ -347,6 +347,12 @@ worth knowing:
   it went, the launcher verifies immediately; where it can only queue the work
   it says `submitted` and stops, rather than checking an output directory
   nothing has written yet. `--verify-only <run-dir>` finishes the job later
+- **The distribution variables are set, not inherited.** `WORLD_SIZE`, `RANK`
+  and `LOCAL_RANK` are stated explicitly, because `adapterlib` records
+  `WORLD_SIZE` in the manifest and a value left over in your shell would
+  otherwise be written into the results. Multi-process fan-out is **not
+  implemented**: `--processes` above 1 is refused rather than approximated,
+  and `--gpus` is a resource request that does not imply a process count
 
 Alongside the outputs it writes `launch.json`: the authoring config, the
 substitutions, the platform, the resources and the verdict. The manifest says

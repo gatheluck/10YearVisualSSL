@@ -94,6 +94,27 @@ sampling. That depends on fork semantics and was not measured.
 
 ## Running it
 
+One command does the whole thing — resolve, run, verify against the contract,
+and record what was asked:
+
+```bash
+python3 bin/launch.py --config methods/1_context_prediction/configs/step1.yaml \
+    --method 1_context_prediction --set DATA_ROOT=/path/to/ILSVRC2012
+```
+
+Then the linear evaluation, reading the encoder the first stage produced:
+
+```bash
+python3 bin/launch.py --config methods/1_context_prediction/configs/linear_eval.yaml \
+    --method 1_context_prediction --set DATA_ROOT=/path/to/ILSVRC2012 \
+    --set ENCODER=runs/1_context_prediction-<sha>/out/encoder.pt
+```
+
+The steps below are what that does, and are worth knowing when something goes
+wrong.
+
+### The same thing by hand
+
 Resolve the config first, so the run is identified by a hash:
 
 ```bash
