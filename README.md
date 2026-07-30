@@ -24,7 +24,8 @@ assume it.
 | `bin/contract-test.py` | **implemented and tested.** Decides by machine that a port is finished |
 | `platforms/` | **implemented and tested.** Platform separation; `local` is self-contained |
 | `methods/1_context_prediction` | **step 1 and linear evaluation ported and tested.** Verified on CPU end to end. Step 2 (ViT) belongs to the legacy track and was not brought across |
-| `methods/VideoGen` (LTX-2) | second pilot, not started |
+| `methods/2_vae` | **step 1 ported and tested.** Chosen by measuring all 37: the only one on MNIST, so it trains to completion on CPU |
+| `methods/VideoGen` (LTX-2) | deferred, not dropped. Needs CUDA > 12.7 and a 22B checkpoint |
 | `bin/launch.py` | **implemented and tested.** One command: resolve, submit, verify, record |
 | `adapterlib/` | **implemented and tested.** The one place a `run_manifest.json` is written |
 | `LICENSE` | **MIT** (Copyright (c) 2026 LIMIT.Lab) |
@@ -64,7 +65,11 @@ shown so the shape is visible before it is built.
 │   │   ├── requirements.lock.txt       exact versions, to rebuild a run
 │   │   ├── provenance.json             what came across, and what changed
 │   │   └── README.md                   the science, and the port's deviations
-│   └── VideoGen/                     second pilot, LTX-2              planned
+│   ├── 2_vae/                        second method, step 1            exists
+│   │   ├── adapter/  configs/  models/  data/
+│   │   ├── Dockerfile  requirements.lock.txt  provenance.json
+│   │   └── README.md                   MNIST; trains to completion on CPU
+│   └── VideoGen/                     deferred: needs a GPU            planned
 │       ├── adapter/
 │       └── configs/
 ├── third_party/                    authors' code, untouched          planned
