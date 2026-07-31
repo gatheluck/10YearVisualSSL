@@ -365,9 +365,12 @@ class TestTheCommandLine(Base):
 class TestAgainstTheRealLocks(unittest.TestCase):
     """The repository's own lock files must be readable by this tool."""
 
-    LOCKS = [ROOT / "methods" / "1_context_prediction"
-             / "requirements.lock.txt",
-             ROOT / "requirements-tools.lock.txt"]
+    @property
+    def LOCKS(self):
+        """Found, not listed. A list here named one method and would have
+        gone on passing while a second one's lock was never parsed."""
+        return sorted((ROOT / "methods").glob("*/requirements.lock.txt")) + \
+            [ROOT / "requirements-tools.lock.txt"]
 
     def test_they_parse(self):
         got = ve.read_locks(self.LOCKS)

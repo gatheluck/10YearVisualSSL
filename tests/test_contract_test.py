@@ -78,7 +78,10 @@ class Base(unittest.TestCase):
         for rel, data in (extra_files or {}).items():
             self.write_out(rel, data)
         man = {
-            "schema_version": 1, "method": "1_context_prediction",
+            # A placeholder, not a real method: this file is about the
+            # contract, and naming a method here is the start of machinery
+            # that only works for one.
+            "schema_version": 1, "method": "a_method",
             "stage": "step1", "status": status,
             "config_sha256": sha256(self.config.read_bytes()),
             "started_at": "2026-07-29T00:00:00Z",
