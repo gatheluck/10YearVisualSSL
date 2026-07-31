@@ -332,16 +332,36 @@ class TestFailurePath(Base):
 class TestMetrics(Base):
     def test_metrics_are_written_in_the_contract_shape(self):
         def body(ctx):
-            ctx.write_metrics({"top1": 42.5})
-        self.run_ok(body, encoder_absent_reason="no encoder in this test")
+            ctx.write_metrics(
+                {"top1": 42.5},
+                names={"top1": "final_linear_probe_top1_accuracy"})
+        self.run_ok(body, stage="linear_eval",
+                    encoder_absent_reason="no encoder in this test")
         m = json.loads((self.out / "metrics.json").read_text())
-        self.assertEqual(m, {"schema_version": 1, "metrics": {"top1": 42.5}})
+        self.assertEqual(m, {
+            "schema_version": 2,
+            "metrics": {"final_linear_probe_top1_accuracy": 42.5},
+            "metrics_raw": {"top1": 42.5}})
+
+    def test_the_stage_reaches_the_context(self):
+        """It has to, or the family rule has nothing to read and every port
+        silently falls into the refusing branch."""
+        seen = {}
+
+        def body(ctx):
+            seen["stage"] = ctx.stage
+            ctx.write_metrics({"n": 1}, names={"n": "steps_completed"})
+        self.run_ok(body, stage="linear_eval",
+                    encoder_absent_reason="no encoder in this test")
+        self.assertEqual(seen["stage"], "linear_eval")
 
     def test_a_non_numeric_metric_is_refused_at_the_source(self):
         """Catching it here names the metric; contract-test can only say the
         file is wrong after the run has already cost its GPU hours."""
         def body(ctx):
-            ctx.write_metrics({"top1": "42.5"})
+            ctx.write_metrics(
+                {"top1": "42.5"},
+                names={"top1": "final_pretext_top1_accuracy"})
         with self.assertRaises(adapterlib.AdapterError) as e:
             self.run_ok(body, encoder_absent_reason="x")
         self.assertIn("top1", str(e.exception))
@@ -349,7 +369,8 @@ class TestMetrics(Base):
     def test_a_boolean_metric_is_refused(self):
         """In Python bool subclasses int, so it would slip past isinstance."""
         def body(ctx):
-            ctx.write_metrics({"converged": True})
+            ctx.write_metrics({"converged": True},
+                              names={"converged": "epochs_completed"})
         with self.assertRaises(adapterlib.AdapterError):
             self.run_ok(body, encoder_absent_reason="x")
 

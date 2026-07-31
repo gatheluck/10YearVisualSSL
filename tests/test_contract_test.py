@@ -70,8 +70,10 @@ class Base(unittest.TestCase):
             a["role"] = "encoder"
             arts.append(a)
         if "metrics.json" not in drop:
-            body = json.dumps({"schema_version": 1,
-                               "metrics": {"top1": 42.5}}).encode()
+            body = json.dumps({
+                "schema_version": 2,
+                "metrics": {"final_linear_probe_top1_accuracy": 42.5},
+                "metrics_raw": {"top1": 42.5}}).encode()
             a = self.write_out("metrics.json", body)
             a["role"] = "metrics"
             arts.append(a)
@@ -393,6 +395,92 @@ class TestTwoSignalsMustAgree(Base):
         rc, rep = self.check()
         self.assertEqual(rc, 1)
         self.assertIn("status-unknown", [v["kind"] for v in rep["violations"]])
+
+
+class TestTheMetricVocabularyIsEnforced(Base):
+    """The contract fixes the names, so the checker has to know them.
+
+    A vocabulary that only the writing side enforces is a convention. A run
+    arriving from somewhere else -- an older adapter, a hand-written output,
+    a port that skipped `adapterlib` -- would sail through with whatever
+    names it liked, and the comparison built on top would be wrong in a way
+    no file records. This project has already shipped a contract clause that
+    was never implemented because the field name was left unsaid.
+
+    The checker reads the vocabulary from `adapterlib` rather than keeping a
+    copy. Two copies of one rule is the divergence that broke the container
+    jobs.
+    """
+
+    def metrics(self, doc: dict) -> None:
+        """Replace metrics.json with `doc`, keeping the manifest honest."""
+        self.make_run()
+        body = json.dumps(doc).encode()
+        a = self.write_out("metrics.json", body)
+        a["role"] = "metrics"
+        man = json.loads((self.out / "run_manifest.json").read_text())
+        man["artifacts"] = [x for x in man["artifacts"]
+                            if x["path"] != "metrics.json"] + [a]
+        (self.out / "run_manifest.json").write_text(json.dumps(man),
+                                                    encoding="utf-8")
+
+    def kinds(self) -> list[str]:
+        return [x["kind"] for x in self.check()[1]["violations"]]
+
+    def test_a_conforming_metrics_file_passes(self):
+        """The negative control. Without it every check below could be
+        passing because the checker rejects everything."""
+        self.metrics({"schema_version": 2,
+                      "metrics": {"final_pretext_loss": 1.5},
+                      "metrics_raw": {"val_loss": 1.5}})
+        rc, rep = self.check()
+        self.assertEqual(rc, 0, rep["violations"])
+
+    def test_a_name_outside_the_vocabulary_is_rejected(self):
+        self.metrics({"schema_version": 2,
+                      "metrics": {"top1": 42.5},
+                      "metrics_raw": {"top1": 42.5}})
+        rc, rep = self.check()
+        self.assertNotEqual(rc, 0)
+        self.assertIn("metrics-unknown-name", self.kinds())
+        self.assertIn("top1", json.dumps(rep["violations"]))
+
+    def test_the_original_names_must_be_there(self):
+        """Required by the contract: dropping them loses what the original
+        called its own numbers, and nothing would say so."""
+        self.metrics({"schema_version": 2,
+                      "metrics": {"final_pretext_loss": 1.5}})
+        self.assertNotEqual(self.check()[0], 0)
+        self.assertIn("metrics-raw-missing", self.kinds())
+
+    def test_the_original_names_must_be_an_object(self):
+        self.metrics({"schema_version": 2,
+                      "metrics": {"final_pretext_loss": 1.5},
+                      "metrics_raw": []})
+        self.assertIn("metrics-raw-missing", self.kinds())
+
+    def test_the_original_values_must_be_numbers_too(self):
+        """Both blocks, or the unchecked one becomes the place to hide."""
+        self.metrics({"schema_version": 2,
+                      "metrics": {"final_pretext_loss": 1.5},
+                      "metrics_raw": {"val_loss": "1.5"}})
+        self.assertIn("metrics-not-numeric", self.kinds())
+
+    def test_the_old_shape_is_rejected(self):
+        """Schema 1 has no vocabulary and no original names. Accepting it
+        would leave both new rules optional in practice."""
+        self.metrics({"schema_version": 1, "metrics": {"top1": 42.5}})
+        self.assertNotEqual(self.check()[0], 0)
+        self.assertIn("metrics-schema", self.kinds())
+
+    def test_the_checker_reads_the_one_vocabulary(self):
+        """Not a copy of it. A copy diverges, and the two agree right up to
+        the case that matters."""
+        src = (BIN / "contract-test.py").read_text(encoding="utf-8")
+        self.assertIn("METRIC_VOCABULARY", src)
+        self.assertNotIn("linear_probe_top1", src,
+                         "the vocabulary is spelled out here as well as in "
+                         "adapterlib, so the two can drift apart")
 
 
 if __name__ == "__main__":

@@ -98,10 +98,51 @@ class TestTheChainHolds(Chain):
                          ["seed"], 3)
 
     def test_the_metrics_reach_the_output(self):
+        """Both halves: the contract's name for the number, and the name the
+        original gave it. Dropping the second would be a silent loss."""
         _, out, _, _ = self.full({"seed": 0, "metrics": {"top1": 42.5}})
+        doc = json.loads((out / "metrics.json").read_text())
+        self.assertEqual(doc["metrics"],
+                         {"final_pretext_top1_accuracy": 42.5})
+        self.assertEqual(doc["metrics_raw"], {"top1": 42.5})
+
+    def test_the_probe_family_reaches_the_output_too(self):
+        """The other family, through the whole chain rather than in a unit
+        test: the stage is what unlocks it."""
+        _, out, _, _ = self.full({
+            "seed": 0, "stage": "linear_eval", "metrics": {"top1": 42.5},
+            "metric_names": {"top1": "final_linear_probe_top1_accuracy"}})
         self.assertEqual(
             json.loads((out / "metrics.json").read_text())["metrics"],
-            {"top1": 42.5})
+            {"final_linear_probe_top1_accuracy": 42.5})
+
+    def test_a_stage_cannot_borrow_the_other_familys_names(self):
+        """The dangerous mapping, refused end to end rather than in theory."""
+        cfg = self.resolve({
+            "seed": 0, "stage": "step1", "metrics": {"top1": 42.5},
+            "metric_names": {"top1": "final_linear_probe_top1_accuracy"}})
+        out = self.tmp / "crossed"
+        r = self.adapt(cfg, out)
+        self.assertNotEqual(r.returncode, 0)
+        self.assertFalse((out / "metrics.json").exists())
+
+    def test_a_config_may_name_the_contract_slots_itself(self):
+        _, out, _, _ = self.full({
+            "seed": 0, "stage": "step1", "metrics": {"acc": 1.0, "loss": 2.0},
+            "metric_names": {"acc": "final_pretext_top1_accuracy",
+                             "loss": "final_pretext_loss"}})
+        self.assertEqual(
+            json.loads((out / "metrics.json").read_text())["metrics"],
+            {"final_pretext_top1_accuracy": 1.0, "final_pretext_loss": 2.0})
+
+    def test_two_metrics_with_no_table_are_refused(self):
+        """Guessing which slot each belongs in is what the vocabulary is for
+        stopping. The run fails rather than inventing an answer."""
+        cfg = self.resolve({"seed": 0, "metrics": {"a": 1.0, "b": 2.0}})
+        out = self.tmp / "ambiguous"
+        r = self.adapt(cfg, out)
+        self.assertNotEqual(r.returncode, 0)
+        self.assertFalse((out / "metrics.json").exists())
 
     def test_world_size_from_the_launcher_is_recorded(self):
         cfg = self.resolve({"seed": 0, "metrics": {"top1": 1.0}})

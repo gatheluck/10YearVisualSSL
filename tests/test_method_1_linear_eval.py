@@ -397,7 +397,8 @@ class TestASmokeRun(Base):
         self.make_encoder()
         self.run_adapter(self.config())
         m = json.loads((self.out / "metrics.json").read_text())["metrics"]
-        for key in ("best_top1_acc", "final_top1_acc"):
+        for key in ("best_linear_probe_top1_accuracy",
+                    "final_linear_probe_top1_accuracy"):
             self.assertIn(key, m)
             self.assertIsInstance(m[key], (int, float))
             self.assertNotIsInstance(m[key], bool)
@@ -408,7 +409,7 @@ class TestASmokeRun(Base):
         self.make_encoder()
         self.run_adapter(self.config())
         m = json.loads((self.out / "metrics.json").read_text())["metrics"]
-        if m["best_top1_acc"] <= 0.0:
+        if m["best_linear_probe_top1_accuracy"] <= 0.0:
             # Reported, never silent (DESIGN 2.4). The original saves its
             # classifier only when the accuracy improves on 0.0, so with
             # nothing learned there is no classifier to look for and the

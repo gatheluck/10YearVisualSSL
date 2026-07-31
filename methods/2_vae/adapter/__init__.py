@@ -44,6 +44,16 @@ DEVICES = ("auto", "cuda", "cpu")
 WORK = "work"
 ENCODER_PREFIXES = ("encoder.", "fc_mu.", "fc_logvar.")
 
+# What the original calls its numbers, and what the contract calls them.
+# `final_loss` is this method's own objective -- reconstruction plus beta
+# times the KL divergence -- so it is a pretext number and shares no scale
+# with any other method's loss (CONTRACT, metric vocabulary).
+STEP1_METRIC_NAMES = {
+    "final_loss": "final_pretext_loss",
+    "epochs": "epochs_completed",
+    "metrics_unavailable": "metrics_unavailable",
+}
+
 
 class ConfigError(Exception):
     """A refusal, always naming what was refused."""
@@ -169,7 +179,7 @@ def body(ctx: adapterlib.Context) -> None:
     state = torch.load(latest, map_location="cpu", weights_only=False)
     torch.save(extract_encoder(state["model_state_dict"]),
                Path(ctx.out) / "encoder.pt")
-    ctx.write_metrics(metrics)
+    ctx.write_metrics(metrics, names=STEP1_METRIC_NAMES)
 
 
 def main(argv: list[str] | None = None) -> int:

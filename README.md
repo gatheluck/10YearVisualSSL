@@ -102,6 +102,7 @@ shown so the shape is visible before it is built.
 │   ├── test_launch.py                resolve -> submit -> verify -> record
 │   ├── test_ci.py                    the workflow runs what it claims
 │   ├── test_mutate.py                the mutation tool cannot lie
+│   ├── test_metric_vocabulary.py     one vocabulary, and what may be compared
 │   ├── test_no_hard_coded_methods.py shared machinery discovers methods
 │   ├── test_repository_scan.py       one scan, and it works without git
 │   ├── _repo_files.py                which files belong to the repository
@@ -390,6 +391,37 @@ once returned exit 0 while reporting detected secrets.
 
 The tool also refuses any file in `--out` that the manifest does not list. An
 output nobody knows about is a hole in reproducibility.
+
+## What may be compared with what
+
+`metrics.json` carries two blocks:
+
+```json
+{"schema_version": 2,
+ "metrics": {"final_linear_probe_top1_accuracy": 42.3},
+ "metrics_raw": {"final_top1_acc": 42.3}}
+```
+
+`metrics` uses a **fixed vocabulary**; `metrics_raw` keeps the names the
+original gave its own numbers, so nothing is lost in translation. Both are
+required, and `contract-test` reads the vocabulary from the same place the
+adapters write it, so the two cannot drift apart.
+
+The distinction the vocabulary exists for is `pretext` against
+`linear_probe`:
+
+| Prefix | What it measures | Comparable across methods |
+|---|---|---|
+| `pretext` | the method's **own** training objective or task | **No** |
+| `linear_probe` | downstream classification from a linear probe, against real labels | **Yes** |
+| `epochs_completed`, `steps_completed` | counters | in kind only |
+
+The first port's `val_acc1` is eight-way patch-position accuracy — its own
+pretext task. A linear probe's top-1 is real classification accuracy. Putting
+those in one column produces a comparison table that is wrong and looks right,
+so **the stage decides which family a port may use**, and reaching across is
+refused rather than discouraged. Accuracies are percentages, 0 to 100, which
+was measured from both sources rather than assumed.
 
 ## What reproducibility means here
 

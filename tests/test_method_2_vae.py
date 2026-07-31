@@ -396,7 +396,7 @@ class TestASmokeRun(Base):
         and non-empty, and would pass every other check here."""
         self.run_adapter()
         m = json.loads((self.out / "metrics.json").read_text())["metrics"]
-        self.assertIn("final_loss", m, "the run reported no loss")
+        self.assertIn("final_pretext_loss", m, "the run reported no loss")
         self.assertNotIn("metrics_unavailable", m)
 
     @needs_torch

@@ -60,6 +60,20 @@ ENCODER_PREFIX = "encoder."
 # evaluation had been skipped entirely.
 EVAL_METRICS = ("val_loss", "val_acc1")
 
+# What the original calls its numbers, and what the contract calls them.
+#
+# **`val_acc1` is the pretext task's accuracy, not a downstream one.** The
+# model here is built with `num_classes=8` and predicts which of eight
+# relative positions a patch sits in. Mapping it to a linear-probe name would
+# put it in the same column as real classification accuracy, and the column
+# would look right (CONTRACT, metric vocabulary).
+STEP1_METRIC_NAMES = {
+    "val_loss": "final_pretext_loss",
+    "val_acc1": "final_pretext_top1_accuracy",
+    "global_step": "steps_completed",
+    "metrics_unavailable": "metrics_unavailable",
+}
+
 # The original writes run_config.json, progress.jsonl and its checkpoints into
 # save_dir under its own names. It gets a subdirectory of --out so that
 # nothing escapes and every file still ends up in the manifest.
@@ -227,6 +241,16 @@ def run_training(config: dict, out: Path, _run=None) -> dict:
 LINEAR_EVAL_METRICS = ("best_top1_acc", "best_top5_acc",
                        "final_top1_acc", "final_top5_acc")
 
+# These are downstream classification against real labels, so they are the
+# numbers that may be compared across methods.
+LINEAR_EVAL_METRIC_NAMES = {
+    "best_top1_acc": "best_linear_probe_top1_accuracy",
+    "best_top5_acc": "best_linear_probe_top5_accuracy",
+    "final_top1_acc": "final_linear_probe_top1_accuracy",
+    "final_top5_acc": "final_linear_probe_top5_accuracy",
+    "metrics_unavailable": "metrics_unavailable",
+}
+
 
 def _eval_metrics(results: dict) -> dict:
     metrics, unusable = {}, 0
@@ -255,7 +279,9 @@ def body(ctx: adapterlib.Context) -> None:
         state = load_final_state(ctx.out)
         torch.save(extract_encoder(state["state_dict"]),
                    Path(ctx.out) / "encoder.pt")
-    ctx.write_metrics(metrics)
+    ctx.write_metrics(metrics, names=(
+        STEP1_METRIC_NAMES if stage_of(ctx.config) == "step1"
+        else LINEAR_EVAL_METRIC_NAMES))
 
 
 def main(argv: list[str] | None = None) -> int:

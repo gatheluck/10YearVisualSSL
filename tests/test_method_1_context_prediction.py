@@ -488,10 +488,14 @@ class TestASmokeRun(Base):
         was missing, and every other assertion still passed.
         """
         self.run_adapter()
-        m = json.loads((self.out / "metrics.json").read_text())["metrics"]
+        doc = json.loads((self.out / "metrics.json").read_text())
+        for key in ("final_pretext_loss", "final_pretext_top1_accuracy"):
+            self.assertIn(key, doc["metrics"],
+                          "the pretext evaluation did not run")
+        # The original's own names, which the contract requires to survive.
         for key in ("val_loss", "val_acc1"):
-            self.assertIn(key, m, "the pretext evaluation did not run")
-        self.assertNotIn("metrics_unavailable", m)
+            self.assertIn(key, doc["metrics_raw"])
+        self.assertNotIn("metrics_unavailable", doc["metrics"])
 
     @needs_torch
     def test_the_original_scratch_files_stay_inside_out(self):
