@@ -223,6 +223,25 @@ class TestEveryPortUsesTheVocabulary(unittest.TestCase):
                         out.append(v.value)
         return out
 
+    @staticmethod
+    def pairs(path: Path) -> dict:
+        """The whole table: original name to contract name (or None)."""
+        out = {}
+        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+            if not isinstance(node, ast.Assign):
+                continue
+            if not any(isinstance(t, ast.Name) and t.id.endswith("METRIC_NAMES")
+                       for t in node.targets):
+                continue
+            if isinstance(node.value, ast.Dict):
+                for k, v in zip(node.value.keys, node.value.values):
+                    if isinstance(k, ast.Constant) and isinstance(v, ast.Constant):
+                        out[k.value] = v.value
+        return out
+
+    def test_the_pair_reader_finds_something(self):
+        self.assertTrue(any(self.pairs(p) for p in self.adapters()))
+
     def test_the_adapters_were_found(self):
         self.assertGreater(len(self.adapters()), 1)
 
@@ -236,6 +255,49 @@ class TestEveryPortUsesTheVocabulary(unittest.TestCase):
         """Against an empty result the check below passes vacuously."""
         found = [n for p in self.adapters() for n in self.targets(p)]
         self.assertGreater(len(found), 3)
+
+    def test_every_vocabulary_entry_is_used_by_some_port(self):
+        """A name no port writes is a name nobody has checked against a real
+        method. It reads as settled while nothing has ever produced it, and
+        the first port to reach for it inherits whatever was assumed when it
+        was added. Add the name and the mapping together, or not at all.
+
+        The counters and the unavailable count are exempt: they are written
+        by ports, but they are also the shape every port is entitled to use,
+        so an unused one is not evidence of anything.
+        """
+        used = {n for p in self.adapters() for n in self.targets(p)}
+        unused = sorted(set(adapterlib.METRIC_VOCABULARY) - used)
+        self.assertEqual(
+            unused, [],
+            "in the vocabulary but written by nothing:\n"
+            + "\n".join(f"  - {x}" for x in unused))
+
+    def test_the_use_check_is_not_vacuous(self):
+        """Against an empty `used` set it would fail, not pass -- but against
+        a vocabulary that is somehow empty it would pass. Pin both."""
+        self.assertTrue(adapterlib.METRIC_VOCABULARY)
+        self.assertTrue({n for p in self.adapters() for n in self.targets(p)})
+
+    def test_no_two_originals_across_ports_take_different_contract_names(self):
+        """The same upstream name landing in two different columns.
+
+        This is a **heuristic**, and it is written down as one. Two ports are
+        independent codebases and could legitimately use `val_loss` for
+        different quantities -- a pretext loss in one, a probe loss in
+        another -- at which point this has to be revisited rather than
+        silenced. It is here because while it holds it is cheap evidence, and
+        the day it breaks is a day somebody should look.
+        """
+        seen: dict = {}
+        clash = []
+        for path in self.adapters():
+            for raw, target in self.pairs(path).items():
+                if target is None:
+                    continue
+                if seen.setdefault(raw, target) != target:
+                    clash.append(f"{raw} -> {seen[raw]} and {target}")
+        self.assertEqual(clash, [], "\n".join(clash))
 
     def test_every_mapped_name_is_in_the_vocabulary(self):
         for path in self.adapters():

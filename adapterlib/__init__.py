@@ -83,7 +83,6 @@ PER_METHOD = "per-method"
 # both sources rather than assumed. Losses are per-sample means.
 METRIC_VOCABULARY = {
     "final_pretext_loss": PER_METHOD,
-    "best_pretext_top1_accuracy": PER_METHOD,
     "final_pretext_top1_accuracy": PER_METHOD,
     "best_linear_probe_top1_accuracy": COMPARABLE,
     "final_linear_probe_top1_accuracy": COMPARABLE,
@@ -105,6 +104,12 @@ METRIC_VOCABULARY = {
 # No machine can read a number and tell which task produced it. It can read
 # the stage, and the contract already separates them. So the stage decides
 # which family is reachable, and crossing over takes more than a word.
+#
+# Every name here is written by some port; a name nothing writes has never
+# been checked against a real method and reads as settled while nothing has
+# produced it. `best_pretext_top1_accuracy` was in this table for exactly one
+# commit before it was noticed and removed. Add a name with the mapping that
+# uses it.
 #
 # Names belonging to neither family -- counters, and the unavailable count --
 # are available everywhere. An unrecognised stage is refused rather than
