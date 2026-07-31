@@ -1,0 +1,19 @@
+# What this method imports, and nothing else. Checked in both directions by
+# tests/test_method_requirements.py.
+#
+# The captured file also listed timm, tqdm and numpy. **Step 1 imports none of
+# them**, measured across the trainer, the model and the loader: timm and tqdm
+# belong to the step 2 track that was not brought across, and numpy arrives as
+# a dependency of torch rather than as something this code calls. The guard
+# caught all three, which is the mistake it exists for.
+#
+# tensorboard is here because the captured trainer imports SummaryWriter at
+# module level and writes event files through it. Making that conditional
+# would be a behaviour change to keep a lock file small.
+#
+# These are floors. Use requirements.lock.txt to rebuild a run.
+
+torch>=2.1.0
+torchvision>=0.16.0
+PyYAML>=6.0
+tensorboard>=2.14.0

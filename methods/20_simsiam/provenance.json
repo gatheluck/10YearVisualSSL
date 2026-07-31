@@ -1,0 +1,16 @@
+{
+  "captured_at": "2026-07-31",
+  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate, branch snapshots",
+  "captured_path": "methods/20_simsiam",
+  "captured_sha256": {
+    "models/simsiam_resnet.py": "23f65603f3825b4348729d059fea63aa27bb7076717a3bc14978d62edc6e2362",
+    "data/simsiam_dataset.py": "ec365daafc1d88eb55bad5d9c1b9d49b75d61f0d1eb7df393efd572ae0199c2a"
+  },
+  "note": "Only captured_sha256 came across untouched. Step 2 (train_step2_vit.py and models/simsiam_vit.py) was not brought across: it has no official-style variant in the capture, which is the same reason step 2 was left out of the first port. The checkpoint directory in the captured config was an absolute path on the cluster and is not shipped; the adapter puts it under --out.",
+  "rewritten_during_the_port": {
+    "__init__.py": "empty in the capture; kept empty",
+    "models/__init__.py": "re-exported SimSiamViT (step 2), which was not brought across",
+    "data/__init__.py": "same",
+    "train_step1_resnet.py": "resolve_device() and make_deterministic() added, and the unconditional .cuda(local_rank) on the model and on each batch replaced by .to(device) -- the captured trainer could not start without a GPU. main() split into build_parser() and run(args, config), which now returns the epoch loss, the collapse monitor and the epoch count; the captured version computed them and discarded them."
+  }
+}
