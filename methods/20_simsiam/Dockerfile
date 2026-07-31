@@ -1,0 +1,75 @@
+# The locked environment for 20_simsiam, as an image.
+#
+# Build from the repository root, because the tooling lock and bin/ live there:
+#
+#   docker build -f methods/20_simsiam/Dockerfile -t simsiam .
+#
+# Podman takes the same command. For Apptainer, convert the built image or
+# pull it from a registry; see the method's README.
+#
+# Built and run for both architectures on 2026-07-30 for the first method;
+# this one is the same definition with a different lock. See README.md for
+# what has and has not been exercised.
+#
+# **This definition has never been built.** There is no Docker, Podman or
+# Apptainer on the machine it was written on. Everything about it is checked
+# by reading -- tests/test_container.py -- and nothing by running.
+
+# Pinned by digest, not by tag: `python:3.12.13-slim-bookworm` will mean a
+# different image next month, and an image built from a tag cannot be rebuilt.
+# The digest was read from the registry on 2026-07-30 and covers linux/amd64
+# and linux/arm64 among others. It matches .python-version at the repository
+# root, which is what the cp312 wheels in the locks require.
+FROM python:3.12.13-slim-bookworm@sha256:d50fb7611f86d04a3b0471b46d7557818d88983fc3136726336b2a4c657aa30b
+
+# No apt at all. The wheels in the lock are self-contained, and any
+# `apt-get install` without pinned versions would make two builds of this file
+# produce two different images.
+
+# **A fresh virtual environment, not the base image's site-packages.**
+# Measured on the host: a bare venv seeds exactly `pip`. Installing over
+# whatever the base image ships would give an environment that is not the
+# locked one, and would differ from how the host is built.
+RUN python3 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:${PATH}" \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# The locks are copied before the source so that editing code does not
+# reinstall torch.
+COPY methods/20_simsiam/requirements.lock.txt /opt/lock/method.txt
+COPY requirements-tools.lock.txt /opt/lock/tools.txt
+
+# The same pair the README installs. Naming only one of them is the mistake
+# that once made a correct environment look broken.
+RUN pip install --no-cache-dir --require-hashes \
+        --index-url https://download.pytorch.org/whl/cpu \
+        --extra-index-url https://pypi.org/simple \
+        -r /opt/lock/method.txt \
+        -r /opt/lock/tools.txt
+
+# **The build proves its own environment.** If what got installed is not what
+# the locks describe, the build fails here rather than producing an image that
+# exists and misreports what is in it.
+COPY bin/verify-environment.py /opt/verify-environment.py
+RUN python3 /opt/verify-environment.py \
+        --lock /opt/lock/method.txt \
+        --lock /opt/lock/tools.txt
+
+WORKDIR /work
+COPY . /work
+
+# The adapter runs from the method directory and reaches the repository
+# through PYTHONPATH, exactly as the README describes on the host.
+ENV PYTHONPATH=/work
+
+# No ENTRYPOINT. Apptainer and Docker disagree about how one is invoked, and a
+# plain image can be driven the same way by both:
+#
+#   docker run --rm -v "$PWD/runs:/runs" -w /work/methods/20_simsiam \
+#       simsiam python3 -m adapter --config /runs/resolved.json --out /runs/out
+#
+#   apptainer exec --bind "$PWD/runs:/runs" simsiam.sif \
+#       sh -c 'cd /work/methods/20_simsiam && python3 -m adapter \
+#              --config /runs/resolved.json --out /runs/out'
+CMD ["python3", "-c", "import torch; print('torch', torch.__version__)"]
