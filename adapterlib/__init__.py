@@ -14,7 +14,8 @@ So an adapter supplies only the part that is actually method-specific:
     def body(ctx):
         ...                                   # train, evaluate
         (ctx.out / "encoder.pt").write_bytes(weights)
-        ctx.write_metrics({"top1": 42.5})
+        ctx.write_metrics({"acc": 42.5},
+                          names={"acc": "final_pretext_top1_accuracy"})
 
     raise SystemExit(adapterlib.run(
         config=args.config, out=args.out,
@@ -54,6 +55,75 @@ from pathlib import Path
 from typing import Any, Callable, Mapping
 
 SCHEMA_VERSION = 1
+
+# `metrics.json` changed shape when the vocabulary below arrived, so it
+# carries its own version. The manifest did not change and keeps 1.
+METRICS_SCHEMA_VERSION = 2
+
+# Whether a number means the same thing in every method.
+COMPARABLE = "comparable"
+PER_METHOD = "per-method"
+
+# **The vocabulary `metrics.json` may use, and what each name may be compared
+# with.** Three ported stages had produced three spellings of the same kinds
+# of number; CONTRACT section 7 deferred the choice until two pilots were
+# through, and they now are.
+#
+# The split that matters is `pretext` against `linear_probe`. A method's
+# pretext accuracy is the accuracy of *its own* task -- eight-way patch
+# position in the first port, a reconstruction objective in the second -- and
+# those share no scale. The linear-probe numbers are downstream classification
+# against real labels, and they are what this project exists to compare.
+# Folding the two into one name would let a machine build a comparison out of
+# numbers that cannot be compared, and the result would look right.
+#
+# Comparability is recorded here rather than in a sentence in the contract
+# because a sentence in a document does not hold; this project has the counts
+# to prove it. Accuracies are percentages, 0 to 100, which was measured from
+# both sources rather than assumed. Losses are per-sample means.
+METRIC_VOCABULARY = {
+    "final_pretext_loss": PER_METHOD,
+    "best_pretext_top1_accuracy": PER_METHOD,
+    "final_pretext_top1_accuracy": PER_METHOD,
+    "best_linear_probe_top1_accuracy": COMPARABLE,
+    "final_linear_probe_top1_accuracy": COMPARABLE,
+    "best_linear_probe_top5_accuracy": COMPARABLE,
+    "final_linear_probe_top5_accuracy": COMPARABLE,
+    "epochs_completed": PER_METHOD,
+    "steps_completed": PER_METHOD,
+    "metrics_unavailable": PER_METHOD,
+}
+
+# Which family of names each stage may use.
+#
+# **The vocabulary alone does not stop the mapping that matters.** A port that
+# sends its pretext accuracy to `final_linear_probe_top1_accuracy` passes every
+# other check: the name is defined and the value is a number. That one line
+# puts a method's own eight-way task in the same column as real classification
+# accuracy, and the column looks right.
+#
+# No machine can read a number and tell which task produced it. It can read
+# the stage, and the contract already separates them. So the stage decides
+# which family is reachable, and crossing over takes more than a word.
+#
+# Names belonging to neither family -- counters, and the unavailable count --
+# are available everywhere. An unrecognised stage is refused rather than
+# defaulted: defaulting would settle the question by accident.
+PRETEXT = "pretext"
+LINEAR_PROBE = "linear_probe"
+CONTRACT_STAGES = ("step1", "linear_eval")
+STAGE_FAMILIES = {
+    "step1": PRETEXT,
+    "linear_eval": LINEAR_PROBE,
+}
+
+
+def _family(name: str) -> "str | None":
+    if PRETEXT in name:
+        return PRETEXT
+    if LINEAR_PROBE in name:
+        return LINEAR_PROBE
+    return None
 MANIFEST = "run_manifest.json"
 ENCODER = "encoder.pt"
 METRICS = "metrics.json"
@@ -119,24 +189,73 @@ def _is_number(v: Any) -> bool:
 class Context:
     """What the body is given. Deliberately small."""
 
-    def __init__(self, out: Path, config: dict) -> None:
+    def __init__(self, out: Path, config: dict, stage: str = "") -> None:
         self.out = out
         self.config = config
+        self.stage = stage
 
-    def write_metrics(self, metrics: Mapping[str, Any]) -> None:
-        """Write `metrics.json` in the shape the contract fixes.
+    def write_metrics(self, raw: Mapping[str, Any],
+                      names: Mapping[str, "str | None"]) -> None:
+        """Write `metrics.json`: the contract's names, and the original's.
+
+        `raw` is what the original produced, under the original's own names.
+        `names` is the port's translation table, and it is required -- without
+        one a port drifts back to inventing names, which is how three stages
+        came to spell top-1 accuracy three ways.
+
+        Every key in `raw` must appear in `names`. A key with no contract slot
+        is written `None` there, which keeps it in `metrics_raw` and out of
+        `metrics`: nothing is lost and nothing is invented. Dropping it
+        silently would lose a number the original produced with nothing to
+        say so.
 
         Values are checked here rather than left to `contract-test`, which can
         only object once the run has already spent its GPU hours.
         """
-        for k, v in metrics.items():
-            if not _is_number(v):
+        contract: dict = {}
+        for key, value in raw.items():
+            if not _is_number(value):
                 raise AdapterError(
-                    f"metric {k!r} is {v!r}, which is not a number; "
+                    f"metric {key!r} is {value!r}, which is not a number; "
                     "nothing can compare it")
+            if key not in names:
+                raise AdapterError(
+                    f"metric {key!r} has no entry in this port's translation "
+                    "table. Give it a contract name, or None to keep it in "
+                    "metrics_raw only -- it will not be dropped in silence")
+            target = names[key]
+            if target is None:
+                continue
+            if target not in METRIC_VOCABULARY:
+                raise AdapterError(
+                    f"{target!r} is not in the contract vocabulary, so "
+                    "nothing downstream knows what it means. Known names: "
+                    + ", ".join(sorted(METRIC_VOCABULARY)))
+            if target in contract:
+                raise AdapterError(
+                    f"two of the original's metrics both map to {target!r}, "
+                    "so one would overwrite the other")
+            family = _family(target)
+            if family is not None:
+                if self.stage not in STAGE_FAMILIES:
+                    raise AdapterError(
+                        f"stage {self.stage!r} is not one the contract "
+                        f"defines ({', '.join(CONTRACT_STAGES)}), so which "
+                        f"family of metric names it may use is undecided. "
+                        "Add it to the contract rather than guessing here")
+                allowed = STAGE_FAMILIES[self.stage]
+                if family != allowed:
+                    raise AdapterError(
+                        f"stage {self.stage!r} produces {allowed} numbers, "
+                        f"but {target!r} is a {family} name. These measure "
+                        "different tasks and cannot share a column; mapping "
+                        "one to the other is the mistake the vocabulary "
+                        "exists to prevent")
+            contract[target] = value
         (self.out / METRICS).write_text(
-            json.dumps({"schema_version": SCHEMA_VERSION,
-                        "metrics": dict(metrics)},
+            json.dumps({"schema_version": METRICS_SCHEMA_VERSION,
+                        "metrics": contract,
+                        "metrics_raw": dict(raw)},
                        sort_keys=True, ensure_ascii=False) + "\n",
             encoding="utf-8")
 
@@ -235,7 +354,7 @@ def run(*, config: Path, out: Path, method: str, stage: str,
     started_at = _now()
     error: str | None = None
     try:
-        body(Context(out, cfg))
+        body(Context(out, cfg, stage))
     except AdapterError:
         # Misuse of this module is not a run result, so it is not recorded as
         # one. A metric that is not a number means the port is wrong, and

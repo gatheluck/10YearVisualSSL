@@ -16,7 +16,8 @@ What is checked (CONTRACT.md section 5):
      the hash is taken over its bytes, so this tool needs no parser
   4. every listed artifact exists, with matching `sha256` and `bytes`
   5. `encoder.pt` is registered under the role `encoder`
-  6. `metrics.json` parses and every value is a number
+  6. `metrics.json` parses, every value in both of its blocks is a number,
+     and every name in `metrics` is one the contract's vocabulary defines
   7. **no file in `--out` is missing from the manifest**
   8. `finished_at >= started_at`
 
@@ -37,6 +38,14 @@ import hashlib
 import json
 import sys
 from pathlib import Path
+
+# The vocabulary is read from the one place that defines it, never copied.
+# Two copies of a rule agree everywhere except the case that matters; that is
+# how the container jobs broke (DESIGN 5.38). The writing side enforcing it
+# alone would make it a convention: a run arriving from an older adapter or
+# written by hand has to be caught here.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from adapterlib import METRIC_VOCABULARY, METRICS_SCHEMA_VERSION  # noqa: E402
 
 MANIFEST = "run_manifest.json"
 ENCODER = "encoder.pt"
@@ -175,10 +184,35 @@ def check(out: Path, config: Path, exit_status: int | None = None
         except (OSError, ValueError, KeyError, TypeError) as exc:
             bad("metrics-unparsable", f"{METRICS} cannot be parsed: {exc}")
         else:
+            version = m.get("schema_version")
+            if version != METRICS_SCHEMA_VERSION:
+                bad("metrics-schema",
+                    f"schema_version is {version!r}; the contract fixes "
+                    f"{METRICS} at {METRICS_SCHEMA_VERSION}")
+
+            # The original's own names for its own numbers. Required: losing
+            # them loses what the method called its results, with nothing in
+            # the output to say so.
+            raw = m.get("metrics_raw")
+            if not isinstance(raw, dict):
+                bad("metrics-raw-missing",
+                    "metrics_raw is absent or is not an object; the names "
+                    "the original gave its numbers have to survive")
+            else:
+                for k, val in raw.items():
+                    if not _is_number(val):
+                        bad("metrics-not-numeric",
+                            f"metrics_raw.{k} is not a number: {val!r}")
+
             for k, val in metrics.items():
                 if not _is_number(val):
                     bad("metrics-not-numeric",
                         f"{k} is not a number: {val!r}; nothing can compare it")
+                if k not in METRIC_VOCABULARY:
+                    bad("metrics-unknown-name",
+                        f"{k} is not a name the contract defines, so nothing "
+                        "downstream knows what it may be compared with. "
+                        "Known: " + ", ".join(sorted(METRIC_VOCABULARY)))
 
     # Unlisted files are not allowed. The manifest cannot contain its own
     # hash, so it is the single exception.
