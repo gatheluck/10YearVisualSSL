@@ -418,5 +418,98 @@ class TestItIsReproducibleToo(unittest.TestCase):
                                  "read")
 
 
+@needs_yaml
+class TestItDoesNotBurnMinutesTwice(unittest.TestCase):
+    """**Written after the workflow stopped running for lack of minutes.**
+
+    The merge of the third method failed CI with no failing step and no log:
+    the jobs completed two seconds after starting, with zero steps, and the
+    check annotation said the account had hit its spending limit. Nothing was
+    wrong with the code, and the first instinct -- hunt the regression -- was
+    the wrong one.
+
+    The cost was measured rather than guessed. One full run is about 37
+    minutes of billed runner time (`locked` about 6 minutes per method,
+    `container` about 6 more), and `on: push:` with no branch filter meant
+    **every commit on a branch with an open pull request started two runs**:
+    one for the push and one for the pull request. Roughly 56 billed minutes
+    per commit, for a suite that takes 15 seconds locally.
+
+    It also scales with the thing this repository is for. Three methods cost
+    37 minutes; thirty-seven would cost several hours per run. A design that
+    cannot survive its own stated goal is a defect, not a surprise.
+
+    None of this is a substitute for the account having minutes. It is the
+    half that is ours.
+    """
+
+    def test_push_only_builds_the_default_branch(self):
+        """The duplicate run, removed.
+
+        Nothing loses coverage: a branch cannot reach the default branch
+        except through a pull request, and `pull_request` covers that. What
+        is dropped is the second, identical run of the same commit.
+        """
+        for name, doc in parsed().items():
+            with self.subTest(file=name):
+                push = triggers(doc).get("push")
+                self.assertIsInstance(
+                    push, dict,
+                    "push has no branch filter, so every commit on every "
+                    "branch runs the suite a second time")
+                self.assertEqual(push.get("branches"), ["main"])
+
+    def test_pull_requests_are_not_filtered_away(self):
+        """The other half. Restricting both would leave nothing running."""
+        for name, doc in parsed().items():
+            with self.subTest(file=name):
+                self.assertIn("pull_request", triggers(doc))
+
+    def test_a_superseded_run_is_cancelled(self):
+        """Pushing twice in a minute otherwise pays for both, and only the
+        second one's answer is wanted."""
+        for name, doc in parsed().items():
+            with self.subTest(file=name):
+                c = doc.get("concurrency")
+                self.assertIsInstance(c, dict, "no concurrency group")
+                self.assertIn("group", c)
+                self.assertIn("cancel-in-progress", c)
+
+    def test_the_default_branch_is_never_cancelled(self):
+        """A cancelled run on the default branch destroys the record of
+        whether that commit was good, which is the one record worth paying
+        for."""
+        for name, doc in parsed().items():
+            with self.subTest(file=name):
+                cancel = str(doc["concurrency"]["cancel-in-progress"])
+                self.assertIn("github.ref", cancel,
+                              "cancellation is unconditional, so a run on "
+                              "the default branch can be thrown away")
+                self.assertIn("main", cancel)
+
+    def test_the_concurrency_group_separates_branches(self):
+        """One group for everything would cancel unrelated work."""
+        for name, doc in parsed().items():
+            with self.subTest(file=name):
+                self.assertIn("github.ref",
+                              str(doc["concurrency"]["group"]))
+
+    def test_the_expensive_job_caches_its_installation(self):
+        """Most of `locked` is downloading torch, once per method per run.
+
+        Keyed on the lock files, so a changed lock misses the cache and a
+        run can never install something the lock does not describe.
+        """
+        for name, doc in parsed().items():
+            steps = doc["jobs"]["locked"]["steps"]
+            setup = [s for s in steps
+                     if "setup-python" in str(s.get("uses", ""))]
+            with self.subTest(file=name):
+                self.assertTrue(setup, "locked does not set up python")
+                w = setup[0].get("with") or {}
+                self.assertEqual(w.get("cache"), "pip")
+                self.assertIn("lock", str(w.get("cache-dependency-path", "")))
+
+
 if __name__ == "__main__":
     unittest.main()
