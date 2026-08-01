@@ -130,6 +130,38 @@ def to_args(config: dict, out: Path) -> Namespace:
                      seed=int(config["seed"]))
 
 
+def load_encoder(state_dict: dict, config: dict):
+    """The other half of `extract_encoder`: put it back.
+
+    **This method's encoder is not one submodule**, so its keys keep their own
+    names -- `encoder.`, `fc_mu.` and `fc_logvar.` -- and there is no single
+    prefix that could be stripped. The pair still has to agree, which is what
+    this makes checkable: the model is built, the saved keys are loaded into
+    it, and anything the file failed to provide is an error rather than a
+    silently default-initialised weight.
+
+    **The encoder is not self-describing.** Its shapes come from the settings
+    the run used, so rebuilding the model with library defaults produces a
+    differently shaped one and `load_state_dict` reports a wall of size
+    mismatches. The resolved config is therefore required, not optional --
+    found by writing the round-trip test, which failed on exactly that.
+    """
+    from models.vae_cnn import VAE_CNN
+    train = config["train"]
+    model = VAE_CNN(latent_dim=int(train["latent_dim"]),
+                    image_size=int(train["img_size"]))
+    missing, unexpected = model.load_state_dict(state_dict, strict=False)
+    if unexpected:
+        raise RuntimeError(
+            f"encoder.pt carries keys this model does not have: {unexpected}")
+    absent = [k for k in missing if k.startswith(ENCODER_PREFIXES)]
+    if absent:
+        raise RuntimeError(
+            f"encoder.pt is missing encoder weights: {absent}. The decoder is "
+            "expected to be missing; the encoder is not")
+    return model
+
+
 def extract_encoder(state_dict: dict) -> dict:
     """The encoder half of the model.
 

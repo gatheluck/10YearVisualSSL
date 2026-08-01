@@ -165,6 +165,38 @@ def extract_encoder(state_dict: dict) -> dict:
     return out
 
 
+def load_encoder(state_dict: dict, config: dict):
+    """The other half of `extract_encoder`: put it back.
+
+    The keys keep the `backbone.` prefix they had in the checkpoint, so they
+    load into the whole model rather than into the submodule; `get_encoder()`
+    then hands back the backbone the original's own linear evaluation uses.
+    Whether a port strips its prefix is its own business -- what has to hold
+    is that the two halves agree, which is what this makes checkable.
+
+    **The encoder is not self-describing.** Its shapes come from the settings
+    the run used, so rebuilding the model with library defaults produces a
+    differently shaped one and `load_state_dict` reports a wall of size
+    mismatches. The resolved config is therefore required, not optional --
+    found by writing the round-trip test, which failed on exactly that.
+    """
+    from models import build_simsiam_resnet
+    train = config["train"]
+    model = build_simsiam_resnet(dim=int(train["dim"]),
+                                 pred_dim=int(train["pred_dim"]))
+    missing, unexpected = model.load_state_dict(state_dict, strict=False)
+    if unexpected:
+        raise RuntimeError(
+            f"encoder.pt carries keys this model does not have: {unexpected}")
+    absent = [k for k in missing if k.startswith(ENCODER_PREFIX)]
+    if absent:
+        raise RuntimeError(
+            f"encoder.pt is missing backbone weights: {absent[:5]}. The "
+            "projector and predictor are expected to be missing; the backbone "
+            "is not")
+    return model.get_encoder()
+
+
 def run_training(config: dict, out: Path, _run=None) -> dict:
     if _run is None:
         from train_step1_resnet import run as _run
