@@ -53,6 +53,7 @@ shown so the shape is visible before it is built.
 │   ├── resolve-config.py             authoring config -> canonical resolved JSON
 │   ├── launch.py                     resolve, submit, verify, record
 │   ├── verify-environment.py         is this the locked environment?
+│   ├── run-ci-locally.py            run the workflow here, by reading it
 │   ├── mutate.py                     break the code, check the tests notice
 │   └── contract-test.py              decides by machine that a port is finished
 ├── adapterlib/                     the one place a run_manifest.json is written
@@ -383,6 +384,36 @@ runs/_reference-dd6145f9edb6/
 ├── resolved.json        the exact config that ran
 └── out/                 encoder.pt, metrics.json, run_manifest.json
 ```
+
+## Running CI here
+
+CI runs on GitHub. When it cannot — the account hit a billing wall on
+2026-07-31 — the same jobs can be run on this machine, provided Docker is
+available:
+
+```bash
+python3 bin/run-ci-locally.py --event pull_request
+```
+
+**It reads `.github/workflows/tests.yml` and executes what it finds.** It
+contains none of the workflow's commands, and `tests/test_run_ci_locally.py`
+asserts that: a script that restated them would be a second implementation of
+the workflow, and the two would agree until the day one was edited — at which
+point "CI passed locally" would be false with nothing able to notice.
+
+Each matrix job gets its own export of `HEAD`, so a run says something about
+the committed tree rather than about whatever is open in an editor.
+
+What it cannot reproduce, it prints:
+
+- the image is not GitHub's runner image
+- `linux/amd64` is emulated here. Results have matched, but it is not the same
+  silicon, and this repository already says agreement across different
+  hardware is not guaranteed
+- `uses:` steps are actions, not shell; their effect is provided differently
+  and noted rather than executed
+
+`--dry-run` prints the plan, with the matrix resolved, without running it.
 
 ## Checking an adapter's output against the contract
 
