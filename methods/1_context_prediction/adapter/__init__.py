@@ -182,6 +182,36 @@ def _usable_metrics(raw: dict) -> dict:
     return metrics
 
 
+def load_encoder(state_dict: dict, config: dict):
+    """The other half of `extract_encoder`: put it back.
+
+    Declared so a consumer has something to call, and so the pair can be
+    proved to agree. Writing a file and never reading one back is how an
+    `encoder.pt` that loads nothing goes unnoticed -- `strict=False` matches
+    no keys and tells nobody, and a linear evaluation on default
+    initialisation reports a number that looks like a result.
+
+    Strict on purpose: this port strips the prefix on the way out, so the keys
+    are exactly the encoder module's own.
+
+    **The encoder is not self-describing.** Its shapes come from the settings
+    the run used, so rebuilding the model with library defaults produces a
+    differently shaped one and `load_state_dict` reports a wall of size
+    mismatches. The resolved config is therefore required, not optional --
+    found by writing the round-trip test, which failed on exactly that.
+
+    The pretext head is eight-way by construction -- the task is which of
+    eight relative positions a patch sits in -- so nothing here varies with
+    the config. It is still taken rather than assumed, so the signature is the
+    same in every port and a consumer needs no special case.
+    """
+    from models.alexnet_context_official import build_official_context_alexnet
+    del config          # fixed by the pretext task, not by a setting
+    encoder = build_official_context_alexnet(num_classes=8).get_encoder()
+    encoder.load_state_dict(state_dict)
+    return encoder
+
+
 def extract_encoder(state_dict: dict) -> dict:
     """The encoder's parameters alone, with the prefix stripped.
 

@@ -423,6 +423,39 @@ class TestASmokeRun(Base):
         self.assertNotEqual(r.returncode, 0)
 
 
+    @needs_torch
+    def test_the_encoder_pt_it_wrote_loads_back(self):
+        """**The round trip, end to end.** Writing the file and never reading
+        one back is how an `encoder.pt` that loads nothing goes unnoticed:
+        `strict=False` matches no keys and tells nobody, and an evaluation on
+        default initialisation reports a number that looks like a result.
+
+        Weights are compared, not just the absence of an exception -- loading
+        into a freshly built model and getting default values back would
+        satisfy a check that only asked whether it raised.
+        """
+        import torch
+        self.run_adapter()
+        saved = torch.load(self.out / "encoder.pt", map_location="cpu",
+                           weights_only=True)
+        self.assertTrue(saved, "encoder.pt is empty")
+        # Three methods define a package called `models`, and only one can
+        # be in sys.modules at a time. The adapter imports its own lazily, so
+        # the shared helper has to put the right one there first -- the same
+        # isolation the rest of the suite uses, in the one place that owns it.
+        load("this_methods_models", METHOD / "models" / "__init__.py")
+        loaded = adapter.load_encoder(saved, self.config()).state_dict()
+        pairs = 0
+        for key, want in saved.items():
+            short = key.split(".", 1)[1] if key.split(".", 1)[0].isalpha() \
+                and key.split(".", 1)[0] not in loaded and "." in key else key
+            got = loaded.get(key, loaded.get(short))
+            if got is None:
+                continue
+            pairs += 1
+            self.assertTrue(torch.equal(got, want), f"{key} came back changed")
+        self.assertGreater(pairs, 0, "no saved weight reached the model")
+
 class TestTheOriginalIsUnchanged(unittest.TestCase):
     def test_the_body_lives_in_run_and_main_only_parses(self):
         import ast

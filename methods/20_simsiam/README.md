@@ -1,4 +1,4 @@
-# 20_simsiam — step 1
+# 20_simsiam — step 1 and linear evaluation
 
 Chen & He, *Exploring Simple Siamese Representation Learning*, 2020
 ([arXiv:2011.10566](https://arxiv.org/abs/2011.10566)).
@@ -29,6 +29,25 @@ Ruled out with evidence: `35_vjepa` has no step-1 trainer at all and downloads
 a checkpoint; `4_context_encoder` is 1161 lines of GAN with two models and two
 optimisers; `27_ibot` is the heaviest; `17_swav`'s official artefacts are only
 a shell script and a config.
+
+## The linear evaluation
+
+The second stage freezes the encoder step 1 produced and fits a linear
+classifier on real labels. **These are the numbers this project exists to
+compare**, and this is the first method other than the first port to produce
+them — so it is the first real test of whether the contract's metric
+vocabulary holds across methods.
+
+It reports **three** accuracies, not four: a best top-1 and a final top-1 and
+top-5. The first port's evaluation also reports a best top-5; this original
+does not, and inventing one would be a number nothing measured.
+
+The handoff needed work. The captured loader rebuilds the whole SimSiam model
+from a training checkpoint with `strict=True`, while the contract's artifact
+is `encoder.pt` — the backbone alone. Rather than teach the evaluation a
+second way to recognise a file, the adapter builds the encoder with
+`load_encoder` and hands it in, so one place knows how an encoder is loaded.
+`model_type='vit'` now refuses by name, because step 2 was not brought across.
 
 ## What was new here
 

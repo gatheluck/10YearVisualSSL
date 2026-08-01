@@ -36,13 +36,21 @@ from pathlib import Path
 import adapterlib
 
 METHOD = "20_simsiam"
-STAGES = ("step1",)
+STAGES = ("step1", "linear_eval")
 
 # Every setting the original reads, and no others.
 TRAIN_KEYS = frozenset({"epochs", "batch_size", "num_workers", "base_lr",
                         "momentum", "weight_decay", "img_size", "dim",
                         "pred_dim", "save_freq", "print_freq"})
 TOP_KEYS = frozenset({"stage", "seed", "data_root", "device", "train"})
+
+# The second stage reads a different set. It needs an encoder to freeze, and
+# none of step 1's optimiser settings: a key a stage never reads is a setting
+# claiming an effect it never had.
+EVAL_TOP_KEYS = TOP_KEYS | {"encoder"}
+EVAL_TRAIN_KEYS = frozenset({"epochs", "batch_size", "num_workers", "lr",
+                             "optimizer", "weight_decay", "img_size", "dim",
+                             "pred_dim", "print_freq"})
 DEVICES = ("auto", "cuda", "cpu")
 
 # The original writes checkpoints, a copy of its config and TensorBoard events
@@ -54,6 +62,10 @@ WORK = "work"
 # evaluation loads exactly that. A checkpoint written under DDP carries a
 # `module.` prefix, which the original's loader strips before loading.
 ENCODER_PREFIX = "backbone."
+
+# ResNet-50's pooled feature width, which the original's own evaluation also
+# hard-codes for the resnet path.
+BACKBONE_DIM = 2048
 DDP_PREFIX = "module."
 
 # What the original calls its numbers, and what the contract calls them.
@@ -63,6 +75,21 @@ DDP_PREFIX = "module."
 # name. `final_z_std` is the collapse monitor and has no contract slot at all:
 # `None` keeps it in `metrics_raw` and out of `metrics`, which is the whole
 # point of that path.
+# The downstream numbers. Every one is a `linear_probe` name, because this
+# stage measures classification against real labels -- which is the number
+# this project exists to compare.
+#
+# **Three, not four.** The first port's evaluation also reports a best top-5;
+# this original does not, and inventing one would be a number nothing
+# measured.
+LINEAR_EVAL_METRIC_NAMES = {
+    "best_top1_acc": "best_linear_probe_top1_accuracy",
+    "final_top1_acc": "final_linear_probe_top1_accuracy",
+    "final_top5_acc": "final_linear_probe_top5_accuracy",
+    "epochs": "epochs_completed",
+    "metrics_unavailable": "metrics_unavailable",
+}
+
 STEP1_METRIC_NAMES = {
     "final_loss": "final_pretext_loss",
     "final_z_std": None,
@@ -100,22 +127,30 @@ def to_run_config(config: dict, out: Path) -> dict:
                 f"config: {key} is set. The output location is not a setting: "
                 "the contract fixes it at --out, and a config naming a "
                 "directory would claim a location that was not used")
-    _named(TOP_KEYS - set(config), set(config) - TOP_KEYS, "config")
-    if config["stage"] not in STAGES:
+    stage = config.get("stage")
+    if stage not in STAGES:
         raise ConfigError(
-            f"config: stage is {config['stage']!r}; known stages are "
+            f"config: stage is {stage!r}; known stages are "
             f"{', '.join(STAGES)}")
+    top = EVAL_TOP_KEYS if stage == "linear_eval" else TOP_KEYS
+    keys = EVAL_TRAIN_KEYS if stage == "linear_eval" else TRAIN_KEYS
+    _named(top - set(config), set(config) - top, "config")
 
     train = config["train"]
     if not isinstance(train, dict):
         raise ConfigError(f"config: train is {type(train).__name__}, "
                           "not a mapping")
-    _named(TRAIN_KEYS - set(train), set(train) - TRAIN_KEYS, "config.train")
+    _named(keys - set(train), set(train) - keys, "config.train")
 
     if config["device"] not in DEVICES:
         raise ConfigError(
             f"config: device is {config['device']!r}; expected one of "
             f"{', '.join(DEVICES)}")
+
+    if stage == "linear_eval":
+        # The evaluation takes flags, not a document. Validation above is the
+        # part that matters here; `eval_args` builds what it actually reads.
+        return {"stage": stage}
 
     return {
         "model": {"dim": int(train["dim"]),
@@ -138,6 +173,27 @@ def to_run_config(config: dict, out: Path) -> dict:
                        "allow_resume": False},
         "seed": int(config["seed"]),
     }
+
+
+def eval_args(config: dict, out: Path) -> Namespace:
+    """The arguments the original's evaluation reads.
+
+    Its inputs are command-line flags rather than a nested mapping, so unlike
+    step 1 there is no config document to build -- this is where the contract's
+    flat config meets an argparse namespace.
+    """
+    to_run_config(config, out)          # validate before building arguments
+    train = config["train"]
+    return Namespace(
+        checkpoint=str(config["encoder"]), model_type="resnet",
+        data_path=str(config["data_root"]),
+        batch_size=int(train["batch_size"]), epochs=int(train["epochs"]),
+        lr=float(train["lr"]), optimizer=str(train["optimizer"]),
+        weight_decay=float(train["weight_decay"]),
+        num_workers=int(train["num_workers"]),
+        save_dir=str(Path(out) / WORK), gpu=0, resume_linear="",
+        device=str(config["device"]), img_size=int(train["img_size"]),
+        seed=int(config["seed"]))
 
 
 def to_args(config: dict, out: Path) -> Namespace:
@@ -163,6 +219,38 @@ def extract_encoder(state_dict: dict) -> dict:
             f"nothing under {ENCODER_PREFIX!r} in the checkpoint; the model "
             "layout changed and encoder.pt would have been empty")
     return out
+
+
+def load_encoder(state_dict: dict, config: dict):
+    """The other half of `extract_encoder`: put it back.
+
+    The keys keep the `backbone.` prefix they had in the checkpoint, so they
+    load into the whole model rather than into the submodule; `get_encoder()`
+    then hands back the backbone the original's own linear evaluation uses.
+    Whether a port strips its prefix is its own business -- what has to hold
+    is that the two halves agree, which is what this makes checkable.
+
+    **The encoder is not self-describing.** Its shapes come from the settings
+    the run used, so rebuilding the model with library defaults produces a
+    differently shaped one and `load_state_dict` reports a wall of size
+    mismatches. The resolved config is therefore required, not optional --
+    found by writing the round-trip test, which failed on exactly that.
+    """
+    from models import build_simsiam_resnet
+    train = config["train"]
+    model = build_simsiam_resnet(dim=int(train["dim"]),
+                                 pred_dim=int(train["pred_dim"]))
+    missing, unexpected = model.load_state_dict(state_dict, strict=False)
+    if unexpected:
+        raise RuntimeError(
+            f"encoder.pt carries keys this model does not have: {unexpected}")
+    absent = [k for k in missing if k.startswith(ENCODER_PREFIX)]
+    if absent:
+        raise RuntimeError(
+            f"encoder.pt is missing backbone weights: {absent[:5]}. The "
+            "projector and predictor are expected to be missing; the backbone "
+            "is not")
+    return model.get_encoder()
 
 
 def run_training(config: dict, out: Path, _run=None) -> dict:
@@ -201,14 +289,68 @@ def latest_checkpoint(work: Path) -> Path:
     return max(found, key=lambda p: int(p.stem.rsplit("_", 1)[1]))
 
 
+def run_linear_eval(config: dict, out: Path, _run=None) -> dict:
+    """Freeze the encoder the previous stage produced, and fit a linear head.
+
+    The encoder is built here rather than inside the original's loader: the
+    contract's artifact is `encoder.pt`, the backbone alone, while the
+    captured loader rebuilds the whole SimSiam model from a training
+    checkpoint with `strict=True`. `load_encoder` already knows how to read
+    one, so it is used rather than duplicated.
+    """
+    import torch
+    if _run is None:
+        from evaluate_linear_official import run as _run
+    args = eval_args(config, out)
+    Path(args.save_dir).mkdir(parents=True, exist_ok=True)
+    state = torch.load(config["encoder"], map_location="cpu",
+                       weights_only=True)
+    encoder = load_encoder(state, config)
+    raw = _run(args, encoder=encoder, in_dim=BACKBONE_DIM) or {}
+    metrics, unusable = {}, 0
+    for key, value in raw.items():
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            unusable += 1
+            continue
+        metrics[key] = value
+    unusable += sum(1 for k in ("best_top1_acc", "final_top1_acc")
+                    if k not in metrics)
+    if unusable:
+        metrics["metrics_unavailable"] = unusable
+    return metrics
+
+
 def body(ctx: adapterlib.Context) -> None:
     import torch
+    if ctx.stage == "linear_eval":
+        ctx.write_metrics(run_linear_eval(ctx.config, ctx.out),
+                          names=LINEAR_EVAL_METRIC_NAMES)
+        return
     metrics = run_training(ctx.config, ctx.out)
     state = torch.load(latest_checkpoint(Path(ctx.out) / WORK),
                        map_location="cpu", weights_only=False)
     torch.save(extract_encoder(state["state_dict"]),
                Path(ctx.out) / "encoder.pt")
     ctx.write_metrics(metrics, names=STEP1_METRIC_NAMES)
+
+
+def _stage_of(config_path) -> str:
+    """The stage, read before adapterlib parses the config."""
+    import json
+    try:
+        return json.loads(Path(config_path).read_text(
+            encoding="utf-8")).get("stage") or STAGES[0]
+    except (OSError, ValueError, AttributeError):
+        return STAGES[0]      # adapterlib will report the real problem
+
+
+def _absent_reason(config_path) -> "str | None":
+    """CONTRACT section 3. This stage fits a classifier on a frozen encoder;
+    it produces no encoder of its own, and saying so is required."""
+    if _stage_of(config_path) != "linear_eval":
+        return None
+    return ("this stage evaluates a frozen encoder and produces a linear "
+            "classifier; the encoder it read is named in the config")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -219,7 +361,8 @@ def main(argv: list[str] | None = None) -> int:
     a = ap.parse_args(argv)
     try:
         return adapterlib.run(config=a.config, out=a.out, method=METHOD,
-                              stage="step1", body=body)
+                              stage=_stage_of(a.config), body=body,
+                              encoder_absent_reason=_absent_reason(a.config))
     except (adapterlib.AdapterError, ConfigError) as exc:
         print(f"  *** {exc}", file=sys.stderr)
         return 2

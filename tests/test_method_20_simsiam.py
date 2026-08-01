@@ -488,6 +488,243 @@ class TestASmokeRun(Base):
                          "two runs of one config produced different weights")
 
 
+    @needs_torch
+    def test_the_encoder_pt_it_wrote_loads_back(self):
+        """**The round trip, end to end.** Writing the file and never reading
+        one back is how an `encoder.pt` that loads nothing goes unnoticed:
+        `strict=False` matches no keys and tells nobody, and an evaluation on
+        default initialisation reports a number that looks like a result.
+
+        Weights are compared, not just the absence of an exception -- loading
+        into a freshly built model and getting default values back would
+        satisfy a check that only asked whether it raised.
+        """
+        import torch
+        self.run_adapter()
+        saved = torch.load(self.out / "encoder.pt", map_location="cpu",
+                           weights_only=True)
+        self.assertTrue(saved, "encoder.pt is empty")
+        # Three methods define a package called `models`, and only one can
+        # be in sys.modules at a time. The adapter imports its own lazily, so
+        # the shared helper has to put the right one there first -- the same
+        # isolation the rest of the suite uses, in the one place that owns it.
+        load("this_methods_models", METHOD / "models" / "__init__.py")
+        loaded = adapter.load_encoder(saved, self.config()).state_dict()
+        pairs = 0
+        for key, want in saved.items():
+            short = key.split(".", 1)[1] if key.split(".", 1)[0].isalpha() \
+                and key.split(".", 1)[0] not in loaded and "." in key else key
+            got = loaded.get(key, loaded.get(short))
+            if got is None:
+                continue
+            pairs += 1
+            self.assertTrue(torch.equal(got, want), f"{key} came back changed")
+        self.assertGreater(pairs, 0, "no saved weight reached the model")
+
+EVAL_TRAIN = {"epochs": 1, "batch_size": 2, "num_workers": 0, "lr": 0.1,
+              "optimizer": "sgd", "weight_decay": 0.0, "img_size": 32,
+              "dim": 64, "pred_dim": 16, "print_freq": 1}
+
+
+def tiny_classified(root: Path, classes: int = 2, per_class: int = 2) -> Path:
+    """A labelled ImageFolder tree, with the classes separable.
+
+    Separable for the reason the first port's fixture is: the original saves
+    its classifier only when the accuracy improves on zero, and on pure noise
+    which side of the boundary four images fall on is decided by
+    floating-point detail -- which this project states is not reproducible
+    across hardware. A test resting on that is not flaky by accident.
+    """
+    from PIL import Image
+    import random
+    rng = random.Random(0)
+    for split in ("train", "val"):
+        for c in range(classes):
+            d = root / split / f"c{c}"
+            d.mkdir(parents=True, exist_ok=True)
+            base = int(30 + c * (200 / max(classes - 1, 1)))
+            for i in range(per_class):
+                img = Image.new("RGB", (64, 64))
+                img.putdata([(min(255, max(0, base + rng.randrange(-8, 9))),) * 3
+                             for _ in range(64 * 64)])
+                img.save(d / f"{i}.jpg")
+    return root
+
+
+class TestTheLinearEvaluationStage(Base):
+    """The second stage, and the first time two different methods produce
+    numbers the contract says may be compared."""
+
+    def config(self, **over) -> dict:
+        cfg = {"stage": "linear_eval", "seed": 0,
+               "data_root": str(self.tmp / "data"),
+               "encoder": str(self.tmp / "encoder.pt"),
+               "device": "cpu", "train": dict(EVAL_TRAIN)}
+        for k, v in over.items():
+            if k == "train" and v is not None:
+                cfg["train"] = {**cfg["train"], **v}
+            else:
+                cfg[k] = v
+        return cfg
+
+    def test_the_stage_is_known(self):
+        self.assertIn("linear_eval", adapter.STAGES)
+
+    def test_it_needs_an_encoder_to_evaluate(self):
+        cfg = self.config()
+        del cfg["encoder"]
+        with self.assertRaises(adapter.ConfigError) as e:
+            adapter.to_run_config(cfg, self.out)
+        self.assertIn("encoder", str(e.exception))
+
+    def test_step1_settings_are_refused_here(self):
+        """A key the stage never reads is a setting claiming an effect it
+        never had. The two stages do not read the same keys."""
+        cfg = self.config()
+        cfg["train"]["momentum"] = 0.9
+        with self.assertRaises(adapter.ConfigError) as e:
+            adapter.to_run_config(cfg, self.out)
+        self.assertIn("momentum", str(e.exception))
+
+    def test_no_pretext_name_is_produced_here(self):
+        """This stage measures downstream classification against real labels.
+        A pretext name here would be the false equivalence the vocabulary
+        exists to prevent, in the direction that matters."""
+        for raw, target in adapter.LINEAR_EVAL_METRIC_NAMES.items():
+            with self.subTest(metric=raw):
+                self.assertNotIn("pretext", str(target))
+
+    def test_its_accuracies_are_comparable_ones(self):
+        """The counters are neither family and belong to every stage; the
+        accuracies are the numbers this project compares."""
+        probes = [t for t in adapter.LINEAR_EVAL_METRIC_NAMES.values()
+                  if t and "accuracy" in t]
+        self.assertTrue(probes)
+        for target in probes:
+            with self.subTest(metric=target):
+                self.assertIn("linear_probe", target)
+                self.assertEqual(adapterlib.METRIC_VOCABULARY[target],
+                                 adapterlib.COMPARABLE)
+
+    def test_it_reports_the_three_the_original_produces(self):
+        """**Three, not four.** The first port's evaluation reports a best
+        top-5 as well; this one does not, and inventing it would be a number
+        nothing measured."""
+        accuracies = sorted(
+            k for k, t in adapter.LINEAR_EVAL_METRIC_NAMES.items()
+            if t and "accuracy" in t)
+        self.assertEqual(
+            accuracies,
+            ["best_top1_acc", "final_top1_acc", "final_top5_acc"])
+
+    @needs_torch
+    def test_an_encoder_missing_its_backbone_is_refused(self):
+        """A truncated file would otherwise load nothing and the evaluation
+        would score default initialisation, which produces a number that
+        looks like a result."""
+        # Empty rather than a wrong-typed value: a bad type fails the copy
+        # first, which is a different complaint and would let the check the
+        # test is about go unexercised.
+        with self.assertRaises(RuntimeError) as e:
+            adapter.load_encoder({}, self.config())
+        self.assertIn("backbone", str(e.exception))
+
+    @needs_torch
+    def test_asking_for_the_vit_is_refused_by_name(self):
+        """Step 2 was not brought across, so its model is absent. Before this
+        it failed as an ImportError three frames away, which says nothing
+        about why."""
+        import torch
+        evaluation = load("simsiam_eval",
+                          METHOD / "evaluate_linear_official.py")
+        # A real file: the captured loader reads the checkpoint before it
+        # looks at the model type, so a missing path would fail for an
+        # unrelated reason.
+        ckpt = self.tmp / "any.pth"
+        torch.save({"state_dict": {}, "config": {}}, ckpt)
+        with self.assertRaises(NotImplementedError) as e:
+            evaluation.load_encoder(str(ckpt), "vit")
+        self.assertIn("step 2", str(e.exception))
+
+    @needs_torch
+    def test_the_evaluation_refuses_a_gpu_it_does_not_have(self):
+        """**Added because a mutation survived.** Replacing the requested
+        device with `auto` changes nothing on a machine without a GPU, so
+        nothing caught it -- and the failure it hides is a run asked for CUDA
+        that quietly used a CPU and reported success. Patched rather than
+        skipped, so it is checked everywhere instead of only on a GPU box."""
+        import torch
+        evaluation = load("simsiam_eval",
+                          METHOD / "evaluate_linear_official.py")
+        args = adapter.eval_args(self.config(device="cuda"), self.out)
+        real = torch.cuda.is_available
+        torch.cuda.is_available = lambda: False
+        try:
+            with self.assertRaises(RuntimeError) as e:
+                evaluation.run(args, encoder=object(), in_dim=8)
+            self.assertIn("cuda", str(e.exception).lower())
+        finally:
+            torch.cuda.is_available = real
+
+    def test_the_device_in_the_config_reaches_the_evaluation(self):
+        """Otherwise a run asked for a GPU could quietly use a CPU and report
+        success, and the two are not the same run."""
+        args = adapter.eval_args(self.config(device="cuda"), self.out)
+        self.assertEqual(args.device, "cuda")
+        args = adapter.eval_args(self.config(device="cpu"), self.out)
+        self.assertEqual(args.device, "cpu")
+
+
+@needs_torch
+class TestTheLinearEvaluationRuns(Base):
+    def setUp(self) -> None:
+        super().setUp()
+        tiny_classified(self.tmp / "data")
+
+    def make_encoder(self) -> None:
+        """A real `encoder.pt`, produced by this method's own first stage."""
+        import torch
+        tiny_imagenet(self.tmp / "data")
+        first = TestASmokeRun("test_it_runs_on_the_cpu")
+        first.tmp, first.out = self.tmp, self.tmp / "step1out"
+        _, r = first.run_adapter()
+        self.assertEqual(r.returncode, 0, r.stdout[-2000:] + r.stderr[-2000:])
+        (self.tmp / "encoder.pt").write_bytes(
+            (first.out / "encoder.pt").read_bytes())
+
+    def config(self, **over) -> dict:
+        return TestTheLinearEvaluationStage.config(self, **over)
+
+    def test_it_completes_and_satisfies_the_contract(self):
+        self.make_encoder()
+        cfg_path, r = self.run_adapter(self.config())
+        self.assertEqual(r.returncode, 0, r.stdout[-3000:] + r.stderr[-3000:])
+        v = subprocess.run(
+            [sys.executable, str(BIN / "contract-test.py"), "--out",
+             str(self.out), "--config", str(cfg_path), "--exit-status", "0"],
+            capture_output=True, text=True)
+        self.assertEqual(v.returncode, 0, v.stdout + v.stderr)
+
+    def test_the_numbers_are_comparable_ones(self):
+        self.make_encoder()
+        self.run_adapter(self.config())
+        doc = json.loads((self.out / "metrics.json").read_text())
+        self.assertIn("final_linear_probe_top1_accuracy", doc["metrics"])
+        self.assertFalse([k for k in doc["metrics"] if "pretext" in k],
+                         "a pretext name reached a downstream stage")
+        self.assertIn("final_top1_acc", doc["metrics_raw"])
+
+    def test_it_says_why_there_is_no_encoder_to_hand_on(self):
+        """CONTRACT section 3: this stage produces a classifier, not an
+        encoder. Not producing one quietly is what is forbidden."""
+        self.make_encoder()
+        self.run_adapter(self.config())
+        man = json.loads((self.out / "run_manifest.json").read_text())
+        self.assertFalse((self.out / "encoder.pt").exists())
+        self.assertTrue(man["encoder_absent_reason"].strip())
+        self.assertEqual(man["stage"], "linear_eval")
+
+
 class TestWhatCameFromTheCapture(unittest.TestCase):
     def test_the_captured_files_are_unchanged(self):
         expected = json.loads(
