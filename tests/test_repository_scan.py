@@ -282,7 +282,8 @@ class TestThereIsOnlyOneScan(unittest.TestCase):
         return False
 
     @classmethod
-    def reaches_git(cls, tree: ast.Module, node: ast.ClassDef) -> bool:
+    def reaches_git(cls, tree: ast.Module, node: ast.ClassDef,
+                    method: "ast.FunctionDef | None" = None) -> bool:
         """Whether `node` can reach git, directly or via a module helper.
 
         **Asking this of the whole module was too coarse and said so loudly.**
@@ -292,12 +293,24 @@ class TestThereIsOnlyOneScan(unittest.TestCase):
         without it. An accusation that lands on innocent code gets silenced,
         and a silenced check protects nothing.
         """
-        if cls.runs_git(node):
-            return True
+        # **Scoped to the method when one is given.** A class-wide answer
+        # accused a test that only checks argparse, because a *sibling* test
+        # in the same class ran `git ls-tree`. An accusation that lands on
+        # innocent code gets silenced, and a silenced guard protects nothing.
+        # Helpers still count: a test that calls one inherits its reach.
         helpers = {f.name for f in tree.body
                    if isinstance(f, ast.FunctionDef) and cls.runs_git(f)}
-        called = {c.func.id for c in ast.walk(node)
+        helpers |= {f.name for f in node.body
+                    if isinstance(f, ast.FunctionDef)
+                    and not f.name.startswith("test") and cls.runs_git(f)}
+        scope = method if method is not None else node
+        if cls.runs_git(scope):
+            return True
+        called = {c.func.id for c in ast.walk(scope)
                   if isinstance(c, ast.Call) and isinstance(c.func, ast.Name)}
+        called |= {c.func.attr for c in ast.walk(scope)
+                   if isinstance(c, ast.Call)
+                   and isinstance(c.func, ast.Attribute)}
         return bool(helpers & called)
 
     @classmethod
@@ -307,14 +320,14 @@ class TestThereIsOnlyOneScan(unittest.TestCase):
         for node in tree.body:
             if not isinstance(node, ast.ClassDef):
                 continue
-            if not cls.reaches_git(tree, node):
-                continue
             if any(g in d for d in map(ast.unparse, node.decorator_list)
                    for g in GATES):
                 continue
             for item in node.body:
                 if not (isinstance(item, ast.FunctionDef)
                         and item.name.startswith("test")):
+                    continue
+                if not cls.reaches_git(tree, node, item):
                     continue
                 marks = set(map(ast.unparse, item.decorator_list))
                 if any(g in d for d in marks for g in GATES):
@@ -376,6 +389,38 @@ class TestThereIsOnlyOneScan(unittest.TestCase):
                      '        subprocess.run(["git", "status"])\n',
                      encoding="utf-8")
         self.assertEqual(self.ungated(p), ["TestX.test_y"])
+
+    def test_a_test_that_reaches_git_through_a_helper_is_caught(self):
+        """Scoping to the method must not lose the helper case: a test whose
+        own body is clean but which calls something that runs git is just as
+        broken where there is no git."""
+        d = Path(tempfile.mkdtemp(prefix="scanspec-"))
+        self.addCleanup(shutil.rmtree, d, ignore_errors=True)
+        p = d / "test_sample.py"
+        p.write_text('import unittest\n'
+                     'class TestX(unittest.TestCase):\n'
+                     '    def helper(self):\n'
+                     '        subprocess.run(["git", "status"])\n'
+                     '    def test_y(self):\n'
+                     '        self.helper()\n',
+                     encoding="utf-8")
+        self.assertEqual(self.ungated(p), ["TestX.test_y"])
+
+    def test_a_sibling_that_never_touches_git_is_left_alone(self):
+        """The false positive that prompted the change: one test in a class
+        ran git and every other test in it was accused."""
+        d = Path(tempfile.mkdtemp(prefix="scanspec-"))
+        self.addCleanup(shutil.rmtree, d, ignore_errors=True)
+        p = d / "test_sample.py"
+        p.write_text('import unittest\n'
+                     'class TestX(unittest.TestCase):\n'
+                     '    @needs_checkout\n'
+                     '    def test_uses_git(self):\n'
+                     '        subprocess.run(["git", "status"])\n'
+                     '    def test_innocent(self):\n'
+                     '        self.assertTrue(True)\n',
+                     encoding="utf-8")
+        self.assertEqual(self.ungated(p), [])
 
     def test_the_detector_accepts_a_gated_one(self):
         d = Path(tempfile.mkdtemp(prefix="scanspec-"))

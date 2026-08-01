@@ -430,8 +430,17 @@ class TestTheCommandLine(unittest.TestCase):
             [sys.executable, str(BIN / "run-ci-locally.py"),
              "--event", "pull_request", "--dry-run"],
             capture_output=True, text=True, cwd=ROOT)
-        found = sorted(p.parent.name for p in
-                       (ROOT / "methods").glob("*/requirements.lock.txt"))
+        # **From the commit, not the working tree.** The runner exports HEAD,
+        # which is the whole point of it, so a method added but not yet
+        # committed is correctly absent from the plan. Globbing the working
+        # tree made this fail the moment a new method appeared -- the test was
+        # comparing against a different thing from the one under test.
+        listed = subprocess.run(
+            ["git", "ls-tree", "-r", "--name-only", "HEAD", "methods/"],
+            cwd=ROOT, capture_output=True, text=True)
+        found = sorted({line.split("/")[1] for line in
+                        listed.stdout.splitlines()
+                        if line.endswith("/requirements.lock.txt")})
         self.assertTrue(found)
         for m in found:
             with self.subTest(method=m):

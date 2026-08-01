@@ -1,0 +1,92 @@
+{
+  "_note": "Run: python3 bin/mutate.py --spec mutations/<file>.json --python <an interpreter with this method's lock installed>. The 'loader workers' mutation was removed: it survived because the seeding it removed was redundant. Torch's worker loop already seeds Python's random -- measured -- so the port should never have added one.",
+  "targets": [
+    {
+      "label": "fp16 on a cpu is quietly accepted",
+      "file": "methods/21_barlow_twins/adapter/__init__.py",
+      "old": "    if precision in GPU_ONLY_PRECISIONS and device == \"cpu\":",
+      "new": "    if False:",
+      "tests": [
+        "tests.test_method_21_barlow_twins"
+      ]
+    },
+    {
+      "label": "any precision string is accepted",
+      "file": "methods/21_barlow_twins/adapter/__init__.py",
+      "old": "    if precision not in PRECISIONS:",
+      "new": "    if False:",
+      "tests": [
+        "tests.test_method_21_barlow_twins"
+      ]
+    },
+    {
+      "label": "the autocast goes back to a literal cuda",
+      "file": "methods/21_barlow_twins/train_step1_resnet.py",
+      "old": "        with autocast_context(precision, device.type):",
+      "new": "        with autocast_context(precision, \"cuda\"):",
+      "tests": [
+        "tests.test_method_21_barlow_twins"
+      ]
+    },
+    {
+      "label": "python's random is not seeded at all",
+      "file": "methods/21_barlow_twins/train_step1_resnet.py",
+      "old": "    random.seed(seed)\n    torch.manual_seed(seed)",
+      "new": "    torch.manual_seed(seed)",
+      "tests": [
+        "tests.test_method_21_barlow_twins"
+      ]
+    },
+    {
+      "label": "asking for cuda silently accepts a cpu",
+      "file": "methods/21_barlow_twins/train_step1_resnet.py",
+      "old": "        if not torch.cuda.is_available():",
+      "new": "        if False:",
+      "tests": [
+        "tests.test_method_21_barlow_twins"
+      ]
+    },
+    {
+      "label": "the encoder ships the projector too",
+      "file": "methods/21_barlow_twins/adapter/__init__.py",
+      "old": "ENCODER_PREFIX = \"backbone.\"",
+      "new": "ENCODER_PREFIX = \"\"",
+      "tests": [
+        "tests.test_method_21_barlow_twins"
+      ]
+    },
+    {
+      "label": "an undeclared setting is waved through",
+      "file": "methods/21_barlow_twins/adapter/__init__.py",
+      "old": "    _named(TRAIN_KEYS - set(train), set(train) - TRAIN_KEYS, \"config.train\")",
+      "new": "    _named(TRAIN_KEYS - set(train), set(), \"config.train\")",
+      "tests": [
+        "tests.test_method_21_barlow_twins"
+      ]
+    },
+    {
+      "label": "the metrics are discarded again",
+      "file": "methods/21_barlow_twins/train_step1_resnet.py",
+      "old": "        \"final_loss\": avg_loss if loop_end_epoch > start_epoch else None,",
+      "new": "        \"final_loss\": None,",
+      "tests": [
+        "tests.test_method_21_barlow_twins"
+      ]
+    },
+    {
+      "label": "the checkpoint is picked by name order",
+      "file": "methods/21_barlow_twins/adapter/__init__.py",
+      "old": "    return max(found, key=lambda p: int(p.stem.rsplit(\"_\", 1)[1]))",
+      "new": "    return sorted(found)[-1]",
+      "tests": [
+        "tests.test_method_21_barlow_twins"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-08-01",
+    "killed": 9,
+    "total": 9,
+    "equivalent": []
+  }
+}
