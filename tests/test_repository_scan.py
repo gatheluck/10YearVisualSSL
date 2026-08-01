@@ -108,26 +108,33 @@ class TestTheScanSurvivesWithoutGit(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual(r.stdout.strip(), "False")
 
-    def test_the_whole_suite_runs_without_git(self):
-        """The end the container reaches, and **the whole suite, not a list.**
+    def test_every_module_that_could_need_git_runs_without_it(self):
+        """The end the container reaches, for the tests that could reach it.
 
-        This began as "the modules that import the shared scan", which is a
-        list dressed as a discovery: it would not have caught the failure that
-        was sitting in this very file, where a new test asserted git exists
-        and was in no scanning module at all. The container found that; the
-        narrower check could not have.
+        This ran the **whole** suite for a while, and that was right in
+        principle and wrong in cost: it spawns the suite inside the suite, so
+        it grew with every method added and eventually exceeded its own
+        timeout in CI -- 681 tests, ten minutes. A check that cannot survive
+        this repository's own goal of thirty-seven methods is a defect, which
+        is the same complaint made of the CI matrix.
 
-        So it runs everything except itself. Excluding itself is not a
-        loophole -- included, it would spawn this same subprocess from inside
-        the subprocess and the run would never finish. It was measured: it
-        times out.
+        The set is narrowed to what can actually be affected -- modules that
+        mention git or that import the shared scan -- and **derived, not
+        listed**, so a new one joins by itself. It is not the earlier narrow
+        version: that looked only at importers of the scan and would have
+        missed the failure sitting in this very file. Both bugs the wide
+        version caught are in modules this set contains, which was checked
+        before narrowing it.
 
-        Naming the modules individually would be the listing mistake this
-        repository keeps making, so they are discovered.
+        Itself excluded: included, it would spawn this subprocess from inside
+        the subprocess and never finish. Measured -- it times out.
         """
-        mods = sorted(p.stem for p in TESTS.glob("test_*.py")
-                      if p.stem != Path(__file__).stem)
-        self.assertGreater(len(mods), 10, "the discovery found nothing to run")
+        mods = sorted(
+            p.stem for p in TESTS.glob("test_*.py")
+            if p.stem != Path(__file__).stem
+            and ("git" in p.read_text(encoding="utf-8")
+                 or "_repo_files" in p.read_text(encoding="utf-8")))
+        self.assertGreater(len(mods), 3, "the discovery found nothing to run")
         r = without_git(
             "import sys, unittest; sys.path.insert(0, 'tests')\n"
             f"m = {mods!r}\n"
@@ -282,7 +289,8 @@ class TestThereIsOnlyOneScan(unittest.TestCase):
         return False
 
     @classmethod
-    def reaches_git(cls, tree: ast.Module, node: ast.ClassDef) -> bool:
+    def reaches_git(cls, tree: ast.Module, node: ast.ClassDef,
+                    method: "ast.FunctionDef | None" = None) -> bool:
         """Whether `node` can reach git, directly or via a module helper.
 
         **Asking this of the whole module was too coarse and said so loudly.**
@@ -292,12 +300,24 @@ class TestThereIsOnlyOneScan(unittest.TestCase):
         without it. An accusation that lands on innocent code gets silenced,
         and a silenced check protects nothing.
         """
-        if cls.runs_git(node):
-            return True
+        # **Scoped to the method when one is given.** A class-wide answer
+        # accused a test that only checks argparse, because a *sibling* test
+        # in the same class ran `git ls-tree`. An accusation that lands on
+        # innocent code gets silenced, and a silenced guard protects nothing.
+        # Helpers still count: a test that calls one inherits its reach.
         helpers = {f.name for f in tree.body
                    if isinstance(f, ast.FunctionDef) and cls.runs_git(f)}
-        called = {c.func.id for c in ast.walk(node)
+        helpers |= {f.name for f in node.body
+                    if isinstance(f, ast.FunctionDef)
+                    and not f.name.startswith("test") and cls.runs_git(f)}
+        scope = method if method is not None else node
+        if cls.runs_git(scope):
+            return True
+        called = {c.func.id for c in ast.walk(scope)
                   if isinstance(c, ast.Call) and isinstance(c.func, ast.Name)}
+        called |= {c.func.attr for c in ast.walk(scope)
+                   if isinstance(c, ast.Call)
+                   and isinstance(c.func, ast.Attribute)}
         return bool(helpers & called)
 
     @classmethod
@@ -307,14 +327,14 @@ class TestThereIsOnlyOneScan(unittest.TestCase):
         for node in tree.body:
             if not isinstance(node, ast.ClassDef):
                 continue
-            if not cls.reaches_git(tree, node):
-                continue
             if any(g in d for d in map(ast.unparse, node.decorator_list)
                    for g in GATES):
                 continue
             for item in node.body:
                 if not (isinstance(item, ast.FunctionDef)
                         and item.name.startswith("test")):
+                    continue
+                if not cls.reaches_git(tree, node, item):
                     continue
                 marks = set(map(ast.unparse, item.decorator_list))
                 if any(g in d for d in marks for g in GATES):
@@ -376,6 +396,38 @@ class TestThereIsOnlyOneScan(unittest.TestCase):
                      '        subprocess.run(["git", "status"])\n',
                      encoding="utf-8")
         self.assertEqual(self.ungated(p), ["TestX.test_y"])
+
+    def test_a_test_that_reaches_git_through_a_helper_is_caught(self):
+        """Scoping to the method must not lose the helper case: a test whose
+        own body is clean but which calls something that runs git is just as
+        broken where there is no git."""
+        d = Path(tempfile.mkdtemp(prefix="scanspec-"))
+        self.addCleanup(shutil.rmtree, d, ignore_errors=True)
+        p = d / "test_sample.py"
+        p.write_text('import unittest\n'
+                     'class TestX(unittest.TestCase):\n'
+                     '    def helper(self):\n'
+                     '        subprocess.run(["git", "status"])\n'
+                     '    def test_y(self):\n'
+                     '        self.helper()\n',
+                     encoding="utf-8")
+        self.assertEqual(self.ungated(p), ["TestX.test_y"])
+
+    def test_a_sibling_that_never_touches_git_is_left_alone(self):
+        """The false positive that prompted the change: one test in a class
+        ran git and every other test in it was accused."""
+        d = Path(tempfile.mkdtemp(prefix="scanspec-"))
+        self.addCleanup(shutil.rmtree, d, ignore_errors=True)
+        p = d / "test_sample.py"
+        p.write_text('import unittest\n'
+                     'class TestX(unittest.TestCase):\n'
+                     '    @needs_checkout\n'
+                     '    def test_uses_git(self):\n'
+                     '        subprocess.run(["git", "status"])\n'
+                     '    def test_innocent(self):\n'
+                     '        self.assertTrue(True)\n',
+                     encoding="utf-8")
+        self.assertEqual(self.ungated(p), [])
 
     def test_the_detector_accepts_a_gated_one(self):
         d = Path(tempfile.mkdtemp(prefix="scanspec-"))
