@@ -108,26 +108,33 @@ class TestTheScanSurvivesWithoutGit(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual(r.stdout.strip(), "False")
 
-    def test_the_whole_suite_runs_without_git(self):
-        """The end the container reaches, and **the whole suite, not a list.**
+    def test_every_module_that_could_need_git_runs_without_it(self):
+        """The end the container reaches, for the tests that could reach it.
 
-        This began as "the modules that import the shared scan", which is a
-        list dressed as a discovery: it would not have caught the failure that
-        was sitting in this very file, where a new test asserted git exists
-        and was in no scanning module at all. The container found that; the
-        narrower check could not have.
+        This ran the **whole** suite for a while, and that was right in
+        principle and wrong in cost: it spawns the suite inside the suite, so
+        it grew with every method added and eventually exceeded its own
+        timeout in CI -- 681 tests, ten minutes. A check that cannot survive
+        this repository's own goal of thirty-seven methods is a defect, which
+        is the same complaint made of the CI matrix.
 
-        So it runs everything except itself. Excluding itself is not a
-        loophole -- included, it would spawn this same subprocess from inside
-        the subprocess and the run would never finish. It was measured: it
-        times out.
+        The set is narrowed to what can actually be affected -- modules that
+        mention git or that import the shared scan -- and **derived, not
+        listed**, so a new one joins by itself. It is not the earlier narrow
+        version: that looked only at importers of the scan and would have
+        missed the failure sitting in this very file. Both bugs the wide
+        version caught are in modules this set contains, which was checked
+        before narrowing it.
 
-        Naming the modules individually would be the listing mistake this
-        repository keeps making, so they are discovered.
+        Itself excluded: included, it would spawn this subprocess from inside
+        the subprocess and never finish. Measured -- it times out.
         """
-        mods = sorted(p.stem for p in TESTS.glob("test_*.py")
-                      if p.stem != Path(__file__).stem)
-        self.assertGreater(len(mods), 10, "the discovery found nothing to run")
+        mods = sorted(
+            p.stem for p in TESTS.glob("test_*.py")
+            if p.stem != Path(__file__).stem
+            and ("git" in p.read_text(encoding="utf-8")
+                 or "_repo_files" in p.read_text(encoding="utf-8")))
+        self.assertGreater(len(mods), 3, "the discovery found nothing to run")
         r = without_git(
             "import sys, unittest; sys.path.insert(0, 'tests')\n"
             f"m = {mods!r}\n"
