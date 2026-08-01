@@ -27,7 +27,8 @@ from torchvision import datasets, transforms
 ROOT = Path(__file__).parent
 sys.path.insert(0, str(ROOT))
 
-from models import build_simsiam_resnet, build_simsiam_vit
+from models import build_simsiam_resnet
+from train_step1_resnet import make_deterministic, resolve_device
 
 _IMAGENET_MEAN = [0.485, 0.456, 0.406]
 _IMAGENET_STD = [0.229, 0.224, 0.225]
@@ -185,17 +186,20 @@ def load_encoder(checkpoint, model_type):
         )
         in_dim = 2048
     else:
-        ssl_model = build_simsiam_vit(
-            dim=cfg_model.get("dim", 768),
-            pred_dim=cfg_model.get("pred_dim", 192),
-        )
-        in_dim = 768
+        # Step 2 (ViT) has no official-style variant in the capture and was
+        # not brought across, so the model it would need is not here. Refused
+        # by name rather than left to fail as an ImportError three frames
+        # away, which is how it first showed up.
+        raise NotImplementedError(
+            "model_type='vit' belongs to step 2, which this port does not "
+            "include: models/simsiam_vit.py was not brought across because "
+            "the capture has no official-style step 2")
     state = {k.replace("module.", ""): v for k, v in ckpt["state_dict"].items()}
     ssl_model.load_state_dict(state, strict=True)
     return ssl_model.get_encoder(), in_dim, ckpt
 
 
-def main():
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Official-style SimSiam linear eval")
     parser.add_argument("--checkpoint", required=True)
     parser.add_argument("--model_type", choices=["resnet", "vit"], required=True)
@@ -209,22 +213,48 @@ def main():
     parser.add_argument("--save_dir", default="./results/linear_eval")
     parser.add_argument("--gpu", type=int, default=0)
     parser.add_argument("--resume_linear", default="")
-    args = parser.parse_args()
+    parser.add_argument("--device", default="auto",
+                        choices=["auto", "cuda", "cpu"],
+                        help="Added by the port; the captured evaluation "
+                             "assumed CUDA")
+    parser.add_argument("--img_size", type=int, default=224)
+    parser.add_argument("--seed", type=int, default=42)
+    return parser
 
+
+def run(args, encoder=None, in_dim=None) -> dict:
+    """The captured `main()`, callable in process and returning its numbers.
+
+    Changed during the port, and recorded in provenance.json:
+
+    - **the device is resolved rather than assumed.** The captured code built
+      `torch.device("cuda:...")` unconditionally and called
+      `torch.cuda.set_device`, so it could not start without a GPU
+    - **the encoder may be handed in.** The captured loader rebuilds the whole
+      SimSiam model from a training checkpoint with `strict=True`; the
+      contract's artifact is `encoder.pt`, which holds the backbone alone.
+      Rather than teach this file a second way to recognise a file, the caller
+      passes the encoder it already built -- so there is one place that knows
+      how an encoder is loaded
+    - **it returns its metrics.** The captured version wrote results.json and
+      returned nothing, so an adapter had nothing to record
+    """
     distributed, local_rank, world_size = setup_dist()
-    device = torch.device(f"cuda:{local_rank if distributed else args.gpu}")
-    if not distributed:
-        torch.cuda.set_device(args.gpu)
+    device = resolve_device(getattr(args, "device", "auto"), local_rank)
+    make_deterministic(int(getattr(args, "seed", 42)) + local_rank)
     os.makedirs(args.save_dir, exist_ok=True)
 
-    encoder, in_dim, ckpt = load_encoder(args.checkpoint, args.model_type)
+    ckpt: dict = {}
+    if encoder is None:
+        encoder, in_dim, ckpt = load_encoder(args.checkpoint, args.model_type)
     model = FrozenBackboneLinear(encoder, in_dim).to(device)
     if distributed:
         model = DDP(model, device_ids=[local_rank])
 
     per_rank_batch = max(args.batch_size // world_size, 1)
     train_dl, val_dl, train_sampler = get_dataloaders(
-        args.data_path, per_rank_batch, args.num_workers, 224, distributed
+        args.data_path, per_rank_batch, args.num_workers,
+        int(getattr(args, "img_size", 224)), distributed
     )
 
     raw = model.module if distributed else model
@@ -354,6 +384,17 @@ def main():
 
     if distributed:
         dist.destroy_process_group()
+
+    return {
+        "best_top1_acc": float(best_acc1),
+        "final_top1_acc": float(final_acc1),
+        "final_top5_acc": float(final_acc5),
+        "epochs": args.epochs - start_epoch,
+    }
+
+
+def main():
+    run(build_parser().parse_args())
 
 
 if __name__ == "__main__":
