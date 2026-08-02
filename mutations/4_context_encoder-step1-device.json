@@ -1,0 +1,39 @@
+{
+  "_note": "Run: .venvs/4_context_encoder/bin/python bin/mutate.py --spec mutations/4_context_encoder-step1-device.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/4_context_encoder/bin/python (an interpreter with this method's lock and a CUDA device). Proves the device guard added during the port is not vacuous: the captured trainer sent the model and every batch to CUDA with .cuda(args.gpu), so it could not start without a GPU, and honouring device: cpu on a GPU machine is a real behaviour the resolve_device change added. See docs/GPU.md section 4.",
+  "targets": [
+    {
+      "label": "cpu is not honoured -- the requested cpu returns a cuda device",
+      "file": "methods/4_context_encoder/train_step1.py",
+      "old": "    if spec == \"cpu\":\n        return torch.device(\"cpu\")",
+      "new": "    if spec == \"cpu\":\n        return torch.device(\"cuda\")",
+      "tests": [
+        "tests.test_method_4_context_encoder.TestTheDeviceIsResolved"
+      ]
+    },
+    {
+      "label": "cuda without a gpu is no longer refused, it falls back silently",
+      "file": "methods/4_context_encoder/train_step1.py",
+      "old": "        if not torch.cuda.is_available():",
+      "new": "        if False:",
+      "tests": [
+        "tests.test_method_4_context_encoder.TestTheDeviceIsResolved"
+      ]
+    },
+    {
+      "label": "the batch ignores the resolved device and goes to the GPU regardless",
+      "file": "methods/4_context_encoder/train_step1.py",
+      "old": "        masked_images = batch[\"masked_image\"].to(device, non_blocking=True)",
+      "new": "        masked_images = batch[\"masked_image\"].cuda(0, non_blocking=True)",
+      "tests": [
+        "tests.test_method_4_context_encoder.TestASmokeRun.test_it_runs_on_the_cpu"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-08-02",
+    "measured_with": ".venvs/4_context_encoder (cu130, on an NVIDIA A100)",
+    "killed": 3,
+    "total": 3,
+    "equivalent": []
+  }
+}

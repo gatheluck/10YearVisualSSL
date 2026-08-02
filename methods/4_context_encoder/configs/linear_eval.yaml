@@ -1,0 +1,23 @@
+# Context Encoder linear evaluation: frozen AlexNet encoder on ImageNet-1k.
+#
+# The second stage freezes the encoder step 1 produced and fits a linear
+# classifier on real labels. These are the numbers this project compares.
+#
+# The encoder to evaluate is `encoder.pt` from a step-1 run: pass it with
+# `--set ENCODER=<path>/encoder.pt`. The data path is `--set DATA_ROOT=<path>`
+# (the evaluation reads `<path>/train` and `<path>/val`). The output path is
+# `--out`. `model_type` (alexnet) is fixed by the adapter.
+stage: linear_eval
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+encoder: "${ENCODER}"
+
+train:
+  epochs: 100
+  batch_size: 256
+  num_workers: 8
+  lr: 0.1
+  momentum: 0.9
+  weight_decay: 0.0
+  img_size: 227
