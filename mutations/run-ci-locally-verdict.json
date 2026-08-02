@@ -1,0 +1,30 @@
+{
+  "_note": "Run: python3 bin/mutate.py --spec mutations/run-ci-locally-verdict.json (base interpreter; these tests need neither docker nor PyYAML). Proves the distinction the row-isolation test leans on is not vacuous: a step that ran and failed (EXIT_STEP_FAILED) must not share an exit code with a run that reached no verdict (EXIT_NO_VERDICT). Collapsing the two is exactly the bug that made a failed apt-get during the runner-image build read as 'the second matrix row saw a file the first one wrote' -- an infrastructure hiccup wearing the mask of the property under test. See tests.test_run_ci_locally.TestAVerdictIsNotTheSameAsNoVerdict.",
+  "targets": [
+    {
+      "label": "a failed step is reported as no verdict, so skipping on no-verdict would swallow a real leak",
+      "file": "bin/run-ci-locally.py",
+      "old": "        return EXIT_STEP_FAILED if self.failures() else EXIT_OK",
+      "new": "        return EXIT_NO_VERDICT if self.failures() else EXIT_OK",
+      "tests": [
+        "tests.test_run_ci_locally.TestAVerdictIsNotTheSameAsNoVerdict"
+      ]
+    },
+    {
+      "label": "a run that judged nothing is reported as a failure, so a network outage would cry leak",
+      "file": "bin/run-ci-locally.py",
+      "old": "        if not self.steps:\n            return EXIT_NO_VERDICT",
+      "new": "        if not self.steps:\n            return EXIT_STEP_FAILED",
+      "tests": [
+        "tests.test_run_ci_locally.TestAVerdictIsNotTheSameAsNoVerdict"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-08-02",
+    "measured_with": "base python3 (no docker, no PyYAML needed)",
+    "killed": 2,
+    "total": 2,
+    "equivalent": []
+  }
+}

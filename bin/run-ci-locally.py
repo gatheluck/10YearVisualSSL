@@ -54,6 +54,17 @@ ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_WORKFLOW = ROOT / ".github" / "workflows" / "tests.yml"
 EVENTS = ("push", "pull_request")
 
+# The exit codes this tool speaks in, named so a check can reason about them
+# rather than about bare numbers. The distinction that matters is between a
+# verdict and the absence of one: a step that ran and failed is evidence that
+# something is wrong (EXIT_STEP_FAILED); a run that could not be set up -- the
+# runner image would not build, nothing ran at all -- is evidence of nothing
+# either way (EXIT_NO_VERDICT), and a check that cannot tell the two apart will
+# read a network outage as the property under test having failed.
+EXIT_OK = 0
+EXIT_STEP_FAILED = 1
+EXIT_NO_VERDICT = 2
+
 # A step that drives containers has to run where the daemon is, exactly as it
 # does on the runner. Everything else has to run on Linux, because that is the
 # whole reason this workflow exists: the machine it is developed on is not the
@@ -106,8 +117,8 @@ class Report:
         possible lie.
         """
         if not self.steps:
-            return 2
-        return 1 if self.failures() else 0
+            return EXIT_NO_VERDICT
+        return EXIT_STEP_FAILED if self.failures() else EXIT_OK
 
     def as_dict(self) -> dict:
         return {"schema_version": 1,
@@ -429,13 +440,13 @@ def main() -> int:
         rep = execute(doc, a.event, a.job, a.platform, a.dry_run, ROOT)
     except CannotReproduce as exc:
         print(f"  *** {exc}", file=sys.stderr)
-        return 2
+        return EXIT_NO_VERDICT
     if a.json:
         a.json.write_text(json.dumps(rep.as_dict(), indent=2) + "\n",
                           encoding="utf-8")
     if a.dry_run:
         print("\n  dry run: nothing was executed")
-        return 0
+        return EXIT_OK
     print("\n=== what could not be reproduced here")
     for n in rep.notes:
         print(f"  - {n['what']}: {n['why']}")
