@@ -95,12 +95,14 @@ that would sit outside the hash.
 
 ## What has and has not been exercised
 
-- **A real training step and the linear probe ran on the GPU.** On an NVIDIA
-  A100 (driver CUDA 13.0) step 1 completes a training step, writes a loadable
-  `encoder.pt`, and the linear evaluation runs to a number — the tests
-  `test_a_real_run_on_cuda_produces_a_loadable_encoder` and the linear-eval
-  smoke test, on a handful of synthetic images at 32 pixels. The CPU path runs
-  the same chain
+- **A real training step ran on the GPU.** On an NVIDIA A100 (driver CUDA 13.0)
+  step 1 completes a training step and writes a loadable `encoder.pt` — the test
+  `test_a_real_run_on_cuda_produces_a_loadable_encoder`, on a handful of
+  synthetic images at 32 pixels
+- **The linear evaluation runs, but on the CPU.** Its smoke test uses
+  `device: cpu` (through the same `resolve_device` path step 1 uses), and a
+  separate test checks it refuses `cuda` when no GPU is visible. The probe has
+  not been exercised on a GPU here
 - **The full recipe has never been run.** 100 epochs of ResNet-50 on
   ImageNet-1k needs the GPUs it was written for
 - **`amp_fp16` has never executed.** It is accepted by the config check when a
