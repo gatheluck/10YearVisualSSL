@@ -336,6 +336,68 @@ class TestTheDataIsMnist(Base):
         self.assertIn("download=False", src)
 
 
+class TestDeviceIsHonoured(Base):
+    """The device is decided from the config, not sniffed from the hardware.
+
+    2_vae was ported on the CPU track: the adapter validated `config["device"]`
+    against auto/cuda/cpu, but `to_args()` never put the value on the trainer's
+    arguments and `run()` chose the device from `torch.cuda.is_available()`
+    alone. On a CPU-only machine the answer was always `cpu`, requested or not,
+    so nothing showed. On a GPU it is a real defect -- `device: cpu` runs on the
+    GPU, and `device: cuda` without a GPU runs on the CPU instead of refusing.
+    Found the first time the port ran on real GPU hardware. See docs/GPU.md 4.
+    """
+
+    def trainer(self):
+        return load("vae_trainer", METHOD / "train_step1_cnn.py")
+
+    @needs_torch
+    def test_asking_for_cuda_without_one_is_refused(self):
+        """Falling back to the CPU without a word turns a misconfigured GPU job
+        into a run that looks fine and misreports which hardware produced it."""
+        from unittest import mock
+        t = self.trainer()
+        with mock.patch.object(t.torch.cuda, "is_available",
+                               return_value=False):
+            with self.assertRaises(RuntimeError) as e:
+                t.resolve_device("cuda", 0)
+            self.assertIn("cuda", str(e.exception).lower())
+            self.assertEqual(t.resolve_device("cpu", 0).type, "cpu")
+            self.assertEqual(t.resolve_device("auto", 0).type, "cpu")
+
+    @needs_torch
+    def test_cpu_is_honoured_even_where_cuda_exists(self):
+        """Pretend CUDA is there, because otherwise cpu and auto agree and
+        dropping the explicit cpu branch changes nothing observable."""
+        from unittest import mock
+        t = self.trainer()
+        with mock.patch.object(t.torch.cuda, "is_available",
+                               return_value=True):
+            self.assertEqual(t.resolve_device("cpu", 0).type, "cpu")
+            self.assertEqual(t.resolve_device("auto", 0).type, "cuda")
+            self.assertEqual(t.resolve_device("cuda", 0).type, "cuda")
+
+    @needs_torch
+    def test_the_adapter_forwards_the_device_to_the_trainer(self):
+        """Validating the device and then not forwarding it is the defect this
+        catches: `to_args()` must put it on the arguments the trainer reads."""
+        args = adapter.to_args(self.config(device="cuda"), self.out)
+        self.assertEqual(args.device, "cuda")
+
+    def test_run_resolves_the_device_rather_than_sniffing_it(self):
+        """Structural, and needs no torch. Choosing the device straight from
+        `torch.cuda.is_available()` is exactly the bug; `run()` must go through
+        `resolve_device`, so the requested value is what decides."""
+        import ast
+        src = (METHOD / "train_step1_cnn.py").read_text()
+        run_fn = next(n for n in ast.parse(src).body
+                      if isinstance(n, ast.FunctionDef) and n.name == "run")
+        called = {n.func.id for n in ast.walk(run_fn)
+                  if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)}
+        self.assertIn("resolve_device", called,
+                      "run() selects the device without resolve_device")
+
+
 class TestASmokeRun(Base):
     def run_adapter(self, **over):
         tiny_mnist(self.tmp / "data")
@@ -356,6 +418,21 @@ class TestASmokeRun(Base):
              str(self.out), "--config", str(cfg), "--exit-status", "0"],
             capture_output=True, text=True)
         self.assertEqual(v.returncode, 0, v.stdout + v.stderr)
+
+    @unittest.skipUnless(HAVE_DEPS and torch.cuda.is_available(),
+                         "no CUDA device; the GPU path cannot be exercised here")
+    def test_a_real_run_on_cuda_produces_a_loadable_encoder(self):
+        """The GPU path, on real hardware -- the case CPU-only testing could
+        never reach. A device-placement mistake (a tensor left on the CPU while
+        the model is on the GPU) raises inside training, so a run that finishes
+        and writes a non-empty encoder is the GPU path working end to end."""
+        cfg, r = self.run_adapter(device="cuda")
+        self.assertEqual(r.returncode, 0, r.stdout[-3000:] + r.stderr[-3000:])
+        self.assertIn("cuda", r.stdout.lower(),
+                      "the run did not report running on a CUDA device")
+        saved = torch.load(self.out / "encoder.pt", map_location="cpu",
+                           weights_only=True)
+        self.assertTrue(saved, "encoder.pt is empty after a CUDA run")
 
     @needs_torch
     def test_the_encoder_is_the_encoder_half_of_the_model(self):

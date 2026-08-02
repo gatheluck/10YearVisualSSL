@@ -1,0 +1,39 @@
+{
+  "_note": "Run: .venvs/2_vae/bin/python bin/mutate.py --spec mutations/2_vae-step1-device.json --python .venvs/2_vae/bin/python (an interpreter with 2_vae's lock and a CUDA device). Proves the device guard added during the GPU port is not vacuous: 2_vae validated config[device] and then ignored it. Kept in the repository because a mutation result that lives only in a chat message cannot be checked by anyone later. See docs/GPU.md section 4.",
+  "targets": [
+    {
+      "label": "cpu is not honoured -- the requested cpu returns a cuda device",
+      "file": "methods/2_vae/train_step1_cnn.py",
+      "old": "    if spec == \"cpu\":\n        return torch.device(\"cpu\")",
+      "new": "    if spec == \"cpu\":\n        return torch.device(\"cuda\")",
+      "tests": [
+        "tests.test_method_2_vae"
+      ]
+    },
+    {
+      "label": "cuda without a gpu is no longer refused, it falls back silently",
+      "file": "methods/2_vae/train_step1_cnn.py",
+      "old": "        if not torch.cuda.is_available():",
+      "new": "        if False:",
+      "tests": [
+        "tests.test_method_2_vae"
+      ]
+    },
+    {
+      "label": "the adapter drops the device on the floor again",
+      "file": "methods/2_vae/adapter/__init__.py",
+      "old": "                     seed=int(config[\"seed\"]), device=config[\"device\"])",
+      "new": "                     seed=int(config[\"seed\"]))",
+      "tests": [
+        "tests.test_method_2_vae"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-08-02",
+    "measured_with": ".venvs/2_vae (cu130, on an NVIDIA A100)",
+    "killed": 3,
+    "total": 3,
+    "equivalent": []
+  }
+}

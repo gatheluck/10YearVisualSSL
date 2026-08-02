@@ -125,9 +125,12 @@ def to_run_config(config: dict, out: Path) -> dict:
 
 def to_args(config: dict, out: Path) -> Namespace:
     to_run_config(config, out)          # validate before building arguments
+    # device is validated above and forwarded here: validating it and then not
+    # passing it on is how the trainer came to ignore it and sniff the hardware
+    # instead. The trainer resolves it (auto/cuda/cpu); see docs/GPU.md.
     return Namespace(config=None, data_path=str(config["data_root"]),
                      distributed=False, resume="", local_rank=0, world_size=1,
-                     seed=int(config["seed"]))
+                     seed=int(config["seed"]), device=config["device"])
 
 
 def load_encoder(state_dict: dict, config: dict):

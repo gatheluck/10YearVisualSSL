@@ -50,8 +50,25 @@ import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-IGNORE = shutil.ignore_patterns(".git", "__pycache__", "*.pyc", ".venv",
-                                "runs", ".pytest_cache", ".mypy_cache")
+_PATTERNS = shutil.ignore_patterns(".git", "__pycache__", "*.pyc", ".venv",
+                                   "runs", ".pytest_cache", ".mypy_cache")
+# A Python environment is not our source, and copying one -- a per-method GPU
+# venv is measured at 4.6 GB -- made every mutation copy it. It is excluded by
+# its PEP 405 marker rather than its name: a name list is the listing mistake
+# this repository keeps making, and it would miss a venv wherever someone put
+# one under a different name. tests/_repo_files.py excludes environments the
+# same way, by pyvenv.cfg.
+VENV_MARKER = "pyvenv.cfg"
+
+
+def _ignore(directory, names):
+    """copytree's `ignore`: the old name patterns, plus any directory that
+    declares itself a Python environment."""
+    skip = set(_PATTERNS(directory, names))
+    for name in names:
+        if (Path(directory) / name / VENV_MARKER).is_file():
+            skip.add(name)
+    return skip
 
 
 class MutationError(Exception):
@@ -122,7 +139,7 @@ def run(spec: dict, python: str = sys.executable) -> tuple[int, dict]:
     results = []
     work = Path(tempfile.mkdtemp(prefix="mutate-"))
     try:
-        shutil.copytree(ROOT, work, dirs_exist_ok=True, ignore=IGNORE)
+        shutil.copytree(ROOT, work, dirs_exist_ok=True, ignore=_ignore)
         every = sorted({t for m in targets for t in m["tests"]})
         check_baseline(work, every, python)
 

@@ -217,6 +217,33 @@ def make_deterministic() -> None:
     torch.backends.cudnn.benchmark = False
 
 
+def resolve_device(spec: str, local_rank: int = 0) -> "torch.device":
+    """Which device to run on, decided from the config rather than sniffed.
+
+    Added during the GPU port. The captured trainer chose the device from
+    `torch.cuda.is_available()` alone, which on a CPU-only machine is always
+    `cpu` and hides the question. On a GPU it is wrong: `cpu` has to be
+    honoured even where a GPU exists, and `cuda` asked for without one must be
+    refused rather than fall back quietly -- a run asked for a GPU that reports
+    success from a CPU is not the run that was requested. This is the same rule
+    the other ported trainers already use; the reasoning and the invariant are
+    in docs/GPU.md section 4.
+    """
+    if spec == "cpu":
+        return torch.device("cpu")
+    if spec == "cuda":
+        if not torch.cuda.is_available():
+            raise RuntimeError(
+                "device is 'cuda' but no CUDA device is visible. Ask for "
+                "'auto' to accept a CPU; asking for a GPU and getting a CPU "
+                "silently would misreport what ran")
+        return torch.device(f"cuda:{local_rank}")
+    if spec == "auto":
+        return torch.device(f"cuda:{local_rank}"
+                            if torch.cuda.is_available() else "cpu")
+    raise ValueError(f"unknown device {spec!r}; expected auto, cuda or cpu")
+
+
 def run(args, config=None):
     """The original body, with the config allowed to arrive as a value.
 
@@ -238,8 +265,8 @@ def run(args, config=None):
         print("Configuration loaded:")
         print(yaml.dump(config, default_flow_style=False))
     
-    # Set device
-    device = torch.device(f'cuda:{args.local_rank}' if torch.cuda.is_available() else 'cpu')
+    # Set device from the requested spec, not from whatever hardware is visible.
+    device = resolve_device(getattr(args, "device", "auto"), args.local_rank)
     if args.local_rank == 0:
         print(f"Using device: {device}")
         if args.distributed:
