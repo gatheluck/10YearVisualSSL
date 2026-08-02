@@ -25,7 +25,7 @@ assume it.
 | `platforms/` | **implemented and tested.** Platform separation; `local` is self-contained |
 | `methods/1_context_prediction` | **step 1 and linear evaluation ported and tested.** Verified on CPU end to end. Step 2 (ViT) belongs to the legacy track and was not brought across |
 | `methods/2_vae` | **step 1 ported and tested.** Chosen by measuring all 37: the only one on MNIST, so it trains to completion on CPU |
-| `methods/17_swav` | **step 1 ported and tested.** Its loader could not run on one process at all; the sampler is now conditional |
+| `methods/17_swav` | **step 1 and linear evaluation ported and tested.** Its loader could not run on one process at all; the sampler is now conditional. The linear probe produces comparable downstream numbers |
 | `methods/21_barlow_twins` | **step 1 and linear evaluation ported and tested.** The runner-up of the six measured candidates. Refuses fp16 on a CPU rather than downgrading quietly; the linear probe produces comparable downstream numbers |
 | `methods/20_simsiam` | **step 1 and linear evaluation ported and tested.** Chosen by measuring the six remaining official-style candidates. The second method to produce comparable downstream numbers |
 | `methods/27_ibot` | **step 1 and linear evaluation ported and tested.** The sixth port, and the first exercised on a GPU as written: a real training step and the linear probe run on an A100. `encoder.pt` is the teacher ViT, matching the official probe |

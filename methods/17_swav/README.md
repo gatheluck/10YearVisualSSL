@@ -1,4 +1,4 @@
-# 17_swav — step 1
+# 17_swav — step 1 and linear evaluation
 
 Caron, Misra, Mairal, Goyal, Bojanowski and Joulin, *Unsupervised Learning of
 Visual Features by Contrasting Cluster Assignments*, 2020
@@ -9,6 +9,19 @@ learned prototypes and makes one view predict the other's assignment. A
 Sinkhorn-Knopp normalisation keeps the prototypes evenly used, which is what
 stops the representation collapsing. The encoder is what the rest of the
 project wants; the prototypes are training machinery.
+
+## The linear evaluation
+
+The second stage freezes the encoder step 1 produced and fits a linear
+classifier on real labels. **These are the numbers this project exists to
+compare**, and this port adds them for a fifth method.
+
+It reports **three** accuracies: a best top-1 and a final top-1 and top-5. The
+handoff is the same shape the other two-stage ports use — the adapter builds
+the encoder with `load_encoder` from `encoder.pt` (the backbone alone) and
+hands it in, rather than letting the evaluation rebuild the whole model from a
+training checkpoint. `model_type='vit'` is refused by name: step 2 was not
+brought across, so `build_vit_swav` is absent.
 
 ## What was new here
 
@@ -44,6 +57,11 @@ are pinned by hash.
 - `models/__init__.py` advertised the step 2 ViT through a lazy `__getattr__`.
   That module was not brought across, so the package was promising a name it
   could not import
+- **the linear evaluation was added.** `evaluate_linear.py` came across with its
+  device resolved, its `main()` split into `build_parser()` and
+  `run(args, encoder, in_dim)` returning its metrics, and its encoder handed in
+  rather than rebuilt from a training checkpoint. `model_type='vit'` is refused
+  by name; the branch importing `build_vit_swav` (step 2, absent) is unreachable
 
 ## Sinkhorn on one process
 
@@ -53,12 +71,20 @@ is pinned by a test: a version that reduced unconditionally would fail on a
 single CPU, and the failure would look like a porting error rather than a
 missing process group.
 
-## What has not been exercised
+## What has and has not been exercised
 
-- **The full recipe has never been run here.** 100 epochs of ResNet-50 on
-  ImageNet with 3000 prototypes and eight crops needs the GPUs it was written
-  for. The tests run a real training step on four synthetic images with two
-  crop sizes of 32 and 16 pixels
+- **A real training step ran on the GPU.** On an NVIDIA A100 (driver CUDA 13.0)
+  step 1 completes a training step and writes a loadable `encoder.pt` — the test
+  `test_a_real_run_on_cuda_produces_a_loadable_encoder`, on four synthetic
+  images with two crop sizes of 32 and 16 pixels
+- **The linear evaluation runs, but on the CPU.** Its smoke test uses
+  `device: cpu` (through the same `resolve_device` path step 1 uses), and a
+  separate test checks it refuses `cuda` when no GPU is visible. The probe has
+  not been exercised on a GPU here
+- **The full recipe has never been run.** 100 epochs of ResNet-50 on ImageNet
+  with 3000 prototypes and eight crops needs the GPUs it was written for
 - **No multi-process run**, so the distributed Sinkhorn path — the reductions
   themselves — has never executed. Only the single-process branch has
 - **The container definition has never been built** on this machine
+- The numbers in the configs are the recipe, not results; no accuracy from this
+  port has been measured against anything
