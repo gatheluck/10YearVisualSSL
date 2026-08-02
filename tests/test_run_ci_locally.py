@@ -384,10 +384,17 @@ class TestAVerdictIsNotTheSameAsNoVerdict(unittest.TestCase):
         failed.record("job", "step", 1, "image")
         self.assertNotEqual(failed.exit_code(), runner.Report().exit_code())
 
+    @needs_checkout
     def test_the_cli_maps_a_refusal_to_no_verdict(self):
         """A workflow it cannot resolve is refused, not judged -- and the
         refusal has to carry the no-verdict code, because that is the code the
-        row-isolation test skips on. Docker-free: it never reaches an image."""
+        row-isolation test skips on. Docker-free: it never reaches an image.
+
+        Needs a checkout because `execute` reports the dirty files first, and
+        that runs git. Without git the tool dies before it ever reaches the
+        refusal -- which is why every check here that runs it is guarded, and
+        why an unguarded one broke the suite's own "survives without git" scan.
+        """
         d = Path(tempfile.mkdtemp(prefix="norverdict-"))
         self.addCleanup(shutil.rmtree, d, ignore_errors=True)
         wf = d / "unresolvable.yml"
