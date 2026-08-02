@@ -350,6 +350,73 @@ class TestTheReportSaysWhatWasNotReproduced(unittest.TestCase):
         self.assertNotEqual(runner.Report().exit_code(), 0)
 
 
+class TestAVerdictIsNotTheSameAsNoVerdict(unittest.TestCase):
+    """**A step that failed is a verdict; a run that could not be set up is
+    not.** The two must not share an exit code, or a check cannot tell "the
+    thing under test failed" from "the thing could not be tested".
+
+    This is the distinction the row-isolation test leans on. A network hiccup
+    that stopped the local runner image from building was reported, wrongly,
+    as a matrix row seeing a file another row wrote -- an infrastructure
+    failure wearing the mask of the property under test. It stays wrong for
+    exactly as long as `EXIT_STEP_FAILED` and `EXIT_NO_VERDICT` are the same
+    number, so it is pinned here, docker-free, where it can be measured.
+    """
+
+    def test_a_failed_step_is_a_verdict(self):
+        rep = runner.Report()
+        rep.record("job", "step", 1, "image")
+        self.assertEqual(rep.exit_code(), runner.EXIT_STEP_FAILED)
+
+    def test_a_passing_run_is_ok(self):
+        rep = runner.Report()
+        rep.record("job", "step", 0, "image")
+        self.assertEqual(rep.exit_code(), runner.EXIT_OK)
+
+    def test_nothing_run_is_no_verdict(self):
+        self.assertEqual(runner.Report().exit_code(), runner.EXIT_NO_VERDICT)
+
+    def test_a_verdict_and_no_verdict_do_not_share_a_code(self):
+        """The whole point: if these collided, skipping on 'no verdict' would
+        also swallow a real failure, and failing on it would cry leak at a
+        network outage."""
+        failed = runner.Report()
+        failed.record("job", "step", 1, "image")
+        self.assertNotEqual(failed.exit_code(), runner.Report().exit_code())
+
+    @needs_checkout
+    def test_the_cli_maps_a_refusal_to_no_verdict(self):
+        """A workflow it cannot resolve is refused, not judged -- and the
+        refusal has to carry the no-verdict code, because that is the code the
+        row-isolation test skips on. Docker-free: it never reaches an image.
+
+        Needs a checkout because `execute` reports the dirty files first, and
+        that runs git. Without git the tool dies before it ever reaches the
+        refusal -- which is why every check here that runs it is guarded, and
+        why an unguarded one broke the suite's own "survives without git" scan.
+        """
+        d = Path(tempfile.mkdtemp(prefix="norverdict-"))
+        self.addCleanup(shutil.rmtree, d, ignore_errors=True)
+        wf = d / "unresolvable.yml"
+        wf.write_text(
+            "on: [push]\n"
+            "jobs:\n"
+            "  j:\n"
+            "    runs-on: ubuntu-latest\n"
+            "    strategy:\n"
+            "      matrix:\n"
+            "        m: ${{ needs.nobody.outputs.nothing }}\n"
+            "    steps:\n"
+            "      - run: echo hi\n",
+            encoding="utf-8")
+        r = subprocess.run(
+            [sys.executable, str(BIN / "run-ci-locally.py"),
+             "--workflow", str(wf), "--event", "push"],
+            capture_output=True, text=True, cwd=ROOT)
+        self.assertEqual(r.returncode, runner.EXIT_NO_VERDICT,
+                         r.stdout + r.stderr)
+
+
 HAVE_DOCKER = shutil.which("docker") is not None and subprocess.run(
     ["docker", "info"], capture_output=True).returncode == 0
 needs_docker = unittest.skipUnless(HAVE_DOCKER, "docker is not running")
@@ -389,10 +456,23 @@ class TestEachMatrixRowGetsItsOwnTree(unittest.TestCase):
             [sys.executable, str(BIN / "run-ci-locally.py"),
              "--workflow", str(wf), "--event", "push"],
             capture_output=True, text=True, cwd=ROOT)
+        tail = r.stdout[-2000:] + r.stderr[-2000:]
+        # **No verdict is not a leak.** The step that would catch a leak only
+        # runs once the runner image is built, and building it reaches the
+        # network (apt-get, for git). When that fails the run reaches no
+        # verdict -- nothing ran, so nothing can be said about row isolation.
+        # Reported as a failure, that infrastructure hiccup once masqueraded as
+        # "the second matrix row saw a file the first one wrote". A real leak
+        # is a different code: the step runs and fails (EXIT_STEP_FAILED), so
+        # the assertion below still catches it.
+        if r.returncode == runner.EXIT_NO_VERDICT:
+            self.skipTest(
+                "the local runner image could not be built (e.g. apt-get had "
+                "no network), so row isolation could not be tested here:\n"
+                + tail)
         self.assertEqual(
-            r.returncode, 0,
-            "the second matrix row saw a file the first one wrote:\n"
-            + r.stdout[-2000:] + r.stderr[-2000:])
+            r.returncode, runner.EXIT_OK,
+            "the second matrix row saw a file the first one wrote:\n" + tail)
 
 
 class TestTheCommandLine(unittest.TestCase):
