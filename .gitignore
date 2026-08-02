@@ -10,6 +10,11 @@ __pycache__/
 # environment as untracked -- and the language guard read its contents.
 .venv/
 venv/
+# Per-method environments, one directory each, kept OUT of methods/ so that
+# method-scanning tests never read a vendored package as the method's own
+# source: test_method_requirements walks methods/<m> for *.py, and a venv there
+# made it ast-parse the whole of torch. See docs/GPU.md section 2.
+.venvs/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/

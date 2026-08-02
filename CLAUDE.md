@@ -181,5 +181,8 @@ cat CLAUDE.md
 #   docs/DESIGN.md    the philosophy and the reasoning
 #   docs/CONTRACT.md  the adapter contract
 #   docs/INVENTORY.md the inventory of author repositories
+# Design that lives here, in this repository:
+#   docs/PLATFORMS.md where a job runs; the platform layer
+#   docs/GPU.md       the GPU environment, and the device invariant every method holds
 ./tests/run-tests.sh; echo "EXIT=$?"
 ```

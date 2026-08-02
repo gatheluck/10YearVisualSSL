@@ -103,7 +103,8 @@ shown so the shape is visible before it is built.
 │           ├── metrics.json
 │           └── run_manifest.json
 ├── docs/
-│   └── PLATFORMS.md                  the platform separation          exists
+│   ├── PLATFORMS.md                  the platform separation          exists
+│   └── GPU.md                        GPU env + the device invariant   exists
 ├── tests/                          one file per unit, plus the chain  exists
 │   ├── test_resolve_config.py
 │   ├── test_adapterlib.py

@@ -124,7 +124,7 @@ class TestBytecodeIsNeverReused(unittest.TestCase):
 
     def test_the_copied_tree_carries_no_bytecode(self):
         """Copying `__pycache__` into the work tree would reintroduce it."""
-        self.assertIn("__pycache__", str(mutate.IGNORE("x", ["__pycache__"])))
+        self.assertIn("__pycache__", mutate._ignore("x", ["__pycache__"]))
 
 
 class TestRunningTheWholeThing(unittest.TestCase):
@@ -200,6 +200,43 @@ class TestABrokenBaselineStopsEverything(unittest.TestCase):
             capture_output=True, text=True)
         self.assertEqual(r.returncode, 2)
         self.assertIn("before anything is mutated", r.stdout + r.stderr)
+
+
+class TestTheCopyLeavesEnvironmentsOut(unittest.TestCase):
+    """The tree is copied for every mutation, so what it copies matters.
+
+    A per-method environment can be several gigabytes. Copied once per mutation
+    it turned each mutate test into twelve seconds of I/O. It is left out **by
+    its PEP 405 marker, not its name**: a list of names is the listing mistake
+    this repository keeps making, and `tests/_repo_files.py` already excludes
+    environments the same way, by `pyvenv.cfg`.
+    """
+
+    def _env(self) -> Path:
+        tmp = Path(tempfile.mkdtemp(prefix="mutate-ign-"))
+        self.addCleanup(shutil.rmtree, tmp, ignore_errors=True)
+        return tmp
+
+    def test_a_directory_that_declares_itself_an_environment_is_skipped(self):
+        tmp = self._env()
+        (tmp / ".venvs" / "env").mkdir(parents=True)
+        (tmp / ".venvs" / "env" / "pyvenv.cfg").write_text("home = /x\n")
+        self.assertIn("env", mutate._ignore(str(tmp / ".venvs"), ["env"]))
+
+    def test_ordinary_source_is_not_skipped(self):
+        """The negative control: without the marker, a directory is copied."""
+        tmp = self._env()
+        (tmp / "adapterlib").mkdir()
+        self.assertNotIn("adapterlib",
+                         mutate._ignore(str(tmp), ["adapterlib"]))
+
+    def test_the_named_patterns_still_apply(self):
+        """The marker is added to the old exclusions, it does not replace
+        them: .git and __pycache__ are still left out."""
+        skipped = mutate._ignore(str(ROOT), [".git", "__pycache__", "bin"])
+        self.assertIn(".git", skipped)
+        self.assertIn("__pycache__", skipped)
+        self.assertNotIn("bin", skipped)
 
 
 if __name__ == "__main__":

@@ -403,6 +403,19 @@ class TestASmokeRun(Base):
         super().setUp()
         tiny_imagenet(self.tmp / "data")
 
+    @unittest.skipUnless(HAVE_DEPS and torch.cuda.is_available(),
+                         "no CUDA device; the GPU path cannot be exercised here")
+    def test_a_real_run_on_cuda_produces_a_loadable_encoder(self):
+        """The GPU path, on real hardware -- the case CPU-only testing could
+        never reach. A device-placement mistake (a tensor left on the CPU while
+        the model is on the GPU) raises inside training, so a run that finishes
+        with a non-empty encoder is the GPU path working end to end."""
+        _, r = self.run_adapter(self.config(device="cuda"))
+        self.assertEqual(r.returncode, 0, r.stdout[-3000:] + r.stderr[-3000:])
+        saved = torch.load(self.out / "encoder.pt", map_location="cpu",
+                           weights_only=True)
+        self.assertTrue(saved, "encoder.pt is empty after a CUDA run")
+
     def test_it_completes_and_satisfies_the_contract(self):
         cfg_path, r = self.run_adapter()
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)

@@ -432,6 +432,19 @@ class TestASmokeRun(Base):
             cwd=METHOD, env=env, capture_output=True, text=True)
         return cfg, r
 
+    @unittest.skipUnless(HAVE_TORCH and torch.cuda.is_available(),
+                         "no CUDA device; the GPU path cannot be exercised here")
+    def test_a_real_run_on_cuda_produces_a_loadable_encoder(self):
+        """The GPU path, on real hardware. The captured trainer hard-coded
+        cuda; this is the other side of that -- confirming the device the
+        config asks for is the device training uses, with nothing left on the
+        CPU while the model is on the GPU."""
+        _, r = self.run_adapter(device="cuda")
+        self.assertEqual(r.returncode, 0, r.stdout[-3000:] + r.stderr[-3000:])
+        saved = torch.load(self.out / "encoder.pt", map_location="cpu",
+                           weights_only=True)
+        self.assertTrue(saved, "encoder.pt is empty after a CUDA run")
+
     @needs_torch
     def test_it_completes_and_satisfies_the_contract(self):
         cfg, r = self.run_adapter()
