@@ -1,0 +1,16 @@
+# iBOT step 1 + linear evaluation: the packages the ported files import.
+#
+# Floors only. The exact closure, with hashes, is in requirements.lock.txt
+# (CPU) and requirements.lock.cu130.txt (CUDA 13.0).
+#
+# tests/test_method_requirements.py checks this list against the imports in
+# both directions. The capture's requirements.txt also listed timm, tqdm and
+# einops; none is imported (the ViT is implemented in models/, not taken from
+# timm), so they are not declared here. PyYAML is read by the trainer to load a
+# YAML config; numpy and Pillow are imported directly by the loader.
+torch>=2.1.0
+torchvision>=0.16.0
+numpy>=1.24.0
+Pillow>=10.0.0
+PyYAML>=6.0
+tensorboard>=2.14.0
