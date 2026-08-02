@@ -261,6 +261,25 @@ class TestTheFallbackItself(unittest.TestCase):
         d = self.tree()
         self.assertNotIn(d / ".git" / "logs" / "HEAD", _walk(d))
 
+    def test_a_pinned_submodule_is_not_our_text(self):
+        """Upstream code under a `third_party/<name>/` submodule is the authors',
+        not ours. With git, `git ls-files` stops at the submodule boundary;
+        without git, the walk must exclude the same paths, read from the tracked
+        `.gitmodules`. Their `qsub`/HPC scripts tripped the platform-isolation
+        guard and their non-English text the language guard when the walk
+        descended into a real pinned submodule."""
+        d = self.tree()
+        (d / ".gitmodules").write_text(
+            '[submodule "third_party/mar"]\n'
+            "\tpath = third_party/mar\n"
+            "\turl = https://github.com/LTH14/mar\n", encoding="utf-8")
+        up = d / "third_party" / "mar" / "demo"
+        up.mkdir(parents=True)
+        (up / "run_mar.ipynb").write_text("qsub abci\n", encoding="utf-8")
+        walked = _walk(d)
+        self.assertNotIn(up / "run_mar.ipynb", walked)
+        self.assertIn(d / "kept.py", walked)
+
     @needs_git
     def test_git_installed_but_not_a_repository_is_not_available(self):
         """The middle case: the binary answers, and its answer is no."""

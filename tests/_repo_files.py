@@ -61,6 +61,30 @@ FALLBACK_SKIP = (".git",)
 VENV_MARKER = "pyvenv.cfg"
 
 
+def submodule_paths(root: Path) -> set[str]:
+    """The submodule working-tree paths, read from `.gitmodules`.
+
+    A pinned submodule under `third_party/<name>/` is upstream code, not ours:
+    `git ls-files` already stops at the submodule boundary, but the no-git walk
+    would descend into it and read the authors' text (their `qsub`/HPC scripts
+    tripped the platform-isolation guard; their non-English text would trip the
+    language guard). `.gitmodules` is a tracked file, present even in the
+    container image with no git, so the fallback can exclude the same paths git
+    does -- keeping the two answers to "which files are ours" identical.
+    """
+    gm = root / ".gitmodules"
+    if not gm.is_file():
+        return set()
+    paths = set()
+    for line in gm.read_text(encoding="utf-8", errors="replace").splitlines():
+        stripped = line.strip()
+        if stripped.startswith("path") and "=" in stripped:
+            value = stripped.split("=", 1)[1].strip()
+            if value:
+                paths.add(value)
+    return paths
+
+
 def git_available(root: Path) -> bool:
     """Whether git can answer for `root`.
 
@@ -89,11 +113,14 @@ def _walk(root: Path) -> list[Path]:
     to be installed environments.
     """
     out = []
+    subs = submodule_paths(root)
     for base, dirs, files in os.walk(root):
         here = Path(base)
-        dirs[:] = sorted(d for d in dirs
-                         if d not in FALLBACK_SKIP
-                         and not (here / d / VENV_MARKER).is_file())
+        dirs[:] = sorted(
+            d for d in dirs
+            if d not in FALLBACK_SKIP
+            and not (here / d / VENV_MARKER).is_file()
+            and (here / d).relative_to(root).as_posix() not in subs)
         for name in sorted(files):
             p = here / name
             if p.is_file() and not p.is_symlink():
