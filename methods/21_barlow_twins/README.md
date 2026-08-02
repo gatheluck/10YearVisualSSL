@@ -1,4 +1,4 @@
-# 21_barlow_twins — step 1
+# 21_barlow_twins — step 1 and linear evaluation
 
 Zbontar, Jing, Misra, LeCun and Deny, *Barlow Twins: Self-Supervised Learning
 via Redundancy Reduction*, 2021
@@ -16,6 +16,25 @@ The runner-up of the six candidates measured in the Capture repository's
 design notes. It shares the template of the port before it, which is the
 point: the two differ in exactly two ways, and both are things the earlier
 port did not have to solve.
+
+## The linear evaluation
+
+The second stage freezes the encoder step 1 produced and fits a linear
+classifier on real labels. **These are the numbers this project exists to
+compare**, and this port adds them for a fourth method.
+
+It reports **three** accuracies, not four: a best top-1 and a final top-1 and
+top-5. This original does not record a best top-5, and inventing one would be a
+number nothing measured.
+
+The handoff is the same shape the earlier two-stage ports used. The captured
+evaluation rebuilds the whole model from a training checkpoint with
+`strict=True` and takes its backbone; the contract's artifact is `encoder.pt`,
+the backbone alone. Rather than teach the evaluation a second way to recognise
+a file, the adapter builds the encoder with `load_encoder` and hands it in.
+`model_type='vit'` is refused by name — step 2 was not brought across, so
+`build_barlow_vit` is absent, and the captured evaluation's top-level import of
+it was removed so the module imports at all.
 
 ## What was new here
 
@@ -53,6 +72,12 @@ Recorded in full in `provenance.json`; `models/barlow_resnet.py` and
 - `main()` split into `build_parser()` and `run(args, config)`, which returns
   the epoch loss and the epoch count. The captured version computed them and
   discarded them
+- **the linear evaluation was added.** `evaluate_linear.py` came across with
+  its device resolved, its `main()` split into `build_parser()` and
+  `run(args, encoder, in_dim)` returning its metrics, and its encoder handed in
+  rather than rebuilt from a training checkpoint. Its top-level import of
+  `build_barlow_vit` was removed and `model_type='vit'` refused by name, since
+  step 2 is absent
 - step 2 (the ViT) was not brought across: the capture has no official-style
   variant of it, the same reason it was left out of the earlier ports
 
@@ -68,13 +93,20 @@ failed on it, which is what declaring only what a stage reads is for.
 not a setting: the config says how many epochs ran, and a second way to change
 that would sit outside the hash.
 
-## What has not been exercised
+## What has and has not been exercised
 
-- **The full recipe has never been run here.** 100 epochs of ResNet-50 on
-  ImageNet-1k needs the GPUs it was written for. The tests run a real training
-  step on a handful of synthetic images at 32 pixels
-- **No GPU, so `amp_fp16` has never executed.** It is accepted by the config
-  check when a GPU is asked for and refused on a CPU; neither of those is the
-  same as having run it
+- **A real training step and the linear probe ran on the GPU.** On an NVIDIA
+  A100 (driver CUDA 13.0) step 1 completes a training step, writes a loadable
+  `encoder.pt`, and the linear evaluation runs to a number — the tests
+  `test_a_real_run_on_cuda_produces_a_loadable_encoder` and the linear-eval
+  smoke test, on a handful of synthetic images at 32 pixels. The CPU path runs
+  the same chain
+- **The full recipe has never been run.** 100 epochs of ResNet-50 on
+  ImageNet-1k needs the GPUs it was written for
+- **`amp_fp16` has never executed.** It is accepted by the config check when a
+  GPU is asked for and refused on a CPU; neither is the same as having run it,
+  and the GPU smoke test uses fp32
 - **No multi-process run.** The distributed path is the captured one, untouched
 - **The container definition has never been built** on this machine
+- The numbers in the configs are the recipe, not results; no accuracy from this
+  port has been measured against anything
