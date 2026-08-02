@@ -452,16 +452,29 @@ class TestASmokeRun(Base):
         self.assertEqual(man["status"], "ok")
 
     def test_the_encoder_is_the_teacher_backbone(self):
-        """No student, head or teacher-head weight may reach `encoder.pt`, and
-        it must not be empty."""
+        """`encoder.pt` must be *exactly* a teacher ViT state_dict.
+
+        Checked against a freshly built teacher (`use_mask_token=False`): set
+        equality catches both a head or student weight leaking in and a real
+        backbone weight going missing. And the student's `mask_token` -- present
+        only when `use_mask_token=True` -- must be absent, which is what
+        distinguishes the teacher backbone from the student. A prefix denylist
+        would not fire here, because `extract_encoder` has already stripped the
+        `teacher.` prefix down to bare ViT names.
+        """
         import torch
         self.run_adapter()
         state = torch.load(self.out / "encoder.pt", map_location="cpu",
                            weights_only=True)
         self.assertTrue(state, "the encoder is empty")
-        leaked = [k for k in state if k.split(".", 1)[0] in
-                  ("student", "head", "teacher_head", "teacher")]
-        self.assertFalse(leaked, f"non-backbone keys reached encoder.pt: {leaked[:5]}")
+        models = load("this_methods_models", METHOD / "models" / "__init__.py")
+        teacher_keys = set(models.vit_small(
+            patch_size=MODEL["patch_size"], use_mask_token=False).state_dict())
+        self.assertEqual(set(state), teacher_keys,
+                         "encoder.pt is not exactly a teacher ViT backbone")
+        self.assertNotIn(
+            "mask_token", state,
+            "mask_token present -- this is the student, not the teacher")
 
     def test_the_metrics_use_the_contract_names(self):
         self.run_adapter()

@@ -134,8 +134,9 @@ copy and its TensorBoard events under `work/`.
   the step-1 trainer completes a training step, writes a loadable `encoder.pt`,
   and the linear evaluation runs to a number — the tests
   `test_a_real_run_on_cuda_produces_a_loadable_encoder` and the linear-eval
-  smoke test, on a handful of synthetic images at 32 pixels. The CPU path runs
-  the same chain
+  smoke test, on a handful of synthetic images (step 1 at 32-pixel crops; the
+  linear probe on 64-pixel images upscaled to 224). The CPU path runs the same
+  chain
 - **The full recipe has never been run.** 800 epochs of ViT-S/16 on
   ImageNet-1k is hundreds of GPU-hours; nothing here has executed one
 - **No multi-process run.** The distributed path is the captured one and is
