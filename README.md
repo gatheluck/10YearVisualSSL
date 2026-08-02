@@ -28,6 +28,7 @@ assume it.
 | `methods/17_swav` | **step 1 ported and tested.** Its loader could not run on one process at all; the sampler is now conditional |
 | `methods/21_barlow_twins` | **step 1 ported and tested.** The runner-up of the six measured candidates. Refuses fp16 on a CPU rather than downgrading quietly |
 | `methods/20_simsiam` | **step 1 and linear evaluation ported and tested.** Chosen by measuring the six remaining official-style candidates. The second method to produce comparable downstream numbers |
+| `methods/27_ibot` | **step 1 and linear evaluation ported and tested.** The sixth port, and the first exercised on a GPU as written: a real training step and the linear probe run on an A100. `encoder.pt` is the teacher ViT, matching the official probe |
 | `methods/VideoGen` (LTX-2) | deferred, not dropped. Needs CUDA > 12.7 and a 22B checkpoint |
 | `bin/launch.py` | **implemented and tested.** One command: resolve, submit, verify, record |
 | `adapterlib/` | **implemented and tested.** The one place a `run_manifest.json` is written |
