@@ -1,11 +1,25 @@
 # 10 Year Visual SSL
 
+> ## 🚧 Work in progress — not a finished release
+>
+> This repository is under **active development** and is published early **on
+> purpose**: public repositories get free CI on GitHub's standard runners, and
+> the per-method test matrix had already exhausted the private-repo budget. It
+> is **not** a stable or audited release.
+>
+> - Methods are ported **one at a time**; the layout, configs, APIs and results
+>   **may change without notice**.
+> - The formal audit and the planned move to the **`cvpaperchallenge`**
+>   organisation have **not** happened yet.
+> - **Nothing here has executed a full-scale training run.** Each method's
+>   `README` states exactly what was and was not exercised.
+>
+> Please treat everything as provisional.
+
 Ten years of visual-domain self-supervised learning (SSL) methods, ported to
 **run in ordinary environments rather than on one specific supercomputer**.
 Support for ABCI is separated into a loosely coupled module; the core does not
 assume it.
-
-**Currently private. It will be published after an audit.**
 
 ## What this optimises for
 
