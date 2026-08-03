@@ -1,0 +1,42 @@
+# Step 1: VAE pretraining on MNIST.
+# Kingma & Welling, "Auto-Encoding Variational Bayes", 2013.
+#
+# The values are the ones the captured cluster runs used, which follow the
+# paper's MNIST experiments: 28x28 at the original resolution, no
+# augmentation, Adam at a constant 1e-3, no weight decay, beta = 1.
+#
+# **No output path here.** The captured config carried an absolute path on the
+# cluster as output.checkpoint_dir. The contract says the adapter writes only
+# under --out, and a machine's path in a published config is reproducible
+# nowhere else, so the adapter supplies it.
+#
+#   python3 bin/launch.py --config methods/02_vae/configs/step1_mnist.yaml \
+#       --method 02_vae --set DATA_ROOT=/path/to/mnist
+
+stage: step1
+
+seed: 0
+
+# A directory holding MNIST/ in the layout torchvision expects. The loader
+# chooses MNIST over ImageFolder by looking for it, and never downloads.
+data_root: "${DATA_ROOT}"
+
+device: auto
+
+train:
+  # The paper trained far longer; the capture used 100 epochs.
+  epochs: 100
+  # Paper used ~100 per step.
+  batch_size: 100
+  num_workers: 8
+  # Paper: Adam at a constant 1e-3, no weight decay.
+  lr: 1.0e-3
+  # Standard VAE.
+  beta: 1.0
+  # Paper tested 2, 10, 20 and 50; the capture used 20.
+  latent_dim: 20
+  hidden_dim: 500
+  # Original MNIST resolution, unresized.
+  img_size: 28
+  save_freq: 20
+  print_freq: 50

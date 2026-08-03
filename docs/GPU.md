@@ -34,7 +34,7 @@ rejected. It is wrong here for reasons the repository already encodes:
   failure -- *"installed but no lock describes it, so this environment cannot be
   rebuilt from the locks given"*. A shared superset environment therefore fails
   verification for every method whose lock is a strict subset of it. Measured:
-  `methods/1_context_prediction/requirements.lock.txt` names neither
+  `methods/01_context_prediction/requirements.lock.txt` names neither
   `tensorboard` nor `PyYAML`, so a shared venv that has them (because another
   method needs them) makes method 1 unverifiable.
 
@@ -54,7 +54,7 @@ releases, resolved against the CUDA index so that:
 1. `torch` and `torchvision` resolve to their CUDA wheels rather than the
    `+cpu` wheels, and their `--hash` lines are the CUDA wheels' hashes.
 2. the wheels a GPU build pulls in and a CPU build does not -- `nvidia-*`,
-   `cuda-*` and `triton` -- are added, each pinned and hashed. For `2_vae` this
+   `cuda-*` and `triton` -- are added, each pinned and hashed. For `02_vae` this
    is eighteen extra distributions (measured: 22 packages become 41). Without
    them the install fails under `--require-hashes` and, even if it did not,
    `verify-environment` would reject them as undescribed.
@@ -118,7 +118,7 @@ one and reporting torch's own imports as undeclared requirements (measured,
 keep the environment out of the source tree for the same reason; `.venvs/<m>/`
 does the same while letting many methods' environments coexist.
 
-The venv is large -- about 4.6 GB for `2_vae`, because the CUDA runtime wheels
+The venv is large -- about 4.6 GB for `02_vae`, because the CUDA runtime wheels
 are large -- so it is built on demand, not kept for every method at once.
 
 ---
@@ -158,10 +158,10 @@ visible**:
 - `auto` takes a GPU when one is visible and a CPU otherwise.
 
 This is the logic of `resolve_device(spec, local_rank)` in
-`methods/1_context_prediction` and `methods/20_simsiam`. It is one rule; a new
+`methods/01_context_prediction` and `methods/20_simsiam`. It is one rule; a new
 method reuses this shape rather than reimplementing it.
 
-**Validating `device` is not the same as honouring it.** `methods/2_vae` was
+**Validating `device` is not the same as honouring it.** `methods/02_vae` was
 ported on the CPU track: its adapter validated `config["device"]` against
 `auto/cuda/cpu`, but `to_args()` never put the value on the trainer's arguments
 and the trainer selected the device from `torch.cuda.is_available()` alone. On a
@@ -169,7 +169,7 @@ CPU-only machine this was invisible -- the answer was always `cpu`, requested or
 not. On a GPU machine it is a real defect: `device: cpu` runs on the GPU, and
 `device: cuda` on a GPU-less machine would run on the CPU rather than refusing.
 This was found the first time the port ran on real GPU hardware, and fixed by
-giving `2_vae` the same `resolve_device` the other methods already had. The
+giving `02_vae` the same `resolve_device` the other methods already had. The
 guard against it is a test that asks for `cpu` where a GPU exists and one that
 asks for `cuda` where none does; neither needs a GPU to run.
 

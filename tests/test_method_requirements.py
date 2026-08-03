@@ -277,7 +277,7 @@ class TestTheOptionalToolingDependency(unittest.TestCase):
         """This used to say *no* method may declare it, and that was true
         while none imported it.
 
-        `methods/2_vae` imports `yaml` directly in its trainer, so the old
+        `methods/02_vae` imports `yaml` directly in its trainer, so the old
         claim is now false -- measurement, not preference. The rule that
         survives is the derived one: declaring it is allowed exactly when it
         is imported, which is what the two-directional check already enforces

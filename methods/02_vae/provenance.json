@@ -1,0 +1,16 @@
+{
+  "captured_at": "2026-07-30",
+  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate, branch snapshots",
+  "captured_path": "methods/02_vae",
+  "captured_sha256": {
+    "data/vae_dataset.py": "803a2e1a14474ab2c300d25cf4a2f65d254ba30006aa398e7c0618f36e42a0ef",
+    "models/vae_cnn.py": "c8053143e3fd1c5c7b9103d5ea70fe1cf1379873c228d3d806b570fbf12598ae"
+  },
+  "note": "Only captured_sha256 came across untouched. The output path in the captured config was an absolute path on the cluster and is not shipped; the adapter puts it under --out.",
+  "rewritten_during_the_port": {
+    "__init__.py": "re-exported VAE_ViT (step 2), which was not brought across",
+    "data/__init__.py": "same",
+    "models/__init__.py": "same",
+    "train_step1_cnn.py": "main() split into parse_args() and run(args, config); make_deterministic() called; the config may be passed in rather than read from a file, so the adapter can redirect the output path"
+  }
+}
