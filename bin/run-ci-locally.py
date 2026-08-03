@@ -258,11 +258,31 @@ def dirty_files(root: Path) -> list:
     return [ln[3:] for ln in r.stdout.splitlines() if ln.strip()]
 
 
+def submodule_paths(root: Path) -> list:
+    """The working-tree paths of the pinned submodules, from git itself.
+
+    Asked of git rather than parsed by hand so there is one answer; `git
+    archive` of the superproject does not descend into them, so they are
+    materialised separately below.
+    """
+    r = subprocess.run(["git", "config", "--file", ".gitmodules",
+                        "--get-regexp", r"\.path$"],
+                       cwd=root, capture_output=True, text=True)
+    if r.returncode != 0:                       # no .gitmodules: no submodules
+        return []
+    return [line.split(None, 1)[1] for line in r.stdout.splitlines()
+            if line.strip()]
+
+
 def export_head(root: Path, dest: Path) -> None:
     """A clean tree at HEAD, which is what the runner checks out.
 
     Testing the working tree instead would make a green run a statement about
-    code that is not in the repository.
+    code that is not in the repository. Submodules are materialised too: `git
+    archive` stops at the submodule boundary, so without this the exported tree
+    would have an empty `third_party/<sub>` and the run would test a tree with a
+    hole where the pinned upstream should be -- exactly what CI checks out with
+    `submodules: recursive`.
     """
     dest.mkdir(parents=True, exist_ok=True)
     archive = subprocess.run(["git", "archive", "--format=tar", "HEAD"],
@@ -273,6 +293,23 @@ def export_head(root: Path, dest: Path) -> None:
                          input=archive.stdout, capture_output=True)
     if tar.returncode != 0:
         raise CannotReproduce(f"could not unpack the export: {tar.stderr}")
+
+    for sub in submodule_paths(root):
+        src = root / sub
+        if not (src / ".git").exists():
+            raise CannotReproduce(
+                f"submodule {sub} is not checked out, so the export would have "
+                f"a hole there. Run: git submodule update --init {sub}")
+        arc = subprocess.run(["git", "archive", "--format=tar", "HEAD"],
+                             cwd=src, capture_output=True)
+        if arc.returncode != 0:
+            raise CannotReproduce(f"git archive failed for submodule {sub}")
+        (dest / sub).mkdir(parents=True, exist_ok=True)
+        t = subprocess.run(["tar", "-x", "-C", str(dest / sub)],
+                           input=arc.stdout, capture_output=True)
+        if t.returncode != 0:
+            raise CannotReproduce(
+                f"could not unpack submodule {sub}: {t.stderr}")
 
 
 def image_for(tree: Path, platform: str) -> str:

@@ -30,6 +30,7 @@ assume it.
 | `methods/20_simsiam` | **step 1 and linear evaluation ported and tested.** Chosen by measuring the six remaining official-style candidates. The second method to produce comparable downstream numbers |
 | `methods/27_ibot` | **step 1 and linear evaluation ported and tested.** The sixth port, and the first exercised on a GPU as written: a real training step and the linear probe run on an A100. `encoder.pt` is the teacher ViT, matching the official probe |
 | `methods/4_context_encoder` | **step 1 and linear evaluation ported and tested.** The last of the official-style six; the one GAN (encoder-decoder + centre-hole discriminator, two optimisers). `encoder.pt` is the conv encoder + bottleneck; the linear probe produces comparable downstream numbers |
+| `methods/mar` | **step 1 ported and tested.** The first `submodule+patch` port: the model is the pinned upstream under `third_party/mar` (a fork carrying a two-line device patch), imported not copied. Masked autoregressive pretraining in VAE-latent space; the hermetic smoke uses fabricated cached latents, no VAE. `encoder.pt` is the MAE-encoder side; `linear_eval` is deferred (the generative-representation question, CONTRACT 7) |
 | `methods/VideoGen` (LTX-2) | deferred, not dropped. Needs CUDA > 12.7 and a 22B checkpoint |
 | `bin/launch.py` | **implemented and tested.** One command: resolve, submit, verify, record |
 | `adapterlib/` | **implemented and tested.** The one place a `run_manifest.json` is written |
@@ -59,6 +60,7 @@ shown so the shape is visible before it is built.
 │   ├── verify-environment.py         is this the locked environment?
 │   ├── run-ci-locally.py            run the workflow here, by reading it
 │   ├── mutate.py                     break the code, check the tests notice
+│   ├── build-lock.py                 render a resolved set into a CPU lock
 │   └── contract-test.py              decides by machine that a port is finished
 ├── adapterlib/                     the one place a run_manifest.json is written
 │   └── __init__.py                                                    exists
@@ -85,10 +87,8 @@ shown so the shape is visible before it is built.
 │   └── VideoGen/                     deferred: needs a GPU            planned
 │       ├── adapter/
 │       └── configs/
-├── third_party/                    authors' code, untouched          planned
-│   ├── deepcontext/                  pinned submodule
-│   ├── ltx2/                         pinned submodule
-│   └── cosmos/                       pinned submodule, used by 2 methods
+├── third_party/                    authors' code, untouched          exists
+│   └── mar/                          pinned submodule, used by methods/mar
 ├── mutations/                      mutation specs, with their measured results
 ├── platforms/                      where a job runs. Loosely coupled  exists
 │   ├── base.py                       the shared interface, free of platform terms

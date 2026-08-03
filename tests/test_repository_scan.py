@@ -268,16 +268,18 @@ class TestTheFallbackItself(unittest.TestCase):
         `.gitmodules`. Their `qsub`/HPC scripts tripped the platform-isolation
         guard and their non-English text the language guard when the walk
         descended into a real pinned submodule."""
+        # A fabricated submodule with a fake upstream name, so this shared file
+        # does not itself name a real method (the no-hard-coded-methods guard).
         d = self.tree()
         (d / ".gitmodules").write_text(
-            '[submodule "third_party/mar"]\n'
-            "\tpath = third_party/mar\n"
-            "\turl = https://github.com/LTH14/mar\n", encoding="utf-8")
-        up = d / "third_party" / "mar" / "demo"
+            '[submodule "third_party/vendorlib"]\n'
+            "\tpath = third_party/vendorlib\n"
+            "\turl = https://github.com/example/vendorlib\n", encoding="utf-8")
+        up = d / "third_party" / "vendorlib" / "demo"
         up.mkdir(parents=True)
-        (up / "run_mar.ipynb").write_text("qsub abci\n", encoding="utf-8")
+        (up / "run_demo.ipynb").write_text("qsub abci\n", encoding="utf-8")
         walked = _walk(d)
-        self.assertNotIn(up / "run_mar.ipynb", walked)
+        self.assertNotIn(up / "run_demo.ipynb", walked)
         self.assertIn(d / "kept.py", walked)
 
     @needs_git

@@ -24,6 +24,7 @@ Prose is exempt: the README has to be able to say which methods are ported.
 
 from __future__ import annotations
 
+import re
 import sys
 import unittest
 from pathlib import Path
@@ -73,11 +74,32 @@ def may_name(path: Path, method: str) -> bool:
     rel = path.relative_to(ROOT)
     if rel.suffix in PROSE_SUFFIXES:
         return True                       # documentation may say anything
+    if rel.name == ".gitmodules":
+        return True                       # git config declaring submodule paths
     if rel.parts[:2] == ("methods", method):
         return True                       # the method's own files
     if rel.parts[0] == "tests" and rel.name.startswith(f"test_method_"):
         return True                       # a method's own test file
     return False
+
+
+def names_method(text: str, method: str) -> bool:
+    """Whether `text` hard-codes `method` as a name.
+
+    **Whole-token, not substring.** A three-letter name like `cat` is a
+    substring of `concatenate`, `scatter` and `category`, and the first version
+    --
+    `method in text` -- flagged all three. That is the too-wide-scope mistake
+    this project keeps a list of; the name is matched exactly.
+
+    A reference to the pinned submodule `third_party/<method>` does not count:
+    the submodule mechanism is itself shared machinery, so shared files name the
+    upstream legitimately (a docstring explaining it, `run-ci-locally`
+    materialising it). That is naming the *upstream*, not a method wired in for
+    discovery, which is what this guard is about.
+    """
+    hunted = text.replace(f"third_party/{method}", "")
+    return re.search(r"\b" + re.escape(method) + r"\b", hunted) is not None
 
 
 class TestSharedMachineryDiscoversMethods(unittest.TestCase):
@@ -97,7 +119,7 @@ class TestSharedMachineryDiscoversMethods(unittest.TestCase):
             for method in method_names():
                 if method in EXEMPT_METHODS or may_name(path, method):
                     continue
-                if method in text:
+                if names_method(text, method):
                     offenders.append(
                         f"{path.relative_to(ROOT)} names {method}")
         self.assertEqual(
@@ -134,6 +156,23 @@ class TestSharedMachineryDiscoversMethods(unittest.TestCase):
     def test_prose_may_name_a_method(self):
         """The README has to be able to say which methods are ported."""
         self.assertTrue(may_name(ROOT / "README.md", method_names()[0]))
+
+    def test_the_matcher_is_whole_token_not_substring(self):
+        """The detector against the cases that decide it: a bare name is
+        caught, and the substrings that a short name hides inside are not. A
+        fake name is used so this file does not itself name a real method."""
+        self.assertTrue(names_method('m = "cat"', "cat"))
+        self.assertTrue(names_method("open('methods/cat/x')", "cat"))
+        self.assertFalse(names_method("concatenate scatter category", "cat"))
+
+    def test_a_same_named_submodule_reference_is_not_naming_a_method(self):
+        """`third_party/<name>` is the pinned upstream; naming it is not wiring
+        the method in for discovery. The exemption is narrow, though: a bare
+        token elsewhere in the same file is still caught."""
+        self.assertFalse(names_method("path = 'third_party/cat'", "cat"))
+        self.assertTrue(
+            names_method("third_party/cat\nif m == 'cat':", "cat"),
+            "the exemption must not blanket a file that also hard-codes it")
 
 
 if __name__ == "__main__":

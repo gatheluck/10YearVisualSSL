@@ -1,0 +1,20 @@
+{
+  "captured_at": "2026-08-02",
+  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
+  "captured_note": "The inventory (docs/INVENTORY.md) classifies mar as submodule+adapter. The captured lab wrapper's `from models_mar import mar_base` is stale against the pinned upstream, whose module is `models.mar`; the port writes the correct import.",
+  "upstream": {
+    "repo": "https://github.com/gatheluck/mar",
+    "commit": "e8d163b7274ce2ef933ee0d40fcc45abaffc42fe",
+    "fork_of": "https://github.com/LTH14/mar",
+    "base_commit": "c6d53f7fa6427634b5850ebed771b7c2d19ea21f",
+    "license": "MIT"
+  },
+  "note": "The model is the pinned upstream under third_party/mar, imported and never copied here (DESIGN section 1). The fork carries a two-line, device-preserving patch over base_commit: sample_orders() and forward_mae_encoder() built tensors with a hard-coded `.cuda()`, so MAR.forward() raised on a machine with no GPU; the fork uses the device of the model's parameters and of the input instead (identical to `.cuda()` on a GPU). This is DESIGN section 2.8's submodule+patch mechanism. The upstream training engine (engine_mar.py) is not used: it imports torch_fidelity and cv2 on import and calls torch.cuda.synchronize(), so it neither imports nor runs without a GPU; train_step1.py owns the cached-latent path of its train_one_epoch with the DDP/AMP/EMA/FID machinery removed.",
+  "encoder": "encoder.pt is the MAE-encoder side of MAR (z_proj, z_proj_ln, encoder_pos_embed_learned, encoder_blocks, encoder_norm, class_emb, fake_latent). The decoder and the diffusion loss head are excluded. Which representation a downstream probe should read from a generative model is a separate, deferred question (CONTRACT section 7); this port ships no linear_eval stage.",
+  "rewritten_during_the_port": [
+    "the device is resolved (resolve_device) instead of assumed CUDA",
+    "main() split into build_parser()/run(args, config) returning the pretext loss and epoch count",
+    "the run is seeded through make_deterministic (python, numpy, torch)",
+    "the training loop drops the upstream engine's DDP/AMP/EMA/FID machinery so the same step runs on a CPU or a GPU unchanged"
+  ]
+}

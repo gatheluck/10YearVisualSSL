@@ -1,0 +1,39 @@
+{
+  "_note": "Run: .venvs/mar/bin/python bin/mutate.py --spec mutations/mar-step1-device.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/mar/bin/python (an interpreter with this method's cu130 lock and a CUDA device). Proves the device guard added during the port is not vacuous. The upstream MAR forward built tensors with a hard-coded .cuda() (sample_orders, forward_mae_encoder), so it could not run without a GPU; the pinned fork makes it device-agnostic and resolve_device decides the device from the config. Honouring device: cpu on a GPU machine, and refusing device: cuda on a GPU-less one, are the behaviours these mutations must break. See docs/GPU.md section 4.",
+  "targets": [
+    {
+      "label": "cpu is not honoured -- the requested cpu returns a cuda device",
+      "file": "methods/mar/train_step1.py",
+      "old": "    if spec == \"cpu\":\n        return torch.device(\"cpu\")",
+      "new": "    if spec == \"cpu\":\n        return torch.device(\"cuda\")",
+      "tests": [
+        "tests.test_method_mar.TestTheDeviceIsResolved"
+      ]
+    },
+    {
+      "label": "cuda without a gpu is no longer refused, it falls back silently",
+      "file": "methods/mar/train_step1.py",
+      "old": "        if not torch.cuda.is_available():",
+      "new": "        if False:",
+      "tests": [
+        "tests.test_method_mar.TestTheDeviceIsResolved"
+      ]
+    },
+    {
+      "label": "the batch ignores the resolved device and goes to the GPU regardless",
+      "file": "methods/mar/train_step1.py",
+      "old": "            moments = moments.to(device, non_blocking=True).float()",
+      "new": "            moments = moments.cuda(0, non_blocking=True).float()",
+      "tests": [
+        "tests.test_method_mar.TestASmokeRun.test_it_completes_and_satisfies_the_contract"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-08-03",
+    "measured_with": ".venvs/mar (cu130, on an NVIDIA A100-SXM4-40GB)",
+    "killed": 3,
+    "total": 3,
+    "equivalent": []
+  }
+}

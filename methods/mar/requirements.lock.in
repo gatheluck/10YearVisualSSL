@@ -1,0 +1,35 @@
+# The input from which requirements.lock.txt (CPU) and requirements.lock.cu130.txt
+# (GPU) are generated. It is NOT installed directly and NOT a lock.
+#
+# Why this exists, and why it is not requirements.txt: the model is the pinned
+# upstream under third_party/mar, imported rather than copied, so this port's own
+# files import only torch, numpy and PyYAML (those are requirements.txt). But the
+# *environment* the pinned upstream needs to import and run is larger -- its
+# model reads timm, scipy and tqdm, and torchvision comes with them -- and the
+# lock must be a closure over that whole environment. Those extra packages are
+# the pinned upstream's dependencies, taken from its environment.yaml (timm,
+# scipy) and its `import` lines (tqdm, torchvision), and pinned here at versions
+# compatible with this project's Python 3.12 / torch 2.13.0 rather than the
+# upstream's Python 3.8 / torch 2.2 originals.
+#
+# Deliberately excluded, because step 1 does not use the upstream generation /
+# FID / caching engine (engine_mar.py): opencv-python, tensorboard, gdown,
+# torch-fidelity.
+#
+# Regenerate both locks with (from the repository root):
+#
+#   uv pip compile methods/mar/requirements.lock.in \
+#       --constraint <a fleet CPU lock's name==version pins, hashes stripped> \
+#       --index-url https://download.pytorch.org/whl/cpu \
+#       --extra-index-url https://pypi.org/simple \
+#       --python-version 3.12 --universal --generate-hashes \
+#       -o methods/mar/requirements.lock.txt
+#
+# then the cu130 sibling per docs/GPU.md section 2.
+torch
+torchvision
+numpy
+PyYAML
+timm
+scipy
+tqdm
