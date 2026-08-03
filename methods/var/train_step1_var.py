@@ -134,12 +134,25 @@ def resolve_device(spec: str, local_rank: int = 0) -> "torch.device":
 
 
 def make_deterministic(seed: int) -> None:
-    """Seed python, numpy and torch."""
+    """Seed python, numpy and torch, and ask torch for reproducible kernels.
+
+    Seeding alone was not enough for VAR. Its attention runs through
+    `scaled_dot_product_attention`, whose CPU backend and reduction order vary
+    with the environment: a run that was bitwise-reproducible on one machine
+    diverged -- even to NaN -- on another (the container image, with a different
+    core count), so two runs of one config produced different encoders. Asking
+    for deterministic algorithms pins the stable backend, and a single training
+    thread removes the parallel-reduction nondeterminism that a multi-core host
+    otherwise introduces. Both are no-ops for the numbers on a machine that was
+    already reproducible; they make the ones that were not."""
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
+    torch.use_deterministic_algorithms(True, warn_only=True)
+    torch.backends.cudnn.deterministic = True
+    torch.set_num_threads(1)
 
 
 def _build_loader(data_root: str, img_size: int, batch_size: int,
@@ -202,6 +215,16 @@ def run(args, config: dict | None = None) -> dict:
     ckpt = cfg["data"].get("vqvae_ckpt")
     if ckpt:
         vae.load_state_dict(torch.load(ckpt, map_location="cpu"), strict=True)
+    else:
+        # build_vae_var disables reset_parameters and initialises only VAR, so a
+        # VQVAE built without a checkpoint is left uninitialised (torch.empty).
+        # Its contents are environment-dependent -- finite on one host, NaN on
+        # another -- which made tokenisation, and the whole run, reproducible on
+        # one machine and divergent on the next. Give it finite, seeded weights
+        # so the smoke's tokenisation is well-defined. A real run loads a
+        # pretrained VQVAE (vqvae_ckpt) and never takes this path.
+        for p in vae.parameters():
+            torch.nn.init.normal_(p, mean=0.0, std=0.02)
     vae.eval()
     var.train()
 
