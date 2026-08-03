@@ -1,0 +1,17 @@
+# What the VAR step-1 port's own files import, and nothing else. Checked in both
+# directions by tests/test_method_requirements.py. Floors only; the exact hashed
+# closure is in requirements.lock.txt (CPU) and requirements.lock.cu130.txt.
+#
+# The MODEL is the pinned upstream under third_party/var, imported not copied
+# (DESIGN section 1). Its own PyPI dependency beyond this stack -- huggingface_hub
+# (models/var.py imports PyTorchModelHubMixin) -- is therefore NOT declared here:
+# this port's files do not import it. It is pinned in the lock (requirements.lock.in),
+# which is the full environment the pinned upstream runs in.
+#
+# torch and numpy are imported directly (the run is seeded through numpy);
+# torchvision provides the ImageFolder and transforms the trainer reads images
+# with; PyYAML is read by the trainer to load a YAML config.
+torch>=2.1.0
+torchvision>=0.16.0
+numpy>=1.24.0
+PyYAML>=6.0
