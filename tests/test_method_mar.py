@@ -148,7 +148,7 @@ class TestThePinnedUpstream(unittest.TestCase):
         `mar_base` the adapter gets."""
         two = ROOT / "methods" / "2_vae"
         load_from(two, "models", two / "models" / "__init__.py")  # poison cache
-        trainer = load("mar_trainer", METHOD / "train_step1.py")
+        trainer = load("mar_trainer", METHOD / "train_step1_mar.py")
         trainer._load_upstream()
         self.assertTrue(
             sys.modules["models.mar"].__file__.startswith(str(UPSTREAM)),
@@ -258,7 +258,7 @@ class TestTheDeviceIsResolved(Base):
     mutation spec.)"""
 
     def trainer(self):
-        return load("mar_trainer", METHOD / "train_step1.py")
+        return load("mar_trainer", METHOD / "train_step1_mar.py")
 
     @needs_deps
     def test_asking_for_cuda_without_one_is_refused(self):
@@ -285,7 +285,7 @@ class TestTheDeviceIsResolved(Base):
     def test_run_resolves_the_device_rather_than_sniffing_it(self):
         """Structural, needs no torch: run() must go through resolve_device."""
         import ast
-        src = (METHOD / "train_step1.py").read_text()
+        src = (METHOD / "train_step1_mar.py").read_text()
         run_fn = next(n for n in ast.parse(src).body
                       if isinstance(n, ast.FunctionDef) and n.name == "run")
         called = {n.func.id for n in ast.walk(run_fn)
@@ -416,7 +416,7 @@ class TestTheOriginalIsReferencedNotCopied(unittest.TestCase):
 
     def test_the_body_lives_in_run_and_main_only_parses(self):
         import ast
-        src = (METHOD / "train_step1.py").read_text()
+        src = (METHOD / "train_step1_mar.py").read_text()
         top = {n.name for n in ast.parse(src).body
                if isinstance(n, ast.FunctionDef)}
         for fn in ("run", "main", "build_parser"):
@@ -427,7 +427,7 @@ class TestTheOriginalIsReferencedNotCopied(unittest.TestCase):
 
     def test_it_asks_for_deterministic_seeding(self):
         import ast
-        src = (METHOD / "train_step1.py").read_text()
+        src = (METHOD / "train_step1_mar.py").read_text()
         run_fn = next(n for n in ast.parse(src).body
                       if isinstance(n, ast.FunctionDef) and n.name == "run")
         called = {n.func.id for n in ast.walk(run_fn)
@@ -444,7 +444,7 @@ class TestTheOriginalIsReferencedNotCopied(unittest.TestCase):
         would match that -- the too-wide-scope mistake this project keeps a list
         of."""
         import ast
-        src = (METHOD / "train_step1.py").read_text()
+        src = (METHOD / "train_step1_mar.py").read_text()
         imported = set()
         for n in ast.walk(ast.parse(src)):
             if isinstance(n, ast.Import):

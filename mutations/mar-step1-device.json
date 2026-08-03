@@ -3,7 +3,7 @@
   "targets": [
     {
       "label": "cpu is not honoured -- the requested cpu returns a cuda device",
-      "file": "methods/mar/train_step1.py",
+      "file": "methods/mar/train_step1_mar.py",
       "old": "    if spec == \"cpu\":\n        return torch.device(\"cpu\")",
       "new": "    if spec == \"cpu\":\n        return torch.device(\"cuda\")",
       "tests": [
@@ -12,7 +12,7 @@
     },
     {
       "label": "cuda without a gpu is no longer refused, it falls back silently",
-      "file": "methods/mar/train_step1.py",
+      "file": "methods/mar/train_step1_mar.py",
       "old": "        if not torch.cuda.is_available():",
       "new": "        if False:",
       "tests": [
@@ -21,7 +21,7 @@
     },
     {
       "label": "the batch ignores the resolved device and goes to the GPU regardless",
-      "file": "methods/mar/train_step1.py",
+      "file": "methods/mar/train_step1_mar.py",
       "old": "            moments = moments.to(device, non_blocking=True).float()",
       "new": "            moments = moments.cuda(0, non_blocking=True).float()",
       "tests": [

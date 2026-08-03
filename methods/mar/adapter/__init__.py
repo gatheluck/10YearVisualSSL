@@ -185,7 +185,7 @@ def load_encoder(state_dict: dict, config: dict):
     """
     if str(METHOD_DIR) not in sys.path:
         sys.path.insert(0, str(METHOD_DIR))
-    from train_step1 import _load_upstream, model_kwargs
+    from train_step1_mar import _load_upstream, model_kwargs
     mar_base, _dgd, _cached = _load_upstream()
     model = mar_base(**model_kwargs(config["train"]))
     missing, unexpected = model.load_state_dict(state_dict, strict=False)
@@ -204,7 +204,7 @@ def run_training(config: dict, out: Path, _run=None) -> dict:
     if _run is None:
         if str(METHOD_DIR) not in sys.path:
             sys.path.insert(0, str(METHOD_DIR))
-        from train_step1 import run as _run
+        from train_step1_mar import run as _run
     args = to_args(config, out)
     run_config = to_run_config(config, out)
     Path(run_config["output"]["checkpoint_dir"]).mkdir(parents=True,
