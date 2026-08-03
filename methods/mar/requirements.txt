@@ -1,0 +1,17 @@
+# What the mar step-1 port's own files import, and nothing else. Checked in
+# both directions by tests/test_method_requirements.py. Floors only; the exact
+# hashed closure is in requirements.lock.txt (CPU) and
+# requirements.lock.cu130.txt (CUDA 13.0).
+#
+# The MODEL is the pinned upstream under third_party/mar, imported rather than
+# copied (DESIGN section 1). Its own PyPI dependencies -- timm, scipy, tqdm,
+# torchvision and their closure -- are therefore NOT declared here: this port's
+# files do not import them, and declaring them would be a list that misleads
+# whoever reads what *this* code needs. They are pinned in the lock, which is
+# the full environment the pinned upstream runs in.
+#
+# numpy is imported directly (the run is seeded through it); torch is imported
+# directly; PyYAML is read by the trainer to load a YAML config.
+torch>=2.1.0
+numpy>=1.24.0
+PyYAML>=6.0

@@ -32,6 +32,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 METHODS = ROOT / "methods"
 
+if str(Path(__file__).resolve().parent) not in sys.path:
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _repo_files import submodule_paths  # noqa: E402
+
+
 def local_modules(method: Path) -> set[str]:
     """Modules that come from the repository rather than from an index.
 
@@ -40,6 +45,14 @@ def local_modules(method: Path) -> set[str]:
     undeclared third-party package, and that false positive masked the real
     one (torchvision). Anything importable from the method directory or from
     the repository root is local by construction.
+
+    A **pinned upstream** under `third_party/<sub>` is local too: the adapter
+    that consumes it imports its packages directly (`from models.mar import
+    ...`), and those are vendored code an index cannot install, not third-party
+    distributions. Some are namespace packages with no `__init__.py`, so a
+    submodule's top-level directories all count, however they are packaged. The
+    submodule roots are read from `.gitmodules`, so this cannot go stale, and
+    the same list already tells the file-scan which paths are not ours.
     """
     names = set()
     for base in (method, ROOT):
@@ -47,6 +60,15 @@ def local_modules(method: Path) -> set[str]:
             continue
         for p in base.iterdir():
             if p.is_dir() and (p / "__init__.py").is_file():
+                names.add(p.name)
+            elif p.suffix == ".py":
+                names.add(p.stem)
+    for sub in submodule_paths(ROOT):
+        root = ROOT / sub
+        if not root.is_dir():
+            continue
+        for p in root.iterdir():
+            if p.is_dir() and not p.name.startswith("."):
                 names.add(p.name)
             elif p.suffix == ".py":
                 names.add(p.stem)
@@ -192,6 +214,35 @@ class TestEveryMethodDeclaresWhatItImports(unittest.TestCase):
         for m in method_dirs():
             found |= imported_modules(m)
         self.assertIn("torch", found)
+
+    def test_a_pinned_upstream_package_counts_as_local(self):
+        """A method importing `from models.mar import ...` must not have
+        `models` demanded in requirements.txt: it is vendored upstream code
+        under third_party/, not a distribution an index can install. Namespace
+        packages (no __init__.py) count too, which is how the upstream ships
+        `models` and `util` -- so the check must not depend on __init__.py."""
+        subs = submodule_paths(ROOT)
+        if not subs:
+            self.skipTest("no submodule to check")
+        checked_namespace = False
+        for sub in sorted(subs):
+            root = ROOT / sub
+            if not root.is_dir():
+                continue
+            for p in sorted(root.iterdir()):
+                if not (p.is_dir() and not p.name.startswith(".")):
+                    continue
+                for m in method_dirs():
+                    self.assertIn(
+                        p.name, local_modules(m),
+                        f"{p.name} under {sub} is upstream code, not a package "
+                        "pip installs, but it is not recognised as local")
+                if not (p / "__init__.py").is_file():
+                    checked_namespace = True
+        self.assertTrue(
+            checked_namespace,
+            "no namespace package (no __init__.py) among the submodules, so "
+            "the branch that must not require one was never exercised")
 
 
 class TestTheOptionalToolingDependency(unittest.TestCase):

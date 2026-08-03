@@ -511,5 +511,50 @@ class TestItDoesNotBurnMinutesTwice(unittest.TestCase):
                 self.assertIn("lock", str(w.get("cache-dependency-path", "")))
 
 
+@needs_checkout
+@needs_yaml
+class TestThePinnedSubmoduleIsCheckedOut(unittest.TestCase):
+    """A pinned submodule under `third_party/` is empty unless the checkout
+    asks for it, and `actions/checkout` does not by default.
+
+    Gated on a checkout, like the other workflow-reading classes here: the
+    container image ships without `.github` (`.dockerignore` excludes it) and
+    without git, so the workflow is not there to read and the class skips --
+    rather than failing on an absent file, which is what an ungated version did
+    inside the image.
+
+    Every job here goes on to read the working tree -- the file-scans walk it,
+    the method that imports the pinned upstream reads it, and even the no-deps
+    `core` job needs it, because `local_modules` finds the upstream's `models`
+    and `util` packages by looking in `third_party/<sub>` and would otherwise
+    report the adapter's imports as undeclared. So every checkout must fetch
+    submodules, or the job tests a tree with a hole where the upstream should be
+    and reports it green.
+    """
+
+    def test_every_checkout_fetches_submodules(self):
+        for name, doc in parsed().items():
+            for job, spec in doc["jobs"].items():
+                for st in spec.get("steps", []):
+                    if "actions/checkout" not in str(st.get("uses", "")):
+                        continue
+                    with self.subTest(workflow=name, job=job):
+                        got = str((st.get("with") or {}).get("submodules", ""))
+                        self.assertEqual(
+                            got, "recursive",
+                            f"{job}: checkout does not fetch submodules "
+                            "(with.submodules: recursive); third_party/ would "
+                            "be empty and the job would test a tree with a hole")
+
+    def test_there_is_a_checkout_to_check(self):
+        """Against a workflow with no checkout the check above passes
+        vacuously."""
+        found = [st for doc in parsed().values()
+                 for spec in doc["jobs"].values()
+                 for st in spec.get("steps", [])
+                 if "actions/checkout" in str(st.get("uses", ""))]
+        self.assertTrue(found, "no actions/checkout step found to check")
+
+
 if __name__ == "__main__":
     unittest.main()
