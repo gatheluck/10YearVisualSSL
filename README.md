@@ -23,15 +23,7 @@ assume it.
 | `bin/resolve-config.py` | **implemented and tested.** Produces the canonical resolved config and its `config_sha256` |
 | `bin/contract-test.py` | **implemented and tested.** Decides by machine that a port is finished |
 | `platforms/` | **implemented and tested.** Platform separation; `local` is self-contained |
-| `methods/1_context_prediction` | **step 1 and linear evaluation ported and tested.** Verified on CPU end to end. Step 2 (ViT) belongs to the legacy track and was not brought across |
-| `methods/2_vae` | **step 1 ported and tested.** Chosen by measuring all 37: the only one on MNIST, so it trains to completion on CPU |
-| `methods/17_swav` | **step 1 and linear evaluation ported and tested.** Its loader could not run on one process at all; the sampler is now conditional. The linear probe produces comparable downstream numbers |
-| `methods/21_barlow_twins` | **step 1 and linear evaluation ported and tested.** The runner-up of the six measured candidates. Refuses fp16 on a CPU rather than downgrading quietly; the linear probe produces comparable downstream numbers |
-| `methods/20_simsiam` | **step 1 and linear evaluation ported and tested.** Chosen by measuring the six remaining official-style candidates. The second method to produce comparable downstream numbers |
-| `methods/27_ibot` | **step 1 and linear evaluation ported and tested.** The sixth port, and the first exercised on a GPU as written: a real training step and the linear probe run on an A100. `encoder.pt` is the teacher ViT, matching the official probe |
-| `methods/4_context_encoder` | **step 1 and linear evaluation ported and tested.** The last of the official-style six; the one GAN (encoder-decoder + centre-hole discriminator, two optimisers). `encoder.pt` is the conv encoder + bottleneck; the linear probe produces comparable downstream numbers |
-| `methods/mar` | **step 1 ported and tested.** The first `submodule+patch` port: the model is the pinned upstream under `third_party/mar` (a fork carrying a two-line device patch), imported not copied. Masked autoregressive pretraining in VAE-latent space; the hermetic smoke uses fabricated cached latents, no VAE. `encoder.pt` is the MAE-encoder side; `linear_eval` is deferred (the generative-representation question, CONTRACT 7) |
-| `methods/VideoGen` (LTX-2) | deferred, not dropped. Needs CUDA > 12.7 and a 22B checkpoint |
+| `methods/` | **eight methods ported and tested** (step 1; six also with linear evaluation). The per-method table is below under [Methods](#methods) |
 | `bin/launch.py` | **implemented and tested.** One command: resolve, submit, verify, record |
 | `adapterlib/` | **implemented and tested.** The one place a `run_manifest.json` is written |
 | `LICENSE` | **MIT** (Copyright (c) 2026 LIMIT.Lab) |
@@ -46,6 +38,30 @@ to produce the output shown.
 the shipped configs are the ones the captured cluster runs used — hundreds of
 GPU-hours on ImageNet — and nothing here has executed one. Each method's
 README says exactly what was and was not exercised.
+
+## Methods
+
+Every method ported so far lives under `methods/`, one directory each, with its
+own locked environment and adapter. **Step 1** is the self-supervised
+pretraining; **linear eval** is the frozen-feature linear probe that produces
+the downstream numbers this project exists to compare. Directory names are
+zero-padded so they sort in numeric order.
+
+| Directory | Method | Stages | Notes |
+|---|---|---|---|
+| `01_context_prediction` | Context Prediction — Doersch, Gupta & Efros, ICCV 2015 | step 1 + linear eval | the first pilot; verified on a CPU end to end |
+| `02_vae` | VAE — Kingma & Welling, 2013 | step 1 | pretext-only; the one method on MNIST, so it trains to completion on a CPU |
+| `04_context_encoder` | Context Encoder — Pathak et al., 2016 | step 1 + linear eval | the one GAN (two models, two optimisers); `encoder.pt` is the conv encoder + bottleneck |
+| `17_swav` | SwAV — Caron et al., 2020 | step 1 + linear eval | its loader could not run on one process; the sampler is now conditional |
+| `20_simsiam` | SimSiam — Chen & He, 2020 | step 1 + linear eval | the second method to produce comparable downstream numbers |
+| `21_barlow_twins` | Barlow Twins — Zbontar et al., 2021 | step 1 + linear eval | refuses fp16 on a CPU rather than downgrading quietly |
+| `27_ibot` | iBOT — Zhou et al., 2021 | step 1 + linear eval | first exercised on an A100 as written; `encoder.pt` is the teacher ViT |
+| `mar` | MAR — Li et al., NeurIPS 2024 | step 1 | the first `submodule+patch` port: the model is the pinned `third_party/mar` fork, imported not copied; `linear_eval` deferred (the generative-representation question, CONTRACT §7) |
+
+Six produce **comparable** `linear_probe` accuracy — all but `02_vae` (pretext
+only) and `mar` (evaluation deferred). `methods/_reference/` is not a method
+under study but the known-good adapter the contract tests run against. Deferred,
+not dropped: `VideoGen` (LTX-2), which needs CUDA > 12.7 and a 22B checkpoint.
 
 ## Repository layout
 
@@ -69,7 +85,7 @@ shown so the shape is visible before it is built.
 │   │   └── adapter/
 │   │       ├── __init__.py             the body: what this method does
 │   │       └── __main__.py             python -m adapter --config ... --out ...
-│   ├── 1_context_prediction/         first pilot, step 1              exists
+│   ├── 01_context_prediction/         first pilot, step 1              exists
 │   │   ├── Dockerfile                  the locked environment as an image
 │   │   ├── adapter/                    translates the config, calls the original
 │   │   ├── train_step1_alexnet_official.py   the original loop, extracted
@@ -80,7 +96,7 @@ shown so the shape is visible before it is built.
 │   │   ├── requirements.lock.txt       exact versions, to rebuild a run
 │   │   ├── provenance.json             what came across, and what changed
 │   │   └── README.md                   the science, and the port's deviations
-│   ├── 2_vae/                        second method, step 1            exists
+│   ├── 02_vae/                        second method, step 1            exists
 │   │   ├── adapter/  configs/  models/  data/
 │   │   ├── Dockerfile  requirements.lock.txt  provenance.json
 │   │   └── README.md                   MNIST; trains to completion on CPU
@@ -148,7 +164,7 @@ The authors' tree is never edited. Everything we write about a method lives in
 
 ```
 third_party/deepcontext/          <- the authors' repository, at a pinned commit
-methods/1_context_prediction/
+methods/01_context_prediction/
     adapter/__init__.py           <- ours: imports deepcontext, writes the outputs
 ```
 
@@ -205,7 +221,7 @@ produces that canonical form.
 
 Write the authoring configs — `include` lets a method reuse a shared base.
 **These keys are illustrative**; each method defines its own, and
-`methods/1_context_prediction/configs/step1.yaml` is a real one:
+`methods/01_context_prediction/configs/step1.yaml` is a real one:
 
 ```bash
 mkdir -p configs && printf '{"seed":0,"optimizer":{"name":"sgd","lr":0.1,"momentum":0.9}}\n' > configs/base.json
@@ -304,7 +320,7 @@ git config core.hooksPath .githooks
 ## Training a method
 
 The whole chain, with the one method that is ported. Each step is checked by
-`tests/test_method_1_context_prediction.py`, which runs exactly this sequence
+`tests/test_method_01_context_prediction.py`, which runs exactly this sequence
 on synthetic images.
 
 **1. Build the environment.** Only the training needs packages; the tools
@@ -312,7 +328,7 @@ below need nothing installed.
 
 ```bash
 python3 -m venv .venv && . .venv/bin/activate
-pip install --require-hashes --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple -r methods/1_context_prediction/requirements.lock.txt -r requirements-tools.lock.txt
+pip install --require-hashes --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple -r methods/01_context_prediction/requirements.lock.txt -r requirements-tools.lock.txt
 ```
 
 Swap the index for a CUDA one (`.../whl/cu121`) to get a GPU build at the same
@@ -326,14 +342,14 @@ method dependency, and no method declares it.
 file somebody may edit afterwards:
 
 ```bash
-python3 bin/resolve-config.py --config methods/1_context_prediction/configs/step1.yaml --out runs/ctxpred/resolved.json --set DATA_ROOT=/path/to/ILSVRC2012
+python3 bin/resolve-config.py --config methods/01_context_prediction/configs/step1.yaml --out runs/ctxpred/resolved.json --set DATA_ROOT=/path/to/ILSVRC2012
 ```
 
 **3. Run the adapter.** It runs from the method's directory, and reaches this
 repository through `PYTHONPATH`:
 
 ```bash
-cd methods/1_context_prediction && PYTHONPATH=../.. python3 -m adapter --config ../../runs/ctxpred/resolved.json --out ../../runs/ctxpred/out; echo "EXIT=$?"
+cd methods/01_context_prediction && PYTHONPATH=../.. python3 -m adapter --config ../../runs/ctxpred/resolved.json --out ../../runs/ctxpred/out; echo "EXIT=$?"
 ```
 
 **4. Check the result against the contract**, passing the adapter's exit
@@ -349,7 +365,7 @@ checkpoints and logs. Nothing is written outside it.
 
 The method's own README covers what it implements, which settings it uses and
 where each came from, and what changed during the port:
-[methods/1_context_prediction/README.md](methods/1_context_prediction/README.md).
+[methods/01_context_prediction/README.md](methods/01_context_prediction/README.md).
 
 ## One command for a whole run
 
@@ -357,7 +373,7 @@ The steps above are what the launcher does, in order, so that nobody has to
 remember the order:
 
 ```bash
-python3 bin/launch.py --config methods/1_context_prediction/configs/step1.yaml --method 1_context_prediction --set DATA_ROOT=/path/to/ILSVRC2012
+python3 bin/launch.py --config methods/01_context_prediction/configs/step1.yaml --method 01_context_prediction --set DATA_ROOT=/path/to/ILSVRC2012
 ```
 
 It resolves the config, submits the job through the chosen platform, verifies
@@ -499,7 +515,7 @@ answers both halves with one comparison — *is this environment the locked
 one*, and *did that run use it*:
 
 ```bash
-python3 bin/verify-environment.py --lock methods/1_context_prediction/requirements.lock.txt --lock requirements-tools.lock.txt [--manifest runs/<id>/out/run_manifest.json]
+python3 bin/verify-environment.py --lock methods/01_context_prediction/requirements.lock.txt --lock requirements-tools.lock.txt [--manifest runs/<id>/out/run_manifest.json]
 ```
 
 Any difference fails, including a package no lock mentions: something
