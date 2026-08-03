@@ -23,7 +23,7 @@ assume it.
 | `bin/resolve-config.py` | **implemented and tested.** Produces the canonical resolved config and its `config_sha256` |
 | `bin/contract-test.py` | **implemented and tested.** Decides by machine that a port is finished |
 | `platforms/` | **implemented and tested.** Platform separation; `local` is self-contained |
-| `methods/` | **eight methods ported and tested** (step 1; six also with linear evaluation). The per-method table is below under [Methods](#methods) |
+| `methods/` | **nine methods ported and tested** (step 1; six also with linear evaluation). The per-method table is below under [Methods](#methods) |
 | `bin/launch.py` | **implemented and tested.** One command: resolve, submit, verify, record |
 | `adapterlib/` | **implemented and tested.** The one place a `run_manifest.json` is written |
 | `LICENSE` | **MIT** (Copyright (c) 2026 LIMIT.Lab) |
@@ -57,11 +57,13 @@ zero-padded so they sort in numeric order.
 | `21_barlow_twins` | Barlow Twins — Zbontar et al., 2021 | step 1 + linear eval | refuses fp16 on a CPU rather than downgrading quietly |
 | `27_ibot` | iBOT — Zhou et al., 2021 | step 1 + linear eval | first exercised on an A100 as written; `encoder.pt` is the teacher ViT |
 | `mar` | MAR — Li et al., NeurIPS 2024 | step 1 | the first `submodule+patch` port: the model is the pinned `third_party/mar` fork, imported not copied; `linear_eval` deferred (the generative-representation question, CONTRACT §7) |
+| `var` | VAR — Tian et al., NeurIPS 2024 | step 1 | the first `submodule+adapter` port: `third_party/var` pinned directly (no fork — the model needs no patch). Next-scale autoregressive generation; the smoke uses a tiny random VQVAE (no download); `linear_eval` deferred (CONTRACT §7) |
 
 Six produce **comparable** `linear_probe` accuracy — all but `02_vae` (pretext
-only) and `mar` (evaluation deferred). `methods/_reference/` is not a method
-under study but the known-good adapter the contract tests run against. Deferred,
-not dropped: `VideoGen` (LTX-2), which needs CUDA > 12.7 and a 22B checkpoint.
+only) and `mar`/`var` (evaluation deferred). `methods/_reference/` is not a
+method under study but the known-good adapter the contract tests run against.
+Deferred, not dropped: `VideoGen` (LTX-2), which needs CUDA > 12.7 and a 22B
+checkpoint.
 
 ## Repository layout
 
@@ -104,7 +106,8 @@ shown so the shape is visible before it is built.
 │       ├── adapter/
 │       └── configs/
 ├── third_party/                    authors' code, untouched          exists
-│   └── mar/                          pinned submodule, used by methods/mar
+│   ├── mar/                          pinned submodule (fork), used by methods/mar
+│   └── var/                          pinned submodule, used by methods/var
 ├── mutations/                      mutation specs, with their measured results
 ├── platforms/                      where a job runs. Loosely coupled  exists
 │   ├── base.py                       the shared interface, free of platform terms

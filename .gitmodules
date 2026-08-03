@@ -1,3 +1,6 @@
 [submodule "third_party/mar"]
 	path = third_party/mar
 	url = https://github.com/gatheluck/mar
+[submodule "third_party/var"]
+	path = third_party/var
+	url = https://github.com/FoundationVision/VAR

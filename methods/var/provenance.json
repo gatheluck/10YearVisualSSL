@@ -1,0 +1,18 @@
+{
+  "captured_at": "2026-08-03",
+  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
+  "captured_note": "The inventory (docs/INVENTORY.md) classifies VAR as submodule+adapter, MIT.",
+  "upstream": {
+    "repo": "https://github.com/FoundationVision/VAR",
+    "commit": "78b95394fc5896192e3a003e4b295f8ea743c48f",
+    "license": "MIT"
+  },
+  "note": "The model is the pinned upstream under third_party/var, imported and never copied here (DESIGN section 1). Pinned DIRECTLY, no fork: VAR's model runs on a CPU or a GPU unmodified -- it has no hardcoded device (the only torch.cuda.amp.autocast on the model path is enabled=False, a no-op on a CPU) -- so it needs no patch. This is DESIGN's submodule+adapter case, unlike mar, whose model forced a submodule+patch fork. The upstream DDP/AMP trainer (trainer.py, dist.py, the bfloat16 autocast) is not used; train_step1_var.py owns a single-process, device-resolved loop over the model's own forward.",
+  "encoder": "encoder.pt is the representation side of VAR: the token embedding (word_embed), class and positional and level embeddings, and the transformer blocks. The generative output head (head, head_nm) is excluded, so encoder.pt is the representation network. Which representation a downstream probe should read from a generative model is a separate, deferred question (CONTRACT section 7); this port ships no linear_eval stage.",
+  "rewritten_during_the_port": [
+    "the device is resolved (resolve_device) instead of reached through dist.py/AMP",
+    "main() split into build_parser()/run(args, config) returning the cross-entropy loss and epoch count",
+    "the run is seeded through make_deterministic (python, numpy, torch)",
+    "the training loop drops the upstream DDP/AMP machinery so the same step runs on a CPU or a GPU unchanged; flash/fused attention are forced off so a run does not depend on whether flash-attention is installed"
+  ]
+}

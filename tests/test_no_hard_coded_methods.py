@@ -86,20 +86,24 @@ def may_name(path: Path, method: str) -> bool:
 def names_method(text: str, method: str) -> bool:
     """Whether `text` hard-codes `method` as a name.
 
-    **Whole-token, not substring.** A three-letter name like `cat` is a
-    substring of `concatenate`, `scatter` and `category`, and the first version
-    --
-    `method in text` -- flagged all three. That is the too-wide-scope mistake
-    this project keeps a list of; the name is matched exactly.
+    A method is hard-coded in exactly two shapes, and they are the shapes the
+    recorded mistakes took: a **directory path** `methods/<name>` (CI once
+    installed `methods/<m>/requirements.lock.txt` by name) or a **quoted
+    identifier** `"<name>"`/`'<name>'` (a `LOCKS` tuple naming one method).
+    Those are matched; nothing else is.
 
-    A reference to the pinned submodule `third_party/<method>` does not count:
-    the submodule mechanism is itself shared machinery, so shared files name the
-    upstream legitimately (a docstring explaining it, `run-ci-locally`
-    materialising it). That is naming the *upstream*, not a method wired in for
-    discovery, which is what this guard is about.
+    **Why not a bare word-boundary match.** A three-letter name -- `mar`, `var`
+    -- is not only a substring of ordinary words (`primary`, `variance`, caught
+    by a boundary) but also a whole token in text that has nothing to do with
+    the method: `/var/lib/apt`, a docstring saying "unlike mar", the submodule
+    path `third_party/var`. Matching every bare token flagged all of those --
+    the too-wide-scope mistake this project keeps a list of. A path or a quoted
+    literal is how a method is actually wired in for discovery; a mention in
+    prose or an unrelated path is not.
     """
-    hunted = text.replace(f"third_party/{method}", "")
-    return re.search(r"\b" + re.escape(method) + r"\b", hunted) is not None
+    m = re.escape(method)
+    return bool(re.search(r"methods/" + m + r"(?![\w-])", text)
+                or re.search(r"['\"]" + m + r"['\"]", text))
 
 
 class TestSharedMachineryDiscoversMethods(unittest.TestCase):
@@ -157,22 +161,21 @@ class TestSharedMachineryDiscoversMethods(unittest.TestCase):
         """The README has to be able to say which methods are ported."""
         self.assertTrue(may_name(ROOT / "README.md", method_names()[0]))
 
-    def test_the_matcher_is_whole_token_not_substring(self):
-        """The detector against the cases that decide it: a bare name is
-        caught, and the substrings that a short name hides inside are not. A
-        fake name is used so this file does not itself name a real method."""
-        self.assertTrue(names_method('m = "cat"', "cat"))
-        self.assertTrue(names_method("open('methods/cat/x')", "cat"))
-        self.assertFalse(names_method("concatenate scatter category", "cat"))
+    def test_the_matcher_catches_paths_and_quoted_names(self):
+        """The detector against the shapes a hard-coding takes -- a fake name is
+        used so this file does not itself name a real method."""
+        self.assertTrue(names_method('LOCKS = ("cat",)', "cat"))       # quoted
+        self.assertTrue(names_method("-r methods/cat/lock.txt", "cat"))  # path
+        self.assertTrue(names_method("if m == 'cat':", "cat"))          # quoted
 
-    def test_a_same_named_submodule_reference_is_not_naming_a_method(self):
-        """`third_party/<name>` is the pinned upstream; naming it is not wiring
-        the method in for discovery. The exemption is narrow, though: a bare
-        token elsewhere in the same file is still caught."""
-        self.assertFalse(names_method("path = 'third_party/cat'", "cat"))
-        self.assertTrue(
-            names_method("third_party/cat\nif m == 'cat':", "cat"),
-            "the exemption must not blanket a file that also hard-codes it")
+    def test_the_matcher_ignores_substrings_prose_and_unrelated_paths(self):
+        """The false positives a three-letter name invites: a substring, a bare
+        mention in prose, an unrelated system path, and the submodule path --
+        none of which wires the method in for discovery."""
+        self.assertFalse(names_method("concatenate scatter category", "cat"))
+        self.assertFalse(names_method("# faster than cat, but simpler", "cat"))
+        self.assertFalse(names_method("rm -rf /cat/lib/apt/lists", "cat"))
+        self.assertFalse(names_method("path = third_party/cat", "cat"))
 
 
 if __name__ == "__main__":

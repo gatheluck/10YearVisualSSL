@@ -1,0 +1,39 @@
+{
+  "_note": "Run: .venvs/var/bin/python bin/mutate.py --spec mutations/var-step1-device.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/var/bin/python (an interpreter with this method's cu130 lock and a CUDA device). Proves the device guard the port added is not vacuous. VAR's upstream reached CUDA through dist.py and a cuda AMP context; the port resolves the device from the config instead. Honouring device: cpu on a GPU machine, and refusing device: cuda on a GPU-less one, are the behaviours these mutations must break. See docs/GPU.md section 4.",
+  "targets": [
+    {
+      "label": "cpu is not honoured -- the requested cpu returns a cuda device",
+      "file": "methods/var/train_step1_var.py",
+      "old": "    if spec == \"cpu\":\n        return torch.device(\"cpu\")",
+      "new": "    if spec == \"cpu\":\n        return torch.device(\"cuda\")",
+      "tests": [
+        "tests.test_method_var.TestTheDeviceIsResolved"
+      ]
+    },
+    {
+      "label": "cuda without a gpu is no longer refused, it falls back silently",
+      "file": "methods/var/train_step1_var.py",
+      "old": "        if not torch.cuda.is_available():",
+      "new": "        if False:",
+      "tests": [
+        "tests.test_method_var.TestTheDeviceIsResolved"
+      ]
+    },
+    {
+      "label": "the batch ignores the resolved device and goes to the GPU regardless",
+      "file": "methods/var/train_step1_var.py",
+      "old": "            imgs = imgs.to(device, non_blocking=True)",
+      "new": "            imgs = imgs.cuda(0, non_blocking=True)",
+      "tests": [
+        "tests.test_method_var.TestASmokeRun.test_it_completes_and_satisfies_the_contract"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-08-03",
+    "measured_with": ".venvs/var (cu130, on an NVIDIA A100-SXM4-40GB)",
+    "killed": 3,
+    "total": 3,
+    "equivalent": []
+  }
+}

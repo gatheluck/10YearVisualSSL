@@ -1,0 +1,24 @@
+# The input from which requirements.lock.txt (CPU) and requirements.lock.cu130.txt
+# (GPU) are generated. It is NOT installed directly and NOT a lock.
+#
+# Why it exists (and is not requirements.txt): the model is the pinned upstream
+# under third_party/var, imported not copied, so this port's own files import
+# only torch, torchvision, numpy and PyYAML (those are requirements.txt). But the
+# environment the pinned upstream needs is slightly larger -- its model imports
+# huggingface_hub -- and the lock must be a closure over that whole environment.
+#
+# Regenerate both locks with (from the repository root):
+#
+#   uv pip compile methods/var/requirements.lock.in \
+#       --constraint <a fleet CPU lock's name==version pins, hashes stripped> \
+#       --index-url https://download.pytorch.org/whl/cpu \
+#       --extra-index-url https://pypi.org/simple \
+#       --python-version 3.12 --python-platform x86_64-manylinux_2_28 \
+#       --generate-hashes --no-annotate --no-header
+#   # then bin/build-lock.py renders the CPU wheel-comment format; and the cu130
+#   # sibling per docs/GPU.md section 2.
+torch
+torchvision
+numpy
+PyYAML
+huggingface_hub
