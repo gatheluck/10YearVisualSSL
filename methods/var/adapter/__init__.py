@@ -16,9 +16,17 @@ than reimplemented, every setting is declared, and the output goes only under
 class embeddings, the positional and level embeddings, and the transformer
 blocks. The generative output head (`head`, `head_nm`) is left out, so
 `encoder.pt` means the same "the representation network" it means in every other
-port. Which representation a downstream probe should read from a generative model
-is a separate, deferred question (CONTRACT section 7); this port ships no
-`linear_eval` stage.
+port.
+
+The `linear_eval` stage is the project's answer, for VAR, to the question
+CONTRACT section 7 left open -- which representation a downstream probe reads
+from a generative model. The lab's ARSSL harness probes VAR's **VQVAE
+tokeniser** (its encoder's continuous features, average-pooled), *not* the VAR
+transformer this port trains. So `linear_eval` reads no `encoder.pt`; it builds
+the tokeniser from the config and needs the pretrained tokeniser weights
+(`vqvae_ckpt`, a download via `bin/fetch-weights.py`) for a real number. The
+number therefore describes the fixed tokeniser, not VAR's learned
+representation; `docs/EVAL_DOWNLOAD.md` records this and why.
 """
 
 from __future__ import annotations
@@ -32,7 +40,7 @@ from pathlib import Path
 import adapterlib
 
 METHOD = "var"
-STAGES = ("step1",)
+STAGES = ("step1", "linear_eval")
 METHOD_DIR = Path(__file__).resolve().parent.parent
 
 # The pinned upstream, recorded in every manifest. Pinned directly (no fork):
@@ -61,10 +69,31 @@ TRAIN_KEYS = MODEL_KEYS | TRAIN_ONLY_KEYS
 TOP_KEYS = frozenset({"stage", "seed", "data_root", "device", "train"})
 DEVICES = ("auto", "cuda", "cpu")
 
+# The linear_eval stage probes the VQVAE tokeniser (see the module docstring),
+# so it needs the model architecture (to build the VQVAE), the tokeniser
+# checkpoint (`vqvae_ckpt`), and the probe's own hyperparameters. It reads no
+# `encoder.pt`: the representation it evaluates is the tokeniser, not the VAR
+# transformer step 1 produces. So the top-level keys are the same as step 1's
+# (no `encoder` key, unlike methods whose probe reads their own encoder.pt).
+EVAL_PROBE_KEYS = frozenset({"epochs", "batch_size", "num_workers", "lr",
+                             "momentum", "weight_decay", "img_size"})
+EVAL_TRAIN_KEYS = MODEL_KEYS | EVAL_PROBE_KEYS | frozenset({"vqvae_ckpt"})
+
 WORK = "work"
 
 STEP1_METRIC_NAMES = {
     "final_loss": "final_pretext_loss",
+    "epochs": "epochs_completed",
+    "metrics_unavailable": "metrics_unavailable",
+}
+
+# The downstream numbers: all four comparable linear-probe accuracies, because
+# the ARSSL probe records top-5 as well as top-1, and best as well as final.
+LINEAR_EVAL_METRIC_NAMES = {
+    "best_top1_acc": "best_linear_probe_top1_accuracy",
+    "best_top5_acc_at_best_top1": "best_linear_probe_top5_accuracy",
+    "final_top1_acc": "final_linear_probe_top1_accuracy",
+    "final_top5_acc": "final_linear_probe_top5_accuracy",
     "epochs": "epochs_completed",
     "metrics_unavailable": "metrics_unavailable",
 }
@@ -106,21 +135,28 @@ def to_run_config(config: dict, out: Path) -> dict:
             "contract fixes it at --out, and a config naming a directory would "
             "claim a location that was not used")
     _named(TOP_KEYS - set(config), set(config) - TOP_KEYS, "config")
-    if config["stage"] not in STAGES:
+    stage = config["stage"]
+    if stage not in STAGES:
         raise ConfigError(
-            f"config: stage is {config['stage']!r}; known stages are "
+            f"config: stage is {stage!r}; known stages are "
             f"{', '.join(STAGES)}")
 
     train = config["train"]
     if not isinstance(train, dict):
         raise ConfigError(f"config: train is {type(train).__name__}, "
                           "not a mapping")
-    _named(TRAIN_KEYS - set(train), set(train) - TRAIN_KEYS, "config.train")
+    keys = EVAL_TRAIN_KEYS if stage == "linear_eval" else TRAIN_KEYS
+    _named(keys - set(train), set(train) - keys, "config.train")
 
     if config["device"] not in DEVICES:
         raise ConfigError(
             f"config: device is {config['device']!r}; expected one of "
             f"{', '.join(DEVICES)}")
+
+    if stage == "linear_eval":
+        # The evaluation reads the config directly (data_root, train.*); it
+        # takes no translated run-config document, only a validated stage.
+        return {"stage": stage}
 
     return {
         "seed": int(config["seed"]),
@@ -208,8 +244,39 @@ def run_training(config: dict, out: Path, _run=None) -> dict:
     return metrics
 
 
+def run_linear_eval(config: dict, out: Path, _run=None) -> dict:
+    """Fit a linear probe on the frozen VQVAE tokeniser's features.
+
+    This deliberately does **not** read `encoder.pt`: VAR's downstream
+    representation, as the lab measured it, is the VQVAE encoder, not the VAR
+    transformer step 1 produced (see the module docstring and
+    `docs/EVAL_DOWNLOAD.md`). The evaluator builds the tokeniser from the
+    config; a real run points `vqvae_ckpt` at the pretrained tokeniser."""
+    if _run is None:
+        if str(METHOD_DIR) not in sys.path:
+            sys.path.insert(0, str(METHOD_DIR))
+        from evaluate_linear_var import run as _run
+    raw = _run(Namespace(config=None, data_path=None, device=config["device"]),
+               config=config) or {}
+    metrics, unusable = {}, 0
+    for k, v in raw.items():
+        if isinstance(v, bool) or not isinstance(v, (int, float)):
+            unusable += 1
+            continue
+        metrics[k] = v
+    unusable += sum(1 for k in ("best_top1_acc", "final_top1_acc")
+                    if k not in metrics)
+    if unusable:
+        metrics["metrics_unavailable"] = unusable
+    return metrics
+
+
 def body(ctx: adapterlib.Context) -> None:
     import torch
+    if ctx.stage == "linear_eval":
+        ctx.write_metrics(run_linear_eval(ctx.config, ctx.out),
+                          names=LINEAR_EVAL_METRIC_NAMES)
+        return
     metrics = run_training(ctx.config, ctx.out)
     latest = Path(ctx.out) / WORK / "checkpoint_latest.pth"
     if not latest.is_file():
@@ -222,6 +289,27 @@ def body(ctx: adapterlib.Context) -> None:
     ctx.write_metrics(metrics, names=STEP1_METRIC_NAMES)
 
 
+def _stage_of(config_path) -> str:
+    """The stage, read before adapterlib parses the config, so `main` can tell
+    it which stage is running and whether an encoder is expected."""
+    import json
+    try:
+        return json.loads(Path(config_path).read_text(
+            encoding="utf-8")).get("stage") or STAGES[0]
+    except (OSError, ValueError, AttributeError):
+        return STAGES[0]      # adapterlib will report the real problem
+
+
+def _absent_reason(config_path) -> "str | None":
+    """CONTRACT section 3. linear_eval fits a classifier on the frozen VQVAE
+    tokeniser; it produces no encoder of its own, and saying so is required."""
+    if _stage_of(config_path) != "linear_eval":
+        return None
+    return ("this stage fits a linear probe on the frozen VQVAE tokeniser and "
+            "produces a classifier, not an encoder; it reads no encoder.pt "
+            "(VAR's probed representation is the tokeniser, not the transformer)")
+
+
 def main(argv: list[str] | None = None) -> int:
     os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
@@ -230,7 +318,9 @@ def main(argv: list[str] | None = None) -> int:
     a = ap.parse_args(argv)
     try:
         return adapterlib.run(config=a.config, out=a.out, method=METHOD,
-                              stage="step1", body=body, upstream=UPSTREAM)
+                              stage=_stage_of(a.config), body=body,
+                              upstream=UPSTREAM,
+                              encoder_absent_reason=_absent_reason(a.config))
     except (adapterlib.AdapterError, ConfigError) as exc:
         print(f"  *** {exc}", file=sys.stderr)
         return 2

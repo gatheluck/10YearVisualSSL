@@ -1,0 +1,43 @@
+# VAR linear evaluation: a linear probe on the frozen VQVAE tokeniser.
+#
+# **What this measures.** Faithful to the lab's ARSSL protocol, the probe reads
+# the VQVAE tokeniser's encoder features (average-pooled), NOT the VAR
+# transformer that step 1 trains. So this stage reads no encoder.pt; the number
+# describes the fixed, pretrained tokeniser. See docs/EVAL_DOWNLOAD.md.
+#
+# Two paths are passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   an ImageFolder with train/ and val/ subdirectories
+#   --set VQVAE_CKPT=<path>  the pretrained VQVAE tokeniser. Obtain it with
+#                            `python3 bin/fetch-weights.py --provenance
+#                            methods/var/provenance.json --out <dir>` (it is
+#                            pinned by sha256 in provenance.json). Required for a
+#                            meaningful number; the hermetic smoke leaves it
+#                            empty and builds a random VQVAE, so its accuracy is
+#                            meaningless and only the pipeline is exercised.
+# The output path is not here either; the contract fixes it at --out.
+stage: linear_eval
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+
+train:
+  # model (build_vae_var): the architecture, so the VQVAE can be rebuilt. The
+  # VAR-d16 recipe, matching step1.yaml.
+  patch_nums: [1, 2, 3, 4, 5, 6, 8, 10, 13, 16]
+  vocab_size: 4096
+  Cvae: 32
+  ch: 160
+  num_classes: 1000
+  depth: 16
+  shared_aln: false
+  attn_l2_norm: true
+  # the tokeniser whose features are probed
+  vqvae_ckpt: "${VQVAE_CKPT}"
+  # probe (ARSSL imagenet100 recipe): a single linear layer, SGD + cosine.
+  epochs: 100
+  batch_size: 256
+  num_workers: 8
+  lr: 0.1
+  momentum: 0.9
+  weight_decay: 0.0
+  img_size: 224
