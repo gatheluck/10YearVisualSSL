@@ -4,3 +4,6 @@
 [submodule "third_party/var"]
 	path = third_party/var
 	url = https://github.com/FoundationVision/VAR
+[submodule "third_party/franca"]
+	path = third_party/franca
+	url = https://github.com/valeoai/Franca

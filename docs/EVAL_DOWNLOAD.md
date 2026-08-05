@@ -113,6 +113,32 @@ features the probe reads. This port establishes the reusable pieces:
   than `encoder.pt`, keeping CI hermetic via a random stand-in and declaring
   `encoder_absent_reason`.
 
+## 4a. Franca — the first eval-only port (no step 1)
+
+`36_franca` is the first method built on that shape end to end, and the first
+with **no step 1 at all**. Measured from the capture (`methods/36_franca/`): its
+"Step 1" is a frozen-backbone linear probe on the official pretrained Franca
+ViT-B/14 In21K checkpoint ("analogous to DINOv2 ... not local Franca
+pretraining"), and its "Step 2" is the from-scratch SSL pretraining (H100-class),
+excluded like every method's step 2. So the port has only a `linear_eval` stage.
+
+Unlike `var`, the probed representation is a **genuine SSL representation** —
+Franca's pretrained ViT CLS token (`forward_features(x)["x_norm_clstoken"]`) — so
+the number is comparable (the "pretrained-backbone reuse" row). Measured upstream
+facts that made this clean: the checkpoint is a fixed public GitHub-release URL
+(pinned by sha256 as `provenance.json: backbone_artifact`); the backbone import
+needs only torch (the heavy `requirements.txt` deps are step-2 training); and the
+frozen forward has no hardcoded device, so the upstream is pinned **directly**
+(no fork). The hermetic smoke builds a random ViT-B/14 (`pretrained=False`) at a
+tiny resolution, so CI downloads nothing.
+
+**What this required of the shared machinery.** `tests/test_encoder_convention.py`
+assumed every port writes an `encoder.pt`. It now discovers, from each adapter's
+own `STAGES`, which ports produce one (`step1` is the stage that writes it);
+eval-only ports are exempt from the round-trip requirement but must declare
+`_absent_reason`. The split is discovered, never a list of names, and both shapes
+are asserted present so the exemption cannot silently cover everything.
+
 ## 5. Wording to carry into the Capture-side `docs/CONTRACT.md` section 7
 
 > **Generative and frozen-backbone methods (resolved for `var`/`mar`,
@@ -129,3 +155,14 @@ features the probe reads. This port establishes the reusable pieces:
 > `encoder_absent_reason`. For `mar`, `linear_eval` is deferred: the lab's
 > evaluation path (`models_mar`/`forward_encoder`) is absent from both the pinned
 > upstream and the Capture snapshot, so it cannot be reproduced faithfully.
+>
+> **Eval-only methods (resolved for `36_franca`, 2026-08-05).** A method may have
+> **no step 1** — a frozen, pretrained backbone probed by `linear_eval` and
+> nothing trained (Franca's capture Step 1; its from-scratch pretraining is the
+> excluded Step 2). Such a port produces no `encoder.pt`, sets
+> `encoder_absent_reason`, and pins its backbone as a sha256 `backbone_artifact`.
+> Whether a port produces an encoder is discovered from its `STAGES` (`step1` is
+> the encoder-producing stage), so the encoder-convention checks apply only to
+> encoder-producing ports; eval-only ports are checked instead for the absent
+> declaration. For `36_franca` the CLS representation is Franca's own pretrained
+> ViT, so the number is comparable (unlike `var`'s tokeniser probe).
