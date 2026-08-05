@@ -378,6 +378,11 @@ class TestAStep1Smoke(Base):
         saved = torch.load(self.out / "encoder.pt", map_location="cpu",
                            weights_only=True)
         self.assertTrue(saved)
+        # Several methods define a package called `models`, and only one can be
+        # in sys.modules at a time. The adapter imports its own lazily, so put
+        # the right one there first -- the same isolation the rest of the suite
+        # uses. Without this the round trip errors when run in the full suite.
+        load("this_methods_models", METHOD / "models" / "__init__.py")
         model = adapter.load_encoder(saved, self.config())
         loaded = model.state_dict()
         pairs = 0
