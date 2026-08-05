@@ -37,7 +37,7 @@ assume it.
 | `bin/resolve-config.py` | **implemented and tested.** Produces the canonical resolved config and its `config_sha256` |
 | `bin/contract-test.py` | **implemented and tested.** Decides by machine that a port is finished |
 | `platforms/` | **implemented and tested.** Platform separation; `local` is self-contained |
-| `methods/` | **nine methods ported and tested** (step 1; six also with linear evaluation). The per-method table is below under [Methods](#methods) |
+| `methods/` | **ten methods ported and tested** (step 1; eight also with linear evaluation). The per-method table is below under [Methods](#methods) |
 | `bin/launch.py` | **implemented and tested.** One command: resolve, submit, verify, record |
 | `adapterlib/` | **implemented and tested.** The one place a `run_manifest.json` is written |
 | `LICENSE` | **MIT** (Copyright (c) 2026 LIMIT.Lab) |
@@ -70,8 +70,9 @@ zero-padded so they sort in numeric order.
 | `20_simsiam` | SimSiam — Chen & He, 2020 | step 1 + linear eval | the second method to produce comparable downstream numbers |
 | `21_barlow_twins` | Barlow Twins — Zbontar et al., 2021 | step 1 + linear eval | refuses fp16 on a CPU rather than downgrading quietly |
 | `27_ibot` | iBOT — Zhou et al., 2021 | step 1 + linear eval | first exercised on an A100 as written; `encoder.pt` is the teacher ViT |
-| `mar` | MAR — Li et al., NeurIPS 2024 | step 1 | the first `submodule+patch` port: the model is the pinned `third_party/mar` fork, imported not copied; `linear_eval` deferred (the generative-representation question, CONTRACT §7) |
-| `var` | VAR — Tian et al., NeurIPS 2024 | step 1 | the first `submodule+adapter` port: `third_party/var` pinned directly (no fork — the model needs no patch). Next-scale autoregressive generation; the smoke uses a tiny random VQVAE (no download); `linear_eval` deferred (CONTRACT §7) |
+| `image_gpt` | iGPT — Chen et al., ICML 2020 | step 1 + linear eval | a self-contained re-implementation (no submodule) ported from the lab's inline model; pretrains a GPT on colour-cluster tokens; `linear_eval` probes the trained model, a genuine comparable number |
+| `mar` | MAR — Li et al., NeurIPS 2024 | step 1 | the first `submodule+patch` port: the model is the pinned `third_party/mar` fork, imported not copied; `linear_eval` deferred — its captured eval path is unrecoverable (CONTRACT §7, docs/EVAL_DOWNLOAD.md) |
+| `var` | VAR — Tian et al., NeurIPS 2024 | step 1 + linear eval | the first `submodule+adapter` port: `third_party/var` pinned directly (no fork). Next-scale autoregressive generation; `linear_eval` probes the pretrained VQVAE **tokeniser** (a hash-pinned download), which measures the fixed tokeniser rather than VAR's learned representation (CONTRACT §7, docs/EVAL_DOWNLOAD.md) |
 
 Six produce **comparable** `linear_probe` accuracy — all but `02_vae` (pretext
 only) and `mar`/`var` (evaluation deferred). `methods/_reference/` is not a
