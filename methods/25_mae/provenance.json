@@ -1,0 +1,20 @@
+{
+  "captured_at": "2026-08-05",
+  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
+  "captured_note": "Ported from the capture's self-contained methods/25_mae, whose models/mae_vit.py is the lab's OWN MAE implementation ('own implementation', following He et al. 2021), torch-only and trained from scratch. It is not a copy of the CC-BY-NC facebookresearch/mae code and uses no pretrained weights, so MAE ports self-contained -- the treatment the other re-implemented methods received -- with no third_party submodule. (The inventory's ARSSL/third_party/mae, CC-BY-NC, is a different artifact and is not used here.)",
+  "paper": {
+    "title": "Masked Autoencoders Are Scalable Vision Learners",
+    "authors": "He, Chen, Xie, Li, Dollar, Girshick",
+    "year": 2021,
+    "arxiv": "2111.06377",
+    "venue": "CVPR 2022"
+  },
+  "encoder": "encoder.pt is the encoder side of the model: the patch embedding (patch_embed), the CLS token, the encoder blocks (enc_blocks) and their norm (enc_norm). The decoder (dec_embed, dec_blocks, dec_norm, dec_pred, mask_token) is reconstruction machinery and is excluded. The sin-cos enc_pos_embed is a non-persistent buffer, recomputed deterministically on build, so it is not stored.",
+  "linear_eval": "Reads the trained encoder.pt and probes the MAE encoder's global-average-pooled patch features (He et al. Section 4), a genuine learned representation -- so the number is comparable. Follows the lab's ARSSL probe (L2-normalise + mean-centre, single linear layer, SGD momentum + cosine, top1/top5).",
+  "rewritten_during_the_port": [
+    "the device is resolved (resolve_device) instead of assumed CUDA (the lab wrapper reached CUDA through init_distributed_mode)",
+    "main() split into build_parser()/run(args, config) returning the pretext loss and epoch count",
+    "the run is seeded through make_deterministic (python, numpy, torch)",
+    "the training loop drops the upstream DistributedDataParallel and the TensorBoard logging so the same step runs on a CPU or a GPU unchanged"
+  ]
+}
