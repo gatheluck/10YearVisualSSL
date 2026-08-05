@@ -24,6 +24,14 @@ like a result.
 So every port declares `load_encoder`, and its own tests -- where its
 dependencies are guaranteed to be installed -- prove the round trip. Methods
 are discovered here, never listed.
+
+**Not every port produces an `encoder.pt`.** An eval-only port -- one whose
+adapter has no `step1` stage -- trains nothing and probes a frozen, downloaded
+backbone (36_franca is the first). It writes no encoder, so the round-trip
+requirement does not apply to it; instead it must *declare* that it produces
+none (`_absent_reason`, which adapterlib enforces at run time). Which ports
+produce an encoder is discovered from each adapter's own `STAGES` -- `step1` is
+the stage that trains and writes one -- never from a list of names.
 """
 
 from __future__ import annotations
@@ -70,6 +78,47 @@ def prefix_constants(path: Path) -> dict:
     return out
 
 
+def stage_names(path: Path) -> "set | None":
+    """The stage names a port declares in `STAGES`, read without importing.
+
+    `STAGES` is written as a tuple in most ports and as a dict (stage -> keys)
+    in the first one, so both shapes are read. Returns None when no `STAGES` can
+    be read, which the caller treats conservatively rather than as 'no stages'.
+    """
+    for node in ast.parse(path.read_text(encoding="utf-8")).body:
+        if not isinstance(node, ast.Assign):
+            continue
+        for t in node.targets:
+            if not (isinstance(t, ast.Name) and t.id == "STAGES"):
+                continue
+            v = node.value
+            if isinstance(v, (ast.Tuple, ast.List)):
+                return {e.value for e in v.elts if isinstance(e, ast.Constant)}
+            if isinstance(v, ast.Dict):
+                return {k.value for k in v.keys if isinstance(k, ast.Constant)}
+    return None
+
+
+def produces_encoder(path: Path) -> bool:
+    """Whether the port writes an `encoder.pt`. In this contract `step1` is the
+    stage that trains and writes one; an eval-only port (no `step1`, only
+    `linear_eval`) probes a frozen/downloaded backbone and writes none. When
+    `STAGES` cannot be read, assume it produces an encoder -- the stricter path,
+    so a parse failure never quietly exempts a real port."""
+    names = stage_names(path)
+    if names is None:
+        return True
+    return "step1" in names
+
+
+def encoder_ports() -> list[Path]:
+    return [p for p in ports() if produces_encoder(p)]
+
+
+def eval_only_ports() -> list[Path]:
+    return [p for p in ports() if not produces_encoder(p)]
+
+
 def defines(path: Path, name: str) -> bool:
     """Whether the port defines a function, read without importing it.
 
@@ -101,8 +150,8 @@ class TestEveryPortAgreesOnWhatEncoderPtHolds(unittest.TestCase):
             with self.subTest(exempt=name):
                 self.assertIn(name, present)
 
-    def test_every_port_declares_which_prefix_it_matches(self):
-        for path in ports():
+    def test_every_encoder_port_declares_which_prefix_it_matches(self):
+        for path in encoder_ports():
             with self.subTest(method=path.parent.parent.name):
                 self.assertTrue(prefix_constants(path),
                                 "no *_PREFIX* constant: what the encoder is "
@@ -115,7 +164,7 @@ class TestEveryPortAgreesOnWhatEncoderPtHolds(unittest.TestCase):
         nothing goes unnoticed: `strict=False` matches no keys and says so to
         nobody.
         """
-        missing = [p.parent.parent.name for p in ports()
+        missing = [p.parent.parent.name for p in encoder_ports()
                    if not defines(p, "load_encoder")]
         self.assertEqual(
             missing, [],
@@ -126,11 +175,22 @@ class TestEveryPortAgreesOnWhatEncoderPtHolds(unittest.TestCase):
         """Declaring it is not exercising it. The proof belongs in the
         method's own test file, which is the one place its dependencies are
         guaranteed to be installed."""
-        missing = [p.parent.parent.name for p in ports()
+        missing = [p.parent.parent.name for p in encoder_ports()
                    if not round_trip_tested(p.parent.parent.name)]
         self.assertEqual(
             missing, [],
             "these never load an encoder.pt back in their own tests:\n"
+            + "\n".join(f"  - {x}" for x in missing))
+
+    def test_every_eval_only_port_declares_it_produces_no_encoder(self):
+        """The exemption is not a silent hole: a port with no `step1` writes no
+        encoder, and must say so via `_absent_reason` (which adapterlib enforces
+        at run time), rather than quietly skipping the convention."""
+        missing = [p.parent.parent.name for p in eval_only_ports()
+                   if not defines(p, "_absent_reason")]
+        self.assertEqual(
+            missing, [],
+            "these produce no encoder but never declare it (_absent_reason):\n"
             + "\n".join(f"  - {x}" for x in missing))
 
     def test_the_reader_can_tell_the_difference(self):
@@ -147,6 +207,34 @@ class TestEveryPortAgreesOnWhatEncoderPtHolds(unittest.TestCase):
                          encoding="utf-8")
         self.assertTrue(defines(has, "load_encoder"))
         self.assertFalse(defines(lacks, "load_encoder"))
+
+    def test_the_stage_reader_can_tell_encoder_ports_apart(self):
+        """Against a reader that calls every port an encoder-producer (or none),
+        the split above is vacuous. A step1 port produces one; a linear_eval-only
+        port does not."""
+        import shutil
+        import tempfile
+        d = Path(tempfile.mkdtemp(prefix="encconv-"))
+        self.addCleanup(shutil.rmtree, d, ignore_errors=True)
+        trains = d / "trains.py"
+        trains.write_text('STAGES = ("step1", "linear_eval")\n', encoding="utf-8")
+        evals = d / "evals.py"
+        evals.write_text('STAGES = ("linear_eval",)\n', encoding="utf-8")
+        as_dict = d / "as_dict.py"
+        as_dict.write_text('STAGES = {"step1": {}, "linear_eval": {}}\n',
+                           encoding="utf-8")
+        unreadable = d / "unreadable.py"
+        unreadable.write_text("x = 1\n", encoding="utf-8")
+        self.assertTrue(produces_encoder(trains))
+        self.assertFalse(produces_encoder(evals))
+        self.assertTrue(produces_encoder(as_dict))   # dict STAGES read too
+        self.assertTrue(produces_encoder(unreadable))  # unknown -> stricter path
+
+    def test_both_shapes_are_present_so_the_split_is_exercised(self):
+        """Guard against the split silently covering nothing: the repository has
+        at least one encoder-producing port and at least one eval-only port."""
+        self.assertTrue(encoder_ports(), "no encoder-producing port found")
+        self.assertTrue(eval_only_ports(), "no eval-only port found")
 
 
 if __name__ == "__main__":

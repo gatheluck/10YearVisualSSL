@@ -1,0 +1,38 @@
+# Franca linear evaluation: a linear probe on the frozen pretrained backbone.
+#
+# This port has no step 1 (see the adapter docstring): in the capture, Franca's
+# "Step 1" is this frozen-backbone probe, and the from-scratch SSL pretraining is
+# the excluded Step 2. The probe reads Franca's pretrained ViT-B/14 CLS token, a
+# genuine SSL representation -- so this number is comparable (the "pretrained-
+# backbone reuse" row, analogous to DINOv2). See docs/EVAL_DOWNLOAD.md.
+#
+# Two paths are passed at run time, not shipped:
+#   --set DATA_ROOT=<path>    an ImageFolder with train/ and val/ subdirectories
+#   --set FRANCA_CKPT=<path>  the official franca_vitb14_In21K.pth. Obtain it with
+#                             `python3 bin/fetch-weights.py --provenance
+#                             methods/36_franca/provenance.json --out <dir>` (it
+#                             is pinned by sha256 in provenance.json). Required
+#                             for a meaningful number; the hermetic smoke leaves
+#                             it empty and builds a random backbone, so its
+#                             accuracy is meaningless and only the pipeline runs.
+# The output path is fixed at --out.
+stage: linear_eval
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+
+train:
+  # backbone (third_party/franca): the official ViT-B/14 In21K recipe.
+  name: franca_vitb14
+  weights: IN21K
+  ckpt: "${FRANCA_CKPT}"
+  resolution: 518
+  feature_key: x_norm_clstoken
+  use_rasa_head: false
+  # probe: a single linear layer, SGD + cosine.
+  epochs: 100
+  batch_size: 32
+  num_workers: 8
+  lr: 0.1
+  momentum: 0.9
+  weight_decay: 0.0
