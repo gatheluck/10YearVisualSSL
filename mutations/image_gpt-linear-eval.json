@@ -1,0 +1,69 @@
+{
+  "_note": "Run: .venvs/image_gpt/bin/python bin/mutate.py --spec mutations/image_gpt-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/image_gpt/bin/python. Proves the two-stage guards are not vacuous: the probe representation is one vector per image, the encoder excludes the generative head, the clusters step 1 fits are carried to the probe (the probe must quantise in the same colour space), a downstream number cannot borrow a pretext name, the absent encoder is declared, and the stage is read from the config.",
+  "targets": [
+    {
+      "label": "extract_features no longer pools to one vector per image",
+      "file": "methods/image_gpt/models/igpt.py",
+      "old": "        return h.mean(dim=1)",
+      "new": "        return h.mean(dim=2)",
+      "tests": [
+        "tests.test_method_image_gpt.TestTheModel.test_extract_features_returns_one_vector_per_image"
+      ]
+    },
+    {
+      "label": "the generative head is no longer excluded from encoder.pt",
+      "file": "methods/image_gpt/adapter/__init__.py",
+      "old": "    out = {k: v for k, v in state_dict.items()\n           if k.startswith(ENCODER_PREFIXES)}",
+      "new": "    out = {k: v for k, v in state_dict.items()}",
+      "tests": [
+        "tests.test_method_image_gpt.TestExtractingTheEncoder"
+      ]
+    },
+    {
+      "label": "the clusters are not carried over for the probe",
+      "file": "methods/image_gpt/adapter/__init__.py",
+      "old": "    shutil.copyfile(clusters, Path(ctx.out) / CLUSTERS)",
+      "new": "    pass",
+      "tests": [
+        "tests.test_method_image_gpt.TestAStep1Smoke.test_it_writes_an_encoder_and_the_clusters",
+        "tests.test_method_image_gpt.TestALinearEvalSmoke.test_it_completes_and_satisfies_the_contract"
+      ]
+    },
+    {
+      "label": "a downstream probe number is mapped to a pretext name",
+      "file": "methods/image_gpt/adapter/__init__.py",
+      "old": "    \"final_top1_acc\": \"final_linear_probe_top1_accuracy\",",
+      "new": "    \"final_top1_acc\": \"final_pretext_top1_accuracy\",",
+      "tests": [
+        "tests.test_method_image_gpt.TestTheMetricsAreInTheVocabulary",
+        "tests.test_method_image_gpt.TestALinearEvalSmoke"
+      ]
+    },
+    {
+      "label": "the absent encoder is not explained",
+      "file": "methods/image_gpt/adapter/__init__.py",
+      "old": "    if _stage_of(config_path) != \"linear_eval\":\n        return None",
+      "new": "    return None\n    if False:\n        return None",
+      "tests": [
+        "tests.test_method_image_gpt.TestTheEvalProducesNoEncoder",
+        "tests.test_method_image_gpt.TestALinearEvalSmoke"
+      ]
+    },
+    {
+      "label": "the stage is not read from the config, so linear_eval runs as step 1",
+      "file": "methods/image_gpt/adapter/__init__.py",
+      "old": "                              stage=_stage_of(a.config), body=body,",
+      "new": "                              stage=STAGES[0], body=body,",
+      "tests": [
+        "tests.test_method_image_gpt.TestALinearEvalSmoke"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-08-05",
+    "measured_with": ".venvs/var (cu130 lock; same torch/torchvision/numpy stack as image_gpt) on an NVIDIA Tesla T4",
+    "killed": 6,
+    "total": 6,
+    "equivalent": []
+  }
+}

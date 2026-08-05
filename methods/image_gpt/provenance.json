@@ -1,0 +1,29 @@
+{
+  "captured_at": "2026-08-05",
+  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
+  "captured_note": "Ported from the lab's ARSSL scratch trainer (methods_step3/ARSSL/src/models/train_igpt_scratch.py), which defines its iGPT model inline rather than importing the image-gpt-pytorch submodule. So this is a self-contained re-implementation of lab code, the same treatment the six official methods received -- there is no third_party submodule for image_gpt.",
+  "paper": {
+    "title": "Generative Pretraining from Pixels (Image GPT)",
+    "authors": "Chen, Radford, Child, Wu, Jun, Luan, Sutskever",
+    "year": 2020,
+    "arxiv": "2006.14671",
+    "venue": "ICML 2020"
+  },
+  "upstream_reference": {
+    "note": "Not imported or copied. The lab's inline model credits teddykoker/image-gpt (a PyTorch reproduction; the original openai/image-gpt is TensorFlow 1.x). The lab's inline IGPTSmall is the lab's own code and is what this port re-implements; the teddykoker repo is a docstring reference only.",
+    "openai_repo": "https://github.com/openai/image-gpt",
+    "openai_license": "MIT",
+    "teddykoker_repo": "https://github.com/teddykoker/image-gpt",
+    "teddykoker_license": "Apache License 2.0"
+  },
+  "encoder": "encoder.pt is the representation side of the model: the token and position embeddings (token_embed, pos_embed), the transformer blocks (blocks), and the final norm (ln_f). The generative head (head) is excluded, so encoder.pt is the representation network.",
+  "linear_eval": "Unlike the generative ports var and mar, iGPT's downstream representation is the model this port trains: IGPT.extract_features -- a middle transformer layer, mean-pooled. So linear_eval reads the trained encoder.pt and its number is a genuine, comparable linear probe (not a tokeniser probe). It also reads clusters.npy (written by step 1) to quantise images with the same colour space the model was trained on.",
+  "colour_quantisation": "iGPT feeds the transformer discrete colour-cluster tokens. The lab used sklearn's MiniBatchKMeans; this port re-implements a deterministic Lloyd k-means in numpy (quantize.py). Two measured reasons: the lab's saved clusters are not in the capture, so exact clusters cannot be reproduced regardless; and keeping the dependency stack at torch/torchvision/numpy matches the self-contained methods and keeps the lock light. Colour quantisation is preprocessing, not the SSL representation.",
+  "rewritten_during_the_port": [
+    "the device is resolved (resolve_device) instead of assumed CUDA (the lab wrapper reached CUDA through init_distributed_mode)",
+    "main() split into build_parser()/run(args, config) returning the pretext loss and epoch count",
+    "the run is seeded through make_deterministic (python, numpy, torch)",
+    "the training loop drops the upstream DDP (DistributedDataParallel) and torch.cuda.amp machinery so the same step runs on a CPU or a GPU unchanged",
+    "the colour quantiser is a deterministic numpy k-means rather than sklearn's MiniBatchKMeans"
+  ]
+}
