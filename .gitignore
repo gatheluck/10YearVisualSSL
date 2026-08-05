@@ -18,3 +18,7 @@ venv/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+# Downloaded pretrained backbones (bin/fetch-weights.py). Large, pinned by
+# sha256 in a method's provenance.json, and reproducible from there -- so the
+# bytes are never tracked. The default --out lands here.
+.weights/

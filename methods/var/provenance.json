@@ -8,7 +8,17 @@
     "license": "MIT"
   },
   "note": "The model is the pinned upstream under third_party/var, imported and never copied here (DESIGN section 1). Pinned DIRECTLY, no fork: VAR's model runs on a CPU or a GPU unmodified -- it has no hardcoded device (the only torch.cuda.amp.autocast on the model path is enabled=False, a no-op on a CPU) -- so it needs no patch. This is DESIGN's submodule+adapter case, unlike mar, whose model forced a submodule+patch fork. The upstream DDP/AMP trainer (trainer.py, dist.py, the bfloat16 autocast) is not used; train_step1_var.py owns a single-process, device-resolved loop over the model's own forward.",
-  "encoder": "encoder.pt is the representation side of VAR: the token embedding (word_embed), class and positional and level embeddings, and the transformer blocks. The generative output head (head, head_nm) is excluded, so encoder.pt is the representation network. Which representation a downstream probe should read from a generative model is a separate, deferred question (CONTRACT section 7); this port ships no linear_eval stage.",
+  "encoder": "encoder.pt is the representation side of VAR: the token embedding (word_embed), class and positional and level embeddings, and the transformer blocks. The generative output head (head, head_nm) is excluded, so encoder.pt is the representation network.",
+  "linear_eval": "The linear_eval stage answers CONTRACT section 7 for VAR by following the lab's ARSSL harness: it probes VAR's VQVAE TOKENISER (the encoder's continuous features, global-average-pooled to Cvae dims), NOT the VAR transformer that step 1 trains, and so it reads no encoder.pt. The measured accuracy therefore describes the fixed, pretrained tokeniser rather than VAR's learned representation. A real run needs the tokeniser weights (tokenizer_artifact below, fetched and hash-verified by bin/fetch-weights.py); the hermetic smoke builds a random VQVAE, so its number is meaningless and only the pipeline is exercised. See docs/EVAL_DOWNLOAD.md.",
+  "tokenizer_artifact": {
+    "name": "VAR VQVAE tokeniser (vae_ch160v4096z32)",
+    "url": "https://huggingface.co/FoundationVision/var/resolve/main/vae_ch160v4096z32.pth",
+    "filename": "vae_ch160v4096z32.pth",
+    "sha256": "7c3ec27ae28a3f87055e83211ea8cc8558bd1985d7b51742d074fb4c2fcf186c",
+    "bytes": 436075834,
+    "license": "MIT",
+    "sha256_source": "the git-lfs pointer at https://huggingface.co/FoundationVision/var/raw/main/vae_ch160v4096z32.pth (its oid sha256), confirmed on 2026-08-05 by a full download whose bytes bin/fetch-weights.py hashed to this value, after which the checkpoint loaded into build_vqvae with strict=True"
+  },
   "rewritten_during_the_port": [
     "the device is resolved (resolve_device) instead of reached through dist.py/AMP",
     "main() split into build_parser()/run(args, config) returning the cross-entropy loss and epoch count",

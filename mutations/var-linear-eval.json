@@ -1,0 +1,69 @@
+{
+  "_note": "Run: .venvs/var/bin/python bin/mutate.py --spec mutations/var-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/var/bin/python (an interpreter with this method's lock, so the deps-gated probe/smoke tests actually run). Proves the linear_eval guards are not vacuous: that the probe reads the VQVAE tokeniser and pools it to a fixed vector, that a downstream number cannot borrow a pretext name, that the stage's own key set and its absent-encoder declaration hold, and that bin/fetch-weights.py verifies the sha256 it downloads. See docs/EVAL_DOWNLOAD.md.",
+  "targets": [
+    {
+      "label": "the probe feature is not fully spatial-pooled, so it is not the fixed VQVAE vector",
+      "file": "methods/var/evaluate_linear_var.py",
+      "old": "        return z.mean(dim=[2, 3])      # [B, Cvae]",
+      "new": "        return z.mean(dim=[3])      # [B, Cvae]",
+      "tests": [
+        "tests.test_method_var.TestTheProbeReadsTheVqvaeNotTheTransformer"
+      ]
+    },
+    {
+      "label": "a downstream probe number is mapped to a pretext name",
+      "file": "methods/var/adapter/__init__.py",
+      "old": "    \"final_top1_acc\": \"final_linear_probe_top1_accuracy\",",
+      "new": "    \"final_top1_acc\": \"final_pretext_top1_accuracy\",",
+      "tests": [
+        "tests.test_method_var.TestTheEvalMetricsAreComparable",
+        "tests.test_method_var.TestALinearEvalSmoke"
+      ]
+    },
+    {
+      "label": "the second stage accepts step 1's settings",
+      "file": "methods/var/adapter/__init__.py",
+      "old": "    keys = EVAL_TRAIN_KEYS if stage == \"linear_eval\" else TRAIN_KEYS",
+      "new": "    keys = EVAL_TRAIN_KEYS | TRAIN_KEYS",
+      "tests": [
+        "tests.test_method_var.TestLinearEvalConfig",
+        "tests.test_method_var.TestConfigTranslation"
+      ]
+    },
+    {
+      "label": "the absent encoder is not explained",
+      "file": "methods/var/adapter/__init__.py",
+      "old": "    if _stage_of(config_path) != \"linear_eval\":\n        return None",
+      "new": "    return None\n    if False:\n        return None",
+      "tests": [
+        "tests.test_method_var.TestTheEvalProducesNoEncoder",
+        "tests.test_method_var.TestALinearEvalSmoke"
+      ]
+    },
+    {
+      "label": "the stage is not read from the config, so linear_eval runs as step 1",
+      "file": "methods/var/adapter/__init__.py",
+      "old": "                              stage=_stage_of(a.config), body=body,",
+      "new": "                              stage=STAGES[0], body=body,",
+      "tests": [
+        "tests.test_method_var.TestALinearEvalSmoke"
+      ]
+    },
+    {
+      "label": "the download is not checked against the pinned sha256",
+      "file": "bin/fetch-weights.py",
+      "old": "        if got != art[\"sha256\"]:",
+      "new": "        if False:",
+      "tests": [
+        "tests.test_fetch_weights.TestFetchWeights"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-08-05",
+    "measured_with": ".venvs/var (cu130 lock) on this host; the probe/smoke tests need torch, the fetch-weights tests are standard-library",
+    "killed": 6,
+    "total": 6,
+    "equivalent": []
+  }
+}

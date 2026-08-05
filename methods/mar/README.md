@@ -34,7 +34,7 @@ so it neither imports nor runs without a GPU. `train_step1_mar.py` owns the
 cached-latent path of its `train_one_epoch` with the DDP / AMP / EMA / FID
 machinery removed, so one training step runs on a CPU or a GPU unchanged.
 
-## `encoder.pt`, and why there is no linear evaluation yet
+## `encoder.pt`, and why there is no linear evaluation
 
 `encoder.pt` is the **MAE-encoder side** of MAR (the token projection, the
 encoder blocks and norm, the class embedding and the learned buffers
@@ -43,11 +43,22 @@ encoder blocks and norm, the class embedding and the learned buffers
 port, and the round trip — write it, load it back into a rebuilt `mar_base`,
 compare the weights — is tested.
 
-**Which representation a downstream probe should read from a *generative* model
-is a deliberately deferred question** (CONTRACT section 7): a diffusion-based
-generator has no single obvious feature vector, and the choice belongs with the
-foundation-model methods that raise the same question. So this port ships no
-`linear_eval` stage; its numbers are pretext only.
+**MAR's `linear_eval` is deferred because the lab's evaluation cannot be
+faithfully reproduced from what was captured** — this is a measured finding, not
+a design preference. The lab's ARSSL harness
+(`methods_step3/ARSSL/src/features/extract.py` and `src/run_eval.py`) evaluates
+MAR through `from models_mar import mar_base` and `model.forward_encoder(images,
+mask_ratio=0.0)`. Neither exists in the pinned upstream (`c6d53f7`): its module
+is `models.mar`, and its encoder entry point is
+`forward_mae_encoder(x, mask, class_embedding)` over VAE latents, not
+`forward_encoder` over raw images. The lab's own mar checkout — the one with
+`models_mar` and that method — is not in the Capture snapshot (the inventory
+records it as a `0B`, `dirty-without-patch` gitlink), the MAR checkpoint is
+HuggingFace-gated, and the harness carries documented silent-fallback bugs
+(`DEF-01`, `DEF-02`). So the exact representation the lab probed is not
+recoverable here. Rather than invent one and label it "MAR's", this port ships no
+`linear_eval` stage; `docs/EVAL_DOWNLOAD.md` records the evidence, and CONTRACT
+section 7 is where a chosen representation would be decided.
 
 ## What has and has not been exercised
 

@@ -111,6 +111,36 @@ def model_kwargs(train: dict) -> dict:
     }
 
 
+def build_vqvae(arch: dict, vqvae_ckpt, device):
+    """Build the VQVAE tokeniser (and the VAR model it comes paired with) and
+    put the VQVAE in eval mode.
+
+    Used by step-1 training *and* by linear_eval, so the tokeniser is built and
+    initialised in exactly one place. A real run loads the pretrained tokeniser
+    (`vqvae_ckpt`, a download); with none, the parameters are given finite,
+    seeded weights.
+
+    `build_vae_var` disables `reset_parameters` and initialises only VAR, so a
+    VQVAE built without a checkpoint is left uninitialised (`torch.empty`). Its
+    contents are environment-dependent -- finite on one host, NaN on another --
+    which made a run reproducible on one machine and divergent on the next.
+    Seeded normal weights make a hermetic run well-defined; a real run loads a
+    pretrained VQVAE and never takes that path. The caller seeds
+    (`make_deterministic`) before building, so `normal_` is deterministic.
+    """
+    build_vae_var = _load_upstream()
+    vae, var = build_vae_var(device=device, flash_if_available=False,
+                             fused_if_available=False, **model_kwargs(arch))
+    if vqvae_ckpt:
+        vae.load_state_dict(torch.load(vqvae_ckpt, map_location="cpu"),
+                            strict=True)
+    else:
+        for p in vae.parameters():
+            torch.nn.init.normal_(p, mean=0.0, std=0.02)
+    vae.eval()
+    return vae, var
+
+
 def resolve_device(spec: str, local_rank: int = 0) -> "torch.device":
     """Which device to run on, decided rather than assumed.
 
@@ -207,25 +237,9 @@ def run(args, config: dict | None = None) -> dict:
     save_dir = cfg["output"]["checkpoint_dir"]
     os.makedirs(save_dir, exist_ok=True)
 
-    build_vae_var = _load_upstream()
     mk = model_kwargs(cfg["model"])
-    vae, var = build_vae_var(device=device, flash_if_available=False,
-                             fused_if_available=False, **mk)
-
     ckpt = cfg["data"].get("vqvae_ckpt")
-    if ckpt:
-        vae.load_state_dict(torch.load(ckpt, map_location="cpu"), strict=True)
-    else:
-        # build_vae_var disables reset_parameters and initialises only VAR, so a
-        # VQVAE built without a checkpoint is left uninitialised (torch.empty).
-        # Its contents are environment-dependent -- finite on one host, NaN on
-        # another -- which made tokenisation, and the whole run, reproducible on
-        # one machine and divergent on the next. Give it finite, seeded weights
-        # so the smoke's tokenisation is well-defined. A real run loads a
-        # pretrained VQVAE (vqvae_ckpt) and never takes this path.
-        for p in vae.parameters():
-            torch.nn.init.normal_(p, mean=0.0, std=0.02)
-    vae.eval()
+    vae, var = build_vqvae(cfg["model"], ckpt, device)
     var.train()
 
     optimizer = torch.optim.AdamW(

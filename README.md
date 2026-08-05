@@ -93,6 +93,7 @@ shown so the shape is visible before it is built.
 │   ├── run-ci-locally.py            run the workflow here, by reading it
 │   ├── mutate.py                     break the code, check the tests notice
 │   ├── build-lock.py                 render a resolved set into a CPU lock
+│   ├── fetch-weights.py              download a pinned, hash-checked backbone
 │   └── contract-test.py              decides by machine that a port is finished
 ├── adapterlib/                     the one place a run_manifest.json is written
 │   └── __init__.py                                                    exists
@@ -139,6 +140,7 @@ shown so the shape is visible before it is built.
 │           └── run_manifest.json
 ├── docs/
 │   ├── PLATFORMS.md                  the platform separation          exists
+│   ├── EVAL_DOWNLOAD.md              generative-method probes + weights
 │   └── GPU.md                        GPU env + the device invariant   exists
 ├── tests/                          one file per unit, plus the chain  exists
 │   ├── test_resolve_config.py
