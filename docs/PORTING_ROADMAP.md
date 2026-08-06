@@ -58,8 +58,8 @@ rest — e.g. capture `14_simclrv1` ↔ list #14 = PIRL; capture `17_swav` ↔ l
 | 2 | Context Prediction | `1_context_prediction` | no | ported (`01_context_prediction`) |
 | 3 | Colorization | `3_colorization` | **yes** | not ported (Group 3: opencv/skimage) |
 | 4 | Context Encoder | `4_context_encoder` | **yes** | ported (`04_context_encoder`) |
-| 5 | Jigsaw Puzzles | `5_jigsaw_puzzle` | **yes** | **portable now (Group 1)** |
-| 6 | Rotation Prediction | `6_rotation_prediction` | **yes** | **portable now (Group 1)** |
+| 5 | Jigsaw Puzzles | `5_jigsaw_puzzle` | **yes** | ported (`05_jigsaw_puzzle`) |
+| 6 | Rotation Prediction | `6_rotation_prediction` | **yes** | ported (`06_rotation_prediction`) |
 | 7 | DeepCluster | `7_deepcluster` | **yes** | portable now (Group 1; verify faiss) |
 | 8 | SplitBrain | `8_split_brain` | **yes** | not ported (Group 3: no `models/`) |
 | 9 | Jigsaw Puzzle++ | `9_jigsaw_puzzle_pp` | **yes** | **portable now (Group 1)** |
@@ -101,10 +101,10 @@ already-ported methods that are mismatched (`01`, `02`, `17`, `20`, `21`, `25`,
 `27`, `36`) stay as-is for now; whether to renumber them at publication is part of
 that same decision.
 
-**Portable now (numbering matches + not yet ported):** `5_jigsaw_puzzle`,
-`6_rotation_prediction`, `9_jigsaw_puzzle_pp`, `10_inst_disc`, `11_cpc`,
-`12_cmc`, `13_mocov1` (Group 1); plus `3_colorization`, `7_deepcluster`,
-`8_split_brain` once their dependency / submodule needs are resolved (Group 3).
+**Portable now (numbering matches + not yet ported):** `9_jigsaw_puzzle_pp`,
+`10_inst_disc`, `11_cpc`, `12_cmc`, `13_mocov1` (Group 1); plus `3_colorization`,
+`7_deepcluster`, `8_split_brain` once their dependency / submodule needs are
+resolved (Group 3). (`5_jigsaw_puzzle` and `6_rotation_prediction` ported.)
 
 ## Per-port procedure (strict TDD, as used for every prior method)
 
