@@ -1,0 +1,32 @@
+# Jigsaw++ step 1: VGG16 permutation-classification pretext (Noroozi et al.,
+# CVPR 2018; arXiv:1805.00385), the VGG16 recipe (paper stage a).
+#
+# These are the settings the recipe uses -- the recipe, not a result. Nothing
+# here has executed a full run; the README says what was and was not exercised.
+# The paper's faiss-GPU knowledge-transfer stages (cluster -> pseudo-labels ->
+# AlexNet) are not part of this port.
+#
+# One path is passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   a folder of training images (searched recursively)
+# The output path is fixed at --out.
+stage: step1
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+
+train:
+  # model / puzzle (build_vgg16_jigsaw_pp_model + JigsawPPDataset)
+  num_permutations: 701
+  dropout: 0.5
+  tile_size: 75
+  tile_gap: 0
+  image_size: 255
+  grayscale_prob: 0.7    # paper: ~70% of images trained on grayscale
+  max_occlusions: 2      # paper: at most 2 tiles from a random other image
+  # training (SGD + step decay, as in the paper)
+  epochs: 90
+  batch_size: 256
+  num_workers: 16
+  lr: 0.01
+  momentum: 0.9
+  weight_decay: 0.0005
