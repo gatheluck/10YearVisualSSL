@@ -1,0 +1,28 @@
+# Jigsaw step 1: permutation-classification pretext (Noroozi & Favaro, ECCV 2016;
+# arXiv:1603.09246), the AlexNet/CFN recipe.
+#
+# These are the settings the recipe uses -- the recipe, not a result. Nothing
+# here has executed a full run; the README says what was and was not exercised.
+#
+# One path is passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   an ImageFolder of training images
+# The output path is fixed at --out.
+stage: step1
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+
+train:
+  # model / puzzle (build_alexnet_jigsaw_model + JigsawPuzzleDataset)
+  num_permutations: 1000
+  dropout: 0.5
+  tile_size: 75
+  tile_gap: 2
+  image_size: 255
+  # training (SGD + step decay, as in the paper)
+  epochs: 300
+  batch_size: 128
+  num_workers: 8
+  lr: 0.01
+  momentum: 0.9
+  weight_decay: 0.0005

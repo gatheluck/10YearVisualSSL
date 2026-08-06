@@ -1,0 +1,59 @@
+{
+  "_note": "Run: .venvs/05_jigsaw_puzzle/bin/python bin/mutate.py --spec mutations/05_jigsaw_puzzle-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/05_jigsaw_puzzle/bin/python. Proves the model/dataset/two-stage guards are not vacuous: the encoder pools to one vector per image, the permutation set is deterministic, encoder.pt excludes the classifier, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
+  "targets": [
+    {
+      "label": "the encoder feature is not pooled to one vector per image",
+      "file": "methods/05_jigsaw_puzzle/models/alexnet_jigsaw.py",
+      "old": "        return torch.flatten(x, 1)",
+      "new": "        return torch.flatten(x, 2)",
+      "tests": [
+        "tests.test_method_05_jigsaw_puzzle.TestTheModel.test_the_encoder_returns_one_feature_vector_per_image"
+      ]
+    },
+    {
+      "label": "the permutation set is no longer deterministic",
+      "file": "methods/05_jigsaw_puzzle/data/jigsaw_dataset.py",
+      "old": "        np.random.seed(42)",
+      "new": "        pass",
+      "tests": [
+        "tests.test_method_05_jigsaw_puzzle.TestTheDataset.test_the_permutation_set_is_deterministic"
+      ]
+    },
+    {
+      "label": "the classifier is no longer excluded from encoder.pt",
+      "file": "methods/05_jigsaw_puzzle/adapter/__init__.py",
+      "old": "    out = {k: v for k, v in state_dict.items()\n           if k.startswith(ENCODER_PREFIXES)}",
+      "new": "    out = {k: v for k, v in state_dict.items()}",
+      "tests": [
+        "tests.test_method_05_jigsaw_puzzle.TestExtractingTheEncoder"
+      ]
+    },
+    {
+      "label": "a downstream probe number is mapped to a pretext name",
+      "file": "methods/05_jigsaw_puzzle/adapter/__init__.py",
+      "old": "    \"final_top1_acc\": \"final_linear_probe_top1_accuracy\",",
+      "new": "    \"final_top1_acc\": \"final_pretext_top1_accuracy\",",
+      "tests": [
+        "tests.test_method_05_jigsaw_puzzle.TestTheMetricsAreInTheVocabulary",
+        "tests.test_method_05_jigsaw_puzzle.TestALinearEvalSmoke"
+      ]
+    },
+    {
+      "label": "the absent encoder is not explained",
+      "file": "methods/05_jigsaw_puzzle/adapter/__init__.py",
+      "old": "    if _stage_of(config_path) != \"linear_eval\":\n        return None",
+      "new": "    return None\n    if False:\n        return None",
+      "tests": [
+        "tests.test_method_05_jigsaw_puzzle.TestTheEvalProducesNoEncoder",
+        "tests.test_method_05_jigsaw_puzzle.TestALinearEvalSmoke.test_it_produces_no_encoder_and_says_so"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-08-06",
+    "measured_with": ".venvs/05_jigsaw_puzzle (cu130) on an NVIDIA Tesla T4",
+    "killed": 5,
+    "total": 5,
+    "equivalent": []
+  }
+}
