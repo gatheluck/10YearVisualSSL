@@ -1,0 +1,22 @@
+{
+  "captured_at": "2026-08-06",
+  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
+  "captured_note": "Ported from the capture's self-contained methods/6_rotation_prediction, whose models/alexnet_rotation.py and data/rotation_dataset.py are the lab's own implementation of Gidaris et al. (2018), following the official RotNet AlexNet-BN, torch/torchvision only. So it ports self-contained (no third_party submodule), the treatment the other re-implemented methods received. The capture directory number (6) equals this method's number in the Step 1&2 list (see docs/PORTING_ROADMAP.md).",
+  "paper": {
+    "title": "Unsupervised Representation Learning by Predicting Image Rotations",
+    "authors": "Gidaris, Singh, Komodakis",
+    "year": 2018,
+    "arxiv": "1803.07728",
+    "venue": "ICLR 2018"
+  },
+  "encoder": "encoder.pt is the AlexNet-BN feature extractor (encoder.*): the five convolutional blocks and the two FC blocks, producing a 4096-d feature per image. The 4-class rotation head (classifier.*) is pretext machinery and is excluded.",
+  "linear_eval": "Reads the trained encoder.pt and probes the AlexNet-BN encoder's 4096-d feature (images resized to the encoder's training input size), a genuine learned representation -- so the number is comparable. Follows the lab's ARSSL probe (L2-normalise + mean-centre, single linear layer, SGD momentum + cosine, top1/top5). The capture's research eval could select an earlier conv layer; the port fixes the representation at the trained encoder's output for a single comparable number, as in every other self-contained port here.",
+  "rewritten_during_the_port": [
+    "an AdaptiveAvgPool2d((6, 6)) is added before the FC block so the encoder accepts any input size; at the paper's 224px input the pool5 map is already 6x6, so the pool is an identity there and only matters for the smaller inputs a CPU smoke uses",
+    "the device is resolved (resolve_device) instead of assumed CUDA (the lab wrapper reached CUDA through DistributedDataParallel/setup_dist)",
+    "main() split into build_parser()/run(args, config) returning the pretext loss/accuracy and epoch count",
+    "the run is seeded through make_deterministic (python, numpy, torch)",
+    "the training loop drops the upstream DistributedDataParallel and the TensorBoard logging so the same step runs on a CPU or a GPU unchanged",
+    "the capture's step 2 (ViT rotation) is excluded, as in every port"
+  ]
+}

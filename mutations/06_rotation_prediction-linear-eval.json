@@ -1,0 +1,68 @@
+{
+  "_note": "Run: .venvs/06_rotation_prediction/bin/python bin/mutate.py --spec mutations/06_rotation_prediction-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/06_rotation_prediction/bin/python. Proves the model/dataset/two-stage guards are not vacuous: the encoder returns one vector per image, the four rotations are the actual right angles, the collate flattens correctly, encoder.pt excludes the classifier, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
+  "targets": [
+    {
+      "label": "the encoder no longer returns one feature vector per image",
+      "file": "methods/06_rotation_prediction/models/alexnet_rotation.py",
+      "old": "        return x.view(x.size(0), -1)",
+      "new": "        return x.view(x.size(0) * x.size(1), -1)",
+      "tests": [
+        "tests.test_method_06_rotation_prediction.TestTheModel.test_the_encoder_returns_one_feature_vector_per_image"
+      ]
+    },
+    {
+      "label": "a 90-degree rotation is not actually applied",
+      "file": "methods/06_rotation_prediction/data/rotation_dataset.py",
+      "old": "    if angle == 90:\n        return torch.flip(img.transpose(1, 2), [1])",
+      "new": "    if angle == 90:\n        return img",
+      "tests": [
+        "tests.test_method_06_rotation_prediction.TestTheDataset.test_the_rotations_are_the_four_right_angles"
+      ]
+    },
+    {
+      "label": "the collate stops flattening the four rotations into samples",
+      "file": "methods/06_rotation_prediction/data/rotation_dataset.py",
+      "old": "    return images.view(bsz * rot, c, h, w), labels.view(bsz * rot)",
+      "new": "    return images.view(bsz * rot, c, h, w), labels.view(bsz, rot)",
+      "tests": [
+        "tests.test_method_06_rotation_prediction.TestTheDataset.test_the_collate_flattens_images_and_labels"
+      ]
+    },
+    {
+      "label": "the classifier is no longer excluded from encoder.pt",
+      "file": "methods/06_rotation_prediction/adapter/__init__.py",
+      "old": "    out = {k: v for k, v in state_dict.items()\n           if k.startswith(ENCODER_PREFIXES)}",
+      "new": "    out = {k: v for k, v in state_dict.items()}",
+      "tests": [
+        "tests.test_method_06_rotation_prediction.TestExtractingTheEncoder"
+      ]
+    },
+    {
+      "label": "a downstream probe number is mapped to a pretext name",
+      "file": "methods/06_rotation_prediction/adapter/__init__.py",
+      "old": "    \"final_top1_acc\": \"final_linear_probe_top1_accuracy\",",
+      "new": "    \"final_top1_acc\": \"final_pretext_top1_accuracy\",",
+      "tests": [
+        "tests.test_method_06_rotation_prediction.TestTheMetricsAreInTheVocabulary",
+        "tests.test_method_06_rotation_prediction.TestALinearEvalSmoke"
+      ]
+    },
+    {
+      "label": "the absent encoder is not explained",
+      "file": "methods/06_rotation_prediction/adapter/__init__.py",
+      "old": "    if _stage_of(config_path) != \"linear_eval\":\n        return None",
+      "new": "    return None\n    if False:\n        return None",
+      "tests": [
+        "tests.test_method_06_rotation_prediction.TestTheEvalProducesNoEncoder",
+        "tests.test_method_06_rotation_prediction.TestALinearEvalSmoke.test_it_produces_no_encoder_and_says_so"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-08-06",
+    "measured_with": ".venvs/06_rotation_prediction (cu130) on an NVIDIA Tesla T4",
+    "killed": 6,
+    "total": 6,
+    "equivalent": []
+  }
+}
