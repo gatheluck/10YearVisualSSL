@@ -149,6 +149,7 @@ shown so the shape is visible before it is built.
 ├── docs/
 │   ├── PLATFORMS.md                  the platform separation          exists
 │   ├── EVAL_DOWNLOAD.md              generative-method probes + weights
+│   ├── PORTING_ROADMAP.md            the 37 Step 1&2 methods, order, status
 │   └── GPU.md                        GPU env + the device invariant   exists
 ├── tests/                          one file per unit, plus the chain  exists
 │   ├── test_resolve_config.py
