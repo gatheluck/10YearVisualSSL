@@ -1,0 +1,59 @@
+{
+  "_note": "Run: .venvs/25_mae/bin/python bin/mutate.py --spec mutations/25_mae-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/25_mae/bin/python. Proves the two-stage guards are not vacuous (the tests were written after this self-contained port, so mutation is the proof they bite): the encoder feature is one vector per image, encoder.pt excludes the decoder, a downstream number cannot borrow a pretext name, the absent encoder is declared, and the stage is read from the config.",
+  "targets": [
+    {
+      "label": "the encoder feature is no longer pooled to one vector per image",
+      "file": "methods/25_mae/models/mae_vit.py",
+      "old": "        return x[:, 1:, :].mean(dim=1)",
+      "new": "        return x[:, 1:, :].mean(dim=2)",
+      "tests": [
+        "tests.test_method_25_mae.TestTheModel.test_the_encoder_returns_one_vector_per_image"
+      ]
+    },
+    {
+      "label": "the decoder is no longer excluded from encoder.pt",
+      "file": "methods/25_mae/adapter/__init__.py",
+      "old": "    out = {k: v for k, v in state_dict.items()\n           if k.startswith(ENCODER_PREFIXES)}",
+      "new": "    out = {k: v for k, v in state_dict.items()}",
+      "tests": [
+        "tests.test_method_25_mae.TestExtractingTheEncoder"
+      ]
+    },
+    {
+      "label": "a downstream probe number is mapped to a pretext name",
+      "file": "methods/25_mae/adapter/__init__.py",
+      "old": "    \"final_top1_acc\": \"final_linear_probe_top1_accuracy\",",
+      "new": "    \"final_top1_acc\": \"final_pretext_top1_accuracy\",",
+      "tests": [
+        "tests.test_method_25_mae.TestTheMetricsAreInTheVocabulary",
+        "tests.test_method_25_mae.TestALinearEvalSmoke"
+      ]
+    },
+    {
+      "label": "the absent encoder is not explained",
+      "file": "methods/25_mae/adapter/__init__.py",
+      "old": "    if _stage_of(config_path) != \"linear_eval\":\n        return None",
+      "new": "    return None\n    if False:\n        return None",
+      "tests": [
+        "tests.test_method_25_mae.TestTheEvalProducesNoEncoder",
+        "tests.test_method_25_mae.TestALinearEvalSmoke.test_it_produces_no_encoder_and_says_so"
+      ]
+    },
+    {
+      "label": "the stage is not read from the config, so linear_eval runs as step 1",
+      "file": "methods/25_mae/adapter/__init__.py",
+      "old": "                              stage=_stage_of(a.config), body=body,",
+      "new": "                              stage=STAGES[0], body=body,",
+      "tests": [
+        "tests.test_method_25_mae.TestALinearEvalSmoke"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-08-05",
+    "measured_with": ".venvs/25_mae (cu130 lock) on an NVIDIA Tesla T4",
+    "killed": 5,
+    "total": 5,
+    "equivalent": []
+  }
+}

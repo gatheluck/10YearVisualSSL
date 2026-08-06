@@ -1,0 +1,12 @@
+# What the 25_mae port's own files import, and nothing else. Checked in both
+# directions by tests/test_method_requirements.py. Floors only; the exact hashed
+# closure is in requirements.lock.txt (CPU) and requirements.lock.cu130.txt.
+#
+# A self-contained re-implementation (the lab's own MAE, no submodule): the
+# model, the training loop and the probe are all here. torch is imported
+# directly; numpy backs the seeding; torchvision provides the ImageFolder and
+# transforms; PyYAML is read to load a YAML config on the stand-alone path.
+torch>=2.1.0
+torchvision>=0.16.0
+numpy>=1.24.0
+PyYAML>=6.0
