@@ -1,0 +1,21 @@
+{
+  "captured_at": "2026-08-06",
+  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
+  "captured_note": "Ported from the capture's self-contained methods/5_jigsaw_puzzle, whose models/alexnet_jigsaw.py and data/jigsaw_dataset.py are the lab's own implementation of Noroozi & Favaro (2016), torch/torchvision only. So it ports self-contained (no third_party submodule), the treatment the other re-implemented methods received. The capture directory number (5) equals this method's number in the Step 1&2 list (see docs/PORTING_ROADMAP.md).",
+  "paper": {
+    "title": "Unsupervised Learning of Visual Representations by Solving Jigsaw Puzzles",
+    "authors": "Noroozi, Favaro",
+    "year": 2016,
+    "arxiv": "1603.09246",
+    "venue": "ECCV 2016"
+  },
+  "encoder": "encoder.pt is the shared Context-Free Network (CFN) encoder (encoder.*): the AlexNet conv stack, the 1x1-conv CFN layers and the adaptive pool, producing a 512-d feature per tile/image. The permutation classifier (classifier.*) is pretext machinery and is excluded.",
+  "linear_eval": "Reads the trained encoder.pt and probes the CFN encoder's 512-d feature (images resized to the encoder's tile size), a genuine learned representation -- so the number is comparable. Follows the lab's ARSSL probe (L2-normalise + mean-centre, single linear layer, SGD momentum + cosine, top1/top5).",
+  "rewritten_during_the_port": [
+    "the device is resolved (resolve_device) instead of assumed CUDA (the lab wrapper reached CUDA through DistributedDataParallel/setup_dist)",
+    "main() split into build_parser()/run(args, config) returning the pretext loss/accuracy and epoch count",
+    "the run is seeded through make_deterministic (python, numpy, torch)",
+    "the training loop drops the upstream DistributedDataParallel and the TensorBoard logging so the same step runs on a CPU or a GPU unchanged",
+    "the capture's step 2 (ViT jigsaw) is excluded, as in every port"
+  ]
+}
