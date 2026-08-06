@@ -125,7 +125,8 @@ shown so the shape is visible before it is built.
 │       └── configs/
 ├── third_party/                    authors' code, untouched          exists
 │   ├── mar/                          pinned submodule (fork), used by methods/mar
-│   └── var/                          pinned submodule, used by methods/var
+│   ├── var/                          pinned submodule, used by methods/var
+│   └── franca/                       pinned submodule, used by methods/36_franca
 ├── mutations/                      mutation specs, with their measured results
 ├── platforms/                      where a job runs. Loosely coupled  exists
 │   ├── base.py                       the shared interface, free of platform terms

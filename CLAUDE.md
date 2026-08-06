@@ -182,7 +182,9 @@ cat CLAUDE.md
 #   docs/CONTRACT.md  the adapter contract
 #   docs/INVENTORY.md the inventory of author repositories
 # Design that lives here, in this repository:
-#   docs/PLATFORMS.md where a job runs; the platform layer
-#   docs/GPU.md       the GPU environment, and the device invariant every method holds
+#   docs/PLATFORMS.md    where a job runs; the platform layer
+#   docs/GPU.md          the GPU environment, and the device invariant every method holds
+#   docs/EVAL_DOWNLOAD.md what a generative/eval-only method's linear_probe measures,
+#                         and the pinned-download / frozen-backbone shape (CONTRACT section 7)
 ./tests/run-tests.sh; echo "EXIT=$?"
 ```
