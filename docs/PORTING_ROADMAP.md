@@ -16,7 +16,8 @@ independent implementation following the paper, torch-based — the same
 license-clean pattern as `25_mae`/`image_gpt`/the clean six). Those port
 **self-contained on the existing `step1 → encoder.pt → linear_probe` contract**;
 no submodule, no download, no noncommercial entanglement. Five have no `models/`
-(`8_split_brain`, `34_msn`, `35_vjepa`, `36_franca`(done, eval-only), `37_lejepa`)
+(`8_split_brain`(done, `08_split_brain` -- a plain AlexNet, self-contained after all),
+`34_msn`, `35_vjepa`, `36_franca`(done, eval-only), `37_lejepa`)
 and need a submodule / eval-only treatment (and, for msn/vjepa/lejepa, a
 noncommercial-licence decision).
 
@@ -30,7 +31,7 @@ exact dependencies, the backbone, and step-1 reproducibility.
 - **B — + timm** (reuse a mar-style lock): mocov1/2/3, simclrv1/2, byol, sela, inst_disc, cpc, cmc, rotation, simmim, dinov2, dinov3, ijepa, nepa.
 - **B' — + huggingface_hub** (var-style): `30_aim`.
 - **C — heavy special deps**: ~~`3_colorization` (opencv/scikit-image)~~ **ported torch-only as `03_colorization`: its code imports neither opencv nor scikit-image despite the capture's requirements.txt naming them (measured); the Lab conversion and ab-quantisation are numpy**. `24_beit` (DALL-E tokeniser), `7_deepcluster` (faiss? — verify), `9_jigsaw_puzzle_pp`'s **knowledge-transfer stages** (faiss-GPU k-means, mandatory — the capture's `cluster_and_pseudolabels.py` explicitly refuses the CPU/sklearn fallback; **measured, contradicts the earlier "tier B / +timm" guess**). The VGG16 **pretext** stage alone is tier-A (torch/torchvision/numpy/Pillow/PyYAML) and is what `09_jigsaw_puzzle_pp` ports.
-- **D — no `models/` (submodule / eval-only, often noncommercial)**: `8_split_brain`, `34_msn`, `35_vjepa`, `37_lejepa`.
+- **D — no `models/` (submodule / eval-only, often noncommercial)**: `34_msn`, `35_vjepa`, `37_lejepa`. (`8_split_brain` was here on the "no `models/` dir" signal, but measuring showed its flat `model.py` is a plain two-branch AlexNet -- self-contained torch-only, now ported as `08_split_brain`; the label was not evidence.)
 
 TensorBoard / tqdm / wandb logging is dropped (the port owns a thin single-process
 loop), as in every prior port.
@@ -42,7 +43,7 @@ special-dep / submodule / eval-only / noncommercial last.
 
 - **Group 1 — ResNet/CNN pretext & contrastive** (reuse the simsiam/swav/barlow ResNet + linear-probe template): jigsaw, rotation, jigsaw++ (VGG16 pretext only), inst_disc, pirl, deepcluster, cpc, cmc, mocov1/2/3, simclrv1/2, sela, byol.
 - **Group 2 — ViT** (reuse the ibot/mae ViT template): simmim, dino, dinov2, dinov3, ijepa, nepa, aim.
-- **Group 3 — special deps / submodule / eval-only / licence decision**: colorization (ported torch-only, `03_colorization` -- the opencv/skimage tag was a requirements.txt mislabel), beit, deepcluster(if faiss), `9_jigsaw_puzzle_pp`'s faiss-GPU knowledge-transfer stages (cluster → pseudo-labels → AlexNet cluster-cls, alongside deepcluster), split_brain, msn, vjepa, lejepa.
+- **Group 3 — special deps / submodule / eval-only / licence decision**: colorization (ported torch-only, `03_colorization` -- the opencv/skimage tag was a requirements.txt mislabel), beit, deepcluster(if faiss), `9_jigsaw_puzzle_pp`'s faiss-GPU knowledge-transfer stages (cluster → pseudo-labels → AlexNet cluster-cls, alongside deepcluster), split_brain (ported torch-only, `08_split_brain` -- the "no models/" tag was not a blocker), msn, vjepa, lejepa.
 
 ## Numbering: capture number vs this list's number
 
@@ -61,7 +62,7 @@ rest — e.g. capture `14_simclrv1` ↔ list #14 = PIRL; capture `17_swav` ↔ l
 | 5 | Jigsaw Puzzles | `5_jigsaw_puzzle` | **yes** | ported (`05_jigsaw_puzzle`) |
 | 6 | Rotation Prediction | `6_rotation_prediction` | **yes** | ported (`06_rotation_prediction`) |
 | 7 | DeepCluster | `7_deepcluster` | **yes** | portable now (Group 1; verify faiss) |
-| 8 | SplitBrain | `8_split_brain` | **yes** | not ported (Group 3: no `models/`) |
+| 8 | SplitBrain | `8_split_brain` | **yes** | ported (`08_split_brain`; torch-only -- the capture's flat `model.py` (no `models/` dir) is a plain two-branch AlexNet, not a submodule/eval-only method; scipy/skimage were imported but the released target is numpy argmin, measured) |
 | 9 | Jigsaw Puzzle++ | `9_jigsaw_puzzle_pp` | **yes** | ported (`09_jigsaw_puzzle_pp`, VGG16 pretext only; faiss knowledge-transfer deferred to Group 3) |
 | 10 | InstDisc | `10_inst_disc` | **yes** | ported (`10_inst_disc`) |
 | 11 | CPC | `11_cpc` | **yes** | ported (`11_cpc`) |
@@ -104,7 +105,7 @@ that same decision.
 **Portable now (numbering matches + not yet ported):** the Group-1 tier
 (`5_jigsaw_puzzle`, `6_rotation_prediction`, `9_jigsaw_puzzle_pp`, `10_inst_disc`,
 `11_cpc`, `12_cmc`, `13_mocov1`) is now fully ported. What remains needs
-dependency / submodule work: `7_deepcluster`, `8_split_brain`
+dependency / submodule work: `7_deepcluster`
 (Group 3).
 (`5_jigsaw_puzzle`, `6_rotation_prediction`, `10_inst_disc`, `11_cpc`, `12_cmc`,
 `13_mocov1` ported.

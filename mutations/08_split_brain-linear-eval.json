@@ -1,0 +1,68 @@
+{
+  "_note": "Run: .venvs/08_split_brain/bin/python bin/mutate.py --spec mutations/08_split_brain-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/08_split_brain/bin/python. Proves the model/colour/two-stage guards are not vacuous: the probe feature concatenates both encoders per image, the cross-channel branches predict the right bin counts, the numpy CIE Lab conversion is correct, encoder.pt excludes the decoders, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
+  "targets": [
+    {
+      "label": "the probe feature no longer concatenates the two encoders per image",
+      "file": "methods/08_split_brain/models/split_brain.py",
+      "old": "self.net2.extract_features(ab_input)], dim=1)",
+      "new": "self.net2.extract_features(ab_input)], dim=0)",
+      "tests": [
+        "tests.test_method_08_split_brain.TestTheModel.test_extract_features_concatenates_both_encoders"
+      ]
+    },
+    {
+      "label": "net1 no longer predicts the 313 ab bins (cross-channel target wrong)",
+      "file": "methods/08_split_brain/models/split_brain.py",
+      "old": "self.net1 = SplitBrainAlexNet(1, AB_TARGET_CLASSES)",
+      "new": "self.net1 = SplitBrainAlexNet(1, L_TARGET_CLASSES)",
+      "tests": [
+        "tests.test_method_08_split_brain.TestTheModel.test_forward_predicts_both_cross_channels"
+      ]
+    },
+    {
+      "label": "the CIE Lab L channel drops its -16 offset (Lab conversion wrong)",
+      "file": "methods/08_split_brain/data/split_brain_dataset.py",
+      "old": "    L = 116.0 * f[..., 1] - 16.0",
+      "new": "    L = 116.0 * f[..., 1]",
+      "tests": [
+        "tests.test_method_08_split_brain.TestColourAndQuantization.test_rgb2lab_matches_cie_reference"
+      ]
+    },
+    {
+      "label": "the decoders are no longer excluded from encoder.pt",
+      "file": "methods/08_split_brain/adapter/__init__.py",
+      "old": "    out = {k: v for k, v in state_dict.items()\n           if k.startswith(ENCODER_PREFIXES)}",
+      "new": "    out = {k: v for k, v in state_dict.items()}",
+      "tests": [
+        "tests.test_method_08_split_brain.TestExtractingTheEncoder"
+      ]
+    },
+    {
+      "label": "a downstream probe number is mapped to a pretext name",
+      "file": "methods/08_split_brain/adapter/__init__.py",
+      "old": "    \"final_top1_acc\": \"final_linear_probe_top1_accuracy\",",
+      "new": "    \"final_top1_acc\": \"final_pretext_loss\",",
+      "tests": [
+        "tests.test_method_08_split_brain.TestTheMetricsAreInTheVocabulary",
+        "tests.test_method_08_split_brain.TestALinearEvalSmoke"
+      ]
+    },
+    {
+      "label": "the absent encoder is not explained",
+      "file": "methods/08_split_brain/adapter/__init__.py",
+      "old": "    if _stage_of(config_path) != \"linear_eval\":\n        return None",
+      "new": "    return None\n    if False:\n        return None",
+      "tests": [
+        "tests.test_method_08_split_brain.TestTheEvalProducesNoEncoder",
+        "tests.test_method_08_split_brain.TestALinearEvalSmoke.test_it_produces_no_encoder_and_says_so"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-08-07",
+    "measured_with": ".venvs/08_split_brain (cu130) on an NVIDIA Tesla T4",
+    "killed": 6,
+    "total": 6,
+    "equivalent": []
+  }
+}

@@ -37,7 +37,7 @@ assume it.
 | `bin/resolve-config.py` | **implemented and tested.** Produces the canonical resolved config and its `config_sha256` |
 | `bin/contract-test.py` | **implemented and tested.** Decides by machine that a port is finished |
 | `platforms/` | **implemented and tested.** Platform separation; `local` is self-contained |
-| `methods/` | **twenty methods ported and tested** (eighteen with a linear evaluation; `36_franca` is the first eval-only port, with no step 1). The per-method table is below under [Methods](#methods) |
+| `methods/` | **twenty-one methods ported and tested** (nineteen with a linear evaluation; `36_franca` is the first eval-only port, with no step 1). The per-method table is below under [Methods](#methods) |
 | `bin/launch.py` | **implemented and tested.** One command: resolve, submit, verify, record |
 | `adapterlib/` | **implemented and tested.** The one place a `run_manifest.json` is written |
 | `LICENSE` | **MIT** (Copyright (c) 2026 LIMIT.Lab) |
@@ -69,6 +69,7 @@ zero-padded so they sort in numeric order.
 | `04_context_encoder` | Context Encoder — Pathak et al., 2016 | step 1 + linear eval | the one GAN (two models, two optimisers); `encoder.pt` is the conv encoder + bottleneck |
 | `05_jigsaw_puzzle` | Jigsaw Puzzles — Noroozi & Favaro, ECCV 2016 | step 1 + linear eval | a self-contained re-implementation (the lab's own CFN AlexNet, no submodule); predicts which permutation reordered the 3×3 tiles; `encoder.pt` is the shared CFN encoder |
 | `06_rotation_prediction` | Rotation Prediction (RotNet) — Gidaris et al., ICLR 2018 | step 1 + linear eval | a self-contained re-implementation (the lab's own AlexNet-BN, no submodule); predicts which of {0°, 90°, 180°, 270°} was applied; `encoder.pt` is the AlexNet-BN encoder |
+| `08_split_brain` | Split-Brain Autoencoders — Zhang, Isola & Efros, CVPR 2017 | step 1 + linear eval | a self-contained re-implementation (the lab's own two cross-channel AlexNets, no submodule); net1 predicts quantised **ab** (313 bins) from **L**, net2 predicts quantised **L** (50 bins) from **ab**; `encoder.pt` is both branch encoders (decoders excluded); `linear_eval` probes their concatenated 512-d feature, a genuine comparable number. Lab + quantisation are numpy (no scipy/skimage) |
 | `09_jigsaw_puzzle_pp` | Jigsaw++ — Noroozi et al., CVPR 2018 | step 1 + linear eval | a self-contained re-implementation (the lab's own VGG16, no submodule); the **VGG16 jigsaw++ pretext** (occlusions + grayscale, 701 permutations); the paper's faiss-GPU knowledge-transfer stages are deferred (Group 3); `encoder.pt` is the VGG16 encoder |
 | `10_inst_disc` | Instance Discrimination — Wu et al., CVPR 2018 | step 1 + linear eval | a self-contained re-implementation (the lab's own ResNet-50, no submodule); NCE over a momentum **memory bank** (every image its own class); `encoder.pt` is the ResNet-50 backbone (the 128-d head and the bank are excluded) |
 | `11_cpc` | CPC (visual CPC 2018) — van den Oord, Li & Vinyals, 2018 | step 1 + linear eval | a self-contained re-implementation (the lab's own `visual_cpc2018`, no submodule); a patch encoder + **PixelCNN context** predict future rows of the patch grid under **InfoNCE**; `encoder.pt` is the patch encoder (the context and predictors are excluded); `linear_eval` probes the grid-averaged z (`avg_z`), a genuine comparable number |
@@ -84,7 +85,7 @@ zero-padded so they sort in numeric order.
 | `mar` | MAR — Li et al., NeurIPS 2024 | step 1 | the first `submodule+patch` port: the model is the pinned `third_party/mar` fork, imported not copied; `linear_eval` deferred — its captured eval path is unrecoverable (CONTRACT §7, docs/EVAL_DOWNLOAD.md) |
 | `var` | VAR — Tian et al., NeurIPS 2024 | step 1 + linear eval | the first `submodule+adapter` port: `third_party/var` pinned directly (no fork). Next-scale autoregressive generation; `linear_eval` probes the pretrained VQVAE **tokeniser** (a hash-pinned download), which measures the fixed tokeniser rather than VAR's learned representation (CONTRACT §7, docs/EVAL_DOWNLOAD.md) |
 
-Seventeen produce **comparable** `linear_probe` accuracy on a genuinely learned
+Eighteen produce **comparable** `linear_probe` accuracy on a genuinely learned
 representation. `02_vae` is pretext-only and `mar` has no linear eval; `var`'s
 `linear_eval` probes a fixed pretrained tokeniser rather than its own learned
 representation, so its number is not comparable in the same sense
