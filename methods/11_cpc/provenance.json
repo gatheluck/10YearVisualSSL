@@ -1,0 +1,23 @@
+{
+  "captured_at": "2026-08-07",
+  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
+  "captured_note": "Ported from the capture's self-contained methods/11_cpc, specifically its paper-faithful visual_cpc2018 path (models/visual_cpc2018.py, data/visual_cpc2018_dataset.py, train_step1_visual_cpc2018.py). These are the lab's own implementation of van den Oord et al. (2018) visual CPC, torch/torchvision only. So it ports self-contained (no third_party submodule). The capture directory number (11) equals this method's number in the Step 1&2 list (see docs/PORTING_ROADMAP.md).",
+  "paper": {
+    "title": "Representation Learning with Contrastive Predictive Coding",
+    "authors": "van den Oord, Li, Vinyals",
+    "year": 2018,
+    "arxiv": "1807.03748"
+  },
+  "scope": "The capture ships two step-1 variants. The older local baseline (cpc_resnet: a custom residual encoder with BatchNorm and a column-wise GRU) is documented by the capture's own CPC_STEP1_PAPER_READY_BLOCK.md as a structural protocol mismatch that 'must not be submitted as a paper-ready Step 1 job' (its ImageNet linear-eval reaches only 6.4% top-1 vs the paper's ~48.7%). It is EXCLUDED. This port brings across the corrected visual_cpc2018 path: a ResNet-v2-101-style no-BN patch encoder, a PixelCNN-style masked-convolution context, and log-bilinear InfoNCE over future rows of the patch grid. The ViT step 2 is excluded, as in every port.",
+  "encoder": "encoder.pt is the patch encoder (encoder.*): conv1 + three pre-activation bottleneck stages (3, 4, 23 blocks, no BatchNorm) with a projection to z_dim, producing a z-vector per patch. The PixelCNN context (context.*) and the InfoNCE predictors (predictors.*) are pretext machinery and are excluded.",
+  "linear_eval": "Reads the trained encoder.pt and probes the grid-averaged z (avg_z, z_dim-d) -- the mean of the encoder's per-patch z over the patch grid, a genuine learned representation, so the number is comparable. Patch grids use the deterministic val pipeline (centre crop, no per-patch augmentation). Follows the lab's ARSSL probe (L2-normalise + mean-centre, single linear layer, SGD momentum + cosine, top1/top5). The capture's own eval offers avg_z / avg_context / concat modes and an SGD-milestone schedule; this port fixes avg_z with the shared ARSSL probe for a comparable number.",
+  "rewritten_during_the_port": [
+    "only the paper-faithful visual_cpc2018 path is ported; the deprecated local baseline (cpc_resnet) and the ViT step 2 are excluded",
+    "the dataset's hard-coded 7x7 grid check is relaxed to any grid of at least 2x2, so a small hermetic CPU smoke can run; the paper's 7x7 geometry is still what the shipped config asks for",
+    "the InfoNCE cross-rank all-gather (DistributedDataParallel) path is kept behind a flag but defaults off, so negatives come from within the batch in the single-process port",
+    "the device is resolved (resolve_device) instead of assumed CUDA",
+    "main() split into build_parser()/run(args, config) returning the pretext InfoNCE loss and epoch count",
+    "the run is seeded through make_deterministic (python, numpy, torch)",
+    "the training loop drops the upstream DistributedDataParallel, AMP and TensorBoard so the same step runs on a CPU or a GPU unchanged, single-process fp32"
+  ]
+}

@@ -1,0 +1,37 @@
+# Visual CPC 2018 linear evaluation: a linear probe on the frozen patch encoder.
+#
+# The probe reads the model this port trains (the patch encoder, grid-averaged to
+# one z_dim-d feature per image), so its number is a genuine, comparable linear
+# probe. The Adam knobs are step-1 only and are not accepted here.
+#
+# Two paths are passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   an ImageFolder with train/ and val/ subdirectories
+#   --set ENCODER=<path>     encoder.pt from a step-1 run
+# The output path is fixed at --out. The model / patch settings must match the
+# step-1 run that produced ENCODER.
+stage: linear_eval
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+encoder: "${ENCODER}"
+
+train:
+  # model (must match the step-1 run so encoder.pt loads)
+  z_dim: 1024
+  c_dim: 1024
+  pred_steps: 5
+  context_layers: 5
+  encoder_width_mult: 1.0
+  # data / patch grid (must match step 1)
+  source_size: 300
+  img_size: 256
+  patch_size: 64
+  patch_crop_size: 60
+  stride: 32
+  # probe: a single linear layer, SGD + cosine
+  epochs: 100
+  batch_size: 256
+  num_workers: 8
+  lr: 0.1
+  momentum: 0.9
+  weight_decay: 0.0
