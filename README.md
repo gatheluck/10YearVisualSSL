@@ -37,7 +37,7 @@ assume it.
 | `bin/resolve-config.py` | **implemented and tested.** Produces the canonical resolved config and its `config_sha256` |
 | `bin/contract-test.py` | **implemented and tested.** Decides by machine that a port is finished |
 | `platforms/` | **implemented and tested.** Platform separation; `local` is self-contained |
-| `methods/` | **nineteen methods ported and tested** (seventeen with a linear evaluation; `36_franca` is the first eval-only port, with no step 1). The per-method table is below under [Methods](#methods) |
+| `methods/` | **twenty methods ported and tested** (eighteen with a linear evaluation; `36_franca` is the first eval-only port, with no step 1). The per-method table is below under [Methods](#methods) |
 | `bin/launch.py` | **implemented and tested.** One command: resolve, submit, verify, record |
 | `adapterlib/` | **implemented and tested.** The one place a `run_manifest.json` is written |
 | `LICENSE` | **MIT** (Copyright (c) 2026 LIMIT.Lab) |
@@ -65,6 +65,7 @@ zero-padded so they sort in numeric order.
 |---|---|---|---|
 | `01_context_prediction` | Context Prediction — Doersch, Gupta & Efros, ICCV 2015 | step 1 + linear eval | the first pilot; verified on a CPU end to end |
 | `02_vae` | VAE — Kingma & Welling, 2013 | step 1 | pretext-only; the one method on MNIST, so it trains to completion on a CPU |
+| `03_colorization` | Colorization — Zhang, Isola & Efros, ECCV 2016 | step 1 + linear eval | a self-contained re-implementation (the lab's own VGG-style CNN, no submodule); predicts quantised **ab** colour bins from the **L** channel (313-way per-pixel classification); `encoder.pt` is the CNN encoder trunk (decoder and 313-bin head excluded); `linear_eval` probes its 512-d feature, a genuine comparable number. RGB→Lab and ab-quantisation are numpy (no opencv/skimage); the 313 ab-bin constant is vendored |
 | `04_context_encoder` | Context Encoder — Pathak et al., 2016 | step 1 + linear eval | the one GAN (two models, two optimisers); `encoder.pt` is the conv encoder + bottleneck |
 | `05_jigsaw_puzzle` | Jigsaw Puzzles — Noroozi & Favaro, ECCV 2016 | step 1 + linear eval | a self-contained re-implementation (the lab's own CFN AlexNet, no submodule); predicts which permutation reordered the 3×3 tiles; `encoder.pt` is the shared CFN encoder |
 | `06_rotation_prediction` | Rotation Prediction (RotNet) — Gidaris et al., ICLR 2018 | step 1 + linear eval | a self-contained re-implementation (the lab's own AlexNet-BN, no submodule); predicts which of {0°, 90°, 180°, 270°} was applied; `encoder.pt` is the AlexNet-BN encoder |
@@ -83,7 +84,7 @@ zero-padded so they sort in numeric order.
 | `mar` | MAR — Li et al., NeurIPS 2024 | step 1 | the first `submodule+patch` port: the model is the pinned `third_party/mar` fork, imported not copied; `linear_eval` deferred — its captured eval path is unrecoverable (CONTRACT §7, docs/EVAL_DOWNLOAD.md) |
 | `var` | VAR — Tian et al., NeurIPS 2024 | step 1 + linear eval | the first `submodule+adapter` port: `third_party/var` pinned directly (no fork). Next-scale autoregressive generation; `linear_eval` probes the pretrained VQVAE **tokeniser** (a hash-pinned download), which measures the fixed tokeniser rather than VAR's learned representation (CONTRACT §7, docs/EVAL_DOWNLOAD.md) |
 
-Sixteen produce **comparable** `linear_probe` accuracy on a genuinely learned
+Seventeen produce **comparable** `linear_probe` accuracy on a genuinely learned
 representation. `02_vae` is pretext-only and `mar` has no linear eval; `var`'s
 `linear_eval` probes a fixed pretrained tokeniser rather than its own learned
 representation, so its number is not comparable in the same sense

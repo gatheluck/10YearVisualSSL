@@ -1,0 +1,35 @@
+# Colorization step 1: VGG-style CNN + 313-bin ab classification (Zhang, Isola &
+# Efros, ECCV 2016), the paper-faithful CNN path.
+#
+# These are the paper-target settings -- the recipe, not a result. Nothing here
+# has executed a full run; the README says what was and was not exercised. The
+# capture's ViT step 2 is not ported.
+#
+# One path is passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   an ImageFolder of training images
+# The output path is fixed at --out.
+stage: step1
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+
+train:
+  # model (build_colorization_cnn)
+  num_bins: 313           # quantised ab bins (paper)
+  # data
+  img_size: 256           # Resize before cropping
+  crop_size: 224          # RandomCrop for training
+  # training (Adam, as in the capture's paper-target config)
+  epochs: 300
+  batch_size: 128
+  num_workers: 16
+  lr: 1.0e-5
+  beta1: 0.9
+  beta2: 0.999
+  weight_decay: 1.0e-4
+  lr_decay_epochs: [100, 200]
+  lr_decay_rate: 0.5
+  # class rebalancing for rare colours (paper Section 3.1)
+  use_class_rebalancing: true
+  rebalance_lambda: 0.5
+  rebalance_sample_size: 10000

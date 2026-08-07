@@ -29,7 +29,7 @@ exact dependencies, the backbone, and step-1 reproducibility.
 - **A — torch/torchvision/numpy/PyYAML** (reuse `image_gpt`/`25_mae` locks): `23_dino`, `33_pirl`.
 - **B — + timm** (reuse a mar-style lock): mocov1/2/3, simclrv1/2, byol, sela, inst_disc, cpc, cmc, rotation, simmim, dinov2, dinov3, ijepa, nepa.
 - **B' — + huggingface_hub** (var-style): `30_aim`.
-- **C — heavy special deps**: `3_colorization` (opencv/scikit-image), `24_beit` (DALL-E tokeniser), `7_deepcluster` (faiss? — verify), `9_jigsaw_puzzle_pp`'s **knowledge-transfer stages** (faiss-GPU k-means, mandatory — the capture's `cluster_and_pseudolabels.py` explicitly refuses the CPU/sklearn fallback; **measured, contradicts the earlier "tier B / +timm" guess**). The VGG16 **pretext** stage alone is tier-A (torch/torchvision/numpy/Pillow/PyYAML) and is what `09_jigsaw_puzzle_pp` ports.
+- **C — heavy special deps**: ~~`3_colorization` (opencv/scikit-image)~~ **ported torch-only as `03_colorization`: its code imports neither opencv nor scikit-image despite the capture's requirements.txt naming them (measured); the Lab conversion and ab-quantisation are numpy**. `24_beit` (DALL-E tokeniser), `7_deepcluster` (faiss? — verify), `9_jigsaw_puzzle_pp`'s **knowledge-transfer stages** (faiss-GPU k-means, mandatory — the capture's `cluster_and_pseudolabels.py` explicitly refuses the CPU/sklearn fallback; **measured, contradicts the earlier "tier B / +timm" guess**). The VGG16 **pretext** stage alone is tier-A (torch/torchvision/numpy/Pillow/PyYAML) and is what `09_jigsaw_puzzle_pp` ports.
 - **D — no `models/` (submodule / eval-only, often noncommercial)**: `8_split_brain`, `34_msn`, `35_vjepa`, `37_lejepa`.
 
 TensorBoard / tqdm / wandb logging is dropped (the port owns a thin single-process
@@ -42,7 +42,7 @@ special-dep / submodule / eval-only / noncommercial last.
 
 - **Group 1 — ResNet/CNN pretext & contrastive** (reuse the simsiam/swav/barlow ResNet + linear-probe template): jigsaw, rotation, jigsaw++ (VGG16 pretext only), inst_disc, pirl, deepcluster, cpc, cmc, mocov1/2/3, simclrv1/2, sela, byol.
 - **Group 2 — ViT** (reuse the ibot/mae ViT template): simmim, dino, dinov2, dinov3, ijepa, nepa, aim.
-- **Group 3 — special deps / submodule / eval-only / licence decision**: colorization, beit, deepcluster(if faiss), `9_jigsaw_puzzle_pp`'s faiss-GPU knowledge-transfer stages (cluster → pseudo-labels → AlexNet cluster-cls, alongside deepcluster), split_brain, msn, vjepa, lejepa.
+- **Group 3 — special deps / submodule / eval-only / licence decision**: colorization (ported torch-only, `03_colorization` -- the opencv/skimage tag was a requirements.txt mislabel), beit, deepcluster(if faiss), `9_jigsaw_puzzle_pp`'s faiss-GPU knowledge-transfer stages (cluster → pseudo-labels → AlexNet cluster-cls, alongside deepcluster), split_brain, msn, vjepa, lejepa.
 
 ## Numbering: capture number vs this list's number
 
@@ -56,7 +56,7 @@ rest — e.g. capture `14_simclrv1` ↔ list #14 = PIRL; capture `17_swav` ↔ l
 |---|---|---|---|---|
 | 1 | VAE | `2_vae` | no | ported (`02_vae`) |
 | 2 | Context Prediction | `1_context_prediction` | no | ported (`01_context_prediction`) |
-| 3 | Colorization | `3_colorization` | **yes** | not ported (Group 3: opencv/skimage) |
+| 3 | Colorization | `3_colorization` | **yes** | ported (`03_colorization`; torch-only -- opencv/skimage were listed in the capture's requirements.txt but its code imports neither, measured) |
 | 4 | Context Encoder | `4_context_encoder` | **yes** | ported (`04_context_encoder`) |
 | 5 | Jigsaw Puzzles | `5_jigsaw_puzzle` | **yes** | ported (`05_jigsaw_puzzle`) |
 | 6 | Rotation Prediction | `6_rotation_prediction` | **yes** | ported (`06_rotation_prediction`) |
@@ -104,7 +104,7 @@ that same decision.
 **Portable now (numbering matches + not yet ported):** the Group-1 tier
 (`5_jigsaw_puzzle`, `6_rotation_prediction`, `9_jigsaw_puzzle_pp`, `10_inst_disc`,
 `11_cpc`, `12_cmc`, `13_mocov1`) is now fully ported. What remains needs
-dependency / submodule work: `3_colorization`, `7_deepcluster`, `8_split_brain`
+dependency / submodule work: `7_deepcluster`, `8_split_brain`
 (Group 3).
 (`5_jigsaw_puzzle`, `6_rotation_prediction`, `10_inst_disc`, `11_cpc`, `12_cmc`,
 `13_mocov1` ported.

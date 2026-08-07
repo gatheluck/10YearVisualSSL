@@ -1,0 +1,16 @@
+# What the 03_colorization port's own files import, and nothing else. Checked in
+# both directions by tests/test_method_requirements.py. Floors only; the exact
+# hashed closure is in requirements.lock.txt (CPU) and requirements.lock.cu130.txt.
+#
+# A self-contained re-implementation (the lab's own colorization code, no
+# submodule): the VGG-style CNN, the numpy RGB->Lab conversion, the numpy 313-bin
+# ab quantisation, the dataset, the trainer and the probe are all here. Despite
+# the capture's requirements.txt naming opencv / scikit-image / scikit-learn, the
+# code imports none of them -- the colour conversion and quantisation are pure
+# numpy. torch is imported directly; numpy runs the Lab/quantisation and seeds the
+# run; torchvision provides the ImageFolder and transforms; PyYAML is read to load
+# a YAML config on the stand-alone path.
+torch>=2.0.0
+torchvision>=0.15.0
+numpy>=1.24.0
+PyYAML>=6.0

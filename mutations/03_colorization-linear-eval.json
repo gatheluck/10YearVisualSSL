@@ -1,0 +1,68 @@
+{
+  "_note": "Run: .venvs/03_colorization/bin/python bin/mutate.py --spec mutations/03_colorization-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/03_colorization/bin/python. Proves the model/colour/two-stage guards are not vacuous: the encoder returns one flat vector per image, the numpy CIE Lab conversion is correct, the head predicts the 313-bin distribution, encoder.pt excludes the decoder/head, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
+  "targets": [
+    {
+      "label": "the encoder no longer returns one flat vector per image",
+      "file": "methods/03_colorization/models/colorization_cnn.py",
+      "old": "        return x.view(x.size(0), -1)",
+      "new": "        return x.view(x.size(0), 1, -1)",
+      "tests": [
+        "tests.test_method_03_colorization.TestTheModel.test_the_encoder_returns_one_feature_per_image"
+      ]
+    },
+    {
+      "label": "the CIE Lab L channel drops its -16 offset (Lab conversion wrong)",
+      "file": "methods/03_colorization/data/colorization_dataset.py",
+      "old": "    L = 116.0 * f[..., 1] - 16.0",
+      "new": "    L = 116.0 * f[..., 1]",
+      "tests": [
+        "tests.test_method_03_colorization.TestRGB2Lab.test_solid_colors_match_cie_reference"
+      ]
+    },
+    {
+      "label": "the head no longer predicts the 313-bin ab distribution",
+      "file": "methods/03_colorization/models/colorization_cnn.py",
+      "old": "        self.head = nn.Conv2d(256, num_bins, kernel_size=1)",
+      "new": "        self.head = nn.Conv2d(256, 2, kernel_size=1)",
+      "tests": [
+        "tests.test_method_03_colorization.TestTheModel.test_forward_predicts_an_ab_distribution"
+      ]
+    },
+    {
+      "label": "the decoder and head are no longer excluded from encoder.pt",
+      "file": "methods/03_colorization/adapter/__init__.py",
+      "old": "    out = {k: v for k, v in state_dict.items()\n           if k.startswith(ENCODER_PREFIXES)}",
+      "new": "    out = {k: v for k, v in state_dict.items()}",
+      "tests": [
+        "tests.test_method_03_colorization.TestExtractingTheEncoder"
+      ]
+    },
+    {
+      "label": "a downstream probe number is mapped to a pretext name",
+      "file": "methods/03_colorization/adapter/__init__.py",
+      "old": "    \"final_top1_acc\": \"final_linear_probe_top1_accuracy\",",
+      "new": "    \"final_top1_acc\": \"final_pretext_loss\",",
+      "tests": [
+        "tests.test_method_03_colorization.TestTheMetricsAreInTheVocabulary",
+        "tests.test_method_03_colorization.TestALinearEvalSmoke"
+      ]
+    },
+    {
+      "label": "the absent encoder is not explained",
+      "file": "methods/03_colorization/adapter/__init__.py",
+      "old": "    if _stage_of(config_path) != \"linear_eval\":\n        return None",
+      "new": "    return None\n    if False:\n        return None",
+      "tests": [
+        "tests.test_method_03_colorization.TestTheEvalProducesNoEncoder",
+        "tests.test_method_03_colorization.TestALinearEvalSmoke.test_it_produces_no_encoder_and_says_so"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-08-07",
+    "measured_with": ".venvs/03_colorization (cu130) on an NVIDIA Tesla T4",
+    "killed": 6,
+    "total": 6,
+    "equivalent": []
+  }
+}
