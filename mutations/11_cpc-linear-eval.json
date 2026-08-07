@@ -1,0 +1,68 @@
+{
+  "_note": "Run: .venvs/11_cpc/bin/python bin/mutate.py --spec mutations/11_cpc-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/11_cpc/bin/python. Proves the model/dataset/two-stage guards are not vacuous: the encoder averages the patch grid to one avg_z per image, the InfoNCE loss reduces to a single scalar over prediction steps, an image becomes the configured patch grid, encoder.pt excludes the context and predictors, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
+  "targets": [
+    {
+      "label": "the encoder no longer averages the patch grid to one avg_z per image",
+      "file": "methods/11_cpc/models/visual_cpc2018.py",
+      "old": "        return z.mean(dim=1)",
+      "new": "        return z",
+      "tests": [
+        "tests.test_method_11_cpc.TestTheModel.test_the_encoder_returns_avg_z_per_image"
+      ]
+    },
+    {
+      "label": "the InfoNCE loss is not reduced to a single scalar over prediction steps",
+      "file": "methods/11_cpc/models/visual_cpc2018.py",
+      "old": "        return torch.stack(losses).mean() if losses else z_grid.sum() * 0.0",
+      "new": "        return torch.stack(losses) if losses else z_grid.sum() * 0.0",
+      "tests": [
+        "tests.test_method_11_cpc.TestTheModel.test_cpc_loss_is_a_finite_scalar"
+      ]
+    },
+    {
+      "label": "an image no longer becomes the configured patch grid",
+      "file": "methods/11_cpc/data/cpc2018_dataset.py",
+      "old": "        grid = (image_size - patch_size) // stride + 1",
+      "new": "        grid = (image_size - patch_size) // stride + 2",
+      "tests": [
+        "tests.test_method_11_cpc.TestTheDataset.test_an_item_is_a_patch_grid_and_a_label"
+      ]
+    },
+    {
+      "label": "the context and predictors are no longer excluded from encoder.pt",
+      "file": "methods/11_cpc/adapter/__init__.py",
+      "old": "    out = {k: v for k, v in state_dict.items()\n           if k.startswith(ENCODER_PREFIXES)}",
+      "new": "    out = {k: v for k, v in state_dict.items()}",
+      "tests": [
+        "tests.test_method_11_cpc.TestExtractingTheEncoder"
+      ]
+    },
+    {
+      "label": "a downstream probe number is mapped to a pretext name",
+      "file": "methods/11_cpc/adapter/__init__.py",
+      "old": "    \"final_top1_acc\": \"final_linear_probe_top1_accuracy\",",
+      "new": "    \"final_top1_acc\": \"final_pretext_loss\",",
+      "tests": [
+        "tests.test_method_11_cpc.TestTheMetricsAreInTheVocabulary",
+        "tests.test_method_11_cpc.TestALinearEvalSmoke"
+      ]
+    },
+    {
+      "label": "the absent encoder is not explained",
+      "file": "methods/11_cpc/adapter/__init__.py",
+      "old": "    if _stage_of(config_path) != \"linear_eval\":\n        return None",
+      "new": "    return None\n    if False:\n        return None",
+      "tests": [
+        "tests.test_method_11_cpc.TestTheEvalProducesNoEncoder",
+        "tests.test_method_11_cpc.TestALinearEvalSmoke.test_it_produces_no_encoder_and_says_so"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-08-07",
+    "measured_with": ".venvs/11_cpc (cu130) on an NVIDIA Tesla T4",
+    "killed": 6,
+    "total": 6,
+    "equivalent": []
+  }
+}

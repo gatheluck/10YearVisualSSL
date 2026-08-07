@@ -1,0 +1,13 @@
+# What the 11_cpc port's own files import, and nothing else. Checked in both
+# directions by tests/test_method_requirements.py. Floors only; the exact hashed
+# closure is in requirements.lock.txt (CPU) and requirements.lock.cu130.txt.
+#
+# A self-contained re-implementation (the lab's own visual CPC 2018 code, no
+# submodule): the patch encoder, the PixelCNN context, the InfoNCE loss, the
+# patch-grid dataset, the trainer and the probe are all here. torch is imported
+# directly; numpy seeds the run; torchvision provides the ImageFolder and
+# transforms; PyYAML is read to load a YAML config on the stand-alone path.
+torch>=2.0.0
+torchvision>=0.15.0
+numpy>=1.24.0
+PyYAML>=6.0

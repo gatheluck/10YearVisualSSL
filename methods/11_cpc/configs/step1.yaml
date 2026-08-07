@@ -1,0 +1,36 @@
+# Visual CPC 2018 step 1: patch encoder + PixelCNN context + InfoNCE
+# (van den Oord et al., 2018; arXiv:1807.03748), the paper-faithful path.
+#
+# These are the paper-target settings -- the recipe, not a result. Nothing here
+# has executed a full run; the README says what was and was not exercised. The
+# capture's deprecated local baseline (cpc_resnet) is not ported.
+#
+# One path is passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   an ImageFolder of training images
+# The output path is fixed at --out.
+stage: step1
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+
+train:
+  # model (build_visual_cpc2018_from_config)
+  z_dim: 1024
+  c_dim: 1024
+  pred_steps: 5
+  context_layers: 5
+  encoder_width_mult: 1.0
+  # data / patch grid (VisualCPC2018Dataset): 7x7 grid of 64x64 patches
+  source_size: 300
+  img_size: 256
+  patch_size: 64
+  patch_crop_size: 60
+  stride: 32
+  # training (Adam, as in the paper-target config)
+  epochs: 200
+  batch_size: 512
+  num_workers: 8
+  lr: 2.0e-4
+  beta1: 0.9
+  beta2: 0.999
+  weight_decay: 0.0
