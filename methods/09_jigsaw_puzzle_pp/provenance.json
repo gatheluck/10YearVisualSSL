@@ -1,0 +1,25 @@
+{
+  "captured_at": "2026-08-06",
+  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
+  "captured_note": "Ported from the capture's self-contained methods/9_jigsaw_puzzle_pp. Only the VGG16 pretext (paper stage a) is brought across: its models/vgg_jigsaw_pp.py and data/jigsaw_pp_dataset.py are the lab's own implementation of Noroozi et al. (2018), torch/torchvision only, so it ports self-contained (no third_party submodule). The capture directory number (9) equals this method's number in the Step 1&2 list (see docs/PORTING_ROADMAP.md).",
+  "paper": {
+    "title": "Boosting Self-Supervised Learning via Knowledge Transfer",
+    "authors": "Noroozi, Vinjimoor, Favaro, Pirsiavash",
+    "year": 2018,
+    "arxiv": "1805.00385",
+    "venue": "CVPR 2018"
+  },
+  "scope": "This port covers the VGG16 Jigsaw++ pretext task (paper stage a): a shared VGG16 encoder predicts which permutation reordered the 3x3 tiles, with up to two occlusion tiles from another image and 70% grayscale. The paper's knowledge-transfer stages -- extract VGG conv4 features, k-means cluster them (k=2000) into pseudo-labels with faiss-GPU, then train an AlexNet to classify the pseudo-labels (capture stages b and d) -- are a faiss-GPU pipeline (the capture's cluster_and_pseudolabels.py explicitly refuses a CPU/sklearn fallback) and are DEFERRED to the faiss / Group-3 batch alongside deepcluster; see docs/PORTING_ROADMAP.md.",
+  "encoder": "encoder.pt is the shared VGG16 encoder (encoder.*): four VGG conv blocks, an adaptive max-pool to 4x4x512, and an FC layer, producing a 1024-d feature per tile/image. The permutation classifier (classifier.*) is pretext machinery and is excluded.",
+  "linear_eval": "Reads the trained encoder.pt and probes the VGG16 encoder's 1024-d feature (images resized to the encoder's tile size), a genuine learned representation -- so the number is comparable. Follows the lab's ARSSL probe (L2-normalise + mean-centre, single linear layer, SGD momentum + cosine, top1/top5). The paper's own downstream eval probes the AlexNet cluster-classification network produced by the (deferred) faiss knowledge-transfer stages; this port probes the VGG16 pretext encoder instead, which it actually trains.",
+  "rewritten_during_the_port": [
+    "only the VGG16 pretext (stage a) is ported; the faiss-GPU cluster/pseudo-label/AlexNet knowledge-transfer stages and the ViT step 2 are excluded",
+    "the permutation set is generated deterministically (a seeded random.Random) rather than read from the capture's on-disk .pkl cache",
+    "the capture's puzzle_size canvas-assembly path is dropped; the dataset returns the 9 tiles stacked as [9, 3, tile, tile], which the VGG16 model consumes",
+    "the VGG16Encoder's torchvision-weight loader (get_conv4_features clustering helpers, _load_pretrained) is dropped; the port trains from scratch",
+    "the device is resolved (resolve_device) instead of assumed CUDA",
+    "main() split into build_parser()/run(args, config) returning the pretext loss/accuracy and epoch count",
+    "the run is seeded through make_deterministic (python, numpy, torch)",
+    "the training loop drops the upstream DistributedDataParallel, AMP and TensorBoard so the same step runs on a CPU or a GPU unchanged, single-process fp32"
+  ]
+}

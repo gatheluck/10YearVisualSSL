@@ -1,0 +1,15 @@
+# What the 09_jigsaw_puzzle_pp port's own files import, and nothing else. Checked
+# in both directions by tests/test_method_requirements.py. Floors only; the exact
+# hashed closure is in requirements.lock.txt (CPU) and requirements.lock.cu130.txt.
+#
+# A self-contained re-implementation (the lab's own jigsaw++ code, no submodule):
+# the VGG16 model, the puzzle dataset, the trainer and the probe are all here.
+# torch is imported directly; numpy builds the tile tensors; Pillow (PIL.Image) is
+# imported directly to load and grayscale images; torchvision provides the
+# ImageFolder, transforms and Grayscale; PyYAML is read to load a YAML config on
+# the stand-alone path.
+torch>=2.0.0
+torchvision>=0.15.0
+numpy>=1.24.0
+Pillow>=9.5.0
+PyYAML>=6.0

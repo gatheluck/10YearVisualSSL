@@ -29,7 +29,7 @@ exact dependencies, the backbone, and step-1 reproducibility.
 - **A — torch/torchvision/numpy/PyYAML** (reuse `image_gpt`/`25_mae` locks): `23_dino`, `33_pirl`.
 - **B — + timm** (reuse a mar-style lock): mocov1/2/3, simclrv1/2, byol, sela, inst_disc, cpc, cmc, rotation, simmim, dinov2, dinov3, ijepa, nepa.
 - **B' — + huggingface_hub** (var-style): `30_aim`.
-- **C — heavy special deps**: `3_colorization` (opencv/scikit-image), `24_beit` (DALL-E tokeniser), `7_deepcluster` (faiss? — verify).
+- **C — heavy special deps**: `3_colorization` (opencv/scikit-image), `24_beit` (DALL-E tokeniser), `7_deepcluster` (faiss? — verify), `9_jigsaw_puzzle_pp`'s **knowledge-transfer stages** (faiss-GPU k-means, mandatory — the capture's `cluster_and_pseudolabels.py` explicitly refuses the CPU/sklearn fallback; **measured, contradicts the earlier "tier B / +timm" guess**). The VGG16 **pretext** stage alone is tier-A (torch/torchvision/numpy/Pillow/PyYAML) and is what `09_jigsaw_puzzle_pp` ports.
 - **D — no `models/` (submodule / eval-only, often noncommercial)**: `8_split_brain`, `34_msn`, `35_vjepa`, `37_lejepa`.
 
 TensorBoard / tqdm / wandb logging is dropped (the port owns a thin single-process
@@ -40,9 +40,9 @@ loop), as in every prior port.
 Port self-contained + light-dep + shared-template methods first; heavy/ViT next;
 special-dep / submodule / eval-only / noncommercial last.
 
-- **Group 1 — ResNet/CNN pretext & contrastive** (reuse the simsiam/swav/barlow ResNet + linear-probe template): jigsaw, rotation, jigsaw++, inst_disc, pirl, deepcluster, cpc, cmc, mocov1/2/3, simclrv1/2, sela, byol.
+- **Group 1 — ResNet/CNN pretext & contrastive** (reuse the simsiam/swav/barlow ResNet + linear-probe template): jigsaw, rotation, jigsaw++ (VGG16 pretext only), inst_disc, pirl, deepcluster, cpc, cmc, mocov1/2/3, simclrv1/2, sela, byol.
 - **Group 2 — ViT** (reuse the ibot/mae ViT template): simmim, dino, dinov2, dinov3, ijepa, nepa, aim.
-- **Group 3 — special deps / submodule / eval-only / licence decision**: colorization, beit, deepcluster(if faiss), split_brain, msn, vjepa, lejepa.
+- **Group 3 — special deps / submodule / eval-only / licence decision**: colorization, beit, deepcluster(if faiss), `9_jigsaw_puzzle_pp`'s faiss-GPU knowledge-transfer stages (cluster → pseudo-labels → AlexNet cluster-cls, alongside deepcluster), split_brain, msn, vjepa, lejepa.
 
 ## Numbering: capture number vs this list's number
 
@@ -62,7 +62,7 @@ rest — e.g. capture `14_simclrv1` ↔ list #14 = PIRL; capture `17_swav` ↔ l
 | 6 | Rotation Prediction | `6_rotation_prediction` | **yes** | ported (`06_rotation_prediction`) |
 | 7 | DeepCluster | `7_deepcluster` | **yes** | portable now (Group 1; verify faiss) |
 | 8 | SplitBrain | `8_split_brain` | **yes** | not ported (Group 3: no `models/`) |
-| 9 | Jigsaw Puzzle++ | `9_jigsaw_puzzle_pp` | **yes** | **portable now (Group 1)** |
+| 9 | Jigsaw Puzzle++ | `9_jigsaw_puzzle_pp` | **yes** | ported (`09_jigsaw_puzzle_pp`, VGG16 pretext only; faiss knowledge-transfer deferred to Group 3) |
 | 10 | InstDisc | `10_inst_disc` | **yes** | **portable now (Group 1)** |
 | 11 | CPC | `11_cpc` | **yes** | **portable now (Group 1)** |
 | 12 | CMC | `12_cmc` | **yes** | **portable now (Group 1)** |
@@ -101,10 +101,12 @@ already-ported methods that are mismatched (`01`, `02`, `17`, `20`, `21`, `25`,
 `27`, `36`) stay as-is for now; whether to renumber them at publication is part of
 that same decision.
 
-**Portable now (numbering matches + not yet ported):** `9_jigsaw_puzzle_pp`,
-`10_inst_disc`, `11_cpc`, `12_cmc`, `13_mocov1` (Group 1); plus `3_colorization`,
-`7_deepcluster`, `8_split_brain` once their dependency / submodule needs are
-resolved (Group 3). (`5_jigsaw_puzzle` and `6_rotation_prediction` ported.)
+**Portable now (numbering matches + not yet ported):** `10_inst_disc`, `11_cpc`,
+`12_cmc`, `13_mocov1` (Group 1); plus `3_colorization`, `7_deepcluster`,
+`8_split_brain` once their dependency / submodule needs are resolved (Group 3).
+(`5_jigsaw_puzzle`, `6_rotation_prediction` ported. `9_jigsaw_puzzle_pp` ported
+as the VGG16 pretext only; its faiss-GPU knowledge-transfer stages are deferred
+to Group 3, see below.)
 
 ## Per-port procedure (strict TDD, as used for every prior method)
 

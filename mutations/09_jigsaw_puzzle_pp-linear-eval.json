@@ -1,0 +1,68 @@
+{
+  "_note": "Run: .venvs/09_jigsaw_puzzle_pp/bin/python bin/mutate.py --spec mutations/09_jigsaw_puzzle_pp-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/09_jigsaw_puzzle_pp/bin/python. Proves the model/dataset/two-stage guards are not vacuous: the encoder pools to one vector per image, the permutation set is deterministic and high-Hamming, encoder.pt excludes the classifier, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
+  "targets": [
+    {
+      "label": "the encoder feature is not pooled to one vector per image",
+      "file": "methods/09_jigsaw_puzzle_pp/models/vgg_jigsaw_pp.py",
+      "old": "        x = x.flatten(1)\n        return self.fc(x)",
+      "new": "        x = x.flatten(2)\n        return self.fc(x)",
+      "tests": [
+        "tests.test_method_09_jigsaw_puzzle_pp.TestTheModel.test_the_encoder_returns_one_feature_vector_per_image"
+      ]
+    },
+    {
+      "label": "the permutation set is no longer deterministic",
+      "file": "methods/09_jigsaw_puzzle_pp/data/jigsaw_pp_dataset.py",
+      "old": "    rng = random.Random(seed)",
+      "new": "    rng = random.Random()",
+      "tests": [
+        "tests.test_method_09_jigsaw_puzzle_pp.TestTheDataset.test_the_permutation_set_is_deterministic_and_high_hamming"
+      ]
+    },
+    {
+      "label": "the minimum-Hamming-distance filter is dropped from the permutation set",
+      "file": "methods/09_jigsaw_puzzle_pp/data/jigsaw_pp_dataset.py",
+      "old": "        if all(_hamming_distance(perm, s) >= min_hamming for s in selected):",
+      "new": "        if True:",
+      "tests": [
+        "tests.test_method_09_jigsaw_puzzle_pp.TestTheDataset.test_the_permutation_set_is_deterministic_and_high_hamming"
+      ]
+    },
+    {
+      "label": "the classifier is no longer excluded from encoder.pt",
+      "file": "methods/09_jigsaw_puzzle_pp/adapter/__init__.py",
+      "old": "    out = {k: v for k, v in state_dict.items()\n           if k.startswith(ENCODER_PREFIXES)}",
+      "new": "    out = {k: v for k, v in state_dict.items()}",
+      "tests": [
+        "tests.test_method_09_jigsaw_puzzle_pp.TestExtractingTheEncoder"
+      ]
+    },
+    {
+      "label": "a downstream probe number is mapped to a pretext name",
+      "file": "methods/09_jigsaw_puzzle_pp/adapter/__init__.py",
+      "old": "    \"final_top1_acc\": \"final_linear_probe_top1_accuracy\",",
+      "new": "    \"final_top1_acc\": \"final_pretext_top1_accuracy\",",
+      "tests": [
+        "tests.test_method_09_jigsaw_puzzle_pp.TestTheMetricsAreInTheVocabulary",
+        "tests.test_method_09_jigsaw_puzzle_pp.TestALinearEvalSmoke"
+      ]
+    },
+    {
+      "label": "the absent encoder is not explained",
+      "file": "methods/09_jigsaw_puzzle_pp/adapter/__init__.py",
+      "old": "    if _stage_of(config_path) != \"linear_eval\":\n        return None",
+      "new": "    return None\n    if False:\n        return None",
+      "tests": [
+        "tests.test_method_09_jigsaw_puzzle_pp.TestTheEvalProducesNoEncoder",
+        "tests.test_method_09_jigsaw_puzzle_pp.TestALinearEvalSmoke.test_it_produces_no_encoder_and_says_so"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-08-06",
+    "measured_with": ".venvs/09_jigsaw_puzzle_pp (cu130) on an NVIDIA Tesla T4",
+    "killed": 6,
+    "total": 6,
+    "equivalent": []
+  }
+}
