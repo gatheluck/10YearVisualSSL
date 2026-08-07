@@ -1,0 +1,23 @@
+{
+  "captured_at": "2026-08-07",
+  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
+  "captured_note": "Ported from the capture's self-contained methods/13_mocov1, specifically its paper-faithful ResNet-50 path (models/resnet_moco.py, data/moco_dataset.py, train_step1_resnet.py, evaluate_linear.py). These are the lab's own implementation of He et al. (2019) Momentum Contrast v1, torch/torchvision only. So it ports self-contained (no third_party submodule). The capture directory number (13) equals this method's number in the Step 1&2 list (see docs/PORTING_ROADMAP.md).",
+  "paper": {
+    "title": "Momentum Contrast for Unsupervised Visual Representation Learning",
+    "authors": "He, Fan, Wu, Xie, Girshick",
+    "year": 2019,
+    "arxiv": "1911.05722"
+  },
+  "scope": "The paper-faithful ResNet-50 path is ported: two augmented views feed a query encoder (ResNet-50 + a single Linear(2048, feature_dim), L2-normalised -- NO MLP, that is v2) and a momentum key encoder (an EMA copy of the query, no gradient); an InfoNCE loss contrasts the query against the matching key (positive) and a FIFO queue of K past keys (negatives). The capture's ViT step 2 (a separate ViTCMC-style model) is EXCLUDED, as in every port.",
+  "encoder": "encoder.pt is the query ResNet-50 backbone (encoder_q.backbone.*). The 128-d projection head (encoder_q.proj.*), the momentum key encoder (encoder_k.*) and the queue (queue, queue_ptr) are training machinery and are excluded -- the standard SSL convention of probing the backbone, the same shape as the inst_disc port.",
+  "linear_eval": "Reads the trained encoder.pt and probes the query ResNet-50 backbone (2048-d, avg-pooled), a genuine learned representation, so the number is comparable. Images use the deterministic val pipeline (resize + centre crop, ImageNet normalisation). Follows the lab's shared ARSSL probe (mean-centre + L2-normalise features, single linear layer, SGD momentum + cosine, top1/top5) rather than the capture's own lr=30 head, so the number is comparable across the ported methods.",
+  "rewritten_during_the_port": [
+    "only the paper-faithful ResNet-50 path is ported; the ViT step 2 is excluded",
+    "the DistributedDataParallel shuffle-BN / all-gather / broadcast paths in the model are kept but guarded by dist.is_initialized(), so they are inert in the single-process port (the queue is filled from within the batch)",
+    "the SGD updates only the query encoder's parameters (the key encoder has requires_grad=False and is updated by EMA)",
+    "the device is resolved (resolve_device) instead of assumed CUDA (the capture called im_q.cuda(local_rank))",
+    "main() split into build_parser()/run(args, config) returning the pretext InfoNCE loss and epoch count",
+    "the run is seeded through make_deterministic (python, numpy, torch)",
+    "the training loop drops the upstream DistributedDataParallel and TensorBoard so the same step runs on a CPU or a GPU unchanged, single-process fp32"
+  ]
+}
