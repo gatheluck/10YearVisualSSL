@@ -1,0 +1,22 @@
+{
+  "captured_at": "2026-08-07",
+  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
+  "captured_note": "Ported from the capture's self-contained methods/10_inst_disc, whose models/resnet_instdisc.py, nce/nce_loss.py and data/instdisc_dataset.py are the lab's own implementation of Wu et al. (2018), torch/torchvision only. So it ports self-contained (no third_party submodule). The capture directory number (10) equals this method's number in the Step 1&2 list (see docs/PORTING_ROADMAP.md).",
+  "paper": {
+    "title": "Unsupervised Feature Learning via Non-Parametric Instance-level Discrimination",
+    "authors": "Wu, Xiong, Yu, Lin",
+    "year": 2018,
+    "arxiv": "1805.01978",
+    "venue": "CVPR 2018"
+  },
+  "encoder": "encoder.pt is the ResNet-50 backbone (encoder.*): ResNet-50 up to and including the global average pool, producing a 2048-d feature per image. The 128-d L2-normalised projection head (fc.*) and the NCE memory bank are instance-discrimination machinery and are excluded (the memory bank lives in the NCE loss module, not the model, so it is never in the model state_dict).",
+  "linear_eval": "Reads the trained encoder.pt and probes the ResNet-50 backbone's 2048-d feature (the standard SSL convention of probing the backbone, not the projection head; images ImageNet-normalised and resized to the training size), a genuine learned representation -- so the number is comparable. Follows the lab's ARSSL probe (L2-normalise + mean-centre, single linear layer, SGD momentum + cosine, top1/top5).",
+  "rewritten_during_the_port": [
+    "the NCE loss keeps its memory bank and momentum update, but the DistributedDataParallel all-reduce / all-gather / broadcast branches are dropped for the single-process port",
+    "the device is resolved (resolve_device) instead of assumed CUDA",
+    "main() split into build_parser()/run(args, config) returning the pretext NCE loss and epoch count",
+    "the run is seeded through make_deterministic (python, numpy, torch)",
+    "the training loop drops the upstream DistributedDataParallel and the TensorBoard logging so the same step runs on a CPU or a GPU unchanged",
+    "the capture's step 2 (ViT) is excluded, as in every port, which also drops its timm dependency"
+  ]
+}

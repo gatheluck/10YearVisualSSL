@@ -63,7 +63,7 @@ rest — e.g. capture `14_simclrv1` ↔ list #14 = PIRL; capture `17_swav` ↔ l
 | 7 | DeepCluster | `7_deepcluster` | **yes** | portable now (Group 1; verify faiss) |
 | 8 | SplitBrain | `8_split_brain` | **yes** | not ported (Group 3: no `models/`) |
 | 9 | Jigsaw Puzzle++ | `9_jigsaw_puzzle_pp` | **yes** | ported (`09_jigsaw_puzzle_pp`, VGG16 pretext only; faiss knowledge-transfer deferred to Group 3) |
-| 10 | InstDisc | `10_inst_disc` | **yes** | **portable now (Group 1)** |
+| 10 | InstDisc | `10_inst_disc` | **yes** | ported (`10_inst_disc`) |
 | 11 | CPC | `11_cpc` | **yes** | **portable now (Group 1)** |
 | 12 | CMC | `12_cmc` | **yes** | **portable now (Group 1)** |
 | 13 | MoCo v1 | `13_mocov1` | **yes** | **portable now (Group 1)** |
@@ -101,12 +101,12 @@ already-ported methods that are mismatched (`01`, `02`, `17`, `20`, `21`, `25`,
 `27`, `36`) stay as-is for now; whether to renumber them at publication is part of
 that same decision.
 
-**Portable now (numbering matches + not yet ported):** `10_inst_disc`, `11_cpc`,
-`12_cmc`, `13_mocov1` (Group 1); plus `3_colorization`, `7_deepcluster`,
-`8_split_brain` once their dependency / submodule needs are resolved (Group 3).
-(`5_jigsaw_puzzle`, `6_rotation_prediction` ported. `9_jigsaw_puzzle_pp` ported
-as the VGG16 pretext only; its faiss-GPU knowledge-transfer stages are deferred
-to Group 3, see below.)
+**Portable now (numbering matches + not yet ported):** `11_cpc`, `12_cmc`,
+`13_mocov1` (Group 1); plus `3_colorization`, `7_deepcluster`, `8_split_brain`
+once their dependency / submodule needs are resolved (Group 3).
+(`5_jigsaw_puzzle`, `6_rotation_prediction`, `10_inst_disc` ported.
+`9_jigsaw_puzzle_pp` ported as the VGG16 pretext only; its faiss-GPU
+knowledge-transfer stages are deferred to Group 3, see below.)
 
 ## Per-port procedure (strict TDD, as used for every prior method)
 
