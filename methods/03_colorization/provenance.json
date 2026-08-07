@@ -1,0 +1,32 @@
+{
+  "captured_at": "2026-08-07",
+  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
+  "captured_note": "Ported from the capture's self-contained methods/3_colorization, specifically its paper-faithful CNN path (models/colorization_cnn.py, data/colorization_dataset.py, data/ab_quantization.py, train_step1_cnn.py, evaluate_linear.py). These are the lab's own implementation of Zhang, Isola & Efros (ECCV 2016) colorization. The capture directory number (3) equals this method's number in the Step 1&2 list (see docs/PORTING_ROADMAP.md).",
+  "paper": {
+    "title": "Colorful Image Colorization",
+    "authors": "Zhang, Isola, Efros",
+    "year": 2016,
+    "arxiv": "1603.08511"
+  },
+  "scope": "The paper-faithful CNN path is ported: the L channel of a Lab image is the input, and a VGG-style CNN with BatchNorm and dilated convolutions predicts the ab channels, quantised to 313 in-gamut bins, as a per-pixel classification trained with an (optionally class-rebalanced) cross-entropy. The capture's ViT step 2 is EXCLUDED, as in every port.",
+  "encoder": "encoder.pt is the CNN encoder trunk (encoder.*, conv1-7). The decoder (conv8) and the 313-bin classification head are pretext machinery and are excluded. The lab's model named its layers flat (conv1_1 ... conv_out); this port groups them into encoder/decoder/head so encoder.pt is a clean encoder.* prefix, with the layer shapes, order and computation unchanged. get_encoder() returns the trunk with a global-average-pool -> 512-d.",
+  "linear_eval": "Reads the trained encoder.pt and probes the encoder's 512-d global-average-pooled feature (the frozen encoder reads the L channel), a genuine learned representation, so the number is comparable. Follows the lab's shared ARSSL probe (mean-centre + L2-normalise, single linear layer, SGD momentum + cosine, top1/top5) rather than the capture's own per-layer probe, so the number is comparable across the ported methods.",
+  "vendored_constant": {
+    "file": "data/pts_in_hull.npy",
+    "shape": "[313, 2]",
+    "source": "https://github.com/richzhang/colorization/raw/caffe/resources/pts_in_hull.npy",
+    "sha256": "b5dec01315c34f43f1c8c089e84c45ae35d1838d8e77ed0e7ca930f79ffa450e",
+    "note": "The 313 in-gamut ab-bin centres (Zhang et al.). The capture's copy is a symlink into the cluster's LIVE_ROOT (not in the snapshot), so the port vendors the authoritative constant fetched once from richzhang/colorization; there is no runtime download."
+  },
+  "rewritten_during_the_port": [
+    "only the paper-faithful CNN path is ported; the ViT step 2 is excluded",
+    "the model's flat layer names (conv1_1 ... conv_out) are grouped into encoder (conv1-7) / decoder (conv8) / head (313-bin 1x1), so encoder.pt is a clean encoder.* prefix; the layer shapes, order and computation are unchanged",
+    "the RGB->CIE Lab conversion and the 313-bin ab quantisation are pure numpy (as in the lab's own code); despite the capture's requirements.txt naming opencv / scikit-image / scikit-learn, none is imported, so the port keeps the torch-only closure",
+    "the 313 ab-bin constant is vendored (the capture's copy is a symlink into the cluster's LIVE_ROOT); the runtime download / approximate-fallback paths are removed -- a missing constant errors loudly",
+    "class rebalancing is exposed as a config flag (use_class_rebalancing); the shipped config enables it, the hermetic smoke disables it",
+    "the device is resolved (resolve_device) instead of assumed CUDA",
+    "main() split into build_parser()/run(args, config) returning the pretext cross-entropy loss and epoch count",
+    "the run is seeded through make_deterministic (python, numpy, torch)",
+    "the training loop drops the upstream DistributedDataParallel, AMP and TensorBoard so the same step runs on a CPU or a GPU unchanged, single-process fp32"
+  ]
+}

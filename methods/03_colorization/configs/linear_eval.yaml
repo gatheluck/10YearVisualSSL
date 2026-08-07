@@ -1,0 +1,32 @@
+# Colorization linear evaluation: a linear probe on the frozen CNN encoder.
+#
+# The probe reads the model this port trains (the encoder trunk, one 512-d
+# global-average-pooled feature per image), so its number is a genuine,
+# comparable linear probe. It follows the shared ARSSL protocol (mean-centre +
+# L2-normalise, single linear layer, SGD + cosine) used by the other ported
+# methods. The Adam / class-rebalancing knobs are step-1 only and are not
+# accepted here.
+#
+# Two paths are passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   an ImageFolder with train/ and val/ subdirectories
+#   --set ENCODER=<path>     encoder.pt from a step-1 run
+# The output path is fixed at --out. The model settings must match the step-1 run
+# that produced ENCODER.
+stage: linear_eval
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+encoder: "${ENCODER}"
+
+train:
+  # model / data (must match the step-1 run so encoder.pt loads)
+  num_bins: 313
+  img_size: 256
+  crop_size: 224
+  # probe: a single linear layer, SGD + cosine
+  epochs: 100
+  batch_size: 256
+  num_workers: 8
+  lr: 0.1
+  momentum: 0.9
+  weight_decay: 0.0
