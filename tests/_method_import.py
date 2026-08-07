@@ -18,15 +18,41 @@ from __future__ import annotations
 
 import importlib.util
 import sys
+from collections import Counter
 from pathlib import Path
 
-# Package names more than one method defines. Anything here is dropped before
-# a load, so the next import resolves against the method being loaded.
-SHARED_NAMES = ("data", "models")
+_METHODS_ROOT = Path(__file__).resolve().parent.parent / "methods"
+_SHARED_NAMES_CACHE: "tuple[str, ...] | None" = None
+
+
+def _shared_names() -> "tuple[str, ...]":
+    """Top-level package names that more than one method defines -- `data`,
+    `models`, `nce`, `adapter`, and whatever a future method shares next.
+
+    **Discovered by scanning `methods/`, not listed.** A hand-kept list was the
+    original shape here (`data`, `models`), and it silently missed `nce` the
+    moment a second method (`12_cmc`, alongside `10_inst_disc`) defined one:
+    `sys.modules["nce"]` then kept the first method's copy and the second's
+    `from nce import ...` resolved against the wrong one. A name shared by two
+    methods is exactly what must be purged, so the set is computed from the tree
+    rather than remembered."""
+    global _SHARED_NAMES_CACHE
+    if _SHARED_NAMES_CACHE is None:
+        counts: Counter = Counter()
+        if _METHODS_ROOT.is_dir():
+            for method_dir in sorted(_METHODS_ROOT.iterdir()):
+                if not method_dir.is_dir():
+                    continue
+                for child in method_dir.iterdir():
+                    if child.is_dir() and (child / "__init__.py").is_file():
+                        counts[child.name] += 1
+        _SHARED_NAMES_CACHE = tuple(sorted(n for n, c in counts.items()
+                                           if c >= 2))
+    return _SHARED_NAMES_CACHE
 
 
 def _purge(method: Path) -> None:
-    for name in SHARED_NAMES:
+    for name in _shared_names():
         mod = sys.modules.get(name)
         if mod is None:
             continue

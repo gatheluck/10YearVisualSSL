@@ -1,0 +1,102 @@
+# 12_cmc — step 1 (CMC AlexNet pretext) + linear evaluation
+
+Tian, Krishnan & Isola, *Contrastive Multiview Coding*, 2019
+([arXiv:1906.05849](https://arxiv.org/abs/1906.05849)).
+
+An RGB image is converted to CIE **Lab** and split into its **L** (1-channel) and
+**ab** (2-channel) views. A two-branch half-size AlexNet maps each view to an
+L2-normalised embedding, and an **NCE** loss over two momentum **memory banks**
+(one per view, scored cross-view) pulls the two views of an image together and
+apart from K negatives. Step 1 is that pretext.
+
+## Scope — the paper-faithful AlexNet path only
+
+The capture ships a CMC AlexNet step 1, a ViT step 2, and an optional ResNet
+linear-classifier variant. This port brings across the **AlexNet** path only: the
+two-branch encoder, the two-bank NCE loss with alias-method negative sampling,
+and the Lab dataset. The captured step 2 (a ViT variant) and the ResNet
+linear-classifier variant are excluded, as in every port.
+
+## Why this method, and what is new here
+
+**A self-contained re-implementation** ported from the capture's own
+`methods/12_cmc` AlexNet files (the lab's own model, NCE machinery, Lab dataset,
+trainer and probe, torch/torchvision only) — no `third_party/` submodule.
+
+The lab wrapper trains under `DistributedDataParallel` with AMP and logs to
+TensorBoard; none is needed for a single-process run, so `train_step1_cmc.py`
+owns a thin fp32 loop, the device is **resolved** rather than assumed CUDA,
+TensorBoard/tqdm are dropped, and NCE negatives come from within the batch (the
+cross-rank all-gather / broadcast / all-reduce paths are kept but guarded by
+`dist.is_initialized()`, so they are inert single-process). The two memory banks
+live in the `NCEAverage` loss module, not the model.
+
+**The Lab conversion is reimplemented in numpy** (sRGB → XYZ(D65) → CIE Lab),
+verified against published CIE Lab reference values, so the port keeps the
+torch-only closure — scikit-image is **not** a dependency (the capture uses
+`skimage.color.rgb2lab` with a PIL fallback).
+
+## `encoder.pt`, and a linear evaluation that reads it
+
+`encoder.pt` is the **two-branch AlexNet encoder** (`encoder_l.*` /
+`encoder_ab.*`). The NCE memory banks (`memory_l`, `memory_ab`) live in the
+separate `NCEAverage` module, so the model's `state_dict` never carries them and
+`encoder.pt` naturally excludes them (the same shape as the inst_disc port). The
+round trip (write it, load it back into a rebuilt model, compare the weights) is
+tested.
+
+`linear_eval` reads this `encoder.pt`: the representation is the model this port
+trains, so the probe number is a genuine, comparable linear probe. It probes the
+**layer-6 (fc6) features of both branches, concatenated** (2 × 2048) — the paper's
+best single-branch layer. Images use the deterministic val pipeline (resize +
+centre crop, no augmentation); the probe follows the lab's ARSSL protocol
+(features cached once, mean-centred and L2-normalised, a single linear layer
+trained with SGD under a cosine schedule).
+
+## What has and has not been exercised
+
+- **Exercised (step 1):** a hermetic smoke — a narrow encoder, a 64px input, a
+  handful of negatives, a few fabricated images — runs through `python -m adapter`
+  on a CPU, passes `contract-test`, and the encoder round-trip and a determinism
+  check pass.
+- **Exercised (linear_eval):** a hermetic smoke fits the probe on a step-1
+  encoder over a two-class ImageFolder, passes `contract-test`, writes the
+  comparable `linear_probe` accuracies, and writes **no** `encoder.pt`.
+- **Not a full run:** `configs/step1.yaml` is the paper-target recipe (feat_dim
+  128, K 16384, T 0.07, 240 epochs, 224px), a recipe, not a completed run.
+- **Not ported:** the ViT step 2 and the optional ResNet linear-classifier
+  variant.
+- **GPU:** the device resolution is verified on real hardware; see the device
+  mutation spec (`mutations/12_cmc-step1-device.json`).
+
+## Environment
+
+torch / torchvision / numpy / PyYAML — the self-contained methods' stack, no
+submodule and no extra (the Lab conversion is numpy, not scikit-image).
+`requirements.lock.txt` (CPU) and `requirements.lock.cu130.txt` (CUDA 13.0) are
+the hashed closures (the same closure as `image_gpt`: identical floors, identical
+resolution).
+
+    pip install --require-hashes \
+        --index-url https://download.pytorch.org/whl/cpu \
+        --extra-index-url https://pypi.org/simple \
+        -r methods/12_cmc/requirements.lock.txt -r requirements-tools.lock.txt
+
+## Running
+
+    # step 1: DATA_ROOT is an ImageFolder of training images
+    python bin/resolve-config.py methods/12_cmc/configs/step1.yaml \
+        --set DATA_ROOT=/path/to/images > resolved.json
+    cd methods/12_cmc && PYTHONPATH="$PWD/../.." \
+        python -m adapter --config /path/to/resolved.json --out /path/to/s1
+
+    # linear eval: DATA_ROOT has train/ and val/; ENCODER is step 1's encoder.pt
+    python bin/resolve-config.py methods/12_cmc/configs/linear_eval.yaml \
+        --set DATA_ROOT=/path/to/imagenet \
+        --set ENCODER=/path/to/s1/encoder.pt > eval.json
+    cd methods/12_cmc && PYTHONPATH="$PWD/../.." \
+        python -m adapter --config /path/to/eval.json --out /path/to/eval
+
+Success is exit status 0 and `status: "ok"` in `out/run_manifest.json`. The
+linear_eval stage writes `metrics.json` and **no** `encoder.pt`; the manifest
+carries `encoder_absent_reason`.
