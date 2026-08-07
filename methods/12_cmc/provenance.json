@@ -1,0 +1,24 @@
+{
+  "captured_at": "2026-08-07",
+  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
+  "captured_note": "Ported from the capture's self-contained methods/12_cmc, specifically its paper-faithful AlexNet path (models/alexnet_cmc.py, data/dataset.py, nce/nce_average.py, nce/nce_criterion.py, nce/alias_multinomial.py, train_step1_alexnet.py, evaluate_linear.py, models/linear_classifier.py). These are the lab's own implementation of Tian et al. (2019) Contrastive Multiview Coding, torch/torchvision only. So it ports self-contained (no third_party submodule). The capture directory number (12) equals this method's number in the Step 1&2 list (see docs/PORTING_ROADMAP.md).",
+  "paper": {
+    "title": "Contrastive Multiview Coding",
+    "authors": "Tian, Krishnan, Isola",
+    "year": 2019,
+    "arxiv": "1906.05849"
+  },
+  "scope": "The paper-faithful AlexNet path is ported: an RGB image is converted to CIE Lab and split into its L (1-channel) and ab (2-channel) views; a two-branch half-size AlexNet (channels halved vs standard AlexNet, BatchNorm) maps each view to an L2-normalised feat_dim-d embedding; an NCE loss over two momentum memory banks (one per view, cross-view scored, K negatives drawn by the alias method) trains the encoder. The capture's ViT step 2 (a separate ViTCMC model) and its optional ResNet variant (LinearClassifierResNet) are EXCLUDED, as in every port.",
+  "encoder": "encoder.pt is the two-branch AlexNet encoder (encoder_l.* / encoder_ab.*). The NCE memory banks (memory_l, memory_ab) live in the separate NCEAverage module (register_buffer), so the model's state_dict never carries them and encoder.pt naturally excludes them -- the same shape as the inst_disc port.",
+  "linear_eval": "Reads the trained encoder.pt and probes the layer-6 (fc6) features of both branches, concatenated (2 x 2048) -- the paper's best single-branch layer -- a genuine learned representation, so the number is comparable. Images use the deterministic val pipeline (resize + centre crop, no augmentation). Follows the lab's ARSSL probe (mean-centre + L2-normalise, single linear layer, SGD momentum + cosine, top1/top5). The capture's own eval offers layers 1-8 with a max/avg pool and an SGD-milestone schedule; this port fixes layer 6 with the shared ARSSL probe for a comparable number.",
+  "rewritten_during_the_port": [
+    "only the paper-faithful AlexNet path is ported; the ViT step 2 and the optional ResNet linear-classifier variant are excluded",
+    "the RGB->CIE Lab conversion is reimplemented in numpy (sRGB -> XYZ(D65) -> Lab), verified against published CIE Lab reference values, so the port keeps the torch-only closure and does not depend on scikit-image (the capture uses skimage.color.rgb2lab with a PIL fallback)",
+    "the model's fc6 hard-codes a 6x6 conv5 map (the paper's 224px input); the port inserts an AdaptiveMaxPool2d((6,6)) before fc6, a no-op at 224px that lets a small hermetic CPU smoke run at a smaller input; the paper's 224px geometry is still what the shipped config asks for",
+    "the NCE cross-rank all-gather / broadcast / all-reduce (DistributedDataParallel) paths are kept but guarded by dist.is_initialized(), so they are inert in the single-process port (negatives and bank writes come from within the batch)",
+    "the device is resolved (resolve_device) instead of assumed CUDA",
+    "main() split into build_parser()/run(args, config) returning the pretext NCE loss and epoch count",
+    "the run is seeded through make_deterministic (python, numpy, torch)",
+    "the training loop drops the upstream DistributedDataParallel, AMP, tqdm and TensorBoard so the same step runs on a CPU or a GPU unchanged, single-process fp32"
+  ]
+}

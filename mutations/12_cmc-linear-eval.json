@@ -1,0 +1,68 @@
+{
+  "_note": "Run: .venvs/12_cmc/bin/python bin/mutate.py --spec mutations/12_cmc-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/12_cmc/bin/python. Proves the model/NCE/two-stage guards are not vacuous: the embedding is L2-normalised, the encoder returns one flat vector per image, the memory bank is actually updated, encoder.pt excludes the memory banks, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
+  "targets": [
+    {
+      "label": "the layer-8 embedding is not L2-normalised",
+      "file": "methods/12_cmc/models/cmc_alexnet.py",
+      "old": "        return x.div(norm.clamp(min=1e-8))",
+      "new": "        return x",
+      "tests": [
+        "tests.test_method_12_cmc.TestTheModel.test_layer8_is_l2_normalised"
+      ]
+    },
+    {
+      "label": "the encoder no longer returns one feature vector per image",
+      "file": "methods/12_cmc/models/cmc_alexnet.py",
+      "old": "        return torch.cat([feat_l, feat_ab], dim=1)",
+      "new": "        return torch.cat([feat_l, feat_ab], dim=0)",
+      "tests": [
+        "tests.test_method_12_cmc.TestTheModel.test_the_encoder_returns_one_feature_per_image"
+      ]
+    },
+    {
+      "label": "the L memory bank is never updated",
+      "file": "methods/12_cmc/nce/nce_average.py",
+      "old": "            self.memory_l.index_copy_(0, all_y, l_pos)",
+      "new": "            pass",
+      "tests": [
+        "tests.test_method_12_cmc.TestTheNCE.test_the_update_moves_both_indexed_banks"
+      ]
+    },
+    {
+      "label": "the memory banks are no longer excluded from encoder.pt",
+      "file": "methods/12_cmc/adapter/__init__.py",
+      "old": "    out = {k: v for k, v in state_dict.items()\n           if k.startswith(ENCODER_PREFIXES)}",
+      "new": "    out = {k: v for k, v in state_dict.items()}",
+      "tests": [
+        "tests.test_method_12_cmc.TestExtractingTheEncoder"
+      ]
+    },
+    {
+      "label": "a downstream probe number is mapped to a pretext name",
+      "file": "methods/12_cmc/adapter/__init__.py",
+      "old": "    \"final_top1_acc\": \"final_linear_probe_top1_accuracy\",",
+      "new": "    \"final_top1_acc\": \"final_pretext_loss\",",
+      "tests": [
+        "tests.test_method_12_cmc.TestTheMetricsAreInTheVocabulary",
+        "tests.test_method_12_cmc.TestALinearEvalSmoke"
+      ]
+    },
+    {
+      "label": "the absent encoder is not explained",
+      "file": "methods/12_cmc/adapter/__init__.py",
+      "old": "    if _stage_of(config_path) != \"linear_eval\":\n        return None",
+      "new": "    return None\n    if False:\n        return None",
+      "tests": [
+        "tests.test_method_12_cmc.TestTheEvalProducesNoEncoder",
+        "tests.test_method_12_cmc.TestALinearEvalSmoke.test_it_produces_no_encoder_and_says_so"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-08-07",
+    "measured_with": ".venvs/12_cmc (cu130) on an NVIDIA Tesla T4",
+    "killed": 6,
+    "total": 6,
+    "equivalent": []
+  }
+}
