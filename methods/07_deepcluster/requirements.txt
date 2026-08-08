@@ -1,0 +1,23 @@
+# What the 07_deepcluster port's own files import, and nothing else. Checked in
+# both directions by tests/test_method_requirements.py (faiss installs as the
+# distribution faiss-gpu). Floors only; the exact hashed closure is in
+# requirements.lock.txt (CPU, torch parts) and requirements.lock.cu130.txt
+# (CUDA, which adds faiss-gpu).
+#
+# A self-contained re-implementation (the lab's own DeepCluster code, no
+# submodule): the AlexNet-BN backbone with a Sobel front-end, the faiss PCA +
+# k-means clustering, the pseudo-label dataset, the trainer and the probe are all
+# here. faiss is the paper-target clustering backend (as in the capture and the
+# original repo); faiss-gpu ships only a linux-x86_64 wheel, so this method is
+# GPU / x86_64-linux only and faiss lives in the CUDA lock, not the CPU lock.
+# torch is imported directly; numpy handles the feature matrices and seeds the
+# run; torchvision provides the ImageFolder and transforms; PyYAML loads a YAML
+# config on the stand-alone path.
+torch>=2.0.0
+torchvision>=0.15.0
+numpy>=1.24.0
+PyYAML>=6.0
+# gpu-only: faiss-gpu ships only a linux-x86_64 wheel, so it cannot satisfy the
+# cross-platform CPU lock; it lives in requirements.lock.cu130.txt (hashed), and
+# the "# gpu-only" marker exempts it from the CPU lock -- not from being locked.
+faiss-gpu>=1.14.3  # gpu-only
