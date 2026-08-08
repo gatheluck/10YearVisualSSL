@@ -78,7 +78,8 @@ def local_modules(method: Path) -> set[str]:
 # not listed here is assumed to install under its own name; the completeness
 # check below fails rather than let an unknown one slide.
 DISTRIBUTION = {"PIL": "Pillow", "yaml": "PyYAML", "cv2": "opencv-python",
-                "sklearn": "scikit-learn", "skimage": "scikit-image"}
+                "sklearn": "scikit-learn", "skimage": "scikit-image",
+                "faiss": "faiss-gpu"}
 
 # A dotted import can require a distribution that its top-level name does not
 # mention. `from torch.utils.tensorboard import SummaryWriter` needs
@@ -142,6 +143,46 @@ def declared_packages(req: Path) -> set[str]:
     """Distribution names in a requirements file, without version specifiers."""
     return {re.split(r"[<>=!~\[]", line, 1)[0].strip().lower()
             for line in requirement_lines(req)}
+
+
+def gpu_only_packages(req: Path) -> set[str]:
+    """Distribution names a method marks `# gpu-only` in requirements.txt.
+
+    A gpu-only package has no cross-platform wheel and so cannot live in the CPU
+    lock -- `faiss-gpu`, whose only wheel is linux-x86_64, is the first. The
+    marker exempts such a package from the CPU lock **only**: it must still be
+    pinned in the CUDA lock (`lock_coverage_gaps` enforces that), so the marker
+    narrows where a package is locked, it does not let one go unlocked.
+
+    Parsed from the raw lines (not `requirement_lines`, which strips comments):
+    a line whose comment contains the token `gpu-only`.
+    """
+    out = set()
+    for raw in req.read_text(encoding="utf-8").splitlines():
+        if "#" not in raw:
+            continue
+        head, comment = raw.split("#", 1)
+        if "gpu-only" not in comment:
+            continue
+        name = re.split(r"[<>=!~\[]", head, 1)[0].strip().lower()
+        if name:
+            out.add(name)
+    return out
+
+
+def lock_coverage_gaps(declared, gpu_only, cpu_locked, cuda_locked):
+    """Declared packages that are not properly locked, as a pure function so both
+    the real check and its controls read the same logic.
+
+    Non-gpu-only packages must be in the CPU lock; gpu-only packages are exempt
+    from the CPU lock but must be in the CUDA lock. Returns
+    ``(missing_from_cpu, gpu_only_missing_from_cuda)`` -- both empty means every
+    declared package is locked somewhere it can actually install.
+    """
+    declared, gpu_only = set(declared), set(gpu_only)
+    missing_cpu = (declared - gpu_only) - set(cpu_locked)
+    missing_cuda = gpu_only - set(cuda_locked)
+    return missing_cpu, missing_cuda
 
 
 class TestEveryMethodDeclaresWhatItImports(unittest.TestCase):
@@ -542,13 +583,66 @@ class TestVersionsArePinned(unittest.TestCase):
 
     def test_the_lock_covers_everything_declared(self):
         for m in method_dirs():
-            req, lock = m / "requirements.txt", m / "requirements.lock.txt"
-            if not (req.is_file() and lock.is_file()):
+            req = m / "requirements.txt"
+            cpu = m / "requirements.lock.txt"
+            cuda = m / "requirements.lock.cu130.txt"
+            if not (req.is_file() and cpu.is_file()):
                 continue
             with self.subTest(method=m.name):
-                missing = declared_packages(req) - declared_packages(lock)
-                self.assertEqual(missing, set(),
-                                 f"{m.name}: declared but not locked")
+                gpu_only = gpu_only_packages(req)
+                if gpu_only:
+                    self.assertTrue(
+                        cuda.is_file(),
+                        f"{m.name}: has gpu-only packages ({sorted(gpu_only)}) "
+                        "but no CUDA lock to hold them")
+                cuda_locked = declared_packages(cuda) if cuda.is_file() else set()
+                missing_cpu, missing_cuda = lock_coverage_gaps(
+                    declared_packages(req), gpu_only,
+                    declared_packages(cpu), cuda_locked)
+                self.assertEqual(missing_cpu, set(),
+                                 f"{m.name}: declared but not in the CPU lock")
+                self.assertEqual(missing_cuda, set(),
+                                 f"{m.name}: marked gpu-only but not pinned in "
+                                 "the CUDA lock")
+
+
+class TestGpuOnlyPackages(unittest.TestCase):
+    """The gpu-only marker exempts a package from the CPU lock only -- it must
+    still be pinned in the CUDA lock. Proven here with positive and negative
+    controls so the exemption cannot quietly let a package go unlocked."""
+
+    def test_the_marker_is_parsed_from_requirements(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as d:
+            req = Path(d) / "requirements.txt"
+            req.write_text(
+                "torch>=2.0.0\n"
+                "numpy>=1.24.0  # a normal comment, not a marker\n"
+                "faiss-gpu>=1.14.3  # gpu-only\n", encoding="utf-8")
+            self.assertEqual(gpu_only_packages(req), {"faiss-gpu"})
+            self.assertIn("faiss-gpu", declared_packages(req))
+            self.assertIn("numpy", declared_packages(req))
+
+    def test_a_gpu_only_package_may_skip_the_cpu_lock(self):
+        # faiss-gpu is gpu-only and pinned in the CUDA lock: no gaps.
+        missing_cpu, missing_cuda = lock_coverage_gaps(
+            declared={"torch", "faiss-gpu"}, gpu_only={"faiss-gpu"},
+            cpu_locked={"torch"}, cuda_locked={"torch", "faiss-gpu"})
+        self.assertEqual((missing_cpu, missing_cuda), (set(), set()))
+
+    def test_a_gpu_only_package_missing_from_the_cuda_lock_is_flagged(self):
+        # Exempt from the CPU lock, but not from being locked at all.
+        _, missing_cuda = lock_coverage_gaps(
+            declared={"torch", "faiss-gpu"}, gpu_only={"faiss-gpu"},
+            cpu_locked={"torch"}, cuda_locked={"torch"})
+        self.assertEqual(missing_cuda, {"faiss-gpu"})
+
+    def test_a_normal_package_missing_from_the_cpu_lock_is_still_flagged(self):
+        # The marker changes nothing for unmarked packages.
+        missing_cpu, _ = lock_coverage_gaps(
+            declared={"torch", "numpy"}, gpu_only=set(),
+            cpu_locked={"torch"}, cuda_locked={"torch", "numpy"})
+        self.assertEqual(missing_cpu, {"numpy"})
 
 
 if __name__ == "__main__":

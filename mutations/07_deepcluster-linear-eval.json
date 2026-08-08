@@ -1,0 +1,68 @@
+{
+  "_note": "Run: .venvs/07_deepcluster/bin/python bin/mutate.py --spec mutations/07_deepcluster-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/07_deepcluster/bin/python. Proves the model/clustering/two-stage guards are not vacuous: the backbone returns one fc7 vector per image, the top_layer is actually reset, k-means assigns one centroid per sample, encoder.pt excludes the top_layer, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
+  "targets": [
+    {
+      "label": "the backbone no longer flattens to one fc7 vector per image",
+      "file": "methods/07_deepcluster/models/alexnet_deepcluster.py",
+      "old": "        x = torch.flatten(x, 1)",
+      "new": "        x = torch.flatten(x, 2)",
+      "tests": [
+        "tests.test_method_07_deepcluster.TestTheModel.test_get_features_returns_fc7"
+      ]
+    },
+    {
+      "label": "the top_layer is not actually reset (its weights are left as-is)",
+      "file": "methods/07_deepcluster/models/alexnet_deepcluster.py",
+      "old": "        nn.init.normal_(self.top_layer.weight.data, 0, 0.01)",
+      "new": "        pass",
+      "tests": [
+        "tests.test_method_07_deepcluster.TestTheModel.test_reset_top_layer_reinitialises_the_head"
+      ]
+    },
+    {
+      "label": "k-means no longer assigns each sample to a single nearest centroid",
+      "file": "methods/07_deepcluster/utils/clustering.py",
+      "old": "    _, assign = index.search(features_pca, 1)",
+      "new": "    _, assign = index.search(features_pca, 2)",
+      "tests": [
+        "tests.test_method_07_deepcluster.TestTheClustering.test_kmeans_gives_valid_seed_reproducible_assignments"
+      ]
+    },
+    {
+      "label": "the top_layer is no longer excluded from encoder.pt",
+      "file": "methods/07_deepcluster/adapter/__init__.py",
+      "old": "    out = {k: v for k, v in state_dict.items()\n           if k.startswith(ENCODER_PREFIXES)}",
+      "new": "    out = {k: v for k, v in state_dict.items()}",
+      "tests": [
+        "tests.test_method_07_deepcluster.TestExtractingTheEncoder"
+      ]
+    },
+    {
+      "label": "a downstream probe number is mapped to a pretext name",
+      "file": "methods/07_deepcluster/adapter/__init__.py",
+      "old": "    \"final_top1_acc\": \"final_linear_probe_top1_accuracy\",",
+      "new": "    \"final_top1_acc\": \"final_pretext_loss\",",
+      "tests": [
+        "tests.test_method_07_deepcluster.TestTheMetricsAreInTheVocabulary",
+        "tests.test_method_07_deepcluster.TestALinearEvalSmoke"
+      ]
+    },
+    {
+      "label": "the absent encoder is not explained",
+      "file": "methods/07_deepcluster/adapter/__init__.py",
+      "old": "    if _stage_of(config_path) != \"linear_eval\":\n        return None",
+      "new": "    return None\n    if False:\n        return None",
+      "tests": [
+        "tests.test_method_07_deepcluster.TestTheEvalProducesNoEncoder",
+        "tests.test_method_07_deepcluster.TestALinearEvalSmoke.test_it_produces_no_encoder_and_says_so"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-08-08",
+    "measured_with": ".venvs/07_deepcluster (cu130 + faiss-gpu 1.14.3) on an NVIDIA Tesla T4",
+    "killed": 6,
+    "total": 6,
+    "equivalent": []
+  }
+}

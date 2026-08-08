@@ -1,0 +1,25 @@
+{
+  "captured_at": "2026-08-08",
+  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
+  "captured_note": "Ported from the capture's self-contained methods/7_deepcluster, specifically its AlexNet-BN path (models/alexnet_deepcluster.py, utils/clustering.py, data/deepcluster_dataset.py, train_step1_alexnet.py, evaluate_linear.py). These are the lab's own implementation of Caron et al. (ECCV 2018) DeepCluster. The capture directory number (7) equals this method's number in the Step 1&2 list (see docs/PORTING_ROADMAP.md); the ported directory is zero-padded to 07_deepcluster to match the other single-digit methods.",
+  "paper": {
+    "title": "Deep Clustering for Unsupervised Learning of Visual Features",
+    "authors": "Caron, Bojanowski, Joulin, Douze",
+    "year": 2018,
+    "arxiv": "1807.05520"
+  },
+  "scope": "The AlexNet-BN path is ported: each epoch, the whole training set's fc7 features are extracted, reduced by PCA + whitening (pca_dim) and clustered by k-means (k clusters); the cluster assignments become pseudo-labels that a reset classification head is trained to predict (cross-entropy). The backbone is an AlexNet-BN with a fixed 2-channel Sobel front-end. The capture's ViT step 2 is EXCLUDED, as in every port.",
+  "dependency_decision": "The clustering uses faiss -- the paper-target backend the capture and the original DeepCluster repo use. The capture ships faiss as required (require_faiss: true; config comment: 'Paper-target runs must not use the slow sklearn fallback') and documents its sklearn fallback as 'not the official DeepCluster protocol'. This port commits to faiss for faithful reproducibility (user decision) and drops the sklearn fallback, so a missing faiss errors loudly. faiss-gpu==1.14.3 (the capture's pinned version) ships only a linux-x86_64 abi3 wheel, so this is the first ported method that is GPU / x86_64-linux only: faiss-gpu lives in requirements.lock.cu130.txt, and the cross-platform requirements.lock.txt carries only the torch parts (it is not, by itself, a runnable step-1 environment). Verified: faiss-gpu==1.14.3 installs on py3.12 and coexists with torch 2.13.0+cu130 on an NVIDIA Tesla T4 (both use the GPU in one process).",
+  "encoder": "encoder.pt is the AlexNet-BN backbone (features.* + classifier.*, i.e. conv1-5 + fc6/fc7). The reset-each-epoch top_layer (the k-way pseudo-label head) and the fixed Sobel front-end are excluded (the Sobel filter is deterministic and rebuilt on load). get_features returns the 4096-d fc7 feature.",
+  "linear_eval": "Reads the trained encoder.pt and probes the backbone's 4096-d fc7 feature, a genuine learned representation, so the number is comparable. Follows the lab's shared ARSSL probe (mean-centre + L2-normalise, single linear layer, SGD momentum + cosine, top1/top5) rather than the capture's own per-layer probe, so the number is comparable across the ported methods.",
+  "rewritten_during_the_port": [
+    "only the AlexNet-BN path is ported; the ViT step 2 (timm) is excluded, so the port has no timm dependency",
+    "the clustering keeps the capture's faiss PCA-whitening + k-means path but drops the sklearn fallback (the capture marks it 'not the official protocol'); faiss is required and errors loudly if absent",
+    "the DistributedDataParallel feature-gather-to-rank-0 and atomic-file assignment exchange are dropped; the single-process port clusters the whole feature matrix in-process each epoch",
+    "the device is resolved (resolve_device) instead of assumed CUDA",
+    "main() split into build_parser()/run(args, config) returning the pretext (pseudo-label) loss and epoch count",
+    "the run is seeded through make_deterministic (python, numpy, torch); the k-means seed and top_layer reset seed make the clustering reproducible",
+    "the training loop drops the upstream DistributedDataParallel and TensorBoard so the same step runs on a CPU or a GPU unchanged, single-process fp32",
+    "faiss clustering is not bit-identical to a different backend (the capture's own faiss and sklearn paths already differ); the shipped config uses the same faiss path, so a full run reproduces the paper-target backend"
+  ]
+}
