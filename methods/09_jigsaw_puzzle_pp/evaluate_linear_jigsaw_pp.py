@@ -1,16 +1,15 @@
-"""Linear evaluation for Jigsaw++: a probe on the frozen VGG16 encoder.
+"""Linear evaluation for Jigsaw++: a probe on a frozen encoder.
 
-The representation is the model this port trains -- the shared VGG16 encoder
-(`get_encoder()`), which maps an image to a 1024-d feature. Images are resized to
-the encoder's training tile size. The probe follows the lab's ARSSL protocol:
-features are extracted once and cached, mean-centred and L2-normalised, and a
-single linear layer is trained with SGD (momentum) under a cosine schedule;
-top-1 and top-5 are reported.
-
-The paper's own downstream eval probes the AlexNet cluster-classification network
-produced by the faiss-GPU knowledge-transfer stages; those stages are not part of
-this port, so the probe here targets the VGG16 pretext encoder -- still a genuine
-learned representation, so the number is a comparable linear probe.
+The representation is a model this port trains. With `arch=vgg16` (the default)
+the probe reads the shared VGG16 pretext encoder (`get_encoder()`), a 1024-d
+feature, with images resized to the encoder's training tile size. With
+`arch=alexnet_cluster_cls` it reads the AlexNet produced by the knowledge-transfer
+stage (`get_encoder()` -> 9216-d), the paper's own downstream target, with images
+resized to that stage's image size. Either way the probe follows the lab's ARSSL
+protocol: features are extracted once and cached, mean-centred and L2-normalised,
+and a single linear layer is trained with SGD (momentum) under a cosine schedule;
+top-1 and top-5 are reported. Both are genuine learned representations, so the
+number is a comparable linear probe.
 """
 
 from __future__ import annotations
@@ -100,10 +99,13 @@ def run(args, config: "dict | None" = None, model=None) -> dict:
     encoder.eval()
     for p in encoder.parameters():
         p.requires_grad = False
-    print(f"Jigsaw++ linear eval  device={device}  "
-          f"tile_size={train['tile_size']}")
+    arch = train.get("arch", "vgg16")
+    # The probe reads images at the encoder's native size: the VGG16 tile size,
+    # or the AlexNet knowledge-transfer image size.
+    size = int(train["image_size"]) if arch == "alexnet_cluster_cls" \
+        else int(train["tile_size"])
+    print(f"Jigsaw++ linear eval  device={device}  arch={arch}  size={size}")
 
-    size = int(train["tile_size"])
     bs = int(train["batch_size"])
     nw = int(train["num_workers"])
     tr_ds, tr_loader = _build_loader(data_root, "train", size, bs, nw)

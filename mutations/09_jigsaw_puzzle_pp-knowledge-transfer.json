@@ -1,0 +1,66 @@
+{
+  "_note": "Run: .venvs/09_jigsaw_puzzle_pp/bin/python bin/mutate.py --spec mutations/09_jigsaw_puzzle_pp-knowledge-transfer.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/09_jigsaw_puzzle_pp/bin/python (an interpreter with this method's cu130 lock, faiss, and a CUDA device). Proves the knowledge-transfer guards are not vacuous: the AlexNet batch honours the resolved device, its encoder pools to one 9216-d vector per image, the clustering refuses to run without faiss, the config threads num_clusters through, the probe reads the AlexNet at its own image size, and load_encoder builds the AlexNet for arch=alexnet_cluster_cls.",
+  "targets": [
+    {
+      "label": "the AlexNet batch ignores the resolved device and goes to the GPU regardless",
+      "file": "methods/09_jigsaw_puzzle_pp/train_step1_cluster_cls.py",
+      "old": "            imgs = imgs.to(device, non_blocking=True)",
+      "new": "            imgs = imgs.cuda(0, non_blocking=True)",
+      "tests": [
+        "tests.test_method_09_jigsaw_puzzle_pp.TestAKnowledgeTransferSmoke.test_it_completes_and_satisfies_the_contract"
+      ]
+    },
+    {
+      "label": "the AlexNet encoder drops avgpool, so its feature is not a fixed 9216-d vector",
+      "file": "methods/09_jigsaw_puzzle_pp/models/alexnet_cluster_cls.py",
+      "old": "        return nn.Sequential(self.features, self.avgpool, _Flatten())",
+      "new": "        return nn.Sequential(self.features, _Flatten())",
+      "tests": [
+        "tests.test_method_09_jigsaw_puzzle_pp.TestTheAlexNetModel.test_the_encoder_returns_one_feature_vector_per_image"
+      ]
+    },
+    {
+      "label": "the clustering no longer refuses to run without faiss",
+      "file": "methods/09_jigsaw_puzzle_pp/utils/clustering.py",
+      "old": "    _require_faiss()",
+      "new": "    None",
+      "tests": [
+        "tests.test_method_09_jigsaw_puzzle_pp.TestTheKTClustering.test_missing_faiss_is_refused_loudly"
+      ]
+    },
+    {
+      "label": "the knowledge-transfer config does not thread num_clusters through",
+      "file": "methods/09_jigsaw_puzzle_pp/adapter/__init__.py",
+      "old": "            \"kt\": {\"num_clusters\": int(train[\"num_clusters\"]),",
+      "new": "            \"kt\": {\"num_clusters\": 0,",
+      "tests": [
+        "tests.test_method_09_jigsaw_puzzle_pp.TestKTConfigTranslation.test_kt_reaches_the_run_config"
+      ]
+    },
+    {
+      "label": "the probe ignores the arch and always reads the VGG tile size",
+      "file": "methods/09_jigsaw_puzzle_pp/evaluate_linear_jigsaw_pp.py",
+      "old": "    size = int(train[\"image_size\"]) if arch == \"alexnet_cluster_cls\" \\\n        else int(train[\"tile_size\"])",
+      "new": "    size = int(train[\"tile_size\"])",
+      "tests": [
+        "tests.test_method_09_jigsaw_puzzle_pp.TestAKnowledgeTransferSmoke.test_the_alexnet_probe_reports_comparable_numbers"
+      ]
+    },
+    {
+      "label": "load_encoder builds the VGG16 even for arch=alexnet_cluster_cls",
+      "file": "methods/09_jigsaw_puzzle_pp/adapter/__init__.py",
+      "old": "    if arch == \"alexnet_cluster_cls\":\n        model = build_alexnet_cluster_cls_model(",
+      "new": "    if False:\n        model = build_alexnet_cluster_cls_model(",
+      "tests": [
+        "tests.test_method_09_jigsaw_puzzle_pp.TestAKnowledgeTransferSmoke.test_it_writes_an_alexnet_encoder_that_loads_back"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-08-08",
+    "measured_with": ".venvs/09_jigsaw_puzzle_pp (cu130, faiss 1.14.3) on an NVIDIA Tesla T4",
+    "killed": 6,
+    "total": 6,
+    "equivalent": []
+  }
+}
