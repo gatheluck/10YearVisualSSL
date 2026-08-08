@@ -31,7 +31,7 @@
     {
       "label": "the classifier is no longer excluded from encoder.pt",
       "file": "methods/09_jigsaw_puzzle_pp/adapter/__init__.py",
-      "old": "    out = {k: v for k, v in state_dict.items()\n           if k.startswith(ENCODER_PREFIXES)}",
+      "old": "    out = {k: v for k, v in state_dict.items() if k.startswith(prefixes)}",
       "new": "    out = {k: v for k, v in state_dict.items()}",
       "tests": [
         "tests.test_method_09_jigsaw_puzzle_pp.TestExtractingTheEncoder"
@@ -59,7 +59,7 @@
     }
   ],
   "_result": {
-    "measured_on": "2026-08-06",
+    "measured_on": "2026-08-08",
     "measured_with": ".venvs/09_jigsaw_puzzle_pp (cu130) on an NVIDIA Tesla T4",
     "killed": 6,
     "total": 6,

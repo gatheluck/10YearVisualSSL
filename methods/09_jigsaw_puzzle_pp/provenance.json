@@ -1,7 +1,7 @@
 {
   "captured_at": "2026-08-06",
   "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
-  "captured_note": "Ported from the capture's self-contained methods/9_jigsaw_puzzle_pp. Only the VGG16 pretext (paper stage a) is brought across: its models/vgg_jigsaw_pp.py and data/jigsaw_pp_dataset.py are the lab's own implementation of Noroozi et al. (2018), torch/torchvision only, so it ports self-contained (no third_party submodule). The capture directory number (9) equals this method's number in the Step 1&2 list (see docs/PORTING_ROADMAP.md).",
+  "captured_note": "Ported from the capture's self-contained methods/9_jigsaw_puzzle_pp. The VGG16 pretext (paper stage a) and the knowledge-transfer stage (capture stages b + d) are brought across: models/vgg_jigsaw_pp.py, models/alexnet_cluster_cls.py, data/jigsaw_pp_dataset.py and the clustering are the lab's own implementation of Noroozi et al. (2018), so it ports self-contained (no third_party submodule). step 1 is torch/torchvision only; the knowledge-transfer clustering uses faiss (GPU / x86_64-linux only). The capture directory number (9) equals this method's number in the Step 1&2 list (see docs/PORTING_ROADMAP.md).",
   "paper": {
     "title": "Boosting Self-Supervised Learning via Knowledge Transfer",
     "authors": "Noroozi, Vinjimoor, Favaro, Pirsiavash",
@@ -9,17 +9,20 @@
     "arxiv": "1805.00385",
     "venue": "CVPR 2018"
   },
-  "scope": "This port covers the VGG16 Jigsaw++ pretext task (paper stage a): a shared VGG16 encoder predicts which permutation reordered the 3x3 tiles, with up to two occlusion tiles from another image and 70% grayscale. The paper's knowledge-transfer stages -- extract VGG conv4 features, k-means cluster them (k=2000) into pseudo-labels with faiss-GPU, then train an AlexNet to classify the pseudo-labels (capture stages b and d) -- are a faiss-GPU pipeline (the capture's cluster_and_pseudolabels.py explicitly refuses a CPU/sklearn fallback) and are DEFERRED to the faiss / Group-3 batch alongside deepcluster; see docs/PORTING_ROADMAP.md.",
-  "encoder": "encoder.pt is the shared VGG16 encoder (encoder.*): four VGG conv blocks, an adaptive max-pool to 4x4x512, and an FC layer, producing a 1024-d feature per tile/image. The permutation classifier (classifier.*) is pretext machinery and is excluded.",
-  "linear_eval": "Reads the trained encoder.pt and probes the VGG16 encoder's 1024-d feature (images resized to the encoder's tile size), a genuine learned representation -- so the number is comparable. Follows the lab's ARSSL probe (L2-normalise + mean-centre, single linear layer, SGD momentum + cosine, top1/top5). The paper's own downstream eval probes the AlexNet cluster-classification network produced by the (deferred) faiss knowledge-transfer stages; this port probes the VGG16 pretext encoder instead, which it actually trains.",
+  "scope": "This port covers two stages. step1: the VGG16 Jigsaw++ pretext (paper stage a) -- a shared VGG16 encoder predicts which permutation reordered the 3x3 tiles, with up to two occlusion tiles from another image and 70% grayscale. knowledge_transfer: the paper's namesake (capture stages b + d) -- extract the VGG16 conv4 features, k-means cluster them (k=2000 in the shipped config) into pseudo-labels with faiss, then train a standard AlexNet to classify the pseudo-labels. The clustering uses faiss (the capture's cluster_and_pseudolabels.py explicitly refuses a CPU/sklearn fallback), whose gpu wheel is linux-x86_64-only, so the knowledge_transfer stage is GPU / x86_64-linux only (faiss in the CUDA lock via a # gpu-only marker, as in 07_deepcluster). The capture's step 2 (a ViT variant) is excluded, as in every port.",
+  "encoder": "encoder.pt is, for step1, the shared VGG16 encoder (encoder.*): four VGG conv blocks, an adaptive max-pool to 4x4x512, and an FC layer, producing a 1024-d feature per tile/image; for knowledge_transfer, the AlexNet conv trunk (features.*), whose get_encoder() (features + avgpool) produces a 9216-d feature per image. The classification head (the permutation classifier, or the pseudo-label head) is training machinery and is excluded.",
+  "linear_eval": "Reads a trained encoder.pt and probes it. arch=vgg16 (the default) probes the VGG16 encoder's 1024-d feature; arch=alexnet_cluster_cls probes the knowledge-transfer AlexNet's 9216-d feature -- the paper's own downstream target. Images are resized to the encoder's native size (the VGG16 tile size, or the AlexNet image size). Both are representations this port trains, so either number is comparable. Follows the lab's ARSSL probe (L2-normalise + mean-centre, single linear layer, SGD momentum + cosine, top1/top5).",
   "rewritten_during_the_port": [
-    "only the VGG16 pretext (stage a) is ported; the faiss-GPU cluster/pseudo-label/AlexNet knowledge-transfer stages and the ViT step 2 are excluded",
+    "the VGG16 pretext (stage a) and the knowledge-transfer stage (capture stages b + d) are ported; only the capture's ViT step 2 is excluded, as in every port (which also drops its timm dependency)",
     "the permutation set is generated deterministically (a seeded random.Random) rather than read from the capture's on-disk .pkl cache",
     "the capture's puzzle_size canvas-assembly path is dropped; the dataset returns the 9 tiles stacked as [9, 3, tile, tile], which the VGG16 model consumes",
-    "the VGG16Encoder's torchvision-weight loader (get_conv4_features clustering helpers, _load_pretrained) is dropped; the port trains from scratch",
+    "the VGG16Encoder's torchvision-weight loader (_load_pretrained) is dropped; the port trains from scratch. get_conv4_features is reimplemented (blocks 1-4 -> pool4 -> 8192-d) for the knowledge-transfer clustering",
     "the device is resolved (resolve_device) instead of assumed CUDA",
     "main() split into build_parser()/run(args, config) returning the pretext loss/accuracy and epoch count",
     "the run is seeded through make_deterministic (python, numpy, torch)",
-    "the training loop drops the upstream DistributedDataParallel, AMP and TensorBoard so the same step runs on a CPU or a GPU unchanged, single-process fp32"
+    "the training loop drops the upstream DistributedDataParallel, AMP and TensorBoard so the same step runs on a CPU or a GPU unchanged, single-process fp32",
+    "knowledge transfer: the capture runs clustering (cluster_and_pseudolabels.py) and AlexNet training (train_step1_cluster_cls.py) as two separate DDP scripts; this port does both in one single-process fp32 stage. The clustering matches the capture's run_kmeans (L2-normalise then faiss k-means, no PCA -- the capture has none here, unlike deepcluster) and keeps faiss (the capture refuses a CPU/sklearn fallback); faiss is imported lazily so the code imports without it",
+    "knowledge transfer: the pseudo-labels are remapped to [0, n_active) so the AlexNet head has exactly one class per non-empty cluster",
+    "the AlexNet is the torchvision-standard AlexNet (the paper's 'standard AlexNet and ImageNet settings'); encoder.pt for this stage is its conv trunk (features.*)"
   ]
 }

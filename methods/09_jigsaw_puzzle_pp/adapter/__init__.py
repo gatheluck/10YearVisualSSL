@@ -1,20 +1,25 @@
-"""Adapter for 09_jigsaw_puzzle_pp, step 1 and linear evaluation (Noroozi et al.,
-CVPR 2018).
+"""Adapter for 09_jigsaw_puzzle_pp: step 1, knowledge transfer, and linear
+evaluation (Noroozi et al., CVPR 2018).
 
     python -m adapter --config <resolved.json> --out <dir>
 
 Jigsaw++ solves a pretext of predicting which permutation reordered an image's
 3x3 tiles -- with occlusion tiles from another image and frequent grayscale --
-using a shared VGG16 encoder (step 1), then a linear probe on that encoder
-(linear_eval). A self-contained re-implementation (the lab's own code) -- no
-submodule. Only the VGG16 pretext (stage a) is ported; the paper's faiss-GPU
-knowledge-transfer stages and the capture's step 2 (ViT) are excluded (see the
-method README).
+using a shared VGG16 encoder (step 1). The paper's knowledge-transfer stage is
+also ported (knowledge_transfer): cluster the VGG16 conv4 features with faiss
+k-means into pseudo-labels and train a standard AlexNet to classify them. Either
+encoder is then probed with a linear layer (linear_eval). A self-contained
+re-implementation (the lab's own code) -- no submodule. The clustering uses faiss
+(GPU / x86_64-linux only), so knowledge_transfer runs there; step 1 and the
+default `arch=vgg16` probe stay torch-only. The capture's step 2 (ViT) is
+excluded, as in every port (see the method README).
 
-`encoder.pt` is the shared VGG16 encoder (`encoder.*`); the permutation
-classifier is pretext machinery and is left out. `linear_eval` reads this
-`encoder.pt`; the representation is the model this port trains, so the probe
-number is a genuine, comparable linear probe.
+`encoder.pt` is the shared VGG16 encoder (`encoder.*`) for step 1, or the AlexNet
+conv trunk (`features.*`) for knowledge_transfer; the classification head is
+training machinery and is left out. `linear_eval` reads an `encoder.pt`: it
+probes the VGG16 encoder (`arch=vgg16`, the default) or the knowledge-transfer
+AlexNet (`arch=alexnet_cluster_cls`). The representation is a model this port
+trains, so the probe number is a genuine, comparable linear probe.
 """
 
 from __future__ import annotations
@@ -28,7 +33,7 @@ from pathlib import Path
 import adapterlib
 
 METHOD = "09_jigsaw_puzzle_pp"
-STAGES = ("step1", "linear_eval")
+STAGES = ("step1", "knowledge_transfer", "linear_eval")
 METHOD_DIR = Path(__file__).resolve().parent.parent
 
 MODEL_KEYS = frozenset({"num_permutations", "dropout", "tile_size", "tile_gap",
@@ -36,17 +41,32 @@ MODEL_KEYS = frozenset({"num_permutations", "dropout", "tile_size", "tile_gap",
 STEP1_TRAIN_ONLY = frozenset({"epochs", "batch_size", "num_workers", "lr",
                               "momentum", "weight_decay"})
 STEP1_TRAIN_KEYS = MODEL_KEYS | STEP1_TRAIN_ONLY
+# Knowledge transfer (Noroozi et al. "Boosting SSL via Knowledge Transfer"):
+# reads a VGG16 encoder.pt, clusters its conv4 features (faiss) into pseudo-labels
+# and trains an AlexNet on them. Only `dropout` is needed to rebuild the VGG16 to
+# load its encoder (only encoder.* is loaded); the rest configures the AlexNet.
+KT_KEYS = frozenset({"num_clusters", "image_size", "dropout"})
+KT_TRAIN_ONLY = frozenset({"epochs", "batch_size", "num_workers", "lr",
+                           "momentum", "weight_decay"})
+KT_TRAIN_KEYS = KT_KEYS | KT_TRAIN_ONLY
 EVAL_PROBE_KEYS = frozenset({"epochs", "batch_size", "num_workers", "lr",
                              "momentum", "weight_decay"})
-EVAL_TRAIN_KEYS = MODEL_KEYS | EVAL_PROBE_KEYS
+# linear_eval probes either the VGG16 encoder (arch=vgg16, the default -- keys
+# unchanged) or the knowledge-transfer AlexNet (arch=alexnet_cluster_cls).
+EVAL_TRAIN_KEYS = MODEL_KEYS | EVAL_PROBE_KEYS                       # arch=vgg16
+EVAL_ALEXNET_KEYS = frozenset({"arch", "dropout", "image_size"}) | EVAL_PROBE_KEYS
+ARCHS = ("vgg16", "alexnet_cluster_cls")
 
 TOP_KEYS = frozenset({"stage", "seed", "data_root", "device", "train"})
 EVAL_TOP_KEYS = TOP_KEYS | {"encoder"}
+KT_TOP_KEYS = TOP_KEYS | {"encoder"}
 DEVICES = ("auto", "cuda", "cpu")
 WORK = "work"
 
-# The shared VGG16 encoder. The permutation classifier is excluded.
+# encoder.pt prefixes: the shared VGG16 encoder for step1/linear_eval, and the
+# AlexNet conv trunk for the knowledge-transfer output.
 ENCODER_PREFIXES = ("encoder.",)
+ALEXNET_ENCODER_PREFIXES = ("features.",)
 
 STEP1_METRIC_NAMES = {
     "final_loss": "final_pretext_loss",
@@ -92,6 +112,25 @@ def _model_section(train: dict) -> dict:
     }
 
 
+def eval_arch(train: dict) -> str:
+    """The encoder the probe reads: `vgg16` (default) or `alexnet_cluster_cls`."""
+    arch = train.get("arch", "vgg16") if isinstance(train, dict) else "vgg16"
+    if arch not in ARCHS:
+        raise ConfigError(
+            f"config.train: arch is {arch!r}; expected one of "
+            f"{', '.join(ARCHS)}")
+    return arch
+
+
+def _training_section(train: dict) -> dict:
+    return {"epochs": int(train["epochs"]),
+            "batch_size": int(train["batch_size"]),
+            "num_workers": int(train["num_workers"]),
+            "lr": float(train["lr"]),
+            "momentum": float(train["momentum"]),
+            "weight_decay": float(train["weight_decay"])}
+
+
 def to_run_config(config: dict, out: Path) -> dict:
     for key in ("output", "checkpoint"):
         if key in config:
@@ -105,8 +144,16 @@ def to_run_config(config: dict, out: Path) -> dict:
         raise ConfigError(
             f"config: stage is {stage!r}; known stages are "
             f"{', '.join(STAGES)}")
-    keys = EVAL_TRAIN_KEYS if stage == "linear_eval" else STEP1_TRAIN_KEYS
-    top = EVAL_TOP_KEYS if stage == "linear_eval" else TOP_KEYS
+
+    if stage == "linear_eval":
+        top = EVAL_TOP_KEYS
+        arch = eval_arch(config.get("train", {}))
+        keys = EVAL_ALEXNET_KEYS if arch == "alexnet_cluster_cls" \
+            else EVAL_TRAIN_KEYS
+    elif stage == "knowledge_transfer":
+        top, keys = KT_TOP_KEYS, KT_TRAIN_KEYS
+    else:
+        top, keys = TOP_KEYS, STEP1_TRAIN_KEYS
     _named(top - set(config), set(config) - top, "config")
 
     train = config["train"]
@@ -123,15 +170,21 @@ def to_run_config(config: dict, out: Path) -> dict:
     if stage == "linear_eval":
         return {"stage": stage}
 
+    if stage == "knowledge_transfer":
+        return {
+            "seed": int(config["seed"]),
+            "kt": {"num_clusters": int(train["num_clusters"]),
+                   "image_size": int(train["image_size"]),
+                   "dropout": float(train["dropout"])},
+            "training": _training_section(train),
+            "data": {"data_root": str(config["data_root"])},
+            "output": {"checkpoint_dir": str(Path(out) / WORK)},
+        }
+
     return {
         "seed": int(config["seed"]),
         "model": _model_section(train),
-        "training": {"epochs": int(train["epochs"]),
-                     "batch_size": int(train["batch_size"]),
-                     "num_workers": int(train["num_workers"]),
-                     "lr": float(train["lr"]),
-                     "momentum": float(train["momentum"]),
-                     "weight_decay": float(train["weight_decay"])},
+        "training": _training_section(train),
         "data": {"data_root": str(config["data_root"])},
         "output": {"checkpoint_dir": str(Path(out) / WORK)},
     }
@@ -143,31 +196,60 @@ def to_args(config: dict, out: Path) -> Namespace:
                      device=config["device"])
 
 
-def extract_encoder(state_dict: dict) -> dict:
-    out = {k: v for k, v in state_dict.items()
-           if k.startswith(ENCODER_PREFIXES)}
+def extract_encoder(state_dict: dict, prefixes=ENCODER_PREFIXES) -> dict:
+    out = {k: v for k, v in state_dict.items() if k.startswith(prefixes)}
     if not out:
         raise RuntimeError(
-            f"nothing under {ENCODER_PREFIXES} in the checkpoint; the model "
+            f"nothing under {prefixes} in the checkpoint; the model "
             "layout changed and encoder.pt would have been empty")
     return out
 
 
 def load_encoder(state_dict: dict, config: dict):
+    """Rebuild the encoder encoder.pt describes and load it. The VGG16 encoder
+    (arch=vgg16, the default) or the knowledge-transfer AlexNet
+    (arch=alexnet_cluster_cls)."""
     if str(METHOD_DIR) not in sys.path:
         sys.path.insert(0, str(METHOD_DIR))
-    from models import build_vgg16_jigsaw_pp_model
+    from models import (build_vgg16_jigsaw_pp_model,
+                        build_alexnet_cluster_cls_model)
     from train_step1_jigsaw_pp import model_kwargs
-    model = build_vgg16_jigsaw_pp_model(**model_kwargs(config["train"]))
+    arch = eval_arch(config["train"])
+    if arch == "alexnet_cluster_cls":
+        model = build_alexnet_cluster_cls_model(
+            dropout=float(config["train"]["dropout"]))
+        prefixes = ALEXNET_ENCODER_PREFIXES
+    else:
+        model = build_vgg16_jigsaw_pp_model(**model_kwargs(config["train"]))
+        prefixes = ENCODER_PREFIXES
     missing, unexpected = model.load_state_dict(state_dict, strict=False)
     if unexpected:
         raise RuntimeError(
             f"encoder.pt carries keys this model does not have: {unexpected[:5]}")
-    absent = [k for k in missing if k.startswith(ENCODER_PREFIXES)]
+    absent = [k for k in missing if k.startswith(prefixes)]
     if absent:
         raise RuntimeError(
             f"encoder.pt is missing encoder weights: {absent[:5]}. The "
-            "classifier is expected to be missing; the encoder is not")
+            "classifier/head is expected to be missing; the encoder is not")
+    return model
+
+
+def _load_vgg_encoder(encoder_path, dropout):
+    """Load a step-1 VGG16 encoder.pt into a VGG16 model, for the KT stage."""
+    import torch
+    if str(METHOD_DIR) not in sys.path:
+        sys.path.insert(0, str(METHOD_DIR))
+    from models import build_vgg16_jigsaw_pp_model
+    state = torch.load(encoder_path, map_location="cpu", weights_only=True)
+    model = build_vgg16_jigsaw_pp_model(num_classes=701, dropout=float(dropout))
+    missing, unexpected = model.load_state_dict(state, strict=False)
+    if unexpected:
+        raise RuntimeError(
+            f"the VGG16 encoder.pt carries unexpected keys: {unexpected[:5]}")
+    absent = [k for k in missing if k.startswith(ENCODER_PREFIXES)]
+    if absent:
+        raise RuntimeError(
+            f"the VGG16 encoder.pt is missing encoder weights: {absent[:5]}")
     return model
 
 
@@ -217,20 +299,45 @@ def run_linear_eval(config: dict, out: Path, _run=None) -> dict:
     return metrics
 
 
+def run_knowledge_transfer(config: dict, out: Path, _run=None) -> dict:
+    if _run is None:
+        if str(METHOD_DIR) not in sys.path:
+            sys.path.insert(0, str(METHOD_DIR))
+        from train_step1_cluster_cls import run as _run
+    run_config = to_run_config(config, out)
+    Path(run_config["output"]["checkpoint_dir"]).mkdir(parents=True,
+                                                       exist_ok=True)
+    vgg_model = _load_vgg_encoder(config["encoder"], config["train"]["dropout"])
+    args = Namespace(config=None, data_path=None, encoder=None,
+                     device=config["device"])
+    raw = _run(args, run_config, vgg_model=vgg_model) or {}
+    metrics, unusable = _filter_numeric(raw)
+    if "final_loss" not in metrics:
+        unusable += 1
+    if unusable:
+        metrics["metrics_unavailable"] = unusable
+    return metrics
+
+
 def body(ctx: adapterlib.Context) -> None:
     import torch
     if ctx.stage == "linear_eval":
         ctx.write_metrics(run_linear_eval(ctx.config, ctx.out),
                           names=LINEAR_EVAL_METRIC_NAMES)
         return
-    metrics = run_training(ctx.config, ctx.out)
+    if ctx.stage == "knowledge_transfer":
+        metrics = run_knowledge_transfer(ctx.config, ctx.out)
+        prefixes = ALEXNET_ENCODER_PREFIXES
+    else:
+        metrics = run_training(ctx.config, ctx.out)
+        prefixes = ENCODER_PREFIXES
     latest = Path(ctx.out) / WORK / "checkpoint_latest.pth"
     if not latest.is_file():
         raise RuntimeError(
             f"training finished but {latest} was not written; there is no "
             "encoder to hand over")
     state = torch.load(latest, map_location="cpu", weights_only=False)
-    torch.save(extract_encoder(state["model_state_dict"]),
+    torch.save(extract_encoder(state["model_state_dict"], prefixes),
                Path(ctx.out) / "encoder.pt")
     ctx.write_metrics(metrics, names=STEP1_METRIC_NAMES)
 
@@ -247,9 +354,9 @@ def _stage_of(config_path) -> str:
 def _absent_reason(config_path) -> "str | None":
     if _stage_of(config_path) != "linear_eval":
         return None
-    return ("this stage fits a linear probe on the frozen VGG16 encoder and "
-            "produces a classifier, not an encoder; it reads the encoder.pt "
-            "named in the config")
+    return ("this stage fits a linear probe on the frozen encoder (VGG16 or the "
+            "knowledge-transfer AlexNet) and produces a classifier, not an "
+            "encoder; it reads the encoder.pt named in the config")
 
 
 def main(argv: list[str] | None = None) -> int:
