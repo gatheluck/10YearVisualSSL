@@ -1,0 +1,16 @@
+# What the 08_split_brain port's own files import, and nothing else. Checked in
+# both directions by tests/test_method_requirements.py. Floors only; the exact
+# hashed closure is in requirements.lock.txt (CPU) and requirements.lock.cu130.txt.
+#
+# A self-contained re-implementation (the lab's own Split-Brain code, no
+# submodule): the two cross-channel AlexNets, the numpy RGB->Lab conversion, the
+# numpy L/ab quantisation, the dataset, the trainer and the probe are all here.
+# The capture's dataset used scipy.spatial.cKDTree and skimage.color, but its own
+# comment states the released ab target IS NumPy argmin, so the port uses numpy
+# and depends on neither. timm is only the excluded ViT step 2. torch is imported
+# directly; numpy runs the Lab/quantisation and seeds the run; torchvision
+# provides the ImageFolder and transforms; PyYAML loads a YAML config.
+torch>=2.0.0
+torchvision>=0.15.0
+numpy>=1.24.0
+PyYAML>=6.0

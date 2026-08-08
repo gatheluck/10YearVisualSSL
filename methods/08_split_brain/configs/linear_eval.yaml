@@ -1,0 +1,27 @@
+# Split-Brain linear evaluation: a linear probe on the frozen branch encoders.
+#
+# The probe reads the model this port trains (both branch encoders'
+# spatially-averaged features, concatenated to 512-d), so its number is a genuine,
+# comparable linear probe. It follows the shared ARSSL protocol (mean-centre +
+# L2-normalise, single linear layer, SGD + cosine) used by the other ported
+# methods. The step-1 Adam knobs are not accepted here.
+#
+# Two paths are passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   an ImageFolder with train/ and val/ subdirectories
+#   --set ENCODER=<path>     encoder.pt from a step-1 run
+# The output path is fixed at --out. The crop_size must match the step-1 run.
+stage: linear_eval
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+encoder: "${ENCODER}"
+
+train:
+  crop_size: 224
+  # probe: a single linear layer, SGD + cosine
+  epochs: 100
+  batch_size: 256
+  num_workers: 8
+  lr: 0.1
+  momentum: 0.9
+  weight_decay: 0.0
