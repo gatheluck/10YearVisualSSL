@@ -1,0 +1,28 @@
+# Jigsaw++ linear evaluation of the knowledge-transfer AlexNet.
+#
+# Probes the AlexNet produced by the knowledge_transfer stage (arch=
+# alexnet_cluster_cls), one 9216-d feature per image, with the shared ARSSL
+# probe. (The default arch=vgg16 -- in configs/linear_eval.yaml -- probes the
+# VGG16 pretext encoder instead.)
+#
+# Two paths are passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   an ImageFolder with train/ and val/ subdirectories
+#   --set ENCODER=<path>     encoder.pt (AlexNet) from a knowledge_transfer run
+# The output path is fixed at --out.
+stage: linear_eval
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+encoder: "${ENCODER}"
+
+train:
+  arch: alexnet_cluster_cls
+  dropout: 0.5
+  image_size: 224
+  # probe: a single linear layer, SGD + cosine
+  epochs: 90
+  batch_size: 256
+  num_workers: 8
+  lr: 0.1
+  momentum: 0.9
+  weight_decay: 0.0

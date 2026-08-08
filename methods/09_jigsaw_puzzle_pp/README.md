@@ -1,4 +1,4 @@
-# 09_jigsaw_puzzle_pp — step 1 (VGG16 Jigsaw++ pretext) + linear evaluation
+# 09_jigsaw_puzzle_pp — step 1 (VGG16 Jigsaw++ pretext) + knowledge transfer + linear evaluation
 
 Noroozi, Vinjimoor, Favaro & Pirsiavash, *Boosting Self-Supervised Learning via
 Knowledge Transfer*, CVPR 2018
@@ -10,43 +10,61 @@ grayscale, the tiles are permuted by one of a fixed high-Hamming-distance
 permutation set (701 in the paper), and a **shared VGG16 encoder** predicts which
 permutation was applied. Step 1 is that pretext.
 
-## Scope — the VGG16 pretext only
+## Scope — the pretext, the knowledge transfer, and the probe
 
-This port covers **stage (a)** of the paper: the VGG16 Jigsaw++ pretext. The
-paper's headline **knowledge-transfer** stages — extract the VGG conv4 features,
-k-means cluster them (k=2000) into pseudo-labels, then train an AlexNet to
-classify those pseudo-labels — are a **faiss-GPU pipeline** (the capture's
-`cluster_and_pseudolabels.py` *explicitly refuses* the CPU/scikit-learn fallback,
-so faiss-GPU is mandatory). That is Group-3 / faiss work and is **deferred**
-alongside deepcluster; see `docs/PORTING_ROADMAP.md`. The capture's step 2 (a ViT
-variant) is excluded, as in every port, which also drops its `timm` dependency.
+This port covers the paper's two headline stages:
+
+- **step1** — the VGG16 Jigsaw++ **pretext** (stage a): the shared VGG16 encoder
+  predicts which permutation reordered the tiles.
+- **knowledge_transfer** — the paper's namesake (capture stages b + d): extract
+  the VGG16 **conv4** features for every image, **k-means** cluster them into
+  pseudo-labels, then train a **standard AlexNet** to classify the pseudo-labels.
+  The clustering uses **faiss** — the paper-target backend, as in the capture,
+  whose `cluster_and_pseudolabels.py` *explicitly refuses* a CPU/scikit-learn
+  fallback ("fallback cluster assignments are inconsistent"). faiss-gpu ships only
+  a linux-x86_64 wheel, so **this stage is GPU / x86_64-linux only** (faiss lives
+  in the CUDA lock, marked `# gpu-only`; see `07_deepcluster`, which shares the
+  mechanism).
+
+The capture's step 2 (a ViT variant) is excluded, as in every port, which also
+drops its `timm` dependency.
 
 ## Why this method, and what is new here
 
 **A self-contained re-implementation** ported from the capture's own
-`methods/9_jigsaw_puzzle_pp` (the lab's own VGG16 model + jigsaw++ dataset,
-torch/torchvision only) — no `third_party/` submodule.
+`methods/9_jigsaw_puzzle_pp` (the lab's own VGG16 model + jigsaw++ dataset, and
+the standard AlexNet for the knowledge transfer, torch/torchvision + faiss only)
+— no `third_party/` submodule.
 
 The lab wrapper trains under `DistributedDataParallel` with AMP and logs to
-TensorBoard; none is needed for a single-process run, so
-`train_step1_jigsaw_pp.py` owns a thin fp32 loop, the device is **resolved**
-rather than assumed CUDA, and TensorBoard is dropped.
+TensorBoard, and runs the clustering and the AlexNet training as two separate DDP
+scripts; none of that is needed for a single-process run. So
+`train_step1_jigsaw_pp.py` and `train_step1_cluster_cls.py` own thin fp32 loops,
+the clustering and AlexNet training happen in one stage, the device is
+**resolved** rather than assumed CUDA, and TensorBoard is dropped.
 
 ## `encoder.pt`, and a linear evaluation that reads it
 
-`encoder.pt` is the shared **VGG16 encoder** (`encoder.*`) — four VGG conv
-blocks, an adaptive max-pool to 4×4×512, and an FC layer, giving one 1024-d
-feature per image. The permutation classifier is pretext machinery and is
-excluded, and the round trip (write it, load it back into a rebuilt model,
-compare the weights) is tested.
+`encoder.pt` is:
 
-`linear_eval` reads this `encoder.pt`: the representation is the model this port
-trains, so the probe number is a genuine, comparable linear probe. (The paper's
-own downstream eval probes the AlexNet cluster-classification network from the
-deferred faiss stages; this port probes the VGG16 pretext encoder instead.)
-Images are resized to the encoder's tile size; the probe follows the lab's ARSSL
-protocol (features cached once, mean-centred and L2-normalised, a single linear
-layer trained with SGD under a cosine schedule).
+- for **step1**, the shared **VGG16 encoder** (`encoder.*`) — four VGG conv
+  blocks, an adaptive max-pool to 4×4×512, and an FC layer, giving one 1024-d
+  feature per image;
+- for **knowledge_transfer**, the **AlexNet conv trunk** (`features.*`), whose
+  `get_encoder()` (features + avgpool) gives one 9216-d feature per image.
+
+The classification head (the permutation classifier, or the pseudo-label head) is
+training machinery and is excluded; the round trip (write it, load it back into a
+rebuilt model, compare the weights) is tested for both.
+
+`linear_eval` reads an `encoder.pt` and probes it: `arch=vgg16` (the default)
+probes the VGG16 pretext encoder, and `arch=alexnet_cluster_cls` probes the
+knowledge-transfer AlexNet — the paper's own downstream target. Both are models
+this port trains, so either probe number is a genuine, comparable linear probe.
+Images are resized to the encoder's native size (the VGG16 tile size, or the
+AlexNet image size); the probe follows the lab's ARSSL protocol (features cached
+once, mean-centred and L2-normalised, a single linear layer trained with SGD under
+a cosine schedule).
 
 ## What has and has not been exercised
 
@@ -54,26 +72,43 @@ layer trained with SGD under a cosine schedule).
   images, a 4-permutation puzzle with grayscale and occlusions — runs through
   `python -m adapter` on a CPU, passes `contract-test`, and the encoder
   round-trip and a determinism check pass.
-- **Exercised (linear_eval):** a hermetic smoke fits the probe on a step-1
-  encoder over a two-class ImageFolder, passes `contract-test`, writes the
-  comparable `linear_probe` accuracies, and writes **no** `encoder.pt`.
-- **Not a full run:** `configs/step1.yaml` is the VGG16 recipe (701
-  permutations, 90 epochs), a recipe, not a completed run.
-- **Not ported:** the faiss-GPU knowledge-transfer stages (deferred, Group 3).
-- **GPU:** the device resolution is verified on real hardware; see the device
-  mutation spec (`mutations/09_jigsaw_puzzle_pp-step1-device.json`).
+- **Exercised (knowledge_transfer):** a hermetic smoke clusters a step-1 VGG16's
+  conv4 features (faiss k-means, k=4) into pseudo-labels and trains a small
+  AlexNet through `python -m adapter`, passes `contract-test`, and the AlexNet
+  `encoder.pt` round-trips. This stage needs faiss, so the smoke is skipped where
+  faiss is absent (non-x86_64-linux / no GPU wheel).
+- **Exercised (linear_eval):** hermetic smokes fit the probe on a step-1 VGG16
+  encoder and on a knowledge-transfer AlexNet over a two-class ImageFolder, pass
+  `contract-test`, write the comparable `linear_probe` accuracies, and write
+  **no** `encoder.pt`.
+- **Not a full run:** `configs/step1.yaml` (701 permutations, 90 epochs) and
+  `configs/knowledge_transfer.yaml` (k=2000, 90 epochs) are recipes, not
+  completed runs.
+- **GPU:** the device resolution and the knowledge-transfer guards are verified on
+  real hardware; see the mutation specs
+  (`mutations/09_jigsaw_puzzle_pp-step1-device.json`,
+  `mutations/09_jigsaw_puzzle_pp-knowledge-transfer.json`).
 
 ## Environment
 
-torch / torchvision / numpy / Pillow / PyYAML — the self-contained methods'
-stack, no submodule and no extra. `requirements.lock.txt` (CPU) and
-`requirements.lock.cu130.txt` (CUDA 13.0) are the hashed closures (the same
-closure as `05_jigsaw_puzzle`: identical floors, identical resolution).
+torch / torchvision / numpy / Pillow / PyYAML — the self-contained methods' stack
+— plus **faiss** for the knowledge-transfer clustering. Because faiss-gpu is
+linux-x86_64-only, it is **not** in the cross-platform `requirements.lock.txt`
+(CPU); it lives only in `requirements.lock.cu130.txt` (CUDA 13.0), via the
+`# gpu-only` marker in `requirements.txt`. step 1 and the default `arch=vgg16`
+probe run from the CPU lock; the `knowledge_transfer` stage needs the CUDA lock.
 
+    # CPU (step 1 + arch=vgg16 probe; no faiss)
     pip install --require-hashes \
         --index-url https://download.pytorch.org/whl/cpu \
         --extra-index-url https://pypi.org/simple \
         -r methods/09_jigsaw_puzzle_pp/requirements.lock.txt -r requirements-tools.lock.txt
+
+    # CUDA 13.0 (adds faiss for the knowledge_transfer stage)
+    pip install --require-hashes \
+        --index-url https://download.pytorch.org/whl/cu130 \
+        --extra-index-url https://pypi.org/simple \
+        -r methods/09_jigsaw_puzzle_pp/requirements.lock.cu130.txt -r requirements-tools.lock.txt
 
 ## Running
 
@@ -83,7 +118,16 @@ closure as `05_jigsaw_puzzle`: identical floors, identical resolution).
     cd methods/09_jigsaw_puzzle_pp && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/s1
 
-    # linear eval: DATA_ROOT has train/ and val/; ENCODER is step 1's encoder.pt
+    # knowledge transfer (faiss / GPU / x86_64-linux): ENCODER is step 1's encoder.pt
+    python bin/resolve-config.py methods/09_jigsaw_puzzle_pp/configs/knowledge_transfer.yaml \
+        --set DATA_ROOT=/path/to/images \
+        --set ENCODER=/path/to/s1/encoder.pt > kt.json
+    cd methods/09_jigsaw_puzzle_pp && PYTHONPATH="$PWD/../.." \
+        python -m adapter --config /path/to/kt.json --out /path/to/kt
+
+    # linear eval: DATA_ROOT has train/ and val/; ENCODER is a step 1 or KT encoder.pt.
+    # configs/linear_eval.yaml probes the VGG16 (arch=vgg16);
+    # configs/linear_eval_cluster_cls.yaml probes the AlexNet (arch=alexnet_cluster_cls).
     python bin/resolve-config.py methods/09_jigsaw_puzzle_pp/configs/linear_eval.yaml \
         --set DATA_ROOT=/path/to/imagenet \
         --set ENCODER=/path/to/s1/encoder.pt > eval.json

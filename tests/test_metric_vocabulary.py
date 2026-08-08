@@ -394,6 +394,28 @@ class TestAStageMayNotBorrowTheOtherFamilysNames(unittest.TestCase):
         self.assertEqual(set(adapterlib.STAGE_FAMILIES),
                          set(adapterlib.CONTRACT_STAGES))
 
+    def test_knowledge_transfer_is_a_pretext_stage(self):
+        """Knowledge transfer (cluster a frozen encoder's features into
+        pseudo-labels, train a new network to predict them) trains a
+        method's own objective, not a comparable probe -- its loss is a
+        pretext number. So the stage exists in the contract and sits in the
+        pretext family, and it may emit a pretext loss."""
+        self.assertIn("knowledge_transfer", adapterlib.CONTRACT_STAGES)
+        self.assertEqual(adapterlib.STAGE_FAMILIES["knowledge_transfer"],
+                         adapterlib.PRETEXT)
+        self.ctx("knowledge_transfer").write_metrics(
+            {"loss": 1.0}, names={"loss": "final_pretext_loss"})
+        doc = json.loads((self.out / "metrics.json").read_text())
+        self.assertIn("final_pretext_loss", doc["metrics"])
+
+    def test_a_knowledge_transfer_stage_may_not_emit_a_probe_name(self):
+        """It is a pretext stage; the probe column is not its to write."""
+        with self.assertRaises(adapterlib.AdapterError) as e:
+            self.ctx("knowledge_transfer").write_metrics(
+                {"acc": 1.0},
+                names={"acc": "final_linear_probe_top1_accuracy"})
+        self.assertIn("knowledge_transfer", str(e.exception))
+
 
 if __name__ == "__main__":
     unittest.main()

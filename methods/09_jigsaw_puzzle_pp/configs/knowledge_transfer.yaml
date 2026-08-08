@@ -1,0 +1,29 @@
+# Jigsaw++ knowledge transfer (Noroozi et al., CVPR 2018, "Boosting SSL via
+# Knowledge Transfer"): cluster the VGG16 pretext's conv4 features (faiss k-means)
+# into pseudo-labels and train a standard AlexNet to predict them.
+#
+# This stage uses faiss and is GPU / x86_64-linux only (see the method README).
+# The recipe, not a result -- nothing here has executed a full run.
+#
+# Two paths are passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   an ImageFolder of training images
+#   --set ENCODER=<path>     encoder.pt (VGG16) from a step-1 run
+# The output path is fixed at --out; it writes a new encoder.pt (the AlexNet).
+stage: knowledge_transfer
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+encoder: "${ENCODER}"
+
+train:
+  # clustering + AlexNet
+  num_clusters: 2000      # k (paper)
+  image_size: 224         # AlexNet / feature-extraction input
+  dropout: 0.5
+  # training the AlexNet on pseudo-labels (standard AlexNet settings)
+  epochs: 90
+  batch_size: 256
+  num_workers: 16
+  lr: 0.01
+  momentum: 0.9
+  weight_decay: 0.0005

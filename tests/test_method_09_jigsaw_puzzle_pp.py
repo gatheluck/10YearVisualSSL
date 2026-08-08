@@ -9,11 +9,13 @@ permutation set (701 in the paper), and a shared VGG16 encoder predicts which
 permutation was applied. `encoder.pt` is that VGG16 encoder, and `linear_eval`
 probes it.
 
-The paper's knowledge-transfer stages (cluster the VGG conv4 features with
-faiss-GPU into pseudo-labels, then train an AlexNet to classify them) are a
-faiss-GPU pipeline and are **deferred** to the Group-3 / faiss batch, alongside
-deepcluster (see docs/PORTING_ROADMAP.md). The captured step 2 (ViT) is excluded,
-as in every port.
+The paper's **knowledge-transfer** stage is also ported (the `knowledge_transfer`
+stage): cluster the VGG16 conv4 features with faiss k-means into pseudo-labels,
+then train a standard AlexNet to classify them; `linear_eval arch=
+alexnet_cluster_cls` probes that AlexNet. The clustering uses faiss, so that stage
+is GPU / x86_64-linux only (faiss lives in the CUDA lock; step 1 + the default
+`arch=vgg16` probe stay torch-only). The captured step 2 (ViT) is excluded, as in
+every port.
 """
 
 from __future__ import annotations
@@ -50,6 +52,16 @@ except ImportError:
 needs_deps = unittest.skipUnless(
     HAVE_DEPS, "09_jigsaw_puzzle_pp needs torch, numpy, torchvision")
 
+try:
+    import faiss                                       # noqa: F401
+    HAVE_FAISS = True
+except ImportError:
+    HAVE_FAISS = False
+
+needs_faiss = unittest.skipUnless(
+    HAVE_DEPS and HAVE_FAISS,
+    "the knowledge-transfer clustering needs faiss (GPU / x86_64-linux only)")
+
 
 def load(name: str, path: Path):
     return load_from(METHOD, name, path)
@@ -67,6 +79,16 @@ TRAIN = {**MODEL, "epochs": 1, "batch_size": 2, "num_workers": 0,
 EVAL_TRAIN = {**MODEL, "epochs": 2, "batch_size": 2, "num_workers": 0,
               "lr": 0.01, "momentum": 0.9, "weight_decay": 0.0}
 FEATURE_DIM = 1024
+
+# Knowledge-transfer stage: cluster VGG16 conv4 features (k=4 for the smoke) and
+# train an AlexNet. The paper's k=10000/2000 lives in the shipped config.
+KT_TRAIN = {"num_clusters": 4, "image_size": 64, "dropout": 0.0,
+            "epochs": 1, "batch_size": 2, "num_workers": 0,
+            "lr": 0.01, "momentum": 0.9, "weight_decay": 0.0005}
+KT_EVAL_TRAIN = {"arch": "alexnet_cluster_cls", "dropout": 0.0, "image_size": 64,
+                 "epochs": 2, "batch_size": 2, "num_workers": 0,
+                 "lr": 0.1, "momentum": 0.9, "weight_decay": 0.0}
+ALEXNET_FEATURE_DIM = 256 * 6 * 6  # AlexNet features + avgpool -> 9216
 
 
 def tiny_imagefolder(root: Path, n: int = 6) -> Path:
@@ -117,6 +139,29 @@ class Base(unittest.TestCase):
         cfg = {"stage": "linear_eval", "seed": 0,
                "data_root": str(self.tmp / "data"), "device": "cpu",
                "encoder": str(self.tmp / "encoder.pt"), "train": dict(EVAL_TRAIN)}
+        for k, v in over.items():
+            if k == "train" and v:
+                cfg["train"] = {**cfg["train"], **v}
+            elif k != "train":
+                cfg[k] = v
+        return cfg
+
+    def kt_config(self, **over) -> dict:
+        cfg = {"stage": "knowledge_transfer", "seed": 0,
+               "data_root": str(self.tmp / "data"), "device": "cpu",
+               "encoder": str(self.tmp / "encoder.pt"), "train": dict(KT_TRAIN)}
+        for k, v in over.items():
+            if k == "train" and v:
+                cfg["train"] = {**cfg["train"], **v}
+            elif k != "train":
+                cfg[k] = v
+        return cfg
+
+    def kt_eval_config(self, **over) -> dict:
+        cfg = {"stage": "linear_eval", "seed": 0,
+               "data_root": str(self.tmp / "data"), "device": "cpu",
+               "encoder": str(self.tmp / "encoder.pt"),
+               "train": dict(KT_EVAL_TRAIN)}
         for k, v in over.items():
             if k == "train" and v:
                 cfg["train"] = {**cfg["train"], **v}
@@ -430,6 +475,221 @@ class TestALinearEvalSmoke(Base):
         self.assertEqual(man["stage"], "linear_eval")
         self.assertEqual(man["status"], "ok", man.get("error", ""))
         self.assertIn("encoder_absent_reason", man)
+
+
+# --- the knowledge-transfer stage -------------------------------------------
+# Cluster the VGG16 conv4 features (faiss k-means) into pseudo-labels and train a
+# standard AlexNet on them; `linear_eval arch=alexnet_cluster_cls` probes it.
+
+
+class TestTheAlexNetModel(unittest.TestCase):
+    def models(self):
+        return load("jigsaw_pp_models", METHOD / "models" / "__init__.py")
+
+    @needs_deps
+    def test_forward_predicts_over_the_clusters(self):
+        import torch
+        model = self.models().build_alexnet_cluster_cls_model(
+            num_classes=7, dropout=0.0)
+        self.assertEqual(tuple(model(torch.zeros(2, 3, 64, 64)).shape), (2, 7))
+
+    @needs_deps
+    def test_the_encoder_returns_one_feature_vector_per_image(self):
+        import torch
+        enc = self.models().build_alexnet_cluster_cls_model(
+            num_classes=7).get_encoder()
+        feats = enc(torch.zeros(2, 3, 64, 64))
+        self.assertEqual(tuple(feats.shape), (2, ALEXNET_FEATURE_DIM))
+
+
+class TestTheKTClustering(unittest.TestCase):
+    def clustering(self):
+        return load("jigsaw_pp_clustering", METHOD / "utils" / "clustering.py")
+
+    @needs_deps
+    def test_conv4_features_have_one_row_per_image(self):
+        import torch
+        models = self.clustering() and load(
+            "jigsaw_pp_models", METHOD / "models" / "__init__.py")
+        enc = models.build_vgg16_jigsaw_pp_model(num_classes=4).encoder
+        loader = [(torch.zeros(5, 3, 64, 64), torch.zeros(5, dtype=torch.long))]
+        feats = self.clustering().extract_conv4_features(
+            enc, loader, torch.device("cpu"))
+        self.assertEqual(feats.shape, (5, 8192))
+
+    @needs_faiss
+    def test_kmeans_is_reproducible_and_well_shaped(self):
+        import numpy as np
+        c = self.clustering()
+        rng = np.random.RandomState(0)
+        feats = rng.randn(40, 8192).astype("float32")
+        a1, cent1 = c.run_kmeans(feats.copy(), num_clusters=4, seed=42,
+                                 use_gpu=False, verbose=False)
+        a2, _ = c.run_kmeans(feats.copy(), num_clusters=4, seed=42,
+                             use_gpu=False, verbose=False)
+        self.assertEqual(a1.shape, (40,))
+        self.assertEqual(cent1.shape, (4, 8192))
+        self.assertTrue((a1 == a2).all(), "same seed gave different clusters")
+        self.assertTrue(0 <= int(a1.min()) and int(a1.max()) < 4)
+
+    @needs_faiss
+    def test_missing_faiss_is_refused_loudly(self):
+        # The refusal path exists and names faiss; the capture rejects a CPU
+        # fallback as inconsistent, so this must error, never silently degrade.
+        import numpy as np
+        from unittest import mock
+        c = self.clustering()
+        with mock.patch.object(c, "HAS_FAISS", False):
+            with self.assertRaises(ImportError) as e:
+                c.run_kmeans(np.zeros((4, 8), dtype="float32"), num_clusters=2,
+                             seed=0, use_gpu=False, verbose=False)
+            self.assertIn("faiss", str(e.exception).lower())
+
+
+class TestKTConfigTranslation(Base):
+    def test_kt_reaches_the_run_config(self):
+        built = adapter.to_run_config(self.kt_config(), out=self.out)
+        self.assertEqual(built["kt"]["num_clusters"], 4)
+        self.assertEqual(built["training"]["epochs"], 1)
+
+    def test_a_missing_kt_setting_is_refused_by_name(self):
+        for key in KT_TRAIN:
+            with self.subTest(key=key):
+                cfg = self.kt_config()
+                cfg["train"] = {k: v for k, v in KT_TRAIN.items() if k != key}
+                with self.assertRaises(adapter.ConfigError) as e:
+                    adapter.to_run_config(cfg, out=self.out)
+                self.assertIn(key, str(e.exception))
+
+    def test_an_unknown_kt_setting_is_refused(self):
+        with self.assertRaises(adapter.ConfigError) as e:
+            adapter.to_run_config(self.kt_config(train={"nonsense": 1}),
+                                  out=self.out)
+        self.assertIn("nonsense", str(e.exception))
+
+    def test_kt_requires_an_encoder(self):
+        cfg = self.kt_config()
+        del cfg["encoder"]
+        with self.assertRaises(adapter.ConfigError) as e:
+            adapter.to_run_config(cfg, out=self.out)
+        self.assertIn("encoder", str(e.exception))
+
+
+class TestKTEvalConfig(Base):
+    def test_the_alexnet_arch_is_accepted(self):
+        adapter.to_run_config(self.kt_eval_config(), out=self.out)
+
+    def test_the_default_arch_is_vgg_and_kt_is_alexnet(self):
+        self.assertEqual(adapter.eval_arch(EVAL_TRAIN), "vgg16")
+        self.assertEqual(adapter.eval_arch(KT_EVAL_TRAIN),
+                         "alexnet_cluster_cls")
+
+    def test_an_unknown_arch_is_refused(self):
+        with self.assertRaises(adapter.ConfigError) as e:
+            adapter.to_run_config(self.kt_eval_config(train={"arch": "resnet"}),
+                                  out=self.out)
+        self.assertIn("arch", str(e.exception))
+
+    def test_a_vgg_probe_key_is_refused_for_the_alexnet_arch(self):
+        cfg = self.kt_eval_config()
+        cfg["train"]["tile_size"] = 32          # belongs to the vgg16 probe
+        with self.assertRaises(adapter.ConfigError) as e:
+            adapter.to_run_config(cfg, out=self.out)
+        self.assertIn("tile_size", str(e.exception))
+
+
+class TestExtractingTheAlexNetEncoder(unittest.TestCase):
+    def test_only_the_conv_trunk_comes_out(self):
+        got = adapter.extract_encoder(
+            {"features.0.weight": 1, "features.3.bias": 2,
+             "classifier.1.weight": 3, "classifier.6.weight": 4},
+            adapter.ALEXNET_ENCODER_PREFIXES)
+        self.assertEqual(set(got), {"features.0.weight", "features.3.bias"})
+
+    def test_the_head_is_left_out(self):
+        got = adapter.extract_encoder(
+            {"features.0.weight": 1, "classifier.6.weight": 2},
+            adapter.ALEXNET_ENCODER_PREFIXES)
+        self.assertNotIn("classifier.6.weight", got)
+
+    def test_nothing_matching_is_refused(self):
+        with self.assertRaises(RuntimeError):
+            adapter.extract_encoder({"classifier.6.weight": 1},
+                                    adapter.ALEXNET_ENCODER_PREFIXES)
+
+
+class TestAKnowledgeTransferSmoke(Base):
+    def _adapter(self, cfg_dict, out):
+        p = self.tmp / f"cfg_{out.name}.json"
+        p.write_text(json.dumps(cfg_dict), encoding="utf-8")
+        env = {**os.environ, "PYTHONPATH": str(ROOT)}
+        r = subprocess.run(
+            [sys.executable, "-m", "adapter", "--config", str(p),
+             "--out", str(out)],
+            cwd=METHOD, env=env, capture_output=True, text=True)
+        return p, r
+
+    def _step1_encoder(self):
+        s1data = self.tmp / "s1data"
+        tiny_imagefolder(s1data)
+        s1cfg = {"stage": "step1", "seed": 0, "data_root": str(s1data),
+                 "device": "cpu", "train": dict(TRAIN)}
+        _, r = self._adapter(s1cfg, self.tmp / "s1out")
+        self.assertEqual(r.returncode, 0, r.stdout[-3000:] + r.stderr[-3000:])
+        return self.tmp / "s1out" / "encoder.pt"
+
+    def _kt_run(self):
+        enc = self._step1_encoder()
+        ktdata = self.tmp / "ktdata"
+        tiny_imagefolder(ktdata)
+        cfg = self.kt_config(data_root=str(ktdata), encoder=str(enc))
+        p, r = self._adapter(cfg, self.tmp / "ktout")
+        self.assertEqual(r.returncode, 0, r.stdout[-3000:] + r.stderr[-3000:])
+        return p, self.tmp / "ktout"
+
+    @needs_faiss
+    def test_it_completes_and_satisfies_the_contract(self):
+        cfg, ktout = self._kt_run()
+        v = subprocess.run(
+            [sys.executable, str(BIN / "contract-test.py"), "--out",
+             str(ktout), "--config", str(cfg), "--exit-status", "0"],
+            capture_output=True, text=True)
+        self.assertEqual(v.returncode, 0, v.stdout + v.stderr)
+
+    @needs_faiss
+    def test_it_writes_an_alexnet_encoder_that_loads_back(self):
+        _, ktout = self._kt_run()
+        import torch
+        self.assertTrue((ktout / "encoder.pt").is_file())
+        saved = torch.load(ktout / "encoder.pt", map_location="cpu",
+                           weights_only=True)
+        self.assertTrue(saved)
+        self.assertTrue(all(k.startswith("features.") for k in saved),
+                        "encoder.pt should hold only the AlexNet conv trunk")
+        model = adapter.load_encoder(saved, self.kt_eval_config())
+        loaded = model.state_dict()
+        pairs = 0
+        for key, want in saved.items():
+            got = loaded.get(key)
+            if got is None:
+                continue
+            pairs += 1
+            self.assertTrue(torch.equal(got, want), f"{key} came back changed")
+        self.assertGreater(pairs, 0, "no saved weight reached the AlexNet")
+
+    @needs_faiss
+    def test_the_alexnet_probe_reports_comparable_numbers(self):
+        _, ktout = self._kt_run()
+        split = self.tmp / "probe"
+        tiny_split(split)
+        cfg = self.kt_eval_config(data_root=str(split),
+                                  encoder=str(ktout / "encoder.pt"))
+        p, r = self._adapter(cfg, self.tmp / "probeout")
+        self.assertEqual(r.returncode, 0, r.stdout[-3000:] + r.stderr[-3000:])
+        m = json.loads(
+            (self.tmp / "probeout" / "metrics.json").read_text())["metrics"]
+        self.assertIn("best_linear_probe_top1_accuracy", m)
+        self.assertFalse((self.tmp / "probeout" / "encoder.pt").exists())
 
 
 class TestTheOriginalIsReferencedNotCopied(unittest.TestCase):

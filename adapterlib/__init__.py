@@ -116,9 +116,15 @@ METRIC_VOCABULARY = {
 # defaulted: defaulting would settle the question by accident.
 PRETEXT = "pretext"
 LINEAR_PROBE = "linear_probe"
-CONTRACT_STAGES = ("step1", "linear_eval")
+# knowledge_transfer: cluster a frozen encoder's features into pseudo-labels and
+# train a fresh network to predict them (Noroozi et al. 2018, "Boosting SSL via
+# Knowledge Transfer"). It trains a method's own objective, so its loss is a
+# pretext number, never a comparable probe -- the stage sits in the pretext
+# family. It is a general SSL stage, named for what it does, not for any method.
+CONTRACT_STAGES = ("step1", "knowledge_transfer", "linear_eval")
 STAGE_FAMILIES = {
     "step1": PRETEXT,
+    "knowledge_transfer": PRETEXT,
     "linear_eval": LINEAR_PROBE,
 }
 

@@ -30,7 +30,7 @@ exact dependencies, the backbone, and step-1 reproducibility.
 - **A — torch/torchvision/numpy/PyYAML** (reuse `image_gpt`/`25_mae` locks): `23_dino`, `33_pirl`.
 - **B — + timm** (reuse a mar-style lock): mocov1/2/3, simclrv1/2, byol, sela, inst_disc, cpc, cmc, rotation, simmim, dinov2, dinov3, ijepa, nepa.
 - **B' — + huggingface_hub** (var-style): `30_aim`.
-- **C — heavy special deps**: ~~`3_colorization` (opencv/scikit-image)~~ **ported torch-only as `03_colorization`: its code imports neither opencv nor scikit-image despite the capture's requirements.txt naming them (measured); the Lab conversion and ab-quantisation are numpy**. `24_beit` (DALL-E tokeniser). `7_deepcluster` **ported as `07_deepcluster` with faiss** (the paper-target k-means backend, confirmed required; faiss-gpu is linux-x86_64-only, so the method is GPU/x86_64-only and faiss lives in the CUDA lock via a `# gpu-only` marker). `9_jigsaw_puzzle_pp`'s **knowledge-transfer stages** (faiss-GPU k-means, mandatory — the capture's `cluster_and_pseudolabels.py` explicitly refuses the CPU/sklearn fallback; **measured, contradicts the earlier "tier B / +timm" guess**). The VGG16 **pretext** stage alone is tier-A (torch/torchvision/numpy/Pillow/PyYAML) and is what `09_jigsaw_puzzle_pp` ports.
+- **C — heavy special deps**: ~~`3_colorization` (opencv/scikit-image)~~ **ported torch-only as `03_colorization`: its code imports neither opencv nor scikit-image despite the capture's requirements.txt naming them (measured); the Lab conversion and ab-quantisation are numpy**. `24_beit` (DALL-E tokeniser). `7_deepcluster` **ported as `07_deepcluster` with faiss** (the paper-target k-means backend, confirmed required; faiss-gpu is linux-x86_64-only, so the method is GPU/x86_64-only and faiss lives in the CUDA lock via a `# gpu-only` marker). `9_jigsaw_puzzle_pp`'s **knowledge-transfer stage** (faiss-GPU k-means, mandatory — the capture's `cluster_and_pseudolabels.py` explicitly refuses the CPU/sklearn fallback; **measured, contradicts the earlier "tier B / +timm" guess**) is **now ported** as the `knowledge_transfer` stage of `09_jigsaw_puzzle_pp`, GPU/x86_64-only with faiss in the CUDA lock (`# gpu-only`). The VGG16 **pretext** stage alone is tier-A (torch/torchvision/numpy/Pillow/PyYAML) and CPU-portable.
 - **D — no `models/` (submodule / eval-only, often noncommercial)**: `34_msn`, `35_vjepa`, `37_lejepa`. (`8_split_brain` was here on the "no `models/` dir" signal, but measuring showed its flat `model.py` is a plain two-branch AlexNet -- self-contained torch-only, now ported as `08_split_brain`; the label was not evidence.)
 
 TensorBoard / tqdm / wandb logging is dropped (the port owns a thin single-process
@@ -43,7 +43,7 @@ special-dep / submodule / eval-only / noncommercial last.
 
 - **Group 1 — ResNet/CNN pretext & contrastive** (reuse the simsiam/swav/barlow ResNet + linear-probe template): jigsaw, rotation, jigsaw++ (VGG16 pretext only), inst_disc, pirl, deepcluster, cpc, cmc, mocov1/2/3, simclrv1/2, sela, byol.
 - **Group 2 — ViT** (reuse the ibot/mae ViT template): simmim, dino, dinov2, dinov3, ijepa, nepa, aim.
-- **Group 3 — special deps / submodule / eval-only / licence decision**: colorization (ported torch-only, `03_colorization` -- the opencv/skimage tag was a requirements.txt mislabel), beit, deepcluster (ported with faiss as `07_deepcluster`, GPU/x86_64-only -- the first method whose closure adds a non-torch dep), `9_jigsaw_puzzle_pp`'s faiss-GPU knowledge-transfer stages (cluster → pseudo-labels → AlexNet cluster-cls), split_brain (ported torch-only, `08_split_brain` -- the "no models/" tag was not a blocker), msn, vjepa, lejepa.
+- **Group 3 — special deps / submodule / eval-only / licence decision**: colorization (ported torch-only, `03_colorization` -- the opencv/skimage tag was a requirements.txt mislabel), beit, deepcluster (ported with faiss as `07_deepcluster`, GPU/x86_64-only -- the first method whose closure adds a non-torch dep), `9_jigsaw_puzzle_pp`'s faiss-GPU knowledge-transfer stage (ported as the `knowledge_transfer` stage of `09_jigsaw_puzzle_pp`, GPU/x86_64-only: cluster → pseudo-labels → AlexNet cluster-cls), split_brain (ported torch-only, `08_split_brain` -- the "no models/" tag was not a blocker), msn, vjepa, lejepa.
 
 ## Numbering: capture number vs this list's number
 
@@ -63,7 +63,7 @@ rest — e.g. capture `14_simclrv1` ↔ list #14 = PIRL; capture `17_swav` ↔ l
 | 6 | Rotation Prediction | `6_rotation_prediction` | **yes** | ported (`06_rotation_prediction`) |
 | 7 | DeepCluster | `7_deepcluster` | **yes** | ported (`07_deepcluster`; faiss clustering, **GPU / x86_64-linux only** -- faiss-gpu has no cross-platform wheel, so it lives in the CUDA lock and the method is exempt from the CPU lock via the `# gpu-only` marker) |
 | 8 | SplitBrain | `8_split_brain` | **yes** | ported (`08_split_brain`; torch-only -- the capture's flat `model.py` (no `models/` dir) is a plain two-branch AlexNet, not a submodule/eval-only method; scipy/skimage were imported but the released target is numpy argmin, measured) |
-| 9 | Jigsaw Puzzle++ | `9_jigsaw_puzzle_pp` | **yes** | ported (`09_jigsaw_puzzle_pp`, VGG16 pretext only; faiss knowledge-transfer deferred to Group 3) |
+| 9 | Jigsaw Puzzle++ | `9_jigsaw_puzzle_pp` | **yes** | ported (`09_jigsaw_puzzle_pp`, VGG16 pretext + faiss-GPU knowledge transfer: cluster → pseudo-labels → AlexNet cluster-cls) |
 | 10 | InstDisc | `10_inst_disc` | **yes** | ported (`10_inst_disc`) |
 | 11 | CPC | `11_cpc` | **yes** | ported (`11_cpc`) |
 | 12 | CMC | `12_cmc` | **yes** | ported (`12_cmc`) |
@@ -106,12 +106,11 @@ that same decision.
 numbering-matching method (list #3-13: colorization, context_encoder, jigsaw,
 rotation, deepcluster, split_brain, jigsaw++, inst_disc, cpc, cmc, mocov1) is now
 ported. What remains is all numbering-**mismatched** (HOLD, pending the numbering
-decision) or the submodule / eval-only tier (beit, msn, vjepa, lejepa, and
-`9_jigsaw_puzzle_pp`'s faiss knowledge-transfer stages).
+decision) or the submodule / eval-only tier (beit, msn, vjepa, lejepa).
 (`5_jigsaw_puzzle`, `6_rotation_prediction`, `10_inst_disc`, `11_cpc`, `12_cmc`,
 `13_mocov1` ported.
-`9_jigsaw_puzzle_pp` ported as the VGG16 pretext only; its faiss-GPU
-knowledge-transfer stages are deferred to Group 3, see below.)
+`9_jigsaw_puzzle_pp` ported in full: the VGG16 pretext and its faiss-GPU
+knowledge-transfer stage, see below.)
 
 ## Per-port procedure (strict TDD, as used for every prior method)
 

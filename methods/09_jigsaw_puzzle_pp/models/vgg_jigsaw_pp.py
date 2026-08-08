@@ -89,6 +89,16 @@ class VGG16Encoder(nn.Module):
         x = x.flatten(1)
         return self.fc(x)
 
+    def get_conv4_features(self, x: torch.Tensor) -> torch.Tensor:
+        """Raw conv4 features before the FC head, for the knowledge-transfer
+        clustering: [B, 3, H, W] -> pool4 -> [B, 512, 4, 4] -> [B, 8192]."""
+        x = self.block1(x)
+        x = self.block2(x)
+        x = self.block3(x)
+        x = self.block4(x)
+        x = self.pool4(x)
+        return x.flatten(1)
+
 
 class VGG16JigsawPP(nn.Module):
     """The full pretext model: a shared VGG16 encoder over 9 tiles + a
