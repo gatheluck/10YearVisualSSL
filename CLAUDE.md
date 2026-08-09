@@ -73,7 +73,7 @@ writing a test**, and use the mechanism named against each.
 
 | Mistake | Times | Mechanism |
 |---|---|---|
-| **A substring match over too wide a scope** | 3 | Compare *whole entries*, never `x in whole_file`. Parse the structure — instructions, entries, lines — and match names exactly |
+| **A substring match over too wide a scope** | 4 | Compare *whole entries*, never `x in whole_file`. Parse the structure — instructions, entries, lines — and match names exactly. **A detector that decides what gets checked or run needs a positive *and* a negative control**, the negative carrying the exact decoy a substring would wrongly match |
 | **An edit that silently did nothing** | 3 | Never `str.replace` without asserting the anchor first. Prefer an editor that fails on a missing match |
 | **A rule applied to only some of what it governs** | 3 | **Discover, never list.** `tests/test_no_hard_coded_methods.py` refuses a shared file that names one method |
 | **An assertion that could not fail** | 2 | `bin/mutate.py`. A guard with no killed mutant is not a guard |
@@ -91,7 +91,17 @@ Concrete instances, so the shapes are recognisable:
   testing less is how a suite rots
 - `".git" in text` matched `.github`; `"launch.py"` matched `test_launch.py`;
   `"venv"`, `"checkpoint_dir"` and `LIVE_ROOT` each matched **a comment saying
-  the thing was absent**
+  the thing was absent**. The fourth time, `"git" in text` (the without-git set
+  in `test_repository_scan.py`) matched **`logits`**, pulling every heavy
+  method-smoke test into a 300s-bounded subprocess that then trained ResNet-50s
+  until it timed out — **only under a torch-heavy method lock in CI**, never in
+  the base-env gate (no torch → the smokes skip → the subprocess is fast). Two
+  lessons: (1) a whole-word/AST match, and the detector `could_need_git` now has
+  both controls; (2) **the base-env gate passing is not evidence the per-lock CI
+  matrix passes** — anything that re-runs smokes must be measured under a method
+  venv (`.venvs/<m>`). The same audit found the same shape uncontrolled in
+  `round_trip_tested` (encoder convention) and `test_the_scan_lives_in_one_place`
+  (repository scan); both now read structurally and carry controls
 - a test asserted no key began with `classifier` — the head is `fc7`, so it
   could never fire. Another used `-I`, which discards `PYTHONPATH`, so it
   never tested what it claimed. Another asserted `cudnn.benchmark` was

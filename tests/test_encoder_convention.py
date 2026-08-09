@@ -130,13 +130,37 @@ def defines(path: Path, name: str) -> bool:
                for n in ast.parse(path.read_text(encoding="utf-8")).body)
 
 
+def calls(path: Path, name: str) -> bool:
+    """Whether the file **invokes** `name` -- a call, read from the AST, not a
+    substring over the text.
+
+    A substring is how `round_trip_tested` first read this, and it let a comment
+    or a docstring mentioning `load_encoder` stand in for an actual round trip
+    (the recorded 'substring match over too wide a scope'). A call node cannot
+    be faked by prose. Matches both `name(...)` and `obj.name(...)`.
+    """
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        f = node.func
+        if isinstance(f, ast.Name) and f.id == name:
+            return True
+        if isinstance(f, ast.Attribute) and f.attr == name:
+            return True
+    return False
+
+
 def round_trip_tested(method: str) -> bool:
-    """Whether the method's own tests load an `encoder.pt` back."""
+    """Whether the method's own tests load an `encoder.pt` back.
+
+    Read as a **call** to `load_encoder`, not as the substrings `load_encoder`
+    and `encoder.pt` appearing anywhere in the file -- the latter passed a test
+    that only mentioned them. Every encoder-port's test file was checked to make
+    a real call, so this is stricter, not merely different.
+    """
     f = ROOT / "tests" / f"test_method_{method}.py"
-    if not f.is_file():
-        return False
-    src = f.read_text(encoding="utf-8")
-    return "load_encoder" in src and "encoder.pt" in src
+    return f.is_file() and calls(f, "load_encoder")
 
 
 class TestEveryPortAgreesOnWhatEncoderPtHolds(unittest.TestCase):
@@ -207,6 +231,36 @@ class TestEveryPortAgreesOnWhatEncoderPtHolds(unittest.TestCase):
                          encoding="utf-8")
         self.assertTrue(defines(has, "load_encoder"))
         self.assertFalse(defines(lacks, "load_encoder"))
+
+    def test_the_round_trip_reader_needs_an_actual_call(self):
+        """`round_trip_tested` must read a *call*, not a substring.
+
+        The earlier version tested ``"load_encoder" in src and "encoder.pt" in
+        src`` -- a substring over the whole file -- so a test that merely
+        *mentions* those strings in a comment, with no round trip, passed
+        silently. This is the recorded mistake (a substring match over too wide
+        a scope), the same class as the git/logits CI timeout. The negative
+        control carries both strings but never calls anything; the positive
+        control makes the call.
+        """
+        import shutil
+        import tempfile
+        d = Path(tempfile.mkdtemp(prefix="rt-"))
+        self.addCleanup(shutil.rmtree, d, ignore_errors=True)
+        decoy = d / "test_method_decoy.py"
+        decoy.write_text(
+            "# this test loads adapter.load_encoder on encoder.pt somewhere\n"
+            'DOC = "load_encoder ... encoder.pt"\n'
+            "x = 1\n", encoding="utf-8")
+        real = d / "test_method_real.py"
+        real.write_text(
+            "import adapter\n"
+            "def test_it():\n"
+            "    m = adapter.load_encoder(saved, cfg)  # loads encoder.pt back\n",
+            encoding="utf-8")
+        self.assertFalse(calls(decoy, "load_encoder"),
+                         "a substring match over too wide a scope is back")
+        self.assertTrue(calls(real, "load_encoder"))
 
     def test_the_stage_reader_can_tell_encoder_ports_apart(self):
         """Against a reader that calls every port an encoder-producer (or none),

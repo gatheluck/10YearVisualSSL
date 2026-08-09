@@ -488,6 +488,34 @@ class TestThereIsOnlyOneScan(unittest.TestCase):
             "agreed everywhere git existed and diverged in the container:\n"
             + "\n".join(f"  - {x}" for x in others))
 
+    def test_the_second_scan_check_catches_a_real_copy(self):
+        """Positive control. Without it, the check above passes by matching
+        nothing -- an assertion that cannot fail. A fabricated module that runs
+        the published-set scan itself must be flagged. (The needle is built at
+        run time and written through an f-string, so it never appears literally
+        in this file and cannot make this file accuse itself.)"""
+        needle = "--exclude-" + "standard"
+        d = Path(tempfile.mkdtemp(prefix="secondscan-"))
+        self.addCleanup(shutil.rmtree, d, ignore_errors=True)
+        p = d / "test_copy.py"
+        p.write_text(
+            f'import subprocess\n'
+            f'subprocess.run(["git", "ls-files", "--others", "{needle}"])\n',
+            encoding="utf-8")
+        self.assertIn(needle, p.read_text(encoding="utf-8"))
+
+    def test_prose_about_the_scan_is_not_flagged(self):
+        """Negative control. Naming the shared scan in prose is not a second
+        implementation, so it must not be flagged."""
+        needle = "--exclude-" + "standard"
+        d = Path(tempfile.mkdtemp(prefix="secondscan-"))
+        self.addCleanup(shutil.rmtree, d, ignore_errors=True)
+        p = d / "test_prose.py"
+        p.write_text(
+            '"""We rely on the shared repository scan (git ls-files)."""\n',
+            encoding="utf-8")
+        self.assertNotIn(needle, p.read_text(encoding="utf-8"))
+
     def test_more_than_one_guard_shares_it(self):
         """With one consumer, sharing proves nothing."""
         users = [p.name for p in self.modules()
