@@ -1,0 +1,18 @@
+# What the 22_mocov3 port's own files import, and nothing else. Checked in both
+# directions by tests/test_method_requirements.py. Floors only; the exact hashed
+# closure is in requirements.lock.txt (CPU) and requirements.lock.cu130.txt.
+#
+# A self-contained re-implementation (the lab's own MoCo v3 code, no submodule):
+# the ViT base/momentum encoders, the projector + predictor, the InfoNCE loss and
+# the two-view dataset are all here. Unlike the ResNet ports this one is genuinely
+# ViT-based, so **timm** is a step-1 dependency (VisionTransformerMoCo subclasses
+# timm's VisionTransformer); the ViT is built from scratch (no pretrained
+# download), so the run stays hermetic. torch is imported directly; numpy seeds
+# the run; torchvision + Pillow provide the ImageFolder, transforms and image ops;
+# PyYAML is read to load a YAML config on the stand-alone path.
+torch>=2.0.0
+torchvision>=0.15.0
+timm>=0.9.0
+numpy>=1.24.0
+Pillow>=9.0.0
+PyYAML>=6.0
