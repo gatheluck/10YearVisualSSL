@@ -28,6 +28,7 @@ So two properties are pinned here, and neither is a matter of remembering:
 from __future__ import annotations
 
 import ast
+import re
 import shutil
 import subprocess
 import sys
@@ -43,6 +44,30 @@ from _repo_files import _walk, git_available, repository_files  # noqa: E402,E50
 ROOT = Path(__file__).resolve().parent.parent
 TESTS = ROOT / "tests"
 GATES = ("needs_git", "needs_checkout")
+
+
+def could_need_git(path: Path) -> bool:
+    """Whether a test module could need git at run time, so it belongs in the
+    without-git set below.
+
+    A module could need git if it **names git as a whole word** (so it might run
+    the binary, or drive something that does) or **imports the shared scan**
+    (`_repo_files`, which has the git fallback). Both are read from the text.
+
+    **The whole-word match matters, and is the reason this exists.** The first
+    version tested ``"git" in text`` -- a substring over the whole file -- and
+    matched `logits`, `cluster_logits`, `legitimately` and `digit`. That pulled
+    every heavy method-smoke test (each returns `logits`) into the subprocess
+    below, which re-runs them without git under a timeout; the ones that need
+    torch then trained ResNet-50s until the subprocess timed out. None of those
+    modules run git or import the scan, so none could be affected by its absence
+    -- they were false positives of a substring match over too wide a scope, the
+    recorded mistake this repository keeps making. A whole-word `\\bgit\\b`
+    excludes `logits` (no word boundary inside it) while still matching the
+    ``["git", ...]`` a module runs and the "without git" it may say in prose.
+    """
+    text = path.read_text(encoding="utf-8")
+    return "_repo_files" in text or re.search(r"\bgit\b", text) is not None
 
 
 def without_git(script: str) -> subprocess.CompletedProcess:
@@ -119,21 +144,25 @@ class TestTheScanSurvivesWithoutGit(unittest.TestCase):
         is the same complaint made of the CI matrix.
 
         The set is narrowed to what can actually be affected -- modules that
-        mention git or that import the shared scan -- and **derived, not
-        listed**, so a new one joins by itself. It is not the earlier narrow
-        version: that looked only at importers of the scan and would have
-        missed the failure sitting in this very file. Both bugs the wide
-        version caught are in modules this set contains, which was checked
+        mention git or that import the shared scan (`could_need_git`) -- and
+        **derived, not listed**, so a new one joins by itself. It is not the
+        earlier narrow version: that looked only at importers of the scan and
+        would have missed the failure sitting in this very file. Both bugs the
+        wide version caught are in modules this set contains, which was checked
         before narrowing it.
+
+        The membership test is a **whole-word** match, not a substring. A
+        substring `"git" in text` matched `logits`, dragged every heavy
+        method-smoke test into this subprocess, and timed it out under the mar
+        lock (which has torch, so those smokes trained rather than skipped).
+        See `could_need_git`.
 
         Itself excluded: included, it would spawn this subprocess from inside
         the subprocess and never finish. Measured -- it times out.
         """
         mods = sorted(
             p.stem for p in TESTS.glob("test_*.py")
-            if p.stem != Path(__file__).stem
-            and ("git" in p.read_text(encoding="utf-8")
-                 or "_repo_files" in p.read_text(encoding="utf-8")))
+            if p.stem != Path(__file__).stem and could_need_git(p))
         self.assertGreater(len(mods), 3, "the discovery found nothing to run")
         r = without_git(
             "import sys, unittest; sys.path.insert(0, 'tests')\n"
@@ -145,6 +174,41 @@ class TestTheScanSurvivesWithoutGit(unittest.TestCase):
             r.returncode, 0,
             "the suite does not survive without git, which is what the "
             f"container image is:\n{r.stderr[-3000:]}")
+
+
+class TestTheCouldNeedGitDiscovery(unittest.TestCase):
+    """`could_need_git` matches git as a whole word, not as a substring.
+
+    **Both controls are here because the substring version shipped and timed
+    out CI.** The negative control carries the exact letters that fooled it --
+    `logits`, `cluster_logits`, `legitimately`, `digit` -- so a regression to
+    ``"git" in text`` fails here rather than ten minutes into a subprocess.
+    """
+
+    def _write(self, body: str) -> Path:
+        d = Path(tempfile.mkdtemp(prefix="couldneed-"))
+        self.addCleanup(shutil.rmtree, d, ignore_errors=True)
+        p = d / "test_sample.py"
+        p.write_text(body, encoding="utf-8")
+        return p
+
+    def test_the_letters_of_git_inside_other_words_do_not_count(self):
+        p = self._write("logits = model(x)\ncluster_logits = 1\n"
+                        "# legitimately a digit, github aside\n")
+        self.assertFalse(could_need_git(p),
+                         "a substring match over too wide a scope is back")
+
+    def test_running_the_git_binary_counts(self):
+        p = self._write('cmd = ["git", "status"]\n')
+        self.assertTrue(could_need_git(p))
+
+    def test_the_word_git_in_prose_counts(self):
+        p = self._write('"""This module must survive without git."""\n')
+        self.assertTrue(could_need_git(p))
+
+    def test_importing_the_shared_scan_counts(self):
+        p = self._write("from _repo_files import repository_files\n")
+        self.assertTrue(could_need_git(p))
 
 
 @needs_checkout
