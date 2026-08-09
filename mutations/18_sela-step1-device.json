@@ -1,0 +1,39 @@
+{
+  "_note": "Run: .venvs/18_sela/bin/python bin/mutate.py --spec mutations/18_sela-step1-device.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/18_sela/bin/python (an interpreter with this method's lock and a CUDA device). Proves the device guard is not vacuous. See docs/GPU.md section 4.",
+  "targets": [
+    {
+      "label": "cpu is not honoured -- the requested cpu returns a cuda device",
+      "file": "methods/18_sela/train_step1_sela.py",
+      "old": "    if spec == \"cpu\":\n        return torch.device(\"cpu\")",
+      "new": "    if spec == \"cpu\":\n        return torch.device(\"cuda\")",
+      "tests": [
+        "tests.test_method_18_sela.TestTheDeviceIsResolved"
+      ]
+    },
+    {
+      "label": "cuda without a gpu is no longer refused, it falls back silently",
+      "file": "methods/18_sela/train_step1_sela.py",
+      "old": "        if not torch.cuda.is_available():",
+      "new": "        if False:",
+      "tests": [
+        "tests.test_method_18_sela.TestTheDeviceIsResolved"
+      ]
+    },
+    {
+      "label": "the batch ignores the resolved device and goes to the GPU regardless",
+      "file": "methods/18_sela/train_step1_sela.py",
+      "old": "        images = images.to(device, non_blocking=True)",
+      "new": "        images = images.cuda(0, non_blocking=True)",
+      "tests": [
+        "tests.test_method_18_sela.TestAStep1Smoke.test_it_completes_and_satisfies_the_contract"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-08-09",
+    "measured_with": ".venvs/18_sela (cu130) on an NVIDIA Tesla T4",
+    "killed": 3,
+    "total": 3,
+    "equivalent": []
+  }
+}

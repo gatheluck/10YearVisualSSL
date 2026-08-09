@@ -1,0 +1,59 @@
+{
+  "_note": "Run: .venvs/18_sela/bin/python bin/mutate.py --spec mutations/18_sela-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/18_sela/bin/python. Proves the model/Sinkhorn/eval guards are not vacuous: the model returns per-head logits, the Sinkhorn iteration actually runs (balancing the assignment), encoder.pt excludes the prototype heads, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
+  "targets": [
+    {
+      "label": "the model no longer returns per-head logits (heads collapsed to one)",
+      "file": "methods/18_sela/models/resnet_sela.py",
+      "old": "        return torch.stack(logits, dim=1)",
+      "new": "        return logits[0]",
+      "tests": [
+        "tests.test_method_18_sela.TestTheModel.test_forward_returns_logits_per_head"
+      ]
+    },
+    {
+      "label": "the Sinkhorn iteration never runs, so the assignment is not balanced",
+      "file": "methods/18_sela/utils/sinkhorn.py",
+      "old": "    while err > tol and counter < n_iters:",
+      "new": "    while False:",
+      "tests": [
+        "tests.test_method_18_sela.TestTheSinkhorn.test_it_produces_a_balanced_assignment"
+      ]
+    },
+    {
+      "label": "the prototype heads are no longer excluded from encoder.pt",
+      "file": "methods/18_sela/adapter/__init__.py",
+      "old": "    out = {k: v for k, v in state_dict.items()\n           if k.startswith(ENCODER_PREFIXES)}",
+      "new": "    out = {k: v for k, v in state_dict.items()}",
+      "tests": [
+        "tests.test_method_18_sela.TestExtractingTheEncoder"
+      ]
+    },
+    {
+      "label": "a downstream probe number is mapped to a pretext name",
+      "file": "methods/18_sela/adapter/__init__.py",
+      "old": "    \"final_top1_acc\": \"final_linear_probe_top1_accuracy\",",
+      "new": "    \"final_top1_acc\": \"final_pretext_top1_accuracy\",",
+      "tests": [
+        "tests.test_method_18_sela.TestTheMetricsAreInTheVocabulary",
+        "tests.test_method_18_sela.TestALinearEvalSmoke"
+      ]
+    },
+    {
+      "label": "the absent encoder is not explained",
+      "file": "methods/18_sela/adapter/__init__.py",
+      "old": "    if _stage_of(config_path) != \"linear_eval\":\n        return None",
+      "new": "    return None\n    if False:\n        return None",
+      "tests": [
+        "tests.test_method_18_sela.TestTheEvalProducesNoEncoder",
+        "tests.test_method_18_sela.TestALinearEvalSmoke.test_it_produces_no_encoder_and_says_so"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-08-09",
+    "measured_with": ".venvs/18_sela (cu130) on an NVIDIA Tesla T4",
+    "killed": 5,
+    "total": 5,
+    "equivalent": []
+  }
+}
