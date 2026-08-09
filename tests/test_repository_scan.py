@@ -84,6 +84,21 @@ def could_need_git(path: Path) -> bool:
     return re.search(r"\bgit\b", text) is not None
 
 
+def reimplements_scan(path: Path) -> bool:
+    """Whether `path` holds a second copy of the published-set scan: the git flag
+    that means "untracked and not ignored", which is what distinguishes the scan
+    from merely listing tracked files.
+
+    **One implementation, called by both the guard and its controls** -- writing
+    the check twice would be the very "same rule implemented twice" this guards
+    against. The needle is assembled at run time so the literal never appears in
+    this file, which must name it to look for it; written out, the guard would
+    accuse itself.
+    """
+    needle = "--exclude-" + "standard"
+    return needle in path.read_text(encoding="utf-8")
+
+
 def without_git(script: str) -> subprocess.CompletedProcess:
     """Run `script` in an environment where git does not exist.
 
@@ -479,9 +494,7 @@ class TestThereIsOnlyOneScan(unittest.TestCase):
         language guard spells its own alphabet in escapes for the same
         reason: a guard must not be the one thing exempt from itself.
         """
-        needle = "--exclude-" + "standard"
-        others = [p.name for p in self.modules()
-                  if needle in p.read_text(encoding="utf-8")]
+        others = [p.name for p in self.modules() if reimplements_scan(p)]
         self.assertEqual(
             others, [],
             "a second implementation of the repository scan. The two copies "
@@ -489,11 +502,11 @@ class TestThereIsOnlyOneScan(unittest.TestCase):
             + "\n".join(f"  - {x}" for x in others))
 
     def test_the_second_scan_check_catches_a_real_copy(self):
-        """Positive control. Without it, the check above passes by matching
-        nothing -- an assertion that cannot fail. A fabricated module that runs
-        the published-set scan itself must be flagged. (The needle is built at
-        run time and written through an f-string, so it never appears literally
-        in this file and cannot make this file accuse itself.)"""
+        """Positive control for `reimplements_scan`. Without it, the check above
+        passes by matching nothing -- an assertion that cannot fail. A fabricated
+        module that runs the published-set scan itself must be flagged. (The
+        needle is written through an f-string, so it never appears literally in
+        this file and cannot make this file accuse itself.)"""
         needle = "--exclude-" + "standard"
         d = Path(tempfile.mkdtemp(prefix="secondscan-"))
         self.addCleanup(shutil.rmtree, d, ignore_errors=True)
@@ -502,19 +515,18 @@ class TestThereIsOnlyOneScan(unittest.TestCase):
             f'import subprocess\n'
             f'subprocess.run(["git", "ls-files", "--others", "{needle}"])\n',
             encoding="utf-8")
-        self.assertIn(needle, p.read_text(encoding="utf-8"))
+        self.assertTrue(reimplements_scan(p))
 
     def test_prose_about_the_scan_is_not_flagged(self):
         """Negative control. Naming the shared scan in prose is not a second
         implementation, so it must not be flagged."""
-        needle = "--exclude-" + "standard"
         d = Path(tempfile.mkdtemp(prefix="secondscan-"))
         self.addCleanup(shutil.rmtree, d, ignore_errors=True)
         p = d / "test_prose.py"
         p.write_text(
             '"""We rely on the shared repository scan (git ls-files)."""\n',
             encoding="utf-8")
-        self.assertNotIn(needle, p.read_text(encoding="utf-8"))
+        self.assertFalse(reimplements_scan(p))
 
     def test_more_than_one_guard_shares_it(self):
         """With one consumer, sharing proves nothing."""

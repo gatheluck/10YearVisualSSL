@@ -1,0 +1,48 @@
+{
+  "_note": "Run: python3 bin/mutate.py --spec mutations/meta-detectors.json (base interpreter; these are shared-meta-test detectors, no torch needed). Proves the audit's after-the-fact controls are not vacuous: each detector that decides what gets checked/run is reverted toward the substring/over-broad form the audit removed, and a named control must kill it. One further detector (a platform-import regex in test_platform_isolation.py) was verified the same way in-session but is NOT persisted here: a spec anchored on that regex would carry platform-specific vocabulary that the platform-isolation guard rightly forbids outside its own directory -- it caught exactly that attempt. See the commit message for its result.",
+  "targets": [
+    {
+      "label": "could_need_git falls back to a substring match (git inside logits)",
+      "file": "tests/test_repository_scan.py",
+      "old": "    return re.search(r\"\\bgit\\b\", text) is not None",
+      "new": "    return \"git\" in text",
+      "tests": [
+        "tests.test_repository_scan.TestTheCouldNeedGitDiscovery.test_the_letters_of_git_inside_other_words_do_not_count"
+      ]
+    },
+    {
+      "label": "could_need_git no longer excludes method-port smokes",
+      "file": "tests/test_repository_scan.py",
+      "old": "    if path.stem.startswith(\"test_method_\"):",
+      "new": "    if path.stem.startswith(\"test_zzzzz_\"):",
+      "tests": [
+        "tests.test_repository_scan.TestTheCouldNeedGitDiscovery.test_a_method_port_test_is_excluded_even_if_it_names_git"
+      ]
+    },
+    {
+      "label": "reimplements_scan stops flagging a second copy of the scan",
+      "file": "tests/test_repository_scan.py",
+      "old": "    return needle in path.read_text(encoding=\"utf-8\")",
+      "new": "    return False",
+      "tests": [
+        "tests.test_repository_scan.TestThereIsOnlyOneScan.test_the_second_scan_check_catches_a_real_copy"
+      ]
+    },
+    {
+      "label": "round-trip reader stops seeing an attribute call (adapter.load_encoder)",
+      "file": "tests/test_encoder_convention.py",
+      "old": "        if isinstance(f, ast.Attribute) and f.attr == name:",
+      "new": "        if isinstance(f, ast.Attribute) and f.attr != name:",
+      "tests": [
+        "tests.test_encoder_convention.TestEveryPortAgreesOnWhatEncoderPtHolds.test_the_round_trip_reader_needs_an_actual_call"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-08-09",
+    "measured_with": "base python3 (3.12.13); shared meta-test detectors need no torch",
+    "killed": 4,
+    "total": 4,
+    "equivalent": []
+  }
+}
