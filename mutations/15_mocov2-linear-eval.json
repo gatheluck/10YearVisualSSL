@@ -1,0 +1,86 @@
+{
+  "_note": "Run: .venvs/15_mocov2/bin/python bin/mutate.py --spec mutations/15_mocov2-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/15_mocov2/bin/python. Proves the model/MoCo/v2/two-stage guards are not vacuous: the query embedding is L2-normalised, the projection head is a 2-layer MLP (the v2 change), the encoder returns one flat vector per image, the key encoder is momentum-updated, the queue is actually written, encoder.pt excludes the head/key/queue, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
+  "targets": [
+    {
+      "label": "the query embedding is not L2-normalised",
+      "file": "methods/15_mocov2/models/resnet_mocov2.py",
+      "old": "        return F.normalize(x, dim=1)",
+      "new": "        return x",
+      "tests": [
+        "tests.test_method_15_mocov2.TestTheModel.test_the_query_embedding_is_l2_normalised"
+      ]
+    },
+    {
+      "label": "the v2 MLP head loses its nonlinearity (collapses toward v1's single linear)",
+      "file": "methods/15_mocov2/models/resnet_mocov2.py",
+      "old": "            nn.ReLU(inplace=True),",
+      "new": "            nn.Identity(),",
+      "tests": [
+        "tests.test_method_15_mocov2.TestTheModel.test_the_projection_head_is_a_two_layer_mlp"
+      ]
+    },
+    {
+      "label": "the encoder no longer returns one flat vector per image",
+      "file": "methods/15_mocov2/models/resnet_mocov2.py",
+      "old": "        return x.view(x.size(0), -1)",
+      "new": "        return x.view(x.size(0), 1, -1)",
+      "tests": [
+        "tests.test_method_15_mocov2.TestTheModel.test_the_encoder_returns_the_backbone_feature"
+      ]
+    },
+    {
+      "label": "the key encoder is never momentum-updated",
+      "file": "methods/15_mocov2/models/resnet_mocov2.py",
+      "old": "            pk.data = pk.data * self.m + pq.data * (1.0 - self.m)",
+      "new": "            pk.data = pk.data",
+      "tests": [
+        "tests.test_method_15_mocov2.TestTheQueue.test_the_key_encoder_is_momentum_updated"
+      ]
+    },
+    {
+      "label": "the queue is never written -- the enqueue drops the keys",
+      "file": "methods/15_mocov2/models/resnet_mocov2.py",
+      "old": "        self.queue[:, ptr:ptr + batch_size] = keys.T",
+      "new": "        pass",
+      "tests": [
+        "tests.test_method_15_mocov2.TestTheQueue.test_dequeue_and_enqueue_advances_the_pointer_and_writes"
+      ]
+    },
+    {
+      "label": "the head, key encoder and queue are no longer excluded from encoder.pt",
+      "file": "methods/15_mocov2/adapter/__init__.py",
+      "old": "    out = {k: v for k, v in state_dict.items()\n           if k.startswith(ENCODER_PREFIXES)}",
+      "new": "    out = {k: v for k, v in state_dict.items()}",
+      "tests": [
+        "tests.test_method_15_mocov2.TestExtractingTheEncoder"
+      ]
+    },
+    {
+      "label": "a downstream probe number is mapped to a pretext name",
+      "file": "methods/15_mocov2/adapter/__init__.py",
+      "old": "    \"final_top1_acc\": \"final_linear_probe_top1_accuracy\",",
+      "new": "    \"final_top1_acc\": \"final_pretext_loss\",",
+      "tests": [
+        "tests.test_method_15_mocov2.TestTheMetricsAreInTheVocabulary",
+        "tests.test_method_15_mocov2.TestALinearEvalSmoke"
+      ]
+    },
+    {
+      "label": "the absent encoder is not explained",
+      "file": "methods/15_mocov2/adapter/__init__.py",
+      "old": "    if _stage_of(config_path) != \"linear_eval\":\n        return None",
+      "new": "    return None\n    if False:\n        return None",
+      "tests": [
+        "tests.test_method_15_mocov2.TestTheEvalProducesNoEncoder",
+        "tests.test_method_15_mocov2.TestALinearEvalSmoke.test_it_produces_no_encoder_and_says_so"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-08-09",
+    "measured_with": ".venvs/15_mocov2 (cu130) on an NVIDIA Tesla T4",
+    "killed": 8,
+    "total": 8,
+    "equivalent": []
+  }
+}

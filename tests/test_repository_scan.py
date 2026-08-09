@@ -28,6 +28,7 @@ So two properties are pinned here, and neither is a matter of remembering:
 from __future__ import annotations
 
 import ast
+import re
 import shutil
 import subprocess
 import sys
@@ -43,6 +44,44 @@ from _repo_files import _walk, git_available, repository_files  # noqa: E402,E50
 ROOT = Path(__file__).resolve().parent.parent
 TESTS = ROOT / "tests"
 GATES = ("needs_git", "needs_checkout")
+
+
+def could_need_git(path: Path) -> bool:
+    """Whether a test module belongs in the without-git set below: it exercises
+    the git-survival property, and re-running it here is cheap enough to do as
+    the method count grows.
+
+    Three rules, in order:
+
+    1. **A scan consumer is always in.** If the text imports the shared scan
+       (`_repo_files`, which carries the git fallback), git's absence can change
+       what it sees -- whatever kind of test it is.
+    2. **A method-port test (`test_method_*`) is otherwise out.** Its only git
+       use is checkout-gated -- it *skips* without git rather than crashing -- and
+       its training smokes never touch git. But under a torch-heavy method lock
+       those smokes would **train** inside this subprocess (a ResNet-50 per
+       method) and blow its timeout. Excluding them removes no git coverage (the
+       property lives in the shared meta-tests, rule 3) and keeps this bounded.
+    3. **A meta-test that names git as a whole word is in.** It may run the
+       binary or drive something that does.
+
+    **Two bugs are pinned here, both measured, both the kind this repository
+    keeps making.** (a) The first version tested ``"git" in text`` -- a substring
+    over the whole file -- which matched `logits`, `cluster_logits` and
+    `legitimately`, so a whole-word `\\bgit\\b` is used. (b) Even after that, the
+    subprocess ran the method-port smokes (`test_method_mar` and friends run git
+    for submodule checks, so a word match still selected them) and took **362s**
+    under the mar lock -- past the 300s timeout. Rule 2 drops those; the same set
+    then runs in ~11s. Neither was visible locally: the base-env gate has no
+    torch, so the smokes skip and the subprocess is fast. Only a torch-heavy lock
+    reaches it, which is the per-method CI matrix.
+    """
+    text = path.read_text(encoding="utf-8")
+    if "_repo_files" in text:
+        return True
+    if path.stem.startswith("test_method_"):
+        return False
+    return re.search(r"\bgit\b", text) is not None
 
 
 def without_git(script: str) -> subprocess.CompletedProcess:
@@ -119,21 +158,27 @@ class TestTheScanSurvivesWithoutGit(unittest.TestCase):
         is the same complaint made of the CI matrix.
 
         The set is narrowed to what can actually be affected -- modules that
-        mention git or that import the shared scan -- and **derived, not
-        listed**, so a new one joins by itself. It is not the earlier narrow
-        version: that looked only at importers of the scan and would have
-        missed the failure sitting in this very file. Both bugs the wide
-        version caught are in modules this set contains, which was checked
+        mention git or that import the shared scan (`could_need_git`) -- and
+        **derived, not listed**, so a new one joins by itself. It is not the
+        earlier narrow version: that looked only at importers of the scan and
+        would have missed the failure sitting in this very file. Both bugs the
+        wide version caught are in modules this set contains, which was checked
         before narrowing it.
+
+        Membership is `could_need_git`: scan consumers, plus meta-tests that
+        name git as a whole word, but **not** method-port smokes. A substring
+        `"git" in text` matched `logits`, and even a whole-word match still
+        selected `test_method_mar` and friends (they run git for submodule
+        checks) whose torch smokes then trained inside this subprocess and timed
+        it out under the mar lock -- measured at 362s, past 300s. See
+        `could_need_git` for why excluding them loses no git coverage.
 
         Itself excluded: included, it would spawn this subprocess from inside
         the subprocess and never finish. Measured -- it times out.
         """
         mods = sorted(
             p.stem for p in TESTS.glob("test_*.py")
-            if p.stem != Path(__file__).stem
-            and ("git" in p.read_text(encoding="utf-8")
-                 or "_repo_files" in p.read_text(encoding="utf-8")))
+            if p.stem != Path(__file__).stem and could_need_git(p))
         self.assertGreater(len(mods), 3, "the discovery found nothing to run")
         r = without_git(
             "import sys, unittest; sys.path.insert(0, 'tests')\n"
@@ -145,6 +190,62 @@ class TestTheScanSurvivesWithoutGit(unittest.TestCase):
             r.returncode, 0,
             "the suite does not survive without git, which is what the "
             f"container image is:\n{r.stderr[-3000:]}")
+
+
+class TestTheCouldNeedGitDiscovery(unittest.TestCase):
+    """`could_need_git` matches git as a whole word, not as a substring.
+
+    **Both controls are here because the substring version shipped and timed
+    out CI.** The negative control carries the exact letters that fooled it --
+    `logits`, `cluster_logits`, `legitimately`, `digit` -- so a regression to
+    ``"git" in text`` fails here rather than ten minutes into a subprocess.
+    """
+
+    def _write(self, body: str) -> Path:
+        d = Path(tempfile.mkdtemp(prefix="couldneed-"))
+        self.addCleanup(shutil.rmtree, d, ignore_errors=True)
+        p = d / "test_sample.py"
+        p.write_text(body, encoding="utf-8")
+        return p
+
+    def test_the_letters_of_git_inside_other_words_do_not_count(self):
+        p = self._write("logits = model(x)\ncluster_logits = 1\n"
+                        "# legitimately a digit, github aside\n")
+        self.assertFalse(could_need_git(p),
+                         "a substring match over too wide a scope is back")
+
+    def test_running_the_git_binary_counts(self):
+        p = self._write('cmd = ["git", "status"]\n')
+        self.assertTrue(could_need_git(p))
+
+    def test_the_word_git_in_prose_counts(self):
+        p = self._write('"""This module must survive without git."""\n')
+        self.assertTrue(could_need_git(p))
+
+    def test_importing_the_shared_scan_counts(self):
+        p = self._write("from _repo_files import repository_files\n")
+        self.assertTrue(could_need_git(p))
+
+    def test_a_method_port_test_is_excluded_even_if_it_names_git(self):
+        """Its git use is checkout-gated and its smokes never touch git, but
+        under a torch lock they would train inside the timed subprocess. The
+        name is what marks it -- test_method_*."""
+        d = Path(tempfile.mkdtemp(prefix="couldneed-"))
+        self.addCleanup(shutil.rmtree, d, ignore_errors=True)
+        p = d / "test_method_sample.py"
+        p.write_text('"""pins a git submodule; logits = model(x)"""\n'
+                     'cmd = ["git", "submodule", "status"]\n', encoding="utf-8")
+        self.assertFalse(could_need_git(p))
+
+    def test_a_method_port_test_that_imports_the_scan_is_kept(self):
+        """The scan-consumer rule wins: git's absence changes what it sees, so
+        it must be verified whatever its name."""
+        d = Path(tempfile.mkdtemp(prefix="couldneed-"))
+        self.addCleanup(shutil.rmtree, d, ignore_errors=True)
+        p = d / "test_method_sample.py"
+        p.write_text("from _repo_files import repository_files\n",
+                     encoding="utf-8")
+        self.assertTrue(could_need_git(p))
 
 
 @needs_checkout
@@ -386,6 +487,34 @@ class TestThereIsOnlyOneScan(unittest.TestCase):
             "a second implementation of the repository scan. The two copies "
             "agreed everywhere git existed and diverged in the container:\n"
             + "\n".join(f"  - {x}" for x in others))
+
+    def test_the_second_scan_check_catches_a_real_copy(self):
+        """Positive control. Without it, the check above passes by matching
+        nothing -- an assertion that cannot fail. A fabricated module that runs
+        the published-set scan itself must be flagged. (The needle is built at
+        run time and written through an f-string, so it never appears literally
+        in this file and cannot make this file accuse itself.)"""
+        needle = "--exclude-" + "standard"
+        d = Path(tempfile.mkdtemp(prefix="secondscan-"))
+        self.addCleanup(shutil.rmtree, d, ignore_errors=True)
+        p = d / "test_copy.py"
+        p.write_text(
+            f'import subprocess\n'
+            f'subprocess.run(["git", "ls-files", "--others", "{needle}"])\n',
+            encoding="utf-8")
+        self.assertIn(needle, p.read_text(encoding="utf-8"))
+
+    def test_prose_about_the_scan_is_not_flagged(self):
+        """Negative control. Naming the shared scan in prose is not a second
+        implementation, so it must not be flagged."""
+        needle = "--exclude-" + "standard"
+        d = Path(tempfile.mkdtemp(prefix="secondscan-"))
+        self.addCleanup(shutil.rmtree, d, ignore_errors=True)
+        p = d / "test_prose.py"
+        p.write_text(
+            '"""We rely on the shared repository scan (git ls-files)."""\n',
+            encoding="utf-8")
+        self.assertNotIn(needle, p.read_text(encoding="utf-8"))
 
     def test_more_than_one_guard_shares_it(self):
         """With one consumer, sharing proves nothing."""

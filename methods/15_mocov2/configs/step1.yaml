@@ -1,0 +1,31 @@
+# MoCo v2 step 1: ResNet-50 + MLP head + Gaussian blur + cosine LR (Chen et al.,
+# 2020; arXiv:2003.04297), the paper-faithful ResNet-50 path.
+#
+# These are the paper-target settings -- the recipe, not a result. Nothing here
+# has executed a full run; the README says what was and was not exercised. The
+# capture's ViT step 2 (which needs timm) is not ported.
+#
+# One path is passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   an ImageFolder of training images
+# The output path is fixed at --out.
+stage: step1
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+
+train:
+  # model (build_mocov2_resnet): ResNet-50 + 2-layer MLP head, L2-normed
+  feature_dim: 128
+  img_size: 224
+  # MoCo (momentum queue)
+  queue_size: 65536       # K -- dictionary size (same as v1)
+  key_momentum: 0.999     # m -- key encoder EMA (same as v1)
+  temperature: 0.2        # tau -- InfoNCE temperature (v2 raised it from 0.07)
+  # training (SGD + cosine schedule, the v2 improvement over v1's step decay)
+  epochs: 200
+  batch_size: 256
+  num_workers: 8
+  lr: 0.03
+  momentum: 0.9           # SGD momentum (distinct from key_momentum)
+  weight_decay: 1.0e-4
+  warmup_epochs: 0

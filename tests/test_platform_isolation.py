@@ -37,6 +37,12 @@ ABCI_MARKERS = (
     "/groups/", "module load", "abci",
 )
 
+# A `from ... platforms.abci` / `import ... platforms.abci` statement, matched
+# structurally (a keyword then the dotted path) rather than by the bare substring
+# "platforms.abci", so a comment or a string mentioning it is not an import. Its
+# positive and negative controls are in TestAbciVocabularyIsContained.
+ABCI_IMPORT = re.compile(r"(?:from|import)\s+[\w.]*platforms\.abci")
+
 # What the guard is about: **code and configuration must not be tied to a
 # platform.** Prose cannot create that tie -- the README has to be able to say
 # "support for this platform is optional" in order to explain the separation
@@ -137,16 +143,31 @@ class TestAbciIsOptional(unittest.TestCase):
 
     def test_nothing_outside_platforms_imports_the_abci_module(self):
         """Importing it means the core knows about it."""
-        pat = re.compile(r"(?:from|import)\s+[\w.]*platforms\.abci")
         offenders: list[str] = []
         for p in _scan_targets():
             rel = p.relative_to(ROOT)
             if rel.parts[0] == "platforms":
                 continue
-            if pat.search(p.read_text(encoding="utf-8", errors="replace")):
+            if ABCI_IMPORT.search(p.read_text(encoding="utf-8", errors="replace")):
                 offenders.append(str(rel))
         self.assertEqual(offenders, [],
                          f"imported from outside platforms/: {offenders}")
+
+    def test_the_abci_import_detector_fires_and_is_specific(self):
+        """Positive and negative controls. Without the positive, the check above
+        passes by matching nothing -- an assertion that cannot fail; without the
+        negative, it could flag any platform import. Both `from` and `import`
+        forms count; a sibling backend does not."""
+        for hit in ("from platforms.abci import Backend\n",
+                    "import platforms.abci\n",
+                    "from src.platforms.abci import x\n"):
+            with self.subTest(hit=hit):
+                self.assertTrue(ABCI_IMPORT.search(hit))
+        for miss in ("from platforms.local import Backend\n",
+                     "from platforms.base import Backend\n",
+                     "# platforms.abci is mentioned only in this comment\n"):
+            with self.subTest(miss=miss):
+                self.assertIsNone(ABCI_IMPORT.search(miss))
 
     def test_abci_module_exists_but_is_not_required(self):
         """It exists, but nothing breaks without it."""
