@@ -1,0 +1,25 @@
+{
+  "captured_at": "2026-08-09",
+  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
+  "captured_note": "Ported from the capture's self-contained methods/15_mocov2, specifically its paper-faithful ResNet-50 path (models/resnet_mocov2.py, data/mocov2_dataset.py, train_step1_resnet.py, evaluate_linear.py). These are the lab's own implementation of Chen et al. (2020) Momentum Contrast v2, torch/torchvision only. So it ports self-contained (no third_party submodule). The port keeps the capture directory numbering (15) per the 2026-08-09 keep-capture-numbering decision (this list's number 16 is MoCo v2 -- see docs/PORTING_ROADMAP.md).",
+  "paper": {
+    "title": "Improved Baselines with Momentum Contrastive Learning",
+    "authors": "Chen, Fan, Girshick, He",
+    "year": 2020,
+    "arxiv": "2003.04297"
+  },
+  "scope": "The paper-faithful ResNet-50 path is ported. MoCo v2 = MoCo v1 + three changes: a 2-layer MLP projection head (Linear 2048->2048, ReLU, Linear 2048->feature_dim; v1 used a single linear), Gaussian-blur augmentation, and a cosine LR schedule. The core is unchanged: two augmented views feed a query encoder and a momentum key encoder (an EMA copy of the query, no gradient); an InfoNCE loss contrasts the query against the matching key (positive) and a FIFO queue of K past keys (negatives), with temperature tau=0.2. The capture's ViT step 2 (a separate model that imports timm) is EXCLUDED, as in every port.",
+  "encoder": "encoder.pt is the query ResNet-50 backbone (encoder_q.backbone.*). The 2-layer MLP projection head (encoder_q.proj.*), the momentum key encoder (encoder_k.*) and the queue (queue, queue_ptr) are training machinery and are excluded -- the standard SSL convention of probing the backbone, the same shape as the inst_disc and mocov1 ports.",
+  "linear_eval": "Reads the trained encoder.pt and probes the query ResNet-50 backbone (2048-d, avg-pooled), a genuine learned representation, so the number is comparable. Images use the deterministic val pipeline (resize + centre crop, ImageNet normalisation -- the same normalisation MoCo v2 trains with). Follows the lab's shared ARSSL probe (mean-centre + L2-normalise features, single linear layer, SGD momentum + cosine, top1/top5) rather than the capture's own head, so the number is comparable across the ported methods.",
+  "rewritten_during_the_port": [
+    "only the paper-faithful ResNet-50 path is ported; the ViT step 2 (which needs timm) is excluded, which drops the timm/tensorboard/tqdm dependencies",
+    "the DistributedDataParallel shuffle-BN / all-gather / broadcast paths in the model are kept but guarded by dist.is_initialized(), so they are inert in the single-process port (the queue is filled from within the batch)",
+    "the SGD updates only the query encoder's parameters (the key encoder has requires_grad=False and is updated by EMA)",
+    "get_encoder() returns nn.Sequential(backbone, Flatten) -> 2048-d; the capture's get_encoder returned the backbone alone ((B,2048,1,1)), and the flatten is added so the shared ARSSL probe reads one flat vector per image",
+    "the moco EMA coefficient is named key_momentum in the resolved config to avoid clashing with the SGD momentum (both are 0.x floats)",
+    "the device is resolved (resolve_device) instead of assumed CUDA (the capture called im_q.cuda(local_rank))",
+    "main() split into build_parser()/run(args, config) returning the pretext InfoNCE loss and epoch count",
+    "the run is seeded through make_deterministic (python, numpy, torch)",
+    "the training loop drops the upstream DistributedDataParallel and TensorBoard so the same step runs on a CPU or a GPU unchanged, single-process fp32; the cosine LR schedule is kept"
+  ]
+}

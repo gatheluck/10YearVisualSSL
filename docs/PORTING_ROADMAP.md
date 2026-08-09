@@ -70,7 +70,7 @@ rest — e.g. capture `14_simclrv1` ↔ list #14 = PIRL; capture `17_swav` ↔ l
 | 13 | MoCo v1 | `13_mocov1` | **yes** | ported (`13_mocov1`) |
 | 14 | PIRL | `33_pirl` | no | **HOLD** (numbering differs) |
 | 15 | SimCLR v1 | `14_simclrv1` | no | ported (`14_simclrv1`) |
-| 16 | MoCo v2 | `15_mocov2` | no | **HOLD** |
+| 16 | MoCo v2 | `15_mocov2` | no | ported (`15_mocov2`) |
 | 17 | SimCLR v2 | `16_simclrv2` | no | **HOLD** |
 | 18 | SwAV | `17_swav` | no | ported (`17_swav`) |
 | 19 | SeLa | `18_sela` | no | **HOLD** |
@@ -108,9 +108,10 @@ under its capture number.
 **Porting order now:** by capture-directory number among the not-yet-ported,
 preferring torch-only (tier-A) self-contained methods and deferring the special-dep
 / submodule / eval-only tier (`24_beit`, `34_msn`, `35_vjepa`, `37_lejepa`). The
-next candidates by capture number are `15_mocov2`, `16_simclrv2`, `18_sela`,
-`19_byol`, `22_mocov3`, `23_dino`, ... (each verified tier-A by **measuring** the
-capture before porting, never from the label).
+next candidates by capture number are `16_simclrv2`, `18_sela`, `19_byol`,
+`22_mocov3`, `23_dino`, ... (each verified tier-A by **measuring** the capture
+before porting, never from the label). Ported under this decision so far:
+`14_simclrv1` (list #15), `15_mocov2` (list #16).
 
 **(historical) HOLD rule (user decision pending, 2026-08-06):** only port methods
 whose capture directory number equals this list's number — TRUE only for numbers
