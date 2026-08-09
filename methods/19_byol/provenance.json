@@ -1,0 +1,23 @@
+{
+  "captured_at": "2026-08-09",
+  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
+  "captured_note": "Ported from the capture's self-contained methods/19_byol, specifically its ResNet-50 path (models/resnet50_byol.py, data/byol_dataset.py, train_step1_resnet50.py, evaluate_linear.py). These are the lab's own implementation of Grill et al. (2020) BYOL, torch/torchvision only. So it ports self-contained (no third_party submodule). The port keeps the capture directory numbering (19) per the 2026-08-09 keep-capture-numbering decision (this list's number 20 is BYOL -- see docs/PORTING_ROADMAP.md).",
+  "paper": {
+    "title": "Bootstrap Your Own Latent: A New Approach to Self-Supervised Learning",
+    "authors": "Grill, Strub, Altche, Tallec, Richemond, Buchatskaya, Doersch, Pires, Guo, Azar, Piot, Kavukcuoglu, Munos, Valko",
+    "year": 2020,
+    "arxiv": "2006.07733"
+  },
+  "scope": "The paper-faithful ResNet-50 path is ported: an online network (ResNet-50 backbone -> projection MLP 2048->4096->256 -> prediction MLP 256->4096->256) is trained so its prediction of one view matches a target network's projection of the other; the target is an EMA copy of the online backbone + projector (no predictor, no gradient), updated each step with a cosine-scheduled momentum tau (0.996 -> 1.0). The loss is a symmetric negative cosine similarity with a stop-gradient on the target -- NO negatives, NO queue. Two views use the asymmetric BYOL augmentation (view1 strong blur; view2 weak blur + solarize). Optimised with LARS under a cosine LR schedule with warmup. The capture's ViT step 2 (models/vit_byol.py, which imports timm) is EXCLUDED, as in every port.",
+  "encoder": "encoder.pt is the online ResNet-50 backbone (online_encoder.*): the torchvision resnet50 up to and including avgpool, plus a Flatten, producing a 2048-d feature. The projection MLP (online_projector.*), the prediction MLP (predictor.*) and the entire target network (target_encoder.*, target_projector.*) are training machinery and are excluded -- the standard SSL convention of probing the backbone, the same shape as the mocov1/v2 ports.",
+  "linear_eval": "Reads the trained encoder.pt and probes the online ResNet-50 backbone (2048-d, avg-pooled) via encode(), a genuine learned representation, so the number is comparable. Images use the deterministic val pipeline (resize + centre crop, ImageNet normalisation -- the same normalisation BYOL trains with). Follows the lab's shared ARSSL probe (mean-centre + L2-normalise features, single linear layer, SGD momentum + cosine, top1/top5) rather than the capture's own head, so the number is comparable across the ported methods.",
+  "rewritten_during_the_port": [
+    "only the paper-faithful ResNet-50 path is ported; the ViT step 2 (which needs timm) is excluded, which drops the timm/tensorboard/tqdm dependencies",
+    "the EMA target update, the symmetric negative-cosine loss with stop-gradient, the LARS optimizer and the cosine EMA-tau schedule are kept faithfully (all torch); tau is recomputed each step from the fractional epoch",
+    "the two-view dataset returns ((view1, view2), label); the asymmetric BYOL augmentation (view1 blur p=1.0; view2 blur p=0.1 + solarize p=0.2) is kept",
+    "the device is resolved (resolve_device) instead of assumed CUDA (the capture called x.cuda())",
+    "main() split into build_parser()/run(args, config) returning the pretext loss and epoch count",
+    "the run is seeded through make_deterministic (python, numpy, torch)",
+    "the training loop drops the upstream DistributedDataParallel, the AMP autocast/GradScaler and TensorBoard/tqdm so the same step runs on a CPU or a GPU unchanged, single-process fp32; the cosine LR schedule with warmup and the batch-linear LR scaling are kept"
+  ]
+}

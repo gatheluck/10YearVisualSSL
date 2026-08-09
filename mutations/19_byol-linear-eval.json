@@ -1,0 +1,77 @@
+{
+  "_note": "Run: .venvs/19_byol/bin/python bin/mutate.py --spec mutations/19_byol-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/19_byol/bin/python. Proves the BYOL model/loss/eval guards are not vacuous: the loss is negative cosine, the target is stop-gradient, the EMA tau schedule rises, the EMA update moves the target toward the online net, encoder.pt excludes the projector/predictor/target, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
+  "targets": [
+    {
+      "label": "the loss flips sign (no longer pulls prediction toward target)",
+      "file": "methods/19_byol/models/resnet50_byol.py",
+      "old": "        return -0.5 * ((p1 * z2).sum(dim=-1).mean()",
+      "new": "        return 0.5 * ((p1 * z2).sum(dim=-1).mean()",
+      "tests": [
+        "tests.test_method_19_byol.TestTheLoss.test_identical_prediction_and_target_gives_minus_one"
+      ]
+    },
+    {
+      "label": "the target projection is no longer stop-gradient",
+      "file": "methods/19_byol/models/resnet50_byol.py",
+      "old": "        z1 = F.normalize(z1.detach(), dim=-1, p=2)",
+      "new": "        z1 = F.normalize(z1, dim=-1, p=2)",
+      "tests": [
+        "tests.test_method_19_byol.TestTheLoss.test_the_target_is_detached"
+      ]
+    },
+    {
+      "label": "the EMA tau schedule is frozen at its base (never rises)",
+      "file": "methods/19_byol/models/resnet50_byol.py",
+      "old": "    progress = epoch / total_epochs",
+      "new": "    progress = 0.0",
+      "tests": [
+        "tests.test_method_19_byol.TestTheEmaSchedule.test_tau_rises_from_base_toward_final"
+      ]
+    },
+    {
+      "label": "the EMA update decays the target instead of moving it toward online",
+      "file": "methods/19_byol/models/resnet50_byol.py",
+      "old": "        for op, tp in zip(self.online_encoder.parameters(),\n                          self.target_encoder.parameters()):\n            tp.data.mul_(tau).add_(op.data, alpha=1.0 - tau)",
+      "new": "        for op, tp in zip(self.online_encoder.parameters(),\n                          self.target_encoder.parameters()):\n            tp.data.mul_(tau)",
+      "tests": [
+        "tests.test_method_19_byol.TestTheModel.test_the_ema_update_moves_the_target_toward_the_online_net"
+      ]
+    },
+    {
+      "label": "the projector/predictor/target are no longer excluded from encoder.pt",
+      "file": "methods/19_byol/adapter/__init__.py",
+      "old": "    out = {k: v for k, v in state_dict.items()\n           if k.startswith(ENCODER_PREFIXES)}",
+      "new": "    out = {k: v for k, v in state_dict.items()}",
+      "tests": [
+        "tests.test_method_19_byol.TestExtractingTheEncoder"
+      ]
+    },
+    {
+      "label": "a downstream probe number is mapped to a pretext name",
+      "file": "methods/19_byol/adapter/__init__.py",
+      "old": "    \"final_top1_acc\": \"final_linear_probe_top1_accuracy\",",
+      "new": "    \"final_top1_acc\": \"final_pretext_top1_accuracy\",",
+      "tests": [
+        "tests.test_method_19_byol.TestTheMetricsAreInTheVocabulary",
+        "tests.test_method_19_byol.TestALinearEvalSmoke"
+      ]
+    },
+    {
+      "label": "the absent encoder is not explained",
+      "file": "methods/19_byol/adapter/__init__.py",
+      "old": "    if _stage_of(config_path) != \"linear_eval\":\n        return None",
+      "new": "    return None\n    if False:\n        return None",
+      "tests": [
+        "tests.test_method_19_byol.TestTheEvalProducesNoEncoder",
+        "tests.test_method_19_byol.TestALinearEvalSmoke.test_it_produces_no_encoder_and_says_so"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-08-09",
+    "measured_with": ".venvs/19_byol (cu130) on an NVIDIA Tesla T4",
+    "killed": 7,
+    "total": 7,
+    "equivalent": []
+  }
+}
