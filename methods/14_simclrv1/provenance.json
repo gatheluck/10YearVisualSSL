@@ -1,0 +1,24 @@
+{
+  "captured_at": "2026-08-09",
+  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
+  "captured_note": "Ported from the capture's self-contained methods/14_simclrv1, specifically its paper-faithful ResNet-50 path (models/resnet_simclr.py, loss/nt_xent.py, optim/lars.py, data/simclr_dataset.py, train_step1_resnet.py, evaluate_linear.py). These are the lab's own implementation of Chen et al. (2020) SimCLR v1, torch/torchvision only. So it ports self-contained (no third_party submodule). The capture keeps its capture-directory number (14); under the user's numbering decision (2026-08-09) the port keeps the capture numbering (this list's number 14 is PIRL -- see docs/PORTING_ROADMAP.md).",
+  "paper": {
+    "title": "A Simple Framework for Contrastive Learning of Visual Representations",
+    "authors": "Chen, Kornblith, Norouzi, Hinton",
+    "year": 2020,
+    "arxiv": "2002.05709",
+    "venue": "ICML 2020"
+  },
+  "scope": "The paper-faithful ResNet-50 path is ported: two independently-augmented views feed a shared ResNet-50 encoder and a 2-layer MLP projection head (2048->2048->out_dim, BN + ReLU, L2-normalised); the NT-Xent loss (temperature-scaled cross-entropy) pulls the two views of an image together and pushes every other view in the batch apart, optimised with LARS under a cosine schedule with linear warmup. The capture's ViT step 2 (models/vit_simclr.py, which imports timm) is EXCLUDED, as in every port.",
+  "encoder": "encoder.pt is the ResNet-50 backbone (encoder.*): the torchvision resnet50 up to and including avgpool. The 2-layer MLP projection head (projector.*) is training machinery and is excluded -- the standard SSL convention of probing the backbone, the same shape as the inst_disc and mocov1 ports.",
+  "linear_eval": "Reads the trained encoder.pt and probes the ResNet-50 backbone (2048-d, avg-pooled), a genuine learned representation, so the number is comparable. Images use SimCLR's own deterministic eval pipeline (bicubic resize + centre crop, NO ImageNet mean/std normalisation -- the encoder was trained on unnormalised [0,1] inputs, so the probe feeds it the same). Follows the lab's shared ARSSL probe (mean-centre + L2-normalise features, single linear layer, SGD momentum + cosine, top1/top5) rather than the capture's own lr-scaled 90-epoch head, so the number is comparable across the ported methods.",
+  "rewritten_during_the_port": [
+    "only the paper-faithful ResNet-50 path is ported; the ViT step 2 (which needs timm) is excluded, which drops the timm/tensorboard/tqdm dependencies",
+    "the NT-Xent all_gather_with_grad path is kept but guarded by dist.is_initialized(), so it is inert in the single-process port (negatives come from the local batch)",
+    "the two-view dataset returns (view1, view2, label) directly instead of the capture's ((view1, view2), label) via a TwoViewTransform, so the trainer reads each view directly",
+    "the device is resolved (resolve_device) instead of assumed CUDA (the capture called view.cuda(local_rank))",
+    "main() split into build_parser()/run(args, config) returning the pretext NT-Xent loss and epoch count",
+    "the run is seeded through make_deterministic (python, numpy, torch)",
+    "the training loop drops the upstream DistributedDataParallel and SyncBatchNorm and TensorBoard so the same step runs on a CPU or a GPU unchanged, single-process fp32; LARS and the cosine-with-warmup schedule are kept"
+  ]
+}
