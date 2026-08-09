@@ -47,27 +47,41 @@ GATES = ("needs_git", "needs_checkout")
 
 
 def could_need_git(path: Path) -> bool:
-    """Whether a test module could need git at run time, so it belongs in the
-    without-git set below.
+    """Whether a test module belongs in the without-git set below: it exercises
+    the git-survival property, and re-running it here is cheap enough to do as
+    the method count grows.
 
-    A module could need git if it **names git as a whole word** (so it might run
-    the binary, or drive something that does) or **imports the shared scan**
-    (`_repo_files`, which has the git fallback). Both are read from the text.
+    Three rules, in order:
 
-    **The whole-word match matters, and is the reason this exists.** The first
-    version tested ``"git" in text`` -- a substring over the whole file -- and
-    matched `logits`, `cluster_logits`, `legitimately` and `digit`. That pulled
-    every heavy method-smoke test (each returns `logits`) into the subprocess
-    below, which re-runs them without git under a timeout; the ones that need
-    torch then trained ResNet-50s until the subprocess timed out. None of those
-    modules run git or import the scan, so none could be affected by its absence
-    -- they were false positives of a substring match over too wide a scope, the
-    recorded mistake this repository keeps making. A whole-word `\\bgit\\b`
-    excludes `logits` (no word boundary inside it) while still matching the
-    ``["git", ...]`` a module runs and the "without git" it may say in prose.
+    1. **A scan consumer is always in.** If the text imports the shared scan
+       (`_repo_files`, which carries the git fallback), git's absence can change
+       what it sees -- whatever kind of test it is.
+    2. **A method-port test (`test_method_*`) is otherwise out.** Its only git
+       use is checkout-gated -- it *skips* without git rather than crashing -- and
+       its training smokes never touch git. But under a torch-heavy method lock
+       those smokes would **train** inside this subprocess (a ResNet-50 per
+       method) and blow its timeout. Excluding them removes no git coverage (the
+       property lives in the shared meta-tests, rule 3) and keeps this bounded.
+    3. **A meta-test that names git as a whole word is in.** It may run the
+       binary or drive something that does.
+
+    **Two bugs are pinned here, both measured, both the kind this repository
+    keeps making.** (a) The first version tested ``"git" in text`` -- a substring
+    over the whole file -- which matched `logits`, `cluster_logits` and
+    `legitimately`, so a whole-word `\\bgit\\b` is used. (b) Even after that, the
+    subprocess ran the method-port smokes (`test_method_mar` and friends run git
+    for submodule checks, so a word match still selected them) and took **362s**
+    under the mar lock -- past the 300s timeout. Rule 2 drops those; the same set
+    then runs in ~11s. Neither was visible locally: the base-env gate has no
+    torch, so the smokes skip and the subprocess is fast. Only a torch-heavy lock
+    reaches it, which is the per-method CI matrix.
     """
     text = path.read_text(encoding="utf-8")
-    return "_repo_files" in text or re.search(r"\bgit\b", text) is not None
+    if "_repo_files" in text:
+        return True
+    if path.stem.startswith("test_method_"):
+        return False
+    return re.search(r"\bgit\b", text) is not None
 
 
 def without_git(script: str) -> subprocess.CompletedProcess:
@@ -151,11 +165,13 @@ class TestTheScanSurvivesWithoutGit(unittest.TestCase):
         wide version caught are in modules this set contains, which was checked
         before narrowing it.
 
-        The membership test is a **whole-word** match, not a substring. A
-        substring `"git" in text` matched `logits`, dragged every heavy
-        method-smoke test into this subprocess, and timed it out under the mar
-        lock (which has torch, so those smokes trained rather than skipped).
-        See `could_need_git`.
+        Membership is `could_need_git`: scan consumers, plus meta-tests that
+        name git as a whole word, but **not** method-port smokes. A substring
+        `"git" in text` matched `logits`, and even a whole-word match still
+        selected `test_method_mar` and friends (they run git for submodule
+        checks) whose torch smokes then trained inside this subprocess and timed
+        it out under the mar lock -- measured at 362s, past 300s. See
+        `could_need_git` for why excluding them loses no git coverage.
 
         Itself excluded: included, it would spawn this subprocess from inside
         the subprocess and never finish. Measured -- it times out.
@@ -208,6 +224,27 @@ class TestTheCouldNeedGitDiscovery(unittest.TestCase):
 
     def test_importing_the_shared_scan_counts(self):
         p = self._write("from _repo_files import repository_files\n")
+        self.assertTrue(could_need_git(p))
+
+    def test_a_method_port_test_is_excluded_even_if_it_names_git(self):
+        """Its git use is checkout-gated and its smokes never touch git, but
+        under a torch lock they would train inside the timed subprocess. The
+        name is what marks it -- test_method_*."""
+        d = Path(tempfile.mkdtemp(prefix="couldneed-"))
+        self.addCleanup(shutil.rmtree, d, ignore_errors=True)
+        p = d / "test_method_sample.py"
+        p.write_text('"""pins a git submodule; logits = model(x)"""\n'
+                     'cmd = ["git", "submodule", "status"]\n', encoding="utf-8")
+        self.assertFalse(could_need_git(p))
+
+    def test_a_method_port_test_that_imports_the_scan_is_kept(self):
+        """The scan-consumer rule wins: git's absence changes what it sees, so
+        it must be verified whatever its name."""
+        d = Path(tempfile.mkdtemp(prefix="couldneed-"))
+        self.addCleanup(shutil.rmtree, d, ignore_errors=True)
+        p = d / "test_method_sample.py"
+        p.write_text("from _repo_files import repository_files\n",
+                     encoding="utf-8")
         self.assertTrue(could_need_git(p))
 
 
