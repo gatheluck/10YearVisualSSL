@@ -1,0 +1,78 @@
+{
+  "_note": "Run: .venvs/16_simclrv2/bin/python bin/mutate.py --spec mutations/16_simclrv2-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/16_simclrv2/bin/python. Proves the model/loss/eval guards are not vacuous: the projection is L2-normalised, the head is a 3-layer MLP (the v2 change), NT-Xent masks self-similarity and pairs view i with view i, encoder.pt excludes the projection head, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
+  "targets": [
+    {
+      "label": "the projection is no longer L2-normalised",
+      "file": "methods/16_simclrv2/models/resnet_simclrv2.py",
+      "old": "        return F.normalize(z, dim=1)",
+      "new": "        return z",
+      "tests": [
+        "tests.test_method_16_simclrv2.TestTheModel.test_forward_projects_and_l2_normalises"
+      ]
+    },
+    {
+      "label": "the head is no longer a 3-layer MLP (final projection dropped)",
+      "file": "methods/16_simclrv2/models/resnet_simclrv2.py",
+      "old": "            nn.Linear(feat_dim, out_dim, bias=False),",
+      "new": "            nn.ReLU(inplace=True),",
+      "tests": [
+        "tests.test_method_16_simclrv2.TestTheModel.test_the_projection_head_is_a_three_layer_mlp"
+      ]
+    },
+    {
+      "label": "NT-Xent no longer masks self-similarity on the diagonal",
+      "file": "methods/16_simclrv2/loss/nt_xent.py",
+      "old": "        sim = sim.masked_fill(mask, float(\"-inf\"))",
+      "new": "        sim = sim",
+      "tests": [
+        "tests.test_method_16_simclrv2.TestTheLoss.test_it_excludes_self_similarity",
+        "tests.test_method_16_simclrv2.TestTheLoss.test_the_self_term_is_excluded_not_merely_set_low"
+      ]
+    },
+    {
+      "label": "NT-Xent pairs a view with itself instead of the matching view",
+      "file": "methods/16_simclrv2/loss/nt_xent.py",
+      "old": "            torch.arange(N, 2 * N, device=z.device),\n            torch.arange(N,        device=z.device),",
+      "new": "            torch.arange(N,        device=z.device),\n            torch.arange(N, 2 * N, device=z.device),",
+      "tests": [
+        "tests.test_method_16_simclrv2.TestTheLoss.test_it_prefers_the_matched_positive"
+      ]
+    },
+    {
+      "label": "the projection head is no longer excluded from encoder.pt",
+      "file": "methods/16_simclrv2/adapter/__init__.py",
+      "old": "    out = {k: v for k, v in state_dict.items()\n           if k.startswith(ENCODER_PREFIXES)}",
+      "new": "    out = {k: v for k, v in state_dict.items()}",
+      "tests": [
+        "tests.test_method_16_simclrv2.TestExtractingTheEncoder"
+      ]
+    },
+    {
+      "label": "a downstream probe number is mapped to a pretext name",
+      "file": "methods/16_simclrv2/adapter/__init__.py",
+      "old": "    \"final_top1_acc\": \"final_linear_probe_top1_accuracy\",",
+      "new": "    \"final_top1_acc\": \"final_pretext_top1_accuracy\",",
+      "tests": [
+        "tests.test_method_16_simclrv2.TestTheMetricsAreInTheVocabulary",
+        "tests.test_method_16_simclrv2.TestALinearEvalSmoke"
+      ]
+    },
+    {
+      "label": "the absent encoder is not explained",
+      "file": "methods/16_simclrv2/adapter/__init__.py",
+      "old": "    if _stage_of(config_path) != \"linear_eval\":\n        return None",
+      "new": "    return None\n    if False:\n        return None",
+      "tests": [
+        "tests.test_method_16_simclrv2.TestTheEvalProducesNoEncoder",
+        "tests.test_method_16_simclrv2.TestALinearEvalSmoke.test_it_produces_no_encoder_and_says_so"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-08-09",
+    "measured_with": ".venvs/16_simclrv2 (cu130) on an NVIDIA Tesla T4",
+    "killed": 7,
+    "total": 7,
+    "equivalent": []
+  }
+}

@@ -1,0 +1,33 @@
+# SimCLR v2 linear evaluation: a linear probe on the frozen ResNet-50 backbone.
+#
+# The probe reads the model this port trains (the ResNet-50 backbone, one 2048-d
+# feature per image), so its number is a genuine, comparable linear probe. It
+# follows the shared ARSSL protocol (mean-centre + L2-normalise features, a single
+# linear layer, SGD + cosine) used by the other ported methods, so the number is
+# comparable across them. The SimCLR step-1 knobs (temperature, LARS eta,
+# color_jitter_strength, warmup) are not accepted here.
+#
+# Two paths are passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   an ImageFolder with train/ and val/ subdirectories
+#   --set ENCODER=<path>     encoder.pt from a step-1 run
+# The output path is fixed at --out. out_dim and width_multiplier must match the
+# step-1 run that produced ENCODER (width_multiplier shapes the backbone the port
+# rebuilds before loading; only the backbone is actually loaded).
+stage: linear_eval
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+encoder: "${ENCODER}"
+
+train:
+  # model (must match the step-1 run so encoder.pt loads)
+  out_dim: 128
+  img_size: 224
+  width_multiplier: 1
+  # probe: a single linear layer, SGD + cosine
+  epochs: 100
+  batch_size: 256
+  num_workers: 8
+  lr: 0.1
+  momentum: 0.9
+  weight_decay: 0.0
