@@ -69,7 +69,7 @@ rest — e.g. capture `14_simclrv1` ↔ list #14 = PIRL; capture `17_swav` ↔ l
 | 12 | CMC | `12_cmc` | **yes** | ported (`12_cmc`) |
 | 13 | MoCo v1 | `13_mocov1` | **yes** | ported (`13_mocov1`) |
 | 14 | PIRL | `33_pirl` | no | **HOLD** (numbering differs) |
-| 15 | SimCLR v1 | `14_simclrv1` | no | **HOLD** |
+| 15 | SimCLR v1 | `14_simclrv1` | no | ported (`14_simclrv1`) |
 | 16 | MoCo v2 | `15_mocov2` | no | **HOLD** |
 | 17 | SimCLR v2 | `16_simclrv2` | no | **HOLD** |
 | 18 | SwAV | `17_swav` | no | ported (`17_swav`) |
@@ -93,24 +93,31 @@ rest — e.g. capture `14_simclrv1` ↔ list #14 = PIRL; capture `17_swav` ↔ l
 | 36 | LeJEPA | `37_lejepa` | no | **HOLD** |
 | 37 | NEPA | `32_nepa` | no | **HOLD** |
 
-## HOLD rule (user decision pending, 2026-08-06)
+## Numbering decision (resolved 2026-08-09): keep the capture numbering
 
-**Only port methods whose capture directory number equals this list's number.**
-Everything numbered ≠ (numbers 1, 2, and 14–37) is **held pending the user's
-numbering decision** (keep the capture numbering, or renumber to this list). The
-already-ported methods that are mismatched (`01`, `02`, `17`, `20`, `21`, `25`,
-`27`, `36`) stay as-is for now; whether to renumber them at publication is part of
-that same decision.
+The HOLD rule below was **resolved on 2026-08-09**: the user chose to **keep the
+capture's directory numbering** (e.g. SimCLR v1 ports as `14_simclrv1`, not as
+list #15). Renaming the eight already-ported mismatched dirs (`01`, `02`, `17`,
+`20`, `21`, `25`, `27`, `36`) — and their tests, mutations, venvs and internal
+references — is deferred to publication; keeping the capture numbers now avoids
+that churn and preserves provenance alignment with the (append-only) Capture
+repository. So **HOLD is lifted**: the remaining `**HOLD**` cells in the table
+above no longer mean "blocked" — they mean "not yet ported", and each is portable
+under its capture number.
 
-**Portable now (numbering matches + not yet ported):** none remain. Every
-numbering-matching method (list #3-13: colorization, context_encoder, jigsaw,
-rotation, deepcluster, split_brain, jigsaw++, inst_disc, cpc, cmc, mocov1) is now
-ported. What remains is all numbering-**mismatched** (HOLD, pending the numbering
-decision) or the submodule / eval-only tier (beit, msn, vjepa, lejepa).
-(`5_jigsaw_puzzle`, `6_rotation_prediction`, `10_inst_disc`, `11_cpc`, `12_cmc`,
-`13_mocov1` ported.
-`9_jigsaw_puzzle_pp` ported in full: the VGG16 pretext and its faiss-GPU
-knowledge-transfer stage, see below.)
+**Porting order now:** by capture-directory number among the not-yet-ported,
+preferring torch-only (tier-A) self-contained methods and deferring the special-dep
+/ submodule / eval-only tier (`24_beit`, `34_msn`, `35_vjepa`, `37_lejepa`). The
+next candidates by capture number are `15_mocov2`, `16_simclrv2`, `18_sela`,
+`19_byol`, `22_mocov3`, `23_dino`, ... (each verified tier-A by **measuring** the
+capture before porting, never from the label).
+
+**(historical) HOLD rule (user decision pending, 2026-08-06):** only port methods
+whose capture directory number equals this list's number — TRUE only for numbers
+3–13, which are now all ported (colorization, context_encoder, jigsaw, rotation,
+deepcluster, split_brain, jigsaw++ incl. its faiss-GPU knowledge-transfer stage,
+inst_disc, cpc, cmc, mocov1). `14_simclrv1` (list #15) is the first port taken
+under the 2026-08-09 keep-capture-numbering decision.
 
 ## Per-port procedure (strict TDD, as used for every prior method)
 

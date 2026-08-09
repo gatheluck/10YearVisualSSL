@@ -1,0 +1,14 @@
+# What the 14_simclrv1 port's own files import, and nothing else. Checked in both
+# directions by tests/test_method_requirements.py. Floors only; the exact hashed
+# closure is in requirements.lock.txt (CPU) and requirements.lock.cu130.txt.
+#
+# A self-contained re-implementation (the lab's own SimCLR v1 code, no submodule):
+# the ResNet-50 encoder + projection head, the NT-Xent loss, the LARS optimizer,
+# the two-view dataset, the trainer and the probe are all here. torch is imported
+# directly; numpy seeds the run; torchvision provides ResNet-50, the ImageFolder
+# and transforms; PyYAML is read to load a YAML config on the stand-alone path.
+# The capture's ViT step 2 (which needs timm) is not ported, so timm is not a dep.
+torch>=2.0.0
+torchvision>=0.15.0
+numpy>=1.24.0
+PyYAML>=6.0
