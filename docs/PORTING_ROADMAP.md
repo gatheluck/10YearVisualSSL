@@ -78,7 +78,7 @@ rest — e.g. capture `14_simclrv1` ↔ list #14 = PIRL; capture `17_swav` ↔ l
 | 21 | SimSiam | `20_simsiam` | no | ported (`20_simsiam`) |
 | 22 | Barlow Twins | `21_barlow_twins` | no | ported (`21_barlow_twins`) |
 | 23 | MoCo v3 | `22_mocov3` | no | ported (`22_mocov3`; the **first timm-locked port** -- timm supplies the ViT base class, but the ViT is built from scratch so the run stays hermetic) |
-| 24 | DINO | `23_dino` | no | **HOLD** |
+| 24 | DINO | `23_dino` | no | ported (`23_dino`; torch-only -- DINO ships its own ViT, NOT timm, measured; encoder.pt is the teacher backbone) |
 | 25 | BEiT | `24_beit` | no | **HOLD** |
 | 26 | MAE | `25_mae` | no | ported (`25_mae`) |
 | 27 | SimMIM | `26_simmim` | no | **HOLD** |
@@ -108,14 +108,16 @@ under its capture number.
 **Porting order now:** by capture-directory number among the not-yet-ported,
 preferring torch-only (tier-A) self-contained methods and deferring the special-dep
 / submodule / eval-only tier (`24_beit`, `34_msn`, `35_vjepa`, `37_lejepa`). The
-next candidates by capture number are `23_dino`, `26_simmim`, `28_dinov2`, ...
-(each verified tier-A by **measuring** the capture before porting, never from the
-label; ViT-based ones like dino/dinov2 need timm, so measure whether that is
-step-1-essential or step-2-only — `22_mocov3` was the first where it proved
-step-1-essential, and it now carries the first timm lock others can reuse).
+next candidates by capture number are `26_simmim`, `28_dinov2`, ... (each verified
+tier-A by **measuring** the capture before porting, never from the label; ViT-based
+ones need care — **measure whether timm is step-1-essential**: `22_mocov3` needed
+it (subclasses timm's ViT), but `23_dino` did NOT (it ships its own ViT), so the
+label "ViT ⇒ timm" is not evidence. When timm is needed, reuse the `22_mocov3`
+lock; when not, reuse the torch-only `05_jigsaw_puzzle` closure).
 Ported under this decision so far: `14_simclrv1` (list #15), `15_mocov2`
 (list #16), `16_simclrv2` (list #17), `18_sela` (list #19), `19_byol` (list #20),
-`22_mocov3` (list #23, the first timm-locked port).
+`22_mocov3` (list #23, the first timm-locked port), `23_dino` (list #24,
+torch-only -- its own ViT).
 
 **(historical) HOLD rule (user decision pending, 2026-08-06):** only port methods
 whose capture directory number equals this list's number — TRUE only for numbers
