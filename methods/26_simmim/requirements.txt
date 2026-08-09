@@ -1,0 +1,18 @@
+# What the 26_simmim port's own files import, and nothing else. Checked in both
+# directions by tests/test_method_requirements.py. Floors only; the exact hashed
+# closure is in requirements.lock.txt (CPU) and requirements.lock.cu130.txt.
+#
+# A self-contained re-implementation (the lab's own SimMIM code, no submodule):
+# the SimMIM Swin-B model, the mask generator + dataset, the trainer and the
+# probe are all here. SimMIM's step 1 is genuinely Swin-based, so **timm** is a
+# step-1 dependency (SimMIMSwinB wraps timm's SwinTransformer); the Swin is built
+# from scratch (no pretrained download), so the run stays hermetic. torch is
+# imported directly; numpy builds the random block mask; torchvision provides the
+# ImageFolder and transforms; PyYAML is read to load a YAML config on the
+# stand-alone path. (The `transformers` package appears only in a docstring note
+# about HuggingFace pretrained weights -- measured: the code never imports it.)
+torch>=2.1.0
+torchvision>=0.16.0
+timm>=0.9.0
+numpy>=1.24.0
+PyYAML>=6.0

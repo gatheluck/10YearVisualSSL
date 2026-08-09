@@ -1,0 +1,42 @@
+# SimMIM step 1: Swin-B + masked image modeling (Xie et al., 2022;
+# arXiv:2111.09886), the official Swin-B path.
+#
+# These are the paper-target settings -- the recipe, not a result. Nothing here
+# has executed a full run; the README says what was and was not exercised. timm
+# supplies the SwinTransformer, but the Swin is built from scratch (no pretrained
+# download), so the run stays hermetic. The capture's step 2 (ViT) is not ported.
+#
+# One path is passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   an ImageFolder root containing a train/ subdirectory
+# The output path is fixed at --out.
+stage: step1
+seed: 0
+data_root: "${DATA_ROOT}"
+device: auto
+
+train:
+  # model (build_simmim_swinb): Swin-B; img_size is the input resolution
+  img_size: 192
+  patch_size: 4                 # Swin patch embed stride
+  window_size: 6                # 192/4=48 patches; 48/6=8 patches per window
+  embed_dim: 128                # Swin-B channel dim at stage 0
+  depths: [2, 2, 18, 2]         # Swin-B stage depths
+  num_heads: [4, 8, 16, 32]     # Swin-B attention heads per stage
+  mask_patch_size: 32           # mask unit = 32x32 pixels (= 8x8 Swin patches)
+  drop_path_rate: 0.0           # official SimMIM Swin-B pretrain
+  # data
+  mask_ratio: 0.6               # 60% of mask units are masked
+  # training (AdamW + linear warmup then multistep decay)
+  epochs: 800
+  batch_size: 2048              # total; official 128/GPU x 16 = 2048
+  num_workers: 8
+  lr: 1.0e-4                    # official BASE_LR before global-batch scaling
+  scale_lr_by_global_batch: true
+  lr_reference_batch_size: 512  # official scales BASE_LR by total_batch / 512
+  betas: [0.9, 0.999]
+  weight_decay: 0.05
+  warmup_epochs: 10
+  warmup_lr: 5.0e-7             # official WARMUP_LR before global-batch scaling
+  clip_grad: 5.0
+  lr_gamma: 0.1                 # multistep decay factor
+  lr_multisteps: [700]          # decay at epoch 700 (of 800)

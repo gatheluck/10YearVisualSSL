@@ -81,7 +81,7 @@ rest — e.g. capture `14_simclrv1` ↔ list #14 = PIRL; capture `17_swav` ↔ l
 | 24 | DINO | `23_dino` | no | ported (`23_dino`; torch-only -- DINO ships its own ViT, NOT timm, measured; encoder.pt is the teacher backbone) |
 | 25 | BEiT | `24_beit` | no | **HOLD** |
 | 26 | MAE | `25_mae` | no | ported (`25_mae`) |
-| 27 | SimMIM | `26_simmim` | no | **HOLD** |
+| 27 | SimMIM | `26_simmim` | no | ported (`26_simmim`; needs timm for Swin -- reuses the `22_mocov3` lock; the `transformers` dep was docstring-only, measured; encoder.pt is the bare Swin) |
 | 28 | iBOT | `27_ibot` | no | ported (`27_ibot`) |
 | 29 | MSN | `34_msn` | no | **HOLD** |
 | 30 | DINOv2 | `28_dinov2` | no | **HOLD** |
@@ -108,16 +108,19 @@ under its capture number.
 **Porting order now:** by capture-directory number among the not-yet-ported,
 preferring torch-only (tier-A) self-contained methods and deferring the special-dep
 / submodule / eval-only tier (`24_beit`, `34_msn`, `35_vjepa`, `37_lejepa`). The
-next candidates by capture number are `26_simmim`, `28_dinov2`, ... (each verified
-tier-A by **measuring** the capture before porting, never from the label; ViT-based
-ones need care — **measure whether timm is step-1-essential**: `22_mocov3` needed
-it (subclasses timm's ViT), but `23_dino` did NOT (it ships its own ViT), so the
-label "ViT ⇒ timm" is not evidence. When timm is needed, reuse the `22_mocov3`
-lock; when not, reuse the torch-only `05_jigsaw_puzzle` closure).
+next candidates by capture number are `28_dinov2`, `29_ijepa`, `30_aim`, ... (each
+verified tier-A by **measuring** the capture before porting, never from the label;
+ViT/Swin-based ones need care — **measure whether timm is step-1-essential**:
+`22_mocov3` (subclasses timm's ViT) and `26_simmim` (wraps timm's Swin) needed it,
+but `23_dino` did NOT (it ships its own ViT), so the label "ViT/Swin ⇒ timm" is not
+evidence — check the actual imports (SimMIM's `transformers` dep turned out to be
+docstring-only). When timm is needed, reuse the `22_mocov3` lock; when not, reuse
+the torch-only `05_jigsaw_puzzle` closure).
 Ported under this decision so far: `14_simclrv1` (list #15), `15_mocov2`
 (list #16), `16_simclrv2` (list #17), `18_sela` (list #19), `19_byol` (list #20),
 `22_mocov3` (list #23, the first timm-locked port), `23_dino` (list #24,
-torch-only -- its own ViT).
+torch-only -- its own ViT), `26_simmim` (list #27, timm Swin -- reuses the mocov3
+lock).
 
 **(historical) HOLD rule (user decision pending, 2026-08-06):** only port methods
 whose capture directory number equals this list's number — TRUE only for numbers
