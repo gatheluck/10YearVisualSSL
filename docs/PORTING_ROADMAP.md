@@ -77,7 +77,7 @@ rest — e.g. capture `14_simclrv1` ↔ list #14 = PIRL; capture `17_swav` ↔ l
 | 20 | BYOL | `19_byol` | no | ported (`19_byol`) |
 | 21 | SimSiam | `20_simsiam` | no | ported (`20_simsiam`) |
 | 22 | Barlow Twins | `21_barlow_twins` | no | ported (`21_barlow_twins`) |
-| 23 | MoCo v3 | `22_mocov3` | no | **HOLD** |
+| 23 | MoCo v3 | `22_mocov3` | no | ported (`22_mocov3`; the **first timm-locked port** -- timm supplies the ViT base class, but the ViT is built from scratch so the run stays hermetic) |
 | 24 | DINO | `23_dino` | no | **HOLD** |
 | 25 | BEiT | `24_beit` | no | **HOLD** |
 | 26 | MAE | `25_mae` | no | ported (`25_mae`) |
@@ -108,12 +108,14 @@ under its capture number.
 **Porting order now:** by capture-directory number among the not-yet-ported,
 preferring torch-only (tier-A) self-contained methods and deferring the special-dep
 / submodule / eval-only tier (`24_beit`, `34_msn`, `35_vjepa`, `37_lejepa`). The
-next candidates by capture number are `22_mocov3`, `23_dino`, `26_simmim`,
-`28_dinov2`, ... (each verified tier-A by **measuring** the capture before
-porting, never from the label; ViT-based ones like mocov3/dino/dinov2 need timm,
-so measure whether that is step-1-essential or step-2-only). Ported under this
-decision so far: `14_simclrv1` (list #15), `15_mocov2` (list #16), `16_simclrv2`
-(list #17), `18_sela` (list #19), `19_byol` (list #20).
+next candidates by capture number are `23_dino`, `26_simmim`, `28_dinov2`, ...
+(each verified tier-A by **measuring** the capture before porting, never from the
+label; ViT-based ones like dino/dinov2 need timm, so measure whether that is
+step-1-essential or step-2-only — `22_mocov3` was the first where it proved
+step-1-essential, and it now carries the first timm lock others can reuse).
+Ported under this decision so far: `14_simclrv1` (list #15), `15_mocov2`
+(list #16), `16_simclrv2` (list #17), `18_sela` (list #19), `19_byol` (list #20),
+`22_mocov3` (list #23, the first timm-locked port).
 
 **(historical) HOLD rule (user decision pending, 2026-08-06):** only port methods
 whose capture directory number equals this list's number — TRUE only for numbers

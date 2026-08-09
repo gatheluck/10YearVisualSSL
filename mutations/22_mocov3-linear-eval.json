@@ -1,0 +1,77 @@
+{
+  "_note": "Run: .venvs/22_mocov3/bin/python bin/mutate.py --spec mutations/22_mocov3-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/22_mocov3/bin/python. Proves the MoCo v3 model/schedule/eval guards are not vacuous: the EMA momentum schedule rises, the EMA update moves the key toward the query, the momentum encoder is frozen, get_backbone returns the CLS feature (not the projector output), encoder.pt excludes the projector head, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
+  "targets": [
+    {
+      "label": "the EMA momentum schedule is frozen at its base (never rises)",
+      "file": "methods/22_mocov3/train_step1_mocov3.py",
+      "old": "    p = progress / total_epochs",
+      "new": "    p = 0.0",
+      "tests": [
+        "tests.test_method_22_mocov3.TestTheEmaSchedule.test_momentum_rises_toward_one"
+      ]
+    },
+    {
+      "label": "the momentum update decays the key instead of moving it toward the query",
+      "file": "methods/22_mocov3/models/vit_mocov3.py",
+      "old": "            param_k.data = param_k.data * m + param_q.data * (1.0 - m)",
+      "new": "            param_k.data = param_k.data * m",
+      "tests": [
+        "tests.test_method_22_mocov3.TestTheModel.test_the_momentum_update_moves_the_key_toward_the_query"
+      ]
+    },
+    {
+      "label": "the momentum encoder is no longer frozen (its parameters take gradient)",
+      "file": "methods/22_mocov3/models/vit_mocov3.py",
+      "old": "            param_k.requires_grad = False",
+      "new": "            param_k.requires_grad = True",
+      "tests": [
+        "tests.test_method_22_mocov3.TestTheModel.test_the_momentum_encoder_is_frozen"
+      ]
+    },
+    {
+      "label": "get_backbone returns the projector output, not the CLS trunk feature",
+      "file": "methods/22_mocov3/models/vit_mocov3.py",
+      "old": "            return self.vit.forward_head(features, pre_logits=True)",
+      "new": "            return self.vit.forward_head(features, pre_logits=False)",
+      "tests": [
+        "tests.test_method_22_mocov3.TestTheModel.test_get_backbone_returns_the_cls_feature"
+      ]
+    },
+    {
+      "label": "the projector head is no longer excluded from encoder.pt",
+      "file": "methods/22_mocov3/adapter/__init__.py",
+      "old": "    return key.startswith(ENCODER_PREFIXES) and not key.startswith(ENCODER_EXCLUDE)",
+      "new": "    return key.startswith(ENCODER_PREFIXES)",
+      "tests": [
+        "tests.test_method_22_mocov3.TestExtractingTheEncoder"
+      ]
+    },
+    {
+      "label": "a downstream probe number is mapped to a pretext name",
+      "file": "methods/22_mocov3/adapter/__init__.py",
+      "old": "    \"final_top1_acc\": \"final_linear_probe_top1_accuracy\",",
+      "new": "    \"final_top1_acc\": \"final_pretext_top1_accuracy\",",
+      "tests": [
+        "tests.test_method_22_mocov3.TestTheMetricsAreInTheVocabulary",
+        "tests.test_method_22_mocov3.TestALinearEvalSmoke"
+      ]
+    },
+    {
+      "label": "the absent encoder is not explained",
+      "file": "methods/22_mocov3/adapter/__init__.py",
+      "old": "    if _stage_of(config_path) != \"linear_eval\":\n        return None",
+      "new": "    return None\n    if False:\n        return None",
+      "tests": [
+        "tests.test_method_22_mocov3.TestTheEvalProducesNoEncoder",
+        "tests.test_method_22_mocov3.TestALinearEvalSmoke.test_it_produces_no_encoder_and_says_so"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-08-09",
+    "measured_with": ".venvs/22_mocov3 (cu130) on an NVIDIA Tesla T4",
+    "killed": 7,
+    "total": 7,
+    "equivalent": []
+  }
+}

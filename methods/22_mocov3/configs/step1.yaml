@@ -1,0 +1,40 @@
+# MoCo v3 step 1: ViT + momentum encoder + symmetric InfoNCE (Chen et al., 2021;
+# arXiv:2104.02057), the ViT-Base path.
+#
+# These are the paper-target settings -- the recipe, not a result. Nothing here
+# has executed a full run; the README says what was and was not exercised. timm
+# supplies the VisionTransformer base class, but the ViT is built from scratch
+# (no pretrained download), so the run stays hermetic. The capture's step 2 (also
+# ViT) is not ported.
+#
+# One path is passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   an ImageFolder of training images
+# The output path is fixed at --out.
+stage: step1
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+
+train:
+  # model (build_mocov3_vit): ViT-Base + 3-layer MLP projector + 2-layer
+  # predictor; stop_grad_conv1 freezes the patch-embed conv (official recipe)
+  arch: vit_base
+  proj_dim: 256
+  mlp_dim: 4096
+  stop_grad_conv1: true
+  img_size: 224
+  # data
+  crop_min: 0.08
+  # mocov3: temperature, EMA momentum base, cosine momentum schedule to 1.0
+  temperature: 0.2
+  momentum: 0.99
+  momentum_cosine: true
+  # training (AdamW + per-iteration cosine LR with warmup)
+  epochs: 300
+  batch_size: 4096
+  num_workers: 8
+  learning_rate: 2.4e-3    # base LR for batch 4096 (lr = 1.5e-4 * bs / 256)
+  min_lr: 0.0
+  weight_decay: 0.1
+  warmup_epochs: 40
+  betas: [0.9, 0.95]

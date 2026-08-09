@@ -37,7 +37,7 @@ assume it.
 | `bin/resolve-config.py` | **implemented and tested.** Produces the canonical resolved config and its `config_sha256` |
 | `bin/contract-test.py` | **implemented and tested.** Decides by machine that a port is finished |
 | `platforms/` | **implemented and tested.** Platform separation; `local` is self-contained |
-| `methods/` | **twenty-seven methods ported and tested** (twenty-five with a linear evaluation; `36_franca` is the first eval-only port, with no step 1). The per-method table is below under [Methods](#methods) |
+| `methods/` | **twenty-eight methods ported and tested** (twenty-six with a linear evaluation; `36_franca` is the first eval-only port, with no step 1). The per-method table is below under [Methods](#methods) |
 | `bin/launch.py` | **implemented and tested.** One command: resolve, submit, verify, record |
 | `adapterlib/` | **implemented and tested.** The one place a `run_manifest.json` is written |
 | `LICENSE` | **MIT** (Copyright (c) 2026 LIMIT.Lab) |
@@ -81,6 +81,7 @@ zero-padded so they sort in numeric order.
 | `16_simclrv2` | SimCLR v2 — Chen et al., NeurIPS 2020 | step 1 + linear eval | a self-contained re-implementation (the lab's own ResNet-50 SimCLR v2, no submodule); SimCLR v1 + a **3-layer MLP projection head** (τ=0.1) with an optional `width_multiplier`; two views feed a shared ResNet-50, trained by **NT-Xent** (in-batch negatives) with **LARS** and a cosine schedule; `encoder.pt` is the ResNet-50 backbone (the projection head is excluded); `linear_eval` probes the backbone (2048-d), a genuine comparable number. The ViT step 2 (which needs `timm`) and the semi-supervised distillation are excluded |
 | `18_sela` | SeLa — Asano et al., ICLR 2020 | step 1 + linear eval | a self-contained re-implementation (the lab's own ResNet + torch **Sinkhorn-Knopp** optimal transport, no submodule); a ResNet backbone with multiple linear **prototype heads** is trained on pseudo-labels that Sinkhorn-Knopp assigns under an **equipartition** constraint, cross-entropy averaged over the heads (heads never reset, no Sobel); `encoder.pt` is the backbone (`top_layer` heads excluded); `linear_eval` probes it (2048-d), a genuine comparable number. The ViT step 2 (which needs `timm`) is excluded |
 | `19_byol` | BYOL — Grill et al., 2020 | step 1 + linear eval | a self-contained re-implementation (the lab's own ResNet-50 BYOL, no submodule); an **online** net (backbone + projector + predictor) is trained so its prediction of one view matches an EMA **target** net's projection of the other, under a **symmetric negative-cosine** loss — **no negatives, no queue** (τ 0.996→1.0, LARS); `encoder.pt` is the online ResNet-50 backbone (the projector, predictor and target are excluded); `linear_eval` probes the backbone (2048-d), a genuine comparable number. The ViT step 2 (which needs `timm`) is excluded |
+| `22_mocov3` | MoCo v3 — Chen, Xie & He, 2021 | step 1 + linear eval | a self-contained re-implementation (the lab's own ViT MoCo v3, no submodule); two views feed a **base** ViT (+ 3-layer MLP projector) and a **momentum** ViT (an EMA copy), with a 2-layer **predictor** on the base, trained by a **symmetric InfoNCE** loss (EMA momentum cosine-scheduled to 1.0); `encoder.pt` is the base ViT trunk (the projector head, predictor and momentum encoder are excluded); `linear_eval` probes its CLS feature (embed_dim), a genuine comparable number. **The first ported method that needs `timm`** (it supplies the VisionTransformer base class), but the ViT is built from scratch (no pretrained download), so the run stays hermetic. The capture's step 2 (also ViT) is excluded |
 | `17_swav` | SwAV — Caron et al., 2020 | step 1 + linear eval | its loader could not run on one process; the sampler is now conditional |
 | `20_simsiam` | SimSiam — Chen & He, 2020 | step 1 + linear eval | the second method to produce comparable downstream numbers |
 | `21_barlow_twins` | Barlow Twins — Zbontar et al., 2021 | step 1 + linear eval | refuses fp16 on a CPU rather than downgrading quietly |
@@ -91,7 +92,7 @@ zero-padded so they sort in numeric order.
 | `mar` | MAR — Li et al., NeurIPS 2024 | step 1 | the first `submodule+patch` port: the model is the pinned `third_party/mar` fork, imported not copied; `linear_eval` deferred — its captured eval path is unrecoverable (CONTRACT §7, docs/EVAL_DOWNLOAD.md) |
 | `var` | VAR — Tian et al., NeurIPS 2024 | step 1 + linear eval | the first `submodule+adapter` port: `third_party/var` pinned directly (no fork). Next-scale autoregressive generation; `linear_eval` probes the pretrained VQVAE **tokeniser** (a hash-pinned download), which measures the fixed tokeniser rather than VAR's learned representation (CONTRACT §7, docs/EVAL_DOWNLOAD.md) |
 
-Twenty-four produce **comparable** `linear_probe` accuracy on a genuinely learned
+Twenty-five produce **comparable** `linear_probe` accuracy on a genuinely learned
 representation. `02_vae` is pretext-only and `mar` has no linear eval; `var`'s
 `linear_eval` probes a fixed pretrained tokeniser rather than its own learned
 representation, so its number is not comparable in the same sense
