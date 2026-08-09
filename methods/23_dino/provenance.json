@@ -1,0 +1,24 @@
+{
+  "captured_at": "2026-08-09",
+  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
+  "captured_note": "Ported from the capture's self-contained methods/23_dino, specifically its ViT-S/16 step 1 (models/vision_transformer.py, models/dino_head.py, models/dino.py, data/dino_dataset.py, train_step1_vit_s.py, evaluate_linear.py). These are the lab's own implementation of Caron et al. (2021) DINO, following facebookresearch/dino. DINO ships its OWN Vision Transformer (models/vision_transformer.py -- measured: it imports only torch, NOT timm), so this ports self-contained and torch-only. The port keeps the capture directory numbering (23) per the 2026-08-09 keep-capture-numbering decision (see docs/PORTING_ROADMAP.md).",
+  "paper": {
+    "title": "Emerging Properties in Self-Supervised Vision Transformers",
+    "authors": "Caron, Touvron, Misra, Jegou, Mairal, Bojanowski, Joulin",
+    "year": 2021,
+    "arxiv": "2104.14294"
+  },
+  "scope": "The ViT-S/16 step 1 is ported: a student (a VisionTransformer backbone + a 3-layer MLP DINO head with an L2-normalised bottleneck and a weight-normalised last layer) sees all crops; a teacher (an EMA copy of the student + head, no gradient) sees the two global crops. A MultiCropWrapper batches same-resolution crops together. The loss is the cross-entropy between the teacher's centred + sharpened output and the student's sharpened output, averaged over all (teacher_view, student_view) pairs where the views differ; an online centre (EMA) prevents collapse. AdamW under a per-iteration cosine LR schedule with linear warmup and a cosine weight-decay schedule (0.04 -> 0.4); the teacher EMA momentum follows a cosine schedule (0.996 -> 1.0); grad clipping at 3.0; the student head's last layer is frozen for the first freeze_last_layer epochs. The capture's step 2 (ViT-B) is EXCLUDED, as in every port.",
+  "encoder": "encoder.pt is the teacher ViT backbone (teacher.backbone.*, the prefix stripped so it loads straight into a plain VisionTransformer): the class token, the position embedding, the patch-embed conv, the transformer blocks and the final norm, producing the CLS feature (embed_dim; 384 for vit_small). The DINO head (teacher.head.* and student.head.*), the centre buffer (loss_fn.center) and the whole student network are training machinery and are excluded. The teacher (not the student) is shipped because it is the representation DINO is known for -- the capture's own linear eval defaults to checkpoint_key='teacher'.",
+  "linear_eval": "Reads the trained encoder.pt and probes the teacher ViT backbone's CLS feature (via forward(), which returns the normed CLS token), a genuine learned representation, so the number is comparable. Images use the deterministic val pipeline (resize + centre crop, ImageNet normalisation -- the same normalisation DINO trains with). The capture's own DINO linear eval concatenates the last-4 blocks' CLS tokens (1536-d for ViT-S) and trains a distributed head; this port follows the lab's shared ARSSL probe (mean-centre + L2-normalise the single CLS feature, single linear layer, SGD momentum + cosine, top1/top5) rather than the capture's own head, so the number is comparable across the ported methods.",
+  "rewritten_during_the_port": [
+    "only the ViT-S/16 step 1 is ported; the capture's step 2 (ViT-B) is excluded, as in every port",
+    "DINO's own vision_transformer.py is ported verbatim (torch-only, no timm); img_size is threaded through build_vit / build_dino and the dataset (the capture hard-coded 224) so a small hermetic CPU smoke runs at a lower resolution",
+    "the MultiCropWrapper, the centred+sharpened DINO loss, the online centre EMA, the teacher EMA update, the cosine teacher-momentum schedule, the per-parameter grad clipping and the freeze-last-layer are kept faithfully (all torch)",
+    "the multi-crop dataset returns (crops, label) with 2 global + n_local views (asymmetric blur/solarize augmentation kept); the DistributedSampler is dropped and a seeded generator is threaded so a single-process run is reproducible",
+    "the device is resolved (resolve_device) instead of assumed CUDA (the capture called .cuda())",
+    "main() split into build_parser()/run(args, config) returning the pretext loss and epoch count",
+    "the run is seeded through make_deterministic (python, numpy, torch)",
+    "the training loop drops the upstream DistributedDataParallel, the AMP autocast/GradScaler and TensorBoard/tqdm so the same step runs on a CPU or a GPU unchanged, single-process fp32; the DDP all_reduce in the centre update is kept but inert single-process; the per-iteration cosine LR (with warmup) and cosine weight-decay schedules are kept"
+  ]
+}

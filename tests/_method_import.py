@@ -74,6 +74,15 @@ def load_from(method: Path, name: str, path: Path):
     cached = sys.modules.get(name)
     if cached is not None and getattr(cached, "__file__", "") == str(path):
         return cached
+    # Rebinding `name` to a different file: drop the stale module AND its
+    # submodules. Overwriting only `sys.modules[name]` leaves `name.<submodule>`
+    # from the previous method behind, so a relative `from .submodule import X`
+    # in the new __init__ resolves against the old file. Two methods sharing an
+    # alias (`this_methods_models`) and a submodule name (`vision_transformer`
+    # in both 23_dino and 27_ibot) then cross-import -- the second method's
+    # `vit_large` is looked up in the first method's module and is not found.
+    for key in [k for k in sys.modules if k == name or k.startswith(f"{name}.")]:
+        del sys.modules[key]
     spec = importlib.util.spec_from_file_location(name, path)
     mod = importlib.util.module_from_spec(spec)
     sys.modules[name] = mod

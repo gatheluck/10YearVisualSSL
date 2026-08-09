@@ -1,0 +1,18 @@
+# What the 23_dino port's own files import, and nothing else. Checked in both
+# directions by tests/test_method_requirements.py. Floors only; the exact hashed
+# closure is in requirements.lock.txt (CPU) and requirements.lock.cu130.txt.
+#
+# A self-contained re-implementation (the lab's own DINO code, no submodule): the
+# ViT backbone (its own vision_transformer.py, NOT timm), the DINO head, the
+# student/teacher DINO model with its centring + EMA teacher, the multi-crop
+# dataset, the trainer and the probe are all here. torch is imported directly;
+# numpy seeds the run; torchvision provides the ImageFolder and transforms; Pillow
+# (PIL.Image/ImageFilter/ImageOps) is imported directly for the blur/solarize
+# augmentations; PyYAML is read to load a YAML config on the stand-alone path. The
+# ViT step 2 (ViT-B) is excluded, as in every port; DINO's ViT is self-contained,
+# so no timm.
+torch>=2.1.0
+torchvision>=0.16.0
+numpy>=1.24.0
+Pillow>=9.5.0
+PyYAML>=6.0
