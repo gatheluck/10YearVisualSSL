@@ -1,0 +1,86 @@
+{
+  "_note": "Run: .venvs/26_simmim/bin/python bin/mutate.py --spec mutations/26_simmim-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/26_simmim/bin/python. Proves the SimMIM model/schedule/eval guards are not vacuous: the L1 loss is taken only on masked pixels, the mask token is applied, encode_global mean-pools, encoder.pt excludes the mask token + decoder, the LR warms up then multistep-decays, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
+  "targets": [
+    {
+      "label": "the loss ignores the mask (taken over all pixels, not just masked)",
+      "file": "methods/26_simmim/models/simmim_swinb.py",
+      "old": "        pixel_mask = pixel_mask.unsqueeze(1).type_as(pred)",
+      "new": "        pixel_mask = torch.ones_like(pred)",
+      "tests": [
+        "tests.test_method_26_simmim.TestTheModel.test_the_loss_is_taken_only_on_masked_pixels"
+      ]
+    },
+    {
+      "label": "the mask token is not applied (masked tokens are zeroed instead)",
+      "file": "methods/26_simmim/models/simmim_swinb.py",
+      "old": "        tokens = tokens * (1.0 - w) + self.mask_token.type_as(tokens) * w",
+      "new": "        tokens = tokens * (1.0 - w)",
+      "tests": [
+        "tests.test_method_26_simmim.TestTheModel.test_masked_tokens_use_the_mask_token"
+      ]
+    },
+    {
+      "label": "encode_global does not mean-pool the tokens (returns the token grid)",
+      "file": "methods/26_simmim/models/simmim_swinb.py",
+      "old": "        return feats.reshape(feats.size(0), -1, feats.size(-1)).mean(1)",
+      "new": "        return feats.reshape(feats.size(0), -1, feats.size(-1))",
+      "tests": [
+        "tests.test_method_26_simmim.TestTheModel.test_encode_global_returns_pooled_features"
+      ]
+    },
+    {
+      "label": "encoder.pt no longer excludes the mask token and decoder (prefix widened)",
+      "file": "methods/26_simmim/adapter/__init__.py",
+      "old": "ENCODER_PREFIX = \"encoder.\"",
+      "new": "ENCODER_PREFIX = \"\"",
+      "tests": [
+        "tests.test_method_26_simmim.TestExtractingTheEncoder"
+      ]
+    },
+    {
+      "label": "the LR warmup is dropped (starts at the base LR, does not ramp)",
+      "file": "methods/26_simmim/train_step1_simmim.py",
+      "old": "        return warmup_lr + update * (base_lr - warmup_lr) / warmup_updates",
+      "new": "        return base_lr",
+      "tests": [
+        "tests.test_method_26_simmim.TestTheSchedule.test_warmup_rises_then_multistep_decays"
+      ]
+    },
+    {
+      "label": "the multistep decay never fires (LR stays at the base)",
+      "file": "methods/26_simmim/train_step1_simmim.py",
+      "old": "    return base_lr * (gamma ** bisect_right(milestones, update))",
+      "new": "    return base_lr",
+      "tests": [
+        "tests.test_method_26_simmim.TestTheSchedule.test_warmup_rises_then_multistep_decays"
+      ]
+    },
+    {
+      "label": "a downstream probe number is mapped to a pretext name",
+      "file": "methods/26_simmim/adapter/__init__.py",
+      "old": "    \"final_top1_acc\": \"final_linear_probe_top1_accuracy\",",
+      "new": "    \"final_top1_acc\": \"final_pretext_top1_accuracy\",",
+      "tests": [
+        "tests.test_method_26_simmim.TestTheMetricsAreInTheVocabulary",
+        "tests.test_method_26_simmim.TestALinearEvalSmoke"
+      ]
+    },
+    {
+      "label": "the absent encoder is not explained",
+      "file": "methods/26_simmim/adapter/__init__.py",
+      "old": "    if _stage_of(config_path) != \"linear_eval\":\n        return None",
+      "new": "    return None\n    if False:\n        return None",
+      "tests": [
+        "tests.test_method_26_simmim.TestTheEvalProducesNoEncoder",
+        "tests.test_method_26_simmim.TestALinearEvalSmoke.test_it_produces_no_encoder_and_says_so"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-08-09",
+    "measured_with": ".venvs/26_simmim (cu130) on an NVIDIA Tesla T4",
+    "killed": 8,
+    "total": 8,
+    "equivalent": []
+  }
+}

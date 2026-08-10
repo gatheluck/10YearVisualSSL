@@ -1,0 +1,38 @@
+# SimMIM linear evaluation: a linear probe on the frozen Swin encoder.
+#
+# The probe reads the model this port trains (the Swin encoder's mean-pooled
+# features, one encoder_dim vector per image), so its number is a genuine,
+# comparable linear probe. It follows the shared ARSSL protocol (mean-centre +
+# L2-normalise features, a single linear layer, SGD + cosine) used by the other
+# ported methods, so the number is comparable across them. The SimMIM step-1 knobs
+# (mask ratio, mask unit, schedule) are not accepted here.
+#
+# The Swin encoder dims are named so the frozen backbone can be rebuilt to load
+# encoder.pt. The capture's own SimMIM eval standardises features then fits a head;
+# this port uses the shared single-feature probe instead (a documented deviation).
+#
+# Two paths are passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   an ImageFolder with train/ and val/ subdirectories
+#   --set ENCODER=<path>     encoder.pt from a step-1 run
+# The output path is fixed at --out.
+stage: linear_eval
+seed: 0
+data_root: "${DATA_ROOT}"
+device: auto
+encoder: "${ENCODER}"
+
+train:
+  # model (the backbone is a fixed Swin encoder; these dims rebuild it)
+  img_size: 192
+  patch_size: 4
+  window_size: 6
+  embed_dim: 128
+  depths: [2, 2, 18, 2]
+  num_heads: [4, 8, 16, 32]
+  # probe: a single linear layer, SGD + cosine
+  epochs: 100
+  batch_size: 256
+  num_workers: 8
+  lr: 0.1
+  momentum: 0.9
+  weight_decay: 0.0
