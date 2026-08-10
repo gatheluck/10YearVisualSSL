@@ -90,7 +90,7 @@ rest — e.g. capture `14_simclrv1` ↔ list #14 = PIRL; capture `17_swav` ↔ l
 | 33 | V-JEPA | `35_vjepa` | no | **HOLD** |
 | 34 | Franca | `36_franca` | no | ported (`36_franca`) |
 | 35 | DINOv3 | `31_dinov3` | no | **DEFERRED (eval-only download)** -- measured: config step1_original.yaml says the pretraining data is NOT publicly available, so it skips retraining and loads the official `dinov3-vitb16-pretrain-lvd1689m` weights via HuggingFace (transformers). Belongs to the Franca frozen-backbone-download tier (CONTRACT §7) |
-| 36 | LeJEPA | `37_lejepa` | no | **HOLD** |
+| 36 | LeJEPA | `37_lejepa` | no | ported (`37_lejepa`; torch+timm, from-scratch on ImageNet -- a timm ViT + projector trained by SIGReg (Epps-Pulley quadrature + random slicing, reimplemented locally, no external package) + a cross-view invariance loss; encoder.pt is the bare backbone, prefix stripped) |
 | 37 | NEPA | `32_nepa` | no | ported (`32_nepa`; torch-only -- its own ViT with 2D RoPE / QK-norm / causal autoregressive predictor, from scratch on ImageNet; encoder.pt is the EMA model) |
 
 ## Numbering decision (resolved 2026-08-09): keep the capture numbering
@@ -107,13 +107,24 @@ under its capture number.
 
 **Porting order now:** by capture-directory number among the not-yet-ported,
 preferring torch-only (tier-A) self-contained methods and deferring the special-dep
-/ submodule / eval-only tier (`34_msn`, `35_vjepa`, `37_lejepa`).
-**The clean from-scratch tier is exhausted** -- with `32_nepa` ported, every
-remaining not-yet-ported method is either an eval-only pretrained download
-(`30_aim`, `31_dinov3` -- data not public, load official checkpoints) or the
-special-dep / submodule tier (`34_msn`, `35_vjepa`, `37_lejepa`). `24_beit` is now
-ported (torch-only ViT + a hash-pinned DALL-E dVAE tokeniser download, lazy-imported
-for a real run; the smoke uses a random tokeniser). **The eval-only-download phase is now underway**: `28_dinov2` is
+/ submodule / eval-only tier (`34_msn`, `35_vjepa`).
+**Correction (2026-08-10, measured):** an earlier note here claimed "the clean
+from-scratch tier is exhausted" and filed `37_lejepa` under the submodule tier.
+Re-reading the capture showed that was wrong -- `37_lejepa` imports no external
+package at runtime (SIGReg is reimplemented locally; only torch/torchvision/timm/
+yaml), trains from scratch on ImageNet, and needs no downloaded weights, so it is
+a clean torch+timm self-contained port. It is **now ported** (`37_lejepa`). With
+it done, the genuinely-clean from-scratch tier is exhausted: every remaining
+not-yet-ported method is either an eval-only pretrained download (`30_aim`,
+`31_dinov3` -- data not public, load official checkpoints; `31_dinov3`'s weights
+are HF login-gated, a hard block; `30_aim`'s are apple-amlr non-commercial) or
+wraps the official repo as a submodule (`34_msn`, `35_vjepa`, both CC-BY-NC) --
+each needing a licensing/trust decision. (`30_aim` and `31_dinov3` additionally
+have a self-contained *step-2* from-scratch path that could ship a comparable row
+without the gated step-1 download -- a measured option, not yet chosen.) `24_beit`
+is ported (torch-only ViT + a hash-pinned DALL-E dVAE tokeniser download,
+lazy-imported for a real run via the `third_party/dall_e` submodule; the smoke uses
+a random tokeniser). **The eval-only-download phase is underway**: `28_dinov2` is
 ported in the Franca-style frozen-backbone-download shape (pinned
 `third_party/dinov2` submodule + hash-pinned weights via `bin/fetch-weights.py`,
 CONTRACT §7); `31_dinov3` (dinov3 weights via transformers/HF) and `30_aim` (AIM
