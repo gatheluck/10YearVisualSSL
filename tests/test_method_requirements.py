@@ -67,9 +67,21 @@ def local_modules(method: Path) -> set[str]:
         root = ROOT / sub
         if not root.is_dir():
             continue
+        # A submodule holds its packages either at its root
+        # (third_party/dinov2/dinov2) or one level down in a monorepo subproject
+        # (third_party/ml-aim/aim-v1/aim, a PEP 420 namespace package). Both are
+        # upstream code imported through PYTHONPATH, so add directory names at both
+        # depths. Deeper than that is a package's own internals (aim/v1, aim/v1/
+        # torch), not a top-level import, so the descent stops at depth two -- it
+        # never reaches a name like `torch` that must stay a real dependency.
         for p in root.iterdir():
             if p.is_dir() and not p.name.startswith("."):
                 names.add(p.name)
+                for q in p.iterdir():
+                    if q.is_dir() and not q.name.startswith("."):
+                        names.add(q.name)
+                    elif q.suffix == ".py":
+                        names.add(q.stem)
             elif p.suffix == ".py":
                 names.add(p.stem)
     return names
@@ -266,6 +278,7 @@ class TestEveryMethodDeclaresWhatItImports(unittest.TestCase):
         if not subs:
             self.skipTest("no submodule to check")
         checked_namespace = False
+        checked_nested = False
         for sub in sorted(subs):
             root = ROOT / sub
             if not root.is_dir():
@@ -280,10 +293,26 @@ class TestEveryMethodDeclaresWhatItImports(unittest.TestCase):
                         "pip installs, but it is not recognised as local")
                 if not (p / "__init__.py").is_file():
                     checked_namespace = True
+                # A monorepo submodule holds its importable packages one level
+                # down (third_party/ml-aim/aim-v1/aim); those count as local too.
+                for q in sorted(p.iterdir()):
+                    if not (q.is_dir() and not q.name.startswith(".")):
+                        continue
+                    checked_nested = True
+                    for m in method_dirs():
+                        self.assertIn(
+                            q.name, local_modules(m),
+                            f"{q.name} under {sub}/{p.name} is upstream code, "
+                            "not a package pip installs, but it is not "
+                            "recognised as local")
         self.assertTrue(
             checked_namespace,
             "no namespace package (no __init__.py) among the submodules, so "
             "the branch that must not require one was never exercised")
+        self.assertTrue(
+            checked_nested,
+            "no submodule holds a package one level down, so the nested-package "
+            "branch of local_modules was never exercised")
 
 
 class TestTheOptionalToolingDependency(unittest.TestCase):

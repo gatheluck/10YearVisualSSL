@@ -1,0 +1,44 @@
+# AIM linear evaluation: a linear probe on the frozen pretrained backbone
+# (El-Nouby et al., 2024; arXiv:2401.08541).
+#
+# An eval-only port -- there is no step 1. AIM's from-scratch autoregressive
+# pretraining is on DFN-2B+ (~2B uncurated images, not public), so the capture's
+# "as-is SSL comparison" reuses the official AIM-600M (ViT-H/14) backbone; this
+# port does the same. The representation is a genuine SSL ViT, so the number is
+# comparable (the shared ARSSL protocol: frozen features, mean-centre +
+# L2-normalise, a single linear layer, SGD + cosine).
+#
+# The backbone is the pinned upstream under third_party/ml-aim, built from these
+# dims (AIM-600M) and loaded from the official checkpoint. The dims below are
+# AIM-600M's (ml-aim's `aim_600M`: ViT-H/14, embed_dim 1536, 24 blocks, 12 heads).
+#
+# Licence: the AIM code and weights are apple-amlr (non-commercial research). This
+# port is for academic research only; see provenance.json and README.md.
+#
+# Two paths are passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   an ImageFolder with train/ and val/ subdirectories
+#   --set CKPT=<path>        the AIM-600M backbone checkpoint (fetch + verify with
+#                            bin/fetch-weights.py --artifact backbone_artifact)
+# The output path is fixed at --out.
+stage: linear_eval
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+
+train:
+  # backbone (AIM-600M = ViT-H/14, built from the pinned ml-aim upstream)
+  name: aim_600M
+  ckpt: "${CKPT}"
+  img_size: 224
+  patch_size: 14
+  embed_dim: 1536
+  num_blocks: 24
+  num_heads: 12
+  num_feature_layers: 6      # average the last 6 transformer blocks (patch mean-pool)
+  # probe: a single linear layer, SGD + cosine
+  epochs: 100
+  batch_size: 1024
+  num_workers: 8
+  lr: 0.1
+  momentum: 0.9
+  weight_decay: 0.0

@@ -1,0 +1,70 @@
+{
+  "_note": "Run: .venvs/30_aim/bin/python bin/mutate.py --spec mutations/30_aim-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/30_aim/bin/python (an interpreter with this method's lock, and the ml-aim submodule checked out, so the probe/smoke tests run). Proves the eval-only guards are not vacuous: the probed feature is the last-N-block average patch-mean-pooled (one vector per image), a downstream number cannot borrow a pretext name, the absent encoder is declared, and the device is resolved rather than assumed.",
+  "targets": [
+    {
+      "label": "the feature is not pooled over patch tokens (a token grid, not one vector)",
+      "file": "methods/30_aim/evaluate_linear_aim.py",
+      "old": "    return stacked.mean(dim=1)                         # (B, D), patch mean-pool",
+      "new": "    return stacked",
+      "tests": [
+        "tests.test_method_30_aim.TestTheBackboneRepresentation",
+        "tests.test_method_30_aim.TestALinearEvalSmoke.test_it_completes_and_satisfies_the_contract"
+      ]
+    },
+    {
+      "label": "no transformer blocks are hooked, so no features are captured",
+      "file": "methods/30_aim/evaluate_linear_aim.py",
+      "old": "    blocks = _find_blocks(model)[-num_feature_layers:]",
+      "new": "    blocks = _find_blocks(model)[:0]",
+      "tests": [
+        "tests.test_method_30_aim.TestTheBackboneRepresentation",
+        "tests.test_method_30_aim.TestALinearEvalSmoke.test_it_completes_and_satisfies_the_contract"
+      ]
+    },
+    {
+      "label": "a downstream probe number is mapped to a pretext name",
+      "file": "methods/30_aim/adapter/__init__.py",
+      "old": "    \"final_top1_acc\": \"final_linear_probe_top1_accuracy\",",
+      "new": "    \"final_top1_acc\": \"final_pretext_top1_accuracy\",",
+      "tests": [
+        "tests.test_method_30_aim.TestTheMetricsAreComparable",
+        "tests.test_method_30_aim.TestALinearEvalSmoke"
+      ]
+    },
+    {
+      "label": "the absent encoder is not explained",
+      "file": "methods/30_aim/adapter/__init__.py",
+      "old": "    if _stage_of(config_path) != \"linear_eval\":\n        return None",
+      "new": "    return None\n    if False:\n        return None",
+      "tests": [
+        "tests.test_method_30_aim.TestTheEvalProducesNoEncoder",
+        "tests.test_method_30_aim.TestALinearEvalSmoke.test_it_produces_no_encoder_and_says_so"
+      ]
+    },
+    {
+      "label": "cpu is not honoured -- the requested cpu returns a cuda device",
+      "file": "methods/30_aim/evaluate_linear_aim.py",
+      "old": "    if spec == \"cpu\":\n        return torch.device(\"cpu\")",
+      "new": "    if spec == \"cpu\":\n        return torch.device(\"cuda\")",
+      "tests": [
+        "tests.test_method_30_aim.TestTheDeviceIsResolved"
+      ]
+    },
+    {
+      "label": "cuda without a gpu is no longer refused, it falls back silently",
+      "file": "methods/30_aim/evaluate_linear_aim.py",
+      "old": "        if not torch.cuda.is_available():",
+      "new": "        if False:",
+      "tests": [
+        "tests.test_method_30_aim.TestTheDeviceIsResolved"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-08-10",
+    "measured_with": ".venvs/30_aim (cu130, third_party/ml-aim checked out) on an NVIDIA Tesla T4",
+    "killed": 6,
+    "total": 6,
+    "equivalent": []
+  }
+}
