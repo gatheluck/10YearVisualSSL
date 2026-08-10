@@ -91,7 +91,7 @@ rest — e.g. capture `14_simclrv1` ↔ list #14 = PIRL; capture `17_swav` ↔ l
 | 34 | Franca | `36_franca` | no | ported (`36_franca`) |
 | 35 | DINOv3 | `31_dinov3` | no | **DEFERRED (eval-only download)** -- measured: config step1_original.yaml says the pretraining data is NOT publicly available, so it skips retraining and loads the official `dinov3-vitb16-pretrain-lvd1689m` weights via HuggingFace (transformers). Belongs to the Franca frozen-backbone-download tier (CONTRACT §7) |
 | 36 | LeJEPA | `37_lejepa` | no | **HOLD** |
-| 37 | NEPA | `32_nepa` | no | **HOLD** |
+| 37 | NEPA | `32_nepa` | no | ported (`32_nepa`; torch-only -- its own ViT with 2D RoPE / QK-norm / causal autoregressive predictor, from scratch on ImageNet; encoder.pt is the EMA model) |
 
 ## Numbering decision (resolved 2026-08-09): keep the capture numbering
 
@@ -107,12 +107,14 @@ under its capture number.
 
 **Porting order now:** by capture-directory number among the not-yet-ported,
 preferring torch-only (tier-A) self-contained methods and deferring the special-dep
-/ submodule / eval-only tier (`24_beit`, `34_msn`, `35_vjepa`, `37_lejepa`). The
-the next from-scratch candidate by capture number is `32_nepa` (measured
-torch-only, from-scratch on ImageNet -- but a 621-line modern ViT with 2D RoPE,
-QK-norm, a causal autoregressive predictor; the most intricate model port yet).
-The remaining from-scratch tier after that is thin; most higher-numbered methods
-are eval-only downloads (see below). (Verify each tier-A by **measuring** the
+/ submodule / eval-only tier (`24_beit`, `34_msn`, `35_vjepa`, `37_lejepa`).
+**The clean from-scratch tier is now exhausted** -- with `32_nepa` ported, every
+remaining not-yet-ported method is either an eval-only pretrained download
+(`28_dinov2`, `30_aim`, `31_dinov3` -- data not public, load official checkpoints)
+or the special-dep / submodule / eval-only tier (`24_beit`'s DALL-E tokeniser,
+`34_msn`, `35_vjepa`, `37_lejepa`). The next phase is therefore the **Franca-style
+frozen-backbone-download shape** (CONTRACT §7, `bin/fetch-weights.py`) and/or the
+submodule tier -- a distinct decision to bring to the user. (Verify each by **measuring** the
 capture before porting, never from the label; ViT/Swin-based ones need care —
 **measure whether timm is step-1-essential**: `22_mocov3` (subclasses timm's ViT)
 and `26_simmim` (wraps timm's Swin) needed it, but `23_dino`, `29_ijepa` and
@@ -130,7 +132,8 @@ Ported under this decision so far: `14_simclrv1` (list #15), `15_mocov2`
 torch-only -- its own ViT), `26_simmim` (list #27, timm Swin -- reuses the mocov3
 lock), `29_ijepa` (list #31, torch-only -- its own ViT, from-scratch on ImageNet),
 `33_pirl` (list #14, torch-only -- ResNet + jigsaw + memory bank, the third
-memory-bank method).
+memory-bank method), `32_nepa` (list #37, torch-only -- its own 2D-RoPE ViT with a
+causal autoregressive predictor; the last clean from-scratch port).
 
 **(historical) HOLD rule (user decision pending, 2026-08-06):** only port methods
 whose capture directory number equals this list's number — TRUE only for numbers
