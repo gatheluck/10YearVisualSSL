@@ -7,3 +7,6 @@
 [submodule "third_party/franca"]
 	path = third_party/franca
 	url = https://github.com/valeoai/Franca
+[submodule "third_party/dinov2"]
+	path = third_party/dinov2
+	url = https://github.com/facebookresearch/dinov2

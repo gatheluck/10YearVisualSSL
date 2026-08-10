@@ -84,7 +84,7 @@ rest — e.g. capture `14_simclrv1` ↔ list #14 = PIRL; capture `17_swav` ↔ l
 | 27 | SimMIM | `26_simmim` | no | ported (`26_simmim`; needs timm for Swin -- reuses the `22_mocov3` lock; the `transformers` dep was docstring-only, measured; encoder.pt is the bare Swin) |
 | 28 | iBOT | `27_ibot` | no | ported (`27_ibot`) |
 | 29 | MSN | `34_msn` | no | **HOLD** |
-| 30 | DINOv2 | `28_dinov2` | no | **DEFERRED (eval-only download)** -- measured: its step-1 default mode downloads the official pretrained ViT-g/14 (torch.hub/HF) because LVD-142M is not public (`use_pretrained: true`, `train_path: null`); the from-scratch path needs LVD-142M-scale data. Belongs to the frozen-pretrained-download / eval-only tier (the Franca template + `bin/fetch-weights.py`, CONTRACT §7), not a hermetic from-scratch port |
+| 30 | DINOv2 | `28_dinov2` | no | ported (`28_dinov2`; **eval-only download**, the first of that phase, Franca shape: pinned `third_party/dinov2` submodule (xformers disabled -> torch-only), the official ViT-g/14 LVD-142M weights hash-pinned via `bin/fetch-weights.py`; the from-scratch path (LVD-142M, not public) is the excluded step) |
 | 31 | I-JEPA | `29_ijepa` | no | ported (`29_ijepa`; torch-only -- I-JEPA ships its own ViT, NOT timm, measured; trains from scratch on ImageNet; encoder.pt is the EMA target encoder) |
 | 32 | AIM | `30_aim` | no | **DEFERRED (eval-only download)** -- measured: config step1_pretrained.yaml says the pretraining data (DFN-2B+) is not available, so step 1 downloads the official AIM-0.6B checkpoint from HuggingFace via the `apple/ml-aim` package (`from aim.v1.utils import load_pretrained`). Belongs to the Franca frozen-backbone-download tier (CONTRACT §7), and additionally needs an external git dependency |
 | 33 | V-JEPA | `35_vjepa` | no | **HOLD** |
@@ -108,13 +108,16 @@ under its capture number.
 **Porting order now:** by capture-directory number among the not-yet-ported,
 preferring torch-only (tier-A) self-contained methods and deferring the special-dep
 / submodule / eval-only tier (`24_beit`, `34_msn`, `35_vjepa`, `37_lejepa`).
-**The clean from-scratch tier is now exhausted** -- with `32_nepa` ported, every
+**The clean from-scratch tier is exhausted** -- with `32_nepa` ported, every
 remaining not-yet-ported method is either an eval-only pretrained download
-(`28_dinov2`, `30_aim`, `31_dinov3` -- data not public, load official checkpoints)
-or the special-dep / submodule / eval-only tier (`24_beit`'s DALL-E tokeniser,
-`34_msn`, `35_vjepa`, `37_lejepa`). The next phase is therefore the **Franca-style
-frozen-backbone-download shape** (CONTRACT §7, `bin/fetch-weights.py`) and/or the
-submodule tier -- a distinct decision to bring to the user. (Verify each by **measuring** the
+(`30_aim`, `31_dinov3` -- data not public, load official checkpoints) or the
+special-dep / submodule tier (`24_beit`'s DALL-E tokeniser, `34_msn`, `35_vjepa`,
+`37_lejepa`). **The eval-only-download phase is now underway**: `28_dinov2` is
+ported in the Franca-style frozen-backbone-download shape (pinned
+`third_party/dinov2` submodule + hash-pinned weights via `bin/fetch-weights.py`,
+CONTRACT §7); `31_dinov3` (dinov3 weights via transformers/HF) and `30_aim` (AIM
+via the `apple/ml-aim` git package + HF) are the same shape and come next by
+capture number. (Verify each by **measuring** the
 capture before porting, never from the label; ViT/Swin-based ones need care —
 **measure whether timm is step-1-essential**: `22_mocov3` (subclasses timm's ViT)
 and `26_simmim` (wraps timm's Swin) needed it, but `23_dino`, `29_ijepa` and
@@ -124,8 +127,8 @@ torch-only `05_jigsaw_puzzle` / `19_byol` closure). **Also measure whether "step
 is genuine from-scratch training or a pretrained download**: `28_dinov2`, `30_aim`
 and `31_dinov3` all turned out to be eval-only downloads (their pretraining data is
 not public, so step 1 loads official checkpoints via torch.hub / HuggingFace /
-`ml-aim`) and are deferred to the Franca-style frozen-backbone-download tier
-(CONTRACT §7, `bin/fetch-weights.py`).
+`ml-aim`) -- ported (`28_dinov2`) or to be ported in the Franca-style
+frozen-backbone-download tier (CONTRACT §7, `bin/fetch-weights.py`).
 Ported under this decision so far: `14_simclrv1` (list #15), `15_mocov2`
 (list #16), `16_simclrv2` (list #17), `18_sela` (list #19), `19_byol` (list #20),
 `22_mocov3` (list #23, the first timm-locked port), `23_dino` (list #24,
@@ -133,7 +136,9 @@ torch-only -- its own ViT), `26_simmim` (list #27, timm Swin -- reuses the mocov
 lock), `29_ijepa` (list #31, torch-only -- its own ViT, from-scratch on ImageNet),
 `33_pirl` (list #14, torch-only -- ResNet + jigsaw + memory bank, the third
 memory-bank method), `32_nepa` (list #37, torch-only -- its own 2D-RoPE ViT with a
-causal autoregressive predictor; the last clean from-scratch port).
+causal autoregressive predictor; the last clean from-scratch port), `28_dinov2`
+(list #30, eval-only download -- pinned dinov2 submodule + hash-pinned ViT-g/14
+weights, the first of the download phase).
 
 **(historical) HOLD rule (user decision pending, 2026-08-06):** only port methods
 whose capture directory number equals this list's number — TRUE only for numbers

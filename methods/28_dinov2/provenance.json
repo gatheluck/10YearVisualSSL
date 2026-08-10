@@ -1,0 +1,37 @@
+{
+  "captured_at": "2026-08-10",
+  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
+  "captured_note": "Ported from the capture's self-contained methods/28_dinov2, specifically its Step-1 'As-is comparison' (evaluate_linear.py, configs/step1_model.yaml). The capture's default step 1 (use_pretrained: true, train_path: null) downloads the official pretrained DINOv2 backbone via torch.hub and linear-probes it, because the from-scratch pretraining data (LVD-142M) is not public. That from-scratch SSL path (use_pretrained: false) is the capture's excluded step. So this is an eval-only port, the DINOv2 sibling of 36_franca. The port keeps the capture directory numbering (28) per the 2026-08-09 keep-capture-numbering decision (this list's number 30 is DINOv2 -- see docs/PORTING_ROADMAP.md).",
+  "paper": {
+    "title": "DINOv2: Learning Robust Visual Features without Supervision",
+    "authors": "Oquab, Darcet, Moutakanni, Vo, Szafraniec, Khalidov, Fernandez, Haziza, Massa, El-Nouby, et al.",
+    "year": 2023,
+    "arxiv": "2304.07193"
+  },
+  "upstream": {
+    "repo": "https://github.com/facebookresearch/dinov2",
+    "commit": "7764ea0f912e53c92e82eb78a2a1631e92725fc8",
+    "license": "Apache License 2.0",
+    "note": "Pinned DIRECTLY (no fork): the frozen backbone forward has no hardcoded device, and the xformers path is disabled at eval so the forward is torch-only. Imported through PYTHONPATH under third_party/dinov2, never copied or installed."
+  },
+  "scope": "The eval-only step is ported: freeze the official pretrained DINOv2 ViT-g/14 (LVD-142M) backbone and fit a linear probe on its frozen CLS token. The backbone is built from the pinned upstream (dinov2.hub.backbones.dinov2_vitg14) with the xformers path disabled, so the forward is torch-only -- the giant's SwiGLU falls back to a torch implementation whose w12/w3 weight keys match the official fused checkpoint, so the weights load strict (0 missing, 0 unexpected). The model is built at the checkpoint's native 518px (a 37x37 position-embedding grid) and the input is interpolated to the eval resolution. The from-scratch SSL pretraining on LVD-142M (use_pretrained: false) is EXCLUDED, as in every port's step 2.",
+  "encoder": "There is no encoder.pt: this port trains nothing. The representation is the official pretrained DINOv2 backbone, fetched as a hash-pinned download (backbone_artifact below), not produced here.",
+  "linear_eval": "Probes DINOv2's pretrained ViT-g/14 CLS token (forward_features(x)['x_norm_clstoken']), frozen. This is a genuine SSL representation, so the number is comparable (the capture's 'As-is comparison / pretrained-backbone reuse' row, like 36_franca). A real run needs the official checkpoint (backbone_artifact below, fetched and hash-verified by bin/fetch-weights.py --section backbone_artifact, passed as the config's train.ckpt); the hermetic smoke leaves ckpt empty and builds a random ViT-S/14 (pretrained=False) at a tiny resolution, so nothing is downloaded and only the pipeline is exercised. Images use resize + centre crop + ImageNet normalisation; the probe follows the lab's shared ARSSL protocol (mean-centre + L2-normalise features, single linear layer, SGD momentum + cosine, top1/top5). See docs/EVAL_DOWNLOAD.md.",
+  "backbone_artifact": {
+    "name": "DINOv2 ViT-g/14 LVD-142M pretrain backbone",
+    "url": "https://dl.fbaipublicfiles.com/dinov2/dinov2_vitg14/dinov2_vitg14_pretrain.pth",
+    "filename": "dinov2_vitg14_pretrain.pth",
+    "sha256": "baf8467e50af277596bbbafa06887c177ee899ab46033649c383577d7e9309d3",
+    "bytes": 4546108579,
+    "license": "Apache License 2.0",
+    "sha256_source": "measured on 2026-08-10 by a full download from dl.fbaipublicfiles.com; bin/fetch-weights.py re-verifies this value on download"
+  },
+  "rewritten_during_the_port": [
+    "an eval-only port (linear_eval, no step 1); the from-scratch SSL pretraining on the unavailable LVD-142M is the capture's excluded step",
+    "the backbone is the pinned upstream (third_party/dinov2), imported not copied; the capture called torch.hub.load, which fetches code at runtime -- this port pins the code (submodule) and the weights (hash-pinned download) instead",
+    "the xformers path is disabled (XFORMERS_DISABLED=1) before the backbone is imported, so the attention and the giant's SwiGLU use torch fallbacks -- reproducible on a CPU or any GPU; the weights still load strict",
+    "the device is resolved (resolve_device) instead of assumed CUDA",
+    "features are extracted in fp32 (the capture used a bfloat16 autocast, a GPU speed path with no meaningful effect on a frozen-feature linear probe)",
+    "the probe follows the lab's shared ARSSL protocol (mean-centre + L2-normalise, single linear layer, SGD + cosine) rather than the capture's own AdamW head, so the number is comparable across the ported methods"
+  ]
+}
