@@ -1,0 +1,45 @@
+# PIRL step 1: ResNet-50 + jigsaw + memory-bank NCE (Misra & van der Maaten,
+# CVPR 2020), the ResNet-50 path.
+#
+# These are the paper-target settings -- the recipe, not a result. Nothing here
+# has executed a full run; the README says what was and was not exercised. This is
+# a self-contained re-implementation (torchvision ResNet-50, torch-only). The
+# capture's step 2 (ViT) is not ported.
+#
+# One path is passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   an ImageFolder of training images
+# The output path is fixed at --out.
+stage: step1
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+
+train:
+  # model
+  arch: resnet50
+  feature_dim: 128
+  num_patches: 9               # 3x3 jigsaw grid
+  # data / jigsaw view
+  image_size: 224
+  jigsaw_resize: 256
+  jigsaw_crop_size: 255        # divisible by grid (255/3 = 85 per cell)
+  jigsaw_grid_size: 3
+  jigsaw_patch_size: 64
+  num_workers: 8
+  # memory-bank NCE (nce_momentum is the bank EMA; SGD momentum is separate)
+  temperature: 0.07
+  nce_momentum: 0.5
+  num_negatives: 32000
+  # loss = (1 - jigsaw_weight) * image-NCE + jigsaw_weight * jigsaw-NCE
+  jigsaw_weight: 0.5
+  # memory
+  initialize_from_model: true  # seed the bank with the model's features first
+  # training (SGD + step LR decay)
+  epochs: 800
+  batch_size: 256
+  lr: 0.03
+  momentum: 0.9
+  weight_decay: 1.0e-4
+  lr_milestones: [300, 600]
+  lr_gamma: 0.1
+  warmup_epochs: 0
