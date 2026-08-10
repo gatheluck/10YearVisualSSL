@@ -198,16 +198,29 @@ class TestTheLosses(unittest.TestCase):
     def losses(self):
         return load("dinov3_losses", METHOD / "losses" / "__init__.py")
 
+    def models(self):
+        return load("dinov3_models", METHOD / "models" / "__init__.py")
+
     @needs_deps
-    def test_dino_loss_is_a_finite_scalar(self):
+    def test_dino_loss_is_a_finite_nonnegative_scalar(self):
+        # The Sinkhorn step exponentiates teacher_logits / teacher_temp with no
+        # max-subtraction (ported verbatim), so it must be fed logits from its
+        # operating domain -- the DINO head's output (an L2-normalised bottleneck
+        # through small weights, so |logit| ~ 0.02), not raw N(0,1) logits, which
+        # would overflow exp(x / 0.04). A real DINOHead + a fixed seed makes this
+        # deterministic and in-domain (a cross-entropy, so it is also >= 0).
         import torch
+        m = self.models()
         L = self.losses()
+        torch.manual_seed(0)
+        head = m.DINOHead(in_dim=32, out_dim=64, hidden_dim=32, bottleneck_dim=16)
         dino = L.DINOLoss(n_crops_global=NG, n_crops_local=NL)
-        s = torch.randn(2 * (NG + NL), 64)
-        te = torch.randn(2 * NG, 64)
+        s = head(torch.randn(2 * (NG + NL), 32))
+        te = head(torch.randn(2 * NG, 32))
         val = dino(s, te)
         self.assertEqual(val.dim(), 0)
         self.assertTrue(torch.isfinite(val))
+        self.assertGreaterEqual(float(val.detach()), 0.0)
 
     @needs_deps
     def test_koleo_is_zero_for_a_single_sample(self):
