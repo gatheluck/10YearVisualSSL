@@ -89,7 +89,7 @@ rest — e.g. capture `14_simclrv1` ↔ list #14 = PIRL; capture `17_swav` ↔ l
 | 32 | AIM | `30_aim` | no | ported (`30_aim`; **eval-only download**, Franca/dinov2 shape: pinned `third_party/ml-aim` submodule (Apple's `aim`), the official AIM-600M ViT-H/14 (DFN-2B+) backbone hash-pinned via `bin/fetch-weights.py`, probed on the last-6-block average patch-mean-pooled; from-scratch DFN-2B+ pretraining is the excluded step. Licence apple-amlr = non-commercial research; nothing under it copied (submodule + download), academic-research use only) |
 | 33 | V-JEPA | `35_vjepa` | no | **HOLD** |
 | 34 | Franca | `36_franca` | no | ported (`36_franca`) |
-| 35 | DINOv3 | `31_dinov3` | no | **DEFERRED (eval-only download)** -- measured: config step1_original.yaml says the pretraining data is NOT publicly available, so it skips retraining and loads the official `dinov3-vitb16-pretrain-lvd1689m` weights via HuggingFace (transformers). Belongs to the Franca frozen-backbone-download tier (CONTRACT §7) |
+| 35 | DINOv3 | `31_dinov3` | no | ported (`31_dinov3`; torch-only, from-scratch on ImageNet -- the capture's **step 2** unified SSL comparison, DINOv3 **core** objective: own ViT (register tokens + axial RoPE) + DINO (Sinkhorn centring) + iBOT + KoLeo, EMA teacher, multi-crop; encoder.pt = teacher backbone (prefix stripped). The capture's step 1 (HF-**gated** official weights) and the released **Gram anchoring** stage (`gram.mode: core_only`) are excluded; a from-scratch re-implementation, so no Meta code/weights are used) |
 | 36 | LeJEPA | `37_lejepa` | no | ported (`37_lejepa`; torch+timm, from-scratch on ImageNet -- a timm ViT + projector trained by SIGReg (Epps-Pulley quadrature + random slicing, reimplemented locally, no external package) + a cross-view invariance loss; encoder.pt is the bare backbone, prefix stripped) |
 | 37 | NEPA | `32_nepa` | no | ported (`32_nepa`; torch-only -- its own ViT with 2D RoPE / QK-norm / causal autoregressive predictor, from scratch on ImageNet; encoder.pt is the EMA model) |
 
@@ -118,20 +118,22 @@ it done, the genuinely-clean from-scratch tier is exhausted. On 2026-08-10 the u
 ruled that **non-commercial-licensed code may be used for academic research** (with
 careful licence documentation), which unblocks the remaining eval-only /
 non-commercial tier. `30_aim` is **now ported** as an eval-only download (see below).
-The remaining not-yet-ported methods are: `31_dinov3` (eval-only download, but its
-weights are HF login-gated -- a hard block on the download path; it also has a
-self-contained *step-2* from-scratch path that could ship a comparable row without
-the gated download), and `34_msn` / `35_vjepa` (both wrap the official repo as a
-submodule, both CC-BY-NC; `35_vjepa` is a video method whose step-1 is a caveat
-row) -- each still needing a trust decision for the submodule add. `24_beit`
-is ported (torch-only ViT + a hash-pinned DALL-E dVAE tokeniser download,
-lazy-imported for a real run via the `third_party/dall_e` submodule; the smoke uses
-a random tokeniser). **The eval-only-download phase is underway**: `28_dinov2` and
-`30_aim` are ported in the Franca-style frozen-backbone-download shape (a pinned
-submodule + hash-pinned weights via `bin/fetch-weights.py`, CONTRACT §7); `30_aim`
-adds `huggingface_hub` to the closure (the ml-aim model module needs it) and pins
-Apple's `aim` under `third_party/ml-aim`. `31_dinov3` (dinov3 weights via
-transformers/HF, gated) is the same shape but blocked on the gated download.
+`31_dinov3` is **now ported** (2026-08-10): its eval-only download path is blocked
+(HF login-gated weights), but its capture **step 2** -- the from-scratch unified SSL
+comparison -- is self-contained torch-only code (own ViT + DINO/iBOT/KoLeo losses,
+measured no timm/transformers), so it ports as a clean from-scratch method (DINOv3
+**core**; the released Gram anchoring stage is excluded via the capture's
+`gram.mode: core_only`, and no Meta code/weights are used). The remaining
+not-yet-ported methods are `34_msn` / `35_vjepa` -- both **wrap the official repo as
+a submodule** and run its `main.py`, both CC-BY-NC (`35_vjepa` is a video method
+whose step-1 is a caveat row) -- each still needing a trust decision for the
+submodule add. `24_beit` is ported (torch-only ViT + a hash-pinned DALL-E dVAE
+tokeniser download, lazy-imported for a real run via the `third_party/dall_e`
+submodule; the smoke uses a random tokeniser). **The eval-only-download phase is
+underway**: `28_dinov2` and `30_aim` are ported in the Franca-style
+frozen-backbone-download shape (a pinned submodule + hash-pinned weights via
+`bin/fetch-weights.py`, CONTRACT §7); `30_aim` adds `huggingface_hub` to the closure
+(the ml-aim model module needs it) and pins Apple's `aim` under `third_party/ml-aim`.
 (Verify each by **measuring** the
 capture before porting, never from the label; ViT/Swin-based ones need care —
 **measure whether timm is step-1-essential**: `22_mocov3` (subclasses timm's ViT)

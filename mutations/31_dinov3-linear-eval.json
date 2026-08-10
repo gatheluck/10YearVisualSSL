@@ -1,0 +1,59 @@
+{
+  "_note": "Run: .venvs/31_dinov3/bin/python bin/mutate.py --spec mutations/31_dinov3-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/31_dinov3/bin/python. Proves the DINOv3 model/eval guards are not vacuous: the EMA teacher moves toward the student (not pure decay), KoLeo guards a single sample, encoder.pt strips the backbone prefix and excludes the heads, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
+  "targets": [
+    {
+      "label": "the EMA teacher only decays (the student term is dropped)",
+      "file": "methods/31_dinov3/train_step1_dinov3.py",
+      "old": "        t_param.data.mul_(momentum).add_(s_param.data, alpha=1.0 - momentum)",
+      "new": "        t_param.data.mul_(momentum)",
+      "tests": [
+        "tests.test_method_31_dinov3.TestTheModel.test_ema_moves_teacher_toward_student"
+      ]
+    },
+    {
+      "label": "KoLeo no longer guards a single-sample batch",
+      "file": "methods/31_dinov3/losses/koleo_loss.py",
+      "old": "        if B < 2:",
+      "new": "        if False:",
+      "tests": [
+        "tests.test_method_31_dinov3.TestTheLosses.test_koleo_is_zero_for_a_single_sample"
+      ]
+    },
+    {
+      "label": "encoder.pt no longer strips the backbone prefix (keeps the heads too)",
+      "file": "methods/31_dinov3/adapter/__init__.py",
+      "old": "ENCODER_PREFIX = \"backbone.\"",
+      "new": "ENCODER_PREFIX = \"\"",
+      "tests": [
+        "tests.test_method_31_dinov3.TestExtractingTheEncoder"
+      ]
+    },
+    {
+      "label": "a downstream probe number is mapped to a pretext name",
+      "file": "methods/31_dinov3/adapter/__init__.py",
+      "old": "    \"final_top1_acc\": \"final_linear_probe_top1_accuracy\",",
+      "new": "    \"final_top1_acc\": \"final_pretext_top1_accuracy\",",
+      "tests": [
+        "tests.test_method_31_dinov3.TestTheMetricsAreInTheVocabulary",
+        "tests.test_method_31_dinov3.TestALinearEvalSmoke"
+      ]
+    },
+    {
+      "label": "the absent encoder is not explained",
+      "file": "methods/31_dinov3/adapter/__init__.py",
+      "old": "    if _stage_of(config_path) != \"linear_eval\":\n        return None",
+      "new": "    return None\n    if False:\n        return None",
+      "tests": [
+        "tests.test_method_31_dinov3.TestTheEvalProducesNoEncoder",
+        "tests.test_method_31_dinov3.TestALinearEvalSmoke.test_it_produces_no_encoder_and_says_so"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-08-10",
+    "measured_with": ".venvs/31_dinov3 (cu130) on an NVIDIA Tesla T4",
+    "killed": 5,
+    "total": 5,
+    "equivalent": []
+  }
+}
