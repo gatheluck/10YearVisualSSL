@@ -1,0 +1,39 @@
+{
+  "captured_at": "2026-08-10",
+  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
+  "captured_note": "Ported from the capture's self-contained methods/30_aim, specifically its Step-1 'As-is SSL comparison' (train_step1_pretrained.py, evaluate_linear_probe.py, configs/step1_pretrained.yaml). The capture's step 1 loads the official pre-trained AIM-600M backbone from HuggingFace via Apple's ml-aim package (aim-600M-2B-imgs) and linear-probes it, because the from-scratch pretraining data (DFN-2B+, ~2B uncurated images) is not public. That from-scratch autoregressive SSL path is the capture's excluded step. So this is an eval-only port, the AIM sibling of 28_dinov2 / 36_franca. The capture's own from-scratch step 2 (models/aim_vit.py) is not ported. The port keeps the capture directory numbering (30) per the 2026-08-09 keep-capture-numbering decision (this list's number 32 is AIM -- see docs/PORTING_ROADMAP.md).",
+  "paper": {
+    "title": "Scalable Pre-training of Large Autoregressive Image Models",
+    "authors": "El-Nouby, Klein, Zhai, Bautista, Toshev, Shankar, Susskind, Joulin, et al.",
+    "year": 2024,
+    "arxiv": "2401.08541"
+  },
+  "upstream": {
+    "repo": "https://github.com/apple/ml-aim",
+    "commit": "bd9e06893f3ad68bda56b34ac2158fda2680b7fc",
+    "license": "apple-amlr (Apple ML Research License) -- non-commercial research use only",
+    "note": "Apple's official `aim` package (the aim-v1 subdirectory), the AIM ViT definition. Pinned as the submodule third_party/ml-aim and imported through PYTHONPATH (never copied into this repository or installed). Its own dependency huggingface_hub is in the lock; the model itself is not vendored. The backbone is built from AIM-600M's dims via ml-aim's `_aim` (verified: the official checkpoint below loads with 0 missing, 0 unexpected on the backbone; only the unused attentive-probe head is absent)."
+  },
+  "licence_note": "The AIM code (apple/ml-aim) and the AIM-600M weights (apple/AIM on HuggingFace) are released by Apple under the Apple ML Research License (apple-amlr), which permits use, reproduction and modification for NON-COMMERCIAL research purposes only. This port uses them solely for academic research. Nothing under apple-amlr is copied into this repository: the code is referenced as a pinned git submodule (third_party/ml-aim) and the weights are a hash-pinned download that CI never fetches. This port's own files (adapter, evaluate, configs, tests) are original and carry this repository's licence; they only reference the Apple artifacts, they do not include them.",
+  "scope": "The eval-only step is ported: freeze the official pretrained AIM-600M (ViT-H/14, embed_dim 1536, 24 blocks, 12 heads, patch 14; pretrained on DFN-2B+) and fit a linear probe on its frozen features -- the average of the last 6 transformer blocks, mean-pooled over patch tokens. The backbone is built from AIM-600M's dims via the pinned upstream (ml-aim's `_aim`) and the official backbone checkpoint is loaded strict (0 missing, 0 unexpected; only the attentive-probe head, which this port does not use, is absent). The from-scratch autoregressive pretraining on the unavailable DFN-2B+ (the capture's step 2 as well) is EXCLUDED, as in every port's step 2.",
+  "encoder": "There is no encoder.pt: this port trains nothing. The representation is the official pretrained AIM-600M backbone, fetched as a hash-pinned download (backbone_artifact below), not produced here.",
+  "linear_eval": "Probes AIM-600M's frozen features (the last-6-block average, patch mean-pooled), a genuine SSL representation, so the number is comparable (the capture's 'As-is SSL comparison', like 28_dinov2 / 36_franca). A real run needs the official backbone checkpoint (backbone_artifact below, fetched and hash-verified by bin/fetch-weights.py --artifact backbone_artifact, passed as the config's train.ckpt); the hermetic smoke leaves ckpt empty and builds a random tiny AIM (a few small blocks) at a tiny resolution, so nothing is downloaded and only the pipeline is exercised. Images use resize + centre crop + ImageNet normalisation; the probe follows the lab's shared ARSSL protocol (mean-centre + L2-normalise features, single linear layer, SGD momentum + cosine, top1/top5). See docs/EVAL_DOWNLOAD.md.",
+  "backbone_artifact": {
+    "name": "AIM-600M (ViT-H/14) DFN-2B+ pretrain backbone",
+    "url": "https://huggingface.co/apple/AIM/resolve/main/aim_600m_2bimgs_attnprobe_backbone.pth",
+    "filename": "aim_600m_2bimgs_attnprobe_backbone.pth",
+    "sha256": "0d6f6b8f90a496cf20206978dceb3923fc3cd9848ddf6ae75facdf608dc71a82",
+    "bytes": 2722209106,
+    "license": "apple-amlr (Apple ML Research License) -- non-commercial research use only",
+    "sha256_source": "measured on 2026-08-10 by a full download from huggingface.co/apple/AIM; bin/fetch-weights.py re-verifies this value on download. Not HTTP-gated (no login required)."
+  },
+  "rewritten_during_the_port": [
+    "an eval-only port (linear_eval, no step 1); the from-scratch autoregressive pretraining on the unavailable DFN-2B+ is the capture's excluded step",
+    "the backbone is the pinned upstream (third_party/ml-aim), imported not copied; the capture installed ml-aim as a pip package and called aim.v1.utils.load_pretrained, which downloads from HuggingFace at call time -- this port pins the code (submodule) and the weights (a hash-pinned download named in backbone_artifact) instead, and builds the arch from AIM-600M's dims via ml-aim's `_aim` so the same file loads strict",
+    "the device is resolved (resolve_device) instead of assumed CUDA (the capture called .cuda())",
+    "features are extracted in fp32 (the capture used a float16 autocast, a GPU speed path with no meaningful effect on a frozen-feature linear probe)",
+    "the frozen feature is the average of the last num_feature_layers transformer blocks, mean-pooled over patch tokens (the capture's AIMBackboneWrapper hook average), kept faithfully",
+    "the probe follows the lab's shared ARSSL protocol (mean-centre + L2-normalise, single linear layer, SGD + cosine) rather than the capture's attentive-probe head, so the number is comparable across the ported methods (the attentive probe is reference-only in the capture)",
+    "the DistributedDataParallel / TensorBoard / tqdm machinery is dropped, single-process"
+  ]
+}

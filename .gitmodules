@@ -13,3 +13,6 @@
 [submodule "third_party/dall_e"]
 	path = third_party/dall_e
 	url = https://github.com/openai/DALL-E.git
+[submodule "third_party/ml-aim"]
+	path = third_party/ml-aim
+	url = https://github.com/apple/ml-aim.git

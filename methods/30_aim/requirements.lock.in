@@ -1,0 +1,21 @@
+# The input from which requirements.lock.txt (CPU) and requirements.lock.cu130.txt
+# (GPU) are generated. It is NOT installed directly and NOT a lock.
+#
+# Why it exists (and is not requirements.txt): the AIM backbone is the pinned
+# upstream under third_party/ml-aim, imported not copied, so this port's own files
+# import only torch, torchvision, numpy and PyYAML (those are requirements.txt).
+# But the environment the pinned upstream needs is larger -- ml-aim's model module
+# imports huggingface_hub (PyTorchModelHubMixin) -- and the lock must be a closure
+# over that whole environment.
+#
+# Regenerate both locks (from the repository root), as for 36_franca:
+#   uv pip compile methods/30_aim/requirements.lock.in --constraint <cpu pins>
+#       --index-url https://download.pytorch.org/whl/cpu
+#       --extra-index-url https://pypi.org/simple --index-strategy unsafe-best-match
+#       --python-version 3.12 --python-platform x86_64-manylinux_2_28
+#       --generate-hashes --no-annotate --no-header ; then bin/build-lock.py.
+torch
+torchvision
+numpy
+PyYAML
+huggingface_hub
