@@ -1,0 +1,15 @@
+# What the 32_nepa port's own files import, and nothing else. Checked in both
+# directions by tests/test_method_requirements.py. Floors only; the exact hashed
+# closure is in requirements.lock.txt (CPU) and requirements.lock.cu130.txt.
+#
+# A self-contained re-implementation (the lab's own NEPA code, no submodule): the
+# NEPA Vision Transformer (its own nepa_vit.py with 2D RoPE, QK-norm, LayerScale
+# and a causal autoregressive predictor, NOT timm), the dataset, the trainer and
+# the probe are all here. torch is imported directly; numpy seeds the run;
+# torchvision provides the ImageFolder and transforms; PyYAML is read to load a
+# YAML config on the stand-alone path. The ViT step 2 is excluded, as in every
+# port; NEPA's ViT is self-contained, so no timm, and TensorBoard/tqdm are dropped.
+torch>=2.1.0
+torchvision>=0.16.0
+numpy>=1.24.0
+PyYAML>=6.0

@@ -1,0 +1,68 @@
+{
+  "_note": "Run: .venvs/32_nepa/bin/python bin/mutate.py --spec mutations/32_nepa-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/32_nepa/bin/python. Proves the NEPA model/eval guards are not vacuous: the EMA update moves the EMA toward the online model, the EMA is frozen, extract_features avg-pools the predictor output, encoder.pt excludes the online model, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
+  "targets": [
+    {
+      "label": "the EMA update drops the online term (the EMA only decays)",
+      "file": "methods/32_nepa/models/nepa_vit.py",
+      "old": "            ema_p.data.mul_(d).add_(p.data, alpha=1.0 - d)",
+      "new": "            ema_p.data.mul_(d)",
+      "tests": [
+        "tests.test_method_32_nepa.TestTheModel.test_update_ema_moves_the_ema_toward_the_online_model"
+      ]
+    },
+    {
+      "label": "the EMA model is no longer frozen (its parameters take gradient)",
+      "file": "methods/32_nepa/models/nepa_vit.py",
+      "old": "            p.requires_grad_(False)",
+      "new": "            p.requires_grad_(True)",
+      "tests": [
+        "tests.test_method_32_nepa.TestTheModel.test_the_ema_model_is_frozen"
+      ]
+    },
+    {
+      "label": "extract_features does not avg-pool (returns the token sequence)",
+      "file": "methods/32_nepa/models/nepa_vit.py",
+      "old": "            return z_hat.mean(dim=1)",
+      "new": "            return z_hat",
+      "tests": [
+        "tests.test_method_32_nepa.TestTheModel.test_extract_features_avg_pools"
+      ]
+    },
+    {
+      "label": "encoder.pt no longer excludes the online model (prefix widened)",
+      "file": "methods/32_nepa/adapter/__init__.py",
+      "old": "ENCODER_PREFIX = \"ema_model.\"",
+      "new": "ENCODER_PREFIX = \"\"",
+      "tests": [
+        "tests.test_method_32_nepa.TestExtractingTheEncoder"
+      ]
+    },
+    {
+      "label": "a downstream probe number is mapped to a pretext name",
+      "file": "methods/32_nepa/adapter/__init__.py",
+      "old": "    \"final_top1_acc\": \"final_linear_probe_top1_accuracy\",",
+      "new": "    \"final_top1_acc\": \"final_pretext_top1_accuracy\",",
+      "tests": [
+        "tests.test_method_32_nepa.TestTheMetricsAreInTheVocabulary",
+        "tests.test_method_32_nepa.TestALinearEvalSmoke"
+      ]
+    },
+    {
+      "label": "the absent encoder is not explained",
+      "file": "methods/32_nepa/adapter/__init__.py",
+      "old": "    if _stage_of(config_path) != \"linear_eval\":\n        return None",
+      "new": "    return None\n    if False:\n        return None",
+      "tests": [
+        "tests.test_method_32_nepa.TestTheEvalProducesNoEncoder",
+        "tests.test_method_32_nepa.TestALinearEvalSmoke.test_it_produces_no_encoder_and_says_so"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-08-10",
+    "measured_with": ".venvs/32_nepa (cu130) on an NVIDIA Tesla T4",
+    "killed": 6,
+    "total": 6,
+    "equivalent": []
+  }
+}

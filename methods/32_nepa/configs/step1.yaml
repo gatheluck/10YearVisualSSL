@@ -1,0 +1,49 @@
+# NEPA step 1: ViT-B/14 + causal AR predictor + EMA (Xu et al., 2025;
+# arXiv:2512.16922), the official public-pretrain (GeLU) path.
+#
+# These are the paper-target settings -- the recipe, not a result. Nothing here
+# has executed a full run; the README says what was and was not exercised. NEPA
+# ships its own ViT (no timm) and trains from scratch on ImageNet-1k, so the run
+# is torch-only and hermetic. The capture's step 2 (ViT-B) is not ported.
+#
+# One path is passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   an ImageFolder root containing a train/ subdirectory
+# The output path is fixed at --out.
+stage: step1
+seed: 1337
+data_root: "${DATA_ROOT}"
+device: auto
+
+train:
+  # model (ViT-B/14, following DINOv2 patch size; official public GeLU config)
+  embed_dim: 768
+  depth: 12
+  num_heads: 12
+  patch_size: 14
+  img_size: 224
+  mlp_ratio: 4.0
+  use_swiglu: false            # public pretrain uses GeLU (paper Sec 3.2)
+  use_qk_norm: true
+  use_rope: true
+  use_cls_token: true
+  patch_embed_norm: false
+  layerscale_init: 1.0e-5
+  layer_norm_eps: 1.0e-12
+  rope_theta: 100.0
+  pos_embed_shift: null
+  pos_embed_jitter: null
+  pos_embed_rescale: 2.0
+  # EMA target (decay, paper Sec 4.1)
+  ema_decay: 0.9999
+  # data
+  augmentation: step1          # RandomResizedCrop + RandomHorizontalFlip
+  num_workers: 10
+  # training (AdamW + cosine LR with warmup; peak LR = base_lr * batch_size / 256)
+  epochs: 1600
+  batch_size: 4096
+  base_lr: 3.0e-4
+  weight_decay: 0.05
+  beta1: 0.9
+  beta2: 0.95
+  warmup_epochs: 40
+  clip_grad: 1.0

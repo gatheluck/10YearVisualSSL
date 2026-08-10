@@ -1,0 +1,50 @@
+# NEPA linear evaluation: a linear probe on the frozen EMA model.
+#
+# The probe reads the model this port trains (the EMA NEPA model's avg-pooled
+# causal predictor output, one embed_dim vector per image), so its number is a
+# genuine, comparable linear probe. It follows the shared ARSSL protocol
+# (mean-centre + L2-normalise features, a single linear layer, SGD + cosine) used
+# by the other ported methods, so the number is comparable across them. The NEPA
+# step-1 knobs (EMA decay, augmentation, schedule) are not accepted here.
+#
+# The full model architecture is named so the frozen EMA model can be rebuilt to
+# load encoder.pt. The capture's own eval trains an AdamW head on the avg-pooled
+# output; this port uses the shared SGD+cosine probe instead (a documented
+# deviation).
+#
+# Two paths are passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   an ImageFolder with train/ and val/ subdirectories
+#   --set ENCODER=<path>     encoder.pt from a step-1 run
+# The output path is fixed at --out.
+stage: linear_eval
+seed: 1337
+data_root: "${DATA_ROOT}"
+device: auto
+encoder: "${ENCODER}"
+
+train:
+  # model (the backbone is a fixed EMA NEPA model; these dims rebuild it)
+  embed_dim: 768
+  depth: 12
+  num_heads: 12
+  patch_size: 14
+  img_size: 224
+  mlp_ratio: 4.0
+  use_swiglu: false
+  use_qk_norm: true
+  use_rope: true
+  use_cls_token: true
+  patch_embed_norm: false
+  layerscale_init: 1.0e-5
+  layer_norm_eps: 1.0e-12
+  rope_theta: 100.0
+  pos_embed_shift: null
+  pos_embed_jitter: null
+  pos_embed_rescale: 2.0
+  # probe: a single linear layer, SGD + cosine
+  epochs: 100
+  batch_size: 256
+  num_workers: 10
+  lr: 0.1
+  momentum: 0.9
+  weight_decay: 0.0
