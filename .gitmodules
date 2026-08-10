@@ -10,3 +10,6 @@
 [submodule "third_party/dinov2"]
 	path = third_party/dinov2
 	url = https://github.com/facebookresearch/dinov2
+[submodule "third_party/dall_e"]
+	path = third_party/dall_e
+	url = https://github.com/openai/DALL-E.git

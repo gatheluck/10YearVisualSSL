@@ -1,0 +1,41 @@
+{
+  "captured_at": "2026-08-10",
+  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
+  "captured_note": "Ported from the capture's self-contained methods/24_beit, specifically its ViT-Base step 1 (models/beit_model.py, models/dvae_tokenizer.py, data/*, train_step1_beit.py, evaluate_linear.py). These are the lab's own implementation of Bao et al. (2021) BEiT, following microsoft/unilm/beit. The ViT is the lab's own (no timm); the MIM targets come from the frozen OpenAI DALL-E dVAE tokenizer, so this ports self-contained -- the only external artifact is a hash-pinned download of the DALL-E encoder.pkl (tokenizer_artifact below), and it is needed only for a real run. The port keeps the capture directory numbering (24) per the 2026-08-09 keep-capture-numbering decision (this list's number 25 is BEiT -- see docs/PORTING_ROADMAP.md).",
+  "paper": {
+    "title": "BEiT: BERT Pre-Training of Image Transformers",
+    "authors": "Bao, Dong, Piao, Wei",
+    "year": 2021,
+    "arxiv": "2106.08254"
+  },
+  "upstream": {
+    "repo": "https://github.com/openai/DALL-E",
+    "commit": "5be4b236bc3ade6943662354117a0e83752cc322",
+    "license": "Modified MIT License",
+    "note": "The dVAE tokenizer code only. Pinned as the submodule third_party/dall_e and imported lazily through PYTHONPATH (never copied or installed) to unpickle the DALL-E encoder.pkl for a real run. It has its own deps (requests, attr, ...) not in this port's lock; the hermetic smoke uses a random torch-only tokenizer and never imports it. The BEiT ViT itself is the lab's own code, not from here."
+  },
+  "scope": "The ViT-Base/16 step 1 is ported: a dVAE tokenizer turns each image into a grid of discrete visual tokens; a random block of image patches is replaced by a shared learned mask token in the ViT input; the ViT (LayerScale blocks) predicts the visual tokens at the masked positions, a cross-entropy over the dVAE vocabulary. AdamW under a cosine LR schedule with linear warmup; gradient-norm clipping. The capture's step 2 (ViT fine-tuning) is EXCLUDED, as in every port.",
+  "encoder": "encoder.pt is the BEiT backbone trunk (patch_embed, cls_token, pos_embed, blocks, norm), producing the mean-pooled patch-token feature (embed_dim; 768 for ViT-Base). The shared mask token (mask_token) and the MIM prediction head (head.*) are training machinery and are excluded -- the standard SSL convention of probing the encoder.",
+  "linear_eval": "Reads the trained encoder.pt and probes the BEiT backbone's mean-pooled patch tokens (embed_dim, CLS excluded), a genuine learned representation, so the number is comparable. Images use the deterministic val pipeline (resize + centre crop, ImageNet normalisation). The capture's own BEiT eval fine-tunes the ViT end to end; this port follows the lab's shared ARSSL probe (mean-centre + L2-normalise features, single linear layer, SGD momentum + cosine, top1/top5) rather than a fine-tune, so the number is comparable across the ported methods.",
+  "tokenizer_artifact": {
+    "name": "OpenAI DALL-E dVAE encoder (BEiT MIM targets)",
+    "url": "https://cdn.openai.com/dall-e/encoder.pkl",
+    "filename": "encoder.pkl",
+    "sha256": "96b0f478c2e8d912f745f1bdde186efaac4265d38568a52f33bd40d3a15935d4",
+    "bytes": 215185363,
+    "license": "MIT (openai/DALL-E)",
+    "note": "Loaded lazily via the `dall_e` package (a pickled nn.Module) only for a real run; the hermetic smoke uses a random tokenizer and needs neither the package nor this download. Fetch and verify with bin/fetch-weights.py --artifact tokenizer_artifact.",
+    "sha256_source": "measured on 2026-08-10 by a full download from cdn.openai.com; bin/fetch-weights.py re-verifies this value on download"
+  },
+  "rewritten_during_the_port": [
+    "only the ViT-Base step 1 is ported; the capture's step 2 (ViT fine-tuning) is excluded, as in every port",
+    "the ViT backbone is the lab's own (LayerScale blocks, no timm); build_beit is a single construction path shared by the trainer, the tokenizer targets and the linear-eval loader, so the model is built one way",
+    "img_size and the ViT dims are threaded so a small hermetic CPU smoke runs a tiny ViT at a lower resolution",
+    "the dVAE tokenizer is the frozen OpenAI DALL-E encoder for a real run -- a hash-pinned download (tokenizer_artifact) unpickled by the `dall_e` code pinned as the third_party/dall_e submodule (imported lazily through PYTHONPATH, never copied or installed); the hermetic smoke uses a random torch-only tokenizer, so CI downloads nothing and imports no submodule",
+    "the blockwise mask generator, the mask-token replacement and the masked-position cross-entropy are kept faithfully (all torch)",
+    "the device is resolved (resolve_device) instead of assumed CUDA (the capture called .cuda())",
+    "main() split into build_parser()/run(args, config) returning the pretext loss and epoch count",
+    "the run is seeded through make_deterministic (python, numpy, torch); the DataLoader gets a seeded generator",
+    "the training loop drops the upstream DistributedDataParallel, the AMP autocast and TensorBoard/tqdm so the same step runs on a CPU or a GPU unchanged, single-process fp32; the AdamW + cosine-with-warmup schedule and gradient-norm clipping are kept"
+  ]
+}

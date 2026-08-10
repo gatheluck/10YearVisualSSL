@@ -1,0 +1,20 @@
+# What the 24_beit port's own files import, and nothing else. Checked in both
+# directions by tests/test_method_requirements.py. Floors only; the exact hashed
+# closure is in requirements.lock.txt (CPU) and requirements.lock.cu130.txt.
+#
+# A self-contained re-implementation (the lab's own BEiT code, no submodule): the
+# BEiT ViT with its MIM head, the blockwise mask generator, the dual-view dataset,
+# the trainer and the probe are all here. torch is imported directly; numpy backs
+# the mask generator; torchvision provides the ImageFolder and transforms; Pillow
+# (PIL.Image) is imported directly by the dual-view transform; PyYAML is read to
+# load a YAML config on the stand-alone path. The DALL-E dVAE tokenizer (the
+# pinned third_party/dall_e submodule, imported lazily through PYTHONPATH, plus a
+# hash-pinned encoder.pkl download) is needed only for a REAL run; the hermetic
+# smoke uses a random tokenizer, so neither the submodule nor its own deps
+# (requests, attr, ...) are declared here. No timm; the ViT step 2 is excluded,
+# and TensorBoard/tqdm are dropped.
+torch>=2.1.0
+torchvision>=0.16.0
+numpy>=1.24.0
+Pillow>=9.5.0
+PyYAML>=6.0
