@@ -1,0 +1,60 @@
+{
+  "_note": "Run: .venvs/28_dinov2/bin/python bin/mutate.py --spec mutations/28_dinov2-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/28_dinov2/bin/python (an interpreter with this method's lock, and the dinov2 submodule checked out, so the probe/smoke tests run). Proves the eval-only guards are not vacuous: the probed feature reads a valid backbone key, a downstream number cannot borrow a pretext name, the absent encoder is declared, and the device is resolved rather than assumed.",
+  "targets": [
+    {
+      "label": "the probe reads a key the backbone does not expose",
+      "file": "methods/28_dinov2/evaluate_linear_dinov2.py",
+      "old": "    feat = out[feature_key]",
+      "new": "    feat = out[\"dinov2_probe_no_such_key\"]",
+      "tests": [
+        "tests.test_method_28_dinov2.TestTheBackboneRepresentation",
+        "tests.test_method_28_dinov2.TestALinearEvalSmoke.test_it_completes_and_satisfies_the_contract"
+      ]
+    },
+    {
+      "label": "a downstream probe number is mapped to a pretext name",
+      "file": "methods/28_dinov2/adapter/__init__.py",
+      "old": "    \"final_top1_acc\": \"final_linear_probe_top1_accuracy\",",
+      "new": "    \"final_top1_acc\": \"final_pretext_top1_accuracy\",",
+      "tests": [
+        "tests.test_method_28_dinov2.TestTheMetricsAreComparable",
+        "tests.test_method_28_dinov2.TestALinearEvalSmoke"
+      ]
+    },
+    {
+      "label": "the absent encoder is not explained",
+      "file": "methods/28_dinov2/adapter/__init__.py",
+      "old": "    if _stage_of(config_path) != \"linear_eval\":\n        return None",
+      "new": "    return None\n    if False:\n        return None",
+      "tests": [
+        "tests.test_method_28_dinov2.TestTheEvalProducesNoEncoder",
+        "tests.test_method_28_dinov2.TestALinearEvalSmoke.test_it_produces_no_encoder_and_says_so"
+      ]
+    },
+    {
+      "label": "cpu is not honoured -- the requested cpu returns a cuda device",
+      "file": "methods/28_dinov2/evaluate_linear_dinov2.py",
+      "old": "    if spec == \"cpu\":\n        return torch.device(\"cpu\")",
+      "new": "    if spec == \"cpu\":\n        return torch.device(\"cuda\")",
+      "tests": [
+        "tests.test_method_28_dinov2.TestTheDeviceIsResolved"
+      ]
+    },
+    {
+      "label": "cuda without a gpu is no longer refused, it falls back silently",
+      "file": "methods/28_dinov2/evaluate_linear_dinov2.py",
+      "old": "        if not torch.cuda.is_available():",
+      "new": "        if False:",
+      "tests": [
+        "tests.test_method_28_dinov2.TestTheDeviceIsResolved"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-08-10",
+    "measured_with": ".venvs/28_dinov2 (cu130, third_party/dinov2 checked out) on an NVIDIA Tesla T4",
+    "killed": 5,
+    "total": 5,
+    "equivalent": []
+  }
+}
