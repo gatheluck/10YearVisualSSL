@@ -1,0 +1,77 @@
+{
+  "_note": "Run: .venvs/33_pirl/bin/python bin/mutate.py --spec mutations/33_pirl-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/33_pirl/bin/python. Proves the PIRL model/bank/eval guards are not vacuous: the memory bank is normalized, the bank update moves the indexed rows toward the features, the image and jigsaw features are L2-normalised, encoder.pt excludes the projection heads, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
+  "targets": [
+    {
+      "label": "the memory bank is not normalized at init",
+      "file": "methods/33_pirl/loss/memory_nce.py",
+      "old": "        self.register_buffer(\"memory\", F.normalize(memory, dim=1))",
+      "new": "        self.register_buffer(\"memory\", memory)",
+      "tests": [
+        "tests.test_method_33_pirl.TestTheMemoryNCE.test_the_memory_bank_is_normalized"
+      ]
+    },
+    {
+      "label": "the bank update drops the feature term (the bank never moves)",
+      "file": "methods/33_pirl/loss/memory_nce.py",
+      "old": "            + (1.0 - self.momentum) * features, dim=1)",
+      "new": "            + 0.0 * features, dim=1)",
+      "tests": [
+        "tests.test_method_33_pirl.TestTheMemoryNCE.test_update_memory_moves_the_indexed_rows_toward_the_features"
+      ]
+    },
+    {
+      "label": "the image feature is not L2-normalised",
+      "file": "methods/33_pirl/models/resnet_pirl.py",
+      "old": "        return F.normalize(feats, dim=1)",
+      "new": "        return feats",
+      "tests": [
+        "tests.test_method_33_pirl.TestTheModel.test_forward_original_is_a_normalized_feature"
+      ]
+    },
+    {
+      "label": "the jigsaw feature is not L2-normalised",
+      "file": "methods/33_pirl/models/resnet_pirl.py",
+      "old": "        return F.normalize(self.jigsaw_projector(patch_feats), dim=1)",
+      "new": "        return self.jigsaw_projector(patch_feats)",
+      "tests": [
+        "tests.test_method_33_pirl.TestTheModel.test_forward_jigsaw_is_a_normalized_feature"
+      ]
+    },
+    {
+      "label": "encoder.pt no longer excludes the projection heads (prefix widened)",
+      "file": "methods/33_pirl/adapter/__init__.py",
+      "old": "ENCODER_PREFIXES = (\"encoder.\",)",
+      "new": "ENCODER_PREFIXES = (\"\",)",
+      "tests": [
+        "tests.test_method_33_pirl.TestExtractingTheEncoder"
+      ]
+    },
+    {
+      "label": "a downstream probe number is mapped to a pretext name",
+      "file": "methods/33_pirl/adapter/__init__.py",
+      "old": "    \"final_top1_acc\": \"final_linear_probe_top1_accuracy\",",
+      "new": "    \"final_top1_acc\": \"final_pretext_top1_accuracy\",",
+      "tests": [
+        "tests.test_method_33_pirl.TestTheMetricsAreInTheVocabulary",
+        "tests.test_method_33_pirl.TestALinearEvalSmoke"
+      ]
+    },
+    {
+      "label": "the absent encoder is not explained",
+      "file": "methods/33_pirl/adapter/__init__.py",
+      "old": "    if _stage_of(config_path) != \"linear_eval\":\n        return None",
+      "new": "    return None\n    if False:\n        return None",
+      "tests": [
+        "tests.test_method_33_pirl.TestTheEvalProducesNoEncoder",
+        "tests.test_method_33_pirl.TestALinearEvalSmoke.test_it_produces_no_encoder_and_says_so"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-08-10",
+    "measured_with": ".venvs/33_pirl (cu130) on an NVIDIA Tesla T4",
+    "killed": 7,
+    "total": 7,
+    "equivalent": []
+  }
+}
