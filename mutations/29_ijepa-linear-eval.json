@@ -1,0 +1,86 @@
+{
+  "_note": "Run: .venvs/29_ijepa/bin/python bin/mutate.py --spec mutations/29_ijepa-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/29_ijepa/bin/python. Proves the I-JEPA model/schedule/eval guards are not vacuous: the EMA target moves toward the source, the LR warms up, the EMA momentum rises, the context encoder gathers only the context patches, the predictor projects back to encoder_dim, encoder.pt excludes the context encoder + predictor, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
+  "targets": [
+    {
+      "label": "the EMA update drops the source term (target only decays)",
+      "file": "methods/29_ijepa/train_step1_ijepa.py",
+      "old": "        pt.data.mul_(momentum).add_((1.0 - momentum) * ps.data)",
+      "new": "        pt.data.mul_(momentum)",
+      "tests": [
+        "tests.test_method_29_ijepa.TestTheEmaUpdate.test_ema_update_moves_the_target_toward_the_source"
+      ]
+    },
+    {
+      "label": "the LR warmup phase is skipped (starts at the decayed value)",
+      "file": "methods/29_ijepa/utils/schedulers.py",
+      "old": "    if warmup_steps > 0:",
+      "new": "    if False:",
+      "tests": [
+        "tests.test_method_29_ijepa.TestTheSchedulers.test_cosine_warms_up_then_decays"
+      ]
+    },
+    {
+      "label": "the EMA schedule is frozen at its base (never rises)",
+      "file": "methods/29_ijepa/utils/schedulers.py",
+      "old": "    iters = np.arange(total_steps)",
+      "new": "    iters = np.zeros(total_steps)",
+      "tests": [
+        "tests.test_method_29_ijepa.TestTheSchedulers.test_ema_momentum_rises_toward_final"
+      ]
+    },
+    {
+      "label": "the context encoder does not gather the context patches (forwards all)",
+      "file": "methods/29_ijepa/models/vision_transformer.py",
+      "old": "            tokens = torch.gather(tokens, dim=1, index=idx)",
+      "new": "            tokens = tokens",
+      "tests": [
+        "tests.test_method_29_ijepa.TestTheModel.test_masked_forward_gathers_only_the_context"
+      ]
+    },
+    {
+      "label": "the predictor does not project back to encoder_dim",
+      "file": "methods/29_ijepa/models/vision_transformer.py",
+      "old": "        pred = self.pred_to_encoder(pred)                   # [B, n_tgt, encoder_dim]",
+      "new": "        pred = pred",
+      "tests": [
+        "tests.test_method_29_ijepa.TestTheModel.test_the_predictor_predicts_target_representations"
+      ]
+    },
+    {
+      "label": "encoder.pt no longer excludes the context encoder and predictor (prefix widened)",
+      "file": "methods/29_ijepa/adapter/__init__.py",
+      "old": "ENCODER_PREFIX = \"target_encoder.\"",
+      "new": "ENCODER_PREFIX = \"\"",
+      "tests": [
+        "tests.test_method_29_ijepa.TestExtractingTheEncoder"
+      ]
+    },
+    {
+      "label": "a downstream probe number is mapped to a pretext name",
+      "file": "methods/29_ijepa/adapter/__init__.py",
+      "old": "    \"final_top1_acc\": \"final_linear_probe_top1_accuracy\",",
+      "new": "    \"final_top1_acc\": \"final_pretext_top1_accuracy\",",
+      "tests": [
+        "tests.test_method_29_ijepa.TestTheMetricsAreInTheVocabulary",
+        "tests.test_method_29_ijepa.TestALinearEvalSmoke"
+      ]
+    },
+    {
+      "label": "the absent encoder is not explained",
+      "file": "methods/29_ijepa/adapter/__init__.py",
+      "old": "    if _stage_of(config_path) != \"linear_eval\":\n        return None",
+      "new": "    return None\n    if False:\n        return None",
+      "tests": [
+        "tests.test_method_29_ijepa.TestTheEvalProducesNoEncoder",
+        "tests.test_method_29_ijepa.TestALinearEvalSmoke.test_it_produces_no_encoder_and_says_so"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-08-10",
+    "measured_with": ".venvs/29_ijepa (cu130) on an NVIDIA Tesla T4",
+    "killed": 8,
+    "total": 8,
+    "equivalent": []
+  }
+}

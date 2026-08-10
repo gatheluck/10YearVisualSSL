@@ -84,8 +84,8 @@ rest — e.g. capture `14_simclrv1` ↔ list #14 = PIRL; capture `17_swav` ↔ l
 | 27 | SimMIM | `26_simmim` | no | ported (`26_simmim`; needs timm for Swin -- reuses the `22_mocov3` lock; the `transformers` dep was docstring-only, measured; encoder.pt is the bare Swin) |
 | 28 | iBOT | `27_ibot` | no | ported (`27_ibot`) |
 | 29 | MSN | `34_msn` | no | **HOLD** |
-| 30 | DINOv2 | `28_dinov2` | no | **HOLD** |
-| 31 | I-JEPA | `29_ijepa` | no | **HOLD** |
+| 30 | DINOv2 | `28_dinov2` | no | **DEFERRED (eval-only download)** -- measured: its step-1 default mode downloads the official pretrained ViT-g/14 (torch.hub/HF) because LVD-142M is not public (`use_pretrained: true`, `train_path: null`); the from-scratch path needs LVD-142M-scale data. Belongs to the frozen-pretrained-download / eval-only tier (the Franca template + `bin/fetch-weights.py`, CONTRACT §7), not a hermetic from-scratch port |
+| 31 | I-JEPA | `29_ijepa` | no | ported (`29_ijepa`; torch-only -- I-JEPA ships its own ViT, NOT timm, measured; trains from scratch on ImageNet; encoder.pt is the EMA target encoder) |
 | 32 | AIM | `30_aim` | no | **HOLD** |
 | 33 | V-JEPA | `35_vjepa` | no | **HOLD** |
 | 34 | Franca | `36_franca` | no | ported (`36_franca`) |
@@ -108,19 +108,23 @@ under its capture number.
 **Porting order now:** by capture-directory number among the not-yet-ported,
 preferring torch-only (tier-A) self-contained methods and deferring the special-dep
 / submodule / eval-only tier (`24_beit`, `34_msn`, `35_vjepa`, `37_lejepa`). The
-next candidates by capture number are `28_dinov2`, `29_ijepa`, `30_aim`, ... (each
-verified tier-A by **measuring** the capture before porting, never from the label;
-ViT/Swin-based ones need care — **measure whether timm is step-1-essential**:
-`22_mocov3` (subclasses timm's ViT) and `26_simmim` (wraps timm's Swin) needed it,
-but `23_dino` did NOT (it ships its own ViT), so the label "ViT/Swin ⇒ timm" is not
-evidence — check the actual imports (SimMIM's `transformers` dep turned out to be
-docstring-only). When timm is needed, reuse the `22_mocov3` lock; when not, reuse
-the torch-only `05_jigsaw_puzzle` closure).
+next candidates by capture number are `30_aim`, `31_dinov3`, `32_nepa`, `33_pirl`,
+... (each verified tier-A by **measuring** the capture before porting, never from
+the label; ViT/Swin-based ones need care — **measure whether timm is
+step-1-essential**: `22_mocov3` (subclasses timm's ViT) and `26_simmim` (wraps
+timm's Swin) needed it, but `23_dino` and `29_ijepa` did NOT (they ship their own
+ViT), so the label "ViT/Swin ⇒ timm" is not evidence — check the actual imports
+(SimMIM's `transformers` dep turned out to be docstring-only). When timm is needed,
+reuse the `22_mocov3` lock; when not, reuse the torch-only `05_jigsaw_puzzle` /
+`19_byol` closure). **Also measure whether "step 1" is genuine from-scratch
+training or a pretrained download**: `28_dinov2` turned out to be an eval-only
+download (LVD-142M unavailable) and is deferred to the Franca-style
+frozen-backbone-download tier (`31_dinov3` is likely the same — measure).
 Ported under this decision so far: `14_simclrv1` (list #15), `15_mocov2`
 (list #16), `16_simclrv2` (list #17), `18_sela` (list #19), `19_byol` (list #20),
 `22_mocov3` (list #23, the first timm-locked port), `23_dino` (list #24,
 torch-only -- its own ViT), `26_simmim` (list #27, timm Swin -- reuses the mocov3
-lock).
+lock), `29_ijepa` (list #31, torch-only -- its own ViT, from-scratch on ImageNet).
 
 **(historical) HOLD rule (user decision pending, 2026-08-06):** only port methods
 whose capture directory number equals this list's number — TRUE only for numbers
