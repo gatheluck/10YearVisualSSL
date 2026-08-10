@@ -1,0 +1,19 @@
+# What the 37_lejepa port's own files import, and nothing else. Checked in both
+# directions by tests/test_method_requirements.py. Floors only; the exact hashed
+# closure is in requirements.lock.txt (CPU) and requirements.lock.cu130.txt.
+#
+# A self-contained re-implementation (the lab's own LeJEPA code, no submodule):
+# the LeJEPA encoder (a timm ViT backbone + a projection MLP), the pure-torch
+# SIGReg objective (Epps-Pulley-style quadrature + random slicing), the
+# invariance loss, the multi-view dataset, the trainer and the probe are all here.
+# torch is imported directly; timm supplies the ViT backbone (built from scratch,
+# no pretrained download, so the run stays hermetic); torchvision provides the
+# ImageFolder and transforms; numpy backs the seeding; PyYAML is read to load a
+# YAML config on the stand-alone path. No transformers/xformers/faiss; the
+# upstream SIGReg package is NOT imported (reimplemented locally); TensorBoard and
+# tqdm are dropped, and the captured DDP/AMP paths are not ported.
+torch>=2.1.0
+torchvision>=0.16.0
+timm>=0.9.0
+numpy>=1.24.0
+PyYAML>=6.0

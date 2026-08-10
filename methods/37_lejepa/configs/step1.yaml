@@ -1,0 +1,55 @@
+# LeJEPA step 1: ViT-B/16 + projector + SIGReg + cross-view invariance
+# (Balestriero & LeCun, 2025; arXiv:2511.08544).
+#
+# These are the paper-target settings -- the recipe, not a result. Nothing here
+# has executed a full run; the README says what was and was not exercised. timm
+# supplies the ViT (built from scratch, no pretrained download, so the run stays
+# hermetic). SIGReg is reimplemented locally (no external package). The capture's
+# step 2 (ViT fine-tune) is not ported.
+#
+# One path is passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   an ImageFolder root containing a train/ subdirectory
+# The output path is fixed at --out.
+stage: step1
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+
+train:
+  # model (build_lejepa): a timm ViT backbone + a projection MLP
+  name: vit_base_patch16_224
+  img_size: 224
+  drop_path_rate: 0.1
+  proj_hidden_dim: 2048
+  proj_dim: 512
+  proj_layers: 3
+  final_bn: true
+  # augmentation (multi-view SSL crops)
+  views: 4
+  crop_scale: [0.08, 1.0]
+  color_jitter: [0.8, 0.8, 0.8, 0.2]
+  color_jitter_p: 0.8
+  grayscale_p: 0.2
+  blur_p: 0.5
+  blur_kernel: 23
+  solarize_p: 0.2
+  hflip_p: 0.5
+  # data
+  num_workers: 8
+  # LeJEPA objective: loss = SIGReg * lambda + invariance * (1 - lambda)
+  lambda: 0.02
+  sigreg_t_max: 3.0
+  sigreg_knots: 17
+  sigreg_num_slices: 256
+  sigreg_seed: 12345
+  # training (AdamW + linear warmup then cosine decay to min_lr)
+  epochs: 100
+  batch_size: 1024
+  lr: 5.0e-4
+  min_lr: 5.0e-7
+  beta1: 0.9
+  beta2: 0.95
+  eps: 1.0e-8
+  weight_decay: 5.0e-2
+  warmup_epochs: 10
+  clip_grad: 0.0

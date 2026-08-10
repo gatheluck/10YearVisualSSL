@@ -1,0 +1,24 @@
+{
+  "captured_at": "2026-08-10",
+  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
+  "captured_note": "Ported from the capture's self-contained methods/37_lejepa, specifically its ViT step 1 (train_step1_lejepa.py, evaluate_linear.py, configs/step1_vit.yaml). This is the lab's own implementation of Balestriero & LeCun (2025) LeJEPA. The README states 'No external LeJEPA package is imported at runtime; SIGReg/Epps-Pulley-style regularization is implemented locally in train_step1_lejepa.py' (measured: the only third-party imports are torch, torchvision, timm, yaml), so this ports self-contained -- no third_party submodule and no downloaded weights. The port keeps the capture directory numbering (37) per the 2026-08-09 keep-capture-numbering decision (this list's number 36 is LeJEPA -- see docs/PORTING_ROADMAP.md).",
+  "paper": {
+    "title": "LeJEPA: Provable and Scalable Self-Supervised Learning Without the Heuristics",
+    "authors": "Balestriero, LeCun",
+    "year": 2025,
+    "arxiv": "2511.08544"
+  },
+  "scope": "The ViT-B/16 step 1 is ported: each image is seen as several augmented views; a timm ViT backbone + a projection MLP maps each view to a projected feature; the loss is a convex combination of SIGReg (an Epps-Pulley Gaussian regularizer that pushes the projected features toward an isotropic Gaussian, measured by the empirical characteristic function of random 1-D slices against exp(-t^2/2) on a trapezoidal quadrature grid) and a cross-view invariance loss, combined as SIGReg * lambda + invariance * (1 - lambda). AdamW under a cosine LR schedule with linear warmup, weight decay split off the norms and biases. The capture's step 2 (ViT fine-tune) is EXCLUDED, as in every port.",
+  "encoder": "encoder.pt is the bare backbone (backbone.*, the prefix stripped so it loads straight into a plain timm model), producing the num_features feature (768 for ViT-B/16). The projection MLP (projector.*) is training machinery and is excluded -- the standard SSL convention of probing the encoder.",
+  "linear_eval": "Reads the trained encoder.pt and probes the backbone's num_features feature (the ViT's CLS/pooled token), a genuine learned representation, so the number is comparable. Images use the deterministic val pipeline (resize + centre crop, ImageNet normalisation). The capture's own LeJEPA eval fits a LayerNorm+Linear head on the frozen backbone; this port follows the lab's shared ARSSL probe (mean-centre + L2-normalise features, single linear layer, SGD momentum + cosine, top1/top5) instead, so the number is comparable across the ported methods.",
+  "rewritten_during_the_port": [
+    "only the ViT step 1 is ported; the capture's step 2 (ViT fine-tune) is excluded, as in every port",
+    "the ViT backbone is timm's (built from scratch, no pretrained download, so the run stays hermetic); build_backbone is a single construction path shared by the trainer and the linear-eval loader, so the backbone is built one way",
+    "img_size and the ViT dims are threaded so a small hermetic CPU smoke runs a tiny ViT at a lower resolution",
+    "SIGReg (the Epps-Pulley quadrature + random-slicing regularizer) and the cross-view invariance loss are kept faithfully (all torch); the DDP cross-rank averaging (differentiable_mean_across_ranks + an all_reduce of the slice-seed step counter) is kept as single-process arithmetic (world size one), so the statistic equals a one-rank distributed run",
+    "the device is resolved (resolve_device) instead of assumed CUDA (the capture called .cuda())",
+    "main() split into build_parser()/run(args, config) returning the pretext loss and epoch count",
+    "the run is seeded through make_deterministic (python, numpy, torch); the DataLoader gets a seeded generator",
+    "the training loop drops the upstream DistributedDataParallel, the bfloat16 AMP autocast, TensorBoard/tqdm, and the online monitoring probe (which reads *detached* features, so it never back-propagates into the backbone and its removal does not change training); the elaborate collapse guards are reduced to a loss finiteness check; the weight-decay split and the AdamW + cosine-with-warmup schedule are kept, single-process fp32"
+  ]
+}

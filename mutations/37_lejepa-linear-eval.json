@@ -1,0 +1,68 @@
+{
+  "_note": "Run: .venvs/37_lejepa/bin/python bin/mutate.py --spec mutations/37_lejepa-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/37_lejepa/bin/python. Proves the LeJEPA model/eval guards are not vacuous: SIGReg refuses too few knots, advances its slice seed each call, and produces a non-zero statistic; encoder.pt strips the backbone prefix and excludes the projector; a downstream number cannot borrow a pretext name; and the absent encoder is declared.",
+  "targets": [
+    {
+      "label": "SIGReg no longer refuses too few quadrature knots",
+      "file": "methods/37_lejepa/models/sigreg.py",
+      "old": "        if knots < 3:",
+      "new": "        if knots < 1:",
+      "tests": [
+        "tests.test_method_37_lejepa.TestTheSIGReg.test_too_few_knots_is_refused"
+      ]
+    },
+    {
+      "label": "the SIGReg slice seed does not advance (same slices every step)",
+      "file": "methods/37_lejepa/models/sigreg.py",
+      "old": "            self.step.add_(1)",
+      "new": "            self.step.add_(0)",
+      "tests": [
+        "tests.test_method_37_lejepa.TestTheSIGReg.test_the_slice_seed_advances_each_call"
+      ]
+    },
+    {
+      "label": "the SIGReg statistic is zeroed (a dead regularizer)",
+      "file": "methods/37_lejepa/models/sigreg.py",
+      "old": "        statistic = (err @ self.weights) * local_n * world",
+      "new": "        statistic = (err @ self.weights) * local_n * world * 0.0",
+      "tests": [
+        "tests.test_method_37_lejepa.TestTheSIGReg.test_returns_a_finite_nonnegative_scalar"
+      ]
+    },
+    {
+      "label": "encoder.pt no longer strips the backbone prefix (keeps the projector too)",
+      "file": "methods/37_lejepa/adapter/__init__.py",
+      "old": "ENCODER_PREFIX = \"backbone.\"",
+      "new": "ENCODER_PREFIX = \"\"",
+      "tests": [
+        "tests.test_method_37_lejepa.TestExtractingTheEncoder"
+      ]
+    },
+    {
+      "label": "a downstream probe number is mapped to a pretext name",
+      "file": "methods/37_lejepa/adapter/__init__.py",
+      "old": "    \"final_top1_acc\": \"final_linear_probe_top1_accuracy\",",
+      "new": "    \"final_top1_acc\": \"final_pretext_top1_accuracy\",",
+      "tests": [
+        "tests.test_method_37_lejepa.TestTheMetricsAreInTheVocabulary",
+        "tests.test_method_37_lejepa.TestALinearEvalSmoke"
+      ]
+    },
+    {
+      "label": "the absent encoder is not explained",
+      "file": "methods/37_lejepa/adapter/__init__.py",
+      "old": "    if _stage_of(config_path) != \"linear_eval\":\n        return None",
+      "new": "    return None\n    if False:\n        return None",
+      "tests": [
+        "tests.test_method_37_lejepa.TestTheEvalProducesNoEncoder",
+        "tests.test_method_37_lejepa.TestALinearEvalSmoke.test_it_produces_no_encoder_and_says_so"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-08-10",
+    "measured_with": ".venvs/37_lejepa (cu130) on an NVIDIA Tesla T4",
+    "killed": 6,
+    "total": 6,
+    "equivalent": []
+  }
+}
