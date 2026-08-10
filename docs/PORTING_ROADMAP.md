@@ -43,7 +43,7 @@ special-dep / submodule / eval-only / noncommercial last.
 
 - **Group 1 — ResNet/CNN pretext & contrastive** (reuse the simsiam/swav/barlow ResNet + linear-probe template): jigsaw, rotation, jigsaw++ (VGG16 pretext only), inst_disc, pirl, deepcluster, cpc, cmc, mocov1/2/3, simclrv1/2, sela, byol.
 - **Group 2 — ViT** (reuse the ibot/mae ViT template): simmim, dino, dinov2, dinov3, ijepa, nepa, aim.
-- **Group 3 — special deps / submodule / eval-only / licence decision**: colorization (ported torch-only, `03_colorization` -- the opencv/skimage tag was a requirements.txt mislabel), beit, deepcluster (ported with faiss as `07_deepcluster`, GPU/x86_64-only -- the first method whose closure adds a non-torch dep), `9_jigsaw_puzzle_pp`'s faiss-GPU knowledge-transfer stage (ported as the `knowledge_transfer` stage of `09_jigsaw_puzzle_pp`, GPU/x86_64-only: cluster → pseudo-labels → AlexNet cluster-cls), split_brain (ported torch-only, `08_split_brain` -- the "no models/" tag was not a blocker), msn, vjepa, lejepa.
+- **Group 3 — special deps / submodule / eval-only / licence decision**: colorization (ported torch-only, `03_colorization` -- the opencv/skimage tag was a requirements.txt mislabel), beit (ported torch-only, `24_beit` -- its DALL-E dVAE tokeniser is a hash-pinned download lazy-imported for a real run; the smoke uses a random tokeniser), deepcluster (ported with faiss as `07_deepcluster`, GPU/x86_64-only -- the first method whose closure adds a non-torch dep), `9_jigsaw_puzzle_pp`'s faiss-GPU knowledge-transfer stage (ported as the `knowledge_transfer` stage of `09_jigsaw_puzzle_pp`, GPU/x86_64-only: cluster → pseudo-labels → AlexNet cluster-cls), split_brain (ported torch-only, `08_split_brain` -- the "no models/" tag was not a blocker), msn, vjepa, lejepa.
 
 ## Numbering: capture number vs this list's number
 
@@ -79,7 +79,7 @@ rest — e.g. capture `14_simclrv1` ↔ list #14 = PIRL; capture `17_swav` ↔ l
 | 22 | Barlow Twins | `21_barlow_twins` | no | ported (`21_barlow_twins`) |
 | 23 | MoCo v3 | `22_mocov3` | no | ported (`22_mocov3`; the **first timm-locked port** -- timm supplies the ViT base class, but the ViT is built from scratch so the run stays hermetic) |
 | 24 | DINO | `23_dino` | no | ported (`23_dino`; torch-only -- DINO ships its own ViT, NOT timm, measured; encoder.pt is the teacher backbone) |
-| 25 | BEiT | `24_beit` | no | **HOLD** |
+| 25 | BEiT | `24_beit` | no | ported (`24_beit`; torch-only ViT (BEiT's own LayerScale ViT, NOT timm) + masked image modeling over DALL-E dVAE visual tokens; the tokeniser is a hash-pinned `encoder.pkl` download imported lazily via `dall_e` for a real run, and a random torch-only tokeniser for the hermetic smoke, so CI downloads nothing; encoder.pt is the backbone trunk (mask token + MIM head excluded)) |
 | 26 | MAE | `25_mae` | no | ported (`25_mae`) |
 | 27 | SimMIM | `26_simmim` | no | ported (`26_simmim`; needs timm for Swin -- reuses the `22_mocov3` lock; the `transformers` dep was docstring-only, measured; encoder.pt is the bare Swin) |
 | 28 | iBOT | `27_ibot` | no | ported (`27_ibot`) |
@@ -107,12 +107,13 @@ under its capture number.
 
 **Porting order now:** by capture-directory number among the not-yet-ported,
 preferring torch-only (tier-A) self-contained methods and deferring the special-dep
-/ submodule / eval-only tier (`24_beit`, `34_msn`, `35_vjepa`, `37_lejepa`).
+/ submodule / eval-only tier (`34_msn`, `35_vjepa`, `37_lejepa`).
 **The clean from-scratch tier is exhausted** -- with `32_nepa` ported, every
 remaining not-yet-ported method is either an eval-only pretrained download
 (`30_aim`, `31_dinov3` -- data not public, load official checkpoints) or the
-special-dep / submodule tier (`24_beit`'s DALL-E tokeniser, `34_msn`, `35_vjepa`,
-`37_lejepa`). **The eval-only-download phase is now underway**: `28_dinov2` is
+special-dep / submodule tier (`34_msn`, `35_vjepa`, `37_lejepa`). `24_beit` is now
+ported (torch-only ViT + a hash-pinned DALL-E dVAE tokeniser download, lazy-imported
+for a real run; the smoke uses a random tokeniser). **The eval-only-download phase is now underway**: `28_dinov2` is
 ported in the Franca-style frozen-backbone-download shape (pinned
 `third_party/dinov2` submodule + hash-pinned weights via `bin/fetch-weights.py`,
 CONTRACT §7); `31_dinov3` (dinov3 weights via transformers/HF) and `30_aim` (AIM

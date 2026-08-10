@@ -1,0 +1,77 @@
+{
+  "_note": "Run: .venvs/24_beit/bin/python bin/mutate.py --spec mutations/24_beit-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/24_beit/bin/python. Proves the BEiT model/eval guards are not vacuous: the mask token is applied at masked positions, the forward returns logits only at those positions, the MIM targets are read at the masked positions (aligned with the logits), the encoder mean-pools the patch tokens, encoder.pt excludes the mask token + MIM head, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
+  "targets": [
+    {
+      "label": "the mask token is not applied (masked positions keep their patch embedding)",
+      "file": "methods/24_beit/models/beit_model.py",
+      "old": "        x_emb = torch.where(mask_expanded, self.mask_token.expand_as(x_emb), x_emb)",
+      "new": "        x_emb = x_emb",
+      "tests": [
+        "tests.test_method_24_beit.TestTheModel.test_the_mask_token_is_applied_at_masked_positions"
+      ]
+    },
+    {
+      "label": "the forward returns all positions, not only the masked ones",
+      "file": "methods/24_beit/models/beit_model.py",
+      "old": "        return logits_all[mask]",
+      "new": "        return logits_all.reshape(-1, logits_all.size(-1))",
+      "tests": [
+        "tests.test_method_24_beit.TestTheModel.test_the_number_of_rows_tracks_the_mask"
+      ]
+    },
+    {
+      "label": "the MIM targets are read over all positions, unaligned with the masked logits",
+      "file": "methods/24_beit/train_step1_beit.py",
+      "old": "            labels = visual_tokens[masks]",
+      "new": "            labels = visual_tokens.reshape(-1)",
+      "tests": [
+        "tests.test_method_24_beit.TestAStep1Smoke.test_it_completes_and_satisfies_the_contract"
+      ]
+    },
+    {
+      "label": "the encoder does not mean-pool the patch tokens (returns the token grid)",
+      "file": "methods/24_beit/models/beit_model.py",
+      "old": "        return x_emb[:, 1:, :].mean(dim=1)",
+      "new": "        return x_emb[:, 1:, :]",
+      "tests": [
+        "tests.test_method_24_beit.TestTheModel.test_get_encoder_mean_pools_the_patch_tokens"
+      ]
+    },
+    {
+      "label": "encoder.pt no longer excludes the mask token and MIM head",
+      "file": "methods/24_beit/adapter/__init__.py",
+      "old": "    return not any(key.startswith(p) for p in ENCODER_EXCLUDE_PREFIXES)",
+      "new": "    return True",
+      "tests": [
+        "tests.test_method_24_beit.TestExtractingTheEncoder"
+      ]
+    },
+    {
+      "label": "a downstream probe number is mapped to a pretext name",
+      "file": "methods/24_beit/adapter/__init__.py",
+      "old": "    \"final_top1_acc\": \"final_linear_probe_top1_accuracy\",",
+      "new": "    \"final_top1_acc\": \"final_pretext_top1_accuracy\",",
+      "tests": [
+        "tests.test_method_24_beit.TestTheMetricsAreInTheVocabulary",
+        "tests.test_method_24_beit.TestALinearEvalSmoke"
+      ]
+    },
+    {
+      "label": "the absent encoder is not explained",
+      "file": "methods/24_beit/adapter/__init__.py",
+      "old": "    if _stage_of(config_path) != \"linear_eval\":\n        return None",
+      "new": "    return None\n    if False:\n        return None",
+      "tests": [
+        "tests.test_method_24_beit.TestTheEvalProducesNoEncoder",
+        "tests.test_method_24_beit.TestALinearEvalSmoke.test_it_produces_no_encoder_and_says_so"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-08-10",
+    "measured_with": ".venvs/24_beit (cu130) on an NVIDIA Tesla T4",
+    "killed": 7,
+    "total": 7,
+    "equivalent": []
+  }
+}
