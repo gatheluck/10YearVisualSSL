@@ -1,0 +1,59 @@
+{
+  "_note": "Run: .venvs/35_vjepa/bin/python bin/mutate.py --spec mutations/35_vjepa-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/35_vjepa/bin/python (jepa submodule checked out). Proves the V-JEPA model/eval guards are not vacuous: the EMA target moves toward the context encoder, the mask config must be non-empty, an empty encoder state is refused, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
+  "targets": [
+    {
+      "label": "the EMA target only decays (the source term is dropped)",
+      "file": "methods/35_vjepa/train_step1_vjepa.py",
+      "old": "        tp.data.mul_(momentum).add_(sp.detach().data, alpha=1.0 - momentum)",
+      "new": "        tp.data.mul_(momentum)",
+      "tests": [
+        "tests.test_method_35_vjepa.TestTheEMA.test_ema_moves_target_toward_source"
+      ]
+    },
+    {
+      "label": "an empty mask config is no longer refused",
+      "file": "methods/35_vjepa/adapter/__init__.py",
+      "old": "    if not isinstance(train[\"mask\"], list) or not train[\"mask\"]:",
+      "new": "    if False:",
+      "tests": [
+        "tests.test_method_35_vjepa.TestConfigTranslation.test_an_empty_mask_is_refused"
+      ]
+    },
+    {
+      "label": "an empty encoder state is no longer refused",
+      "file": "methods/35_vjepa/adapter/__init__.py",
+      "old": "    if not out:",
+      "new": "    if False:",
+      "tests": [
+        "tests.test_method_35_vjepa.TestExtractingTheEncoder.test_an_empty_state_is_refused"
+      ]
+    },
+    {
+      "label": "a downstream probe number is mapped to a pretext name",
+      "file": "methods/35_vjepa/adapter/__init__.py",
+      "old": "    \"final_top1_acc\": \"final_linear_probe_top1_accuracy\",",
+      "new": "    \"final_top1_acc\": \"final_pretext_top1_accuracy\",",
+      "tests": [
+        "tests.test_method_35_vjepa.TestTheMetricsAreInTheVocabulary",
+        "tests.test_method_35_vjepa.TestALinearEvalSmoke"
+      ]
+    },
+    {
+      "label": "the absent encoder is not explained",
+      "file": "methods/35_vjepa/adapter/__init__.py",
+      "old": "    if _stage_of(config_path) != \"linear_eval\":\n        return None",
+      "new": "    return None\n    if False:\n        return None",
+      "tests": [
+        "tests.test_method_35_vjepa.TestTheEvalProducesNoEncoder",
+        "tests.test_method_35_vjepa.TestALinearEvalSmoke.test_it_produces_no_encoder_and_says_so"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-08-11",
+    "measured_with": ".venvs/35_vjepa (cu130, third_party/jepa checked out) on an NVIDIA Tesla T4",
+    "killed": 5,
+    "total": 5,
+    "equivalent": []
+  }
+}

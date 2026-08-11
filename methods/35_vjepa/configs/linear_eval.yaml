@@ -1,0 +1,43 @@
+# V-JEPA linear evaluation: a linear probe on the frozen target encoder.
+#
+# The probe reads the model this port trains (the EMA target encoder's mean-pooled
+# tokens, one embed_dim vector per image), so its number is a genuine, comparable
+# linear probe. It follows the shared ARSSL protocol (mean-centre + L2-normalise
+# features, a single linear layer, SGD + cosine). The V-JEPA step-1 knobs (masks,
+# predictor, schedule) are not accepted here. The capture's own eval sweeps LRs
+# with the official probe; this port uses the shared frozen-feature probe instead
+# (a documented deviation).
+#
+# The encoder dims are named so the frozen V-JEPA encoder can be rebuilt to load
+# encoder.pt.
+#
+# Two paths are passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   an ImageFolder with train/ and val/ subdirectories
+#   --set ENCODER=<path>     encoder.pt from a step-1 run
+# The output path is fixed at --out.
+stage: linear_eval
+seed: 0
+data_root: "${DATA_ROOT}"
+device: auto
+encoder: "${ENCODER}"
+
+train:
+  # model (the encoder is a fixed V-JEPA ViT; these rebuild it)
+  model_name: vit_base
+  crop_size: 224
+  patch_size: 16
+  num_frames: 1
+  tubelet_size: 1
+  pred_depth: 6
+  pred_embed_dim: 384
+  uniform_power: false
+  use_mask_tokens: true
+  zero_init_mask_tokens: true
+  use_sdpa: true
+  # probe: a single linear layer, SGD + cosine
+  epochs: 100
+  batch_size: 256
+  num_workers: 8
+  lr: 0.1
+  momentum: 0.9
+  weight_decay: 0.0

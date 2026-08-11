@@ -15,6 +15,7 @@ the projection head `fc.*` is training machinery and is excluded.
 
 from __future__ import annotations
 
+import os
 import sys
 from collections import OrderedDict
 from functools import partial
@@ -29,8 +30,16 @@ _MSN_SUBMODULE = Path(__file__).resolve().parents[3] / "third_party" / "msn"
 
 
 def _import_deit():
-    if _MSN_SUBMODULE.is_dir() and str(_MSN_SUBMODULE) not in sys.path:
-        sys.path.insert(0, str(_MSN_SUBMODULE))
+    # Make `src` resolve to THIS submodule only. Another submodule port (35_vjepa)
+    # also exposes a top-level `src`, and `src` is a PEP 420 namespace package that
+    # would otherwise merge both submodules' `src/` dirs. So drop any cached `src*`,
+    # remove every other third_party root from sys.path, and put third_party/msn
+    # first.
+    for key in [k for k in sys.modules if k == "src" or k.startswith("src.")]:
+        del sys.modules[key]
+    tp = str(_MSN_SUBMODULE.parent) + os.sep       # <repo>/third_party/
+    sys.path[:] = [q for q in sys.path if not q.startswith(tp)]
+    sys.path.insert(0, str(_MSN_SUBMODULE))
     try:
         from src.deit import VisionTransformer
         from src.utils import trunc_normal_

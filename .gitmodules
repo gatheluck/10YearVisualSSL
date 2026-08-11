@@ -19,3 +19,6 @@
 [submodule "third_party/msn"]
 	path = third_party/msn
 	url = https://github.com/facebookresearch/msn.git
+[submodule "third_party/jepa"]
+	path = third_party/jepa
+	url = https://github.com/facebookresearch/jepa.git
