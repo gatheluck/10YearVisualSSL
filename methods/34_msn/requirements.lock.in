@@ -1,0 +1,11 @@
+# The input from which requirements.lock.txt (CPU) and requirements.lock.cu130.txt
+# (GPU) are generated. It is NOT installed directly and NOT a lock.
+#
+# 34_msn's own files import torch, torchvision, numpy and PyYAML (those are
+# requirements.txt); torchvision pulls Pillow transitively. Regenerate both locks
+# from the repository root as for the other methods (uv pip compile against the
+# fleet's shared pins, then bin/build-lock.py for the CPU lock; docs/GPU.md §2).
+torch
+torchvision
+numpy
+PyYAML

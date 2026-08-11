@@ -83,7 +83,7 @@ rest — e.g. capture `14_simclrv1` ↔ list #14 = PIRL; capture `17_swav` ↔ l
 | 26 | MAE | `25_mae` | no | ported (`25_mae`) |
 | 27 | SimMIM | `26_simmim` | no | ported (`26_simmim`; needs timm for Swin -- reuses the `22_mocov3` lock; the `transformers` dep was docstring-only, measured; encoder.pt is the bare Swin) |
 | 28 | iBOT | `27_ibot` | no | ported (`27_ibot`) |
-| 29 | MSN | `34_msn` | no | **HOLD** |
+| 29 | MSN | `34_msn` | no | ported (`34_msn`; **submodule-import**: pins `facebookresearch/msn` (third_party/msn @4388dc1, CC BY-NC 4.0, research-use) and imports its ViT (src/deit) + MSN loss (src/losses) + optimiser (src/msn_train.init_opt) into a single-process trainer; anchor/target EMA + prototypes + me-max; encoder.pt = anchor ViT trunk (fc excluded). The multi-view aug is reimplemented (upstream trips Pillow 12.x); DDP/submitit/cyanure dropped, shared ARSSL probe; torch-only closure. Nothing under the licence is copied) |
 | 30 | DINOv2 | `28_dinov2` | no | ported (`28_dinov2`; **eval-only download**, the first of that phase, Franca shape: pinned `third_party/dinov2` submodule (xformers disabled -> torch-only), the official ViT-g/14 LVD-142M weights hash-pinned via `bin/fetch-weights.py`; the from-scratch path (LVD-142M, not public) is the excluded step) |
 | 31 | I-JEPA | `29_ijepa` | no | ported (`29_ijepa`; torch-only -- I-JEPA ships its own ViT, NOT timm, measured; trains from scratch on ImageNet; encoder.pt is the EMA target encoder) |
 | 32 | AIM | `30_aim` | no | ported (`30_aim`; **eval-only download**, Franca/dinov2 shape: pinned `third_party/ml-aim` submodule (Apple's `aim`), the official AIM-600M ViT-H/14 (DFN-2B+) backbone hash-pinned via `bin/fetch-weights.py`, probed on the last-6-block average patch-mean-pooled; from-scratch DFN-2B+ pretraining is the excluded step. Licence apple-amlr = non-commercial research; nothing under it copied (submodule + download), academic-research use only) |
@@ -123,11 +123,17 @@ non-commercial tier. `30_aim` is **now ported** as an eval-only download (see be
 comparison -- is self-contained torch-only code (own ViT + DINO/iBOT/KoLeo losses,
 measured no timm/transformers), so it ports as a clean from-scratch method (DINOv3
 **core**; the released Gram anchoring stage is excluded via the capture's
-`gram.mode: core_only`, and no Meta code/weights are used). The remaining
-not-yet-ported methods are `34_msn` / `35_vjepa` -- both **wrap the official repo as
-a submodule** and run its `main.py`, both CC-BY-NC (`35_vjepa` is a video method
-whose step-1 is a caveat row) -- each still needing a trust decision for the
-submodule add. `24_beit` is ported (torch-only ViT + a hash-pinned DALL-E dVAE
+`gram.mode: core_only`, and no Meta code/weights are used). `34_msn` is **now
+ported** (2026-08-11): rather than run the official DDP `main.py` + cyanure
+`linear_eval`, it pins `facebookresearch/msn` as a submodule and IMPORTS its ViT +
+MSN loss + optimiser into a single-process trainer (the imported `src` modules are
+torch/torchvision/numpy/PIL only -- no apex/opencv/submitit/cyanure), reimplements
+the multi-view aug (the upstream one trips Pillow 12.x with a Tensor blur radius),
+and uses the shared ARSSL probe; CC-BY-NC documented as research-use, nothing
+copied. **The only remaining not-yet-ported method is `35_vjepa`** -- a video
+method (VideoMix2M) whose step-1 is an appendix/caveat row and whose step-2 imports
+`facebookresearch/jepa` as a submodule (CC-BY-NC), the least-clean fit; it needs a
+trust decision for that submodule add. `24_beit` is ported (torch-only ViT + a hash-pinned DALL-E dVAE
 tokeniser download, lazy-imported for a real run via the `third_party/dall_e`
 submodule; the smoke uses a random tokeniser). **The eval-only-download phase is
 underway**: `28_dinov2` and `30_aim` are ported in the Franca-style

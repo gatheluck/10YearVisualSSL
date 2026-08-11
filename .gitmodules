@@ -16,3 +16,6 @@
 [submodule "third_party/ml-aim"]
 	path = third_party/ml-aim
 	url = https://github.com/apple/ml-aim.git
+[submodule "third_party/msn"]
+	path = third_party/msn
+	url = https://github.com/facebookresearch/msn.git

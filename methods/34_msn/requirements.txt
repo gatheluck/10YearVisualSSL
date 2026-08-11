@@ -1,0 +1,18 @@
+# What the 34_msn port's own files import, and nothing else. Checked in both
+# directions by tests/test_method_requirements.py. Floors only; the exact hashed
+# closure is in requirements.lock.txt (CPU) and requirements.lock.cu130.txt.
+#
+# A submodule-import port: the ViT and the MSN loss are the official
+# facebookresearch/msn code under third_party/msn, imported through PYTHONPATH and
+# never copied or installed. This port's own files import only torch (the trainer,
+# the probe), torchvision (the ImageFolder + multi-view / val transforms), numpy
+# (the seeding) and PyYAML (the YAML config on the stand-alone path). The upstream
+# msn `src` package imports only torch/torchvision/numpy/PIL (measured; no
+# apex/opencv/submitit/cyanure in the parts imported here), so the closure stays
+# torch-only. The official cyanure/submitit/opencv (used by the upstream main.py /
+# linear_eval.py) are not needed: the trainer is single-process and the probe is
+# the shared ARSSL probe. No timm; TensorBoard and tqdm are dropped.
+torch>=2.1.0
+torchvision>=0.16.0
+numpy>=1.24.0
+PyYAML>=6.0
