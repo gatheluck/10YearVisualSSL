@@ -1,0 +1,29 @@
+{
+  "captured_at": "2026-08-11",
+  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
+  "captured_note": "Ported from the capture's methods/34_msn, which is a thin wrapper that drives the official facebookresearch/msn repo (its main.py under DistributedDataParallel + submitit, and its linear_eval.py under cyanure). The capture ships no model or loss of its own for MSN. This port pins facebookresearch/msn as the submodule third_party/msn and IMPORTS its ViT (src/deit.py) and MSN loss (src/losses.py) + optimiser (src/msn_train.init_opt), running them in a single-process trainer; only the multi-view augmentation is reimplemented (see below) and the linear probe is the shared ARSSL probe rather than the official cyanure one. The port keeps the capture directory numbering (34) per the 2026-08-09 keep-capture-numbering decision (this list's number 29 is MSN -- see docs/PORTING_ROADMAP.md).",
+  "paper": {
+    "title": "Masked Siamese Networks for Label-Efficient Learning",
+    "authors": "Assran, Caron, Misra, Bojanowski, Bordes, Vincent, Joulin, Rabbat, Ballas",
+    "year": 2022,
+    "arxiv": "2204.07141"
+  },
+  "upstream": {
+    "repo": "https://github.com/facebookresearch/msn",
+    "commit": "4388dc1eadbe3042b85d3296d41b9b207656e043",
+    "license": "CC BY-NC 4.0 (Attribution-NonCommercial) -- non-commercial research use only",
+    "note": "The ViT (src/deit.py), the MSN loss (src/losses.py) and the optimiser (src/msn_train.init_opt) are imported from this pinned submodule through PYTHONPATH; never copied into this repository or installed. Its src.utils AllReduce/AllReduceSum are dist.is_initialized()-guarded, so they are inert single-process."
+  },
+  "licence_note": "The facebookresearch/msn code is released under CC BY-NC 4.0 (Attribution-NonCommercial 4.0 International), which permits use for NON-COMMERCIAL research only. This port is used solely for academic research. Nothing under that licence is copied into this repository: the code is referenced as a pinned git submodule (third_party/msn) and imported. This port's own files (the trainer, the augmentation, the eval, the adapter, the configs, the tests) are original and carry this repository's licence; they only reference the msn code.",
+  "scope": "The masked-siamese step 1 is ported (the official deit_small recipe): an anchor ViT sees several patch-dropped multi-crop views (rand + focal) and an EMA target ViT sees one un-dropped random view; both are mapped to learnable prototypes via a soft-nearest-neighbour classifier, and the loss is the MSN cross-entropy plus a me-max entropy regulariser (loss = ploss + memax_weight * me_max + ent_weight * ent). AdamW under a warmup+cosine LR schedule; the target encoder is an EMA of the anchor. The capture's own linear evaluation (the official cyanure logistic-regression probe) is replaced by the shared ARSSL probe, and the capture's step 2 is EXCLUDED as in every port.",
+  "encoder": "encoder.pt is the anchor ViT trunk (patch_embed, cls_token, pos_embed, blocks, norm), producing the CLS feature (embed_dim; 384 for deit_small). The projection head (fc.*) is training machinery and is excluded -- the standard SSL convention of probing the encoder. It loads into a bare ViT (build_msn_backbone, the projection head left as the default Identity) whose forward_features returns the CLS token at embed_dim.",
+  "linear_eval": "Reads the trained encoder.pt and probes the anchor backbone's CLS token (embed_dim), a genuine learned representation, so the number is comparable. Images use the deterministic val pipeline (resize + centre crop, ImageNet normalisation). The capture's own MSN eval runs the official cyanure logistic-regression probe; this port follows the lab's shared ARSSL probe (mean-centre + L2-normalise features, single linear layer, SGD momentum + cosine, top1/top5) instead, so the number is comparable across the ported methods.",
+  "rewritten_during_the_port": [
+    "the ViT (src/deit.py) and the MSN loss (src/losses.py) and optimiser (src/msn_train.init_opt) are imported from the pinned facebookresearch/msn submodule, never copied; build_msn_model replicates the upstream init_model construction (ViT trunk + projection head) so a small hermetic CPU smoke can run a tiny ViT (the upstream init_model builds only the fixed deit_* variants at 224px)",
+    "the multi-view augmentation is reimplemented (data/msn_data.py) with torchvision's GaussianBlur; the upstream make_transforms passes a torch.Tensor radius to PIL.ImageFilter.GaussianBlur, which the pinned Pillow (12.x) rejects. The recipe (rand + focal random-resized crops, colour distortion, grayscale, blur, ImageNet norm) is kept faithfully",
+    "the number of anchor views passed to the MSN loss is len(imgs[1:]) = rand_views + focal_views - 1 (imgs[0] is the target view), matching the anchor forward on imgs[1:]",
+    "the training loop drops the upstream DistributedDataParallel + submitit launcher and TensorBoard/tqdm, single-process; the AllReduce/AllReduceSum calls are kept but are inert single-process (dist-guarded); the device is resolved (resolve_device) instead of assumed CUDA",
+    "the target encoder EMA, the prototypes-as-parameters, the sharpen and momentum schedules and the AdamW warmup+cosine schedule are kept faithfully",
+    "the linear probe is the lab's shared ARSSL probe (frozen features, mean-centre + L2-normalise, single linear layer, SGD + cosine) rather than the capture's cyanure logistic probe, so the number is comparable across the ported methods; cyanure/submitit/opencv (the official main.py/linear_eval deps) are therefore not needed"
+  ]
+}

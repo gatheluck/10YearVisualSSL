@@ -1,0 +1,50 @@
+{
+  "_note": "Run: .venvs/34_msn/bin/python bin/mutate.py --spec mutations/34_msn-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/34_msn/bin/python (msn submodule checked out). Proves the MSN model/eval guards are not vacuous: the number of anchor views fed to the loss equals len(imgs[1:]) (target-tiling must match), encoder.pt excludes the projection head, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
+  "targets": [
+    {
+      "label": "the anchor-view count is off by one, so the loss target-tiling mismatches the anchor rows",
+      "file": "methods/34_msn/train_step1_msn.py",
+      "old": "    num_anchor_views = rand_views + focal_views - 1",
+      "new": "    num_anchor_views = rand_views + focal_views",
+      "tests": [
+        "tests.test_method_34_msn.TestAStep1Smoke.test_it_completes_and_satisfies_the_contract"
+      ]
+    },
+    {
+      "label": "encoder.pt no longer excludes the projection head",
+      "file": "methods/34_msn/adapter/__init__.py",
+      "old": "    return not any(key.startswith(p) for p in ENCODER_EXCLUDE_PREFIXES)",
+      "new": "    return True",
+      "tests": [
+        "tests.test_method_34_msn.TestExtractingTheEncoder"
+      ]
+    },
+    {
+      "label": "a downstream probe number is mapped to a pretext name",
+      "file": "methods/34_msn/adapter/__init__.py",
+      "old": "    \"final_top1_acc\": \"final_linear_probe_top1_accuracy\",",
+      "new": "    \"final_top1_acc\": \"final_pretext_top1_accuracy\",",
+      "tests": [
+        "tests.test_method_34_msn.TestTheMetricsAreInTheVocabulary",
+        "tests.test_method_34_msn.TestALinearEvalSmoke"
+      ]
+    },
+    {
+      "label": "the absent encoder is not explained",
+      "file": "methods/34_msn/adapter/__init__.py",
+      "old": "    if _stage_of(config_path) != \"linear_eval\":\n        return None",
+      "new": "    return None\n    if False:\n        return None",
+      "tests": [
+        "tests.test_method_34_msn.TestTheEvalProducesNoEncoder",
+        "tests.test_method_34_msn.TestALinearEvalSmoke.test_it_produces_no_encoder_and_says_so"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-08-11",
+    "measured_with": ".venvs/34_msn (cu130, third_party/msn checked out) on an NVIDIA Tesla T4",
+    "killed": 4,
+    "total": 4,
+    "equivalent": []
+  }
+}
