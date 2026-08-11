@@ -1,0 +1,57 @@
+{
+  "_note": "Run: .venvs/1_context_prediction/bin/python bin/mutate.py --spec mutations/01_context_prediction-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/1_context_prediction/bin/python. Proves the encoder-extraction, absent-encoder, metric-filter and round-trip guards are not vacuous. See docs/GPU.md section 4.",
+  "targets": [
+    {
+      "label": "extract_encoder keeps the pretext head too (prefix filter removed)",
+      "file": "methods/01_context_prediction/adapter/__init__.py",
+      "old": "           if k.startswith(ENCODER_PREFIX)}",
+      "new": "           if True or k.startswith(ENCODER_PREFIX)}",
+      "tests": [
+        "tests.test_method_01_context_prediction.TestEncoderExtraction.test_only_the_encoder_comes_out"
+      ]
+    },
+    {
+      "label": "an empty encoder.pt is no longer refused",
+      "file": "methods/01_context_prediction/adapter/__init__.py",
+      "old": "    if not out:\n        raise RuntimeError(",
+      "new": "    if False:\n        raise RuntimeError(",
+      "tests": [
+        "tests.test_method_01_context_prediction.TestEncoderExtraction.test_nothing_under_the_prefix_is_refused"
+      ]
+    },
+    {
+      "label": "the absent encoder is left unexplained in linear_eval",
+      "file": "methods/01_context_prediction/adapter/__init__.py",
+      "old": "            encoder_absent_reason=(None if stage == \"step1\"\n                                   else NO_ENCODER_REASON))",
+      "new": "            encoder_absent_reason=None)",
+      "tests": [
+        "tests.test_method_01_linear_eval.TestASmokeRun.test_the_absent_encoder_is_explained_not_silent"
+      ]
+    },
+    {
+      "label": "a boolean accuracy is counted as a number in the eval metrics",
+      "file": "methods/01_context_prediction/adapter/__init__.py",
+      "old": "    for k in LINEAR_EVAL_METRICS:\n        v = results.get(k)\n        if isinstance(v, bool) or not isinstance(v, (int, float)):",
+      "new": "    for k in LINEAR_EVAL_METRICS:\n        v = results.get(k)\n        if not isinstance(v, (int, float)):",
+      "tests": [
+        "tests.test_method_01_linear_eval.TestTheMetricsAreFilteredHere_too.test_a_boolean_is_not_a_number"
+      ]
+    },
+    {
+      "label": "a checkpoint whose keys do not match is accepted as a different model",
+      "file": "methods/01_context_prediction/evaluate_linear_official.py",
+      "old": "        if set(state) == encoder_keys:",
+      "new": "        if True:",
+      "tests": [
+        "tests.test_method_01_linear_eval.TestLoadingTheEncoderTheContractProduced.test_a_checkpoint_for_a_different_model_is_refused"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-08-11",
+    "measured_with": ".venvs/1_context_prediction (cu130) on an NVIDIA Tesla T4",
+    "killed": 5,
+    "total": 5,
+    "equivalent": []
+  }
+}

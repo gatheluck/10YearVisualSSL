@@ -529,16 +529,22 @@ class TestASmokeRun(Base):
     @needs_torch
     def test_asking_for_cuda_without_cuda_is_refused(self):
         """**Falling back quietly would turn a misconfigured cluster job into
-        a run that looks fine and takes a thousand times longer.**"""
-        if torch.cuda.is_available():
-            self.skipTest("this machine has CUDA, so the refusal cannot fire")
+        a run that looks fine and takes a thousand times longer.**
+
+        `is_available` is mocked to False rather than skipped where CUDA is
+        present: the earlier skip meant the refusal was never exercised on a
+        GPU machine, so a mutation removing it could not be killed there
+        (mutations/01_context_prediction-step1-device.json)."""
+        from unittest import mock
         trainer = load("train_step1_alexnet_official",
                        METHOD / "train_step1_alexnet_official.py")
-        with self.assertRaises(RuntimeError) as e:
-            trainer.resolve_device("cuda", 0)
-        self.assertIn("cuda", str(e.exception))
-        self.assertEqual(trainer.resolve_device("cpu", 0).type, "cpu")
-        self.assertEqual(trainer.resolve_device("auto", 0).type, "cpu")
+        with mock.patch.object(trainer.torch.cuda, "is_available",
+                               return_value=False):
+            with self.assertRaises(RuntimeError) as e:
+                trainer.resolve_device("cuda", 0)
+            self.assertIn("cuda", str(e.exception))
+            self.assertEqual(trainer.resolve_device("cpu", 0).type, "cpu")
+            self.assertEqual(trainer.resolve_device("auto", 0).type, "cpu")
 
     @needs_torch
     def test_deterministic_algorithms_are_demanded(self):

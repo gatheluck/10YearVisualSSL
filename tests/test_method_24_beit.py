@@ -475,6 +475,16 @@ class TestAStep1Smoke(Base):
         self.assertIn("final_pretext_loss", m)
 
     @needs_deps
+    def test_the_manifest_records_the_pinned_upstream(self):
+        """A real run imports the pinned DALL-E tokenizer submodule, so the
+        manifest must name it (CONTRACT: upstream is recorded for every
+        submodule-using method). The value is fixed, so the smoke -- which uses
+        a random tokenizer -- still records it."""
+        self.run_adapter()
+        man = json.loads((self.out / "run_manifest.json").read_text())
+        self.assertEqual(man["upstream"], adapter.UPSTREAM)
+
+    @needs_deps
     def test_the_encoder_pt_it_wrote_loads_back(self):
         self.run_adapter()
         import torch

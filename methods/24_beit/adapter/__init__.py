@@ -34,6 +34,16 @@ METHOD = "24_beit"
 STAGES = ("step1", "linear_eval")
 METHOD_DIR = Path(__file__).resolve().parent.parent
 
+# The pinned code this run imports: the OpenAI DALL-E dVAE tokenizer, unpickled
+# for a real run by the `third_party/dall_e` submodule (the BEiT ViT itself is
+# the lab's own code -- not from here). Recorded in the run manifest because the
+# contract records `upstream` for every submodule-using method, so a run says
+# which pinned code produced it; kept in step with provenance.json (the same
+# repo+commit). The hermetic smoke imports nothing, but the field states what a
+# real run would use. See docs/CONTRACT.md and provenance.json.
+UPSTREAM = {"repo": "https://github.com/openai/DALL-E",
+            "commit": "5be4b236bc3ade6943662354117a0e83752cc322"}
+
 MODEL_KEYS = frozenset({"img_size", "patch_size", "vocab_size", "embed_dim",
                         "depth", "num_heads", "mlp_ratio", "drop_path_rate",
                         "init_values"})
@@ -289,6 +299,7 @@ def main(argv: "list[str] | None" = None) -> int:
     try:
         return adapterlib.run(config=a.config, out=a.out, method=METHOD,
                               stage=_stage_of(a.config), body=body,
+                              upstream=UPSTREAM,
                               encoder_absent_reason=_absent_reason(a.config))
     except (adapterlib.AdapterError, ConfigError) as exc:
         print(f"  *** {exc}", file=sys.stderr)
