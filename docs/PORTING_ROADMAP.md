@@ -87,7 +87,7 @@ rest — e.g. capture `14_simclrv1` ↔ list #14 = PIRL; capture `17_swav` ↔ l
 | 30 | DINOv2 | `28_dinov2` | no | ported (`28_dinov2`; **eval-only download**, the first of that phase, Franca shape: pinned `third_party/dinov2` submodule (xformers disabled -> torch-only), the official ViT-g/14 LVD-142M weights hash-pinned via `bin/fetch-weights.py`; the from-scratch path (LVD-142M, not public) is the excluded step) |
 | 31 | I-JEPA | `29_ijepa` | no | ported (`29_ijepa`; torch-only -- I-JEPA ships its own ViT, NOT timm, measured; trains from scratch on ImageNet; encoder.pt is the EMA target encoder) |
 | 32 | AIM | `30_aim` | no | ported (`30_aim`; **eval-only download**, Franca/dinov2 shape: pinned `third_party/ml-aim` submodule (Apple's `aim`), the official AIM-600M ViT-H/14 (DFN-2B+) backbone hash-pinned via `bin/fetch-weights.py`, probed on the last-6-block average patch-mean-pooled; from-scratch DFN-2B+ pretraining is the excluded step. Licence apple-amlr = non-commercial research; nothing under it copied (submodule + download), academic-research use only) |
-| 33 | V-JEPA | `35_vjepa` | no | **HOLD** |
+| 33 | V-JEPA | `35_vjepa` | no | ported (`35_vjepa`; **submodule-import** of `facebookresearch/jepa` (third_party/jepa @51c59d5, CC BY-NC 4.0, research-use). Ports the capture's step-2 image adaptation (num_frames=1 image ViT-B/16, from scratch on ImageNet) -- a genuine comparable row, NOT the step-1 caveat probe of the released video model. Imports init_video_model + 3D MaskCollator + apply_masks; context/target EMA + latent smooth-L1 prediction; encoder.pt = EMA target encoder. torch-only closure; single-process (DDP/TensorBoard dropped); shared ARSSL probe. Nothing under the licence is copied) |
 | 34 | Franca | `36_franca` | no | ported (`36_franca`) |
 | 35 | DINOv3 | `31_dinov3` | no | ported (`31_dinov3`; torch-only, from-scratch on ImageNet -- the capture's **step 2** unified SSL comparison, DINOv3 **core** objective: own ViT (register tokens + axial RoPE) + DINO (Sinkhorn centring) + iBOT + KoLeo, EMA teacher, multi-crop; encoder.pt = teacher backbone (prefix stripped). The capture's step 1 (HF-**gated** official weights) and the released **Gram anchoring** stage (`gram.mode: core_only`) are excluded; a from-scratch re-implementation, so no Meta code/weights are used) |
 | 36 | LeJEPA | `37_lejepa` | no | ported (`37_lejepa`; torch+timm, from-scratch on ImageNet -- a timm ViT + projector trained by SIGReg (Epps-Pulley quadrature + random slicing, reimplemented locally, no external package) + a cross-view invariance loss; encoder.pt is the bare backbone, prefix stripped) |
@@ -130,10 +130,12 @@ MSN loss + optimiser into a single-process trainer (the imported `src` modules a
 torch/torchvision/numpy/PIL only -- no apex/opencv/submitit/cyanure), reimplements
 the multi-view aug (the upstream one trips Pillow 12.x with a Tensor blur radius),
 and uses the shared ARSSL probe; CC-BY-NC documented as research-use, nothing
-copied. **The only remaining not-yet-ported method is `35_vjepa`** -- a video
-method (VideoMix2M) whose step-1 is an appendix/caveat row and whose step-2 imports
-`facebookresearch/jepa` as a submodule (CC-BY-NC), the least-clean fit; it needs a
-trust decision for that submodule add. `24_beit` is ported (torch-only ViT + a hash-pinned DALL-E dVAE
+copied. `35_vjepa` is **now ported** (2026-08-11), the LAST method: rather than the
+step-1 caveat probe of the released video model, it ports the capture's step-2 image
+adaptation -- pin `facebookresearch/jepa` as a submodule and import init_video_model
++ the 3D mask collator to train a V-JEPA-objective image ViT-B/16 (num_frames=1) from
+scratch on ImageNet, a genuine comparable row; CC-BY-NC documented, nothing copied.
+**ALL 40 Step-1&2-list methods are now ported.** `24_beit` is ported (torch-only ViT + a hash-pinned DALL-E dVAE
 tokeniser download, lazy-imported for a real run via the `third_party/dall_e`
 submodule; the smoke uses a random tokeniser). **The eval-only-download phase is
 underway**: `28_dinov2` and `30_aim` are ported in the Franca-style
