@@ -145,6 +145,72 @@ def methods_missing_stage_config(
     return gaps
 
 
+def _adapter_upstream(method: str, methods_dir: Path = METHODS_DIR):
+    """The adapter's module-level `UPSTREAM` literal, or None if absent.
+
+    Read via AST, like STAGES, to avoid the shared-package import collision.
+    A present-but-non-literal `UPSTREAM` returns a sentinel so it is reported
+    rather than silently treated as absent.
+    """
+    src = (methods_dir / method / "adapter" / "__init__.py").read_text(
+        encoding="utf-8")
+    for node in ast.parse(src).body:
+        if isinstance(node, ast.Assign) and any(
+                isinstance(t, ast.Name) and t.id == "UPSTREAM"
+                for t in node.targets):
+            try:
+                val = ast.literal_eval(node.value)
+            except Exception:
+                return {"_unparseable": True}
+            return val if isinstance(val, dict) else {}
+    return None
+
+
+def _provenance_upstream(method: str, methods_dir: Path = METHODS_DIR):
+    """provenance.json's `upstream` if it names a repo, else None."""
+    p = methods_dir / method / "provenance.json"
+    if not p.is_file():
+        return None
+    u = json.loads(p.read_text(encoding="utf-8")).get("upstream") or {}
+    return u if u.get("repo") else None
+
+
+def upstream_recording_problems(
+        methods: list[str], methods_dir: Path = METHODS_DIR
+) -> list[tuple[str, str]]:
+    """(method, why) where provenance and the adapter disagree on `upstream`.
+
+    CONTRACT.md: `upstream` is recorded for submodule-using methods and null
+    only for self-implementations. A method that pins a submodule (its
+    provenance names the repo+commit) must therefore also pass `UPSTREAM` to
+    `adapterlib.run`, so the *run manifest* -- what the contract checks -- says
+    which pinned code produced the result. Recording it in provenance.json
+    alone leaves the manifest silent.
+    """
+    problems: list[tuple[str, str]] = []
+    for m in methods:
+        prov = _provenance_upstream(m, methods_dir)
+        adap = _adapter_upstream(m, methods_dir)
+        if prov is not None and adap is None:
+            problems.append((m, "provenance records an upstream but the adapter "
+                                "defines no UPSTREAM: the run manifest will omit "
+                                "it (CONTRACT: upstream is for submodule-using "
+                                "methods)"))
+        elif adap is not None and prov is None:
+            problems.append((m, "adapter defines UPSTREAM but provenance.json "
+                                "records none"))
+        elif prov is not None and adap is not None:
+            if adap.get("_unparseable"):
+                problems.append((m, "adapter UPSTREAM is not a literal dict"))
+            elif (adap.get("repo"), adap.get("commit")) != (prov.get("repo"),
+                                                            prov.get("commit")):
+                problems.append((m, f"adapter UPSTREAM "
+                                    f"{adap.get('repo')}@{adap.get('commit')} != "
+                                    f"provenance {prov.get('repo')}@"
+                                    f"{prov.get('commit')}"))
+    return problems
+
+
 # --- the guards, applied to the real repository ---------------------------
 
 class TestEveryMethodHasAMeasuredMutationSpec(unittest.TestCase):
@@ -172,6 +238,14 @@ class TestEveryConfigStageIsShipped(unittest.TestCase):
             gaps, [],
             f"declared stages with no shipped config (cannot be run from "
             f"disk): {gaps}")
+
+
+class TestUpstreamIsRecordedInBothPlaces(unittest.TestCase):
+    def test_provenance_and_adapter_upstream_agree(self):
+        probs = upstream_recording_problems(discover_methods())
+        self.assertEqual(
+            probs, [],
+            f"upstream recorded in only one place, or mismatched: {probs}")
 
 
 # --- controls: a detector that cannot fail is not a detector --------------
@@ -238,6 +312,27 @@ class TestTheDetectorsActuallyFire(unittest.TestCase):
             "stage: linear_eval\n")
         self.assertEqual(
             methods_missing_stage_config(["planted"], methods_dir=tmp), [])
+
+    def test_upstream_detector_fires_and_stays_quiet(self):
+        import tempfile
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(__import__("shutil").rmtree, tmp, ignore_errors=True)
+        planted = tmp / "planted"
+        (planted / "adapter").mkdir(parents=True)
+        # positive: provenance names an upstream, the adapter defines none
+        (planted / "provenance.json").write_text(
+            json.dumps({"upstream": {"repo": "r", "commit": "c"}}),
+            encoding="utf-8")
+        (planted / "adapter" / "__init__.py").write_text(
+            "STAGES = ('step1',)\n", encoding="utf-8")
+        self.assertTrue(
+            upstream_recording_problems(["planted"], methods_dir=tmp))
+        # negative: a matching UPSTREAM silences it
+        (planted / "adapter" / "__init__.py").write_text(
+            "STAGES = ('step1',)\nUPSTREAM = {'repo': 'r', 'commit': 'c'}\n",
+            encoding="utf-8")
+        self.assertEqual(
+            upstream_recording_problems(["planted"], methods_dir=tmp), [])
 
 
 if __name__ == "__main__":
