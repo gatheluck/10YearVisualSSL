@@ -255,12 +255,44 @@ def _validate(node, path: tuple[str, ...]) -> None:
             f"JSON ({node!r}); write it as a string if that is what is meant")
 
 
+def _apply_override(cfg: dict, dotted: str, value) -> None:
+    """Set an **existing** scalar leaf, addressed by a dotted path.
+
+    Overriding only *changes* a setting (e.g. `train.epochs=1` for a smoke); it
+    never invents one. An unknown path, or a path that runs through a non-mapping,
+    is refused by name -- the same stance the tool takes on unknown keys, so a
+    typo cannot silently do nothing. The new value goes into the resolved config
+    and therefore into `config_sha256`: a shortened run is a different run.
+    """
+    parts = dotted.split(".")
+    node = cfg
+    for i, key in enumerate(parts[:-1]):
+        if not isinstance(node, dict) or key not in node:
+            raise ConfigError(
+                f"--override {dotted}: {_where(tuple(parts[:i + 1]))} is not an "
+                "existing key; override only changes settings that are there")
+        node = node[key]
+        if not isinstance(node, dict):
+            raise ConfigError(
+                f"--override {dotted}: {_where(tuple(parts[:i + 1]))} is "
+                f"{type(node).__name__}, not a mapping, so {dotted} cannot be set")
+    last = parts[-1]
+    if not isinstance(node, dict) or last not in node:
+        raise ConfigError(
+            f"--override {dotted}: {_where(tuple(parts))} is not an existing "
+            "key; override only changes settings that are there")
+    node[last] = value
+
+
 def resolve(config: Path, values: dict[str, str] | None = None,
-            root: Path | None = None) -> dict:
+            root: Path | None = None,
+            overrides: dict | None = None) -> dict:
     config = Path(config)
     root = Path(root).resolve() if root else config.resolve().parent
     merged = _load(config, root, ())
     out = _substitute(merged, values or {}, ())
+    for dotted, value in (overrides or {}).items():
+        _apply_override(out, dotted, value)
     _validate(out, ())
     return out
 
@@ -295,6 +327,23 @@ def parse_set(items: list[str]) -> dict[str, str]:
     return out
 
 
+def parse_override(items: list[str]) -> dict:
+    """`dotted.key=VALUE`. VALUE is JSON when it parses (so `epochs=1` is an int),
+    otherwise the literal string (so `arch=resnet101` needs no quoting)."""
+    out: dict = {}
+    for item in items:
+        if "=" not in item:
+            raise ConfigError(f"--override {item!r} is not KEY=VALUE")
+        k, _, v = item.partition("=")     # a value may contain '='
+        if not k:
+            raise ConfigError(f"--override {item!r} has an empty key")
+        try:
+            out[k] = json.loads(v)
+        except (json.JSONDecodeError, ValueError):
+            out[k] = v
+    return out
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--config", required=True, type=Path)
@@ -304,6 +353,10 @@ def main() -> int:
                     help="print the hash only; write nothing")
     ap.add_argument("--set", action="append", default=[], metavar="KEY=VALUE",
                     help="a substitution value; may be repeated")
+    ap.add_argument("--override", action="append", default=[],
+                    metavar="DOTTED.KEY=VALUE",
+                    help="change an existing setting by dotted path (e.g. "
+                         "train.epochs=1); may be repeated. Lands in the hash")
     ap.add_argument("--root", type=Path,
                     help="includes may not reach outside this directory "
                          "(default: the directory holding --config)")
@@ -313,7 +366,8 @@ def main() -> int:
         print("  *** give --out, or --print-hash ***", file=sys.stderr)
         return 2
     try:
-        cfg = resolve(a.config, parse_set(a.set), a.root)
+        cfg = resolve(a.config, parse_set(a.set), a.root,
+                      parse_override(a.override))
         data = canonical(cfg)
     except ConfigError as exc:
         # Nothing is written: a half-resolved config would be worse than none.

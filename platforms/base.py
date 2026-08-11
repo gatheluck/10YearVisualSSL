@@ -28,6 +28,11 @@ class JobSpec:
     hours: int = 1
     workdir: str | None = None
     env: dict[str, str] = field(default_factory=dict)
+    #: Shell lines to run before ``command`` (e.g. to activate an environment).
+    #: Backend-neutral: the caller supplies them, so anything environment- or
+    #: machine-specific stays out of the repository. A backend that runs the
+    #: command directly (no script) may ignore them.
+    setup: list[str] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
