@@ -157,7 +157,12 @@ shown so the shape is visible before it is built.
 ├── third_party/                    authors' code, untouched          exists
 │   ├── mar/                          pinned submodule (fork), used by methods/mar
 │   ├── var/                          pinned submodule, used by methods/var
-│   └── franca/                       pinned submodule, used by methods/36_franca
+│   ├── franca/                       pinned submodule, used by methods/36_franca
+│   ├── dinov2/                       pinned submodule, used by methods/28_dinov2
+│   ├── dall_e/                       pinned submodule, used by methods/24_beit
+│   ├── ml-aim/                       pinned submodule, used by methods/30_aim
+│   ├── msn/                          pinned submodule, used by methods/34_msn
+│   └── jepa/                         pinned submodule, used by methods/35_vjepa
 ├── mutations/                      mutation specs, with their measured results
 ├── platforms/                      where a job runs. Loosely coupled  exists
 │   ├── base.py                       the shared interface, free of platform terms

@@ -282,6 +282,23 @@ class TestALinearEvalSmoke(Base):
         man = json.loads((self.out / "run_manifest.json").read_text())
         self.assertEqual(man["upstream"], adapter.UPSTREAM)
 
+    @needs_deps
+    def test_the_same_config_twice_gives_the_same_classifier(self):
+        """The guarantee applies to this stage too: it has its own RNG --
+        feature extraction shuffles and the probe is initialised -- so two runs
+        of one config must agree bit for bit, compared by the manifest's
+        recorded hashes over every artifact."""
+        if not (UPSTREAM / "franca" / "hub" / "backbones.py").is_file():
+            self.skipTest("the franca submodule is not checked out here")
+        base = self.tmp
+        digests = []
+        for name in ("a", "b"):
+            self.out = base / name
+            self.run_adapter()
+            man = json.loads((self.out / "run_manifest.json").read_text())
+            digests.append({a["path"]: a["sha256"] for a in man["artifacts"]})
+        self.assertEqual(digests[0], digests[1])
+
     @unittest.skipUnless(HAVE_DEPS and torch.cuda.is_available(),
                          "no CUDA device; the GPU path cannot be exercised here")
     def test_the_probe_runs_on_cuda(self):

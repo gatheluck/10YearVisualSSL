@@ -1,6 +1,6 @@
 # Porting roadmap — the 37 Step 1&2 methods, order, and status
 
-Last updated: 2026-08-06
+Last updated: 2026-08-11
 
 This is the fact-based plan for porting the **Step 1&2** visual-SSL methods. It is
 externalised here so the plan survives across sessions. Generative-AR methods
@@ -101,13 +101,12 @@ list #15). Renaming the eight already-ported mismatched dirs (`01`, `02`, `17`,
 `20`, `21`, `25`, `27`, `36`) — and their tests, mutations, venvs and internal
 references — is deferred to publication; keeping the capture numbers now avoids
 that churn and preserves provenance alignment with the (append-only) Capture
-repository. So **HOLD is lifted**: the remaining `**HOLD**` cells in the table
-above no longer mean "blocked" — they mean "not yet ported", and each is portable
-under its capture number.
+repository. So **HOLD was lifted**, and every method has since been ported: no
+`HOLD` cells remain in the table above (all 37 rows read "ported").
 
-**Porting order now:** by capture-directory number among the not-yet-ported,
-preferring torch-only (tier-A) self-contained methods and deferring the special-dep
-/ submodule / eval-only tier (`34_msn`, `35_vjepa`).
+**Porting order used:** by capture-directory number, torch-only (tier-A)
+self-contained methods first, then the special-dep / submodule / eval-only tier
+(`34_msn`, `35_vjepa`) last. All are now done.
 **Correction (2026-08-10, measured):** an earlier note here claimed "the clean
 from-scratch tier is exhausted" and filed `37_lejepa` under the submodule tier.
 Re-reading the capture showed that was wrong -- `37_lejepa` imports no external
@@ -135,7 +134,9 @@ step-1 caveat probe of the released video model, it ports the capture's step-2 i
 adaptation -- pin `facebookresearch/jepa` as a submodule and import init_video_model
 + the 3D mask collator to train a V-JEPA-objective image ViT-B/16 (num_frames=1) from
 scratch on ImageNet, a genuine comparable row; CC-BY-NC documented, nothing copied.
-**ALL 40 Step-1&2-list methods are now ported.** `24_beit` is ported (torch-only ViT + a hash-pinned DALL-E dVAE
+**ALL 37 Step-1&2-list methods are now ported** (the three generative-AR pilots
+`image_gpt`, `mar`, `var` are separate — see the intro — bringing the repository
+to 40 ported methods in total). `24_beit` is ported (torch-only ViT + a hash-pinned DALL-E dVAE
 tokeniser download, lazy-imported for a real run via the `third_party/dall_e`
 submodule; the smoke uses a random tokeniser). **The eval-only-download phase is
 underway**: `28_dinov2` and `30_aim` are ported in the Franca-style
