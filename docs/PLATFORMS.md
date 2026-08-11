@@ -106,3 +106,62 @@ finds it.
 
 **These are decided after the two pilot methods are through.** Deciding now
 would produce a design that has never met a real job.
+
+---
+
+## 6. Running a test job on ABCI
+
+The core stays platform-agnostic; this section is prose, so it may name the
+platform. Everything machine-specific — the **group id** and any **environment
+activation** — is injected at run time and never committed.
+
+**Prerequisites (once per method):** check out the submodules
+(`git submodule update --init`) and build the method's environment
+(`.venvs/<method>/`, per `docs/GPU.md`).
+
+**Submit a short run** (one GPU, one epoch), with the group id in the
+environment so it never reaches the repository:
+
+```
+ABCI_GROUP=<your-group> python3 bin/launch.py \
+  --config methods/<method>/configs/step1.yaml --method <method> \
+  --platform abci --gpus 1 --hours 1 \
+  --set DATA_ROOT=<imagenet-on-abci> \
+  --override train.epochs=1 \
+  --python "$PWD/.venvs/<method>/bin/python"
+```
+
+- `--override train.epochs=1` shortens the run (any existing setting works, e.g.
+  `--override train.max_steps=50`); it lands in `config_sha256`, so a short run is
+  recorded as the distinct run it is.
+- `--python` names the interpreter the job runs. The job `cd`s into the method
+  directory, so pass an **absolute** path — pointing it straight at the method's
+  venv interpreter needs no activation, since that interpreter already holds the
+  method's packages.
+- `--setup` lines run before the command; use them only if the site needs a
+  `module load` (or other activation). They are injected here, not stored in the
+  repo, so nothing machine-specific is committed.
+- `--gpus` maps to a resource type inside `platforms/abci/` only; `--hours` is the
+  walltime. Both stay out of `config_sha256` (they do not change the result).
+
+**Reading a failure.** The generated script (written to `ABCI_SCRIPT_DIR`, default
+the current directory) merges stdout and stderr into one log, prints environment
+diagnostics first — hostname, `nvidia-smi`, the interpreter and its `torch` /
+CUDA visibility, and `git submodule status` — and traps any failure to print the
+line, command and exit code. So one log usually shows the cause: wrong
+interpreter, no GPU visible, a submodule not checked out, or the adapter's own
+error.
+
+**Checking the outcome.** Submission only enqueues, so the launcher records
+`exit_status` as unknown and does not guess. After the job finishes, verify the
+outputs against the contract:
+
+```
+python3 bin/launch.py --verify-only runs/<method>-<hash>
+```
+
+which is exit status 0 **and** `status: ok` in the manifest — the same bar
+`contract-test` applies everywhere.
+
+The §5 items (PBS-completion polling, `WORLD_SIZE` across nodes, log collection)
+are still open and are settled once the two pilots have run.

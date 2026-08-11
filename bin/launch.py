@@ -101,7 +101,8 @@ def config_digest(resolved: Path) -> str:
     return hashlib.sha256(resolved.read_bytes()).hexdigest()
 
 
-def resolve(config: Path, into: Path, sets: dict) -> Path:
+def resolve(config: Path, into: Path, sets: dict,
+            overrides: list[str] | None = None) -> Path:
     """Produce the canonical resolved config, or refuse."""
     into.mkdir(parents=True, exist_ok=True)
     out = into / RESOLVED
@@ -109,6 +110,8 @@ def resolve(config: Path, into: Path, sets: dict) -> Path:
            "--config", config, "--out", out]
     for k, v in sets.items():
         cmd += ["--set", f"{k}={v}"]
+    for item in overrides or []:
+        cmd += ["--override", item]
     r = _run(cmd)
     if r.returncode != 0:
         raise LaunchError(f"the config could not be resolved:\n{r.stderr.strip()}")
@@ -164,7 +167,9 @@ def verify(run: Path, exit_status: int) -> tuple[bool, str]:
 
 def launch(config: Path, method: str, runs_dir: Path, platform: str,
            sets: dict, gpus: int, hours: int, again: bool,
-           processes: int = 1) -> tuple[int, dict]:
+           processes: int = 1, python: str | None = None,
+           setup: list[str] | None = None,
+           overrides: list[str] | None = None) -> tuple[int, dict]:
     if processes != 1:
         raise LaunchError(
             f"--processes {processes}: multi-process fan-out is not "
@@ -181,7 +186,7 @@ def launch(config: Path, method: str, runs_dir: Path, platform: str,
     import shutil
     staging = runs_dir / ".staging"
     try:
-        resolved = resolve(config, staging, sets)
+        resolved = resolve(config, staging, sets, overrides)
         digest = config_digest(resolved)
         payload = resolved.read_bytes()
     finally:
@@ -198,11 +203,12 @@ def launch(config: Path, method: str, runs_dir: Path, platform: str,
 
     spec = JobSpec(
         name=f"{method}-{digest[:12]}",
-        command=[sys.executable, "-m", "adapter",
+        command=[python or sys.executable, "-m", "adapter",
                  "--config", str((run / RESOLVED).resolve()),
                  "--out", str((run / OUT).resolve())],
         env_name=method, gpus=gpus, hours=hours, workdir=str(md),
         env=job_environment(gpus=gpus, processes=processes),
+        setup=list(setup or []),
     )
     result = mod.Backend().submit(spec)
 
@@ -220,6 +226,9 @@ def launch(config: Path, method: str, runs_dir: Path, platform: str,
         "gpus": gpus,
         "hours": hours,
         "set": dict(sets),
+        "override": list(overrides or []),
+        "python": python or sys.executable,
+        "setup": list(setup or []),
         "job_id": result.job_id,
         **summarise(result.exit_status, contract_ok),
     }
@@ -266,6 +275,17 @@ def main() -> int:
     ap.add_argument("--method")
     ap.add_argument("--platform", default=DEFAULT_PLATFORM)
     ap.add_argument("--set", action="append", default=[], metavar="KEY=VALUE")
+    ap.add_argument("--override", action="append", default=[],
+                    metavar="DOTTED.KEY=VALUE",
+                    help="change an existing config setting (e.g. "
+                         "train.epochs=1 for a short run); lands in the hash")
+    ap.add_argument("--python", default=None,
+                    help="interpreter for the job's command (default: this "
+                         "one). Point it at the method's venv for a cluster run")
+    ap.add_argument("--setup", action="append", default=[], metavar="LINE",
+                    help="a shell line to run before the command, e.g. to "
+                         "activate an environment; may be repeated. Injected "
+                         "at run time so nothing machine-specific is committed")
     ap.add_argument("--gpus", type=int, default=0,
                     help="a resource request for the scheduler. It does not "
                          "imply how many processes run")
@@ -286,7 +306,8 @@ def main() -> int:
                 raise LaunchError("--config and --method are both required")
             rc, record = launch(a.config, a.method, a.runs_dir, a.platform,
                                 parse_set(a.set), a.gpus, a.hours, a.again,
-                                a.processes)
+                                a.processes, python=a.python, setup=a.setup,
+                                overrides=a.override)
     except LaunchError as exc:
         print(f"  *** {exc}", file=sys.stderr)
         return 2

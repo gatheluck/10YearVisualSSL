@@ -12,6 +12,7 @@ machine.
 
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 import types
@@ -81,6 +82,84 @@ class TestScriptRendering(unittest.TestCase):
     def test_unknown_gpu_count_propagates_as_an_error(self):
         with self.assertRaises(ValueError):
             abci.render_script(spec(gpus=3), group="g")
+
+    def test_the_logs_are_merged_into_one_stream(self):
+        """A single stdout+stderr log is the easiest to read when a job fails."""
+        self.assertIn("-j oe", abci.render_script(spec(), group="g"))
+
+    def test_a_failing_command_reports_where_it_failed(self):
+        """`set -e` alone stops silently. The trap names the line, the command
+        and the exit code, so a failure is diagnosable from the log alone."""
+        s = abci.render_script(spec(), group="g")
+        self.assertIn("trap", s)
+        self.assertIn("ERR", s)
+        for frag in ("$LINENO", "$BASH_COMMAND"):
+            self.assertIn(frag, s, f"the trap does not report {frag}")
+
+    def test_it_probes_the_environment_before_running(self):
+        """The ABCI-specific silent failures -- wrong interpreter, no GPU
+        visible, a submodule not checked out -- must be visible in the log
+        before the command runs, so the cause is found in one look."""
+        s = abci.render_script(spec(), group="g")
+        for probe in ("hostname", "nvidia-smi", "python", "import torch",
+                      "git submodule status"):
+            self.assertIn(probe, s, f"no {probe!r} in the diagnostics")
+
+    def test_diagnostics_never_abort_the_job(self):
+        """Each probe is guarded, so a missing tool (no nvidia-smi on a CPU
+        node) does not fail the job before the real command runs."""
+        s = abci.render_script(spec(), group="g")
+        diag = s[:s.index("import torch")]
+        self.assertIn("|| true", diag)
+
+    def test_setup_lines_are_emitted_before_the_command(self):
+        """Environment activation is injected at run time (so nothing
+        machine-specific lives in the repo) and must run before the command."""
+        s = abci.render_script(
+            spec(setup=["module load cuda/12.6",
+                        "source .venvs/m/bin/activate"]),
+            group="g")
+        self.assertIn("module load cuda/12.6", s)
+        self.assertIn("source .venvs/m/bin/activate", s)
+        self.assertLess(s.index("module load cuda/12.6"),
+                        s.index("python3 -m adapter"))
+        # order among setup lines is preserved
+        self.assertLess(s.index("module load cuda/12.6"),
+                        s.index("source .venvs/m/bin/activate"))
+
+    def test_setup_runs_with_unset_variables_tolerated(self):
+        """venv/conda activation scripts reference unset variables; nounset
+        would abort them. `-u` is relaxed around the injected setup only, then
+        restored, so the rest of the job keeps the strict setting."""
+        s = abci.render_script(
+            spec(setup=["source .venvs/m/bin/activate"]), group="g")
+        i_relax = s.index("set +u")
+        i_setup = s.index("source .venvs/m/bin/activate")
+        i_restore = s.index("set -u", i_relax + 1)
+        self.assertLess(i_relax, i_setup)
+        self.assertLess(i_setup, i_restore)
+
+
+class TestGroupInjection(unittest.TestCase):
+    """The group id is injected, never baked in: the repo is public."""
+
+    def test_group_is_read_from_the_environment_when_not_passed(self):
+        with mock.patch.dict(os.environ, {"ABCI_GROUP": "from-env"}):
+            self.assertEqual(abci.Backend().group, "from-env")
+
+    def test_an_explicit_group_still_wins(self):
+        with mock.patch.dict(os.environ, {"ABCI_GROUP": "from-env"}):
+            self.assertEqual(abci.Backend("explicit").group, "explicit")
+
+    def test_submit_refuses_when_no_group_is_set_and_says_how(self):
+        with mock.patch.dict(os.environ, {}, clear=True):
+            b = abci.Backend()
+            with mock.patch.object(abci.shutil, "which",
+                                   return_value="/x/qsub"):
+                with self.assertRaises(RuntimeError) as e:
+                    b.submit(spec())
+        self.assertIn("ABCI_GROUP", str(e.exception),
+                      "it does not say which variable to set")
 
 
 class TestAvailability(unittest.TestCase):

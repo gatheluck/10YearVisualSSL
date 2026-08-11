@@ -38,8 +38,10 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import types
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parent.parent
 BIN = ROOT / "bin"
@@ -125,6 +127,72 @@ class TestTheRunDirectory(Base):
         self.launch_reference()
         after = {p for p in self.tmp.iterdir()}
         self.assertEqual(after - before, {self.runs})
+
+
+class TestInjectingInterpreterSetupAndOverride(Base):
+    """A cluster run must be able to name its interpreter (the method's venv),
+    activate an environment, and shorten the run -- all injected, so nothing
+    machine-specific is committed. These check the launcher wires them through."""
+
+    def _capture(self):
+        """Patch the backend so the built JobSpec can be inspected without
+        running anything. exit_status=None (enqueued) skips verification."""
+        from platforms import JobResult
+        captured = {}
+
+        class FakeBackend:
+            def submit(self, spec):
+                captured["spec"] = spec
+                return JobResult(job_id="fake", exit_status=None)
+
+        return captured, types.SimpleNamespace(Backend=lambda: FakeBackend())
+
+    def test_the_interpreter_is_injected_into_the_command(self):
+        captured, fake = self._capture()
+        with mock.patch.object(launch, "backend_for", return_value=fake):
+            launch.launch(self.authoring(), "_reference", self.runs, "local",
+                          {}, 0, 1, False, python="/opt/env/bin/python")
+        cmd = captured["spec"].command
+        self.assertEqual(cmd[0], "/opt/env/bin/python")
+        self.assertEqual(cmd[1:3], ["-m", "adapter"])
+
+    def test_the_default_interpreter_is_this_one(self):
+        captured, fake = self._capture()
+        with mock.patch.object(launch, "backend_for", return_value=fake):
+            launch.launch(self.authoring(), "_reference", self.runs, "local",
+                          {}, 0, 1, False)
+        self.assertEqual(captured["spec"].command[0], sys.executable)
+
+    def test_setup_lines_reach_the_spec_in_order(self):
+        captured, fake = self._capture()
+        lines = ["module load cuda", "source .venvs/m/bin/activate"]
+        with mock.patch.object(launch, "backend_for", return_value=fake):
+            launch.launch(self.authoring(), "_reference", self.runs, "local",
+                          {}, 0, 1, False, setup=lines)
+        self.assertEqual(captured["spec"].setup, lines)
+
+    def test_override_reaches_the_resolver_and_the_hash(self):
+        """End to end: --override changes the resolved config on disk (and so
+        the digest), proving it went through resolve-config, not around it."""
+        self.run_tool("--config", self.authoring(), "--method", "_reference",
+                      "--runs-dir", self.runs,
+                      "--override", "metrics.top1=1.0", expect=0)
+        run = next(p for p in self.runs.iterdir() if p.is_dir())
+        self.assertEqual(
+            json.loads((run / "resolved.json").read_text())["metrics"]["top1"],
+            1.0)
+
+    def test_the_record_names_the_interpreter_and_setup(self):
+        """A run must explain itself: the interpreter, setup and override are
+        recorded so someone who was not there can repeat it."""
+        self.run_tool("--config", self.authoring(), "--method", "_reference",
+                      "--runs-dir", self.runs, "--override", "metrics.top1=2.0",
+                      "--setup", "echo hi", expect=0)
+        run = next(p for p in self.runs.iterdir() if p.is_dir())
+        rec = json.loads((run / "launch.json").read_text())
+        self.assertEqual(rec["setup"], ["echo hi"])
+        self.assertEqual(rec["override"], ["metrics.top1=2.0"])
+        self.assertIn("python", rec)
 
 
 class TestResolving(Base):

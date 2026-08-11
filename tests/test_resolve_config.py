@@ -422,6 +422,56 @@ class TestYamlAuthoring(Base):
         self.assertEqual(self.resolve(p), {"x": 1, "y": 2})
 
 
+class TestOverride(Base):
+    """`--override dotted.key=VALUE` changes an existing setting for a run (e.g.
+    shortening `train.epochs` for a smoke). It is applied after substitution and
+    lands in the hash -- a genuinely different run, recorded as such."""
+
+    def test_it_sets_a_nested_existing_leaf(self):
+        p = self.write("c.json", {"train": {"epochs": 300, "lr": 0.1}})
+        out = self.resolve(p, overrides={"train.epochs": 1})
+        self.assertEqual(out["train"]["epochs"], 1)
+        self.assertEqual(out["train"]["lr"], 0.1, "it changed an unrelated key")
+
+    def test_it_changes_the_hash(self):
+        p = self.write("c.json", {"train": {"epochs": 300}})
+        base = rc_mod.sha256_of_config(self.resolve(p))
+        over = rc_mod.sha256_of_config(self.resolve(p, overrides={"train.epochs": 1}))
+        self.assertNotEqual(base, over, "a different run must hash differently")
+
+    def test_an_unknown_key_is_refused_by_name(self):
+        """Override only changes existing settings; a typo must not create one."""
+        p = self.write("c.json", {"train": {"epochs": 300}})
+        with self.assertRaises(rc_mod.ConfigError) as e:
+            self.resolve(p, overrides={"train.epocs": 1})
+        self.assertIn("epocs", str(e.exception))
+
+    def test_a_path_through_a_non_mapping_is_refused(self):
+        p = self.write("c.json", {"train": {"epochs": 300}})
+        with self.assertRaises(rc_mod.ConfigError) as e:
+            self.resolve(p, overrides={"train.epochs.deeper": 1})
+        self.assertIn("epochs", str(e.exception))
+
+    def test_the_value_is_parsed_as_json_when_possible(self):
+        p = self.write("c.json", {"train": {"epochs": 300}})
+        out = self.resolve(p, overrides=rc_mod.parse_override(["train.epochs=1"]))
+        self.assertEqual(out["train"]["epochs"], 1)
+        self.assertIsInstance(out["train"]["epochs"], int)
+
+    def test_a_non_json_value_falls_back_to_a_string(self):
+        p = self.write("c.json", {"train": {"arch": "resnet50"}})
+        out = self.resolve(p, overrides=rc_mod.parse_override(["train.arch=resnet101"]))
+        self.assertEqual(out["train"]["arch"], "resnet101")
+
+    def test_it_is_applied_after_substitution(self):
+        """A leaf filled by --set can then be overridden; order is fixed."""
+        p = self.write("c.json", {"data": "${D}", "train": {"epochs": 300}})
+        out = self.resolve(p, values={"D": "/x"},
+                           overrides={"train.epochs": 3})
+        self.assertEqual(out["data"], "/x")
+        self.assertEqual(out["train"]["epochs"], 3)
+
+
 class TestCommandLine(Base):
     def run_tool(self, *args):
         return subprocess.run(
@@ -449,6 +499,23 @@ class TestCommandLine(Base):
         r = self.run_tool("--config", c, "--out", self.tmp / "r.json",
                           "--set", "NOEQUALS")
         self.assertNotEqual(r.returncode, 0)
+
+    def test_override_sets_an_existing_value(self):
+        c = self.write("c.json", {"train": {"epochs": 300}})
+        out = self.tmp / "r.json"
+        r = self.run_tool("--config", c, "--out", out,
+                          "--override", "train.epochs=1")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(json.loads(out.read_text())["train"]["epochs"], 1)
+
+    def test_override_of_an_unknown_key_is_reported_and_nothing_written(self):
+        c = self.write("c.json", {"train": {"epochs": 300}})
+        out = self.tmp / "r.json"
+        r = self.run_tool("--config", c, "--out", out,
+                          "--override", "train.epocs=1")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("epocs", r.stdout + r.stderr)
+        self.assertFalse(out.exists(), "a failed run left a file behind")
 
     def test_a_value_containing_an_equals_sign_survives(self):
         c = self.write("c.json", {"d": "${D}"})
