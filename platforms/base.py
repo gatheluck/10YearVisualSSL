@@ -33,6 +33,10 @@ class JobSpec:
     #: machine-specific stays out of the repository. A backend that runs the
     #: command directly (no script) may ignore them.
     setup: list[str] = field(default_factory=list)
+    #: File the backend writes the job's combined stdout+stderr to. When set,
+    #: every backend puts the log here, so one known path holds the whole log
+    #: (``None`` leaves output wherever the backend would send it by default).
+    log_path: str | None = None
 
 
 @dataclass(frozen=True)
