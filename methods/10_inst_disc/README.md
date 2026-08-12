@@ -18,7 +18,7 @@ step 2 (a ViT variant) is excluded, as in every port, which also drops its `timm
 dependency.
 
 The lab wrapper trains under `DistributedDataParallel` and logs to TensorBoard;
-neither is needed for a single-process run, so `train_step1_instdisc.py` owns a
+neither is needed for a single-process run, so `train_pretrain_instdisc.py` owns a
 thin loop, the device is **resolved** rather than assumed CUDA, and TensorBoard
 is dropped. The NCE loss keeps its memory bank and momentum update; only the
 multi-GPU all-reduce / all-gather branches are dropped.

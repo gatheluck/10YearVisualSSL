@@ -3,7 +3,7 @@
   "targets": [
     {
       "label": "the EMA target only decays (the source term is dropped)",
-      "file": "methods/35_vjepa/train_step1_vjepa.py",
+      "file": "methods/35_vjepa/train_pretrain_vjepa.py",
       "old": "        tp.data.mul_(momentum).add_(sp.detach().data, alpha=1.0 - momentum)",
       "new": "        tp.data.mul_(momentum)",
       "tests": [

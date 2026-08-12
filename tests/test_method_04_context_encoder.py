@@ -220,7 +220,7 @@ class TestTheEncoderIsTheEncoderAndBottleneck(Base):
 
 class TestTheMetricNames(Base):
     def test_every_mapped_name_is_in_the_contract_vocabulary(self):
-        for names in (adapter.STEP1_METRIC_NAMES,
+        for names in (adapter.PRETRAIN_METRIC_NAMES,
                       adapter.LINEAR_EVAL_METRIC_NAMES):
             for raw, target in names.items():
                 if target is None:
@@ -231,17 +231,17 @@ class TestTheMetricNames(Base):
     def test_the_loss_is_a_pretext_number(self):
         self.assertEqual(
             adapterlib.METRIC_VOCABULARY[
-                adapter.STEP1_METRIC_NAMES["final_loss"]],
+                adapter.PRETRAIN_METRIC_NAMES["final_loss"]],
             adapterlib.PER_METHOD)
 
     def test_the_loss_components_are_kept_but_given_no_slot(self):
         for raw in ("final_recon_loss", "final_adv_loss"):
             with self.subTest(metric=raw):
-                self.assertIn(raw, adapter.STEP1_METRIC_NAMES)
-                self.assertIsNone(adapter.STEP1_METRIC_NAMES[raw])
+                self.assertIn(raw, adapter.PRETRAIN_METRIC_NAMES)
+                self.assertIsNone(adapter.PRETRAIN_METRIC_NAMES[raw])
 
     def test_no_probe_name_in_step1(self):
-        for target in adapter.STEP1_METRIC_NAMES.values():
+        for target in adapter.PRETRAIN_METRIC_NAMES.values():
             self.assertNotIn("linear_probe", str(target))
 
 
@@ -291,7 +291,7 @@ class TestWhichCheckpointIsTheFinalOne(Base):
 @needs_torch
 class TestTheDeviceIsResolved(Base):
     def trainer(self):
-        return load("ce_trainer", METHOD / "train_step1.py")
+        return load("ce_trainer", METHOD / "train_pretrain.py")
 
     def test_cpu_is_honoured(self):
         self.assertEqual(self.trainer().resolve_device("cpu").type, "cpu")
@@ -570,7 +570,7 @@ class TestWhatCameFromTheCapture(unittest.TestCase):
         self.assertEqual(doc["captured_sha256"], {})
         rewritten = doc["rewritten_during_the_port"]
         for rel in ("models/context_encoder.py", "datasets.py",
-                    "train_step1.py", "evaluate_linear.py"):
+                    "train_pretrain.py", "evaluate_linear.py"):
             with self.subTest(file=rel):
                 self.assertIn(rel, rewritten)
                 self.assertIn("sha256", rewritten[rel])

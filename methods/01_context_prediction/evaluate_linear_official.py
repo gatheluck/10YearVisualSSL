@@ -23,7 +23,7 @@ from data.context_dataset_official import seed_worker
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from models.alexnet_context_official import build_official_context_alexnet
-from train_step1_alexnet_official import make_deterministic, resolve_device
+from train_pretrain_alexnet_official import make_deterministic, resolve_device
 
 
 class LinearClassifier(nn.Module):

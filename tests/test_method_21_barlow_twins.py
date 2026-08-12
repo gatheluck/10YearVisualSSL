@@ -172,14 +172,14 @@ class TestPrecisionIsNotSilentlyDowngraded(Base):
     def test_the_autocast_follows_the_device(self):
         """Written into the captured trainer as `device_type="cuda"`, which
         cannot run anywhere else."""
-        trainer = load("barlow_trainer", METHOD / "train_step1_resnet.py")
+        trainer = load("barlow_trainer", METHOD / "train_pretrain_resnet.py")
         with trainer.autocast_context("bf16", "cpu"):
             pass                       # would raise if the device were wrong
 
     @needs_torch
     def test_fp32_needs_no_autocast_at_all(self):
         import contextlib
-        trainer = load("barlow_trainer", METHOD / "train_step1_resnet.py")
+        trainer = load("barlow_trainer", METHOD / "train_pretrain_resnet.py")
         self.assertIsInstance(trainer.autocast_context("fp32", "cpu"),
                               contextlib.nullcontext)
 
@@ -236,7 +236,7 @@ class TestTheEncoderIsTheBackbone(Base):
 
 class TestTheMetricNames(Base):
     def test_every_mapped_name_is_in_the_contract_vocabulary(self):
-        for raw, target in adapter.STEP1_METRIC_NAMES.items():
+        for raw, target in adapter.PRETRAIN_METRIC_NAMES.items():
             if target is None:
                 continue
             with self.subTest(metric=raw):
@@ -247,11 +247,11 @@ class TestTheMetricNames(Base):
         another method's loss."""
         self.assertEqual(
             adapterlib.METRIC_VOCABULARY[
-                adapter.STEP1_METRIC_NAMES["final_loss"]],
+                adapter.PRETRAIN_METRIC_NAMES["final_loss"]],
             adapterlib.PER_METHOD)
 
     def test_no_probe_name_is_produced_by_this_stage(self):
-        for target in adapter.STEP1_METRIC_NAMES.values():
+        for target in adapter.PRETRAIN_METRIC_NAMES.values():
             with self.subTest(metric=target):
                 self.assertNotIn("linear_probe", str(target))
 
@@ -415,7 +415,7 @@ class TestWhichCheckpointAndWhichDevice(Base):
         self.assertIn("checkpoint", str(e.exception))
 
     def trainer(self):
-        return load("barlow_trainer", METHOD / "train_step1_resnet.py")
+        return load("barlow_trainer", METHOD / "train_pretrain_resnet.py")
 
     def test_asking_for_cuda_without_one_is_an_error(self):
         """A run asked for a GPU that quietly used a CPU would report success

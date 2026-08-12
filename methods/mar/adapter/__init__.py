@@ -69,7 +69,7 @@ WORK = "work"
 # What the original calls its number, and what the contract calls it. `step1`
 # is a pretext stage: the loss is MAR's own masked-autoregressive objective,
 # on no scale shared with any other method (adapterlib.METRIC_VOCABULARY).
-STEP1_METRIC_NAMES = {
+PRETRAIN_METRIC_NAMES = {
     "final_loss": "final_pretext_loss",
     "epochs": "epochs_completed",
     "metrics_unavailable": "metrics_unavailable",
@@ -185,7 +185,7 @@ def load_encoder(state_dict: dict, config: dict):
     """
     if str(METHOD_DIR) not in sys.path:
         sys.path.insert(0, str(METHOD_DIR))
-    from train_step1_mar import _load_upstream, model_kwargs
+    from train_pretrain_mar import _load_upstream, model_kwargs
     mar_base, _dgd, _cached = _load_upstream()
     model = mar_base(**model_kwargs(config["train"]))
     missing, unexpected = model.load_state_dict(state_dict, strict=False)
@@ -204,7 +204,7 @@ def run_training(config: dict, out: Path, _run=None) -> dict:
     if _run is None:
         if str(METHOD_DIR) not in sys.path:
             sys.path.insert(0, str(METHOD_DIR))
-        from train_step1_mar import run as _run
+        from train_pretrain_mar import run as _run
     args = to_args(config, out)
     run_config = to_run_config(config, out)
     Path(run_config["output"]["checkpoint_dir"]).mkdir(parents=True,
@@ -234,7 +234,7 @@ def body(ctx: adapterlib.Context) -> None:
     state = torch.load(latest, map_location="cpu", weights_only=False)
     torch.save(extract_encoder(state["model_state_dict"]),
                Path(ctx.out) / "encoder.pt")
-    ctx.write_metrics(metrics, names=STEP1_METRIC_NAMES)
+    ctx.write_metrics(metrics, names=PRETRAIN_METRIC_NAMES)
 
 
 def main(argv: list[str] | None = None) -> int:

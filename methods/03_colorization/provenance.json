@@ -1,7 +1,7 @@
 {
   "captured_at": "2026-08-07",
   "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
-  "captured_note": "Ported from the capture's self-contained methods/3_colorization, specifically its paper-faithful CNN path (models/colorization_cnn.py, data/colorization_dataset.py, data/ab_quantization.py, train_step1_cnn.py, evaluate_linear.py). These are the lab's own implementation of Zhang, Isola & Efros (ECCV 2016) colorization. The capture directory number (3) equals this method's number in the Step 1&2 list (see docs/PORTING_ROADMAP.md).",
+  "captured_note": "Ported from the capture's self-contained methods/3_colorization, specifically its paper-faithful CNN path (models/colorization_cnn.py, data/colorization_dataset.py, data/ab_quantization.py, train_pretrain_cnn.py, evaluate_linear.py). These are the lab's own implementation of Zhang, Isola & Efros (ECCV 2016) colorization. The capture directory number (3) equals this method's number in the Step 1&2 list (see docs/PORTING_ROADMAP.md).",
   "paper": {
     "title": "Colorful Image Colorization",
     "authors": "Zhang, Isola, Efros",

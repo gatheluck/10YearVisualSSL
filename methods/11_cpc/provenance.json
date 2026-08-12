@@ -1,7 +1,7 @@
 {
   "captured_at": "2026-08-07",
   "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
-  "captured_note": "Ported from the capture's self-contained methods/11_cpc, specifically its paper-faithful visual_cpc2018 path (models/visual_cpc2018.py, data/visual_cpc2018_dataset.py, train_step1_visual_cpc2018.py). These are the lab's own implementation of van den Oord et al. (2018) visual CPC, torch/torchvision only. So it ports self-contained (no third_party submodule). The capture directory number (11) equals this method's number in the Step 1&2 list (see docs/PORTING_ROADMAP.md).",
+  "captured_note": "Ported from the capture's self-contained methods/11_cpc, specifically its paper-faithful visual_cpc2018 path (models/visual_cpc2018.py, data/visual_cpc2018_dataset.py, train_pretrain_visual_cpc2018.py). These are the lab's own implementation of van den Oord et al. (2018) visual CPC, torch/torchvision only. So it ports self-contained (no third_party submodule). The capture directory number (11) equals this method's number in the Step 1&2 list (see docs/PORTING_ROADMAP.md).",
   "paper": {
     "title": "Representation Learning with Contrastive Predictive Coding",
     "authors": "van den Oord, Li, Vinyals",

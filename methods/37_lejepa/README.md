@@ -37,7 +37,7 @@ the multi-view dataset, the trainer and the probe).
 The lab wrapper trains under `DistributedDataParallel` with a bfloat16 autocast,
 logs to TensorBoard, and trains an **online linear probe** on *detached* features
 for monitoring. None of it touches the backbone — the probe reads detached
-features, so it never back-propagates into it — so `train_step1_lejepa.py` drops
+features, so it never back-propagates into it — so `train_pretrain_lejepa.py` drops
 all of it: the loop is single-process fp32, the device is **resolved** rather than
 assumed CUDA, and AMP / TensorBoard / tqdm / the online probe are dropped; the
 elaborate collapse guards are reduced to a finiteness check. SIGReg's cross-rank

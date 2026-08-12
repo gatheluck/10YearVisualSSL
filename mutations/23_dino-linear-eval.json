@@ -3,7 +3,7 @@
   "targets": [
     {
       "label": "the cosine schedule is frozen at its base (teacher momentum never rises)",
-      "file": "methods/23_dino/train_step1_dino.py",
+      "file": "methods/23_dino/train_pretrain_dino.py",
       "old": "    ratio = min(max(step, 0), total_steps) / total_steps",
       "new": "    ratio = 0.0",
       "tests": [

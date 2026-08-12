@@ -149,7 +149,7 @@ class TestTwoMethodsDoNotCollide(unittest.TestCase):
         # The other method's trainer does `from data.context_dataset_official
         # import ...`, which fails outright if the wrong package is cached.
         trainer = load_from(
-            one, "collision_probe", one / "train_step1_alexnet_official.py")
+            one, "collision_probe", one / "train_pretrain_alexnet_official.py")
         self.assertTrue(callable(trainer.run))
         self.assertTrue(sys.modules["data"].__file__.startswith(str(one)))
 
@@ -349,7 +349,7 @@ class TestDeviceIsHonoured(Base):
     """
 
     def trainer(self):
-        return load("vae_trainer", METHOD / "train_step1_cnn.py")
+        return load("vae_trainer", METHOD / "train_pretrain_cnn.py")
 
     @needs_torch
     def test_asking_for_cuda_without_one_is_refused(self):
@@ -389,7 +389,7 @@ class TestDeviceIsHonoured(Base):
         `torch.cuda.is_available()` is exactly the bug; `run()` must go through
         `resolve_device`, so the requested value is what decides."""
         import ast
-        src = (METHOD / "train_step1_cnn.py").read_text()
+        src = (METHOD / "train_pretrain_cnn.py").read_text()
         run_fn = next(n for n in ast.parse(src).body
                       if isinstance(n, ast.FunctionDef) and n.name == "run")
         called = {n.func.id for n in ast.walk(run_fn)
@@ -536,7 +536,7 @@ class TestASmokeRun(Base):
 class TestTheOriginalIsUnchanged(unittest.TestCase):
     def test_the_body_lives_in_run_and_main_only_parses(self):
         import ast
-        src = (METHOD / "train_step1_cnn.py").read_text()
+        src = (METHOD / "train_pretrain_cnn.py").read_text()
         top = {n.name for n in ast.parse(src).body
                if isinstance(n, ast.FunctionDef)}
         for fn in ("run", "main"):
@@ -547,7 +547,7 @@ class TestTheOriginalIsUnchanged(unittest.TestCase):
 
     def test_it_asks_for_deterministic_kernels(self):
         import ast
-        src = (METHOD / "train_step1_cnn.py").read_text()
+        src = (METHOD / "train_pretrain_cnn.py").read_text()
         run_fn = next(n for n in ast.parse(src).body
                       if isinstance(n, ast.FunctionDef) and n.name == "run")
         called = {n.func.id for n in ast.walk(run_fn)

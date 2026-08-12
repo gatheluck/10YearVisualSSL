@@ -29,7 +29,7 @@ if str(ROOT) not in sys.path:
 
 from models import build_igpt                       # noqa: E402
 from quantize import quantize_images               # noqa: E402
-from train_step1_igpt import (                      # noqa: E402
+from train_pretrain_igpt import (                      # noqa: E402
     make_deterministic, model_kwargs, resolve_device,
 )
 

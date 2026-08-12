@@ -28,7 +28,7 @@ ROOT = Path(__file__).parent
 sys.path.insert(0, str(ROOT))
 
 from models import build_simsiam_resnet
-from train_step1_resnet import make_deterministic, resolve_device
+from train_pretrain_resnet import make_deterministic, resolve_device
 
 _IMAGENET_MEAN = [0.485, 0.456, 0.406]
 _IMAGENET_STD = [0.229, 0.224, 0.225]

@@ -1,0 +1,110 @@
+{
+  "_note": "Run: python3 bin/mutate.py --spec mutations/<file>.json --python <an interpreter with this method's lock installed>.",
+  "targets": [
+    {
+      "label": "mismatched multi-crop lists are accepted",
+      "file": "methods/17_swav/adapter/__init__.py",
+      "old": "    if len(set(lengths.values())) != 1:",
+      "new": "    if False:",
+      "tests": [
+        "tests.test_method_17_swav"
+      ]
+    },
+    {
+      "label": "empty multi-crop lists are accepted",
+      "file": "methods/17_swav/adapter/__init__.py",
+      "old": "    if not any(lengths.values()):",
+      "new": "    if False:",
+      "tests": [
+        "tests.test_method_17_swav"
+      ]
+    },
+    {
+      "label": "a crop setting need not be a list",
+      "file": "methods/17_swav/adapter/__init__.py",
+      "old": "        if not isinstance(train[key], list):",
+      "new": "        if False:",
+      "tests": [
+        "tests.test_method_17_swav"
+      ]
+    },
+    {
+      "label": "the optional settings go back to being optional",
+      "file": "methods/17_swav/adapter/__init__.py",
+      "old": "    _named(TRAIN_KEYS - set(train), set(train) - TRAIN_KEYS, \"config.train\")",
+      "new": "    _named(set(), set(train) - TRAIN_KEYS, \"config.train\")",
+      "tests": [
+        "tests.test_method_17_swav"
+      ]
+    },
+    {
+      "label": "the sinkhorn settings are put in the wrong section",
+      "file": "methods/17_swav/adapter/__init__.py",
+      "old": "        \"loss\": {\"temperature\": float(train[\"temperature\"]),",
+      "new": "        \"loss\": {\"temperature\": 0.1,",
+      "tests": [
+        "tests.test_method_17_swav"
+      ]
+    },
+    {
+      "label": "the prototypes are shipped as the encoder",
+      "file": "methods/17_swav/adapter/__init__.py",
+      "old": "ENCODER_PREFIX = \"encoder.\"",
+      "new": "ENCODER_PREFIX = \"\"",
+      "tests": [
+        "tests.test_method_17_swav"
+      ]
+    },
+    {
+      "label": "the checkpoint is picked by name order",
+      "file": "methods/17_swav/adapter/__init__.py",
+      "old": "    return max(found, key=lambda p: int(p.stem.rsplit(\"_\", 1)[1]))",
+      "new": "    return sorted(found)[-1]",
+      "tests": [
+        "tests.test_method_17_swav"
+      ]
+    },
+    {
+      "label": "the loader always builds a distributed sampler again",
+      "file": "methods/17_swav/data/multi_crop.py",
+      "old": "        dataset, shuffle=True) if distributed else None)",
+      "new": "        dataset, shuffle=True))",
+      "tests": [
+        "tests.test_method_17_swav"
+      ]
+    },
+    {
+      "label": "asking for cuda silently accepts a cpu",
+      "file": "methods/17_swav/train_pretrain_resnet.py",
+      "old": "        if not torch.cuda.is_available():",
+      "new": "        if False:",
+      "tests": [
+        "tests.test_method_17_swav"
+      ]
+    },
+    {
+      "label": "the metrics are discarded again",
+      "file": "methods/17_swav/train_pretrain_resnet.py",
+      "old": "        \"final_loss\": avg_loss if total_epochs > start_epoch else None,",
+      "new": "        \"final_loss\": None,",
+      "tests": [
+        "tests.test_method_17_swav"
+      ]
+    },
+    {
+      "label": "sinkhorn stops normalising",
+      "file": "methods/17_swav/distributed_sinkhorn.py",
+      "old": "def distributed_sinkhorn(out, niters=3, eps=0.05, world_size=None):",
+      "new": "def distributed_sinkhorn(out, niters=0, eps=0.05, world_size=None):",
+      "tests": [
+        "tests.test_method_17_swav"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-08-01",
+    "killed": 11,
+    "total": 11,
+    "note": "'sinkhorn stops normalising' is killed by the captured-file hash guard rather than by a behavioural test. That is not a coverage gap: the captured function validates the setting itself and raises, so the mutant was unreachable by any caller. The refusal is now pinned by a test of its own."
+  }
+}

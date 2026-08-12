@@ -33,9 +33,9 @@ MODEL_KEYS = frozenset({"arch", "img_size", "patch_size", "enc_embed_dim",
                         "enc_depth", "enc_num_heads", "dec_embed_dim",
                         "dec_depth", "dec_num_heads", "mlp_ratio", "mask_ratio",
                         "norm_pix_loss"})
-STEP1_TRAIN_ONLY = frozenset({"epochs", "batch_size", "num_workers", "lr",
+PRETRAIN_TRAIN_ONLY = frozenset({"epochs", "batch_size", "num_workers", "lr",
                               "weight_decay"})
-STEP1_TRAIN_KEYS = MODEL_KEYS | STEP1_TRAIN_ONLY
+PRETRAIN_TRAIN_KEYS = MODEL_KEYS | PRETRAIN_TRAIN_ONLY
 # The probe reads the architecture (to rebuild the model), the pooling, and its
 # own hyperparameters.
 EVAL_PROBE_KEYS = frozenset({"pool", "epochs", "batch_size", "num_workers",
@@ -53,7 +53,7 @@ WORK = "work"
 # build, so it is not in the state dict.)
 ENCODER_PREFIXES = ("patch_embed.", "cls_token", "enc_blocks.", "enc_norm.")
 
-STEP1_METRIC_NAMES = {
+PRETRAIN_METRIC_NAMES = {
     "final_loss": "final_pretext_loss",
     "epochs": "epochs_completed",
     "metrics_unavailable": "metrics_unavailable",
@@ -108,7 +108,7 @@ def to_run_config(config: dict, out: Path) -> dict:
         raise ConfigError(
             f"config: stage is {stage!r}; known stages are "
             f"{', '.join(STAGES)}")
-    keys = EVAL_TRAIN_KEYS if stage == "linear_eval" else STEP1_TRAIN_KEYS
+    keys = EVAL_TRAIN_KEYS if stage == "linear_eval" else PRETRAIN_TRAIN_KEYS
     top = EVAL_TOP_KEYS if stage == "linear_eval" else TOP_KEYS
     _named(top - set(config), set(config) - top, "config")
 
@@ -161,7 +161,7 @@ def load_encoder(state_dict: dict, config: dict):
     if str(METHOD_DIR) not in sys.path:
         sys.path.insert(0, str(METHOD_DIR))
     from models import build_mae
-    from train_step1_mae import model_kwargs
+    from train_pretrain_mae import model_kwargs
     train = config["train"]
     model = build_mae(train["arch"], **model_kwargs(train))
     missing, unexpected = model.load_state_dict(state_dict, strict=False)
@@ -190,7 +190,7 @@ def run_training(config: dict, out: Path, _run=None) -> dict:
     if _run is None:
         if str(METHOD_DIR) not in sys.path:
             sys.path.insert(0, str(METHOD_DIR))
-        from train_step1_mae import run as _run
+        from train_pretrain_mae import run as _run
     args = to_args(config, out)
     run_config = to_run_config(config, out)
     Path(run_config["output"]["checkpoint_dir"]).mkdir(parents=True,
@@ -239,7 +239,7 @@ def body(ctx: adapterlib.Context) -> None:
     state = torch.load(latest, map_location="cpu", weights_only=False)
     torch.save(extract_encoder(state["model_state_dict"]),
                Path(ctx.out) / "encoder.pt")
-    ctx.write_metrics(metrics, names=STEP1_METRIC_NAMES)
+    ctx.write_metrics(metrics, names=PRETRAIN_METRIC_NAMES)
 
 
 def _stage_of(config_path) -> str:

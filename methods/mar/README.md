@@ -30,7 +30,7 @@ commit, its base commit, and the patch.
 
 The upstream training engine (`engine_mar.py`) is **not** used: it imports
 `torch_fidelity` and `cv2` on import and calls `torch.cuda.synchronize()`,
-so it neither imports nor runs without a GPU. `train_step1_mar.py` owns the
+so it neither imports nor runs without a GPU. `train_pretrain_mar.py` owns the
 cached-latent path of its `train_one_epoch` with the DDP / AMP / EMA / FID
 machinery removed, so one training step runs on a CPU or a GPU unchanged.
 

@@ -24,7 +24,7 @@ ROOT = Path(__file__).resolve().parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from train_step1_mocov3 import make_deterministic, resolve_device   # noqa: E402
+from train_pretrain_mocov3 import make_deterministic, resolve_device   # noqa: E402
 from data import get_val_transform                                 # noqa: E402
 
 

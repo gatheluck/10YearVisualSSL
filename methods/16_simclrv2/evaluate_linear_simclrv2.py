@@ -29,7 +29,7 @@ ROOT = Path(__file__).resolve().parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from train_step1_simclrv2 import make_deterministic, resolve_device   # noqa: E402
+from train_pretrain_simclrv2 import make_deterministic, resolve_device   # noqa: E402
 
 
 def _val_transform(image_size: int):
@@ -100,7 +100,7 @@ def run(args, config: "dict | None" = None, model=None) -> dict:
 
     if model is None:
         from models import build_resnet_simclrv2
-        from train_step1_simclrv2 import model_config
+        from train_pretrain_simclrv2 import model_config
         model = build_resnet_simclrv2(**model_config(train))
     encoder = model.get_encoder().to(device)
     encoder.eval()

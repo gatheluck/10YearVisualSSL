@@ -1,7 +1,7 @@
 {
   "captured_at": "2026-08-09",
   "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
-  "captured_note": "Ported from the capture's self-contained methods/23_dino, specifically its ViT-S/16 step 1 (models/vision_transformer.py, models/dino_head.py, models/dino.py, data/dino_dataset.py, train_step1_vit_s.py, evaluate_linear.py). These are the lab's own implementation of Caron et al. (2021) DINO, following facebookresearch/dino. DINO ships its OWN Vision Transformer (models/vision_transformer.py -- measured: it imports only torch, NOT timm), so this ports self-contained and torch-only. The port keeps the capture directory numbering (23) per the 2026-08-09 keep-capture-numbering decision (see docs/PORTING_ROADMAP.md).",
+  "captured_note": "Ported from the capture's self-contained methods/23_dino, specifically its ViT-S/16 step 1 (models/vision_transformer.py, models/dino_head.py, models/dino.py, data/dino_dataset.py, train_pretrain_vit_s.py, evaluate_linear.py). These are the lab's own implementation of Caron et al. (2021) DINO, following facebookresearch/dino. DINO ships its OWN Vision Transformer (models/vision_transformer.py -- measured: it imports only torch, NOT timm), so this ports self-contained and torch-only. The port keeps the capture directory numbering (23) per the 2026-08-09 keep-capture-numbering decision (see docs/PORTING_ROADMAP.md).",
   "paper": {
     "title": "Emerging Properties in Self-Supervised Vision Transformers",
     "authors": "Caron, Touvron, Misra, Jegou, Mairal, Bojanowski, Joulin",

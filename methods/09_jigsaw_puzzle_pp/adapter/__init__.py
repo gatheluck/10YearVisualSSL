@@ -38,9 +38,9 @@ METHOD_DIR = Path(__file__).resolve().parent.parent
 
 MODEL_KEYS = frozenset({"num_permutations", "dropout", "tile_size", "tile_gap",
                         "image_size", "grayscale_prob", "max_occlusions"})
-STEP1_TRAIN_ONLY = frozenset({"epochs", "batch_size", "num_workers", "lr",
+PRETRAIN_TRAIN_ONLY = frozenset({"epochs", "batch_size", "num_workers", "lr",
                               "momentum", "weight_decay"})
-STEP1_TRAIN_KEYS = MODEL_KEYS | STEP1_TRAIN_ONLY
+PRETRAIN_TRAIN_KEYS = MODEL_KEYS | PRETRAIN_TRAIN_ONLY
 # Knowledge transfer (Noroozi et al. "Boosting SSL via Knowledge Transfer"):
 # reads a VGG16 encoder.pt, clusters its conv4 features (faiss) into pseudo-labels
 # and trains an AlexNet on them. Only `dropout` is needed to rebuild the VGG16 to
@@ -68,7 +68,7 @@ WORK = "work"
 ENCODER_PREFIXES = ("encoder.",)
 ALEXNET_ENCODER_PREFIXES = ("features.",)
 
-STEP1_METRIC_NAMES = {
+PRETRAIN_METRIC_NAMES = {
     "final_loss": "final_pretext_loss",
     "final_acc": "final_pretext_top1_accuracy",
     "epochs": "epochs_completed",
@@ -153,7 +153,7 @@ def to_run_config(config: dict, out: Path) -> dict:
     elif stage == "knowledge_transfer":
         top, keys = KT_TOP_KEYS, KT_TRAIN_KEYS
     else:
-        top, keys = TOP_KEYS, STEP1_TRAIN_KEYS
+        top, keys = TOP_KEYS, PRETRAIN_TRAIN_KEYS
     _named(top - set(config), set(config) - top, "config")
 
     train = config["train"]
@@ -213,7 +213,7 @@ def load_encoder(state_dict: dict, config: dict):
         sys.path.insert(0, str(METHOD_DIR))
     from models import (build_vgg16_jigsaw_pp_model,
                         build_alexnet_cluster_cls_model)
-    from train_step1_jigsaw_pp import model_kwargs
+    from train_pretrain_jigsaw_pp import model_kwargs
     arch = eval_arch(config["train"])
     if arch == "alexnet_cluster_cls":
         model = build_alexnet_cluster_cls_model(
@@ -267,7 +267,7 @@ def run_training(config: dict, out: Path, _run=None) -> dict:
     if _run is None:
         if str(METHOD_DIR) not in sys.path:
             sys.path.insert(0, str(METHOD_DIR))
-        from train_step1_jigsaw_pp import run as _run
+        from train_pretrain_jigsaw_pp import run as _run
     args = to_args(config, out)
     run_config = to_run_config(config, out)
     Path(run_config["output"]["checkpoint_dir"]).mkdir(parents=True,
@@ -303,7 +303,7 @@ def run_knowledge_transfer(config: dict, out: Path, _run=None) -> dict:
     if _run is None:
         if str(METHOD_DIR) not in sys.path:
             sys.path.insert(0, str(METHOD_DIR))
-        from train_step1_cluster_cls import run as _run
+        from train_pretrain_cluster_cls import run as _run
     run_config = to_run_config(config, out)
     Path(run_config["output"]["checkpoint_dir"]).mkdir(parents=True,
                                                        exist_ok=True)
@@ -339,7 +339,7 @@ def body(ctx: adapterlib.Context) -> None:
     state = torch.load(latest, map_location="cpu", weights_only=False)
     torch.save(extract_encoder(state["model_state_dict"], prefixes),
                Path(ctx.out) / "encoder.pt")
-    ctx.write_metrics(metrics, names=STEP1_METRIC_NAMES)
+    ctx.write_metrics(metrics, names=PRETRAIN_METRIC_NAMES)
 
 
 def _stage_of(config_path) -> str:

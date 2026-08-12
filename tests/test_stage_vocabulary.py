@@ -96,3 +96,58 @@ class TestTheDetectorFires(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+# --- internal-name unification: the pretraining code carries no 'step1' name ---
+# The stage token is already 'pretrain'; these guards extend that to the internal
+# names so nothing reads 'step1' except the data-aug recipe ("step1"/"step2", the
+# paper axis) and prose. Discover, never list.
+
+def _glob(pattern: str) -> list[str]:
+    return sorted(glob.glob(str(ROOT / pattern)))
+
+
+class TestNoStep1InternalNames(unittest.TestCase):
+    def test_no_trainer_file_is_named_train_step1(self):
+        bad = [Path(p).relative_to(ROOT).as_posix()
+               for p in _glob("methods/*/train_step1*.py")]
+        self.assertEqual(bad, [], f"trainer files still named train_step1* "
+                                  f"(rename to train_pretrain*): {bad}")
+
+    def test_no_mutation_spec_is_named_step1(self):
+        bad = [Path(p).relative_to(ROOT).as_posix()
+               for p in _glob("mutations/*-step1*.json")]
+        self.assertEqual(bad, [], f"mutation specs still named *-step1* "
+                                  f"(rename to *-pretrain*): {bad}")
+
+    def test_no_adapter_uses_a_STEP1_identifier(self):
+        bad = [Path(p).relative_to(ROOT).as_posix()
+               for p in _glob("methods/*/adapter/__init__.py")
+               if "STEP1_" in Path(p).read_text(encoding="utf-8")]
+        self.assertEqual(bad, [], f"adapters still use STEP1_* identifiers "
+                                  f"(rename to PRETRAIN_*): {bad}")
+
+    def test_no_train_step1_module_reference_remains(self):
+        """Imports, test loads, mutation anchors, provenance and docs must not
+        reference the train_step1 module name."""
+        bad = []
+        for pat in ("methods/*/adapter/__init__.py", "methods/*/provenance.json",
+                    "mutations/*.json", "tests/*.py", "methods/*/README.md",
+                    "docs/*.md"):
+            for p in _glob(pat):
+                if Path(p).name == "test_stage_vocabulary.py":
+                    continue          # this guard names the forbidden token
+                if "train_step1" in Path(p).read_text(encoding="utf-8"):
+                    bad.append(Path(p).relative_to(ROOT).as_posix())
+        self.assertEqual(sorted(set(bad)), [],
+                         f"references to the train_step1 module remain: {bad}")
+
+
+class TestTheInternalNameDetectorFires(unittest.TestCase):
+    def test_it_would_flag_the_old_names(self):
+        # positive controls: the patterns match the old names
+        self.assertTrue("train_step1_x".startswith("train_step1"))
+        self.assertIn("STEP1_", "STEP1_METRIC_NAMES")
+        # negative: the new names are clean
+        self.assertFalse("train_pretrain_x".startswith("train_step1"))
+        self.assertNotIn("STEP1_", "PRETRAIN_METRIC_NAMES")

@@ -246,7 +246,7 @@ class TestTheDeviceIsResolved(Base):
     machine instead of only on one without a GPU."""
 
     def trainer(self):
-        return load("simsiam_trainer", METHOD / "train_step1_resnet.py")
+        return load("simsiam_trainer", METHOD / "train_pretrain_resnet.py")
 
     def test_cpu_is_honoured(self):
         t = self.trainer()
@@ -323,7 +323,7 @@ class TestTheEncoderIsTheBackbone(Base):
 
 class TestTheMetricNames(Base):
     def test_every_mapped_name_is_in_the_contract_vocabulary(self):
-        for raw, target in adapter.STEP1_METRIC_NAMES.items():
+        for raw, target in adapter.PRETRAIN_METRIC_NAMES.items():
             if target is None:
                 continue
             with self.subTest(metric=raw):
@@ -335,7 +335,7 @@ class TestTheMetricNames(Base):
         say so or a table will average them."""
         self.assertEqual(
             adapterlib.METRIC_VOCABULARY[
-                adapter.STEP1_METRIC_NAMES["final_loss"]],
+                adapter.PRETRAIN_METRIC_NAMES["final_loss"]],
             adapterlib.PER_METHOD)
 
     def test_the_collapse_monitor_is_kept_but_not_given_a_slot(self):
@@ -345,8 +345,8 @@ class TestTheMetricNames(Base):
         stays under the original's name and out of the comparable block.
         Inventing a contract name for it would offer it for comparison with
         methods that have no such quantity."""
-        self.assertIn("final_z_std", adapter.STEP1_METRIC_NAMES)
-        self.assertIsNone(adapter.STEP1_METRIC_NAMES["final_z_std"])
+        self.assertIn("final_z_std", adapter.PRETRAIN_METRIC_NAMES)
+        self.assertIsNone(adapter.PRETRAIN_METRIC_NAMES["final_z_std"])
 
 
 class TestTheTrainingCallIsTheOriginals(Base):
@@ -758,7 +758,7 @@ class TestWhatCameFromTheCapture(unittest.TestCase):
         """A file changed during the port and not listed here reads as
         untouched, which is the claim the hashes exist to make."""
         doc = json.loads((METHOD / "provenance.json").read_text())
-        self.assertIn("train_step1_resnet.py", doc["rewritten_during_the_port"])
+        self.assertIn("train_pretrain_resnet.py", doc["rewritten_during_the_port"])
 
 
 if __name__ == "__main__":

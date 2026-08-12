@@ -3,7 +3,7 @@
 
 Two decisions, both made deliberately and both checked here.
 
-**The official-style track is what is ported.** `train_step1_alexnet.py` in
+**The official-style track is what is ported.** `train_pretrain_alexnet.py` in
 the original tree is described by its own sibling as "not paper-compatible:
 model, preprocessing, and sampling all differ from the released deepcontext
 implementation". For a ten-year comparison the paper-compatible one is the
@@ -197,8 +197,8 @@ class TestTheOriginalIsUnchanged(unittest.TestCase):
     def test_the_command_line_still_takes_the_original_flags(self):
         """The cluster's PBS scripts call this file directly. Renaming or
         dropping a flag would break a path nobody here would notice."""
-        trainer = load("train_step1_alexnet_official",
-                       METHOD / "train_step1_alexnet_official.py")
+        trainer = load("train_pretrain_alexnet_official",
+                       METHOD / "train_pretrain_alexnet_official.py")
         flags = {a.dest for a in trainer.build_parser()._actions}
         for original in ("data_path", "save_dir", "max_steps", "batch_size",
                          "num_workers", "lr", "save_every_steps",
@@ -209,7 +209,7 @@ class TestTheOriginalIsUnchanged(unittest.TestCase):
     def test_the_body_lives_in_run_and_main_only_parses(self):
         """Read as source, so it holds even where torch is absent."""
         import ast
-        src = (METHOD / "train_step1_alexnet_official.py").read_text()
+        src = (METHOD / "train_pretrain_alexnet_official.py").read_text()
         top = {n.name for n in ast.parse(src).body
                if isinstance(n, ast.FunctionDef)}
         for fn in ("build_parser", "run", "main"):
@@ -536,8 +536,8 @@ class TestASmokeRun(Base):
         GPU machine, so a mutation removing it could not be killed there
         (mutations/01_context_prediction-step1-device.json)."""
         from unittest import mock
-        trainer = load("train_step1_alexnet_official",
-                       METHOD / "train_step1_alexnet_official.py")
+        trainer = load("train_pretrain_alexnet_official",
+                       METHOD / "train_pretrain_alexnet_official.py")
         with mock.patch.object(trainer.torch.cuda, "is_available",
                                return_value=False):
             with self.assertRaises(RuntimeError) as e:
@@ -556,8 +556,8 @@ class TestASmokeRun(Base):
         measures the outcome -- but the outcome test is cheap to satisfy by
         accident over two steps, and this is not.
         """
-        trainer = load("train_step1_alexnet_official",
-                       METHOD / "train_step1_alexnet_official.py")
+        trainer = load("train_pretrain_alexnet_official",
+                       METHOD / "train_pretrain_alexnet_official.py")
         self.assertTrue(callable(trainer.make_deterministic))
         # Set the opposite of what is wanted first. cudnn.benchmark is False
         # by default, so asserting it afterwards proved nothing: removing the
@@ -580,7 +580,7 @@ class TestASmokeRun(Base):
         the outcome test cannot catch this on its own.
         """
         import ast
-        src = (METHOD / "train_step1_alexnet_official.py").read_text()
+        src = (METHOD / "train_pretrain_alexnet_official.py").read_text()
         run_fn = next(n for n in ast.parse(src).body
                       if isinstance(n, ast.FunctionDef) and n.name == "run")
         called = {n.func.id for n in ast.walk(run_fn)
@@ -600,8 +600,8 @@ class TestASmokeRun(Base):
         """Pretend CUDA is there, because otherwise `cpu` and `auto` agree and
         dropping the explicit cpu branch changes nothing observable."""
         from unittest import mock
-        trainer = load("train_step1_alexnet_official",
-                       METHOD / "train_step1_alexnet_official.py")
+        trainer = load("train_pretrain_alexnet_official",
+                       METHOD / "train_pretrain_alexnet_official.py")
         with mock.patch.object(trainer.torch.cuda, "is_available",
                                return_value=True):
             self.assertEqual(trainer.resolve_device("cpu", 0).type, "cpu")

@@ -26,7 +26,7 @@ ROOT = Path(__file__).resolve().parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from train_step1_jigsaw_pp import make_deterministic, resolve_device   # noqa: E402
+from train_pretrain_jigsaw_pp import make_deterministic, resolve_device   # noqa: E402
 
 
 def _build_loader(data_root: str, split: str, size: int, batch_size: int,
@@ -93,7 +93,7 @@ def run(args, config: "dict | None" = None, model=None) -> dict:
 
     if model is None:
         from models import build_vgg16_jigsaw_pp_model
-        from train_step1_jigsaw_pp import model_kwargs
+        from train_pretrain_jigsaw_pp import model_kwargs
         model = build_vgg16_jigsaw_pp_model(**model_kwargs(train))
     encoder = model.get_encoder().to(device)
     encoder.eval()

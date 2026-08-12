@@ -11,6 +11,6 @@
     "__init__.py": "re-exported the legacy track, which was not brought across",
     "data/__init__.py": "same",
     "models/__init__.py": "same",
-    "train_step1_alexnet_official.py": "main() split into build_parser() and run(args); the hard-coded cuda device made selectable"
+    "train_pretrain_alexnet_official.py": "main() split into build_parser() and run(args); the hard-coded cuda device made selectable"
   }
 }

@@ -30,7 +30,7 @@ Sinkhorn-Knopp optimal transport, the indexed dataset, the trainer and the probe
 
 The lab wrapper trains under `DataParallel`/`DistributedDataParallel` with AMP and
 logs to TensorBoard; none is needed for a single-process run, so
-`train_step1_sela.py` owns a thin fp32 loop, the device is **resolved** rather
+`train_pretrain_sela.py` owns a thin fp32 loop, the device is **resolved** rather
 than assumed CUDA, and TensorBoard/tqdm are dropped. The official `nopts`
 label-optimisation schedule, the balanced-label initialisation, and the float64
 Sinkhorn iteration are kept faithfully.

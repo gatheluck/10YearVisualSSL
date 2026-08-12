@@ -80,11 +80,11 @@ MODEL = {"img_size": IMG, "patch_size": PATCH, "vocab_size": VOCAB,
          "embed_dim": EMBED, "depth": DEPTH, "num_heads": HEADS,
          "mlp_ratio": MLP, "drop_path_rate": DPR, "init_values": INIT}
 TOKENIZER = {"ckpt": "", "token_size": TOKEN_SIZE, "input_is_mapped": True}
-STEP1_ONLY = {"num_workers": 0, "num_masking_patches": NUM_MASK,
+PRETRAIN_ONLY = {"num_workers": 0, "num_masking_patches": NUM_MASK,
               "min_num_patches": MIN_MASK, "epochs": 1, "batch_size": 2,
               "lr": 1.0e-3, "beta1": 0.9, "beta2": 0.999, "eps": 1.0e-8,
               "weight_decay": 0.05, "warmup_epochs": 0, "clip_grad": 3.0}
-TRAIN = {**MODEL, **TOKENIZER, **STEP1_ONLY}
+TRAIN = {**MODEL, **TOKENIZER, **PRETRAIN_ONLY}
 EVAL_TRAIN = {**MODEL, "epochs": 2, "batch_size": 2, "num_workers": 0,
               "lr": 0.1, "momentum": 0.9, "weight_decay": 0.0}
 
@@ -404,9 +404,9 @@ class TestTheEvalProducesNoEncoder(Base):
 
 class TestTheMetricsAreInTheVocabulary(unittest.TestCase):
     def test_step1_maps_a_pretext_loss(self):
-        self.assertEqual(adapter.STEP1_METRIC_NAMES["final_loss"],
+        self.assertEqual(adapter.PRETRAIN_METRIC_NAMES["final_loss"],
                          "final_pretext_loss")
-        for target in adapter.STEP1_METRIC_NAMES.values():
+        for target in adapter.PRETRAIN_METRIC_NAMES.values():
             if target is not None:
                 self.assertIn(target, adapterlib.METRIC_VOCABULARY)
 
@@ -423,7 +423,7 @@ class TestTheMetricsAreInTheVocabulary(unittest.TestCase):
 
 class TestTheDeviceIsResolved(Base):
     def trainer(self):
-        return load("beit_trainer", METHOD / "train_step1_beit.py")
+        return load("beit_trainer", METHOD / "train_pretrain_beit.py")
 
     @needs_deps
     def test_asking_for_cuda_without_one_is_refused(self):
@@ -437,7 +437,7 @@ class TestTheDeviceIsResolved(Base):
 
     def test_run_resolves_the_device(self):
         import ast
-        src = (METHOD / "train_step1_beit.py").read_text()
+        src = (METHOD / "train_pretrain_beit.py").read_text()
         run_fn = next(n for n in ast.parse(src).body
                       if isinstance(n, ast.FunctionDef) and n.name == "run")
         called = {n.func.id for n in ast.walk(run_fn)
@@ -582,7 +582,7 @@ class TestALinearEvalSmoke(Base):
 class TestTheOriginalIsReferencedNotCopied(unittest.TestCase):
     def test_no_distributed_or_tensorboard_machinery_is_used(self):
         import ast
-        tree = ast.parse((METHOD / "train_step1_beit.py").read_text())
+        tree = ast.parse((METHOD / "train_pretrain_beit.py").read_text())
         used = set()
         for n in ast.walk(tree):
             if isinstance(n, ast.Attribute):

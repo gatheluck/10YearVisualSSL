@@ -22,7 +22,7 @@
     {
       "label": "the absent encoder is left unexplained in linear_eval",
       "file": "methods/01_context_prediction/adapter/__init__.py",
-      "old": "            encoder_absent_reason=(None if stage == \"step1\"\n                                   else NO_ENCODER_REASON))",
+      "old": "            encoder_absent_reason=(None if stage == \"pretrain\"\n                                   else NO_ENCODER_REASON))",
       "new": "            encoder_absent_reason=None)",
       "tests": [
         "tests.test_method_01_linear_eval.TestASmokeRun.test_the_absent_encoder_is_explained_not_silent"

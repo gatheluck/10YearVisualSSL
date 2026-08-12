@@ -28,7 +28,7 @@ trainer and probe, torch/torchvision only) — no `third_party/` submodule.
 
 The lab wrapper trains under `DistributedDataParallel` with AMP and logs to
 TensorBoard; none is needed for a single-process run, so
-`train_step1_cpc2018.py` owns a thin fp32 loop, the device is **resolved** rather
+`train_pretrain_cpc2018.py` owns a thin fp32 loop, the device is **resolved** rather
 than assumed CUDA, TensorBoard is dropped, and InfoNCE negatives come from within
 the batch (the cross-rank all-gather path is kept behind a flag, off by default).
 The dataset's hard-coded 7×7 grid check is relaxed to any grid ≥ 2×2 so a small

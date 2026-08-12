@@ -23,7 +23,7 @@ excluded, as in every port.
 trainer and probe, torch/torchvision only) — no `third_party/` submodule.
 
 The lab wrapper trains under `DistributedDataParallel` and logs to TensorBoard;
-none is needed for a single-process run, so `train_step1_mocov1.py` owns a thin
+none is needed for a single-process run, so `train_pretrain_mocov1.py` owns a thin
 fp32 loop, the device is **resolved** rather than assumed CUDA, TensorBoard is
 dropped, and the queue is filled from within the batch. The model's shuffle-BN /
 all-gather / broadcast branches are kept but guarded by `dist.is_initialized()`,

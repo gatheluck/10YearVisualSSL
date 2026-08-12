@@ -24,7 +24,7 @@ linear-classifier variant are excluded, as in every port.
 trainer and probe, torch/torchvision only) — no `third_party/` submodule.
 
 The lab wrapper trains under `DistributedDataParallel` with AMP and logs to
-TensorBoard; none is needed for a single-process run, so `train_step1_cmc.py`
+TensorBoard; none is needed for a single-process run, so `train_pretrain_cmc.py`
 owns a thin fp32 loop, the device is **resolved** rather than assumed CUDA,
 TensorBoard/tqdm are dropped, and NCE negatives come from within the batch (the
 cross-rank all-gather / broadcast / all-reduce paths are kept but guarded by

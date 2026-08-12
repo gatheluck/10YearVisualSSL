@@ -9,7 +9,7 @@ and an InfoNCE loss predicts future rows' z-vectors from the context. `encoder.p
 is the patch encoder; `linear_eval` probes the grid-averaged z (`avg_z`).
 
 The capture's older local baseline (`cpc_resnet`) is a documented protocol
-mismatch (its own CPC_STEP1_PAPER_READY_BLOCK.md marks it "must not be submitted
+mismatch (its own CPC_PRETRAIN_PAPER_READY_BLOCK.md marks it "must not be submitted
 as a paper-ready Step 1 job"), so it is excluded; only the corrected
 `visual_cpc2018` path is ported. The captured step 2 (ViT) is excluded too.
 """
@@ -268,9 +268,9 @@ class TestTheEvalProducesNoEncoder(Base):
 
 class TestTheMetricsAreInTheVocabulary(unittest.TestCase):
     def test_step1_maps_a_pretext_loss(self):
-        self.assertEqual(adapter.STEP1_METRIC_NAMES["final_loss"],
+        self.assertEqual(adapter.PRETRAIN_METRIC_NAMES["final_loss"],
                          "final_pretext_loss")
-        for target in adapter.STEP1_METRIC_NAMES.values():
+        for target in adapter.PRETRAIN_METRIC_NAMES.values():
             if target is not None:
                 self.assertIn(target, adapterlib.METRIC_VOCABULARY)
 
@@ -287,7 +287,7 @@ class TestTheMetricsAreInTheVocabulary(unittest.TestCase):
 
 class TestTheDeviceIsResolved(Base):
     def trainer(self):
-        return load("cpc_trainer", METHOD / "train_step1_cpc2018.py")
+        return load("cpc_trainer", METHOD / "train_pretrain_cpc2018.py")
 
     @needs_deps
     def test_asking_for_cuda_without_one_is_refused(self):
@@ -301,7 +301,7 @@ class TestTheDeviceIsResolved(Base):
 
     def test_run_resolves_the_device(self):
         import ast
-        src = (METHOD / "train_step1_cpc2018.py").read_text()
+        src = (METHOD / "train_pretrain_cpc2018.py").read_text()
         run_fn = next(n for n in ast.parse(src).body
                       if isinstance(n, ast.FunctionDef) and n.name == "run")
         called = {n.func.id for n in ast.walk(run_fn)
@@ -436,7 +436,7 @@ class TestALinearEvalSmoke(Base):
 class TestTheOriginalIsReferencedNotCopied(unittest.TestCase):
     def test_no_distributed_or_tensorboard_machinery_is_used(self):
         import ast
-        tree = ast.parse((METHOD / "train_step1_cpc2018.py").read_text())
+        tree = ast.parse((METHOD / "train_pretrain_cpc2018.py").read_text())
         used = set()
         for n in ast.walk(tree):
             if isinstance(n, ast.Attribute):

@@ -37,9 +37,9 @@ METHOD_DIR = Path(__file__).resolve().parent.parent
 MODEL_KEYS = frozenset({"vocab_size", "img_size", "n_layer", "n_head",
                         "n_embd"})
 # ... and the step-1 training settings.
-STEP1_TRAIN_ONLY = frozenset({"epochs", "batch_size", "num_workers", "lr",
+PRETRAIN_TRAIN_ONLY = frozenset({"epochs", "batch_size", "num_workers", "lr",
                               "grad_clip"})
-STEP1_TRAIN_KEYS = MODEL_KEYS | STEP1_TRAIN_ONLY
+PRETRAIN_TRAIN_KEYS = MODEL_KEYS | PRETRAIN_TRAIN_ONLY
 # The probe reads the architecture (to rebuild the model) plus its own
 # hyperparameters.
 EVAL_PROBE_KEYS = frozenset({"epochs", "batch_size", "num_workers", "lr",
@@ -60,7 +60,7 @@ CLUSTERS = "clusters.npy"
 # network.
 ENCODER_PREFIXES = ("token_embed.", "pos_embed.", "blocks.", "ln_f.")
 
-STEP1_METRIC_NAMES = {
+PRETRAIN_METRIC_NAMES = {
     "final_loss": "final_pretext_loss",
     "epochs": "epochs_completed",
     "metrics_unavailable": "metrics_unavailable",
@@ -116,7 +116,7 @@ def to_run_config(config: dict, out: Path) -> dict:
             f"config: stage is {stage!r}; known stages are "
             f"{', '.join(STAGES)}")
     top = EVAL_TOP_KEYS if stage == "linear_eval" else TOP_KEYS
-    keys = EVAL_TRAIN_KEYS if stage == "linear_eval" else STEP1_TRAIN_KEYS
+    keys = EVAL_TRAIN_KEYS if stage == "linear_eval" else PRETRAIN_TRAIN_KEYS
     _named(top - set(config), set(config) - top, "config")
 
     train = config["train"]
@@ -173,7 +173,7 @@ def load_encoder(state_dict: dict, config: dict):
     if str(METHOD_DIR) not in sys.path:
         sys.path.insert(0, str(METHOD_DIR))
     from models import build_igpt
-    from train_step1_igpt import model_kwargs
+    from train_pretrain_igpt import model_kwargs
     model = build_igpt(**model_kwargs(config["train"]))
     missing, unexpected = model.load_state_dict(state_dict, strict=False)
     if unexpected:
@@ -201,7 +201,7 @@ def run_training(config: dict, out: Path, _run=None) -> dict:
     if _run is None:
         if str(METHOD_DIR) not in sys.path:
             sys.path.insert(0, str(METHOD_DIR))
-        from train_step1_igpt import run as _run
+        from train_pretrain_igpt import run as _run
     args = to_args(config, out)
     run_config = to_run_config(config, out)
     Path(run_config["output"]["checkpoint_dir"]).mkdir(parents=True,
@@ -259,7 +259,7 @@ def body(ctx: adapterlib.Context) -> None:
             f"training finished but {clusters} was not written; the probe "
             "cannot quantise without the clusters the model was trained on")
     shutil.copyfile(clusters, Path(ctx.out) / CLUSTERS)
-    ctx.write_metrics(metrics, names=STEP1_METRIC_NAMES)
+    ctx.write_metrics(metrics, names=PRETRAIN_METRIC_NAMES)
 
 
 def _stage_of(config_path) -> str:

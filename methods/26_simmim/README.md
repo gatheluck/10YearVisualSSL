@@ -29,7 +29,7 @@ and the probe) — no `third_party/` submodule.
 
 The lab wrapper trains under `DistributedDataParallel` with AMP autocast and logs
 to TensorBoard; none is needed for a single-process run, so
-`train_step1_simmim.py` owns a thin fp32 loop, the device is **resolved** rather
+`train_pretrain_simmim.py` owns a thin fp32 loop, the device is **resolved** rather
 than assumed CUDA, and AMP / TensorBoard / tqdm are dropped. The mask generator,
 the mask-token replacement, the Conv+PixelShuffle decoder and the masked-pixel L1
 loss are kept faithfully; `build_swin_encoder` is the single construction path

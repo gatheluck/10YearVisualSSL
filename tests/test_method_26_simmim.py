@@ -74,12 +74,12 @@ MODEL = {"img_size": IMG, "patch_size": PATCH, "window_size": WINDOW,
          "embed_dim": EMBED, "depths": DEPTHS, "num_heads": NUM_HEADS,
          "mask_patch_size": MASK_PATCH, "drop_path_rate": 0.0}
 DATA = {"mask_ratio": 0.6}
-STEP1_ONLY = {"epochs": 1, "batch_size": 2, "num_workers": 0, "lr": 1.0e-3,
+PRETRAIN_ONLY = {"epochs": 1, "batch_size": 2, "num_workers": 0, "lr": 1.0e-3,
               "scale_lr_by_global_batch": False, "lr_reference_batch_size": 512,
               "betas": [0.9, 0.999], "weight_decay": 0.05, "warmup_epochs": 0,
               "warmup_lr": 0.0, "clip_grad": 5.0, "lr_gamma": 0.1,
               "lr_multisteps": []}
-TRAIN = {**MODEL, **DATA, **STEP1_ONLY}
+TRAIN = {**MODEL, **DATA, **PRETRAIN_ONLY}
 EVAL_MODEL = {"img_size": IMG, "patch_size": PATCH, "window_size": WINDOW,
               "embed_dim": EMBED, "depths": DEPTHS, "num_heads": NUM_HEADS}
 EVAL_TRAIN = {**EVAL_MODEL, "epochs": 2, "batch_size": 2, "num_workers": 0,
@@ -345,9 +345,9 @@ class TestTheEvalProducesNoEncoder(Base):
 
 class TestTheMetricsAreInTheVocabulary(unittest.TestCase):
     def test_step1_maps_a_pretext_loss(self):
-        self.assertEqual(adapter.STEP1_METRIC_NAMES["final_loss"],
+        self.assertEqual(adapter.PRETRAIN_METRIC_NAMES["final_loss"],
                          "final_pretext_loss")
-        for target in adapter.STEP1_METRIC_NAMES.values():
+        for target in adapter.PRETRAIN_METRIC_NAMES.values():
             if target is not None:
                 self.assertIn(target, adapterlib.METRIC_VOCABULARY)
 
@@ -364,7 +364,7 @@ class TestTheMetricsAreInTheVocabulary(unittest.TestCase):
 
 class TestTheDeviceIsResolved(Base):
     def trainer(self):
-        return load("simmim_trainer", METHOD / "train_step1_simmim.py")
+        return load("simmim_trainer", METHOD / "train_pretrain_simmim.py")
 
     @needs_deps
     def test_asking_for_cuda_without_one_is_refused(self):
@@ -378,7 +378,7 @@ class TestTheDeviceIsResolved(Base):
 
     def test_run_resolves_the_device(self):
         import ast
-        src = (METHOD / "train_step1_simmim.py").read_text()
+        src = (METHOD / "train_pretrain_simmim.py").read_text()
         run_fn = next(n for n in ast.parse(src).body
                       if isinstance(n, ast.FunctionDef) and n.name == "run")
         called = {n.func.id for n in ast.walk(run_fn)
@@ -389,7 +389,7 @@ class TestTheDeviceIsResolved(Base):
 
 class TestTheSchedule(unittest.TestCase):
     def trainer(self):
-        return load("simmim_trainer", METHOD / "train_step1_simmim.py")
+        return load("simmim_trainer", METHOD / "train_pretrain_simmim.py")
 
     @needs_deps
     def test_warmup_rises_then_multistep_decays(self):
@@ -531,7 +531,7 @@ class TestALinearEvalSmoke(Base):
 class TestTheOriginalIsReferencedNotCopied(unittest.TestCase):
     def test_no_distributed_or_tensorboard_machinery_is_used(self):
         import ast
-        tree = ast.parse((METHOD / "train_step1_simmim.py").read_text())
+        tree = ast.parse((METHOD / "train_pretrain_simmim.py").read_text())
         used = set()
         for n in ast.walk(tree):
             if isinstance(n, ast.Attribute):

@@ -3,7 +3,7 @@
   "targets": [
     {
       "label": "the anchor-view count is off by one, so the loss target-tiling mismatches the anchor rows",
-      "file": "methods/34_msn/train_step1_msn.py",
+      "file": "methods/34_msn/train_pretrain_msn.py",
       "old": "    num_anchor_views = rand_views + focal_views - 1",
       "new": "    num_anchor_views = rand_views + focal_views",
       "tests": [

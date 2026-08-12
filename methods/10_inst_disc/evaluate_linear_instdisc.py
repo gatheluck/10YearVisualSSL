@@ -23,7 +23,7 @@ ROOT = Path(__file__).resolve().parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from train_step1_instdisc import make_deterministic, resolve_device   # noqa: E402
+from train_pretrain_instdisc import make_deterministic, resolve_device   # noqa: E402
 
 _MEAN = [0.485, 0.456, 0.406]
 _STD = [0.229, 0.224, 0.225]
@@ -94,7 +94,7 @@ def run(args, config: "dict | None" = None, model=None) -> dict:
 
     if model is None:
         from models import build_resnet_instdisc
-        from train_step1_instdisc import model_kwargs
+        from train_pretrain_instdisc import model_kwargs
         model = build_resnet_instdisc(**model_kwargs(train))
     encoder = model.get_encoder().to(device)
     encoder.eval()

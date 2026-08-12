@@ -1,7 +1,7 @@
 {
   "captured_at": "2026-08-08",
   "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
-  "captured_note": "Ported from the capture's self-contained methods/7_deepcluster, specifically its AlexNet-BN path (models/alexnet_deepcluster.py, utils/clustering.py, data/deepcluster_dataset.py, train_step1_alexnet.py, evaluate_linear.py). These are the lab's own implementation of Caron et al. (ECCV 2018) DeepCluster. The capture directory number (7) equals this method's number in the Step 1&2 list (see docs/PORTING_ROADMAP.md); the ported directory is zero-padded to 07_deepcluster to match the other single-digit methods.",
+  "captured_note": "Ported from the capture's self-contained methods/7_deepcluster, specifically its AlexNet-BN path (models/alexnet_deepcluster.py, utils/clustering.py, data/deepcluster_dataset.py, train_pretrain_alexnet.py, evaluate_linear.py). These are the lab's own implementation of Caron et al. (ECCV 2018) DeepCluster. The capture directory number (7) equals this method's number in the Step 1&2 list (see docs/PORTING_ROADMAP.md); the ported directory is zero-padded to 07_deepcluster to match the other single-digit methods.",
   "paper": {
     "title": "Deep Clustering for Unsupervised Learning of Visual Features",
     "authors": "Caron, Bojanowski, Joulin, Douze",

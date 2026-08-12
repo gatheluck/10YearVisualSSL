@@ -3,7 +3,7 @@
   "targets": [
     {
       "label": "the EMA teacher only decays (the student term is dropped)",
-      "file": "methods/31_dinov3/train_step1_dinov3.py",
+      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
       "old": "        t_param.data.mul_(momentum).add_(s_param.data, alpha=1.0 - momentum)",
       "new": "        t_param.data.mul_(momentum)",
       "tests": [

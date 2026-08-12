@@ -14,7 +14,7 @@
     "configs/linear_eval.yaml": "new: the linear-evaluation recipe as a contract config; model_type resnet is fixed by the adapter.",
     "models/__init__.py": "advertised the step 2 ViT through a lazy __getattr__. The module was not brought across, so the package was promising a name it could not import.",
     "data/__init__.py": "re-exported the step 2 loader, which was not brought across",
-    "train_step1_resnet.py": "resolve_device() and make_deterministic() added, and the unconditional .cuda(local_rank) on the model and on each crop replaced by .to(device); the captured trainer could not start without a GPU. main() split into build_parser() and run(args, config), which returns the epoch loss and the epoch count; the captured version computed them and discarded them.",
+    "train_pretrain_resnet.py": "resolve_device() and make_deterministic() added, and the unconditional .cuda(local_rank) on the model and on each crop replaced by .to(device); the captured trainer could not start without a GPU. main() split into build_parser() and run(args, config), which returns the epoch loss and the epoch count; the captured version computed them and discarded them.",
     "data/multi_crop.py": "captured sha256 c-- taken before the change. get_swav_dataloader built a DistributedSampler unconditionally, which needs an initialised process group, so this method could not run on one process at all -- on a GPU or otherwise. The sampler is now conditional, the same way every other ported method's loader already had it, and the trainer passes its own `distributed` flag through. Unlike the change the port before this one made and reverted, this one is for a failure that was observed: the run raised 'Default process group has not been initialized'."
   }
 }

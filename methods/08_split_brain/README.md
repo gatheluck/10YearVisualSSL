@@ -31,7 +31,7 @@ on neither scipy nor scikit-image — the torch-only closure holds.
 
 The capture ships **no AlexNet step-1 recipe** (its `train.py` trains the ViT
 step 2 under DistributedDataParallel + AdamW with a canonical contract), so
-`train_step1_split_brain.py` owns a thin single-process fp32 loop with a plain
+`train_pretrain_split_brain.py` owns a thin single-process fp32 loop with a plain
 Adam optimiser (its knobs exposed in the config). The device is **resolved**
 rather than assumed CUDA; TensorBoard is dropped.
 

@@ -24,7 +24,7 @@ ROOT = Path(__file__).resolve().parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from train_step1_sela import make_deterministic, resolve_device   # noqa: E402
+from train_pretrain_sela import make_deterministic, resolve_device   # noqa: E402
 from data import get_val_transform                                # noqa: E402
 
 
@@ -88,7 +88,7 @@ def run(args, config: "dict | None" = None, model=None) -> dict:
 
     if model is None:
         from models import ResNetSeLa
-        from train_step1_sela import model_config
+        from train_pretrain_sela import model_config
         model = ResNetSeLa(num_classes=1, num_heads=1, **model_config(train))
     model = model.to(device)
     model.eval()
