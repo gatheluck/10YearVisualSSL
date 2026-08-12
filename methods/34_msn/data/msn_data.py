@@ -23,6 +23,8 @@ import torch
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 
+import adapterlib
+
 _IMAGENET_MEAN = (0.485, 0.456, 0.406)
 _IMAGENET_STD = (0.229, 0.224, 0.225)
 
@@ -98,7 +100,8 @@ def get_msn_dataloader(data_path: str, batch_size: int, rand_size: int = 224,
         rand_size=rand_size, focal_size=focal_size,
         rand_crop_scale=rand_crop_scale, focal_crop_scale=focal_crop_scale,
         color_jitter=color_jitter, rand_views=rand_views, focal_views=focal_views)
-    dataset = datasets.ImageFolder(data_path, transform=transform)
+    dataset = datasets.ImageFolder(
+        adapterlib.dataset_split_dir(data_path, "train"), transform=transform)
     loader = DataLoader(
         dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers,
         pin_memory=True, drop_last=True,

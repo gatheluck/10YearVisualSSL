@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from torchvision import datasets, transforms
 
+import adapterlib
+
 _MEAN = [0.485, 0.456, 0.406]
 _STD = [0.229, 0.224, 0.225]
 
@@ -36,7 +38,15 @@ def get_instdisc_transforms(mode: str = "train", img_size: int = 224):
 
 
 class ImageFolderWithIndex(datasets.ImageFolder):
-    """ImageFolder that returns (image, dataset_index, label)."""
+    """ImageFolder that returns (image, dataset_index, label).
+
+    The step-1 training root is resolved to its ``train/`` subdirectory under the
+    unified data-root convention (the caller passes the dataset root).
+    """
+
+    def __init__(self, root, *args, **kwargs):
+        super().__init__(adapterlib.dataset_split_dir(root, "train"),
+                         *args, **kwargs)
 
     def __getitem__(self, index):
         img, label = super().__getitem__(index)

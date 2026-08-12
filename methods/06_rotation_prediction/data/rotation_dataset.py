@@ -17,6 +17,8 @@ from torch.utils.data._utils.collate import default_collate
 from torchvision import transforms
 from torchvision.datasets import ImageFolder
 
+import adapterlib
+
 # The four right-angle rotations, in the label order the paper uses.
 ROTATIONS = (0, 90, 180, 270)
 
@@ -43,7 +45,7 @@ class RotationDataset(Dataset):
 
     def __init__(self, root: str, transform: Optional[Callable] = None,
                  normalize: bool = True):
-        self.dataset = ImageFolder(root)
+        self.dataset = ImageFolder(adapterlib.dataset_split_dir(root, "train"))
         self.transform = transform
         self.normalize = normalize
         self.num_classes = len(ROTATIONS)

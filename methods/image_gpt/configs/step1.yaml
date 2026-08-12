@@ -5,7 +5,7 @@
 # here has executed a full run; the README says what was and was not exercised.
 #
 # One path is passed at run time, not shipped:
-#   --set DATA_ROOT=<path>   an ImageFolder of training images
+#   --set DATA_ROOT=<path>   the dataset root; pretraining reads its train/ subdirectory
 # The output path is not here; the contract fixes it at --out. The colour
 # clusters are fit from DATA_ROOT during the run and saved beside encoder.pt.
 stage: step1

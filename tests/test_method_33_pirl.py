@@ -82,7 +82,7 @@ EVAL_TRAIN = {"arch": "resnet50", "image_size": IMG, "epochs": 2,
 def tiny_imagefolder(root: Path, n: int = 6) -> Path:
     import numpy as np
     from PIL import Image
-    cls = root / "class0"
+    cls = root / "train" / "class0"
     cls.mkdir(parents=True, exist_ok=True)
     rng = np.random.RandomState(0)
     for i in range(n):

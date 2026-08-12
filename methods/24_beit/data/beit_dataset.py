@@ -14,6 +14,8 @@ from torchvision import datasets, transforms
 from torchvision.transforms import functional as TF
 from PIL import Image
 
+import adapterlib
+
 from .masking import BEiTMaskingGenerator
 
 _IMAGENET_MEAN = [0.485, 0.456, 0.406]
@@ -76,7 +78,8 @@ class BEiTPretrainDataset(torch.utils.data.Dataset):
     def __init__(self, root: str, img_size: int = 224, patch_size: int = 16,
                  token_size: int = 112, num_masking_patches: int = 75,
                  min_masking_patches: int = 16, crop_scale: tuple = (0.67, 1.0)):
-        self.dataset = datasets.ImageFolder(root)
+        self.dataset = datasets.ImageFolder(
+            adapterlib.dataset_split_dir(root, "train"))
         self.dual_transform = BEiTDualTransform(
             img_size=img_size, token_size=token_size, crop_scale=crop_scale)
         side = img_size // patch_size

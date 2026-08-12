@@ -19,6 +19,8 @@ import torch
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 
+import adapterlib
+
 _JEPA_SUBMODULE = Path(__file__).resolve().parents[3] / "third_party" / "jepa"
 _IMAGENET_MEAN = (0.485, 0.456, 0.406)
 _IMAGENET_STD = (0.229, 0.224, 0.225)
@@ -79,7 +81,8 @@ def get_vjepa_dataloader(data_path: str, batch_size: int, cfgs_mask,
     lists of block masks the encoder and predictor consume.
     """
     dataset = datasets.ImageFolder(
-        data_path, transform=build_train_transform(crop_size, use_color_jitter))
+        adapterlib.dataset_split_dir(data_path, "train"),
+        transform=build_train_transform(crop_size, use_color_jitter))
     collator = _mask_collator(crop_size, num_frames, patch_size, tubelet_size,
                               cfgs_mask)
 

@@ -16,6 +16,8 @@ from PIL import Image
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 
+import adapterlib
+
 
 IMAGENET_MEAN = [0.485, 0.456, 0.406]
 IMAGENET_STD = [0.229, 0.224, 0.225]
@@ -93,7 +95,7 @@ class ImageNetPIRLDataset(datasets.ImageFolder):
             resize=jigsaw_resize, crop_size=jigsaw_crop_size,
             grid_size=jigsaw_grid_size, patch_size=jigsaw_patch_size,
             train=train)
-        super().__init__(root=root)
+        super().__init__(root=adapterlib.dataset_split_dir(root, "train"))
 
     @staticmethod
     def _build_image_transform(image_size: int, train: bool):

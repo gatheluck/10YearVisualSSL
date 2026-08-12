@@ -145,7 +145,7 @@ METRICS = "metrics.json"
 FIXED_ROLES = {ENCODER: "encoder", METRICS: "metrics"}
 DEFAULT_ROLE = "extra"
 
-__all__ = ["AdapterError", "Context", "fingerprint", "run"]
+__all__ = ["AdapterError", "Context", "dataset_split_dir", "fingerprint", "run"]
 
 
 class AdapterError(Exception):
@@ -190,6 +190,31 @@ def fingerprint(packages: dict) -> str:
     """
     body = "\n".join(f"{k}=={v}" for k, v in sorted(packages.items()))
     return hashlib.sha256(body.encode("utf-8")).hexdigest()
+
+
+def dataset_split_dir(data_root: "str | os.PathLike", split: str = "train",
+                      *, require: bool = False) -> str:
+    """The directory a stage reads for a split, under the one data-root rule.
+
+    **The convention is uniform across every method:** ``DATA_ROOT`` is the
+    dataset *root* -- the directory that holds ``train/`` (and ``val/`` for
+    linear evaluation) -- and a stage reads its split from a subdirectory of it.
+    Pretraining reads ``<data_root>/train``. Passing the ``train`` directory
+    itself used to be required by some methods and not others; this one
+    implementation, imported everywhere, is what keeps that from drifting again
+    (``tests/test_data_root_convention.py`` enforces it).
+
+    With ``require=True`` a missing split is refused by name -- a clearer error
+    than the loader's later "found no valid file", and it says exactly what
+    ``DATA_ROOT`` should point at.
+    """
+    d = os.path.join(str(data_root), split)
+    if require and not os.path.isdir(d):
+        raise FileNotFoundError(
+            f"expected a {split!r} subdirectory at {d!r}. DATA_ROOT must be the "
+            f"dataset root that contains {split}/ -- not the {split} directory "
+            "itself")
+    return d
 
 
 def _is_number(v: Any) -> bool:

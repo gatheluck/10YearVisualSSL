@@ -29,6 +29,8 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
+import adapterlib
+
 ROOT = Path(__file__).resolve().parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -96,7 +98,8 @@ def _transform(img_size: int):
 
 def _dataset(data_root: str, img_size: int):
     from torchvision.datasets import ImageFolder
-    return ImageFolder(data_root, transform=_transform(img_size))
+    return ImageFolder(adapterlib.dataset_split_dir(data_root, "train"),
+                       transform=_transform(img_size))
 
 
 def fit_clusters(dataset, n_clusters: int, seed: int) -> np.ndarray:

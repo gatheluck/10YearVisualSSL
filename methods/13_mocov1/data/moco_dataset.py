@@ -13,6 +13,8 @@ from typing import Tuple
 import torch
 from torchvision import datasets, transforms
 
+import adapterlib
+
 IMAGENET_MEAN = [0.485, 0.456, 0.406]
 IMAGENET_STD = [0.229, 0.224, 0.225]
 
@@ -33,7 +35,8 @@ class MoCoDataset(datasets.ImageFolder):
     """ImageFolder returning ``(q_view, k_view, label)`` for MoCo pretraining."""
 
     def __init__(self, root: str, mode: str = "step1", image_size: int = 224):
-        super().__init__(root, transform=None)
+        super().__init__(adapterlib.dataset_split_dir(root, "train"),
+                         transform=None)
         if mode != "step1":
             raise ValueError(f"unknown mode {mode!r}; this port ports step 1")
         self.moco_transform = _step1_augmentation(image_size)

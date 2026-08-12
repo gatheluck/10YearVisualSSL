@@ -21,6 +21,8 @@ import torch
 from torchvision import datasets, transforms
 from torchvision.transforms import InterpolationMode
 
+import adapterlib
+
 
 def get_simclrv2_augmentation(img_size: int = 224,
                             color_jitter_strength: float = 1.0
@@ -51,7 +53,8 @@ class SimCLRv2Dataset(datasets.ImageFolder):
 
     def __init__(self, root: str, image_size: int = 224,
                  color_jitter_strength: float = 1.0):
-        super().__init__(root, transform=None)
+        super().__init__(adapterlib.dataset_split_dir(root, "train"),
+                         transform=None)
         self.simclrv2_transform = get_simclrv2_augmentation(
             image_size, color_jitter_strength)
 

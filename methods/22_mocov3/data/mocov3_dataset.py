@@ -18,6 +18,8 @@ import torch
 from torchvision import datasets, transforms
 import torchvision.transforms.functional as TF
 
+import adapterlib
+
 _IMAGENET_MEAN = [0.485, 0.456, 0.406]
 _IMAGENET_STD = [0.229, 0.224, 0.225]
 
@@ -85,7 +87,8 @@ class MoCoV3Dataset(datasets.ImageFolder):
     """ImageFolder returning ``(view1, view2, label)`` for MoCo v3 pretraining."""
 
     def __init__(self, root: str, img_size: int = 224, crop_min: float = 0.08):
-        super().__init__(root, transform=None)
+        super().__init__(adapterlib.dataset_split_dir(root, "train"),
+                         transform=None)
         self.view1 = _view1_augmentation(img_size, crop_min)
         self.view2 = _view2_augmentation(img_size, crop_min)
 

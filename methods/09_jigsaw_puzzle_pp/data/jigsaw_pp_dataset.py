@@ -27,6 +27,8 @@ import torch.utils.data as data
 from PIL import Image
 from torchvision import transforms
 
+import adapterlib
+
 _IMG_EXTS = (".png", ".jpg", ".jpeg", ".bmp", ".webp")
 _MEAN = [0.485, 0.456, 0.406]
 _STD = [0.229, 0.224, 0.225]
@@ -125,7 +127,8 @@ class JigsawPPDataset(data.Dataset):
     @staticmethod
     def _find_images(folder: str) -> List[str]:
         paths = [os.path.join(root, fn)
-                 for root, _, files in os.walk(folder)
+                 for root, _, files in os.walk(
+                     adapterlib.dataset_split_dir(folder, "train"))
                  for fn in files
                  if os.path.splitext(fn)[1].lower() in _IMG_EXTS]
         return sorted(paths)

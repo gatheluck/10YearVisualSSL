@@ -20,6 +20,8 @@ import numpy as np
 from torch.utils.data import Dataset
 from torchvision import datasets, transforms
 
+import adapterlib
+
 # sRGB (D65) -> XYZ matrix and the D65 white point, matching skimage's rgb2lab.
 _RGB2XYZ = np.array([[0.412453, 0.357580, 0.180423],
                      [0.212671, 0.715160, 0.072169],
@@ -78,6 +80,11 @@ class CMCDataset(Dataset):
     def __init__(self, root: str, mode: str = "train", image_size: int = 224,
                  crop_low: float = 0.2):
         self.mode = mode
+        # DATA_ROOT is the dataset root; pretraining (mode="train") reads its
+        # train/ subdirectory. The linear-eval loader passes an already-resolved
+        # split directory with mode="val", so that path is left untouched.
+        root = (adapterlib.dataset_split_dir(root, "train")
+                if mode == "train" else root)
         self.base = datasets.ImageFolder(
             root, transform=_build_transform(mode, image_size, crop_low))
 

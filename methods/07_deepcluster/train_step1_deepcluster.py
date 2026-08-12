@@ -25,6 +25,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 
+import adapterlib
+
 ROOT = Path(__file__).resolve().parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -120,9 +122,15 @@ def run(args, config: dict | None = None) -> dict:
     model = build_alexnet_deepcluster(sobel=bool(m["sobel"]),
                                       num_classes=k).to(device)
 
-    base_train = build_base_dataset(d["data_root"], crop_size=int(d["crop_size"]),
+    # DATA_ROOT is the dataset root; step-1 reads its train/ subdirectory. Both
+    # the training-transform view and the deterministic feature-extraction view
+    # are built over the training images, so both resolve the train/ split here.
+    # (build_base_dataset is left root-generic: the linear-eval loader passes an
+    # already-resolved split directory and must not be double-joined.)
+    train_root = adapterlib.dataset_split_dir(d["data_root"], "train")
+    base_train = build_base_dataset(train_root, crop_size=int(d["crop_size"]),
                                     train=True)
-    base_feat = build_base_dataset(d["data_root"], crop_size=int(d["crop_size"]),
+    base_feat = build_base_dataset(train_root, crop_size=int(d["crop_size"]),
                                    train=False)
     feat_loader = torch.utils.data.DataLoader(
         base_feat, batch_size=int(t["feat_batch_size"]), shuffle=False,

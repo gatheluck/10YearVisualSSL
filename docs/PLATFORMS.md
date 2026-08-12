@@ -119,6 +119,18 @@ activation** — is injected at run time and never committed.
 (`git submodule update --init`) and build the method's environment
 (`.venvs/<method>/`, per `docs/GPU.md`).
 
+**Data layout — one rule for every method.** `DATA_ROOT` is the dataset
+**root**: a directory that contains a `train/` subdirectory (and `val/` for
+linear evaluation), each holding the usual per-class image folders
+(`train/<class>/*.JPEG`). Pretraining reads `train/`; linear evaluation reads
+`train/` and `val/`. You pass the same `DATA_ROOT=<imagenet>` for step 1 and for
+linear evaluation — never the `train` directory itself. This is resolved in one
+place (`adapterlib.dataset_split_dir`) and held uniform by
+`tests/test_data_root_convention.py`. Two methods are inherent exceptions and
+say so in their own config: **`02_vae`** trains on MNIST (downloaded to
+`DATA_ROOT`), and **`mar`** reads pre-encoded cached VAE latents rather than an
+image folder.
+
 **Submit a short run** (one GPU, one epoch), with the group id in the
 environment so it never reaches the repository:
 

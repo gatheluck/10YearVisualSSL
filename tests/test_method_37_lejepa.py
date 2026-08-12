@@ -236,7 +236,7 @@ class TestTheDataset(Base):
         tiny_imagefolder(self.tmp / "data" / "train")
         d = self.dataset_mod()
         ds = d.MultiViewImageFolder(
-            str(self.tmp / "data" / "train"),
+            str(self.tmp / "data"),
             d.build_train_transform(img_size=IMG, blur_p=0.0, solarize_p=0.0),
             views=VIEWS)
         views, label = ds[0]
@@ -246,7 +246,7 @@ class TestTheDataset(Base):
     def test_the_loader_batches_views(self):
         tiny_imagefolder(self.tmp / "data" / "train")
         loader, _ = self.dataset_mod().get_lejepa_dataloader(
-            str(self.tmp / "data" / "train"), batch_size=4, views=VIEWS,
+            str(self.tmp / "data"), batch_size=4, views=VIEWS,
             num_workers=0, img_size=IMG, seed=0, blur_p=0.0, solarize_p=0.0)
         batch_views, labels = next(iter(loader))
         self.assertEqual(tuple(batch_views.shape), (4, VIEWS, 3, IMG, IMG))

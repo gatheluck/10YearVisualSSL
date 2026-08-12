@@ -7,7 +7,7 @@
 # is torch-only and hermetic. The capture's step 2 (ViT-B) is not ported.
 #
 # One path is passed at run time, not shipped:
-#   --set DATA_ROOT=<path>   an ImageFolder root containing a train/ subdirectory
+#   --set DATA_ROOT=<path>   the dataset root; pretraining reads its train/ subdirectory
 # The output path is fixed at --out.
 stage: step1
 seed: 1337

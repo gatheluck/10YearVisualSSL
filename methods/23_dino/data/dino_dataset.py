@@ -25,6 +25,8 @@ import torch
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 
+import adapterlib
+
 
 _IMAGENET_MEAN = [0.485, 0.456, 0.406]
 _IMAGENET_STD = [0.229, 0.224, 0.225]
@@ -129,7 +131,8 @@ class DINODataset(datasets.ImageFolder):
         global_scale: "tuple[float, float]" = (0.4, 1.0),
         local_scale: "tuple[float, float]" = (0.05, 0.4),
     ):
-        super().__init__(root, transform=None)
+        super().__init__(adapterlib.dataset_split_dir(root, "train"),
+                         transform=None)
         self.n_local_crops = n_local_crops
         self.tf_global1 = global_aug_1(global_size, global_scale)
         self.tf_global2 = global_aug_2(global_size, global_scale)

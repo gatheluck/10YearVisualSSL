@@ -94,7 +94,7 @@ ALEXNET_FEATURE_DIM = 256 * 6 * 6  # AlexNet features + avgpool -> 9216
 def tiny_imagefolder(root: Path, n: int = 6) -> Path:
     import numpy as np
     from PIL import Image
-    cls = root / "class0"
+    cls = root / "train" / "class0"
     cls.mkdir(parents=True, exist_ok=True)
     rng = np.random.RandomState(0)
     for i in range(n):

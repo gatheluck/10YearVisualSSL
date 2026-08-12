@@ -41,6 +41,8 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
+import adapterlib
+
 ROOT = Path(__file__).resolve().parent
 REPO_ROOT = ROOT.parent.parent
 UPSTREAM = REPO_ROOT / "third_party" / "var"
@@ -198,7 +200,8 @@ def _build_loader(data_root: str, img_size: int, batch_size: int,
         T.ToTensor(),
         T.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
     ])
-    dataset = ImageFolder(data_root, transform=transform)
+    dataset = ImageFolder(adapterlib.dataset_split_dir(data_root, "train"),
+                          transform=transform)
     generator = torch.Generator()
     generator.manual_seed(seed)
     loader = torch.utils.data.DataLoader(

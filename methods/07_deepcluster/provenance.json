@@ -20,6 +20,7 @@
     "main() split into build_parser()/run(args, config) returning the pretext (pseudo-label) loss and epoch count",
     "the run is seeded through make_deterministic (python, numpy, torch); the k-means seed and top_layer reset seed make the clustering reproducible",
     "the training loop drops the upstream DistributedDataParallel and TensorBoard so the same step runs on a CPU or a GPU unchanged, single-process fp32",
-    "faiss clustering is not bit-identical to a different backend (the capture's own faiss and sklearn paths already differ); the shipped config uses the same faiss path, so a full run reproduces the paper-target backend"
+    "faiss clustering is not bit-identical to a different backend (the capture's own faiss and sklearn paths already differ); the shipped config uses the same faiss path, so a full run reproduces the paper-target backend",
+    "DATA_ROOT is the dataset root; step-1 reads its train/ subdirectory (unified data-root convention via adapterlib.dataset_split_dir)."
   ]
 }

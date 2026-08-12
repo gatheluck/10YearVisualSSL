@@ -6,7 +6,7 @@
 # and was not exercised.
 #
 # Two paths are passed at run time, not shipped:
-#   --set DATA_ROOT=<path>   an ImageFolder of training images
+#   --set DATA_ROOT=<path>   the dataset root; pretraining reads its train/ subdirectory
 #   --set VQVAE_CKPT=<path>  the pretrained VQVAE tokeniser (a download). It is
 #                            required for a real run; the hermetic smoke leaves
 #                            it empty and builds a tiny random VQVAE instead.

@@ -15,6 +15,8 @@ import torch
 from torch.utils.data import Dataset
 from torchvision import datasets, transforms
 
+import adapterlib
+
 IMAGENET_MEAN = [0.485, 0.456, 0.406]
 IMAGENET_STD = [0.229, 0.224, 0.225]
 
@@ -35,8 +37,9 @@ def _transform(image_size: int, train: bool) -> transforms.Compose:
 def build_kt_dataset(data_root: str, image_size: int = 224,
                      train: bool = True) -> datasets.ImageFolder:
     """An ImageFolder yielding ``(rgb_tensor, class_label)`` in a stable order."""
-    return datasets.ImageFolder(data_root,
-                                transform=_transform(image_size, train))
+    return datasets.ImageFolder(
+        adapterlib.dataset_split_dir(data_root, "train"),
+        transform=_transform(image_size, train))
 
 
 class KTPseudoLabelDataset(Dataset):

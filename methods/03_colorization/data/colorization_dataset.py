@@ -17,6 +17,8 @@ import torch
 from torch.utils.data import Dataset
 from torchvision import datasets, transforms
 
+import adapterlib
+
 from .ab_quantization import get_ab_points, quantize_ab_fast
 
 _RGB2XYZ = np.array([[0.4124564, 0.3575761, 0.1804375],
@@ -57,7 +59,8 @@ class ColorizationDataset(Dataset):
         if mode == "train":
             steps.append(transforms.RandomHorizontalFlip())
         self.base_transform = transforms.Compose(steps)
-        self.base = datasets.ImageFolder(data_path)
+        self.base = datasets.ImageFolder(
+            adapterlib.dataset_split_dir(data_path, "train"))
 
     def __len__(self) -> int:
         return len(self.base)
@@ -100,7 +103,7 @@ def get_class_weights(data_path: str, num_bins: int = 313,
     """Class-rebalancing weights for rare colours (paper Eq.: w = ((1 - lambda)
     * p + lambda / Q)^-1, normalised). Sampled over the training images."""
     pts = get_ab_points()
-    base = datasets.ImageFolder(data_path)
+    base = datasets.ImageFolder(adapterlib.dataset_split_dir(data_path, "train"))
     n = min(sample_size, len(base))
     indices = np.random.choice(len(base), n, replace=False)
     resize = transforms.Compose([transforms.Resize(256),
