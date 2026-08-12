@@ -11,7 +11,7 @@
 #   --set DATA_ROOT=<path>    an ImageFolder with train/ and val/ subdirectories
 #   --set DINOV2_CKPT=<path>  the official dinov2_vitg14_pretrain.pth. Obtain it
 #                             with `python3 bin/fetch-weights.py --provenance
-#                             methods/28_dinov2/provenance.json --section
+#                             methods/28_dinov2/provenance.json --artifact
 #                             backbone_artifact --out <dir>` (it is pinned by
 #                             sha256 in provenance.json). Required for a
 #                             meaningful number; the hermetic smoke leaves it
