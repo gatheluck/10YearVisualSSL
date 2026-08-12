@@ -90,8 +90,8 @@ not in the locks and does not trip `verify-environment`.
 ## Running
 
     # DATA_ROOT is the cached-latents root (class subdirs of .npz moments)
-    python bin/resolve-config.py methods/mar/configs/step1.yaml \
-        --set DATA_ROOT=/path/to/cached > resolved.json
+    python bin/resolve-config.py --config methods/mar/configs/step1.yaml \
+        --set DATA_ROOT=/path/to/cached --out resolved.json
     cd methods/mar && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/out
 

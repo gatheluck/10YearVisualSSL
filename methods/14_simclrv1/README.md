@@ -77,15 +77,15 @@ resolution).
 ## Running
 
     # step 1: DATA_ROOT is a folder of training images (searched recursively)
-    python bin/resolve-config.py methods/14_simclrv1/configs/step1.yaml \
-        --set DATA_ROOT=/path/to/images > resolved.json
+    python bin/resolve-config.py --config methods/14_simclrv1/configs/step1.yaml \
+        --set DATA_ROOT=/path/to/images --out resolved.json
     cd methods/14_simclrv1 && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/s1
 
     # linear eval: DATA_ROOT has train/ and val/; ENCODER is step 1's encoder.pt
-    python bin/resolve-config.py methods/14_simclrv1/configs/linear_eval.yaml \
+    python bin/resolve-config.py --config methods/14_simclrv1/configs/linear_eval.yaml \
         --set DATA_ROOT=/path/to/imagenet \
-        --set ENCODER=/path/to/s1/encoder.pt > eval.json
+        --set ENCODER=/path/to/s1/encoder.pt --out eval.json
     cd methods/14_simclrv1 && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/eval.json --out /path/to/eval
 

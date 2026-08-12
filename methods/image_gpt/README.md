@@ -73,8 +73,8 @@ methods' dependencies, with no submodule and no extra. `requirements.lock.txt`
 ## Running
 
     # step 1: DATA_ROOT is an ImageFolder of training images
-    python bin/resolve-config.py methods/image_gpt/configs/step1.yaml \
-        --set DATA_ROOT=/path/to/images > resolved.json
+    python bin/resolve-config.py --config methods/image_gpt/configs/step1.yaml \
+        --set DATA_ROOT=/path/to/images --out resolved.json
     cd methods/image_gpt && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/s1
 
@@ -82,10 +82,10 @@ Step 1 writes `encoder.pt`, `clusters.npy` and `metrics.json` under `--out`.
 
     # linear eval: DATA_ROOT has train/ and val/; ENCODER and CLUSTERS come from
     # the step-1 run above
-    python bin/resolve-config.py methods/image_gpt/configs/linear_eval.yaml \
+    python bin/resolve-config.py --config methods/image_gpt/configs/linear_eval.yaml \
         --set DATA_ROOT=/path/to/imagenet \
         --set ENCODER=/path/to/s1/encoder.pt \
-        --set CLUSTERS=/path/to/s1/clusters.npy > eval.json
+        --set CLUSTERS=/path/to/s1/clusters.npy --out eval.json
     cd methods/image_gpt && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/eval.json --out /path/to/eval
 

@@ -86,9 +86,9 @@ in the lock.
         --artifact backbone_artifact --out /path/to/weights
 
     # linear eval: DATA_ROOT has train/ and val/; CKPT is the fetched backbone
-    python bin/resolve-config.py methods/30_aim/configs/linear_eval.yaml \
+    python bin/resolve-config.py --config methods/30_aim/configs/linear_eval.yaml \
         --set DATA_ROOT=/path/to/imagenet \
-        --set CKPT=/path/to/weights/aim_600m_2bimgs_attnprobe_backbone.pth > eval.json
+        --set CKPT=/path/to/weights/aim_600m_2bimgs_attnprobe_backbone.pth --out eval.json
     cd methods/30_aim && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/eval.json --out /path/to/eval
 

@@ -94,8 +94,8 @@ does not trip `verify-environment`.
 ## Running
 
     # DATA_ROOT is an ImageFolder of images; VQVAE_CKPT is the pretrained tokeniser
-    python bin/resolve-config.py methods/var/configs/step1.yaml \
-        --set DATA_ROOT=/path/to/images --set VQVAE_CKPT=/path/to/vae.pth > resolved.json
+    python bin/resolve-config.py --config methods/var/configs/step1.yaml \
+        --set DATA_ROOT=/path/to/images --set VQVAE_CKPT=/path/to/vae.pth --out resolved.json
     cd methods/var && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/out
 
@@ -109,9 +109,8 @@ probe reads `DATA_ROOT/train` and `DATA_ROOT/val` (an ImageFolder each).
 
     # download + verify the tokeniser named in provenance.json
     python bin/fetch-weights.py --provenance methods/var/provenance.json --out .weights/var
-    python bin/resolve-config.py methods/var/configs/linear_eval.yaml \
-        --set DATA_ROOT=/path/to/imagenet --set VQVAE_CKPT=.weights/var/vae_ch160v4096z32.pth \
-        > resolved.json
+    python bin/resolve-config.py --config methods/var/configs/linear_eval.yaml \
+        --set DATA_ROOT=/path/to/imagenet --set VQVAE_CKPT=.weights/var/vae_ch160v4096z32.pth \ --out resolved.json
     cd methods/var && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/out
 

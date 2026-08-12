@@ -284,8 +284,8 @@ Write the authoring configs — `include` lets a method reuse a shared base.
 `methods/01_context_prediction/configs/step1.yaml` is a real one:
 
 ```bash
-mkdir -p configs && printf '{"seed":0,"optimizer":{"name":"sgd","lr":0.1,"momentum":0.9}}\n' > configs/base.json
-printf '{"include":["base.json"],"optimizer":{"lr":0.03},"data_root":"${DATA_ROOT}"}\n' > configs/example.json
+mkdir -p configs && printf '{"seed":0,"optimizer":{"name":"sgd","lr":0.1,"momentum":0.9}}\n' --out configs/base.json
+printf '{"include":["base.json"],"optimizer":{"lr":0.03},"data_root":"${DATA_ROOT}"}\n' --out configs/example.json
 ```
 
 Resolve. Values come from `--set`, never from the environment:
@@ -575,7 +575,7 @@ answers both halves with one comparison — *is this environment the locked
 one*, and *did that run use it*:
 
 ```bash
-python3 bin/verify-environment.py --lock methods/01_context_prediction/requirements.lock.txt --lock requirements-tools.lock.txt [--manifest runs/<id>/out/run_manifest.json]
+python3 bin/verify-environment.py --lock methods/01_context_prediction/requirements.lock.txt --lock requirements-tools.lock.txt [--manifest runs/<id --out /out/run_manifest.json]
 ```
 
 Any difference fails, including a package no lock mentions: something
