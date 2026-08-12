@@ -25,6 +25,13 @@ class Backend(_Backend):
         parallelism would silently change results between runs.
         """
         env = {**os.environ, **spec.env}
-        r = subprocess.run(spec.command, cwd=spec.workdir, env=env)
+        if spec.log_path:
+            # One known file holds the whole run's output, so the run directory
+            # is self-contained. stderr is merged in, matching the cluster path.
+            with open(spec.log_path, "w", encoding="utf-8") as log:
+                r = subprocess.run(spec.command, cwd=spec.workdir, env=env,
+                                   stdout=log, stderr=subprocess.STDOUT)
+        else:
+            r = subprocess.run(spec.command, cwd=spec.workdir, env=env)
         return JobResult(job_id=f"local-{os.getpid()}",
-                         exit_status=r.returncode)
+                         exit_status=r.returncode, log_path=spec.log_path)

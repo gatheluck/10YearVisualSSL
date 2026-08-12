@@ -182,6 +182,17 @@ class TestInjectingInterpreterSetupAndOverride(Base):
             json.loads((run / "resolved.json").read_text())["metrics"]["top1"],
             1.0)
 
+    def test_the_run_directory_holds_the_job_log_and_names_it(self):
+        """One place to hand over: the run directory. Its `job.log` captures the
+        job's combined output, and launch.json points at it."""
+        self.launch_reference()
+        run = next(p for p in self.runs.iterdir() if p.is_dir())
+        self.assertTrue((run / "job.log").is_file(),
+                        "the combined job log was not written to the run dir")
+        rec = json.loads((run / "launch.json").read_text())
+        self.assertTrue(rec.get("log", "").endswith("job.log"),
+                        "launch.json does not name the log file")
+
     def test_the_record_names_the_interpreter_and_setup(self):
         """A run must explain itself: the interpreter, setup and override are
         recorded so someone who was not there can repeat it."""

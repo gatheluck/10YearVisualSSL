@@ -144,13 +144,27 @@ ABCI_GROUP=<your-group> python3 bin/launch.py \
 - `--gpus` maps to a resource type inside `platforms/abci/` only; `--hours` is the
   walltime. Both stay out of `config_sha256` (they do not change the result).
 
-**Reading a failure.** The generated script (written to `ABCI_SCRIPT_DIR`, default
-the current directory) merges stdout and stderr into one log, prints environment
-diagnostics first — hostname, `nvidia-smi`, the interpreter and its `torch` /
-CUDA visibility, and `git submodule status` — and traps any failure to print the
-line, command and exit code. So one log usually shows the cause: wrong
-interpreter, no GPU visible, a submodule not checked out, or the adapter's own
-error.
+**One place holds everything: the run directory `runs/<method>-<hash>/`.** It is
+named after the config hash and is self-contained, so it is the single thing to
+inspect or hand over:
+
+```
+runs/<method>-<hash>/
+  job.log                the job's full stdout+stderr in one file
+  out/run_manifest.json  status (ok / failed) and the error message
+  out/metrics.json       the numbers
+  launch.json            job_id, what was asked, and the log path
+  resolved.json          the exact config that ran
+```
+
+`job.log` is pinned there for **every** backend: on ABCI via `#PBS -o` (with
+`-j oe` merging stderr), and locally by redirecting the command's output. It
+opens with the environment diagnostics — hostname, `nvidia-smi`, the interpreter
+and its `torch` / CUDA visibility, and `git submodule status` — then the run's
+output, and on failure the trapped line, command and exit code. So one file
+usually shows the cause: wrong interpreter, no GPU visible, a submodule not
+checked out, or the adapter's own error. The launcher prints the run directory
+path when it finishes.
 
 **Checking the outcome.** Submission only enqueues, so the launcher records
 `exit_status` as unknown and does not guess. After the job finishes, verify the

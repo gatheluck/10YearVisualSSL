@@ -77,7 +77,13 @@ def render_script(spec: JobSpec, group: str) -> str:
         f"#PBS -l walltime={spec.hours}:00:00",
         f"#PBS -P {group}",
         f"#PBS -N {spec.name}",
-        "#PBS -j oe",                       # one merged stdout+stderr log
+        "#PBS -j oe",                       # merge stderr into the stdout log
+    ]
+    if spec.log_path:
+        # Pin the merged log to one known file so the run directory is
+        # self-contained -- the single place to hand over for diagnosis.
+        lines.append(f"#PBS -o {spec.log_path}")
+    lines += [
         "set -Eeuo pipefail",
         # `set -e` stops silently; the trap names the line, the command and the
         # exit code so a failure is diagnosable from the log alone.

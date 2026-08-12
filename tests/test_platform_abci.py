@@ -127,6 +127,15 @@ class TestScriptRendering(unittest.TestCase):
         self.assertLess(s.index("module load cuda/12.6"),
                         s.index("source .venvs/m/bin/activate"))
 
+    def test_the_log_is_pinned_to_a_file_when_requested(self):
+        """The combined job log goes to one known file, so the run directory is
+        self-contained -- the single place to hand over for diagnosis."""
+        s = abci.render_script(spec(log_path="/runs/job-x/job.log"), group="g")
+        self.assertIn("#PBS -o /runs/job-x/job.log", s)
+
+    def test_no_output_directive_without_a_log_path(self):
+        self.assertNotIn("#PBS -o", abci.render_script(spec(), group="g"))
+
     def test_setup_runs_with_unset_variables_tolerated(self):
         """venv/conda activation scripts reference unset variables; nounset
         would abort them. `-u` is relaxed around the injected setup only, then

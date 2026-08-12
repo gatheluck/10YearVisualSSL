@@ -209,6 +209,7 @@ def launch(config: Path, method: str, runs_dir: Path, platform: str,
         env_name=method, gpus=gpus, hours=hours, workdir=str(md),
         env=job_environment(gpus=gpus, processes=processes),
         setup=list(setup or []),
+        log_path=str((run / "job.log").resolve()),
     )
     result = mod.Backend().submit(spec)
 
@@ -229,6 +230,7 @@ def launch(config: Path, method: str, runs_dir: Path, platform: str,
         "override": list(overrides or []),
         "python": python or sys.executable,
         "setup": list(setup or []),
+        "log": str((run / "job.log").resolve()),
         "job_id": result.job_id,
         **summarise(result.exit_status, contract_ok),
     }
@@ -236,6 +238,11 @@ def launch(config: Path, method: str, runs_dir: Path, platform: str,
                               + "\n", encoding="utf-8")
     if report:
         print(report)
+    # One place holds everything about this run: point at it explicitly so a
+    # failure needs no hunting for where the log went.
+    print(f"  run directory: {run}")
+    print(f"    job.log                full stdout+stderr (diagnostics, output, failures)")
+    print(f"    out/run_manifest.json  status and error")
     return (0 if record["outcome"] == "ok" else 1), record
 
 
