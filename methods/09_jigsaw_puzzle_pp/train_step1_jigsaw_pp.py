@@ -73,7 +73,7 @@ def make_deterministic(seed: int) -> None:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Jigsaw++ step 1 (VGG16 pretext)")
-    parser.add_argument("--config", default="configs/step1.yaml")
+    parser.add_argument("--config", default="configs/pretrain.yaml")
     parser.add_argument("--data_path", default=None,
                         help="Override the folder of training images")
     parser.add_argument("--resume", default=None)

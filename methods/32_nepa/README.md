@@ -65,7 +65,7 @@ a cosine schedule), which makes the number comparable across the ported methods.
 - **Exercised (linear_eval):** a hermetic smoke fits the probe on a step-1
   encoder over a two-class ImageFolder, passes `contract-test`, writes the
   comparable `linear_probe` accuracies, and writes **no** `encoder.pt`.
-- **Not a full run:** `configs/step1.yaml` is the NEPA recipe (ViT-B/14, 224px,
+- **Not a full run:** `configs/pretrain.yaml` is the NEPA recipe (ViT-B/14, 224px,
   1600 epochs, batch 4096, AdamW, warmup 40), a recipe, not a completed run.
 - **GPU:** the device resolution is verified on real hardware; see the device
   mutation spec (`mutations/32_nepa-step1-device.json`).
@@ -86,7 +86,7 @@ resolution).
 ## Running
 
     # step 1: DATA_ROOT contains a train/ subdirectory of images
-    python bin/resolve-config.py --config methods/32_nepa/configs/step1.yaml \
+    python bin/resolve-config.py --config methods/32_nepa/configs/pretrain.yaml \
         --set DATA_ROOT=/path/to/imagenet --out resolved.json
     cd methods/32_nepa && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/s1

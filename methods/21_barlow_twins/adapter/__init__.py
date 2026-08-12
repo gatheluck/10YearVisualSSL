@@ -33,7 +33,7 @@ from pathlib import Path
 import adapterlib
 
 METHOD = "21_barlow_twins"
-STAGES = ("step1", "linear_eval")
+STAGES = ("pretrain", "linear_eval")
 
 # Every setting the original reads, and no others.
 # Read from the trainer, not guessed: it takes **two** learning rates, as

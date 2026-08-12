@@ -74,7 +74,7 @@ single-feature probe instead is a documented deviation, the same as every port.)
 - **Exercised (linear_eval):** a hermetic smoke fits the probe on a step-1 encoder
   over a two-class ImageFolder, passes `contract-test`, writes the comparable
   `linear_probe` accuracies, and writes **no** `encoder.pt`.
-- **Not a full run:** `configs/step1.yaml` is the LeJEPA recipe (ViT-B/16, 224px,
+- **Not a full run:** `configs/pretrain.yaml` is the LeJEPA recipe (ViT-B/16, 224px,
   4 views, λ=0.02, 100 epochs, batch 1024, AdamW, warmup 10 → cosine), a recipe,
   not a completed run.
 - **GPU:** the device resolution is verified on real hardware; see the device
@@ -95,7 +95,7 @@ as `26_simmim` / `22_mocov3`: identical timm resolution).
 ## Running
 
     # step 1: DATA_ROOT contains a train/ subdirectory of images
-    python bin/resolve-config.py --config methods/37_lejepa/configs/step1.yaml \
+    python bin/resolve-config.py --config methods/37_lejepa/configs/pretrain.yaml \
         --set DATA_ROOT=/path/to/imagenet --out resolved.json
     cd methods/37_lejepa && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/s1

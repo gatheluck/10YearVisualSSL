@@ -54,7 +54,7 @@ space the model was trained on.
 - **Exercised (linear_eval):** a hermetic smoke fits the probe on a step-1
   encoder over a two-class ImageFolder, passes `contract-test`, writes the four
   comparable `linear_probe` accuracies, and writes **no** `encoder.pt`.
-- **Not a full run:** `configs/step1.yaml` is the iGPT-S recipe and
+- **Not a full run:** `configs/pretrain.yaml` is the iGPT-S recipe and
   `configs/linear_eval.yaml` the ARSSL probe recipe, not completed runs.
 - **GPU:** the device resolution is verified on real hardware; see the device
   mutation spec (`mutations/image_gpt-step1-device.json`).
@@ -73,7 +73,7 @@ methods' dependencies, with no submodule and no extra. `requirements.lock.txt`
 ## Running
 
     # step 1: DATA_ROOT is an ImageFolder of training images
-    python bin/resolve-config.py --config methods/image_gpt/configs/step1.yaml \
+    python bin/resolve-config.py --config methods/image_gpt/configs/pretrain.yaml \
         --set DATA_ROOT=/path/to/images --out resolved.json
     cd methods/image_gpt && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/s1

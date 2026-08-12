@@ -41,7 +41,7 @@ from pathlib import Path
 import adapterlib
 
 METHOD = "27_ibot"
-STAGES = ("step1", "linear_eval")
+STAGES = ("pretrain", "linear_eval")
 
 # Step 1 is ViT-Small/16. `vit_base` is step 2's backbone, and step 2 has no
 # official-style variant in the capture, so it was not brought across.

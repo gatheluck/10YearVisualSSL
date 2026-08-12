@@ -60,7 +60,7 @@ across the ported methods.
 - **Exercised (linear_eval):** a hermetic smoke fits the probe on a step-1
   encoder over a two-class ImageFolder, passes `contract-test`, writes the
   comparable `linear_probe` accuracies, and writes **no** `encoder.pt`.
-- **Not a full run:** `configs/step1.yaml` is the SeLa recipe (K 3000, 10 heads,
+- **Not a full run:** `configs/pretrain.yaml` is the SeLa recipe (K 3000, 10 heads,
   λ 25, 400 epochs), a recipe, not a completed run.
 - **GPU:** the device resolution is verified on real hardware; see the device
   mutation spec (`mutations/18_sela-step1-device.json`).
@@ -81,7 +81,7 @@ floors, identical resolution).
 ## Running
 
     # step 1: DATA_ROOT is a folder of training images (searched recursively)
-    python bin/resolve-config.py --config methods/18_sela/configs/step1.yaml \
+    python bin/resolve-config.py --config methods/18_sela/configs/pretrain.yaml \
         --set DATA_ROOT=/path/to/images --out resolved.json
     cd methods/18_sela && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/s1

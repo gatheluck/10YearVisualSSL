@@ -48,7 +48,7 @@ L2-normalised, a single linear layer trained with SGD under a cosine schedule).
 - **Exercised (linear_eval):** a hermetic smoke fits the probe on a step-1
   encoder over a two-class ImageFolder, passes `contract-test`, writes the
   comparable `linear_probe` accuracies, and writes **no** `encoder.pt`.
-- **Not a full run:** `configs/step1.yaml` is the paper recipe (128-d embedding,
+- **Not a full run:** `configs/pretrain.yaml` is the paper recipe (128-d embedding,
   4096 negatives, 200 epochs), a recipe, not a completed run.
 - **GPU:** the device resolution is verified on real hardware; see the device
   mutation spec (`mutations/10_inst_disc-step1-device.json`).
@@ -68,7 +68,7 @@ closure as `image_gpt`: identical floors, identical resolution).
 ## Running
 
     # step 1: DATA_ROOT is an ImageFolder of training images
-    python bin/resolve-config.py --config methods/10_inst_disc/configs/step1.yaml \
+    python bin/resolve-config.py --config methods/10_inst_disc/configs/pretrain.yaml \
         --set DATA_ROOT=/path/to/images --out resolved.json
     cd methods/10_inst_disc && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/s1

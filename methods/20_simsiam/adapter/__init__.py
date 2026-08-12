@@ -36,7 +36,7 @@ from pathlib import Path
 import adapterlib
 
 METHOD = "20_simsiam"
-STAGES = ("step1", "linear_eval")
+STAGES = ("pretrain", "linear_eval")
 
 # Every setting the original reads, and no others.
 TRAIN_KEYS = frozenset({"epochs", "batch_size", "num_workers", "base_lr",

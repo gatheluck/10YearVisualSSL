@@ -67,7 +67,7 @@ number is comparable across them.
 - **Exercised (linear_eval):** a hermetic smoke fits the probe on a step-1
   encoder over a two-class ImageFolder, passes `contract-test`, writes the
   comparable `linear_probe` accuracies, and writes **no** `encoder.pt`.
-- **Not a full run:** `configs/step1.yaml` is the paper-target recipe (313 bins,
+- **Not a full run:** `configs/pretrain.yaml` is the paper-target recipe (313 bins,
   224px crop, 300 epochs, class rebalancing on), a recipe, not a completed run.
 - **Not ported:** the ViT step 2.
 - **GPU:** the device resolution is verified on real hardware; see the device
@@ -89,7 +89,7 @@ closure as `image_gpt`).
 ## Running
 
     # step 1: DATA_ROOT is an ImageFolder of training images
-    python bin/resolve-config.py --config methods/03_colorization/configs/step1.yaml \
+    python bin/resolve-config.py --config methods/03_colorization/configs/pretrain.yaml \
         --set DATA_ROOT=/path/to/images --out resolved.json
     cd methods/03_colorization && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/s1

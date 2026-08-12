@@ -54,7 +54,7 @@ From the paper's MNIST experiments, as the capture recorded them:
 ## Running it
 
 ```bash
-python3 bin/launch.py --config methods/02_vae/configs/step1_mnist.yaml \
+python3 bin/launch.py --config methods/02_vae/configs/pretrain_mnist.yaml \
     --method 02_vae --set DATA_ROOT=/path/to/mnist
 ```
 

@@ -66,7 +66,7 @@ using the shared single-feature probe instead is a documented deviation.)
 - **Exercised (linear_eval):** a hermetic smoke fits the probe on a step-1 encoder
   over a two-class ImageFolder, passes `contract-test`, writes the comparable
   `linear_probe` accuracies, and writes **no** `encoder.pt`.
-- **Not a full run:** `configs/step1.yaml` is the DINOv3 core recipe (ViT-B/16,
+- **Not a full run:** `configs/pretrain.yaml` is the DINOv3 core recipe (ViT-B/16,
   224px, 2+8 crops, 300 epochs, batch 1024, AdamW), a recipe, not a completed run.
 - **GPU:** the device resolution is verified on real hardware; see the device
   mutation spec (`mutations/31_dinov3-step1-device.json`).
@@ -87,7 +87,7 @@ excluded step 1, so they are not dependencies here.
 ## Running
 
     # step 1: DATA_ROOT contains a train/ subdirectory of images
-    python bin/resolve-config.py --config methods/31_dinov3/configs/step1.yaml \
+    python bin/resolve-config.py --config methods/31_dinov3/configs/pretrain.yaml \
         --set DATA_ROOT=/path/to/imagenet/train --out resolved.json
     cd methods/31_dinov3 && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/s1

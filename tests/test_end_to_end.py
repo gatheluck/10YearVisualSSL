@@ -119,7 +119,7 @@ class TestTheChainHolds(Chain):
     def test_a_stage_cannot_borrow_the_other_familys_names(self):
         """The dangerous mapping, refused end to end rather than in theory."""
         cfg = self.resolve({
-            "seed": 0, "stage": "step1", "metrics": {"top1": 42.5},
+            "seed": 0, "stage": "pretrain", "metrics": {"top1": 42.5},
             "metric_names": {"top1": "final_linear_probe_top1_accuracy"}})
         out = self.tmp / "crossed"
         r = self.adapt(cfg, out)
@@ -128,7 +128,7 @@ class TestTheChainHolds(Chain):
 
     def test_a_config_may_name_the_contract_slots_itself(self):
         _, out, _, _ = self.full({
-            "seed": 0, "stage": "step1", "metrics": {"acc": 1.0, "loss": 2.0},
+            "seed": 0, "stage": "pretrain", "metrics": {"acc": 1.0, "loss": 2.0},
             "metric_names": {"acc": "final_pretext_top1_accuracy",
                              "loss": "final_pretext_loss"}})
         self.assertEqual(

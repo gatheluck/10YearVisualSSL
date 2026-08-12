@@ -60,7 +60,7 @@ single linear layer trained with SGD under a cosine schedule).
 - **Exercised (linear_eval):** a hermetic smoke fits the probe on a step-1
   encoder over a two-class ImageFolder, passes `contract-test`, writes the
   comparable `linear_probe` accuracies, and writes **no** `encoder.pt`.
-- **Not a full run:** `configs/step1.yaml` is the paper-target recipe (1024-d,
+- **Not a full run:** `configs/pretrain.yaml` is the paper-target recipe (1024-d,
   7×7 grid, 5 prediction steps, 200 epochs), a recipe, not a completed run.
 - **Not ported:** the deprecated local baseline (`cpc_resnet`).
 - **GPU:** the device resolution is verified on real hardware; see the device
@@ -81,7 +81,7 @@ closure as `image_gpt`: identical floors, identical resolution).
 ## Running
 
     # step 1: DATA_ROOT is an ImageFolder of training images
-    python bin/resolve-config.py --config methods/11_cpc/configs/step1.yaml \
+    python bin/resolve-config.py --config methods/11_cpc/configs/pretrain.yaml \
         --set DATA_ROOT=/path/to/images --out resolved.json
     cd methods/11_cpc && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/s1

@@ -27,7 +27,7 @@ from pathlib import Path
 import adapterlib
 
 METHOD = "15_mocov2"
-STAGES = ("step1", "linear_eval")
+STAGES = ("pretrain", "linear_eval")
 METHOD_DIR = Path(__file__).resolve().parent.parent
 
 MODEL_KEYS = frozenset({"feature_dim", "img_size"})

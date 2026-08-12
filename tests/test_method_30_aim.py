@@ -167,7 +167,7 @@ class TestConfigTranslation(Base):
 
     def test_a_step1_stage_is_refused(self):
         with self.assertRaises(adapter.ConfigError):
-            adapter.to_run_config(self.eval_config(stage="step1"), out=self.out)
+            adapter.to_run_config(self.eval_config(stage="pretrain"), out=self.out)
 
     def test_a_config_that_sets_output_is_refused(self):
         cfg = self.eval_config()

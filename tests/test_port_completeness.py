@@ -34,7 +34,7 @@ MUTATIONS_DIR = ROOT / "mutations"
 # Stages that are runnable training/eval work and therefore need a shipped
 # config. `knowledge_transfer` is a real stage (09_jigsaw_puzzle_pp) but is not
 # required to ship its own top-level config, so it is not in this set.
-CONFIG_STAGES = ("step1", "linear_eval")
+CONFIG_STAGES = ("pretrain", "linear_eval")
 
 
 def discover_methods() -> list[str]:
@@ -131,15 +131,15 @@ def methods_missing_stage_config(
 ) -> list[tuple[str, str]]:
     """(method, stage) pairs where a declared config-stage ships no config.
 
-    `step1` accepts any `configs/step1*.yaml` (the VAE ships a MNIST-named one);
+    `step1` accepts any `configs/pretrain*.yaml` (the VAE ships a MNIST-named one);
     `linear_eval` requires `configs/linear_eval.yaml` exactly.
     """
     gaps: list[tuple[str, str]] = []
     for m in methods:
         cfg_dir = methods_dir / m / "configs"
         stages = stages_of(m, methods_dir)
-        if "step1" in stages and not list(cfg_dir.glob("step1*.yaml")):
-            gaps.append((m, "step1"))
+        if "pretrain" in stages and not list(cfg_dir.glob("pretrain*.yaml")):
+            gaps.append((m, "pretrain"))
         if "linear_eval" in stages and not (cfg_dir / "linear_eval.yaml").is_file():
             gaps.append((m, "linear_eval"))
     return gaps
@@ -302,12 +302,12 @@ class TestTheDetectorsActuallyFire(unittest.TestCase):
         (planted / "adapter").mkdir(parents=True)
         (planted / "configs").mkdir()
         (planted / "adapter" / "__init__.py").write_text(
-            'STAGES = ("step1", "linear_eval")\n', encoding="utf-8")
+            'STAGES = ("pretrain", "linear_eval")\n', encoding="utf-8")
         gaps = methods_missing_stage_config(["planted"], methods_dir=tmp)
         self.assertEqual(sorted(gaps),
-                         [("planted", "linear_eval"), ("planted", "step1")])
+                         [("planted", "linear_eval"), ("planted", "pretrain")])
         # negative: shipping the two configs silences it
-        (planted / "configs" / "step1.yaml").write_text("stage: step1\n")
+        (planted / "configs" / "pretrain.yaml").write_text("stage: pretrain\n")
         (planted / "configs" / "linear_eval.yaml").write_text(
             "stage: linear_eval\n")
         self.assertEqual(
@@ -324,12 +324,12 @@ class TestTheDetectorsActuallyFire(unittest.TestCase):
             json.dumps({"upstream": {"repo": "r", "commit": "c"}}),
             encoding="utf-8")
         (planted / "adapter" / "__init__.py").write_text(
-            "STAGES = ('step1',)\n", encoding="utf-8")
+            "STAGES = ('pretrain',)\n", encoding="utf-8")
         self.assertTrue(
             upstream_recording_problems(["planted"], methods_dir=tmp))
         # negative: a matching UPSTREAM silences it
         (planted / "adapter" / "__init__.py").write_text(
-            "STAGES = ('step1',)\nUPSTREAM = {'repo': 'r', 'commit': 'c'}\n",
+            "STAGES = ('pretrain',)\nUPSTREAM = {'repo': 'r', 'commit': 'c'}\n",
             encoding="utf-8")
         self.assertEqual(
             upstream_recording_problems(["planted"], methods_dir=tmp), [])

@@ -1,0 +1,40 @@
+# MAR step 1: masked autoregressive pretraining in VAE-latent space
+# (Li et al., arXiv:2406.11838), the mar_base recipe.
+#
+# These are the settings the upstream recipe uses -- the recipe, not a result.
+# Nothing here has executed a full run; the method README says exactly what was
+# and was not exercised.
+#
+# The data path is not in this file: pass it with `--set DATA_ROOT=<path>`. It
+# is the root of the **cached VAE latents** -- class subdirectories of `.npz`
+# files carrying `moments`/`moments_flip`, the upstream CachedFolder format. No
+# VAE is loaded, so no weights are downloaded. The output path is not here
+# either; the contract fixes it at `--out`.
+#
+# DATA_ROOT here is the root of pre-encoded cached latents, not an image dataset
+# with a train/ subdirectory, so the unified DATA_ROOT train/ convention does
+# not apply: this method reads cached latents directly.
+stage: pretrain
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+
+train:
+  # model (mar_base): the architecture, so load_encoder can rebuild it
+  img_size: 256
+  vae_stride: 16
+  patch_size: 1
+  vae_embed_dim: 16
+  class_num: 1000
+  buffer_size: 64
+  diffloss_d: 3
+  diffloss_w: 1024
+  mask_ratio_min: 0.7
+  label_drop_prob: 0.1
+  # training
+  epochs: 400
+  batch_size: 256
+  num_workers: 8
+  lr: 8.0e-4
+  weight_decay: 0.02
+  grad_clip: 3.0

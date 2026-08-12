@@ -40,7 +40,7 @@ EXCEPTION_MARKERS = ("MNIST", "cached latents")
 
 def step1_configs() -> list[Path]:
     return sorted(Path(p) for p in glob.glob(
-        str(METHODS_DIR / "*" / "configs" / "step1*.yaml")))
+        str(METHODS_DIR / "*" / "configs" / "pretrain*.yaml")))
 
 
 def declares_convention(text: str) -> bool:
@@ -85,8 +85,8 @@ class TestTheDetectorFires(unittest.TestCase):
         import tempfile
         tmp = Path(tempfile.mkdtemp())
         self.addCleanup(__import__("shutil").rmtree, tmp, ignore_errors=True)
-        bad = tmp / "step1.yaml"
-        bad.write_text("stage: step1\n# no data-root documentation here\n",
+        bad = tmp / "pretrain.yaml"
+        bad.write_text("stage: pretrain\n# no data-root documentation here\n",
                        encoding="utf-8")
         self.assertTrue(offenders([bad]), "an undocumented config was not flagged")
 
@@ -94,8 +94,8 @@ class TestTheDetectorFires(unittest.TestCase):
         import tempfile
         tmp = Path(tempfile.mkdtemp())
         self.addCleanup(__import__("shutil").rmtree, tmp, ignore_errors=True)
-        good = tmp / "step1.yaml"
-        good.write_text(f"stage: step1\n{CANONICAL_LINE}\n", encoding="utf-8")
+        good = tmp / "pretrain.yaml"
+        good.write_text(f"stage: pretrain\n{CANONICAL_LINE}\n", encoding="utf-8")
         self.assertEqual(offenders([good]), [])
 
     def test_a_self_declared_exception_silences_it(self):
@@ -104,7 +104,7 @@ class TestTheDetectorFires(unittest.TestCase):
         self.addCleanup(__import__("shutil").rmtree, tmp, ignore_errors=True)
         for marker in EXCEPTION_MARKERS:
             ex = tmp / f"{marker[:4]}.yaml"
-            ex.write_text(f"stage: step1\n# uses {marker}\n", encoding="utf-8")
+            ex.write_text(f"stage: pretrain\n# uses {marker}\n", encoding="utf-8")
             self.assertEqual(offenders([ex]), [])
 
 

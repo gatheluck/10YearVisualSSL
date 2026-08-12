@@ -139,7 +139,7 @@ class TestTheDetectorFires(unittest.TestCase):
         self.tools = _tools()
 
     def test_a_positional_config_is_flagged(self):
-        bad = "    python bin/resolve-config.py methods/x/configs/step1.yaml --set A=b > out.json"
+        bad = "    python bin/resolve-config.py methods/x/configs/pretrain.yaml --set A=b > out.json"
         probs = command_problems(bad, self.tools)
         self.assertTrue(any("missing required --config" in p for p in probs),
                         f"did not flag the missing --config: {probs}")
@@ -150,7 +150,7 @@ class TestTheDetectorFires(unittest.TestCase):
                             for p in command_problems(bad, self.tools)))
 
     def test_a_correct_command_is_clean(self):
-        good = ("    python bin/resolve-config.py --config methods/x/configs/step1.yaml \\\n"
+        good = ("    python bin/resolve-config.py --config methods/x/configs/pretrain.yaml \\\n"
                 "        --set A=b --out out.json")
         self.assertEqual(command_problems(good, self.tools), [])
 

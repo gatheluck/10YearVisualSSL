@@ -91,7 +91,7 @@ Recorded in full in `provenance.json`; `models/simsiam_resnet.py` and
 
 ## The configuration
 
-`configs/step1.yaml` holds the recipe the captured runs used. Four keys from
+`configs/pretrain.yaml` holds the recipe the captured runs used. Four keys from
 the captured config are **deliberately absent** — `arch`, `optimizer`,
 `lr_schedule` and `warmup_epochs`. The trainer never reads them; the
 architecture, SGD, the cosine decay and the absence of warmup are fixed in its
@@ -104,7 +104,7 @@ absolute path on the cluster for both, which is reproducible nowhere else.
 ## Running it
 
 ```bash
-python3 bin/launch.py --config methods/20_simsiam/configs/step1.yaml --method 20_simsiam --set DATA_ROOT=/path/to/imagenet
+python3 bin/launch.py --config methods/20_simsiam/configs/pretrain.yaml --method 20_simsiam --set DATA_ROOT=/path/to/imagenet
 ```
 
 Or the steps by hand, as the repository README describes for the first method.
@@ -121,5 +121,5 @@ TensorBoard events under `work/`.
   one and is untouched, but nothing here has executed it
 - **The container definition has never been built** on this machine; it is
   checked by reading, like the other two
-- The numbers in `configs/step1.yaml` are the recipe, not results. No accuracy
+- The numbers in `configs/pretrain.yaml` are the recipe, not results. No accuracy
   from this port has been measured against anything

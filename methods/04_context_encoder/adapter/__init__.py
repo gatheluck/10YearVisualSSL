@@ -31,7 +31,7 @@ from pathlib import Path
 import adapterlib
 
 METHOD = "04_context_encoder"
-STAGES = ("step1", "linear_eval")
+STAGES = ("pretrain", "linear_eval")
 
 # Every setting the step-1 trainer reads, and no others.
 TRAIN_KEYS = frozenset({"epochs", "batch_size", "num_workers", "lr", "momentum",

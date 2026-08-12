@@ -83,7 +83,7 @@ Recorded in full in `provenance.json`; `models/barlow_resnet.py` and
 
 ## The configuration
 
-`configs/step1.yaml` holds the recipe the captured runs used. Note that Barlow
+`configs/pretrain.yaml` holds the recipe the captured runs used. Note that Barlow
 Twins takes **two** learning rates, as LARS does in the paper — one for the
 weights and one for the biases and normalisation parameters. A first draft of
 this port declared a single `base_lr`, which the trainer never reads; the run

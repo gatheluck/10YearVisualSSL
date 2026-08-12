@@ -98,7 +98,7 @@ One command does the whole thing — resolve, run, verify against the contract,
 and record what was asked:
 
 ```bash
-python3 bin/launch.py --config methods/01_context_prediction/configs/step1.yaml \
+python3 bin/launch.py --config methods/01_context_prediction/configs/pretrain.yaml \
     --method 01_context_prediction --set DATA_ROOT=/path/to/ILSVRC2012
 ```
 
@@ -119,7 +119,7 @@ Resolve the config first, so the run is identified by a hash:
 
 ```bash
 python3 bin/resolve-config.py \
-    --config methods/01_context_prediction/configs/step1.yaml \
+    --config methods/01_context_prediction/configs/pretrain.yaml \
     --out runs/ctxpred/resolved.json \
     --set DATA_ROOT=/path/to/ILSVRC2012
 ```

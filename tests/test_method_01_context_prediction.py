@@ -96,7 +96,7 @@ class Base(unittest.TestCase):
         # `stage` became required when linear evaluation was added: the
         # contract fixes the adapter's arguments at two, so the stage lives in
         # the config and is inside config_sha256.
-        cfg = {"stage": "step1", "seed": 42,
+        cfg = {"stage": "pretrain", "seed": 42,
                "data_root": str(self.tmp / "data"),
                "device": "cpu", "train": dict(BASE_TRAIN)}
         for k, v in over.items():
@@ -315,7 +315,7 @@ class TestTheShippedConfig(Base):
     def test_it_resolves_and_the_adapter_accepts_it(self):
         r = subprocess.run(
             [sys.executable, str(BIN / "resolve-config.py"),
-             "--config", str(METHOD / "configs" / "step1.yaml"),
+             "--config", str(METHOD / "configs" / "pretrain.yaml"),
              "--out", str(self.tmp / "r.json"),
              "--set", "DATA_ROOT=/mnt/imagenet"],
             capture_output=True, text=True)
@@ -328,8 +328,8 @@ class TestTheShippedConfig(Base):
 
     def test_it_carries_the_settings_the_capture_used(self):
         """Pinned so a later edit cannot quietly change the baseline."""
-        text = (METHOD / "configs" / "step1.yaml").read_text()
-        for setting in ("stage: step1", "seed: 42", "lr: 1.0e-5",
+        text = (METHOD / "configs" / "pretrain.yaml").read_text()
+        for setting in ("stage: pretrain", "seed: 42", "lr: 1.0e-5",
                         "batch_size: 64", "max_steps: 1000000"):
             self.assertIn(setting, text, f"{setting} is no longer shipped")
 

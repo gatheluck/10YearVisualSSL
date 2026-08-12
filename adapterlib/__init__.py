@@ -19,7 +19,7 @@ So an adapter supplies only the part that is actually method-specific:
 
     raise SystemExit(adapterlib.run(
         config=args.config, out=args.out,
-        method="<this method>", stage="step1", body=body))
+        method="<this method>", stage="pretrain", body=body))
 
 Everything the contract requires -- times, hashes, the artifact listing, both
 success signals -- is produced here, once.
@@ -121,9 +121,9 @@ LINEAR_PROBE = "linear_probe"
 # Knowledge Transfer"). It trains a method's own objective, so its loss is a
 # pretext number, never a comparable probe -- the stage sits in the pretext
 # family. It is a general SSL stage, named for what it does, not for any method.
-CONTRACT_STAGES = ("step1", "knowledge_transfer", "linear_eval")
+CONTRACT_STAGES = ("pretrain", "knowledge_transfer", "linear_eval")
 STAGE_FAMILIES = {
-    "step1": PRETEXT,
+    "pretrain": PRETEXT,
     "knowledge_transfer": PRETEXT,
     "linear_eval": LINEAR_PROBE,
 }

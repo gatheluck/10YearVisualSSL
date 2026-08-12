@@ -14,7 +14,7 @@ permutation was applied. Step 1 is that pretext.
 
 This port covers the paper's two headline stages:
 
-- **step1** — the VGG16 Jigsaw++ **pretext** (stage a): the shared VGG16 encoder
+- **pretrain** — the VGG16 Jigsaw++ **pretext** (stage a): the shared VGG16 encoder
   predicts which permutation reordered the tiles.
 - **knowledge_transfer** — the paper's namesake (capture stages b + d): extract
   the VGG16 **conv4** features for every image, **k-means** cluster them into
@@ -47,7 +47,7 @@ the clustering and AlexNet training happen in one stage, the device is
 
 `encoder.pt` is:
 
-- for **step1**, the shared **VGG16 encoder** (`encoder.*`) — four VGG conv
+- for **pretrain**, the shared **VGG16 encoder** (`encoder.*`) — four VGG conv
   blocks, an adaptive max-pool to 4×4×512, and an FC layer, giving one 1024-d
   feature per image;
 - for **knowledge_transfer**, the **AlexNet conv trunk** (`features.*`), whose
@@ -81,7 +81,7 @@ a cosine schedule).
   encoder and on a knowledge-transfer AlexNet over a two-class ImageFolder, pass
   `contract-test`, write the comparable `linear_probe` accuracies, and write
   **no** `encoder.pt`.
-- **Not a full run:** `configs/step1.yaml` (701 permutations, 90 epochs) and
+- **Not a full run:** `configs/pretrain.yaml` (701 permutations, 90 epochs) and
   `configs/knowledge_transfer.yaml` (k=2000, 90 epochs) are recipes, not
   completed runs.
 - **GPU:** the device resolution and the knowledge-transfer guards are verified on
@@ -113,7 +113,7 @@ probe run from the CPU lock; the `knowledge_transfer` stage needs the CUDA lock.
 ## Running
 
     # step 1: DATA_ROOT is a folder of training images (searched recursively)
-    python bin/resolve-config.py --config methods/09_jigsaw_puzzle_pp/configs/step1.yaml \
+    python bin/resolve-config.py --config methods/09_jigsaw_puzzle_pp/configs/pretrain.yaml \
         --set DATA_ROOT=/path/to/images --out resolved.json
     cd methods/09_jigsaw_puzzle_pp && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/s1

@@ -193,7 +193,7 @@ def train_epoch(model, discriminator, train_loader, criterion, optimizer,
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Context Encoder Step 1 (AlexNet)")
-    parser.add_argument("--config", default="configs/step1.yaml")
+    parser.add_argument("--config", default="configs/pretrain.yaml")
     parser.add_argument("--data_path", default=None,
                         help="Override ImageNet root (parent of train/ and val/)")
     parser.add_argument("--resume", default=None)

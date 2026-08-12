@@ -29,7 +29,7 @@ from pathlib import Path
 import adapterlib
 
 METHOD = "22_mocov3"
-STAGES = ("step1", "linear_eval")
+STAGES = ("pretrain", "linear_eval")
 METHOD_DIR = Path(__file__).resolve().parent.parent
 
 MODEL_KEYS = frozenset({"arch", "proj_dim", "mlp_dim", "stop_grad_conv1",

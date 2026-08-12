@@ -112,7 +112,7 @@ class Base(unittest.TestCase):
         self.out = self.tmp / "out"
 
     def config(self, **over) -> dict:
-        cfg = {"stage": "step1", "seed": 0,
+        cfg = {"stage": "pretrain", "seed": 0,
                "data_root": str(self.tmp / "data"),
                "device": "cpu", "train": dict(TRAIN)}
         for k, v in over.items():

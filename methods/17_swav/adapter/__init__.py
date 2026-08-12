@@ -33,7 +33,7 @@ from pathlib import Path
 import adapterlib
 
 METHOD = "17_swav"
-STAGES = ("step1", "linear_eval")
+STAGES = ("pretrain", "linear_eval")
 
 # The four lists that describe multi-crop. They are read together because they
 # only mean anything together.

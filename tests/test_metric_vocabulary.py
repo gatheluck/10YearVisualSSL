@@ -97,7 +97,7 @@ class TestWritingMetrics(unittest.TestCase):
         # A contract stage, because the stage now decides which family of
         # names is reachable. "" would be refused, and rightly.
         self.ctx = adapterlib.Context(out=self.out, config={"seed": 1},
-                                      stage="step1")
+                                      stage="pretrain")
 
     def written(self) -> dict:
         return json.loads((self.out / "metrics.json").read_text())
@@ -338,10 +338,10 @@ class TestAStageMayNotBorrowTheOtherFamilysNames(unittest.TestCase):
 
     def test_a_pretext_stage_may_not_emit_a_probe_name(self):
         with self.assertRaises(adapterlib.AdapterError) as e:
-            self.ctx("step1").write_metrics(
+            self.ctx("pretrain").write_metrics(
                 {"val_acc1": 12.5},
                 names={"val_acc1": "final_linear_probe_top1_accuracy"})
-        self.assertIn("step1", str(e.exception))
+        self.assertIn("pretrain", str(e.exception))
 
     def test_a_probe_stage_may_not_emit_a_pretext_name(self):
         with self.assertRaises(adapterlib.AdapterError) as e:
@@ -352,7 +352,7 @@ class TestAStageMayNotBorrowTheOtherFamilysNames(unittest.TestCase):
 
     def test_the_pretext_stage_may_emit_its_own(self):
         """The rule must not refuse everything."""
-        self.ctx("step1").write_metrics(
+        self.ctx("pretrain").write_metrics(
             {"val_acc1": 12.5},
             names={"val_acc1": "final_pretext_top1_accuracy"})
         doc = json.loads((self.out / "metrics.json").read_text())
@@ -367,7 +367,7 @@ class TestAStageMayNotBorrowTheOtherFamilysNames(unittest.TestCase):
 
     def test_counters_belong_to_every_stage(self):
         """A step count is neither family and both stages produce one."""
-        for stage in ("step1", "linear_eval"):
+        for stage in ("pretrain", "linear_eval"):
             with self.subTest(stage=stage):
                 self.ctx(stage).write_metrics(
                     {"n": 3}, names={"n": "steps_completed"})

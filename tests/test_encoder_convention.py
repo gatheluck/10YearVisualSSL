@@ -108,7 +108,7 @@ def produces_encoder(path: Path) -> bool:
     names = stage_names(path)
     if names is None:
         return True
-    return "step1" in names
+    return "pretrain" in names
 
 
 def encoder_ports() -> list[Path]:
@@ -271,11 +271,11 @@ class TestEveryPortAgreesOnWhatEncoderPtHolds(unittest.TestCase):
         d = Path(tempfile.mkdtemp(prefix="encconv-"))
         self.addCleanup(shutil.rmtree, d, ignore_errors=True)
         trains = d / "trains.py"
-        trains.write_text('STAGES = ("step1", "linear_eval")\n', encoding="utf-8")
+        trains.write_text('STAGES = ("pretrain", "linear_eval")\n', encoding="utf-8")
         evals = d / "evals.py"
         evals.write_text('STAGES = ("linear_eval",)\n', encoding="utf-8")
         as_dict = d / "as_dict.py"
-        as_dict.write_text('STAGES = {"step1": {}, "linear_eval": {}}\n',
+        as_dict.write_text('STAGES = {"pretrain": {}, "linear_eval": {}}\n',
                            encoding="utf-8")
         unreadable = d / "unreadable.py"
         unreadable.write_text("x = 1\n", encoding="utf-8")

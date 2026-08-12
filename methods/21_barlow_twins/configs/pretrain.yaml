@@ -1,0 +1,43 @@
+# Step 1: Barlow Twins pretraining with a ResNet-50 backbone.
+# Zbontar, Jing, Misra, LeCun and Deny, "Barlow Twins: Self-Supervised
+# Learning via Redundancy Reduction", 2021 (arXiv:2103.03230).
+#
+# The values are the ones the captured cluster runs used.
+#
+# **No data path and no output path here.** The captured config named an
+# absolute path on the cluster for both. A machine's path in a published
+# config is reproducible nowhere else.
+#
+#   python3 bin/launch.py --config methods/21_barlow_twins/configs/step1.yaml \
+#       --method 21_barlow_twins --set DATA_ROOT=/path/to/imagenet
+#   --set DATA_ROOT=<path>   the dataset root; pretraining reads its train/ subdirectory
+
+stage: pretrain
+
+seed: 42
+
+data_root: "${DATA_ROOT}"
+
+device: auto
+
+train:
+  epochs: 100
+  batch_size: 512
+  num_workers: 8
+  # **Two learning rates**, as LARS uses in the paper: one for the weights
+  # and one for the biases and normalisation parameters.
+  lr_weights: 0.2
+  lr_biases: 0.0048
+  weight_decay: 1.0e-6
+  img_size: 224
+  # The projector is described by its widths, as in the paper.
+  projector: "8192-8192-8192"
+  # The weight on the off-diagonal term.
+  lambd: 0.0051
+  warmup_epochs: 10
+  # One of fp32, bf16, amp_fp16. **amp_fp16 needs a GPU**; asking for it on a
+  # CPU is refused rather than quietly downgraded, because a run reported at a
+  # precision it did not use is a different run.
+  precision: amp_fp16
+  save_freq: 50
+  print_freq: 100

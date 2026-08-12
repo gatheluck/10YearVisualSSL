@@ -68,7 +68,7 @@ across the ported methods.
 - **Exercised (linear_eval):** a hermetic smoke fits the probe on a step-1
   encoder over a two-class ImageFolder, passes `contract-test`, writes the
   comparable `linear_probe` accuracies, and writes **no** `encoder.pt`.
-- **Not a full run:** `configs/step1.yaml` is the I-JEPA recipe (`vit_huge`,
+- **Not a full run:** `configs/pretrain.yaml` is the I-JEPA recipe (`vit_huge`,
   224px, 300 epochs, batch 2048, AdamW, warmup 40), a recipe, not a completed run.
 - **GPU:** the device resolution is verified on real hardware; see the device
   mutation spec (`mutations/29_ijepa-step1-device.json`).
@@ -89,7 +89,7 @@ resolution).
 ## Running
 
     # step 1: DATA_ROOT contains a train/ subdirectory of images
-    python bin/resolve-config.py --config methods/29_ijepa/configs/step1.yaml \
+    python bin/resolve-config.py --config methods/29_ijepa/configs/pretrain.yaml \
         --set DATA_ROOT=/path/to/imagenet --out resolved.json
     cd methods/29_ijepa && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/s1

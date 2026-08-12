@@ -134,7 +134,7 @@ tiny resolution, so CI downloads nothing.
 
 **What this required of the shared machinery.** `tests/test_encoder_convention.py`
 assumed every port writes an `encoder.pt`. It now discovers, from each adapter's
-own `STAGES`, which ports produce one (`step1` is the stage that writes it);
+own `STAGES`, which ports produce one (`pretrain` is the stage that writes it);
 eval-only ports are exempt from the round-trip requirement but must declare
 `_absent_reason`. The split is discovered, never a list of names, and both shapes
 are asserted present so the exemption cannot silently cover everything.
@@ -161,7 +161,7 @@ are asserted present so the exemption cannot silently cover everything.
 > nothing trained (Franca's capture Step 1; its from-scratch pretraining is the
 > excluded Step 2). Such a port produces no `encoder.pt`, sets
 > `encoder_absent_reason`, and pins its backbone as a sha256 `backbone_artifact`.
-> Whether a port produces an encoder is discovered from its `STAGES` (`step1` is
+> Whether a port produces an encoder is discovered from its `STAGES` (`pretrain` is
 > the encoder-producing stage), so the encoder-convention checks apply only to
 > encoder-producing ports; eval-only ports are checked instead for the absent
 > declaration. For `36_franca` the CLS representation is Franca's own pretrained

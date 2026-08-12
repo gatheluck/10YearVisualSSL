@@ -31,7 +31,7 @@ from pathlib import Path
 import adapterlib
 
 METHOD = "26_simmim"
-STAGES = ("step1", "linear_eval")
+STAGES = ("pretrain", "linear_eval")
 METHOD_DIR = Path(__file__).resolve().parent.parent
 
 MODEL_KEYS = frozenset({"img_size", "patch_size", "window_size", "embed_dim",

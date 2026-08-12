@@ -28,7 +28,7 @@ from pathlib import Path
 import adapterlib
 
 METHOD = "12_cmc"
-STAGES = ("step1", "linear_eval")
+STAGES = ("pretrain", "linear_eval")
 METHOD_DIR = Path(__file__).resolve().parent.parent
 
 MODEL_KEYS = frozenset({"feat_dim", "img_size"})

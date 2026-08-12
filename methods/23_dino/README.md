@@ -67,7 +67,7 @@ probe instead is a documented deviation, the same as every other port.)
 - **Exercised (linear_eval):** a hermetic smoke fits the probe on a step-1
   encoder over a two-class ImageFolder, passes `contract-test`, writes the
   comparable `linear_probe` accuracies, and writes **no** `encoder.pt`.
-- **Not a full run:** `configs/step1.yaml` is the DINO recipe (`vit_small`,
+- **Not a full run:** `configs/pretrain.yaml` is the DINO recipe (`vit_small`,
   out_dim 65536, 100 epochs, batch 1024, AdamW, warmup 10, multi-crop 2+8), a
   recipe, not a completed run.
 - **GPU:** the device resolution is verified on real hardware; see the device
@@ -88,7 +88,7 @@ same closure as `05_jigsaw_puzzle`: identical floors, identical resolution).
 ## Running
 
     # step 1: DATA_ROOT is a folder of training images (searched recursively)
-    python bin/resolve-config.py --config methods/23_dino/configs/step1.yaml \
+    python bin/resolve-config.py --config methods/23_dino/configs/pretrain.yaml \
         --set DATA_ROOT=/path/to/images --out resolved.json
     cd methods/23_dino && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/s1

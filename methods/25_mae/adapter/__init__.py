@@ -25,7 +25,7 @@ from pathlib import Path
 import adapterlib
 
 METHOD = "25_mae"
-STAGES = ("step1", "linear_eval")
+STAGES = ("pretrain", "linear_eval")
 METHOD_DIR = Path(__file__).resolve().parent.parent
 
 # Architecture settings (build the model) ...

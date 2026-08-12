@@ -39,7 +39,7 @@ METHOD = "01_context_prediction"
 # Each stage declares exactly the keys it reads, so a setting the stage never
 # looks at cannot sit in a config claiming to have had an effect.
 STAGES = {
-    "step1": {
+    "pretrain": {
         "top": frozenset({"seed", "data_root", "device", "train"}),
         "train": frozenset({"max_steps", "batch_size", "num_workers", "lr",
                             "save_every_steps", "eval_every_steps",
@@ -137,7 +137,7 @@ def to_args(config: dict, out: Path) -> Namespace:
     common = dict(data_path=str(config["data_root"]),
                   save_dir=str(Path(out) / WORK),
                   seed=int(config["seed"]), device=device, gpu=0)
-    if stage == "step1":
+    if stage == "pretrain":
         return Namespace(
             **common, resume="", allow_resume=False,
             max_steps=int(train["max_steps"]),
@@ -253,14 +253,14 @@ def run_training(config: dict, out: Path, _run=None) -> dict:
     """
     stage = stage_of(config)
     if _run is None:
-        if stage == "step1":
+        if stage == "pretrain":
             from train_step1_alexnet_official import run as _run
         else:
             from evaluate_linear_official import run as _run
     args = to_args(config, out)
     Path(args.save_dir).mkdir(parents=True, exist_ok=True)
     raw = _run(args)
-    if stage == "step1":
+    if stage == "pretrain":
         return _usable_metrics(raw)
     return _eval_metrics(raw)
 
@@ -305,12 +305,12 @@ NO_ENCODER_REASON = ("this stage evaluates a frozen encoder and produces a "
 def body(ctx: adapterlib.Context) -> None:
     import torch
     metrics = run_training(ctx.config, ctx.out)
-    if stage_of(ctx.config) == "step1":
+    if stage_of(ctx.config) == "pretrain":
         state = load_final_state(ctx.out)
         torch.save(extract_encoder(state["state_dict"]),
                    Path(ctx.out) / "encoder.pt")
     ctx.write_metrics(metrics, names=(
-        STEP1_METRIC_NAMES if stage_of(ctx.config) == "step1"
+        STEP1_METRIC_NAMES if stage_of(ctx.config) == "pretrain"
         else LINEAR_EVAL_METRIC_NAMES))
 
 
@@ -329,7 +329,7 @@ def main(argv: list[str] | None = None) -> int:
         stage = stage_of(cfg)
         return adapterlib.run(
             config=a.config, out=a.out, method=METHOD, stage=stage, body=body,
-            encoder_absent_reason=(None if stage == "step1"
+            encoder_absent_reason=(None if stage == "pretrain"
                                    else NO_ENCODER_REASON))
     except (adapterlib.AdapterError, ConfigError) as exc:
         # A refusal, not a run result. Leave no manifest behind.
