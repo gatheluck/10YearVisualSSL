@@ -64,7 +64,7 @@ single linear layer trained with SGD under a cosine schedule).
   7×7 grid, 5 prediction steps, 200 epochs), a recipe, not a completed run.
 - **Not ported:** the deprecated local baseline (`cpc_resnet`).
 - **GPU:** the device resolution is verified on real hardware; see the device
-  mutation spec (`mutations/11_cpc-step1-device.json`).
+  mutation spec (`mutations/11_cpc-pretrain-device.json`).
 
 ## Environment
 

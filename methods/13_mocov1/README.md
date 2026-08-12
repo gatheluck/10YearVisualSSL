@@ -59,7 +59,7 @@ ported methods use, so the number is comparable across them.
   128, K 65536, m 0.999, 200 epochs, 224px), a recipe, not a completed run.
 - **Not ported:** the ViT step 2.
 - **GPU:** the device resolution is verified on real hardware; see the device
-  mutation spec (`mutations/13_mocov1-step1-device.json`).
+  mutation spec (`mutations/13_mocov1-pretrain-device.json`).
 
 ## Environment
 

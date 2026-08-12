@@ -68,7 +68,7 @@ a cosine schedule), which makes the number comparable across the ported methods.
 - **Not a full run:** `configs/pretrain.yaml` is the NEPA recipe (ViT-B/14, 224px,
   1600 epochs, batch 4096, AdamW, warmup 40), a recipe, not a completed run.
 - **GPU:** the device resolution is verified on real hardware; see the device
-  mutation spec (`mutations/32_nepa-step1-device.json`).
+  mutation spec (`mutations/32_nepa-pretrain-device.json`).
 
 ## Environment
 

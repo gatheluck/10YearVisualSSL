@@ -86,7 +86,7 @@ a cosine schedule).
   completed runs.
 - **GPU:** the device resolution and the knowledge-transfer guards are verified on
   real hardware; see the mutation specs
-  (`mutations/09_jigsaw_puzzle_pp-step1-device.json`,
+  (`mutations/09_jigsaw_puzzle_pp-pretrain-device.json`,
   `mutations/09_jigsaw_puzzle_pp-knowledge-transfer.json`).
 
 ## Environment

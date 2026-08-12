@@ -71,7 +71,7 @@ number is comparable across them.
   224px crop, 300 epochs, class rebalancing on), a recipe, not a completed run.
 - **Not ported:** the ViT step 2.
 - **GPU:** the device resolution is verified on real hardware; see the device
-  mutation spec (`mutations/03_colorization-step1-device.json`).
+  mutation spec (`mutations/03_colorization-pretrain-device.json`).
 
 ## Environment
 

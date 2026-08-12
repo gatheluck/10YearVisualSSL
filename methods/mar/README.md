@@ -70,7 +70,7 @@ section 7 is where a chosen representation would be decided.
 - **Not a full run:** `configs/pretrain.yaml` is the upstream `mar_base` recipe, not
   a completed training run.
 - **GPU:** the device resolution and the patched forward are verified on an
-  A100; see the device mutation spec (`mutations/mar-step1-device.json`).
+  A100; see the device mutation spec (`mutations/mar-pretrain-device.json`).
 
 ## Environment
 

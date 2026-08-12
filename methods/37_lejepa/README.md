@@ -78,7 +78,7 @@ single-feature probe instead is a documented deviation, the same as every port.)
   4 views, λ=0.02, 100 epochs, batch 1024, AdamW, warmup 10 → cosine), a recipe,
   not a completed run.
 - **GPU:** the device resolution is verified on real hardware; see the device
-  mutation spec (`mutations/37_lejepa-step1-device.json`).
+  mutation spec (`mutations/37_lejepa-pretrain-device.json`).
 
 ## Environment
 

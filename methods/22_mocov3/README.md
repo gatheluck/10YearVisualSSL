@@ -71,7 +71,7 @@ across the ported methods.
   projector 4096→256, predictor, 300 epochs, batch 4096, AdamW, warmup 40), a
   recipe, not a completed run.
 - **GPU:** the device resolution is verified on real hardware; see the device
-  mutation spec (`mutations/22_mocov3-step1-device.json`).
+  mutation spec (`mutations/22_mocov3-pretrain-device.json`).
 
 ## Environment
 

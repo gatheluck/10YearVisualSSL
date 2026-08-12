@@ -71,7 +71,7 @@ probe instead is a documented deviation, the same as every other port.)
   out_dim 65536, 100 epochs, batch 1024, AdamW, warmup 10, multi-crop 2+8), a
   recipe, not a completed run.
 - **GPU:** the device resolution is verified on real hardware; see the device
-  mutation spec (`mutations/23_dino-step1-device.json`).
+  mutation spec (`mutations/23_dino-pretrain-device.json`).
 
 ## Environment
 

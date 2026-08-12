@@ -74,7 +74,7 @@ pipeline only; its accuracy is meaningless.
 - **Not a full run:** `configs/pretrain.yaml` and `configs/linear_eval.yaml` are the
   upstream / ARSSL recipes, not completed runs.
 - **GPU:** the device resolution is verified on an A100; see the device mutation
-  spec (`mutations/var-step1-device.json`).
+  spec (`mutations/var-pretrain-device.json`).
 
 ## Environment
 

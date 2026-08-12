@@ -59,7 +59,7 @@ across the ported methods.
 - **Not a full run:** `configs/pretrain.yaml` is the MoCo v2 recipe (feature_dim 128,
   K 65536, τ 0.2, 200 epochs, cosine), a recipe, not a completed run.
 - **GPU:** the device resolution is verified on real hardware; see the device
-  mutation spec (`mutations/15_mocov2-step1-device.json`).
+  mutation spec (`mutations/15_mocov2-pretrain-device.json`).
 
 ## Environment
 

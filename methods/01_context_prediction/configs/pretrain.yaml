@@ -7,7 +7,7 @@
 # differ; see README.md in this directory for the specific differences.
 #
 # Resolve before running, so that the run is identified by a hash:
-#   python3 bin/resolve-config.py --config methods/01_context_prediction/configs/step1.yaml \
+#   python3 bin/resolve-config.py --config methods/01_context_prediction/configs/pretrain.yaml \
 #       --out runs/ctxpred/resolved.json --set DATA_ROOT=/path/to/ILSVRC2012
 #   --set DATA_ROOT=<path>   the dataset root; pretraining reads its train/ subdirectory
 

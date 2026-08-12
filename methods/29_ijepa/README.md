@@ -71,7 +71,7 @@ across the ported methods.
 - **Not a full run:** `configs/pretrain.yaml` is the I-JEPA recipe (`vit_huge`,
   224px, 300 epochs, batch 2048, AdamW, warmup 40), a recipe, not a completed run.
 - **GPU:** the device resolution is verified on real hardware; see the device
-  mutation spec (`mutations/29_ijepa-step1-device.json`).
+  mutation spec (`mutations/29_ijepa-pretrain-device.json`).
 
 ## Environment
 

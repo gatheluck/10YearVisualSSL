@@ -63,7 +63,7 @@ KT_TOP_KEYS = TOP_KEYS | {"encoder"}
 DEVICES = ("auto", "cuda", "cpu")
 WORK = "work"
 
-# encoder.pt prefixes: the shared VGG16 encoder for step1/linear_eval, and the
+# encoder.pt prefixes: the shared VGG16 encoder for pretrain/linear_eval, and the
 # AlexNet conv trunk for the knowledge-transfer output.
 ENCODER_PREFIXES = ("encoder.",)
 ALEXNET_ENCODER_PREFIXES = ("features.",)

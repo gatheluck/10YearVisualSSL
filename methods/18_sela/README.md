@@ -63,7 +63,7 @@ across the ported methods.
 - **Not a full run:** `configs/pretrain.yaml` is the SeLa recipe (K 3000, 10 heads,
   λ 25, 400 epochs), a recipe, not a completed run.
 - **GPU:** the device resolution is verified on real hardware; see the device
-  mutation spec (`mutations/18_sela-step1-device.json`).
+  mutation spec (`mutations/18_sela-pretrain-device.json`).
 
 ## Environment
 

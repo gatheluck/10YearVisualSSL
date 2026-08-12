@@ -57,7 +57,7 @@ space the model was trained on.
 - **Not a full run:** `configs/pretrain.yaml` is the iGPT-S recipe and
   `configs/linear_eval.yaml` the ARSSL probe recipe, not completed runs.
 - **GPU:** the device resolution is verified on real hardware; see the device
-  mutation spec (`mutations/image_gpt-step1-device.json`).
+  mutation spec (`mutations/image_gpt-pretrain-device.json`).
 
 ## Environment
 

@@ -52,7 +52,7 @@ comparable linear probe, as in every other self-contained port here.
 - **Not a full run:** `configs/pretrain.yaml` is the AlexNet-BN recipe (224px, 50
   epochs), a recipe, not a completed run.
 - **GPU:** the device resolution is verified on real hardware; see the device
-  mutation spec (`mutations/06_rotation_prediction-step1-device.json`).
+  mutation spec (`mutations/06_rotation_prediction-pretrain-device.json`).
 
 ## Environment
 

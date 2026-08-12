@@ -67,7 +67,7 @@ trained with SGD under a cosine schedule).
 - **Not ported:** the ViT step 2 and the optional ResNet linear-classifier
   variant.
 - **GPU:** the device resolution is verified on real hardware; see the device
-  mutation spec (`mutations/12_cmc-step1-device.json`).
+  mutation spec (`mutations/12_cmc-pretrain-device.json`).
 
 ## Environment
 

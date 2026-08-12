@@ -4,7 +4,7 @@ Paper: https://arxiv.org/abs/1604.07379
 
 Step 1 only: the AlexNet-based architecture. The step 2 ViT variant
 (ContextEncoderViT) and the official Caffe feature extractor were not brought
-across -- step 2 has no place in this port (the contract's stages are step1 and
+across -- step 2 has no place in this port (the contract's stages are pretrain and
 linear_eval), and dropping the ViT also drops its `timm` dependency. The
 ContextEncoderAlexNet and Discriminator classes below are the captured code,
 unchanged.

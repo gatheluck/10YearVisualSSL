@@ -57,7 +57,7 @@ across the ported methods.
 - **Not a full run:** `configs/pretrain.yaml` is the BYOL recipe (4096/256 MLPs,
   1000 epochs, batch 4096, LARS, EMA τ 0.996→1.0), a recipe, not a completed run.
 - **GPU:** the device resolution is verified on real hardware; see the device
-  mutation spec (`mutations/19_byol-step1-device.json`).
+  mutation spec (`mutations/19_byol-pretrain-device.json`).
 
 ## Environment
 

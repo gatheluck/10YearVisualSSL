@@ -47,7 +47,7 @@ L2-normalised, a single linear layer trained with SGD under a cosine schedule).
 - **Not a full run:** `configs/pretrain.yaml` is the ViT-L/16 recipe (MAE pretrains
   for 1600 epochs); it is a recipe, not a completed run.
 - **GPU:** the device resolution is verified on real hardware; see the device
-  mutation spec (`mutations/25_mae-step1-device.json`).
+  mutation spec (`mutations/25_mae-pretrain-device.json`).
 
 ## Environment
 

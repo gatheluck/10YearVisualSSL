@@ -59,7 +59,7 @@ comparable across the ported methods.
 - **Not a full run:** `configs/pretrain.yaml` is the SimCLR recipe (out_dim 128,
   1000 epochs, batch 4096, LARS lr 4.8), a recipe, not a completed run.
 - **GPU:** the device resolution is verified on real hardware; see the device
-  mutation spec (`mutations/14_simclrv1-step1-device.json`).
+  mutation spec (`mutations/14_simclrv1-pretrain-device.json`).
 
 ## Environment
 

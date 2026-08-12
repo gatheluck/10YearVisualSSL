@@ -70,7 +70,7 @@ documented deviation, the same as every other port.)
   800 epochs, batch 2048, AdamW, warmup 10 → multistep at 700), a recipe, not a
   completed run.
 - **GPU:** the device resolution is verified on real hardware; see the device
-  mutation spec (`mutations/26_simmim-step1-device.json`).
+  mutation spec (`mutations/26_simmim-pretrain-device.json`).
 
 ## Environment
 

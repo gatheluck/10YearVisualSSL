@@ -80,7 +80,7 @@ port.)
   checked out (`git submodule update --init third_party/dall_e`) and its own deps
   (`requests`, `attr`, …) installed.
 - **GPU:** the device resolution is verified on real hardware; see the device
-  mutation spec (`mutations/24_beit-step1-device.json`).
+  mutation spec (`mutations/24_beit-pretrain-device.json`).
 
 ## Environment
 

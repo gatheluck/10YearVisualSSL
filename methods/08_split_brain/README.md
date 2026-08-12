@@ -73,7 +73,7 @@ methods use, so the number is comparable across them.
   capture ships no AlexNet step-1 recipe).
 - **Not ported:** the channel-split ViT step 2.
 - **GPU:** the device resolution is verified on real hardware; see the device
-  mutation spec (`mutations/08_split_brain-step1-device.json`).
+  mutation spec (`mutations/08_split_brain-pretrain-device.json`).
 
 ## Environment
 

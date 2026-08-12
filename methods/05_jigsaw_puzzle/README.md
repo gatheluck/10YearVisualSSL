@@ -46,7 +46,7 @@ trained with SGD under a cosine schedule).
 - **Not a full run:** `configs/pretrain.yaml` is the AlexNet/CFN recipe (1000
   permutations, 300 epochs), a recipe, not a completed run.
 - **GPU:** the device resolution is verified on real hardware; see the device
-  mutation spec (`mutations/05_jigsaw_puzzle-step1-device.json`).
+  mutation spec (`mutations/05_jigsaw_puzzle-pretrain-device.json`).
 
 ## Environment
 

@@ -84,7 +84,7 @@ and are pinned by hash.
   could not start without a GPU. `resolve_device()` picks one, and asking for
   `cuda` where there is none is an error rather than a quiet fall back to the
   CPU — the two are not the same run. The device guard is mutation-tested
-  (`mutations/27_ibot-step1-device.json`)
+  (`mutations/27_ibot-pretrain-device.json`)
 - **`main()` is split into `build_parser()` and `run(args, config)`**, and
   `run` returns the epoch loss, its CLS and patch components and the epoch
   count. The captured version computed them and discarded them

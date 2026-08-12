@@ -55,7 +55,7 @@ methods use, so the number is comparable across them.
   pca_dim=256, 224px, 500 epochs), a recipe, not a completed run.
 - **Not ported:** the ViT step 2.
 - **GPU:** the device resolution is verified on real hardware; see the device
-  mutation spec (`mutations/07_deepcluster-step1-device.json`).
+  mutation spec (`mutations/07_deepcluster-pretrain-device.json`).
 
 ## Environment (GPU / x86_64-linux)
 

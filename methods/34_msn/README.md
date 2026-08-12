@@ -72,7 +72,7 @@ L2-normalised, a single linear layer trained with SGD under a cosine schedule).
   (ViT-S/16, 224px, 1 rand + 10 focal, 1024 prototypes, 800 epochs, AdamW), a
   recipe, not a completed run.
 - **GPU:** the device resolution is verified on real hardware; see the device
-  mutation spec (`mutations/34_msn-step1-device.json`).
+  mutation spec (`mutations/34_msn-pretrain-device.json`).
 
 ## Environment
 

@@ -51,7 +51,7 @@ L2-normalised, a single linear layer trained with SGD under a cosine schedule).
 - **Not a full run:** `configs/pretrain.yaml` is the paper recipe (128-d embedding,
   4096 negatives, 200 epochs), a recipe, not a completed run.
 - **GPU:** the device resolution is verified on real hardware; see the device
-  mutation spec (`mutations/10_inst_disc-step1-device.json`).
+  mutation spec (`mutations/10_inst_disc-pretrain-device.json`).
 
 ## Environment
 

@@ -69,7 +69,7 @@ using the shared single-feature probe instead is a documented deviation.)
 - **Not a full run:** `configs/pretrain.yaml` is the DINOv3 core recipe (ViT-B/16,
   224px, 2+8 crops, 300 epochs, batch 1024, AdamW), a recipe, not a completed run.
 - **GPU:** the device resolution is verified on real hardware; see the device
-  mutation spec (`mutations/31_dinov3-step1-device.json`).
+  mutation spec (`mutations/31_dinov3-pretrain-device.json`).
 
 ## Environment
 

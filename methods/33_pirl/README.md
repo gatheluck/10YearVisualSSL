@@ -67,7 +67,7 @@ across the ported methods.
   feature_dim 128, 32000 negatives, 800 epochs, SGD step decay), a recipe, not a
   completed run.
 - **GPU:** the device resolution is verified on real hardware; see the device
-  mutation spec (`mutations/33_pirl-step1-device.json`).
+  mutation spec (`mutations/33_pirl-pretrain-device.json`).
 
 ## Environment
 

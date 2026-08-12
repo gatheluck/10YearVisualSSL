@@ -65,7 +65,7 @@ L2-normalised, a single linear layer trained with SGD under a cosine schedule).
 - **Not a full run:** `configs/pretrain.yaml` is the recipe (ViT-B/16, 224px, 300
   epochs, batch 1024, AdamW), a recipe, not a completed run.
 - **GPU:** the device resolution is verified on real hardware; see the device
-  mutation spec (`mutations/35_vjepa-step1-device.json`).
+  mutation spec (`mutations/35_vjepa-pretrain-device.json`).
 
 ## Environment
 

@@ -13,7 +13,7 @@ without a GPU.
 Recognised config keys:
 
     seed      required by adapterlib, and mixed into the fake weights
-    stage     optional contract stage to impersonate; defaults to step1
+    stage     optional contract stage to impersonate; defaults to pretrain
     metrics   optional mapping of name to number, written to metrics.json
     metric_names  optional table from those names to contract names. With a
               single metric and no table, it is taken to be a downstream
