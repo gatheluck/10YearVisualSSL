@@ -64,7 +64,7 @@ never installed, so it is not in the lock). No `timm`, no `xformers` (disabled).
 
     # fetch the hash-pinned official backbone (a real run; CI never does this)
     python bin/fetch-weights.py --provenance methods/28_dinov2/provenance.json \
-        --section backbone_artifact --out /path/to/weights
+        --artifact backbone_artifact --out /path/to/weights
 
     # linear eval: DATA_ROOT has train/ and val/; DINOV2_CKPT is the .pth above
     python bin/resolve-config.py methods/28_dinov2/configs/linear_eval.yaml \
