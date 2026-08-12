@@ -37,7 +37,7 @@ if str(ROOT) not in sys.path:
 
 # Reused so the tokeniser is built and seeded in exactly one place, and the
 # device is resolved the same way as in training.
-from train_step1_var import (                    # noqa: E402
+from train_pretrain_var import (                    # noqa: E402
     build_vqvae, make_deterministic, model_kwargs, resolve_device,
     VAE_DOWNSAMPLE,
 )

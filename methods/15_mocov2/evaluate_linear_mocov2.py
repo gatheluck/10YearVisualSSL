@@ -24,7 +24,7 @@ ROOT = Path(__file__).resolve().parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from train_step1_mocov2 import make_deterministic, resolve_device   # noqa: E402
+from train_pretrain_mocov2 import make_deterministic, resolve_device   # noqa: E402
 from data import IMAGENET_MEAN, IMAGENET_STD                        # noqa: E402
 
 
@@ -97,7 +97,7 @@ def run(args, config: "dict | None" = None, model=None) -> dict:
 
     if model is None:
         from models import build_mocov2_resnet
-        from train_step1_mocov2 import model_config
+        from train_pretrain_mocov2 import model_config
         model = build_mocov2_resnet(**model_config(train))
     encoder = model.get_encoder().to(device)
     encoder.eval()

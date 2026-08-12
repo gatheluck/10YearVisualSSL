@@ -139,7 +139,7 @@ shown so the shape is visible before it is built.
 │   ├── 01_context_prediction/         first pilot, step 1              exists
 │   │   ├── Dockerfile                  the locked environment as an image
 │   │   ├── adapter/                    translates the config, calls the original
-│   │   ├── train_step1_alexnet_official.py   the original loop, extracted
+│   │   ├── train_pretrain_alexnet_official.py   the original loop, extracted
 │   │   ├── models/ data/               untouched; digests pinned by tests
 │   │   ├── configs/pretrain.yaml          the settings the capture used
 │   │   ├── configs/linear_eval.yaml    stage 2: frozen-features evaluation

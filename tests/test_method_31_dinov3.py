@@ -150,7 +150,7 @@ class Base(unittest.TestCase):
 
 class TestTheModel(unittest.TestCase):
     def trainer(self):
-        return load("dinov3_trainer", METHOD / "train_step1_dinov3.py")
+        return load("dinov3_trainer", METHOD / "train_pretrain_dinov3.py")
 
     @needs_deps
     def test_backbone_forward_returns_cls_and_patches(self):
@@ -332,9 +332,9 @@ class TestTheEvalProducesNoEncoder(Base):
 
 class TestTheMetricsAreInTheVocabulary(unittest.TestCase):
     def test_step1_maps_a_pretext_loss(self):
-        self.assertEqual(adapter.STEP1_METRIC_NAMES["final_loss"],
+        self.assertEqual(adapter.PRETRAIN_METRIC_NAMES["final_loss"],
                          "final_pretext_loss")
-        for target in adapter.STEP1_METRIC_NAMES.values():
+        for target in adapter.PRETRAIN_METRIC_NAMES.values():
             if target is not None:
                 self.assertIn(target, adapterlib.METRIC_VOCABULARY)
 
@@ -351,7 +351,7 @@ class TestTheMetricsAreInTheVocabulary(unittest.TestCase):
 
 class TestTheDeviceIsResolved(Base):
     def trainer(self):
-        return load("dinov3_trainer", METHOD / "train_step1_dinov3.py")
+        return load("dinov3_trainer", METHOD / "train_pretrain_dinov3.py")
 
     @needs_deps
     def test_asking_for_cuda_without_one_is_refused(self):
@@ -365,7 +365,7 @@ class TestTheDeviceIsResolved(Base):
 
     def test_run_resolves_the_device(self):
         import ast
-        src = (METHOD / "train_step1_dinov3.py").read_text()
+        src = (METHOD / "train_pretrain_dinov3.py").read_text()
         run_fn = next(n for n in ast.parse(src).body
                       if isinstance(n, ast.FunctionDef) and n.name == "run")
         called = {n.func.id for n in ast.walk(run_fn)
@@ -504,7 +504,7 @@ class TestALinearEvalSmoke(Base):
 class TestTheOriginalIsReferencedNotCopied(unittest.TestCase):
     def test_no_distributed_or_tensorboard_machinery_is_used(self):
         import ast
-        tree = ast.parse((METHOD / "train_step1_dinov3.py").read_text())
+        tree = ast.parse((METHOD / "train_pretrain_dinov3.py").read_text())
         used = set()
         for n in ast.walk(tree):
             if isinstance(n, ast.Attribute):

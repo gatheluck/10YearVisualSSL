@@ -75,10 +75,10 @@ AUG = {"views": VIEWS, "crop_scale": [0.5, 1.0],
        "hflip_p": 0.5}
 LEJEPA = {"lambda": 0.02, "sigreg_t_max": 3.0, "sigreg_knots": 5,
           "sigreg_num_slices": 16, "sigreg_seed": 123}
-STEP1_ONLY = {"num_workers": 0, "epochs": 1, "batch_size": 4, "lr": 1.0e-3,
+PRETRAIN_ONLY = {"num_workers": 0, "epochs": 1, "batch_size": 4, "lr": 1.0e-3,
               "min_lr": 1.0e-6, "beta1": 0.9, "beta2": 0.95, "eps": 1.0e-8,
               "weight_decay": 0.05, "warmup_epochs": 0, "clip_grad": 0.0}
-TRAIN = {**MODEL, **AUG, **LEJEPA, **STEP1_ONLY}
+TRAIN = {**MODEL, **AUG, **LEJEPA, **PRETRAIN_ONLY}
 EVAL_TRAIN = {"name": NAME, "img_size": IMG, "drop_path_rate": 0.0,
               "epochs": 2, "batch_size": 4, "num_workers": 0, "lr": 0.1,
               "momentum": 0.9, "weight_decay": 0.0}
@@ -339,9 +339,9 @@ class TestTheEvalProducesNoEncoder(Base):
 
 class TestTheMetricsAreInTheVocabulary(unittest.TestCase):
     def test_step1_maps_a_pretext_loss(self):
-        self.assertEqual(adapter.STEP1_METRIC_NAMES["final_loss"],
+        self.assertEqual(adapter.PRETRAIN_METRIC_NAMES["final_loss"],
                          "final_pretext_loss")
-        for target in adapter.STEP1_METRIC_NAMES.values():
+        for target in adapter.PRETRAIN_METRIC_NAMES.values():
             if target is not None:
                 self.assertIn(target, adapterlib.METRIC_VOCABULARY)
 
@@ -358,7 +358,7 @@ class TestTheMetricsAreInTheVocabulary(unittest.TestCase):
 
 class TestTheDeviceIsResolved(Base):
     def trainer(self):
-        return load("lejepa_trainer", METHOD / "train_step1_lejepa.py")
+        return load("lejepa_trainer", METHOD / "train_pretrain_lejepa.py")
 
     @needs_deps
     def test_asking_for_cuda_without_one_is_refused(self):
@@ -372,7 +372,7 @@ class TestTheDeviceIsResolved(Base):
 
     def test_run_resolves_the_device(self):
         import ast
-        src = (METHOD / "train_step1_lejepa.py").read_text()
+        src = (METHOD / "train_pretrain_lejepa.py").read_text()
         run_fn = next(n for n in ast.parse(src).body
                       if isinstance(n, ast.FunctionDef) and n.name == "run")
         called = {n.func.id for n in ast.walk(run_fn)
@@ -507,7 +507,7 @@ class TestALinearEvalSmoke(Base):
 class TestTheOriginalIsReferencedNotCopied(unittest.TestCase):
     def test_no_distributed_or_tensorboard_machinery_is_used(self):
         import ast
-        tree = ast.parse((METHOD / "train_step1_lejepa.py").read_text())
+        tree = ast.parse((METHOD / "train_pretrain_lejepa.py").read_text())
         used = set()
         for n in ast.walk(tree):
             if isinstance(n, ast.Attribute):

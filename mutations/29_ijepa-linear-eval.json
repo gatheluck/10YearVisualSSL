@@ -3,7 +3,7 @@
   "targets": [
     {
       "label": "the EMA update drops the source term (target only decays)",
-      "file": "methods/29_ijepa/train_step1_ijepa.py",
+      "file": "methods/29_ijepa/train_pretrain_ijepa.py",
       "old": "        pt.data.mul_(momentum).add_((1.0 - momentum) * ps.data)",
       "new": "        pt.data.mul_(momentum)",
       "tests": [

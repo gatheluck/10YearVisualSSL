@@ -23,7 +23,7 @@ ROOT = Path(__file__).resolve().parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from train_step1_cpc2018 import make_deterministic, resolve_device   # noqa: E402
+from train_pretrain_cpc2018 import make_deterministic, resolve_device   # noqa: E402
 from data import VisualCPC2018Dataset                               # noqa: E402
 
 
@@ -89,7 +89,7 @@ def run(args, config: "dict | None" = None, model=None) -> dict:
 
     if model is None:
         from models import build_visual_cpc2018_from_config
-        from train_step1_cpc2018 import model_config
+        from train_pretrain_cpc2018 import model_config
         model = build_visual_cpc2018_from_config(model_config(train))
     encoder = model.get_encoder().to(device)
     encoder.eval()

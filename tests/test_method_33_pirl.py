@@ -70,10 +70,10 @@ DATA = {"image_size": IMG, "jigsaw_resize": 48, "jigsaw_crop_size": 48,
 NCE = {"temperature": 0.07, "nce_momentum": 0.5, "num_negatives": 4}
 LOSS = {"jigsaw_weight": 0.5}
 MEMORY = {"initialize_from_model": True}
-STEP1_ONLY = {"epochs": 1, "batch_size": 2, "lr": 0.03, "momentum": 0.9,
+PRETRAIN_ONLY = {"epochs": 1, "batch_size": 2, "lr": 0.03, "momentum": 0.9,
               "weight_decay": 1.0e-4, "lr_milestones": [], "lr_gamma": 0.1,
               "warmup_epochs": 0}
-TRAIN = {**MODEL, **DATA, **NCE, **LOSS, **MEMORY, **STEP1_ONLY}
+TRAIN = {**MODEL, **DATA, **NCE, **LOSS, **MEMORY, **PRETRAIN_ONLY}
 EVAL_TRAIN = {"arch": "resnet50", "image_size": IMG, "epochs": 2,
               "batch_size": 2, "num_workers": 0, "lr": 0.1, "momentum": 0.9,
               "weight_decay": 0.0}
@@ -329,9 +329,9 @@ class TestTheEvalProducesNoEncoder(Base):
 
 class TestTheMetricsAreInTheVocabulary(unittest.TestCase):
     def test_step1_maps_a_pretext_loss(self):
-        self.assertEqual(adapter.STEP1_METRIC_NAMES["final_loss"],
+        self.assertEqual(adapter.PRETRAIN_METRIC_NAMES["final_loss"],
                          "final_pretext_loss")
-        for target in adapter.STEP1_METRIC_NAMES.values():
+        for target in adapter.PRETRAIN_METRIC_NAMES.values():
             if target is not None:
                 self.assertIn(target, adapterlib.METRIC_VOCABULARY)
 
@@ -348,7 +348,7 @@ class TestTheMetricsAreInTheVocabulary(unittest.TestCase):
 
 class TestTheDeviceIsResolved(Base):
     def trainer(self):
-        return load("pirl_trainer", METHOD / "train_step1_pirl.py")
+        return load("pirl_trainer", METHOD / "train_pretrain_pirl.py")
 
     @needs_deps
     def test_asking_for_cuda_without_one_is_refused(self):
@@ -362,7 +362,7 @@ class TestTheDeviceIsResolved(Base):
 
     def test_run_resolves_the_device(self):
         import ast
-        src = (METHOD / "train_step1_pirl.py").read_text()
+        src = (METHOD / "train_pretrain_pirl.py").read_text()
         run_fn = next(n for n in ast.parse(src).body
                       if isinstance(n, ast.FunctionDef) and n.name == "run")
         called = {n.func.id for n in ast.walk(run_fn)
@@ -497,7 +497,7 @@ class TestALinearEvalSmoke(Base):
 class TestTheOriginalIsReferencedNotCopied(unittest.TestCase):
     def test_no_distributed_or_tensorboard_machinery_is_used(self):
         import ast
-        tree = ast.parse((METHOD / "train_step1_pirl.py").read_text())
+        tree = ast.parse((METHOD / "train_pretrain_pirl.py").read_text())
         used = set()
         for n in ast.walk(tree):
             if isinstance(n, ast.Attribute):

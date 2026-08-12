@@ -25,7 +25,7 @@ loss, LARS optimizer and two-view dataset, torch/torchvision only) — no
 
 The lab wrapper trains under `DistributedDataParallel` with `SyncBatchNorm` and
 logs to TensorBoard; none is needed for a single-process run, so
-`train_step1_simclr.py` owns a thin fp32 loop, the device is **resolved** rather
+`train_pretrain_simclr.py` owns a thin fp32 loop, the device is **resolved** rather
 than assumed CUDA, and TensorBoard is dropped. The NT-Xent `all_gather_with_grad`
 path is kept but guarded by `dist.is_initialized()`, so it is inert
 single-process (negatives come from the local batch). LARS and the

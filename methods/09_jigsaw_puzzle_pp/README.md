@@ -39,7 +39,7 @@ the standard AlexNet for the knowledge transfer, torch/torchvision + faiss only)
 The lab wrapper trains under `DistributedDataParallel` with AMP and logs to
 TensorBoard, and runs the clustering and the AlexNet training as two separate DDP
 scripts; none of that is needed for a single-process run. So
-`train_step1_jigsaw_pp.py` and `train_step1_cluster_cls.py` own thin fp32 loops,
+`train_pretrain_jigsaw_pp.py` and `train_pretrain_cluster_cls.py` own thin fp32 loops,
 the clustering and AlexNet training happen in one stage, the device is
 **resolved** rather than assumed CUDA, and TensorBoard is dropped.
 

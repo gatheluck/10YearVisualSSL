@@ -25,7 +25,7 @@ predictor, symmetric cosine loss, LARS optimizer, EMA schedule and two-view
 dataset, torch/torchvision only) — no `third_party/` submodule.
 
 The lab wrapper trains under `DistributedDataParallel` with AMP autocast and logs
-to TensorBoard; none is needed for a single-process run, so `train_step1_byol.py`
+to TensorBoard; none is needed for a single-process run, so `train_pretrain_byol.py`
 owns a thin fp32 loop, the device is **resolved** rather than assumed CUDA, and
 AMP / TensorBoard / tqdm are dropped. The EMA target update, the symmetric loss,
 LARS, and the cosine LR + EMA-τ schedules are kept faithfully.

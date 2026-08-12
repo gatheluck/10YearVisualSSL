@@ -38,12 +38,12 @@ MODEL_KEYS = frozenset({"img_size", "patch_size", "window_size", "embed_dim",
                         "depths", "num_heads", "mask_patch_size",
                         "drop_path_rate"})
 DATA_KEYS = frozenset({"mask_ratio"})
-STEP1_TRAIN_ONLY = frozenset({"epochs", "batch_size", "num_workers", "lr",
+PRETRAIN_TRAIN_ONLY = frozenset({"epochs", "batch_size", "num_workers", "lr",
                               "scale_lr_by_global_batch",
                               "lr_reference_batch_size", "betas", "weight_decay",
                               "warmup_epochs", "warmup_lr", "clip_grad",
                               "lr_gamma", "lr_multisteps"})
-STEP1_TRAIN_KEYS = MODEL_KEYS | DATA_KEYS | STEP1_TRAIN_ONLY
+PRETRAIN_TRAIN_KEYS = MODEL_KEYS | DATA_KEYS | PRETRAIN_TRAIN_ONLY
 EVAL_MODEL_KEYS = frozenset({"img_size", "patch_size", "window_size",
                              "embed_dim", "depths", "num_heads"})
 EVAL_PROBE_KEYS = frozenset({"epochs", "batch_size", "num_workers", "lr",
@@ -59,7 +59,7 @@ WORK = "work"
 # prefix is stripped so encoder.pt loads into a plain timm SwinTransformer.
 ENCODER_PREFIX = "encoder."
 
-STEP1_METRIC_NAMES = {
+PRETRAIN_METRIC_NAMES = {
     "final_loss": "final_pretext_loss",
     "epochs": "epochs_completed",
     "metrics_unavailable": "metrics_unavailable",
@@ -133,7 +133,7 @@ def to_run_config(config: dict, out: Path) -> dict:
         raise ConfigError(
             f"config: stage is {stage!r}; known stages are "
             f"{', '.join(STAGES)}")
-    keys = EVAL_TRAIN_KEYS if stage == "linear_eval" else STEP1_TRAIN_KEYS
+    keys = EVAL_TRAIN_KEYS if stage == "linear_eval" else PRETRAIN_TRAIN_KEYS
     top = EVAL_TOP_KEYS if stage == "linear_eval" else TOP_KEYS
     _named(top - set(config), set(config) - top, "config")
 
@@ -213,7 +213,7 @@ def run_training(config: dict, out: Path, _run=None) -> dict:
     if _run is None:
         if str(METHOD_DIR) not in sys.path:
             sys.path.insert(0, str(METHOD_DIR))
-        from train_step1_simmim import run as _run
+        from train_pretrain_simmim import run as _run
     args = to_args(config, out)
     run_config = to_run_config(config, out)
     Path(run_config["output"]["checkpoint_dir"]).mkdir(parents=True,
@@ -260,7 +260,7 @@ def body(ctx: adapterlib.Context) -> None:
     state = torch.load(latest, map_location="cpu", weights_only=False)
     torch.save(extract_encoder(state["model_state_dict"]),
                Path(ctx.out) / "encoder.pt")
-    ctx.write_metrics(metrics, names=STEP1_METRIC_NAMES)
+    ctx.write_metrics(metrics, names=PRETRAIN_METRIC_NAMES)
 
 
 def _stage_of(config_path) -> str:

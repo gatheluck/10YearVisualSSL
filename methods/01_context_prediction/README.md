@@ -12,7 +12,7 @@ and their spatial arrangement, which is where the representation comes from.
 The captured tree held two step-1 implementations. **This is the
 official-style one.** Its sibling states plainly why they are separate:
 
-> This is intentionally separate from `train_step1_alexnet.py` because the
+> This is intentionally separate from `train_pretrain_alexnet.py` because the
 > legacy file is not paper-compatible: model, preprocessing, and sampling all
 > differ from the released deepcontext implementation.
 
@@ -146,7 +146,7 @@ holding the original's own checkpoints, `run_config.json` and
 `progress.jsonl`. Nothing is written outside `--out`.
 
 The multi-GPU path is unchanged from the capture: the file still takes the
-original flags, so `torchrun ... train_step1_alexnet_official.py --data_path
+original flags, so `torchrun ... train_pretrain_alexnet_official.py --data_path
 ... --save_dir ...` works as before.
 
 ## Stage 2: linear evaluation

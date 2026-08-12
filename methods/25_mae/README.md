@@ -19,7 +19,7 @@ methods got — with **no `third_party/` submodule**, no download, and no
 noncommercial-licence entanglement.
 
 The lab wrapper trains under `DistributedDataParallel` and logs to TensorBoard;
-neither is needed for a single-process run, so `train_step1_mae.py` owns a thin,
+neither is needed for a single-process run, so `train_pretrain_mae.py` owns a thin,
 full-precision loop, the device is **resolved** rather than assumed CUDA, and
 TensorBoard is dropped.
 

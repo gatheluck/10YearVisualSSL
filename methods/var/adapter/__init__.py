@@ -81,7 +81,7 @@ EVAL_TRAIN_KEYS = MODEL_KEYS | EVAL_PROBE_KEYS | frozenset({"vqvae_ckpt"})
 
 WORK = "work"
 
-STEP1_METRIC_NAMES = {
+PRETRAIN_METRIC_NAMES = {
     "final_loss": "final_pretext_loss",
     "epochs": "epochs_completed",
     "metrics_unavailable": "metrics_unavailable",
@@ -203,7 +203,7 @@ def load_encoder(state_dict: dict, config: dict):
     """
     if str(METHOD_DIR) not in sys.path:
         sys.path.insert(0, str(METHOD_DIR))
-    from train_step1_var import _load_upstream, model_kwargs
+    from train_pretrain_var import _load_upstream, model_kwargs
     build_vae_var = _load_upstream()
     import torch
     _vae, model = build_vae_var(device=torch.device("cpu"),
@@ -225,7 +225,7 @@ def run_training(config: dict, out: Path, _run=None) -> dict:
     if _run is None:
         if str(METHOD_DIR) not in sys.path:
             sys.path.insert(0, str(METHOD_DIR))
-        from train_step1_var import run as _run
+        from train_pretrain_var import run as _run
     args = to_args(config, out)
     run_config = to_run_config(config, out)
     Path(run_config["output"]["checkpoint_dir"]).mkdir(parents=True,
@@ -286,7 +286,7 @@ def body(ctx: adapterlib.Context) -> None:
     state = torch.load(latest, map_location="cpu", weights_only=False)
     torch.save(extract_encoder(state["model_state_dict"]),
                Path(ctx.out) / "encoder.pt")
-    ctx.write_metrics(metrics, names=STEP1_METRIC_NAMES)
+    ctx.write_metrics(metrics, names=PRETRAIN_METRIC_NAMES)
 
 
 def _stage_of(config_path) -> str:

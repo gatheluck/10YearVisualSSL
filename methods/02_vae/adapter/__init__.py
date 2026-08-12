@@ -48,7 +48,7 @@ ENCODER_PREFIXES = ("encoder.", "fc_mu.", "fc_logvar.")
 # `final_loss` is this method's own objective -- reconstruction plus beta
 # times the KL divergence -- so it is a pretext number and shares no scale
 # with any other method's loss (CONTRACT, metric vocabulary).
-STEP1_METRIC_NAMES = {
+PRETRAIN_METRIC_NAMES = {
     "final_loss": "final_pretext_loss",
     "epochs": "epochs_completed",
     "metrics_unavailable": "metrics_unavailable",
@@ -184,7 +184,7 @@ def extract_encoder(state_dict: dict) -> dict:
 
 def run_training(config: dict, out: Path, _run=None) -> dict:
     if _run is None:
-        from train_step1_cnn import run as _run
+        from train_pretrain_cnn import run as _run
     args = to_args(config, out)
     run_config = to_run_config(config, out)
     Path(run_config["output"]["checkpoint_dir"]).mkdir(parents=True,
@@ -214,7 +214,7 @@ def body(ctx: adapterlib.Context) -> None:
     state = torch.load(latest, map_location="cpu", weights_only=False)
     torch.save(extract_encoder(state["model_state_dict"]),
                Path(ctx.out) / "encoder.pt")
-    ctx.write_metrics(metrics, names=STEP1_METRIC_NAMES)
+    ctx.write_metrics(metrics, names=PRETRAIN_METRIC_NAMES)
 
 
 def main(argv: list[str] | None = None) -> int:

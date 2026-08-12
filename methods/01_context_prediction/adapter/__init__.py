@@ -3,7 +3,7 @@
     python -m adapter --config <resolved.json> --out <dir>
 
 **This does not train anything itself.** It translates the resolved config
-into the arguments `train_step1_alexnet_official.py` already takes, calls its
+into the arguments `train_pretrain_alexnet_official.py` already takes, calls its
 `run()`, and arranges the results under `--out` with the names the contract
 fixes. A second training loop here would put the same rule in two places -- the
 root of past defects in this project -- and would let optimizer or DDP details
@@ -67,7 +67,7 @@ EVAL_METRICS = ("val_loss", "val_acc1")
 # relative positions a patch sits in. Mapping it to a linear-probe name would
 # put it in the same column as real classification accuracy, and the column
 # would look right (CONTRACT, metric vocabulary).
-STEP1_METRIC_NAMES = {
+PRETRAIN_METRIC_NAMES = {
     "val_loss": "final_pretext_loss",
     "val_acc1": "final_pretext_top1_accuracy",
     "global_step": "steps_completed",
@@ -254,7 +254,7 @@ def run_training(config: dict, out: Path, _run=None) -> dict:
     stage = stage_of(config)
     if _run is None:
         if stage == "pretrain":
-            from train_step1_alexnet_official import run as _run
+            from train_pretrain_alexnet_official import run as _run
         else:
             from evaluate_linear_official import run as _run
     args = to_args(config, out)
@@ -310,7 +310,7 @@ def body(ctx: adapterlib.Context) -> None:
         torch.save(extract_encoder(state["state_dict"]),
                    Path(ctx.out) / "encoder.pt")
     ctx.write_metrics(metrics, names=(
-        STEP1_METRIC_NAMES if stage_of(ctx.config) == "pretrain"
+        PRETRAIN_METRIC_NAMES if stage_of(ctx.config) == "pretrain"
         else LINEAR_EVAL_METRIC_NAMES))
 
 

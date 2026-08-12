@@ -33,7 +33,7 @@ submodule for the model.
 
 The lab wrapper trains under `DistributedDataParallel` with an AMP autocast and
 logs to TensorBoard; none is needed for a single-process run, so
-`train_step1_beit.py` owns a thin fp32 loop, the device is **resolved** rather
+`train_pretrain_beit.py` owns a thin fp32 loop, the device is **resolved** rather
 than assumed CUDA, and AMP / TensorBoard / tqdm are dropped. The blockwise mask
 generator, the mask-token replacement and the masked-position cross-entropy are
 kept faithfully; `build_beit` is the single construction path shared by the

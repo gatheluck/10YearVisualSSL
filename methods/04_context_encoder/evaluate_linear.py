@@ -37,7 +37,7 @@ sys.path.insert(0, str(ROOT))
 
 from models.context_encoder import create_model
 from datasets import create_dataloader
-from train_step1 import make_deterministic, resolve_device
+from train_pretrain import make_deterministic, resolve_device
 
 
 class AverageMeter:

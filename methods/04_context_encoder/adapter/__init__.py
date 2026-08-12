@@ -62,7 +62,7 @@ DDP_PREFIX = "module."
 # reconstruction and adversarial components are real measurements that belong to
 # no family in the vocabulary, so they map to `None`: kept under their own names
 # in metrics_raw, kept out of the comparable block.
-STEP1_METRIC_NAMES = {
+PRETRAIN_METRIC_NAMES = {
     "final_loss": "final_pretext_loss",
     "final_recon_loss": None,
     "final_adv_loss": None,
@@ -236,7 +236,7 @@ def _filter_numeric(raw: dict) -> tuple:
 
 def run_training(config: dict, out: Path, _run=None) -> dict:
     if _run is None:
-        from train_step1 import run as _run
+        from train_pretrain import run as _run
     args = to_args(config, out)
     run_config = to_run_config(config, out)
     Path(run_config["checkpoint"]["save_dir"]).mkdir(parents=True, exist_ok=True)
@@ -289,7 +289,7 @@ def body(ctx: adapterlib.Context) -> None:
                        map_location="cpu", weights_only=False)
     torch.save(extract_encoder(state["model_state_dict"]),
                Path(ctx.out) / "encoder.pt")
-    ctx.write_metrics(metrics, names=STEP1_METRIC_NAMES)
+    ctx.write_metrics(metrics, names=PRETRAIN_METRIC_NAMES)
 
 
 def _stage_of(config_path) -> str:

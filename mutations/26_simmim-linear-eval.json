@@ -39,7 +39,7 @@
     },
     {
       "label": "the LR warmup is dropped (starts at the base LR, does not ramp)",
-      "file": "methods/26_simmim/train_step1_simmim.py",
+      "file": "methods/26_simmim/train_pretrain_simmim.py",
       "old": "        return warmup_lr + update * (base_lr - warmup_lr) / warmup_updates",
       "new": "        return base_lr",
       "tests": [
@@ -48,7 +48,7 @@
     },
     {
       "label": "the multistep decay never fires (LR stays at the base)",
-      "file": "methods/26_simmim/train_step1_simmim.py",
+      "file": "methods/26_simmim/train_pretrain_simmim.py",
       "old": "    return base_lr * (gamma ** bisect_right(milestones, update))",
       "new": "    return base_lr",
       "tests": [

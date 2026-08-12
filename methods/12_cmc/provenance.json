@@ -1,7 +1,7 @@
 {
   "captured_at": "2026-08-07",
   "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
-  "captured_note": "Ported from the capture's self-contained methods/12_cmc, specifically its paper-faithful AlexNet path (models/alexnet_cmc.py, data/dataset.py, nce/nce_average.py, nce/nce_criterion.py, nce/alias_multinomial.py, train_step1_alexnet.py, evaluate_linear.py, models/linear_classifier.py). These are the lab's own implementation of Tian et al. (2019) Contrastive Multiview Coding, torch/torchvision only. So it ports self-contained (no third_party submodule). The capture directory number (12) equals this method's number in the Step 1&2 list (see docs/PORTING_ROADMAP.md).",
+  "captured_note": "Ported from the capture's self-contained methods/12_cmc, specifically its paper-faithful AlexNet path (models/alexnet_cmc.py, data/dataset.py, nce/nce_average.py, nce/nce_criterion.py, nce/alias_multinomial.py, train_pretrain_alexnet.py, evaluate_linear.py, models/linear_classifier.py). These are the lab's own implementation of Tian et al. (2019) Contrastive Multiview Coding, torch/torchvision only. So it ports self-contained (no third_party submodule). The capture directory number (12) equals this method's number in the Step 1&2 list (see docs/PORTING_ROADMAP.md).",
   "paper": {
     "title": "Contrastive Multiview Coding",
     "authors": "Tian, Krishnan, Isola",

@@ -3,7 +3,7 @@
   "targets": [
     {
       "label": "the EMA momentum schedule is frozen at its base (never rises)",
-      "file": "methods/22_mocov3/train_step1_mocov3.py",
+      "file": "methods/22_mocov3/train_pretrain_mocov3.py",
       "old": "    p = progress / total_epochs",
       "new": "    p = 0.0",
       "tests": [

@@ -55,7 +55,7 @@ CRITERION_KEYS = frozenset({"num_proto", "temperature", "start_sharpen",
 TRAINING_KEYS = frozenset({"epochs", "batch_size", "lr", "start_lr", "final_lr",
                            "warmup", "weight_decay", "final_weight_decay",
                            "clip_grad", "ema_start", "ema_final"})
-STEP1_TRAIN_KEYS = MODEL_KEYS | DATA_KEYS | CRITERION_KEYS | TRAINING_KEYS
+PRETRAIN_TRAIN_KEYS = MODEL_KEYS | DATA_KEYS | CRITERION_KEYS | TRAINING_KEYS
 
 EVAL_MODEL_KEYS = frozenset({"img_size", "patch_size", "embed_dim", "depth",
                              "num_heads", "mlp_ratio", "drop_path_rate"})
@@ -71,7 +71,7 @@ WORK = "work"
 # encoder.pt is the ViT trunk. The MSN projection head is excluded.
 ENCODER_EXCLUDE_PREFIXES = ("fc.",)
 
-STEP1_METRIC_NAMES = {
+PRETRAIN_METRIC_NAMES = {
     "final_loss": "final_pretext_loss",
     "epochs": "epochs_completed",
     "metrics_unavailable": "metrics_unavailable",
@@ -162,7 +162,7 @@ def to_run_config(config: dict, out: Path) -> dict:
     if stage not in STAGES:
         raise ConfigError(
             f"config: stage is {stage!r}; known stages are {', '.join(STAGES)}")
-    keys = EVAL_TRAIN_KEYS if stage == "linear_eval" else STEP1_TRAIN_KEYS
+    keys = EVAL_TRAIN_KEYS if stage == "linear_eval" else PRETRAIN_TRAIN_KEYS
     top = EVAL_TOP_KEYS if stage == "linear_eval" else TOP_KEYS
     _named(top - set(config), set(config) - top, "config")
 
@@ -238,7 +238,7 @@ def run_training(config: dict, out: Path, _run=None) -> dict:
     if _run is None:
         if str(METHOD_DIR) not in sys.path:
             sys.path.insert(0, str(METHOD_DIR))
-        from train_step1_msn import run as _run
+        from train_pretrain_msn import run as _run
     args = to_args(config, out)
     run_config = to_run_config(config, out)
     Path(run_config["output"]["checkpoint_dir"]).mkdir(parents=True, exist_ok=True)
@@ -284,7 +284,7 @@ def body(ctx: adapterlib.Context) -> None:
     state = torch.load(latest, map_location="cpu", weights_only=False)
     torch.save(extract_encoder(state["model_state_dict"]),
                Path(ctx.out) / "encoder.pt")
-    ctx.write_metrics(metrics, names=STEP1_METRIC_NAMES)
+    ctx.write_metrics(metrics, names=PRETRAIN_METRIC_NAMES)
 
 
 def _stage_of(config_path) -> str:

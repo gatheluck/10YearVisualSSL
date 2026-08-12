@@ -273,7 +273,7 @@ class TestTheDeviceIsResolved(Base):
     is checked on every machine instead of only on one without a GPU."""
 
     def trainer(self):
-        return load("ibot_trainer", METHOD / "train_step1.py")
+        return load("ibot_trainer", METHOD / "train_pretrain.py")
 
     def test_cpu_is_honoured(self):
         self.assertEqual(self.trainer().resolve_device("cpu").type, "cpu")
@@ -345,7 +345,7 @@ class TestTheEncoderIsTheTeacher(Base):
 
 class TestTheMetricNames(Base):
     def test_every_mapped_name_is_in_the_contract_vocabulary(self):
-        for raw, target in adapter.STEP1_METRIC_NAMES.items():
+        for raw, target in adapter.PRETRAIN_METRIC_NAMES.items():
             if target is None:
                 continue
             with self.subTest(metric=raw):
@@ -354,7 +354,7 @@ class TestTheMetricNames(Base):
     def test_the_loss_is_a_pretext_number(self):
         self.assertEqual(
             adapterlib.METRIC_VOCABULARY[
-                adapter.STEP1_METRIC_NAMES["final_loss"]],
+                adapter.PRETRAIN_METRIC_NAMES["final_loss"]],
             adapterlib.PER_METHOD)
 
     def test_the_loss_components_are_kept_but_given_no_slot(self):
@@ -362,8 +362,8 @@ class TestTheMetricNames(Base):
         stay under their own names and out of the comparable block."""
         for raw in ("final_cls_loss", "final_patch_loss"):
             with self.subTest(metric=raw):
-                self.assertIn(raw, adapter.STEP1_METRIC_NAMES)
-                self.assertIsNone(adapter.STEP1_METRIC_NAMES[raw])
+                self.assertIn(raw, adapter.PRETRAIN_METRIC_NAMES)
+                self.assertIsNone(adapter.PRETRAIN_METRIC_NAMES[raw])
 
 
 class TestTheTrainingCallIsTheOriginals(Base):
@@ -730,7 +730,7 @@ class TestWhatCameFromTheCapture(unittest.TestCase):
 
     def test_what_was_rewritten_is_recorded(self):
         doc = json.loads((METHOD / "provenance.json").read_text())
-        self.assertIn("train_step1.py", doc["rewritten_during_the_port"])
+        self.assertIn("train_pretrain.py", doc["rewritten_during_the_port"])
         self.assertIn("evaluate_linear.py", doc["rewritten_during_the_port"])
 
 

@@ -21,7 +21,7 @@
     },
     {
       "label": "the MIM targets are read over all positions, unaligned with the masked logits",
-      "file": "methods/24_beit/train_step1_beit.py",
+      "file": "methods/24_beit/train_pretrain_beit.py",
       "old": "            labels = visual_tokens[masks]",
       "new": "            labels = visual_tokens.reshape(-1)",
       "tests": [

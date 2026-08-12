@@ -30,7 +30,7 @@ submodule.
 
 The lab wrapper trains under `DistributedDataParallel` with bf16 autocast and
 gradient accumulation and logs to TensorBoard; none is needed for a single-process
-run, so `train_step1_ijepa.py` owns a thin fp32 loop, the device is **resolved**
+run, so `train_pretrain_ijepa.py` owns a thin fp32 loop, the device is **resolved**
 rather than assumed CUDA, and AMP / TensorBoard / tqdm / no_sync / accumulation are
 dropped. The mask collator, the context/target encoders, the narrow predictor, the
 layer-normed latent targets, the smooth-L1 loss, the EMA target update and the

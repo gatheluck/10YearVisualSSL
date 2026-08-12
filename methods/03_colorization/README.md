@@ -28,7 +28,7 @@ the torch-only closure (the same as `image_gpt`).
 
 The lab wrapper trains under `DistributedDataParallel` with AMP and logs to
 TensorBoard; none is needed for a single-process run, so
-`train_step1_colorization.py` owns a thin fp32 loop, the device is **resolved**
+`train_pretrain_colorization.py` owns a thin fp32 loop, the device is **resolved**
 rather than assumed CUDA, and TensorBoard is dropped.
 
 ## The 313 ab-bin constant

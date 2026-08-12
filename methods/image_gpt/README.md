@@ -18,7 +18,7 @@ here -- and there is **no `third_party/` submodule** for it. The model, the
 colour quantiser and the training loop are all in this directory.
 
 The lab wrapper trains under `DistributedDataParallel` and a `torch.cuda.amp`
-context; none of that is needed for a single-process run, so `train_step1_igpt.py`
+context; none of that is needed for a single-process run, so `train_pretrain_igpt.py`
 owns a thin, full-precision loop and the device is **resolved** rather than
 assumed CUDA -- the same step runs on a CPU or a GPU unchanged.
 

@@ -3,7 +3,7 @@
   "targets": [
     {
       "label": "the AlexNet batch ignores the resolved device and goes to the GPU regardless",
-      "file": "methods/09_jigsaw_puzzle_pp/train_step1_cluster_cls.py",
+      "file": "methods/09_jigsaw_puzzle_pp/train_pretrain_cluster_cls.py",
       "old": "            imgs = imgs.to(device, non_blocking=True)",
       "new": "            imgs = imgs.cuda(0, non_blocking=True)",
       "tests": [

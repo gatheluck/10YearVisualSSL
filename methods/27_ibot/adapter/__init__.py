@@ -109,7 +109,7 @@ DDP_PREFIX = "module."
 # they stay in `metrics_raw` and out of the comparable block. Inventing
 # contract names for them would offer them for comparison against methods that
 # have no such quantities.
-STEP1_METRIC_NAMES = {
+PRETRAIN_METRIC_NAMES = {
     "final_loss": "final_pretext_loss",
     "final_cls_loss": None,
     "final_patch_loss": None,
@@ -336,7 +336,7 @@ def _filter_numeric(raw: dict) -> tuple:
 
 def run_training(config: dict, out: Path, _run=None) -> dict:
     if _run is None:
-        from train_step1 import run as _run
+        from train_pretrain import run as _run
     args = to_args(config, out)
     run_config = to_run_config(config, out)
     Path(run_config["checkpoint"]["save_dir"]).mkdir(parents=True,
@@ -400,7 +400,7 @@ def body(ctx: adapterlib.Context) -> None:
                        map_location="cpu", weights_only=False)
     torch.save(extract_encoder(state["model"]),
                Path(ctx.out) / "encoder.pt")
-    ctx.write_metrics(metrics, names=STEP1_METRIC_NAMES)
+    ctx.write_metrics(metrics, names=PRETRAIN_METRIC_NAMES)
 
 
 def _stage_of(config_path) -> str:

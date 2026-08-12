@@ -74,12 +74,12 @@ MASKING = {"num_enc_masks": 1, "num_pred_masks": 2, "allow_overlap": False,
            "min_keep": 4, "enc_mask_scale": [0.85, 1.0],
            "enc_mask_aspect": [1.0, 1.0], "pred_mask_scale": [0.15, 0.25],
            "pred_mask_aspect": [0.75, 1.5]}
-STEP1_ONLY = {"epochs": 1, "batch_size": 2, "num_workers": 0, "lr": 1.0e-3,
+PRETRAIN_ONLY = {"epochs": 1, "batch_size": 2, "num_workers": 0, "lr": 1.0e-3,
               "start_lr": 2.0e-4, "final_lr": 1.0e-6, "weight_decay": 0.04,
               "final_wd": 0.4, "warmup_epochs": 0, "clip_grad": 10.0,
               "ipe_scale": 1.0, "beta1": 0.9, "beta2": 0.95,
               "start_ema": 0.996, "final_ema": 1.0}
-TRAIN = {**MODEL, **PREDICTOR, **DATA, **MASKING, **STEP1_ONLY}
+TRAIN = {**MODEL, **PREDICTOR, **DATA, **MASKING, **PRETRAIN_ONLY}
 EVAL_TRAIN = {"name": "vit_tiny", "img_size": IMG, "patch_size": PATCH,
               "epochs": 2, "batch_size": 2, "num_workers": 0, "lr": 0.1,
               "momentum": 0.9, "weight_decay": 0.0}
@@ -191,7 +191,7 @@ class TestTheModel(unittest.TestCase):
 
 class TestTheEmaUpdate(unittest.TestCase):
     def trainer(self):
-        return load("ijepa_trainer", METHOD / "train_step1_ijepa.py")
+        return load("ijepa_trainer", METHOD / "train_pretrain_ijepa.py")
 
     @needs_deps
     def test_ema_update_moves_the_target_toward_the_source(self):
@@ -349,9 +349,9 @@ class TestTheEvalProducesNoEncoder(Base):
 
 class TestTheMetricsAreInTheVocabulary(unittest.TestCase):
     def test_step1_maps_a_pretext_loss(self):
-        self.assertEqual(adapter.STEP1_METRIC_NAMES["final_loss"],
+        self.assertEqual(adapter.PRETRAIN_METRIC_NAMES["final_loss"],
                          "final_pretext_loss")
-        for target in adapter.STEP1_METRIC_NAMES.values():
+        for target in adapter.PRETRAIN_METRIC_NAMES.values():
             if target is not None:
                 self.assertIn(target, adapterlib.METRIC_VOCABULARY)
 
@@ -368,7 +368,7 @@ class TestTheMetricsAreInTheVocabulary(unittest.TestCase):
 
 class TestTheDeviceIsResolved(Base):
     def trainer(self):
-        return load("ijepa_trainer", METHOD / "train_step1_ijepa.py")
+        return load("ijepa_trainer", METHOD / "train_pretrain_ijepa.py")
 
     @needs_deps
     def test_asking_for_cuda_without_one_is_refused(self):
@@ -382,7 +382,7 @@ class TestTheDeviceIsResolved(Base):
 
     def test_run_resolves_the_device(self):
         import ast
-        src = (METHOD / "train_step1_ijepa.py").read_text()
+        src = (METHOD / "train_pretrain_ijepa.py").read_text()
         run_fn = next(n for n in ast.parse(src).body
                       if isinstance(n, ast.FunctionDef) and n.name == "run")
         called = {n.func.id for n in ast.walk(run_fn)
@@ -517,7 +517,7 @@ class TestALinearEvalSmoke(Base):
 class TestTheOriginalIsReferencedNotCopied(unittest.TestCase):
     def test_no_distributed_or_tensorboard_machinery_is_used(self):
         import ast
-        tree = ast.parse((METHOD / "train_step1_ijepa.py").read_text())
+        tree = ast.parse((METHOD / "train_pretrain_ijepa.py").read_text())
         used = set()
         for n in ast.walk(tree):
             if isinstance(n, ast.Attribute):

@@ -289,10 +289,10 @@ class TestTheEvalProducesNoEncoder(Base):
 
 class TestTheMetricsAreInTheVocabulary(unittest.TestCase):
     def test_step1_maps_a_pretext_loss(self):
-        for target in adapter.STEP1_METRIC_NAMES.values():
+        for target in adapter.PRETRAIN_METRIC_NAMES.values():
             if target is not None:
                 self.assertIn(target, adapterlib.METRIC_VOCABULARY)
-        self.assertEqual(adapter.STEP1_METRIC_NAMES["final_loss"],
+        self.assertEqual(adapter.PRETRAIN_METRIC_NAMES["final_loss"],
                          "final_pretext_loss")
 
     def test_eval_maps_the_comparable_probe_numbers(self):
@@ -311,7 +311,7 @@ class TestTheMetricsAreInTheVocabulary(unittest.TestCase):
 # ─────────────────────────────────────────────────────────────────────────
 class TestTheDeviceIsResolved(Base):
     def trainer(self):
-        return load("igpt_trainer", METHOD / "train_step1_igpt.py")
+        return load("igpt_trainer", METHOD / "train_pretrain_igpt.py")
 
     @needs_deps
     def test_asking_for_cuda_without_one_is_refused(self):
@@ -325,7 +325,7 @@ class TestTheDeviceIsResolved(Base):
 
     def test_run_resolves_the_device_rather_than_sniffing_it(self):
         import ast
-        src = (METHOD / "train_step1_igpt.py").read_text()
+        src = (METHOD / "train_pretrain_igpt.py").read_text()
         run_fn = next(n for n in ast.parse(src).body
                       if isinstance(n, ast.FunctionDef) and n.name == "run")
         called = {n.func.id for n in ast.walk(run_fn)
@@ -490,7 +490,7 @@ class TestALinearEvalSmoke(Base):
 class TestTheOriginalIsReferencedNotCopied(unittest.TestCase):
     def test_the_body_lives_in_run_and_main_only_parses(self):
         import ast
-        src = (METHOD / "train_step1_igpt.py").read_text()
+        src = (METHOD / "train_pretrain_igpt.py").read_text()
         top = {n.name for n in ast.parse(src).body
                if isinstance(n, ast.FunctionDef)}
         for fn in ("run", "main", "build_parser"):
@@ -502,7 +502,7 @@ class TestTheOriginalIsReferencedNotCopied(unittest.TestCase):
         (AST), not the source text -- the docstring names them to say they are
         avoided, and a substring search would match that prose."""
         import ast
-        tree = ast.parse((METHOD / "train_step1_igpt.py").read_text())
+        tree = ast.parse((METHOD / "train_pretrain_igpt.py").read_text())
         used = set()
         for n in ast.walk(tree):
             if isinstance(n, ast.Attribute):

@@ -28,7 +28,7 @@ submodule.
 
 The lab wrapper trains under `DistributedDataParallel` with `SyncBatchNorm` and
 logs to TensorBoard; none is needed for a single-process run, so
-`train_step1_simclrv2.py` owns a thin fp32 loop, the device is **resolved** rather
+`train_pretrain_simclrv2.py` owns a thin fp32 loop, the device is **resolved** rather
 than assumed CUDA, and TensorBoard is dropped. The NT-Xent `all_gather_with_grad`
 path is kept but inert single-process. LARS and the cosine-with-warmup schedule
 are kept.

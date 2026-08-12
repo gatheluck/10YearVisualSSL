@@ -75,7 +75,7 @@ DDP_PREFIX = "module."
 # What the original calls its numbers, and what the contract calls them. The
 # redundancy-reduction objective is this method's own, so it is a pretext name
 # and shares no scale with any other method's loss.
-STEP1_METRIC_NAMES = {
+PRETRAIN_METRIC_NAMES = {
     "final_loss": "final_pretext_loss",
     "epochs": "epochs_completed",
     "metrics_unavailable": "metrics_unavailable",
@@ -252,7 +252,7 @@ def load_encoder(state_dict: dict, config: dict):
 
 def run_training(config: dict, out: Path, _run=None) -> dict:
     if _run is None:
-        from train_step1_resnet import run as _run
+        from train_pretrain_resnet import run as _run
     args = to_args(config, out)
     run_config = to_run_config(config, out)
     Path(run_config["checkpoint"]["save_dir"]).mkdir(parents=True,
@@ -323,7 +323,7 @@ def body(ctx: adapterlib.Context) -> None:
                        map_location="cpu", weights_only=False)
     torch.save(extract_encoder(state["state_dict"]),
                Path(ctx.out) / "encoder.pt")
-    ctx.write_metrics(metrics, names=STEP1_METRIC_NAMES)
+    ctx.write_metrics(metrics, names=PRETRAIN_METRIC_NAMES)
 
 
 def _stage_of(config_path) -> str:

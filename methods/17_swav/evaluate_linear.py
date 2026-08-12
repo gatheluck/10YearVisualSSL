@@ -32,7 +32,7 @@ from torch.utils.tensorboard import SummaryWriter
 ROOT = Path(__file__).parent
 sys.path.insert(0, str(ROOT))
 from models.resnet_swav import build_resnet_swav
-from train_step1_resnet import make_deterministic, resolve_device
+from train_pretrain_resnet import make_deterministic, resolve_device
 
 
 class AverageMeter:

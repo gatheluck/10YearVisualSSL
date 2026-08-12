@@ -24,7 +24,7 @@ no-op on a CPU). So the upstream is pinned **directly**
 
 The upstream training script is a DDP trainer wired to `dist.py` and a bfloat16
 AMP context; none of that is needed for a single-process, device-resolved run,
-so `train_step1_var.py` owns a thin loop over the model's own forward. Flash and
+so `train_pretrain_var.py` owns a thin loop over the model's own forward. Flash and
 fused attention are forced off, so a run does not depend on whether
 flash-attention happens to be installed.
 

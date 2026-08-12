@@ -31,7 +31,7 @@ loss and the two-view dataset) — no `third_party/` submodule.
 
 The lab wrapper trains under `DistributedDataParallel` with AMP autocast and logs
 to TensorBoard; none is needed for a single-process run, so
-`train_step1_mocov3.py` owns a thin fp32 loop, the device is **resolved** rather
+`train_pretrain_mocov3.py` owns a thin fp32 loop, the device is **resolved** rather
 than assumed CUDA, and AMP / TensorBoard / tqdm are dropped. The EMA
 momentum-encoder update, the symmetric InfoNCE loss, the 2D sin-cos position
 embedding and the official ViT init are kept faithfully; the `concat_all_gather`

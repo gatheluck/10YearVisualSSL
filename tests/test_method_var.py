@@ -169,7 +169,7 @@ class TestThePinnedUpstream(unittest.TestCase):
         which `build_vae_var` the adapter gets."""
         two = ROOT / "methods" / "02_vae"
         load_from(two, "models", two / "models" / "__init__.py")  # poison cache
-        trainer = load("var_trainer", METHOD / "train_step1_var.py")
+        trainer = load("var_trainer", METHOD / "train_pretrain_var.py")
         trainer._load_upstream()
         self.assertTrue(
             sys.modules["models"].__file__.startswith(str(UPSTREAM)),
@@ -272,7 +272,7 @@ class TestTheDeviceIsResolved(Base):
     """Referenced by the device mutation spec."""
 
     def trainer(self):
-        return load("var_trainer", METHOD / "train_step1_var.py")
+        return load("var_trainer", METHOD / "train_pretrain_var.py")
 
     @needs_deps
     def test_asking_for_cuda_without_one_is_refused(self):
@@ -298,7 +298,7 @@ class TestTheDeviceIsResolved(Base):
 
     def test_run_resolves_the_device_rather_than_sniffing_it(self):
         import ast
-        src = (METHOD / "train_step1_var.py").read_text()
+        src = (METHOD / "train_pretrain_var.py").read_text()
         run_fn = next(n for n in ast.parse(src).body
                       if isinstance(n, ast.FunctionDef) and n.name == "run")
         called = {n.func.id for n in ast.walk(run_fn)
@@ -420,7 +420,7 @@ class TestASmokeRun(Base):
 class TestTheOriginalIsReferencedNotCopied(unittest.TestCase):
     def test_the_body_lives_in_run_and_main_only_parses(self):
         import ast
-        src = (METHOD / "train_step1_var.py").read_text()
+        src = (METHOD / "train_pretrain_var.py").read_text()
         top = {n.name for n in ast.parse(src).body
                if isinstance(n, ast.FunctionDef)}
         for fn in ("run", "main", "build_parser"):
@@ -431,7 +431,7 @@ class TestTheOriginalIsReferencedNotCopied(unittest.TestCase):
 
     def test_it_asks_for_deterministic_seeding(self):
         import ast
-        src = (METHOD / "train_step1_var.py").read_text()
+        src = (METHOD / "train_pretrain_var.py").read_text()
         run_fn = next(n for n in ast.parse(src).body
                       if isinstance(n, ast.FunctionDef) and n.name == "run")
         called = {n.func.id for n in ast.walk(run_fn)
@@ -443,7 +443,7 @@ class TestTheOriginalIsReferencedNotCopied(unittest.TestCase):
         the port owns its loop instead. Checked against actual imports, not the
         source text (the docstring names them to say they are avoided)."""
         import ast
-        src = (METHOD / "train_step1_var.py").read_text()
+        src = (METHOD / "train_pretrain_var.py").read_text()
         imported = set()
         for n in ast.walk(ast.parse(src)):
             if isinstance(n, ast.Import):
@@ -546,7 +546,7 @@ class TestTheProbeReadsTheVqvaeNotTheTransformer(Base):
     dimensionality distinguishes the two: the transformer's width is not Cvae."""
 
     def modules(self):
-        trainer = load("var_trainer", METHOD / "train_step1_var.py")
+        trainer = load("var_trainer", METHOD / "train_pretrain_var.py")
         ev = load("var_eval", METHOD / "evaluate_linear_var.py")
         return trainer, ev
 

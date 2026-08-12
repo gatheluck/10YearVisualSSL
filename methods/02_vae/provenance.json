@@ -11,6 +11,6 @@
     "__init__.py": "re-exported VAE_ViT (step 2), which was not brought across",
     "data/__init__.py": "same",
     "models/__init__.py": "same",
-    "train_step1_cnn.py": "main() split into parse_args() and run(args, config); make_deterministic() called; the config may be passed in rather than read from a file, so the adapter can redirect the output path"
+    "train_pretrain_cnn.py": "main() split into parse_args() and run(args, config); make_deterministic() called; the config may be passed in rather than read from a file, so the adapter can redirect the output path"
   }
 }

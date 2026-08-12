@@ -1,7 +1,7 @@
 {
   "captured_at": "2026-08-07",
   "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
-  "captured_note": "Ported from the capture's self-contained methods/13_mocov1, specifically its paper-faithful ResNet-50 path (models/resnet_moco.py, data/moco_dataset.py, train_step1_resnet.py, evaluate_linear.py). These are the lab's own implementation of He et al. (2019) Momentum Contrast v1, torch/torchvision only. So it ports self-contained (no third_party submodule). The capture directory number (13) equals this method's number in the Step 1&2 list (see docs/PORTING_ROADMAP.md).",
+  "captured_note": "Ported from the capture's self-contained methods/13_mocov1, specifically its paper-faithful ResNet-50 path (models/resnet_moco.py, data/moco_dataset.py, train_pretrain_resnet.py, evaluate_linear.py). These are the lab's own implementation of He et al. (2019) Momentum Contrast v1, torch/torchvision only. So it ports self-contained (no third_party submodule). The capture directory number (13) equals this method's number in the Step 1&2 list (see docs/PORTING_ROADMAP.md).",
   "paper": {
     "title": "Momentum Contrast for Unsupervised Visual Representation Learning",
     "authors": "He, Fan, Wu, Xie, Girshick",

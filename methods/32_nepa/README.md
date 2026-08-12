@@ -27,7 +27,7 @@ ImageNet-1k**, so this port is **torch-only** and hermetic.
 **autoregressive** latent-prediction objective.
 
 The lab wrapper trains under `DistributedDataParallel` with bf16 autocast and logs
-to TensorBoard; none is needed for a single-process run, so `train_step1_nepa.py`
+to TensorBoard; none is needed for a single-process run, so `train_pretrain_nepa.py`
 owns a thin fp32 loop, the device is **resolved** rather than assumed CUDA, and
 AMP / TensorBoard / tqdm are dropped. The 2D RoPE, QK-norm, LayerScale, the causal
 autoregressive predictor, the stop-gradient negative-cosine loss and the EMA update

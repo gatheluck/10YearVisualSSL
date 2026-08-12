@@ -28,7 +28,7 @@ method**, sharing the instance-discrimination bank shape with `10_inst_disc` and
 `12_cmc`, plus the jigsaw-invariance branch.
 
 The lab wrapper trains under `DistributedDataParallel` and logs to TensorBoard;
-none is needed for a single-process run, so `train_step1_pirl.py` owns a thin fp32
+none is needed for a single-process run, so `train_pretrain_pirl.py` owns a thin fp32
 loop, the device is **resolved** rather than assumed CUDA, and TensorBoard / tqdm
 are dropped. The ResNet-50 model, the memory-bank NCE (with its EMA bank update),
 the jigsaw view (resize → crop → 3×3 cells → per-cell random patch → colour jitter
