@@ -25,6 +25,8 @@ import torchvision.transforms.functional as TF
 from torch.utils.data import DataLoader, DistributedSampler
 from torchvision.datasets import ImageFolder
 
+import adapterlib
+
 # ImageNet normalization constants
 IMAGENET_MEAN = (0.485, 0.456, 0.406)
 IMAGENET_STD  = (0.229, 0.224, 0.225)
@@ -273,7 +275,9 @@ def get_multicrop_dataloader(
     Returns:
         DataLoader with collate_multicrop.
     """
-    dataset = ImageFolder(root=data_path, transform=augmentation)
+    dataset = ImageFolder(
+        root=adapterlib.dataset_split_dir(data_path, "train"),
+        transform=augmentation)
 
     sampler = None
     if distributed:

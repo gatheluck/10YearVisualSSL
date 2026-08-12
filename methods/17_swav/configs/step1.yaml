@@ -15,6 +15,7 @@
 #
 #   python3 bin/launch.py --config methods/17_swav/configs/step1.yaml \
 #       --method 17_swav --set DATA_ROOT=/path/to/imagenet
+#   --set DATA_ROOT=<path>   the dataset root; pretraining reads its train/ subdirectory
 
 stage: step1
 

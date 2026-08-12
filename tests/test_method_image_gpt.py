@@ -72,10 +72,10 @@ EVAL_TRAIN = {**MODEL, "epochs": 2, "batch_size": 2, "num_workers": 0,
 
 
 def tiny_imagefolder(root: Path, n: int = 6) -> Path:
-    """A minimal flat ImageFolder of fabricated images -- no download."""
+    """A minimal ImageFolder of fabricated images under train/ -- no download."""
     import numpy as np
     from PIL import Image
-    cls = root / "class0"
+    cls = root / "train" / "class0"
     cls.mkdir(parents=True, exist_ok=True)
     rng = np.random.RandomState(0)
     for i in range(n):

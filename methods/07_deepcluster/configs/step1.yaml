@@ -7,7 +7,7 @@
 # GPU / x86_64-linux only. The capture's ViT step 2 is not ported.
 #
 # One path is passed at run time, not shipped:
-#   --set DATA_ROOT=<path>   an ImageFolder of training images
+#   --set DATA_ROOT=<path>   the dataset root; pretraining reads its train/ subdirectory
 # The output path is fixed at --out.
 stage: step1
 seed: 42

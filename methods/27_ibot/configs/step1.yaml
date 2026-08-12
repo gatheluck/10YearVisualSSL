@@ -4,8 +4,9 @@
 # result. Nothing here has executed a full run; the method README says exactly
 # what was and was not exercised.
 #
-# The data path is not in this file: pass it with `--set DATA_ROOT=<path>`, and
-# the adapter reads `<path>/train`. The output path is not here either: the
+# The data path is not in this file:
+#   --set DATA_ROOT=<path>   the dataset root; pretraining reads its train/ subdirectory
+# The output path is not here either: the
 # contract fixes it at `--out`. Two captured keys are deliberately absent --
 # `data.val_path` and `training.optimizer` -- because the step-1 trainer does
 # not read them (the optimizer is AdamW by construction). The pilot truncation

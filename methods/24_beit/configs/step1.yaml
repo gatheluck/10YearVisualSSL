@@ -9,7 +9,7 @@
 # (ViT fine-tuning) is not ported.
 #
 # Two paths are passed at run time, not shipped:
-#   --set DATA_ROOT=<path>        an ImageFolder root with a train/ subdirectory
+#   --set DATA_ROOT=<path>   the dataset root; pretraining reads its train/ subdirectory
 #   --set TOKENIZER_CKPT=<path>   the DALL-E encoder.pkl (empty -> random
 #                                 tokenizer, the hermetic smoke; no download)
 # The output path is fixed at --out.

@@ -24,6 +24,7 @@
     "the number of anchor views passed to the MSN loss is len(imgs[1:]) = rand_views + focal_views - 1 (imgs[0] is the target view), matching the anchor forward on imgs[1:]",
     "the training loop drops the upstream DistributedDataParallel + submitit launcher and TensorBoard/tqdm, single-process; the AllReduce/AllReduceSum calls are kept but are inert single-process (dist-guarded); the device is resolved (resolve_device) instead of assumed CUDA",
     "the target encoder EMA, the prototypes-as-parameters, the sharpen and momentum schedules and the AdamW warmup+cosine schedule are kept faithfully",
-    "the linear probe is the lab's shared ARSSL probe (frozen features, mean-centre + L2-normalise, single linear layer, SGD + cosine) rather than the capture's cyanure logistic probe, so the number is comparable across the ported methods; cyanure/submitit/opencv (the official main.py/linear_eval deps) are therefore not needed"
+    "the linear probe is the lab's shared ARSSL probe (frozen features, mean-centre + L2-normalise, single linear layer, SGD + cosine) rather than the capture's cyanure logistic probe, so the number is comparable across the ported methods; cyanure/submitit/opencv (the official main.py/linear_eval deps) are therefore not needed",
+    "DATA_ROOT is the dataset root; step-1 reads its train/ subdirectory (unified data-root convention via adapterlib.dataset_split_dir)."
   ]
 }

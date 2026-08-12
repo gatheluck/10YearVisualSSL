@@ -15,6 +15,8 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 from torchvision.datasets import ImageFolder
 
+import adapterlib
+
 IMAGENET_MEAN = [0.485, 0.456, 0.406]
 IMAGENET_STD = [0.229, 0.224, 0.225]
 
@@ -88,7 +90,7 @@ def get_byol_dataloader(data_path, batch_size=512, num_workers=8, img_size=224,
                         augmentation="byol", seed=0):
     """DataLoader for BYOL pre-training: yields ((view1, view2), label)."""
     dataset = ImageFolder(
-        data_path,
+        adapterlib.dataset_split_dir(data_path, "train"),
         transform=BYOLTwoViewTransform(img_size=img_size,
                                        augmentation=augmentation))
     loader = DataLoader(

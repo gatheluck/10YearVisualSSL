@@ -23,6 +23,7 @@
     "the training loop drops the upstream DistributedDataParallel, AMP and TensorBoard so the same step runs on a CPU or a GPU unchanged, single-process fp32",
     "knowledge transfer: the capture runs clustering (cluster_and_pseudolabels.py) and AlexNet training (train_step1_cluster_cls.py) as two separate DDP scripts; this port does both in one single-process fp32 stage. The clustering matches the capture's run_kmeans (L2-normalise then faiss k-means, no PCA -- the capture has none here, unlike deepcluster) and keeps faiss (the capture refuses a CPU/sklearn fallback); faiss is imported lazily so the code imports without it",
     "knowledge transfer: the pseudo-labels are remapped to [0, n_active) so the AlexNet head has exactly one class per non-empty cluster",
-    "the AlexNet is the torchvision-standard AlexNet (the paper's 'standard AlexNet and ImageNet settings'); encoder.pt for this stage is its conv trunk (features.*)"
+    "the AlexNet is the torchvision-standard AlexNet (the paper's 'standard AlexNet and ImageNet settings'); encoder.pt for this stage is its conv trunk (features.*)",
+    "DATA_ROOT is the dataset root; step-1 reads its train/ subdirectory (unified data-root convention via adapterlib.dataset_split_dir)."
   ]
 }

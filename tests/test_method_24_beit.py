@@ -304,7 +304,7 @@ class TestTheDataset(Base):
     def test_an_item_is_patch_token_mask_and_label(self):
         tiny_imagefolder(self.tmp / "data" / "train")
         ds = self.dataset_mod().BEiTPretrainDataset(
-            str(self.tmp / "data" / "train"), img_size=IMG, patch_size=PATCH,
+            str(self.tmp / "data"), img_size=IMG, patch_size=PATCH,
             token_size=TOKEN_SIZE, num_masking_patches=NUM_MASK,
             min_masking_patches=MIN_MASK)
         patch, token, mask, label = ds[0]

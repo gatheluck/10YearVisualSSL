@@ -20,6 +20,7 @@
     "main() split into build_parser()/run(args, config) returning the pretext loss and epoch count",
     "the run is seeded through make_deterministic (python, numpy, torch); the DataLoader gets a seeded generator",
     "the training loop drops the upstream DistributedDataParallel and TensorBoard/tqdm, single-process fp32; a plain cosine LR + teacher-temp warmup + teacher-EMA cosine schedule replaces the capture's Gram two-stage optimizer-step clock (core-only)",
-    "encoder.pt is the EMA teacher backbone (backbone.* stripped); the probe follows the lab's shared ARSSL protocol so the number is comparable across the ported methods"
+    "encoder.pt is the EMA teacher backbone (backbone.* stripped); the probe follows the lab's shared ARSSL protocol so the number is comparable across the ported methods",
+    "DATA_ROOT is the dataset root; step-1 reads its train/ subdirectory (unified data-root convention via adapterlib.dataset_split_dir)."
   ]
 }

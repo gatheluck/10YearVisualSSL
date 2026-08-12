@@ -14,6 +14,8 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 from torchvision import datasets, transforms
 
+import adapterlib
+
 IMAGENET_MEAN = [0.485, 0.456, 0.406]
 IMAGENET_STD = [0.229, 0.224, 0.225]
 
@@ -48,7 +50,8 @@ class IndexedImageFolder(Dataset):
     """
 
     def __init__(self, root: str, transform=None):
-        self.dataset = datasets.ImageFolder(root, transform=transform)
+        self.dataset = datasets.ImageFolder(
+            adapterlib.dataset_split_dir(root, "train"), transform=transform)
 
     def __len__(self) -> int:
         return len(self.dataset)

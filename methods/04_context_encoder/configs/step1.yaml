@@ -5,9 +5,9 @@
 # result. Nothing here has executed a full run; the method README says exactly
 # what was and was not exercised.
 #
-# The data path is not in this file: pass it with `--set DATA_ROOT=<path>`, and
-# the loader reads `<path>/train`. The output path is not here either; the
-# contract fixes it at `--out`.
+# The data path is not in this file:
+#   --set DATA_ROOT=<path>   the dataset root; pretraining reads its train/ subdirectory
+# The output path is not here either; the contract fixes it at `--out`.
 stage: step1
 seed: 42
 data_root: "${DATA_ROOT}"

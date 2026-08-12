@@ -9,6 +9,7 @@
 # Resolve before running, so that the run is identified by a hash:
 #   python3 bin/resolve-config.py --config methods/01_context_prediction/configs/step1.yaml \
 #       --out runs/ctxpred/resolved.json --set DATA_ROOT=/path/to/ILSVRC2012
+#   --set DATA_ROOT=<path>   the dataset root; pretraining reads its train/ subdirectory
 
 # Which stage this config runs. Not a command-line flag: the contract
 # fixes the adapter's arguments at two, so anything affecting the result

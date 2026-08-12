@@ -27,6 +27,8 @@ import torch
 from torch.utils.data import Dataset
 from torchvision import datasets, transforms
 
+import adapterlib
+
 AB_TARGET_CLASSES = 313
 L_TARGET_CLASSES = 50
 _CODEBOOK_PATH = Path(__file__).resolve().parent / "pts_in_hull.npy"
@@ -109,7 +111,8 @@ class SplitBrainDataset(Dataset):
             resize = int(round(crop_size * 256 / 224))
             self.transform = transforms.Compose([
                 transforms.Resize(resize), transforms.CenterCrop(crop_size)])
-        self.base = datasets.ImageFolder(data_root)
+        self.base = datasets.ImageFolder(
+            adapterlib.dataset_split_dir(data_root, "train"))
 
     def __len__(self) -> int:
         return len(self.base)

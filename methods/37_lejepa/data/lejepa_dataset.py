@@ -15,6 +15,8 @@ import torch
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 
+import adapterlib
+
 IMAGENET_MEAN = (0.485, 0.456, 0.406)
 IMAGENET_STD = (0.229, 0.224, 0.225)
 
@@ -62,7 +64,7 @@ class MultiViewImageFolder(datasets.ImageFolder):
     as [V,C,H,W], plus the label."""
 
     def __init__(self, root: str, view_transform, views: int):
-        super().__init__(root)
+        super().__init__(adapterlib.dataset_split_dir(root, "train"))
         self.view_transform = view_transform
         self.views = int(views)
 

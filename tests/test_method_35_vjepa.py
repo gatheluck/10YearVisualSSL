@@ -214,7 +214,7 @@ class TestTheData(Base):
             self.skipTest("the jepa submodule is not checked out here")
         tiny_imagefolder(self.tmp / "data" / "train")
         loader, _ = self.data_mod().get_vjepa_dataloader(
-            str(self.tmp / "data" / "train"), batch_size=2, cfgs_mask=MASK,
+            str(self.tmp / "data"), batch_size=2, cfgs_mask=MASK,
             crop_size=64, num_frames=1, patch_size=16, tubelet_size=1,
             num_workers=0, seed=0)
         images, labels, masks_enc, masks_pred = next(iter(loader))
@@ -353,7 +353,7 @@ class TestAStep1Smoke(Base):
     def run_adapter(self, **over):
         tiny_imagefolder(self.tmp / "data" / "train")
         c = self.config(**over)
-        c["data_root"] = str(self.tmp / "data" / "train")
+        c["data_root"] = str(self.tmp / "data")
         cfg = self.tmp / "resolved.json"
         cfg.write_text(json.dumps(c), encoding="utf-8")
         env = {**os.environ, "PYTHONPATH": str(ROOT)}
@@ -442,7 +442,7 @@ class TestALinearEvalSmoke(Base):
         s1data = self.tmp / "s1data"
         tiny_imagefolder(s1data / "train")
         s1cfg = {"stage": "step1", "seed": 0,
-                 "data_root": str(s1data / "train"), "device": "cpu",
+                 "data_root": str(s1data), "device": "cpu",
                  "train": dict(TRAIN)}
         p = self.tmp / "s1.json"
         p.write_text(json.dumps(s1cfg), encoding="utf-8")

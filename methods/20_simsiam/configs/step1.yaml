@@ -19,6 +19,7 @@
 #
 #   python3 bin/launch.py --config methods/20_simsiam/configs/step1.yaml \
 #       --method 20_simsiam --set DATA_ROOT=/path/to/imagenet
+#   --set DATA_ROOT=<path>   the dataset root; pretraining reads its train/ subdirectory
 
 stage: step1
 

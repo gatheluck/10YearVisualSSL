@@ -24,6 +24,8 @@ from pathlib import Path
 import numpy as np
 import torch
 
+import adapterlib
+
 ROOT = Path(__file__).resolve().parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -89,7 +91,8 @@ def _build_loader(data_root: str, img_size: int, batch_size: int,
         T.ToTensor(),
         T.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
     ])
-    dataset = ImageFolder(data_root, transform=transform)
+    dataset = ImageFolder(adapterlib.dataset_split_dir(data_root, "train"),
+                          transform=transform)
     loader = torch.utils.data.DataLoader(
         dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers,
         drop_last=True, generator=torch.Generator().manual_seed(seed))

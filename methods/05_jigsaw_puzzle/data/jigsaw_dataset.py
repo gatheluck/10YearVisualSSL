@@ -19,6 +19,8 @@ import torch.utils.data as data
 from PIL import Image
 from torchvision import transforms
 
+import adapterlib
+
 _IMG_EXTS = (".png", ".jpg", ".jpeg", ".bmp", ".webp")
 
 
@@ -55,7 +57,8 @@ class JigsawPuzzleDataset(data.Dataset):
 
     @staticmethod
     def _find_images(folder: str) -> List[str]:
-        paths = [str(p) for p in Path(folder).rglob("*")
+        paths = [str(p) for p in
+                 Path(adapterlib.dataset_split_dir(folder, "train")).rglob("*")
                  if p.suffix.lower() in _IMG_EXTS]
         if not paths:
             raise RuntimeError(f"no images under {folder}")

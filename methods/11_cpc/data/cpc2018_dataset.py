@@ -21,6 +21,8 @@ import torch.nn.functional as F
 from torch.utils.data import Dataset
 from torchvision import datasets, transforms
 
+import adapterlib
+
 IMAGENET_MEAN = (0.485, 0.456, 0.406)
 IMAGENET_STD = (0.229, 0.224, 0.225)
 
@@ -79,6 +81,11 @@ class VisualCPC2018Dataset(Dataset):
                 normalize,
             ])
 
+        # DATA_ROOT is the dataset root; pretraining (mode="train") reads its
+        # train/ subdirectory. The linear-eval loader passes an already-resolved
+        # split directory with mode="val", so that path is left untouched.
+        root = (adapterlib.dataset_split_dir(root, "train")
+                if mode == "train" else root)
         self.base = datasets.ImageFolder(root, transform=transform)
         grid = (image_size - patch_size) // stride + 1
         if grid < 2:

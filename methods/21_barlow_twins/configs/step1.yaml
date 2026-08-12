@@ -10,6 +10,7 @@
 #
 #   python3 bin/launch.py --config methods/21_barlow_twins/configs/step1.yaml \
 #       --method 21_barlow_twins --set DATA_ROOT=/path/to/imagenet
+#   --set DATA_ROOT=<path>   the dataset root; pretraining reads its train/ subdirectory
 
 stage: step1
 

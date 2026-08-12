@@ -74,7 +74,7 @@ ENCODER_DIM = 512  # global-average-pooled conv7 feature
 def tiny_imagefolder(root: Path, n: int = 6) -> Path:
     import numpy as np
     from PIL import Image
-    cls = root / "class0"
+    cls = root / "train" / "class0"
     cls.mkdir(parents=True, exist_ok=True)
     rng = np.random.RandomState(0)
     for i in range(n):

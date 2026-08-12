@@ -11,7 +11,7 @@
 # research only; see provenance.json and README.md.
 #
 # One path is passed at run time, not shipped:
-#   --set DATA_ROOT=<path>   an ImageFolder root containing a train/ subdirectory
+#   --set DATA_ROOT=<path>   the dataset root; pretraining reads its train/ subdirectory
 # The output path is fixed at --out.
 stage: step1
 seed: 0

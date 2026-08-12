@@ -22,6 +22,7 @@ That puts three obligations on it:
 from __future__ import annotations
 
 import hashlib
+import os
 import json
 import subprocess
 import sys
@@ -406,6 +407,37 @@ class TestStandardLibraryOnly(unittest.TestCase):
         self.assertIn("from __future__ import annotations", src,
                       "without it, `X | Y` annotations fail on 3.10")
         ast.parse(src, feature_version=(3, 10))
+
+
+class TestDatasetSplitDir(unittest.TestCase):
+    """The one data-root rule, resolved in one place (CLAUDE.md: never twice).
+    DATA_ROOT is the dataset root; a stage reads its split from a subdirectory."""
+
+    def test_it_joins_the_split_onto_the_root(self):
+        self.assertEqual(adapterlib.dataset_split_dir("/data/imagenet"),
+                         os.path.join("/data/imagenet", "train"))
+
+    def test_the_split_is_configurable(self):
+        self.assertEqual(
+            adapterlib.dataset_split_dir("/data/imagenet", "val"),
+            os.path.join("/data/imagenet", "val"))
+
+    def test_require_refuses_a_missing_split_by_name(self):
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp, ignore_errors=True)
+        with self.assertRaises(FileNotFoundError) as e:
+            adapterlib.dataset_split_dir(tmp, "train", require=True)
+        self.assertIn("train", str(e.exception))
+        self.assertIn("DATA_ROOT", str(e.exception),
+                      "the error does not say what DATA_ROOT should point at")
+
+    def test_require_accepts_a_present_split(self):
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp, ignore_errors=True)
+        (tmp / "train").mkdir()
+        self.assertEqual(
+            adapterlib.dataset_split_dir(tmp, "train", require=True),
+            str(tmp / "train"))
 
 
 if __name__ == "__main__":
