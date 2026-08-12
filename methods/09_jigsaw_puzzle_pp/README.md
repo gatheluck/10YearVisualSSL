@@ -113,24 +113,24 @@ probe run from the CPU lock; the `knowledge_transfer` stage needs the CUDA lock.
 ## Running
 
     # step 1: DATA_ROOT is a folder of training images (searched recursively)
-    python bin/resolve-config.py methods/09_jigsaw_puzzle_pp/configs/step1.yaml \
-        --set DATA_ROOT=/path/to/images > resolved.json
+    python bin/resolve-config.py --config methods/09_jigsaw_puzzle_pp/configs/step1.yaml \
+        --set DATA_ROOT=/path/to/images --out resolved.json
     cd methods/09_jigsaw_puzzle_pp && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/s1
 
     # knowledge transfer (faiss / GPU / x86_64-linux): ENCODER is step 1's encoder.pt
-    python bin/resolve-config.py methods/09_jigsaw_puzzle_pp/configs/knowledge_transfer.yaml \
+    python bin/resolve-config.py --config methods/09_jigsaw_puzzle_pp/configs/knowledge_transfer.yaml \
         --set DATA_ROOT=/path/to/images \
-        --set ENCODER=/path/to/s1/encoder.pt > kt.json
+        --set ENCODER=/path/to/s1/encoder.pt --out kt.json
     cd methods/09_jigsaw_puzzle_pp && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/kt.json --out /path/to/kt
 
     # linear eval: DATA_ROOT has train/ and val/; ENCODER is a step 1 or KT encoder.pt.
     # configs/linear_eval.yaml probes the VGG16 (arch=vgg16);
     # configs/linear_eval_cluster_cls.yaml probes the AlexNet (arch=alexnet_cluster_cls).
-    python bin/resolve-config.py methods/09_jigsaw_puzzle_pp/configs/linear_eval.yaml \
+    python bin/resolve-config.py --config methods/09_jigsaw_puzzle_pp/configs/linear_eval.yaml \
         --set DATA_ROOT=/path/to/imagenet \
-        --set ENCODER=/path/to/s1/encoder.pt > eval.json
+        --set ENCODER=/path/to/s1/encoder.pt --out eval.json
     cd methods/09_jigsaw_puzzle_pp && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/eval.json --out /path/to/eval
 

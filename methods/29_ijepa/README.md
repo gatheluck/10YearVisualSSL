@@ -89,15 +89,15 @@ resolution).
 ## Running
 
     # step 1: DATA_ROOT contains a train/ subdirectory of images
-    python bin/resolve-config.py methods/29_ijepa/configs/step1.yaml \
-        --set DATA_ROOT=/path/to/imagenet > resolved.json
+    python bin/resolve-config.py --config methods/29_ijepa/configs/step1.yaml \
+        --set DATA_ROOT=/path/to/imagenet --out resolved.json
     cd methods/29_ijepa && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/s1
 
     # linear eval: DATA_ROOT has train/ and val/; ENCODER is step 1's encoder.pt
-    python bin/resolve-config.py methods/29_ijepa/configs/linear_eval.yaml \
+    python bin/resolve-config.py --config methods/29_ijepa/configs/linear_eval.yaml \
         --set DATA_ROOT=/path/to/imagenet \
-        --set ENCODER=/path/to/s1/encoder.pt > eval.json
+        --set ENCODER=/path/to/s1/encoder.pt --out eval.json
     cd methods/29_ijepa && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/eval.json --out /path/to/eval
 

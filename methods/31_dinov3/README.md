@@ -87,15 +87,15 @@ excluded step 1, so they are not dependencies here.
 ## Running
 
     # step 1: DATA_ROOT contains a train/ subdirectory of images
-    python bin/resolve-config.py methods/31_dinov3/configs/step1.yaml \
-        --set DATA_ROOT=/path/to/imagenet/train > resolved.json
+    python bin/resolve-config.py --config methods/31_dinov3/configs/step1.yaml \
+        --set DATA_ROOT=/path/to/imagenet/train --out resolved.json
     cd methods/31_dinov3 && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/s1
 
     # linear eval: DATA_ROOT has train/ and val/; ENCODER is step 1's encoder.pt
-    python bin/resolve-config.py methods/31_dinov3/configs/linear_eval.yaml \
+    python bin/resolve-config.py --config methods/31_dinov3/configs/linear_eval.yaml \
         --set DATA_ROOT=/path/to/imagenet \
-        --set ENCODER=/path/to/s1/encoder.pt > eval.json
+        --set ENCODER=/path/to/s1/encoder.pt --out eval.json
     cd methods/31_dinov3 && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/eval.json --out /path/to/eval
 

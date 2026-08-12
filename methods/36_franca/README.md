@@ -70,9 +70,9 @@ to build and probe the frozen backbone.
     python bin/fetch-weights.py --provenance methods/36_franca/provenance.json \
         --out .weights/franca --artifact backbone_artifact
     # DATA_ROOT has train/ and val/ (an ImageFolder each)
-    python bin/resolve-config.py methods/36_franca/configs/linear_eval.yaml \
+    python bin/resolve-config.py --config methods/36_franca/configs/linear_eval.yaml \
         --set DATA_ROOT=/path/to/imagenet \
-        --set FRANCA_CKPT=.weights/franca/franca_vitb14_In21K.pth > resolved.json
+        --set FRANCA_CKPT=.weights/franca/franca_vitb14_In21K.pth --out resolved.json
     cd methods/36_franca && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/out
 

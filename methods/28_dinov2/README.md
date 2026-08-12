@@ -67,9 +67,9 @@ never installed, so it is not in the lock). No `timm`, no `xformers` (disabled).
         --artifact backbone_artifact --out /path/to/weights
 
     # linear eval: DATA_ROOT has train/ and val/; DINOV2_CKPT is the .pth above
-    python bin/resolve-config.py methods/28_dinov2/configs/linear_eval.yaml \
+    python bin/resolve-config.py --config methods/28_dinov2/configs/linear_eval.yaml \
         --set DATA_ROOT=/path/to/imagenet \
-        --set DINOV2_CKPT=/path/to/weights/dinov2_vitg14_pretrain.pth > eval.json
+        --set DINOV2_CKPT=/path/to/weights/dinov2_vitg14_pretrain.pth --out eval.json
     cd methods/28_dinov2 && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/eval.json --out /path/to/eval
 
