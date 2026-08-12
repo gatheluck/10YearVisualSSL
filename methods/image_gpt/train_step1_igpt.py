@@ -120,7 +120,7 @@ def fit_clusters(dataset, n_clusters: int, seed: int) -> np.ndarray:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="image_gpt step 1 (pixel GPT)")
-    parser.add_argument("--config", default="configs/step1.yaml")
+    parser.add_argument("--config", default="configs/pretrain.yaml")
     parser.add_argument("--data_path", default=None,
                         help="Override the ImageFolder root of training images")
     parser.add_argument("--resume", default=None)

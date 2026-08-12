@@ -83,7 +83,7 @@ epochs)** ≈ ~20 numbers.
 
 ## 2. What this repository implements today (measured)
 
-- **Pipeline per method**: adapter stages `step1` (self-supervised pretraining →
+- **Pipeline per method**: adapter stages `pretrain` (self-supervised pretraining →
   `encoder.pt`) and `linear_eval` (frozen linear probe).
 - **The only downstream evaluation is ImageNet-1k classification linear probe
   (Top-1/Top-5).** This is enforced by the contract itself:
@@ -112,7 +112,7 @@ unified-ViT Step-2 backbone in the published repository.
 | Capture element | This repository |
 |---|---|
 | ImageNet-1k classification linear probe (Top-1/5) | **implemented** (`linear_eval`) |
-| SSL pretraining (from scratch) | **implemented** (`step1`, epochs configurable) |
+| SSL pretraining (from scratch) | **implemented** (`pretrain`, epochs configurable) |
 | Step 1 as-is (official/native frozen backbone) | partial: eval-only download methods, ImageNet only |
 | Unified ViT-B/16 Step-2 backbone | **not implemented** (ports use native arch) |
 | 100 / 200 / 300 epoch sweep + per-checkpoint eval | **not implemented** |
@@ -128,16 +128,21 @@ epoch-sweep matrix.
 
 ---
 
-## 4. Terminology — three different "steps" (do not conflate)
+## 4. Terminology — "step" is the paper axis, not a code stage
+
+The pipeline stage that used to be called `step1` is now `pretrain`, precisely so
+that **"Step" belongs to the paper/results axis only** and never collides with a
+code stage token (`tests/test_stage_vocabulary.py` forbids `step1` as a stage).
 
 - **Capture experiment axis** (this document, and the results CSV): **Step 1** =
   as-is frozen evaluation; **Step 2** = from-scratch unified-ViT pretraining at
   100/200/300 epochs, evaluated frozen. This is the paper's comparison design.
-- **Adapter pipeline stages** (`docs/CONTRACT.md`): `step1` = the SSL
-  pretraining stage that writes `encoder.pt`; `linear_eval` = the frozen linear
-  probe. There is deliberately **no `step2` stage name** in the contract.
+- **Adapter pipeline stages** (`adapterlib.CONTRACT_STAGES`): `pretrain` = the
+  SSL pretraining stage that writes `encoder.pt`; `linear_eval` = the frozen
+  linear probe; `knowledge_transfer` = a pretext middle stage. No stage is named
+  `step1` or `step2`.
 - Mapping: the capture's **Step 2 (from-scratch)** corresponds, for a ported
-  trained method, to running the adapter's `step1` + `linear_eval` (ImageNet
+  trained method, to running the adapter's `pretrain` + `linear_eval` (ImageNet
   only); the capture's **Step 1 (as-is)** corresponds to an eval-only method's
   `linear_eval` on a downloaded frozen backbone.
 

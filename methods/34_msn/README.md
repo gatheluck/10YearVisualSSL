@@ -68,7 +68,7 @@ L2-normalised, a single linear layer trained with SGD under a cosine schedule).
 - **Exercised (linear_eval):** a hermetic smoke fits the probe on a step-1 encoder
   over a two-class ImageFolder, passes `contract-test`, writes the comparable
   `linear_probe` accuracies, and writes **no** `encoder.pt`.
-- **Not a full run:** `configs/step1.yaml` is the official deit_small MSN recipe
+- **Not a full run:** `configs/pretrain.yaml` is the official deit_small MSN recipe
   (ViT-S/16, 224px, 1 rand + 10 focal, 1024 prototypes, 800 epochs, AdamW), a
   recipe, not a completed run.
 - **GPU:** the device resolution is verified on real hardware; see the device
@@ -89,7 +89,7 @@ installed, so it is not in the lock.
 ## Running
 
     # step 1: DATA_ROOT contains a train/ subdirectory of images
-    python bin/resolve-config.py --config methods/34_msn/configs/step1.yaml \
+    python bin/resolve-config.py --config methods/34_msn/configs/pretrain.yaml \
         --set DATA_ROOT=/path/to/imagenet/train --out resolved.json
     cd methods/34_msn && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/s1

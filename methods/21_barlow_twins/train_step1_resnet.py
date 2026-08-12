@@ -226,7 +226,7 @@ def train_epoch(
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Barlow Twins Step 1: ResNet-50")
-    parser.add_argument("--config",    default="configs/step1_resnet.yaml")
+    parser.add_argument("--config",    default="configs/pretrain_resnet.yaml")
     parser.add_argument("--data_path", default=None,
                         help="Override ImageNet root (contains train/ and val/)")
     parser.add_argument("--resume",    default=None)

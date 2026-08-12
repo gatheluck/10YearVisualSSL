@@ -73,7 +73,7 @@ MODEL = {"embed_dim": EMBED_DIM, "depth": 2, "num_heads": NUM_HEADS,
          "rope_theta": 100.0, "pos_embed_shift": None,
          "pos_embed_jitter": None, "pos_embed_rescale": 2.0}
 EMA = {"ema_decay": 0.9999}
-DATA = {"augmentation": "step1", "num_workers": 0}
+DATA = {"augmentation": "pretrain", "num_workers": 0}
 STEP1_ONLY = {"epochs": 1, "batch_size": 2, "base_lr": 3.0e-4,
               "weight_decay": 0.05, "beta1": 0.9, "beta2": 0.95,
               "warmup_epochs": 0, "clip_grad": 1.0}
@@ -117,7 +117,7 @@ class Base(unittest.TestCase):
         self.out = self.tmp / "out"
 
     def config(self, **over) -> dict:
-        cfg = {"stage": "step1", "seed": 0, "data_root": str(self.tmp / "data"),
+        cfg = {"stage": "pretrain", "seed": 0, "data_root": str(self.tmp / "data"),
                "device": "cpu", "train": dict(TRAIN)}
         for k, v in over.items():
             if k == "train" and v:
@@ -400,7 +400,7 @@ class TestALinearEvalSmoke(Base):
         tiny_split(self.tmp / "data")
         s1data = self.tmp / "s1data"
         tiny_imagefolder(s1data / "train")
-        s1cfg = {"stage": "step1", "seed": 0, "data_root": str(s1data),
+        s1cfg = {"stage": "pretrain", "seed": 0, "data_root": str(s1data),
                  "device": "cpu", "train": dict(TRAIN)}
         p = self.tmp / "s1.json"
         p.write_text(json.dumps(s1cfg), encoding="utf-8")

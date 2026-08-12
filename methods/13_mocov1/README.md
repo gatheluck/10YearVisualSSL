@@ -55,7 +55,7 @@ ported methods use, so the number is comparable across them.
 - **Exercised (linear_eval):** a hermetic smoke fits the probe on a step-1
   encoder over a two-class ImageFolder, passes `contract-test`, writes the
   comparable `linear_probe` accuracies, and writes **no** `encoder.pt`.
-- **Not a full run:** `configs/step1.yaml` is the paper-target recipe (feature_dim
+- **Not a full run:** `configs/pretrain.yaml` is the paper-target recipe (feature_dim
   128, K 65536, m 0.999, 200 epochs, 224px), a recipe, not a completed run.
 - **Not ported:** the ViT step 2.
 - **GPU:** the device resolution is verified on real hardware; see the device
@@ -76,7 +76,7 @@ closure as `image_gpt`: identical floors, identical resolution).
 ## Running
 
     # step 1: DATA_ROOT is an ImageFolder of training images
-    python bin/resolve-config.py --config methods/13_mocov1/configs/step1.yaml \
+    python bin/resolve-config.py --config methods/13_mocov1/configs/pretrain.yaml \
         --set DATA_ROOT=/path/to/images --out resolved.json
     cd methods/13_mocov1 && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/s1

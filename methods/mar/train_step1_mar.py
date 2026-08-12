@@ -169,7 +169,7 @@ def make_deterministic(seed: int) -> None:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="MAR step 1 (cached latents)")
-    parser.add_argument("--config", default="configs/step1.yaml")
+    parser.add_argument("--config", default="configs/pretrain.yaml")
     parser.add_argument("--data_path", default=None,
                         help="Override the cached-latents root (class subdirs "
                              "of .npz files with 'moments'/'moments_flip')")

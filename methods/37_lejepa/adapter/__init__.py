@@ -28,7 +28,7 @@ from pathlib import Path
 import adapterlib
 
 METHOD = "37_lejepa"
-STAGES = ("step1", "linear_eval")
+STAGES = ("pretrain", "linear_eval")
 METHOD_DIR = Path(__file__).resolve().parent.parent
 
 MODEL_KEYS = frozenset({"name", "img_size", "drop_path_rate", "proj_hidden_dim",

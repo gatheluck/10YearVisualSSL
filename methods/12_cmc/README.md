@@ -62,7 +62,7 @@ trained with SGD under a cosine schedule).
 - **Exercised (linear_eval):** a hermetic smoke fits the probe on a step-1
   encoder over a two-class ImageFolder, passes `contract-test`, writes the
   comparable `linear_probe` accuracies, and writes **no** `encoder.pt`.
-- **Not a full run:** `configs/step1.yaml` is the paper-target recipe (feat_dim
+- **Not a full run:** `configs/pretrain.yaml` is the paper-target recipe (feat_dim
   128, K 16384, T 0.07, 240 epochs, 224px), a recipe, not a completed run.
 - **Not ported:** the ViT step 2 and the optional ResNet linear-classifier
   variant.
@@ -85,7 +85,7 @@ resolution).
 ## Running
 
     # step 1: DATA_ROOT is an ImageFolder of training images
-    python bin/resolve-config.py --config methods/12_cmc/configs/step1.yaml \
+    python bin/resolve-config.py --config methods/12_cmc/configs/pretrain.yaml \
         --set DATA_ROOT=/path/to/images --out resolved.json
     cd methods/12_cmc && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/s1

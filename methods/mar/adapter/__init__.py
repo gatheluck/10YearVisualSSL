@@ -33,7 +33,7 @@ from pathlib import Path
 import adapterlib
 
 METHOD = "mar"
-STAGES = ("step1",)
+STAGES = ("pretrain",)
 METHOD_DIR = Path(__file__).resolve().parent.parent
 
 # The pinned upstream, recorded in every manifest. The commit is the fork's
@@ -245,7 +245,7 @@ def main(argv: list[str] | None = None) -> int:
     a = ap.parse_args(argv)
     try:
         return adapterlib.run(config=a.config, out=a.out, method=METHOD,
-                              stage="step1", body=body, upstream=UPSTREAM)
+                              stage="pretrain", body=body, upstream=UPSTREAM)
     except (adapterlib.AdapterError, ConfigError) as exc:
         print(f"  *** {exc}", file=sys.stderr)
         return 2

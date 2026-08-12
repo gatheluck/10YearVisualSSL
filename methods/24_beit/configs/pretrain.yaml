@@ -1,0 +1,50 @@
+# BEiT step 1: ViT-Base/16 + dVAE visual tokens + masked image modeling
+# (Bao et al., 2021; arXiv:2106.08254).
+#
+# These are the paper-target settings -- the recipe, not a result. Nothing here
+# has executed a full run; the README says what was and was not exercised. The
+# ViT is this port's own (no timm). The MIM targets come from the frozen OpenAI
+# DALL-E dVAE tokenizer: a hash-pinned download (provenance.json ->
+# tokenizer_artifact) whose path is passed at run time. The capture's step 2
+# (ViT fine-tuning) is not ported.
+#
+# Two paths are passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   the dataset root; pretraining reads its train/ subdirectory
+#   --set TOKENIZER_CKPT=<path>   the DALL-E encoder.pkl (empty -> random
+#                                 tokenizer, the hermetic smoke; no download)
+# The output path is fixed at --out.
+stage: pretrain
+seed: 0
+data_root: "${DATA_ROOT}"
+device: auto
+
+train:
+  # model (build_beit): ViT-Base/16, LayerScale blocks, MIM head embed_dim->vocab
+  img_size: 224
+  patch_size: 16
+  vocab_size: 8192              # DALL-E dVAE codebook size
+  embed_dim: 768
+  depth: 12
+  num_heads: 12
+  mlp_ratio: 4.0
+  drop_path_rate: 0.1
+  init_values: 0.1             # LayerScale init (BEiT-Base)
+  # tokenizer (the frozen DALL-E dVAE; empty ckpt -> random tokenizer smoke)
+  ckpt: "${TOKENIZER_CKPT}"
+  token_size: 112             # token view resolution; 112/8 = 14x14 tokens
+  input_is_mapped: true       # the dataset already applies DALL-E map_pixels
+  # data
+  num_workers: 8
+  # masking (blockwise, 14x14 patch grid)
+  num_masking_patches: 75     # ~40% of the 196 patches
+  min_num_patches: 16
+  # training (AdamW + linear warmup then cosine decay)
+  epochs: 800
+  batch_size: 2048
+  lr: 1.5e-3
+  beta1: 0.9
+  beta2: 0.999
+  eps: 1.0e-8
+  weight_decay: 0.05
+  warmup_epochs: 10
+  clip_grad: 3.0

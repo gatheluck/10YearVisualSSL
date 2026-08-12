@@ -49,7 +49,7 @@ comparable linear probe, as in every other self-contained port here.
 - **Exercised (linear_eval):** a hermetic smoke fits the probe on a step-1
   encoder over a two-class ImageFolder, passes `contract-test`, writes the
   comparable `linear_probe` accuracies, and writes **no** `encoder.pt`.
-- **Not a full run:** `configs/step1.yaml` is the AlexNet-BN recipe (224px, 50
+- **Not a full run:** `configs/pretrain.yaml` is the AlexNet-BN recipe (224px, 50
   epochs), a recipe, not a completed run.
 - **GPU:** the device resolution is verified on real hardware; see the device
   mutation spec (`mutations/06_rotation_prediction-step1-device.json`).
@@ -69,7 +69,7 @@ closure as `05_jigsaw_puzzle`: identical floors, identical resolution).
 ## Running
 
     # step 1: DATA_ROOT is an ImageFolder of training images
-    python bin/resolve-config.py --config methods/06_rotation_prediction/configs/step1.yaml \
+    python bin/resolve-config.py --config methods/06_rotation_prediction/configs/pretrain.yaml \
         --set DATA_ROOT=/path/to/images --out resolved.json
     cd methods/06_rotation_prediction && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/s1

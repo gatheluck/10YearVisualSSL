@@ -67,7 +67,7 @@ section 7 is where a chosen representation would be decided.
   `contract-test`, and the encoder round-trip. Real training uses cached VAE
   latents (the upstream `CachedFolder` `.npz` `moments` format); the ~335 MB VAE
   is needed only to *produce* those latents, not to train on them.
-- **Not a full run:** `configs/step1.yaml` is the upstream `mar_base` recipe, not
+- **Not a full run:** `configs/pretrain.yaml` is the upstream `mar_base` recipe, not
   a completed training run.
 - **GPU:** the device resolution and the patched forward are verified on an
   A100; see the device mutation spec (`mutations/mar-step1-device.json`).
@@ -90,7 +90,7 @@ not in the locks and does not trip `verify-environment`.
 ## Running
 
     # DATA_ROOT is the cached-latents root (class subdirs of .npz moments)
-    python bin/resolve-config.py --config methods/mar/configs/step1.yaml \
+    python bin/resolve-config.py --config methods/mar/configs/pretrain.yaml \
         --set DATA_ROOT=/path/to/cached --out resolved.json
     cd methods/mar && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/out

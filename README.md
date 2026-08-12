@@ -141,7 +141,7 @@ shown so the shape is visible before it is built.
 │   │   ├── adapter/                    translates the config, calls the original
 │   │   ├── train_step1_alexnet_official.py   the original loop, extracted
 │   │   ├── models/ data/               untouched; digests pinned by tests
-│   │   ├── configs/step1.yaml          the settings the capture used
+│   │   ├── configs/pretrain.yaml          the settings the capture used
 │   │   ├── configs/linear_eval.yaml    stage 2: frozen-features evaluation
 │   │   ├── requirements.txt            which packages, checked against imports
 │   │   ├── requirements.lock.txt       exact versions, to rebuild a run
@@ -281,7 +281,7 @@ produces that canonical form.
 
 Write the authoring configs — `include` lets a method reuse a shared base.
 **These keys are illustrative**; each method defines its own, and
-`methods/01_context_prediction/configs/step1.yaml` is a real one:
+`methods/01_context_prediction/configs/pretrain.yaml` is a real one:
 
 ```bash
 mkdir -p configs && printf '{"seed":0,"optimizer":{"name":"sgd","lr":0.1,"momentum":0.9}}\n' --out configs/base.json
@@ -402,7 +402,7 @@ method dependency, and no method declares it.
 file somebody may edit afterwards:
 
 ```bash
-python3 bin/resolve-config.py --config methods/01_context_prediction/configs/step1.yaml --out runs/ctxpred/resolved.json --set DATA_ROOT=/path/to/ILSVRC2012
+python3 bin/resolve-config.py --config methods/01_context_prediction/configs/pretrain.yaml --out runs/ctxpred/resolved.json --set DATA_ROOT=/path/to/ILSVRC2012
 ```
 
 **3. Run the adapter.** It runs from the method's directory, and reaches this
@@ -433,7 +433,7 @@ The steps above are what the launcher does, in order, so that nobody has to
 remember the order:
 
 ```bash
-python3 bin/launch.py --config methods/01_context_prediction/configs/step1.yaml --method 01_context_prediction --set DATA_ROOT=/path/to/ILSVRC2012
+python3 bin/launch.py --config methods/01_context_prediction/configs/pretrain.yaml --method 01_context_prediction --set DATA_ROOT=/path/to/ILSVRC2012
 ```
 
 It resolves the config, submits the job through the chosen platform, verifies

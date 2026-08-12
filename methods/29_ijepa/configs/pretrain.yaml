@@ -1,0 +1,53 @@
+# I-JEPA step 1: ViT-H/14 + EMA target + latent prediction (Assran et al., 2023;
+# arXiv:2301.08243), the official ViT-H/14 path (in1k_vith14_ep300).
+#
+# These are the paper-target settings -- the recipe, not a result. Nothing here
+# has executed a full run; the README says what was and was not exercised. I-JEPA
+# ships its own ViT (no timm) and trains from scratch on ImageNet-1k, so the run
+# is torch-only and hermetic. The capture's step 2 (ViT-B) is not ported.
+#
+# One path is passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   the dataset root; pretraining reads its train/ subdirectory
+# The output path is fixed at --out.
+stage: pretrain
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+
+train:
+  # model (context/target encoder)
+  name: vit_huge
+  img_size: 224
+  patch_size: 14
+  # predictor (narrow ViT)
+  pred_dim: 384
+  pred_depth: 12
+  # data
+  augmentation: step1          # RandomResizedCrop(0.3-1.0), no flip/jitter/blur
+  use_horizontal_flip: false
+  num_workers: 10
+  # multi-block masking (exact paper values)
+  num_enc_masks: 1
+  num_pred_masks: 4
+  allow_overlap: false
+  min_keep: 10
+  enc_mask_scale: [0.85, 1.0]
+  enc_mask_aspect: [1.0, 1.0]
+  pred_mask_scale: [0.15, 0.2]
+  pred_mask_aspect: [0.75, 1.5]
+  # training (AdamW + cosine LR / weight-decay schedules with warmup)
+  epochs: 300
+  batch_size: 2048
+  lr: 1.0e-3                    # peak LR (paper Table 4)
+  start_lr: 2.0e-4             # warm-up starting LR
+  final_lr: 1.0e-6            # cosine decay end LR
+  weight_decay: 0.04           # initial WD (cosine -> final_wd)
+  final_wd: 0.4
+  warmup_epochs: 40
+  clip_grad: 10.0
+  ipe_scale: 1.0
+  beta1: 0.9
+  beta2: 0.95
+  # EMA target encoder (cosine momentum schedule)
+  start_ema: 0.996
+  final_ema: 1.0

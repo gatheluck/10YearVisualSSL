@@ -62,7 +62,7 @@ L2-normalised, a single linear layer trained with SGD under a cosine schedule).
 - **Exercised (linear_eval):** a hermetic smoke fits the probe on a step-1 encoder
   over a two-class ImageFolder, passes `contract-test`, writes the comparable
   `linear_probe` accuracies, and writes **no** `encoder.pt`.
-- **Not a full run:** `configs/step1.yaml` is the recipe (ViT-B/16, 224px, 300
+- **Not a full run:** `configs/pretrain.yaml` is the recipe (ViT-B/16, 224px, 300
   epochs, batch 1024, AdamW), a recipe, not a completed run.
 - **GPU:** the device resolution is verified on real hardware; see the device
   mutation spec (`mutations/35_vjepa-step1-device.json`).
@@ -82,7 +82,7 @@ torch / torchvision / numpy / PyYAML (the same torch closure as `31_dinov3` /
 ## Running
 
     # step 1: DATA_ROOT contains a train/ subdirectory of images
-    python bin/resolve-config.py --config methods/35_vjepa/configs/step1.yaml \
+    python bin/resolve-config.py --config methods/35_vjepa/configs/pretrain.yaml \
         --set DATA_ROOT=/path/to/imagenet/train --out resolved.json
     cd methods/35_vjepa && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/s1

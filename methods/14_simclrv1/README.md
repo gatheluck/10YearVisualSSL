@@ -56,7 +56,7 @@ comparable across the ported methods.
 - **Exercised (linear_eval):** a hermetic smoke fits the probe on a step-1
   encoder over a two-class ImageFolder, passes `contract-test`, writes the
   comparable `linear_probe` accuracies, and writes **no** `encoder.pt`.
-- **Not a full run:** `configs/step1.yaml` is the SimCLR recipe (out_dim 128,
+- **Not a full run:** `configs/pretrain.yaml` is the SimCLR recipe (out_dim 128,
   1000 epochs, batch 4096, LARS lr 4.8), a recipe, not a completed run.
 - **GPU:** the device resolution is verified on real hardware; see the device
   mutation spec (`mutations/14_simclrv1-step1-device.json`).
@@ -77,7 +77,7 @@ resolution).
 ## Running
 
     # step 1: DATA_ROOT is a folder of training images (searched recursively)
-    python bin/resolve-config.py --config methods/14_simclrv1/configs/step1.yaml \
+    python bin/resolve-config.py --config methods/14_simclrv1/configs/pretrain.yaml \
         --set DATA_ROOT=/path/to/images --out resolved.json
     cd methods/14_simclrv1 && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/s1

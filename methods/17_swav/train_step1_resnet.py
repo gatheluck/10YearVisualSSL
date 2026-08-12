@@ -285,7 +285,7 @@ def make_deterministic(seed: int) -> None:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config",    default="configs/step1_resnet.yaml")
+    parser.add_argument("--config",    default="configs/pretrain_resnet.yaml")
     parser.add_argument("--data_path", default=None)
     parser.add_argument("--resume",    default=None)
     parser.add_argument("--device",    default="auto",

@@ -77,7 +77,7 @@ recorded in `provenance.json` rather than pinned.
 
 ## The configuration
 
-`configs/step1.yaml` holds the recipe the captured run used. `data_root` is the
+`configs/pretrain.yaml` holds the recipe the captured run used. `data_root` is the
 parent of `train/`/`val/`, not the `train/` directory — the loader joins the
 split itself. The output path is not a config key; the contract fixes it at
 `--out`.
@@ -85,13 +85,13 @@ split itself. The output path is not a config key; the contract fixes it at
 ## Running it
 
 ```bash
-python3 bin/launch.py --config methods/04_context_encoder/configs/step1.yaml --method 04_context_encoder --set DATA_ROOT=/path/to/imagenet
+python3 bin/launch.py --config methods/04_context_encoder/configs/pretrain.yaml --method 04_context_encoder --set DATA_ROOT=/path/to/imagenet
 ```
 
 Then the linear evaluation, on the `encoder.pt` the first stage wrote:
 
 ```bash
-python3 bin/launch.py --config methods/04_context_encoder/configs/linear_eval.yaml --method 04_context_encoder --set DATA_ROOT=/path/to/imagenet --set ENCODER=runs/<step1-run>/out/encoder.pt
+python3 bin/launch.py --config methods/04_context_encoder/configs/linear_eval.yaml --method 04_context_encoder --set DATA_ROOT=/path/to/imagenet --set ENCODER=runs/<pretrain-run>/out/encoder.pt
 ```
 
 ## What has and has not been exercised

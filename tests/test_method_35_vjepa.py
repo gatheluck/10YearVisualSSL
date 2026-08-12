@@ -121,7 +121,7 @@ class Base(unittest.TestCase):
         self.out = self.tmp / "out"
 
     def config(self, **over) -> dict:
-        cfg = {"stage": "step1", "seed": 0, "data_root": str(self.tmp / "data"),
+        cfg = {"stage": "pretrain", "seed": 0, "data_root": str(self.tmp / "data"),
                "device": "cpu", "train": dict(TRAIN)}
         for k, v in over.items():
             if k == "train" and v:
@@ -441,7 +441,7 @@ class TestALinearEvalSmoke(Base):
         tiny_split(self.tmp / "data")
         s1data = self.tmp / "s1data"
         tiny_imagefolder(s1data / "train")
-        s1cfg = {"stage": "step1", "seed": 0,
+        s1cfg = {"stage": "pretrain", "seed": 0,
                  "data_root": str(s1data), "device": "cpu",
                  "train": dict(TRAIN)}
         p = self.tmp / "s1.json"

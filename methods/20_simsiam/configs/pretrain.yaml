@@ -1,0 +1,50 @@
+# Step 1: SimSiam pretraining with a ResNet-50 backbone.
+# Chen & He, "Exploring Simple Siamese Representation Learning", 2020
+# (arXiv:2011.10566).
+#
+# The values are the ones the captured cluster runs used, which follow the
+# paper's 100-epoch ImageNet recipe.
+#
+# **No data path and no output path here.** The captured config named an
+# absolute path on the cluster for both its ImageNet split and its checkpoint
+# directory. A machine's path in a published config is reproducible nowhere
+# else, so the data root arrives as a setting and the adapter supplies the
+# output location under --out.
+#
+# Four keys in the captured config are **deliberately absent**: arch,
+# optimizer, lr_schedule and warmup_epochs. The trainer never reads them --
+# the architecture, SGD, the cosine decay and the absence of warmup are all
+# fixed in its code -- and a key that is ignored is a setting claiming an
+# effect it never had. The adapter refuses them for that reason.
+#
+#   python3 bin/launch.py --config methods/20_simsiam/configs/step1.yaml \
+#       --method 20_simsiam --set DATA_ROOT=/path/to/imagenet
+#   --set DATA_ROOT=<path>   the dataset root; pretraining reads its train/ subdirectory
+
+stage: pretrain
+
+# The capture used 42.
+seed: 42
+
+# A directory with a train/ split in the layout ImageFolder walks.
+data_root: "${DATA_ROOT}"
+
+device: auto
+
+train:
+  # Paper and capture: 100 epochs for the ResNet-50 recipe.
+  epochs: 100
+  # Total across processes: 64 per GPU x 8.
+  batch_size: 512
+  num_workers: 8
+  # init_lr = base_lr * batch_size / 256 = 0.1, the linear scaling rule.
+  # The trainer applies it; this is the input, not the result.
+  base_lr: 0.05
+  momentum: 0.9
+  weight_decay: 1.0e-4
+  img_size: 224
+  # Projector output, and the predictor's bottleneck (~dim/4).
+  dim: 2048
+  pred_dim: 512
+  save_freq: 50
+  print_freq: 100

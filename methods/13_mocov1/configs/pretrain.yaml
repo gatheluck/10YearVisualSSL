@@ -1,0 +1,32 @@
+# MoCo v1 step 1: ResNet-50 + momentum queue + InfoNCE (He et al., 2019;
+# arXiv:1911.05722), the paper-faithful ResNet-50 path.
+#
+# These are the paper-target settings -- the recipe, not a result. Nothing here
+# has executed a full run; the README says what was and was not exercised. The
+# capture's ViT step 2 is not ported.
+#
+# One path is passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   the dataset root; pretraining reads its train/ subdirectory
+# The output path is fixed at --out.
+stage: pretrain
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+
+train:
+  # model (build_moco_resnet): ResNet-50 + Linear(2048, feature_dim), L2-normed
+  feature_dim: 128
+  img_size: 224
+  # MoCo (momentum queue)
+  queue_size: 65536       # K -- dictionary size (paper Table 1)
+  key_momentum: 0.999     # m -- key encoder EMA (paper Table 1)
+  temperature: 0.07       # tau -- InfoNCE temperature (paper Table 1)
+  # training (SGD, as in the paper)
+  epochs: 200
+  batch_size: 256
+  num_workers: 8
+  lr: 0.03
+  momentum: 0.9           # SGD momentum (distinct from key_momentum)
+  weight_decay: 1.0e-4
+  lr_decay_epochs: [120, 160]
+  lr_decay_rate: 0.1

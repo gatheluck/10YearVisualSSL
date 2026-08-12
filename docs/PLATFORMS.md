@@ -32,7 +32,7 @@ from platforms import load_backend, JobSpec
 
 backend = load_backend(args.platform)      # defaults to "local"
 backend.Backend().submit(JobSpec(
-    name="ctxpred-step1", command=[...], env_name="py3.10_context_prediction",
+    name="ctxpred-pretrain", command=[...], env_name="py3.10_context_prediction",
     gpus=8, hours=24))
 ```
 
@@ -136,7 +136,7 @@ environment so it never reaches the repository:
 
 ```
 ABCI_GROUP=<your-group> python3 bin/launch.py \
-  --config methods/<method>/configs/step1.yaml --method <method> \
+  --config methods/<method>/configs/pretrain.yaml --method <method> \
   --platform abci --gpus 1 --hours 1 \
   --set DATA_ROOT=<imagenet-on-abci> \
   --override train.epochs=1 \

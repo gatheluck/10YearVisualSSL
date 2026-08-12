@@ -25,7 +25,7 @@ from pathlib import Path
 import adapterlib
 
 METHOD = "06_rotation_prediction"
-STAGES = ("step1", "linear_eval")
+STAGES = ("pretrain", "linear_eval")
 METHOD_DIR = Path(__file__).resolve().parent.parent
 
 MODEL_KEYS = frozenset({"num_classes", "image_size"})

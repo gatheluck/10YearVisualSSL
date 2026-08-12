@@ -98,7 +98,7 @@ def one_hot(targets, num_classes, smoothing, device):
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="MSN step 1")
-    parser.add_argument("--config", default="configs/step1.yaml")
+    parser.add_argument("--config", default="configs/pretrain.yaml")
     parser.add_argument("--data_path", default=None)
     parser.add_argument("--resume", default=None)
     parser.add_argument("--device", default="auto",

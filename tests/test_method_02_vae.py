@@ -103,7 +103,7 @@ class Base(unittest.TestCase):
         self.out = self.tmp / "out"
 
     def config(self, **over) -> dict:
-        cfg = {"stage": "step1", "seed": 0,
+        cfg = {"stage": "pretrain", "seed": 0,
                "data_root": str(self.tmp / "data"),
                "device": "cpu", "train": dict(TRAIN)}
         for k, v in over.items():
@@ -181,7 +181,7 @@ class TestTheOutputPathIsNotTheClusters(unittest.TestCase):
         *explaining* that the output path is not there. What matters is
         whether anything is set, not what the prose says.
         """
-        text = (METHOD / "configs" / "step1_mnist.yaml").read_text()
+        text = (METHOD / "configs" / "pretrain_mnist.yaml").read_text()
         return "\n".join(line.split("#", 1)[0] for line in text.splitlines())
 
     def test_the_shipped_config_names_no_machine_path(self):
@@ -193,11 +193,11 @@ class TestTheOutputPathIsNotTheClusters(unittest.TestCase):
 
     def test_removing_the_comments_left_the_settings(self):
         """Against an empty body the check above passes vacuously."""
-        self.assertIn("stage: step1", self.settings())
+        self.assertIn("stage: pretrain", self.settings())
         self.assertIn("latent_dim", self.settings())
 
     def test_the_adapter_puts_the_checkpoint_dir_under_out(self):
-        cfg = {"stage": "step1", "seed": 0, "data_root": "/d",
+        cfg = {"stage": "pretrain", "seed": 0, "data_root": "/d",
                "device": "cpu", "train": dict(TRAIN)}
         built = adapter.to_run_config(cfg, out=Path("/tmp/somewhere/out"))
         self.assertTrue(
@@ -207,7 +207,7 @@ class TestTheOutputPathIsNotTheClusters(unittest.TestCase):
     def test_a_config_that_tries_to_set_it_is_refused(self):
         """Accepting it would let a config write outside `--out`, which is the
         one thing the contract says an adapter must never do."""
-        cfg = {"stage": "step1", "seed": 0, "data_root": "/d",
+        cfg = {"stage": "pretrain", "seed": 0, "data_root": "/d",
                "device": "cpu", "train": dict(TRAIN),
                "output": {"checkpoint_dir": "/anywhere"}}
         with self.assertRaises(adapter.ConfigError) as e:

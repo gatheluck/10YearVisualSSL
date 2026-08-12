@@ -33,7 +33,7 @@ from pathlib import Path
 import adapterlib
 
 METHOD = "09_jigsaw_puzzle_pp"
-STAGES = ("step1", "knowledge_transfer", "linear_eval")
+STAGES = ("pretrain", "knowledge_transfer", "linear_eval")
 METHOD_DIR = Path(__file__).resolve().parent.parent
 
 MODEL_KEYS = frozenset({"num_permutations", "dropout", "tile_size", "tile_gap",

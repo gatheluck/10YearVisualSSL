@@ -1,0 +1,65 @@
+# DINOv3 step 2 (core objective): ViT-B/16 + DINO + iBOT + KoLeo on ImageNet-1k
+# (Simeoni et al., 2025; arXiv:2508.10104). Ported as this port's step 1.
+#
+# These are the paper-target settings -- the recipe, not a result. Nothing here
+# has executed a full run; the README says what was and was not exercised. The
+# ViT is this port's own (register tokens + axial RoPE, no timm). The capture's
+# step 1 (loading the HF-gated official DINOv3 weights) is EXCLUDED; this is the
+# capture's step 2, the from-scratch unified SSL comparison. The released Gram
+# anchoring second stage is excluded (the capture's gram.mode: core_only).
+#
+# One path is passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   the dataset root; pretraining reads its train/ subdirectory
+# The output path is fixed at --out.
+stage: pretrain
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+
+train:
+  # model: ViT-B/16 with 4 register tokens + axial RoPE
+  img_size: 224
+  patch_size: 16
+  embed_dim: 768
+  depth: 12
+  num_heads: 12
+  mlp_ratio: 4.0
+  n_register_tokens: 4
+  drop_path_rate: 0.1
+  use_rope: true
+  rope_base: 100.0
+  # projection heads (DINO + iBOT), prototype counts
+  dino_out_dim: 65536
+  ibot_out_dim: 65536
+  dino_head_hidden_dim: 2048
+  dino_head_bottleneck_dim: 256
+  ibot_head_hidden_dim: 2048
+  ibot_head_bottleneck_dim: 256
+  # data: multi-crop (2 global 224 + 8 local 96)
+  n_global_crops: 2
+  n_local_crops: 8
+  global_size: 224
+  local_size: 96
+  global_scale: [0.32, 1.0]
+  local_scale: [0.05, 0.32]
+  num_workers: 8
+  # training (AdamW + cosine LR with warmup; EMA teacher cosine 0.994 -> 1.0)
+  epochs: 300
+  batch_size: 1024
+  lr: 6.0e-4
+  min_lr: 1.0e-6
+  warmup_epochs: 10
+  weight_decay: 0.05
+  teacher_momentum_start: 0.994
+  teacher_momentum_end: 1.0
+  grad_clip: 3.0
+  ibot_mask_ratio_min: 0.10
+  ibot_mask_ratio_max: 0.50
+  ibot_mask_sample_probability: 0.50
+  koleo_loss_weight: 0.1
+  # loss (student/teacher temperatures, teacher-temp warmup, Sinkhorn iters)
+  student_temp: 0.1
+  teacher_temp_start: 0.04
+  teacher_temp_end: 0.07
+  teacher_temp_warmup_epochs: 25
+  sk_n_iters: 3

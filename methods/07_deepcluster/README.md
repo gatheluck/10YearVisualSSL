@@ -51,7 +51,7 @@ methods use, so the number is comparable across them.
 - **Exercised (linear_eval):** a hermetic smoke fits the probe on a step-1
   encoder over a two-class ImageFolder, passes `contract-test`, writes the
   comparable `linear_probe` accuracies, and writes **no** `encoder.pt`.
-- **Not a full run:** `configs/step1.yaml` is the paper-target recipe (k=10000,
+- **Not a full run:** `configs/pretrain.yaml` is the paper-target recipe (k=10000,
   pca_dim=256, 224px, 500 epochs), a recipe, not a completed run.
 - **Not ported:** the ViT step 2.
 - **GPU:** the device resolution is verified on real hardware; see the device
@@ -73,7 +73,7 @@ the nvidia CUDA wheels). `requirements.lock.txt` is the torch-only CPU closure
 ## Running
 
     # step 1: DATA_ROOT is an ImageFolder of training images (needs a GPU + faiss)
-    python bin/resolve-config.py --config methods/07_deepcluster/configs/step1.yaml \
+    python bin/resolve-config.py --config methods/07_deepcluster/configs/pretrain.yaml \
         --set DATA_ROOT=/path/to/images --out resolved.json
     cd methods/07_deepcluster && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/s1

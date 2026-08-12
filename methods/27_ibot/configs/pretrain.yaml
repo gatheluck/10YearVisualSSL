@@ -1,0 +1,74 @@
+# iBOT step 1: ViT-Small/16 on ImageNet-1k (Zhou et al., arXiv:2111.07832).
+#
+# These are the settings the captured cluster run used -- the recipe, not a
+# result. Nothing here has executed a full run; the method README says exactly
+# what was and was not exercised.
+#
+# The data path is not in this file:
+#   --set DATA_ROOT=<path>   the dataset root; pretraining reads its train/ subdirectory
+# The output path is not here either: the
+# contract fixes it at `--out`. Two captured keys are deliberately absent --
+# `data.val_path` and `training.optimizer` -- because the step-1 trainer does
+# not read them (the optimizer is AdamW by construction). The pilot truncation
+# knobs `stop_after_epochs` / `max_steps_per_epoch` are not part of the
+# contract config, so a run is never silently cut short.
+stage: pretrain
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+
+model:
+  arch: vit_small
+  patch_size: 16
+  embed_dim: 384
+  drop_path_rate: 0.1
+
+data:
+  global_size: 224
+  local_size: 96
+  n_global_crops: 2
+  n_local_crops: 10
+  global_crops_scale: [0.25, 1.0]
+  local_crops_scale: [0.05, 0.25]
+  num_workers: 8
+
+ibot:
+  out_dim: 8192
+  head_hidden_dim: 2048
+  head_bottleneck_dim: 256
+  head_nlayers: 3
+  shared_head: true
+  norm_last_layer: false
+  student_temp: 0.1
+  teacher_temp: 0.07
+  teacher_patch_temp: 0.07
+  teacher_temp_warmup: 0.04
+  teacher_patch_temp_warmup: 0.04
+  teacher_temp_warmup_epochs: 30
+  lambda_token: 1.0
+  pred_ratio: [0.0, 0.3]
+  pred_ratio_var: [0.0, 0.2]
+  pred_shape: block
+  pred_start_epoch: 0
+  teacher_momentum_start: 0.996
+  teacher_momentum_end: 1.0
+  center_momentum: 0.9
+  center_momentum_patch: 0.9
+
+training:
+  epochs: 800
+  batch_size: 1024
+  lr: 5.0e-4
+  min_lr: 1.0e-6
+  weight_decay_start: 0.04
+  weight_decay_end: 0.4
+  warmup_epochs: 10
+  grad_clip: 3.0
+  freeze_last_layer: 1
+  checkpoint_health:
+    min_total_loss: 0.1
+    min_component_loss: 0.01
+    max_total_loss: 50.0
+  fail_fast_after_epoch: 5
+  print_freq: 50
+  save_freq: 50

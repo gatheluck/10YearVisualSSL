@@ -1,0 +1,39 @@
+# BYOL step 1: ResNet-50 + EMA target + symmetric cosine loss (Grill et al.,
+# 2020; arXiv:2006.07733), the paper-faithful ResNet-50 path.
+#
+# These are the paper-target settings -- the recipe, not a result. Nothing here
+# has executed a full run; the README says what was and was not exercised. The
+# capture's ViT step 2 (which needs timm) is not ported.
+#
+# One path is passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   the dataset root; pretraining reads its train/ subdirectory
+# The output path is fixed at --out.
+stage: pretrain
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+
+train:
+  # model (build_byol_resnet50): ResNet-50 + projector (2048->4096->256) +
+  # predictor (256->4096->256)
+  arch: resnet50
+  encoder_dim: 2048
+  proj_hidden_dim: 4096
+  proj_output_dim: 256
+  pred_hidden_dim: 4096
+  pred_output_dim: 256
+  image_size: 224
+  # training (LARS + cosine schedule with warmup; EMA target)
+  epochs: 1000
+  batch_size: 4096
+  num_workers: 8
+  learning_rate: 0.2       # base LR, scaled by batch_size / 256
+  lr_scale_by_batch: true
+  lr_scale_base: 256
+  momentum: 0.9
+  weight_decay: 1.5e-6
+  trust_coefficient: 0.001
+  warmup_epochs: 10
+  min_lr: 0.0
+  ema_tau_base: 0.996      # EMA momentum start (cosine schedule to final)
+  ema_tau_final: 1.0

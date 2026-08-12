@@ -72,7 +72,7 @@ port.)
 - **Exercised (linear_eval):** a hermetic smoke fits the probe on a step-1 encoder
   over a two-class ImageFolder, passes `contract-test`, writes the comparable
   `linear_probe` accuracies, and writes **no** `encoder.pt`.
-- **Not a full run:** `configs/step1.yaml` is the BEiT recipe (ViT-Base/16, 224px,
+- **Not a full run:** `configs/pretrain.yaml` is the BEiT recipe (ViT-Base/16, 224px,
   8192-token DALL-E dVAE, 800 epochs, batch 2048, AdamW, warmup 10 → cosine), a
   recipe, not a completed run. A real run needs the DALL-E `encoder.pkl` (fetch
   and hash-verify it with `bin/fetch-weights.py --artifact tokenizer_artifact`)
@@ -100,7 +100,7 @@ use it.
 
     # step 1: DATA_ROOT has a train/ subdirectory; TOKENIZER_CKPT is the DALL-E
     # encoder.pkl (fetch it with bin/fetch-weights.py --artifact tokenizer_artifact)
-    python bin/resolve-config.py --config methods/24_beit/configs/step1.yaml \
+    python bin/resolve-config.py --config methods/24_beit/configs/pretrain.yaml \
         --set DATA_ROOT=/path/to/imagenet \
         --set TOKENIZER_CKPT=/path/to/encoder.pkl --out resolved.json
     cd methods/24_beit && PYTHONPATH="$PWD/../.." \

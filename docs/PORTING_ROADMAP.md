@@ -14,7 +14,7 @@ The capture (`gatheluck/10YearVisualSSLCapturePrivate`, `snapshots` branch) has 
 ~32 of them carry the lab's **own** model code under `models/*.py` (an
 independent implementation following the paper, torch-based — the same
 license-clean pattern as `25_mae`/`image_gpt`/the clean six). Those port
-**self-contained on the existing `step1 → encoder.pt → linear_probe` contract**;
+**self-contained on the existing `pretrain → encoder.pt → linear_probe` contract**;
 no submodule, no download, no noncommercial entanglement. Five have no `models/`
 (`8_split_brain`(done, `08_split_brain` -- a plain AlexNet, self-contained after all),
 `34_msn`, `35_vjepa`, `36_franca`(done, eval-only), `37_lejepa`)
@@ -179,7 +179,7 @@ under the 2026-08-09 keep-capture-numbering decision.
    the closest already-ported method as a template.
 2. Write the failing tests first; confirm RED.
 3. Implement: model(s), thin single-process trainer (drop DDP/TensorBoard,
-   resolve the device), evaluator, adapter (step1 + linear_eval), configs,
+   resolve the device), evaluator, adapter (pretrain + linear_eval), configs,
    requirements + CPU/cu130 locks, Dockerfile, provenance, README.
 4. Mutation spec, all killed (proves the tests bite — required when tests are
    written after any code).

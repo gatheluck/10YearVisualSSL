@@ -71,7 +71,7 @@ pipeline only; its accuracy is meaningless.
   feature over a two-class ImageFolder, passes `contract-test`, writes the four
   comparable `linear_probe` accuracies, and writes **no** `encoder.pt`. The
   accuracy is meaningless without the real tokeniser (above).
-- **Not a full run:** `configs/step1.yaml` and `configs/linear_eval.yaml` are the
+- **Not a full run:** `configs/pretrain.yaml` and `configs/linear_eval.yaml` are the
   upstream / ARSSL recipes, not completed runs.
 - **GPU:** the device resolution is verified on an A100; see the device mutation
   spec (`mutations/var-step1-device.json`).
@@ -94,7 +94,7 @@ does not trip `verify-environment`.
 ## Running
 
     # DATA_ROOT is an ImageFolder of images; VQVAE_CKPT is the pretrained tokeniser
-    python bin/resolve-config.py --config methods/var/configs/step1.yaml \
+    python bin/resolve-config.py --config methods/var/configs/pretrain.yaml \
         --set DATA_ROOT=/path/to/images --set VQVAE_CKPT=/path/to/vae.pth --out resolved.json
     cd methods/var && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/out

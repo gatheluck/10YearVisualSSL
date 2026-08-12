@@ -37,7 +37,7 @@ METHOD = "_reference"
 # contract defines -- which also left it unable to write either family of
 # metric names, since the stage is what decides that. The config may pick the
 # other one.
-DEFAULT_STAGE = "step1"
+DEFAULT_STAGE = "pretrain"
 
 
 def body(ctx: adapterlib.Context) -> None:

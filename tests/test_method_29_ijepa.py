@@ -69,7 +69,7 @@ EMBED_DIM = 48               # vit_tiny embed_dim
 
 MODEL = {"name": "vit_tiny", "img_size": IMG, "patch_size": PATCH}
 PREDICTOR = {"pred_dim": 32, "pred_depth": 2}
-DATA = {"augmentation": "step1", "use_horizontal_flip": False}
+DATA = {"augmentation": "pretrain", "use_horizontal_flip": False}
 MASKING = {"num_enc_masks": 1, "num_pred_masks": 2, "allow_overlap": False,
            "min_keep": 4, "enc_mask_scale": [0.85, 1.0],
            "enc_mask_aspect": [1.0, 1.0], "pred_mask_scale": [0.15, 0.25],
@@ -120,7 +120,7 @@ class Base(unittest.TestCase):
         self.out = self.tmp / "out"
 
     def config(self, **over) -> dict:
-        cfg = {"stage": "step1", "seed": 0, "data_root": str(self.tmp / "data"),
+        cfg = {"stage": "pretrain", "seed": 0, "data_root": str(self.tmp / "data"),
                "device": "cpu", "train": dict(TRAIN)}
         for k, v in over.items():
             if k == "train" and v:
@@ -461,7 +461,7 @@ class TestALinearEvalSmoke(Base):
         tiny_split(self.tmp / "data")
         s1data = self.tmp / "s1data"
         tiny_imagefolder(s1data / "train")
-        s1cfg = {"stage": "step1", "seed": 0, "data_root": str(s1data),
+        s1cfg = {"stage": "pretrain", "seed": 0, "data_root": str(s1data),
                  "device": "cpu", "train": dict(TRAIN)}
         p = self.tmp / "s1.json"
         p.write_text(json.dumps(s1cfg), encoding="utf-8")

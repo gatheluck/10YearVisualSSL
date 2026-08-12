@@ -40,7 +40,7 @@ from pathlib import Path
 import adapterlib
 
 METHOD = "var"
-STAGES = ("step1", "linear_eval")
+STAGES = ("pretrain", "linear_eval")
 METHOD_DIR = Path(__file__).resolve().parent.parent
 
 # The pinned upstream, recorded in every manifest. Pinned directly (no fork):

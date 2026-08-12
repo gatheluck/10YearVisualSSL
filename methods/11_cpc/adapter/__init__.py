@@ -26,7 +26,7 @@ from pathlib import Path
 import adapterlib
 
 METHOD = "11_cpc"
-STAGES = ("step1", "linear_eval")
+STAGES = ("pretrain", "linear_eval")
 METHOD_DIR = Path(__file__).resolve().parent.parent
 
 MODEL_KEYS = frozenset({"z_dim", "c_dim", "pred_steps", "context_layers",

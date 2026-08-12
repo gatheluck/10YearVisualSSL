@@ -28,7 +28,7 @@ from pathlib import Path
 import adapterlib
 
 METHOD = "32_nepa"
-STAGES = ("step1", "linear_eval")
+STAGES = ("pretrain", "linear_eval")
 METHOD_DIR = Path(__file__).resolve().parent.parent
 
 MODEL_KEYS = frozenset({"embed_dim", "depth", "num_heads", "patch_size",

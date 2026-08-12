@@ -144,14 +144,14 @@ class TestTheStageComesFromTheConfig(Base):
         msg = str(e.exception)
         self.assertIn("step3", msg)
         self.assertIn("linear_eval", msg)
-        self.assertIn("step1", msg)
+        self.assertIn("pretrain", msg)
 
     def test_each_stage_wants_its_own_keys(self):
         """`encoder` belongs to linear evaluation and `max_steps` to step 1.
         Accepting either anywhere would let a config claim a setting that the
         stage never reads."""
         with self.assertRaises(adapter.ConfigError) as e:
-            adapter.to_args(self.config(stage="step1"), out=self.out)
+            adapter.to_args(self.config(stage="pretrain"), out=self.out)
         self.assertIn("encoder", str(e.exception))
 
     def test_the_adapter_reports_the_stage_it_ran(self):
@@ -471,8 +471,8 @@ class TestStepOneStillWorks(unittest.TestCase):
     """Adding a stage must not break the one that exists."""
 
     def test_the_shipped_step1_config_declares_its_stage(self):
-        text = (METHOD / "configs" / "step1.yaml").read_text()
-        self.assertIn("stage: step1", text)
+        text = (METHOD / "configs" / "pretrain.yaml").read_text()
+        self.assertIn("stage: pretrain", text)
 
     def test_a_linear_eval_config_is_shipped_too(self):
         self.assertTrue((METHOD / "configs" / "linear_eval.yaml").is_file())

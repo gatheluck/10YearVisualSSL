@@ -30,7 +30,7 @@ from pathlib import Path
 import adapterlib
 
 METHOD = "02_vae"
-STAGES = ("step1",)
+STAGES = ("pretrain",)
 
 # Every setting the original reads, and no others.
 TRAIN_KEYS = frozenset({"epochs", "batch_size", "num_workers", "lr", "beta",
@@ -225,7 +225,7 @@ def main(argv: list[str] | None = None) -> int:
     a = ap.parse_args(argv)
     try:
         return adapterlib.run(config=a.config, out=a.out, method=METHOD,
-                              stage="step1", body=body)
+                              stage="pretrain", body=body)
     except (adapterlib.AdapterError, ConfigError) as exc:
         print(f"  *** {exc}", file=sys.stderr)
         return 2

@@ -35,7 +35,7 @@ from pathlib import Path
 import adapterlib
 
 METHOD = "35_vjepa"
-STAGES = ("step1", "linear_eval")
+STAGES = ("pretrain", "linear_eval")
 METHOD_DIR = Path(__file__).resolve().parent.parent
 
 # The pinned upstream, recorded in every manifest: the V-JEPA ViT + predictor +

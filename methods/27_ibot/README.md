@@ -97,11 +97,11 @@ and are pinned by hash.
 - **Step 2 was not brought across.** `train_step2_vit.py`,
   `configs/step2_vit_b.yaml`, the step-2 shell script and
   `tests/test_step2_protocol.py` are step 2 (ViT-B), which the contract does
-  not adopt (its stages are `step1` and `linear_eval`)
+  not adopt (its stages are `pretrain` and `linear_eval`)
 
 ## The configuration
 
-`configs/step1.yaml` holds the recipe the captured runs used. Two keys from the
+`configs/pretrain.yaml` holds the recipe the captured runs used. Two keys from the
 captured config are **deliberately absent** — `data.val_path` and
 `training.optimizer`. The step-1 trainer never reads them (the optimizer is
 AdamW by construction), and a key that is ignored is a setting claiming an
@@ -115,13 +115,13 @@ absolute path on the cluster for both, which is reproducible nowhere else.
 ## Running it
 
 ```bash
-python3 bin/launch.py --config methods/27_ibot/configs/step1.yaml --method 27_ibot --set DATA_ROOT=/path/to/imagenet
+python3 bin/launch.py --config methods/27_ibot/configs/pretrain.yaml --method 27_ibot --set DATA_ROOT=/path/to/imagenet
 ```
 
 Then the linear evaluation, on the `encoder.pt` the first stage wrote:
 
 ```bash
-python3 bin/launch.py --config methods/27_ibot/configs/linear_eval.yaml --method 27_ibot --set DATA_ROOT=/path/to/imagenet --set ENCODER=runs/<step1-run>/out/encoder.pt
+python3 bin/launch.py --config methods/27_ibot/configs/linear_eval.yaml --method 27_ibot --set DATA_ROOT=/path/to/imagenet --set ENCODER=runs/<pretrain-run>/out/encoder.pt
 ```
 
 The adapter writes `encoder.pt` (step 1), `metrics.json` and
@@ -143,6 +143,6 @@ copy and its TensorBoard events under `work/`.
   untouched, but nothing here has executed it
 - **The container definition has never been built** on this machine; it is
   checked by reading, like the others
-- The numbers in `configs/step1.yaml` and `configs/linear_eval.yaml` are the
+- The numbers in `configs/pretrain.yaml` and `configs/linear_eval.yaml` are the
   recipe, not results. No accuracy from this port has been measured against
   anything
