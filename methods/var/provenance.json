@@ -24,6 +24,6 @@
     "main() split into build_parser()/run(args, config) returning the cross-entropy loss and epoch count",
     "the run is seeded through make_deterministic (python, numpy, torch)",
     "the training loop drops the upstream DDP/AMP machinery so the same step runs on a CPU or a GPU unchanged; flash/fused attention are forced off so a run does not depend on whether flash-attention is installed",
-    "DATA_ROOT is the dataset root; step-1 reads its train/ subdirectory (unified data-root convention via adapterlib.dataset_split_dir)."
+    "DATA_ROOT is the dataset root; the pretrain stage reads its train/ subdirectory (unified data-root convention via adapterlib.dataset_split_dir)."
   ]
 }

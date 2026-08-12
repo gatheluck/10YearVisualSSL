@@ -66,7 +66,7 @@ DEVICES = ("auto", "cuda", "cpu")
 # escapes and everything is listed.
 WORK = "work"
 
-# What the original calls its number, and what the contract calls it. `step1`
+# What the original calls its number, and what the contract calls it. `pretrain`
 # is a pretext stage: the loss is MAR's own masked-autoregressive objective,
 # on no scale shared with any other method (adapterlib.METRIC_VOCABULARY).
 PRETRAIN_METRIC_NAMES = {

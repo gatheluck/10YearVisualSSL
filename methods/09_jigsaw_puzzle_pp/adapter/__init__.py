@@ -235,7 +235,7 @@ def load_encoder(state_dict: dict, config: dict):
 
 
 def _load_vgg_encoder(encoder_path, dropout):
-    """Load a step-1 VGG16 encoder.pt into a VGG16 model, for the KT stage."""
+    """Load a pretrain VGG16 encoder.pt into a VGG16 model, for the KT stage."""
     import torch
     if str(METHOD_DIR) not in sys.path:
         sys.path.insert(0, str(METHOD_DIR))

@@ -4,13 +4,13 @@
 # feature per image), so its number is a genuine, comparable linear probe. It
 # follows the shared ARSSL protocol (mean-centre + L2-normalise features, a single
 # linear layer, SGD + cosine) used by the other ported methods, so the number is
-# comparable across them. The SeLa clustering knobs are step-1 only and are not
+# comparable across them. The SeLa clustering knobs are pretrain only and are not
 # accepted here.
 #
 # Two paths are passed at run time, not shipped:
 #   --set DATA_ROOT=<path>   an ImageFolder with train/ and val/ subdirectories
-#   --set ENCODER=<path>     encoder.pt from a step-1 run
-# The output path is fixed at --out. arch must match the step-1 run that produced
+#   --set ENCODER=<path>     encoder.pt from a pretrain run
+# The output path is fixed at --out. arch must match the pretrain run that produced
 # ENCODER (it shapes the backbone the port rebuilds before loading).
 stage: linear_eval
 seed: 31
@@ -19,7 +19,7 @@ device: auto
 encoder: "${ENCODER}"
 
 train:
-  # model (must match the step-1 run so encoder.pt loads)
+  # model (must match the pretrain run so encoder.pt loads)
   arch: resnetv2
   image_size: 224
   # probe: a single linear layer, SGD + cosine

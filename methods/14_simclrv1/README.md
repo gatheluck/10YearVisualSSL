@@ -53,7 +53,7 @@ comparable across the ported methods.
   fabricated images, a 32px input and `out_dim=32` — runs through `python -m
   adapter` on a CPU, passes `contract-test`, and the encoder round-trip and a
   determinism check pass.
-- **Exercised (linear_eval):** a hermetic smoke fits the probe on a step-1
+- **Exercised (linear_eval):** a hermetic smoke fits the probe on a pretrain
   encoder over a two-class ImageFolder, passes `contract-test`, writes the
   comparable `linear_probe` accuracies, and writes **no** `encoder.pt`.
 - **Not a full run:** `configs/pretrain.yaml` is the SimCLR recipe (out_dim 128,

@@ -117,7 +117,7 @@ def build_vqvae(arch: dict, vqvae_ckpt, device):
     """Build the VQVAE tokeniser (and the VAR model it comes paired with) and
     put the VQVAE in eval mode.
 
-    Used by step-1 training *and* by linear_eval, so the tokeniser is built and
+    Used by pretrain training *and* by linear_eval, so the tokeniser is built and
     initialised in exactly one place. A real run loads the pretrained tokeniser
     (`vqvae_ckpt`, a download); with none, the parameters are given finite,
     seeded weights.

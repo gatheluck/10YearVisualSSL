@@ -18,6 +18,9 @@ CFG = re.compile(r"--config\s+(methods/[\w./\-]+\.ya?ml)")
 
 
 def _docs() -> list[Path]:
+    # Shipped-documentation surface only. Test files are deliberately excluded:
+    # they legitimately carry synthetic placeholder paths (e.g. methods/x/...)
+    # that are not meant to resolve, so a path-existence check there is unsound.
     pats = ["methods/*/README.md", "methods/*/configs/*.yaml",
             "methods/*/provenance.json", "docs/*.md", "README.md"]
     return [Path(x) for p in pats for x in glob.glob(str(ROOT / p))]

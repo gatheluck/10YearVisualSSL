@@ -3,11 +3,11 @@
 # The second stage freezes the encoder step 1 produced and fits a linear
 # classifier on real labels. These are the numbers this project compares.
 #
-# The encoder to evaluate is `encoder.pt` from a step-1 run: pass it with
+# The encoder to evaluate is `encoder.pt` from a pretrain run: pass it with
 # `--set ENCODER=<path>/encoder.pt`. The data path is `--set DATA_ROOT=<path>`
 # (the evaluation reads `<path>/train` and `<path>/val`). The output path is
 # `--out`. `out_dim`/`hidden_mlp`/`nmb_prototypes` are declared because the
-# encoder is not self-describing; they must match the step-1 run that produced
+# encoder is not self-describing; they must match the pretrain run that produced
 # it. `model_type` (resnet) is fixed by the adapter.
 stage: linear_eval
 seed: 42

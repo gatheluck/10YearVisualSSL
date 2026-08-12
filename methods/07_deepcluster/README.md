@@ -22,7 +22,7 @@ the fallback) rather than reimplementing k-means.
 wheel**, so — unlike every other ported method — **07_deepcluster is GPU /
 x86_64-linux only**. faiss lives in `requirements.lock.cu130.txt`; the
 cross-platform `requirements.lock.txt` carries only the torch parts and is **not,
-by itself, a runnable step-1 environment**. (Verified: `faiss-gpu==1.14.3`
+by itself, a runnable pretrain environment**. (Verified: `faiss-gpu==1.14.3`
 installs on py3.12 and coexists with torch 2.13.0+cu130 on an NVIDIA Tesla T4,
 both using the GPU in one process.) The captured ViT step 2 is excluded, as in
 every port.
@@ -48,7 +48,7 @@ methods use, so the number is comparable across them.
   crop, one epoch, a few fabricated images — runs the full extract→cluster→train
   loop through `python -m adapter` (with faiss) on a CPU, passes `contract-test`,
   and the encoder round-trip and a determinism check pass.
-- **Exercised (linear_eval):** a hermetic smoke fits the probe on a step-1
+- **Exercised (linear_eval):** a hermetic smoke fits the probe on a pretrain
   encoder over a two-class ImageFolder, passes `contract-test`, writes the
   comparable `linear_probe` accuracies, and writes **no** `encoder.pt`.
 - **Not a full run:** `configs/pretrain.yaml` is the paper-target recipe (k=10000,

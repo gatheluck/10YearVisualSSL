@@ -49,7 +49,7 @@ def _l_tensor(rgb_pil) -> "tuple[torch.Tensor, np.ndarray]":
 
 
 class ColorizationDataset(Dataset):
-    """Returns ``(l_tensor [1, H, W], ab_bins [H, W])`` for step-1 pretraining."""
+    """Returns ``(l_tensor [1, H, W], ab_bins [H, W])`` for pretraining."""
 
     def __init__(self, data_path: str, mode: str = "train",
                  image_size: int = 256, crop_size: int = 224):

@@ -69,7 +69,7 @@ recorded in `provenance.json` rather than pinned.
 - **`main()` is split into `build_parser()`/`run(...)`** in both the trainer and
   the evaluation, returning the metrics the captured versions discarded
 - **Single process, full precision.** The captured DDP and AMP paths, and the
-  step-2 protocol machinery, were not brought across; the step-1 loop's plain
+  step-2 protocol machinery, were not brought across; the pretrain loop's plain
   fp32 path runs on a CPU or a GPU unchanged
 - **The ViT (step 2) was not brought across**, and with it `timm`,
   `ContextEncoderViT`, the official Caffe feature extractor, and the step-2

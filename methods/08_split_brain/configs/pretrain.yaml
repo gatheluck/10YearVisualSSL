@@ -2,7 +2,7 @@
 # Efros, CVPR 2017), the AlexNet path.
 #
 # The recipe, not a result. Nothing here has executed a full run; the README says
-# what was and was not exercised. The capture ships no AlexNet step-1 recipe (its
+# what was and was not exercised. The capture ships no AlexNet pretrain recipe (its
 # train.py trains the ViT step 2), so the optimiser knobs below are the port's
 # single-process choice (a plain Adam). The captured ViT step 2 is not ported.
 #

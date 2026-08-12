@@ -105,7 +105,7 @@ class ImageNetLinearProbe(Dataset):
 
 def create_dataloader(dataset_type, root, split='train', batch_size=32,
                       num_workers=4, model_type='alexnet', **kwargs):
-    """Factory for the step-1 inpainting loader and the linear-probe loader."""
+    """Factory for the pretrain inpainting loader and the linear-probe loader."""
     if dataset_type == 'inpainting':
         dataset = InpaintingDataset(root, split=split, **kwargs)
     elif dataset_type == 'linear_probe':

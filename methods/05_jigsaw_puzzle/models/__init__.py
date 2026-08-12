@@ -1,4 +1,4 @@
-"""The jigsaw model, in one place. Only the AlexNet/CFN step-1 model is brought
+"""The jigsaw model, in one place. Only the AlexNet/CFN pretrain model is brought
 across; the capture's ViT (step 2) is excluded like every method's step 2."""
 
 from __future__ import annotations

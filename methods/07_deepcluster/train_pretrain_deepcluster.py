@@ -122,7 +122,7 @@ def run(args, config: dict | None = None) -> dict:
     model = build_alexnet_deepcluster(sobel=bool(m["sobel"]),
                                       num_classes=k).to(device)
 
-    # DATA_ROOT is the dataset root; step-1 reads its train/ subdirectory. Both
+    # DATA_ROOT is the dataset root; the pretrain stage reads its train/ subdirectory. Both
     # the training-transform view and the deterministic feature-extraction view
     # are built over the training images, so both resolve the train/ split here.
     # (build_base_dataset is left root-generic: the linear-eval loader passes an

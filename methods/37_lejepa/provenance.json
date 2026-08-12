@@ -20,6 +20,6 @@
     "main() split into build_parser()/run(args, config) returning the pretext loss and epoch count",
     "the run is seeded through make_deterministic (python, numpy, torch); the DataLoader gets a seeded generator",
     "the training loop drops the upstream DistributedDataParallel, the bfloat16 AMP autocast, TensorBoard/tqdm, and the online monitoring probe (which reads *detached* features, so it never back-propagates into the backbone and its removal does not change training); the elaborate collapse guards are reduced to a loss finiteness check; the weight-decay split and the AdamW + cosine-with-warmup schedule are kept, single-process fp32",
-    "DATA_ROOT is the dataset root; step-1 reads its train/ subdirectory (unified data-root convention via adapterlib.dataset_split_dir)."
+    "DATA_ROOT is the dataset root; the pretrain stage reads its train/ subdirectory (unified data-root convention via adapterlib.dataset_split_dir)."
   ]
 }

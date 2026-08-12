@@ -160,7 +160,7 @@ class Discriminator(nn.Module):
 
 
 def create_model(model_type='alexnet', **kwargs):
-    """Factory for the Context Encoder step-1 model.
+    """Factory for the Context Encoder pretrain model.
 
     Only 'alexnet' is available here. 'vit' belonged to step 2, which this port
     does not include (its model needed `timm` and was not brought across); it is

@@ -62,7 +62,7 @@ section 7 is where a chosen representation would be decided.
 
 ## What has and has not been exercised
 
-- **Exercised:** a hermetic step-1 smoke on **fabricated cached latents** — no
+- **Exercised:** a hermetic pretrain smoke on **fabricated cached latents** — no
   VAE, no download — runs through `python -m adapter` on a CPU and passes
   `contract-test`, and the encoder round-trip. Real training uses cached VAE
   latents (the upstream `CachedFolder` `.npz` `moments` format); the ~335 MB VAE

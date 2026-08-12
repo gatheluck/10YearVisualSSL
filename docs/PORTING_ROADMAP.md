@@ -23,7 +23,7 @@ noncommercial-licence decision).
 
 **Verify per method at port time** (do not assume): the model header's licence
 (lab-own vs a copy of author code → the latter needs a submodule reference), the
-exact dependencies, the backbone, and step-1 reproducibility.
+exact dependencies, the backbone, and pretrain reproducibility.
 
 ## Dependency tiers (measured from the capture's requirements.txt)
 
@@ -87,7 +87,7 @@ rest — e.g. capture `14_simclrv1` ↔ list #14 = PIRL; capture `17_swav` ↔ l
 | 30 | DINOv2 | `28_dinov2` | no | ported (`28_dinov2`; **eval-only download**, the first of that phase, Franca shape: pinned `third_party/dinov2` submodule (xformers disabled -> torch-only), the official ViT-g/14 LVD-142M weights hash-pinned via `bin/fetch-weights.py`; the from-scratch path (LVD-142M, not public) is the excluded step) |
 | 31 | I-JEPA | `29_ijepa` | no | ported (`29_ijepa`; torch-only -- I-JEPA ships its own ViT, NOT timm, measured; trains from scratch on ImageNet; encoder.pt is the EMA target encoder) |
 | 32 | AIM | `30_aim` | no | ported (`30_aim`; **eval-only download**, Franca/dinov2 shape: pinned `third_party/ml-aim` submodule (Apple's `aim`), the official AIM-600M ViT-H/14 (DFN-2B+) backbone hash-pinned via `bin/fetch-weights.py`, probed on the last-6-block average patch-mean-pooled; from-scratch DFN-2B+ pretraining is the excluded step. Licence apple-amlr = non-commercial research; nothing under it copied (submodule + download), academic-research use only) |
-| 33 | V-JEPA | `35_vjepa` | no | ported (`35_vjepa`; **submodule-import** of `facebookresearch/jepa` (third_party/jepa @51c59d5, CC BY-NC 4.0, research-use). Ports the capture's step-2 image adaptation (num_frames=1 image ViT-B/16, from scratch on ImageNet) -- a genuine comparable row, NOT the step-1 caveat probe of the released video model. Imports init_video_model + 3D MaskCollator + apply_masks; context/target EMA + latent smooth-L1 prediction; encoder.pt = EMA target encoder. torch-only closure; single-process (DDP/TensorBoard dropped); shared ARSSL probe. Nothing under the licence is copied) |
+| 33 | V-JEPA | `35_vjepa` | no | ported (`35_vjepa`; **submodule-import** of `facebookresearch/jepa` (third_party/jepa @51c59d5, CC BY-NC 4.0, research-use). Ports the capture's step-2 image adaptation (num_frames=1 image ViT-B/16, from scratch on ImageNet) -- a genuine comparable row, NOT the pretrain caveat probe of the released video model. Imports init_video_model + 3D MaskCollator + apply_masks; context/target EMA + latent smooth-L1 prediction; encoder.pt = EMA target encoder. torch-only closure; single-process (DDP/TensorBoard dropped); shared ARSSL probe. Nothing under the licence is copied) |
 | 34 | Franca | `36_franca` | no | ported (`36_franca`) |
 | 35 | DINOv3 | `31_dinov3` | no | ported (`31_dinov3`; torch-only, from-scratch on ImageNet -- the capture's **step 2** unified SSL comparison, DINOv3 **core** objective: own ViT (register tokens + axial RoPE) + DINO (Sinkhorn centring) + iBOT + KoLeo, EMA teacher, multi-crop; encoder.pt = teacher backbone (prefix stripped). The capture's step 1 (HF-**gated** official weights) and the released **Gram anchoring** stage (`gram.mode: core_only`) are excluded; a from-scratch re-implementation, so no Meta code/weights are used) |
 | 36 | LeJEPA | `37_lejepa` | no | ported (`37_lejepa`; torch+timm, from-scratch on ImageNet -- a timm ViT + projector trained by SIGReg (Epps-Pulley quadrature + random slicing, reimplemented locally, no external package) + a cross-view invariance loss; encoder.pt is the bare backbone, prefix stripped) |
@@ -130,7 +130,7 @@ torch/torchvision/numpy/PIL only -- no apex/opencv/submitit/cyanure), reimplemen
 the multi-view aug (the upstream one trips Pillow 12.x with a Tensor blur radius),
 and uses the shared ARSSL probe; CC-BY-NC documented as research-use, nothing
 copied. `35_vjepa` is **now ported** (2026-08-11), the LAST method: rather than the
-step-1 caveat probe of the released video model, it ports the capture's step-2 image
+pretrain caveat probe of the released video model, it ports the capture's step-2 image
 adaptation -- pin `facebookresearch/jepa` as a submodule and import init_video_model
 + the 3D mask collator to train a V-JEPA-objective image ViT-B/16 (num_frames=1) from
 scratch on ImageNet, a genuine comparable row; CC-BY-NC documented, nothing copied.
@@ -145,7 +145,7 @@ frozen-backbone-download shape (a pinned submodule + hash-pinned weights via
 (the ml-aim model module needs it) and pins Apple's `aim` under `third_party/ml-aim`.
 (Verify each by **measuring** the
 capture before porting, never from the label; ViT/Swin-based ones need care —
-**measure whether timm is step-1-essential**: `22_mocov3` (subclasses timm's ViT)
+**measure whether timm is pretrain-essential**: `22_mocov3` (subclasses timm's ViT)
 and `26_simmim` (wraps timm's Swin) needed it, but `23_dino`, `29_ijepa` and
 `32_nepa` do NOT (they ship their own ViT), so the label "ViT/Swin ⇒ timm" is not
 evidence. When timm is needed, reuse the `22_mocov3` lock; when not, reuse the

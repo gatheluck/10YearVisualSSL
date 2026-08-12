@@ -534,7 +534,7 @@ class TestASmokeRun(Base):
         `is_available` is mocked to False rather than skipped where CUDA is
         present: the earlier skip meant the refusal was never exercised on a
         GPU machine, so a mutation removing it could not be killed there
-        (mutations/01_context_prediction-step1-device.json)."""
+        (mutations/01_context_prediction-pretrain-device.json)."""
         from unittest import mock
         trainer = load("train_pretrain_alexnet_official",
                        METHOD / "train_pretrain_alexnet_official.py")

@@ -29,7 +29,7 @@ port does the RGB→Lab conversion (sRGB → XYZ(D65) → Lab, verified against
 published CIE Lab values) and the L/ab quantisation in **pure numpy**, depending
 on neither scipy nor scikit-image — the torch-only closure holds.
 
-The capture ships **no AlexNet step-1 recipe** (its `train.py` trains the ViT
+The capture ships **no AlexNet pretrain recipe** (its `train.py` trains the ViT
 step 2 under DistributedDataParallel + AdamW with a canonical contract), so
 `train_pretrain_split_brain.py` owns a thin single-process fp32 loop with a plain
 Adam optimiser (its knobs exposed in the config). The device is **resolved**
@@ -65,12 +65,12 @@ methods use, so the number is comparable across them.
 - **Exercised (step 1):** a hermetic smoke — a 32px crop, one epoch, a few
   fabricated images — runs through `python -m adapter` on a CPU, passes
   `contract-test`, and the encoder round-trip and a determinism check pass.
-- **Exercised (linear_eval):** a hermetic smoke fits the probe on a step-1
+- **Exercised (linear_eval):** a hermetic smoke fits the probe on a pretrain
   encoder over a two-class ImageFolder, passes `contract-test`, writes the
   comparable `linear_probe` accuracies, and writes **no** `encoder.pt`.
 - **Not a full run:** `configs/pretrain.yaml` is a recipe (224px crop, 200 epochs),
   not a completed run; its optimiser is the port's single-process choice (the
-  capture ships no AlexNet step-1 recipe).
+  capture ships no AlexNet pretrain recipe).
 - **Not ported:** the channel-split ViT step 2.
 - **GPU:** the device resolution is verified on real hardware; see the device
   mutation spec (`mutations/08_split_brain-pretrain-device.json`).
