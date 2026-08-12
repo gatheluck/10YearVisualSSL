@@ -227,7 +227,7 @@ class TestTheDataset(Base):
         import torch
         tiny_imagefolder(self.tmp / "data")
         ds = self.dataset_mod().MoCoDataset(
-            str(self.tmp / "data"), mode="pretrain", image_size=MODEL["img_size"])
+            str(self.tmp / "data"), mode="step1", image_size=MODEL["img_size"])
         item = ds[0]
         self.assertEqual(len(item), 3)
         q, k, label = item

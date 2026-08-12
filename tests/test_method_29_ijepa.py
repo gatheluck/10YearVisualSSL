@@ -69,7 +69,7 @@ EMBED_DIM = 48               # vit_tiny embed_dim
 
 MODEL = {"name": "vit_tiny", "img_size": IMG, "patch_size": PATCH}
 PREDICTOR = {"pred_dim": 32, "pred_depth": 2}
-DATA = {"augmentation": "pretrain", "use_horizontal_flip": False}
+DATA = {"augmentation": "step1", "use_horizontal_flip": False}
 MASKING = {"num_enc_masks": 1, "num_pred_masks": 2, "allow_overlap": False,
            "min_keep": 4, "enc_mask_scale": [0.85, 1.0],
            "enc_mask_aspect": [1.0, 1.0], "pred_mask_scale": [0.15, 0.25],

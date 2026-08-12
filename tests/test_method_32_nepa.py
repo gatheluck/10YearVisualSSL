@@ -73,7 +73,7 @@ MODEL = {"embed_dim": EMBED_DIM, "depth": 2, "num_heads": NUM_HEADS,
          "rope_theta": 100.0, "pos_embed_shift": None,
          "pos_embed_jitter": None, "pos_embed_rescale": 2.0}
 EMA = {"ema_decay": 0.9999}
-DATA = {"augmentation": "pretrain", "num_workers": 0}
+DATA = {"augmentation": "step1", "num_workers": 0}
 STEP1_ONLY = {"epochs": 1, "batch_size": 2, "base_lr": 3.0e-4,
               "weight_decay": 0.05, "beta1": 0.9, "beta2": 0.95,
               "warmup_epochs": 0, "clip_grad": 1.0}
