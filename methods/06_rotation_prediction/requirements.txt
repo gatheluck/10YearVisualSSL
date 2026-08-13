@@ -13,3 +13,8 @@ torch>=2.0.0
 torchvision>=0.15.0
 numpy>=1.24.0
 PyYAML>=6.0
+# The Step-2 unified backbone (configs/pretrain_vit.yaml) is timm's
+# VisionTransformer, built from scratch (models/vit_rotation.py). The native
+# AlexNet pretrain does not import timm; it is only pulled in on the arch: vit
+# path.
+timm>=0.9.0

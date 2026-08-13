@@ -102,9 +102,16 @@ epochs)** ≈ ~20 numbers.
   epoch count, then the ImageNet linear probe — i.e. one ImageNet-classification
   cell in the spirit of **Step 2**, but on the method's own backbone and at one
   epoch budget, not the unified-ViT 100/200/300 sweep.
+- **Step-2 unified ViT-B/16 — pilot: `06_rotation_prediction`.** Its
+  `configs/pretrain_vit.yaml` (`arch: vit`) trains the capture's Step-2 backbone —
+  a timm ViT-B/16 from scratch — with the rotation objective, checkpointing at
+  100/200/300 (`encoder_epoch{N}.pt`) so the existing ImageNet `linear_eval` runs
+  per milestone. The native AlexNet path is unchanged. This is the pilot pattern;
+  the other trained methods still use their native arch until ported the same way.
 
-There is no 100/200/300 sweep harness, no as-is-vs-from-scratch matrix, and no
-unified-ViT Step-2 backbone in the published repository.
+Apart from that pilot there is no 100/200/300 sweep **driver** (the probe is run
+per milestone by hand), no as-is-vs-from-scratch matrix, and no unified-ViT
+Step-2 backbone for the other methods yet.
 
 ---
 
@@ -115,8 +122,8 @@ unified-ViT Step-2 backbone in the published repository.
 | ImageNet-1k classification linear probe (Top-1/5) | **implemented** (`linear_eval`) |
 | SSL pretraining (from scratch) | **implemented** (`pretrain`, epochs configurable) |
 | Step 1 as-is (official/native frozen backbone) | partial: eval-only download methods, ImageNet only |
-| Unified ViT-B/16 Step-2 backbone | **not implemented** (ports use native arch) |
-| 100 / 200 / 300 epoch sweep + per-checkpoint eval | **not implemented** |
+| Unified ViT-B/16 Step-2 backbone | **pilot: `06_rotation_prediction`** (`configs/pretrain_vit.yaml`); other methods still native arch |
+| 100 / 200 / 300 epoch sweep + per-checkpoint eval | **pilot: `06`** writes `encoder_epoch{100,200,300}.pt`, probe run per milestone; no cross-method driver yet |
 | COCO detection (frozen + FRCNN, mAP) | **not implemented** (no code, config, or metric vocabulary) |
 | ADE20k segmentation (linear, mIoU/pACC) | **not implemented** |
 | NYUv2 depth (frozen + DPT, RMSE/AbsRel) | **not implemented** |
