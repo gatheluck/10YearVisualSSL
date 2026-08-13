@@ -10,11 +10,19 @@ Linear(2048, 128) projection, L2-normalised — no MLP, that is v2) and a
 loss contrasts the query against the matching key (the positive) and a FIFO
 **queue** of K past keys (the negatives). Step 1 is that pretext.
 
-## Scope — the paper-faithful ResNet-50 path only
+## Scope — the ResNet-50 path and the unified ViT-B/16 Step 2
 
 This port brings across the **ResNet-50** path: the query/key encoders, the
-momentum queue, and the InfoNCE loss. The captured step 2 (a ViT variant) is
-excluded, as in every port.
+momentum queue, and the InfoNCE loss (`configs/pretrain.yaml`, SGD, the
+paper-faithful recipe).
+
+It also ports the capture's **unified Step 2** (`configs/pretrain_vit.yaml`,
+`arch: vit`): the same ViT-B/16 backbone every method shares, trained from
+scratch with the momentum queue + InfoNCE, the CLS token through a single
+`Linear(768, 128)` projection. Optimiser AdamW (betas 0.9, 0.95) with a
+10-epoch warmup then cosine decay; checkpoints at 100/200/300 epochs, each
+probed by the same frozen-backbone `linear_eval`. The ViT path needs `timm`
+(imported lazily); the native ResNet-50 path is byte-for-byte unchanged.
 
 ## Why this method, and what is new here
 
