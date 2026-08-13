@@ -1,4 +1,4 @@
-# 16_simclrv2 — step 1 (SimCLR v2 ResNet-50 pretext) + linear evaluation
+# 16_simclrv2 — SimCLR v2 pretext (ResNet-50 + unified ViT-B/16 Step 2) + linear evaluation
 
 Chen, Kornblith, Swersky, Norouzi & Hinton, *Big Self-Supervised Models are
 Strong Semi-Supervised Learners* (SimCLR v2), NeurIPS 2020
@@ -15,9 +15,11 @@ image together and pushes every other view in the batch apart. Training uses
 This port covers the paper-faithful **ResNet-50** step 1. **SimCLR v2 = SimCLR v1
 + a 3-layer MLP head** (v1 used 2), τ=0.1 (v1 0.07), and an optional
 `width_multiplier` (1 = ResNet-50; 2 = `wide_resnet50_2`). The capture's ViT
-variant (`models/vit_simclrv2.py`, step 2) imports `timm`, and the paper's
-semi-supervised **distillation** stage are excluded as in every port — which also
-drops the `timm`, `tensorboard` and `tqdm` dependencies.
+variant (`models/vit_simclrv2.py`, step 2) is ported as part of the Step-2 fan-out
+(`arch: vit`: 3-layer projector on the ViT CLS token, NT-Xent temperature 0.1) and
+imports `timm`; the native ResNet-50 pretrain does not. The paper's semi-supervised
+**distillation** stage remains excluded, and `tensorboard`/`tqdm` unported. See
+docs/STEP2_VIT_PORTING.md.
 
 ## Why this method, and what is new here
 
@@ -66,7 +68,7 @@ across the ported methods.
 ## Environment
 
 torch / torchvision / numpy / PyYAML — the self-contained methods' stack, no
-submodule and no extra (the ViT step 2's `timm` is not ported).
+submodule; the Step-2 ViT path adds `timm` (the native ResNet-50 path needs none).
 `requirements.lock.txt` (CPU) and `requirements.lock.cu130.txt` (CUDA 13.0) are
 the hashed closures (the same closure as `14_simclrv1`: identical floors,
 identical resolution).
