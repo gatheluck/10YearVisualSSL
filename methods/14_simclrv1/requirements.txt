@@ -12,3 +12,7 @@ torch>=2.0.0
 torchvision>=0.15.0
 numpy>=1.24.0
 PyYAML>=6.0
+# The Step-2 unified backbone (configs/pretrain_vit.yaml) is timm's
+# VisionTransformer (models/vit_simclr.py); the native ResNet-50 pretrain
+# imports no timm (arch: vit only).
+timm>=0.9.0
