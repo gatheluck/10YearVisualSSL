@@ -1,4 +1,4 @@
-# 09_jigsaw_puzzle_pp — step 1 (VGG16 Jigsaw++ pretext) + knowledge transfer + linear evaluation
+# 09_jigsaw_puzzle_pp — VGG16 Jigsaw++ pretext (+ unified ViT-B/16 Step 2) + knowledge transfer + linear evaluation
 
 Noroozi, Vinjimoor, Favaro & Pirsiavash, *Boosting Self-Supervised Learning via
 Knowledge Transfer*, CVPR 2018
@@ -26,8 +26,13 @@ This port covers the paper's two headline stages:
   in the CUDA lock, marked `# gpu-only`; see `07_deepcluster`, which shares the
   mechanism).
 
-The capture's step 2 (a ViT variant) is excluded, as in every port, which also
-drops its `timm` dependency.
+The capture's **Step 2** (unified from-scratch **ViT-B/16**) is ported here as part
+of the Step-2 fan-out (`configs/pretrain_vit.yaml`, `models/vit_jigsaw_pp.py`,
+`train_pretrain_vit_jigsaw_pp.py`, `data/jigsaw_pp_vit_dataset.py`): the 9 processed
+tiles are reassembled into one 224x224 image and the ViT's CLS token feeds the
+701-way permutation head. Selected by `arch: vit`; the native VGG16 pretrain and the
+knowledge_transfer stage are unchanged (only the ViT path needs `timm`). See
+docs/STEP2_VIT_PORTING.md.
 
 ## Why this method, and what is new here
 

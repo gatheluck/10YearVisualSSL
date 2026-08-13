@@ -101,9 +101,13 @@ def run(args, config: "dict | None" = None, model=None) -> dict:
         p.requires_grad = False
     arch = train.get("arch", "vgg16")
     # The probe reads images at the encoder's native size: the VGG16 tile size,
-    # or the AlexNet knowledge-transfer image size.
-    size = int(train["image_size"]) if arch == "alexnet_cluster_cls" \
-        else int(train["tile_size"])
+    # the AlexNet knowledge-transfer image size, or the ViT puzzle size (224).
+    if arch == "alexnet_cluster_cls":
+        size = int(train["image_size"])
+    elif arch == "vit":
+        size = int(train["puzzle_size"])
+    else:
+        size = int(train["tile_size"])
     print(f"Jigsaw++ linear eval  device={device}  arch={arch}  size={size}")
 
     bs = int(train["batch_size"])
