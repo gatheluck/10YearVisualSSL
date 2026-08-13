@@ -140,8 +140,15 @@ One family = one PR. Order by reuse (high → complex):
   restores them; InfoNCE in-model returning `(loss, logits, labels)`; AdamW betas
   (0.9, 0.95), no AMP/clip per the capture's ViT MoCo loop; mocov2 adds the 2-layer MLP
   head + the two-view dataset's Gaussian blur). The queue size must divide the batch.
-- [ ] **Batch 3 — siamese + redundancy:** `20_simsiam`, `19_byol` (EMA teacher + target BN),
-  `21_barlow_twins`.
+- [x] **Batch 3 — siamese + redundancy** (PR #88): `20_simsiam` (stop-grad on z, not p;
+  3-layer projector + 2-layer predictor; predictor gets warmup+cosine too), `19_byol`
+  (EMA target encoder+projector, symmetric neg-cosine; **AMP + grad-clip**, unlike the
+  MoCo/SimSiam ViT trainers; target-BN semantics reduce to `model.train()` + frozen
+  target params single-process), `21_barlow_twins` (cross-correlation loss in-model,
+  reuses `off_diagonal`/`_build_projector`). SimSiam/Barlow eval hardcoded `in_dim=2048`
+  → made arch-aware (`embed_dim`); BYOL eval was already dynamic. Reused-native-module
+  imports (`vit_byol`, `vit_barlow`) use a package/standalone import fallback for the
+  test's `load_from`.
 - [ ] **Batch 4 — NCE memory-bank:** `10_inst_disc`, `12_cmc`, `33_pirl` (persist/restore the
   bank on resume; index-carrying dataset).
 - [ ] **Batch 5 — clustering (individually):** `07_deepcluster` (faiss k-means),

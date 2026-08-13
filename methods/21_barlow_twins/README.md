@@ -32,9 +32,10 @@ evaluation rebuilds the whole model from a training checkpoint with
 `strict=True` and takes its backbone; the contract's artifact is `encoder.pt`,
 the backbone alone. Rather than teach the evaluation a second way to recognise
 a file, the adapter builds the encoder with `load_encoder` and hands it in.
-`model_type='vit'` is refused by name — step 2 was not brought across, so
-`build_barlow_vit` is absent, and the captured evaluation's top-level import of
-it was removed so the module imports at all.
+This is also how the ViT Step-2 path probes its backbone: the adapter builds the
+ViT encoder and passes `in_dim=embed_dim`, so `evaluate_linear.py` is unchanged
+by that path — its internal `model_type='vit'` loader stays intentionally unused
+(it still refuses by name).
 
 ## What was new here
 
@@ -75,11 +76,17 @@ Recorded in full in `provenance.json`; `models/barlow_resnet.py` and
 - **the linear evaluation was added.** `evaluate_linear.py` came across with
   its device resolved, its `main()` split into `build_parser()` and
   `run(args, encoder, in_dim)` returning its metrics, and its encoder handed in
-  rather than rebuilt from a training checkpoint. Its top-level import of
-  `build_barlow_vit` was removed and `model_type='vit'` refused by name, since
-  step 2 is absent
-- step 2 (the ViT) was not brought across: the capture has no official-style
-  variant of it, the same reason it was left out of the earlier ports
+  rather than rebuilt from a training checkpoint. Its `run(in_dim=...)` sizes the
+  linear head, so the ViT path passes `embed_dim` (768) and the ResNet path 2048
+- **the unified ViT-B/16 Step 2 is ported, additively** (`configs/pretrain_vit.yaml`,
+  `arch: vit`): the same ViT-B/16 backbone every method shares, trained from
+  scratch with the Barlow cross-correlation loss, the CLS token through a 3-layer
+  projector (`build_barlow_vit` reuses the native `off_diagonal` and
+  `_build_projector`). Optimiser AdamW + warmup/cosine, no AMP/clip (matching the
+  capture's ViT Barlow loop); checkpoints at 100/200/300 epochs, each probed by
+  the same frozen-backbone `linear_eval`. It needs `timm` (imported lazily); the
+  native ResNet-50 path is byte-for-byte unchanged
+  (`train_pretrain_vit_barlow.py`, `models/vit_barlow.py`)
 
 ## The configuration
 
