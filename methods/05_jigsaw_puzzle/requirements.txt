@@ -12,3 +12,7 @@ torchvision>=0.15.0
 numpy>=1.24.0
 Pillow>=9.5.0
 PyYAML>=6.0
+# The Step-2 unified backbone (configs/pretrain_vit.yaml) is timm's
+# VisionTransformer, built from scratch (models/vit_jigsaw.py). The native
+# AlexNet/CFN pretrain imports no timm; it is only pulled in on arch: vit.
+timm>=0.9.0

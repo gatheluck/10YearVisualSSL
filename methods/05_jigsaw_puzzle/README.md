@@ -1,4 +1,4 @@
-# 05_jigsaw_puzzle — step 1 (jigsaw pretext) + linear evaluation
+# 05_jigsaw_puzzle — jigsaw pretext (AlexNet/CFN + unified ViT-B/16) + linear evaluation
 
 Noroozi & Favaro, *Unsupervised Learning of Visual Representations by Solving
 Jigsaw Puzzles*, ECCV 2016 ([arXiv:1603.09246](https://arxiv.org/abs/1603.09246)).
@@ -13,8 +13,14 @@ predicts which permutation was applied. Step 1 is that pretext.
 **A self-contained re-implementation** ported from the capture's own
 `methods/5_jigsaw_puzzle` (the lab's own model + dataset, torch/torchvision only)
 — no `third_party/` submodule, the same treatment the other re-implemented
-methods got. The capture's step 2 (a ViT variant) is excluded, as in every port,
-which also drops its `timm` dependency.
+methods got.
+
+The capture's **Step 2** (unified from-scratch **ViT-B/16**) is ported here as part
+of Batch 1 of the Step-2 fan-out (`configs/pretrain_vit.yaml`, `models/vit_jigsaw.py`,
+`train_pretrain_vit_jigsaw.py`, `data/jigsaw_vit_dataset.py`): the 9 permuted tiles are
+reassembled into one 224x224 image and the ViT's CLS token feeds the permutation head.
+Selected by `arch: vit`; the native AlexNet/CFN pretrain is unchanged and needs no timm.
+See docs/STEP2_VIT_PORTING.md and docs/EVALUATION.md.
 
 The lab wrapper trains under `DistributedDataParallel` and logs to TensorBoard;
 neither is needed for a single-process run, so `train_pretrain_jigsaw.py` owns a
@@ -50,9 +56,10 @@ trained with SGD under a cosine schedule).
 
 ## Environment
 
-torch / torchvision / numpy / PyYAML — the self-contained methods' stack, no
-submodule and no extra. `requirements.lock.txt` (CPU) and
-`requirements.lock.cu130.txt` (CUDA 13.0) are the hashed closures.
+torch / torchvision / numpy / Pillow / PyYAML — the self-contained methods' stack,
+no submodule. The Step-2 ViT path adds **timm** (`models/vit_jigsaw.py`); the
+native CFN pretrain and the linear probe import no timm. `requirements.lock.txt`
+(CPU) and `requirements.lock.cu130.txt` (CUDA 13.0) are the hashed closures.
 
     pip install --require-hashes \
         --index-url https://download.pytorch.org/whl/cpu \
