@@ -130,7 +130,10 @@ Backbone is timm `vit_base_patch16_224(num_classes=0)`, CLS token, unless noted.
 One family = one PR. Order by reuse (high → complex):
 
 - [x] **Pilot** — `06_rotation_prediction` (PR #84, merged). `Linear(768,4)` + CE.
-- [ ] **Batch 1 — pretext+CE:** `05_jigsaw_puzzle`, `09_jigsaw_puzzle_pp`, `01_context_prediction`.
+- [x] **Batch 1 — pretext+CE:** `05_jigsaw_puzzle`, `09_jigsaw_puzzle_pp`,
+  `01_context_prediction` (PR #85). 05/09 reassemble tiles into one image; 01 shares
+  the ViT over two patches + concat head. 01's eval (`evaluate_linear_official`)
+  gained an optional pre-built-encoder path + dynamic feature dim.
 - [ ] **Batch 2 — contrastive:** `14_simclrv1`, `16_simclrv2` (stateless NT-Xent) then
   `13_mocov1`, `15_mocov2` (EMA encoder + queue — checkpoint/restore the queue).
 - [ ] **Batch 3 — siamese + redundancy:** `20_simsiam`, `19_byol` (EMA teacher + target BN),

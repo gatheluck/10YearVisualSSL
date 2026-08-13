@@ -3,8 +3,10 @@
 # Checked mechanically by tests/test_method_requirements.py, in both
 # directions: an import that is not declared here fails, and a package
 # declared here that nothing imports fails too. The file that came across from
-# the capture listed timm, PyYAML, tensorboard and tqdm, which belong to the
-# legacy track and are never imported by this one.
+# the capture listed timm, PyYAML, tensorboard and tqdm. tensorboard and tqdm
+# belong to the legacy track and are never imported here; timm and PyYAML ARE
+# imported by the Step-2 ViT path (models/vit_context.py builds timm's
+# VisionTransformer; the ViT trainer's stand-alone path reads a YAML config).
 #
 # These are floors, and a floor is not a reproducible environment. Use
 # requirements.lock.txt to rebuild a run.
@@ -14,3 +16,6 @@ torch>=2.0.0
 torchvision>=0.15.0
 numpy>=1.24.0
 Pillow>=9.0.0
+# Step-2 ViT path only (arch: vit); the native AlexNet pretrain imports neither.
+PyYAML>=6.0
+timm>=0.9.0

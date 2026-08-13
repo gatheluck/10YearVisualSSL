@@ -1,4 +1,4 @@
-# 01_context_prediction — step 1 and linear evaluation
+# 01_context_prediction — pretext (AlexNet + unified ViT-B/16 Step 2) and linear evaluation
 
 Doersch, Gupta and Efros, *Unsupervised Visual Representation Learning by
 Context Prediction*, ICCV 2015.
@@ -211,9 +211,11 @@ import that is not declared fails, and a declared package that nothing
 imports fails too.
 
 The file that came across from the capture also listed `timm`, `PyYAML`,
-`tensorboard` and `tqdm`. Those belong to the legacy track and are never
-imported here; they were removed, and the check now prevents that class of
-mistake for every method.
+`tensorboard` and `tqdm`. `tensorboard` and `tqdm` belong to the legacy track
+and are never imported here; `timm` and `PyYAML` ARE imported by the Step-2 ViT
+path (`models/vit_context.py` builds timm's VisionTransformer; the ViT trainer's
+stand-alone path reads a YAML config), so they are declared, while the native
+AlexNet pretrain imports neither.
 
 | File | What it is for |
 |---|---|
@@ -396,8 +398,17 @@ machine has no GPU.
 against**, which is an honest lock but a different one. Closing the gap needs
 the versions read off the cluster; that has not been done.
 
+## Step 2: the unified ViT-B/16 backbone
+
+`configs/pretrain_vit.yaml` (`arch: vit`) trains the capture's Step-2 backbone: a
+timm ViT-B/16 from scratch where the two patches share the encoder, their CLS
+tokens are concatenated and an 8-way head predicts the relative position. AdamW +
+warmup/cosine + grad-clip + AMP(CUDA); checkpoints at 100/200/300
+(`encoder_epoch{N}.pt`), probed per milestone by the existing `linear_eval`. The
+native step-based AlexNet pretrain and the contract stages/metrics are unchanged.
+See docs/STEP2_VIT_PORTING.md.
+
 ## What is not here yet
 
-- step 2 (ViT) and the linear evaluation
 - `resume`. The original supports it; this adapter refuses the key rather
   than accept it and ignore it
