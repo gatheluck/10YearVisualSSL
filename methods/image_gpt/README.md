@@ -51,13 +51,13 @@ space the model was trained on.
 - **Exercised (step 1):** a hermetic smoke -- a tiny model, a few fabricated
   images, a handful of clusters -- runs through `python -m adapter` on a CPU and
   passes `contract-test`, plus the encoder round-trip and a determinism check.
-- **Exercised (linear_eval):** a hermetic smoke fits the probe on a step-1
+- **Exercised (linear_eval):** a hermetic smoke fits the probe on a pretrain
   encoder over a two-class ImageFolder, passes `contract-test`, writes the four
   comparable `linear_probe` accuracies, and writes **no** `encoder.pt`.
 - **Not a full run:** `configs/pretrain.yaml` is the iGPT-S recipe and
   `configs/linear_eval.yaml` the ARSSL probe recipe, not completed runs.
 - **GPU:** the device resolution is verified on real hardware; see the device
-  mutation spec (`mutations/image_gpt-step1-device.json`).
+  mutation spec (`mutations/image_gpt-pretrain-device.json`).
 
 ## Environment
 
@@ -81,7 +81,7 @@ methods' dependencies, with no submodule and no extra. `requirements.lock.txt`
 Step 1 writes `encoder.pt`, `clusters.npy` and `metrics.json` under `--out`.
 
     # linear eval: DATA_ROOT has train/ and val/; ENCODER and CLUSTERS come from
-    # the step-1 run above
+    # the pretrain run above
     python bin/resolve-config.py --config methods/image_gpt/configs/linear_eval.yaml \
         --set DATA_ROOT=/path/to/imagenet \
         --set ENCODER=/path/to/s1/encoder.pt \

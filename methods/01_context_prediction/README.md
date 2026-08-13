@@ -9,7 +9,7 @@ and their spatial arrangement, which is where the representation comes from.
 
 ## Which track this is, and why
 
-The captured tree held two step-1 implementations. **This is the
+The captured tree held two pretrain implementations. **This is the
 official-style one.** Its sibling states plainly why they are separate:
 
 > This is intentionally separate from `train_pretrain_alexnet.py` because the

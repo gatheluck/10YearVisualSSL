@@ -43,7 +43,7 @@ EVAL_PROBE_KEYS = frozenset({"pool", "epochs", "batch_size", "num_workers",
 EVAL_TRAIN_KEYS = MODEL_KEYS | EVAL_PROBE_KEYS
 
 TOP_KEYS = frozenset({"stage", "seed", "data_root", "device", "train"})
-# linear_eval also names the encoder.pt to probe (from a step-1 run).
+# linear_eval also names the encoder.pt to probe (from a pretrain run).
 EVAL_TOP_KEYS = TOP_KEYS | {"encoder"}
 DEVICES = ("auto", "cuda", "cpu")
 WORK = "work"

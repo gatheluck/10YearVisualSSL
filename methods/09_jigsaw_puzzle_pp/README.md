@@ -72,12 +72,12 @@ a cosine schedule).
   images, a 4-permutation puzzle with grayscale and occlusions — runs through
   `python -m adapter` on a CPU, passes `contract-test`, and the encoder
   round-trip and a determinism check pass.
-- **Exercised (knowledge_transfer):** a hermetic smoke clusters a step-1 VGG16's
+- **Exercised (knowledge_transfer):** a hermetic smoke clusters a pretrain VGG16's
   conv4 features (faiss k-means, k=4) into pseudo-labels and trains a small
   AlexNet through `python -m adapter`, passes `contract-test`, and the AlexNet
   `encoder.pt` round-trips. This stage needs faiss, so the smoke is skipped where
   faiss is absent (non-x86_64-linux / no GPU wheel).
-- **Exercised (linear_eval):** hermetic smokes fit the probe on a step-1 VGG16
+- **Exercised (linear_eval):** hermetic smokes fit the probe on a pretrain VGG16
   encoder and on a knowledge-transfer AlexNet over a two-class ImageFolder, pass
   `contract-test`, write the comparable `linear_probe` accuracies, and write
   **no** `encoder.pt`.
@@ -86,7 +86,7 @@ a cosine schedule).
   completed runs.
 - **GPU:** the device resolution and the knowledge-transfer guards are verified on
   real hardware; see the mutation specs
-  (`mutations/09_jigsaw_puzzle_pp-step1-device.json`,
+  (`mutations/09_jigsaw_puzzle_pp-pretrain-device.json`,
   `mutations/09_jigsaw_puzzle_pp-knowledge-transfer.json`).
 
 ## Environment

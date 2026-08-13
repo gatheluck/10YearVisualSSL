@@ -59,7 +59,7 @@ trained with SGD under a cosine schedule).
   handful of negatives, a few fabricated images — runs through `python -m adapter`
   on a CPU, passes `contract-test`, and the encoder round-trip and a determinism
   check pass.
-- **Exercised (linear_eval):** a hermetic smoke fits the probe on a step-1
+- **Exercised (linear_eval):** a hermetic smoke fits the probe on a pretrain
   encoder over a two-class ImageFolder, passes `contract-test`, writes the
   comparable `linear_probe` accuracies, and writes **no** `encoder.pt`.
 - **Not a full run:** `configs/pretrain.yaml` is the paper-target recipe (feat_dim
@@ -67,7 +67,7 @@ trained with SGD under a cosine schedule).
 - **Not ported:** the ViT step 2 and the optional ResNet linear-classifier
   variant.
 - **GPU:** the device resolution is verified on real hardware; see the device
-  mutation spec (`mutations/12_cmc-step1-device.json`).
+  mutation spec (`mutations/12_cmc-pretrain-device.json`).
 
 ## Environment
 

@@ -5,8 +5,8 @@
 #
 # Two paths are passed at run time, not shipped:
 #   --set DATA_ROOT=<path>   an ImageFolder with train/ and val/ subdirectories
-#   --set ENCODER=<path>     encoder.pt from a step-1 run
-# The output path is fixed at --out. The model settings must match the step-1 run
+#   --set ENCODER=<path>     encoder.pt from a pretrain run
+# The output path is fixed at --out. The model settings must match the pretrain run
 # that produced ENCODER.
 stage: linear_eval
 seed: 42
@@ -15,7 +15,7 @@ device: auto
 encoder: "${ENCODER}"
 
 train:
-  # model (must match the step-1 run so encoder.pt loads)
+  # model (must match the pretrain run so encoder.pt loads)
   num_classes: 4
   image_size: 224
   # probe: a single linear layer, SGD + cosine

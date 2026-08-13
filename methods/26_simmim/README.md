@@ -13,7 +13,7 @@ loss** is taken only on the masked pixels. Step 1 is that pretext.
 
 This port covers SimMIM's **Swin-B** step 1. The capture's step 2 (ViT) is
 excluded, as in every port. SimMIM's step 1 is genuinely **Swin**-based, so
-**`timm` is a step-1 dependency** (it supplies the `SwinTransformer`) — this is
+**`timm` is a pretrain dependency** (it supplies the `SwinTransformer`) — this is
 the repo's **first Swin backbone**. The `transformers` package in the capture's
 `requirements.txt` is **docstring-only** (a note about HuggingFace pretrained
 weights) and is **never imported** (measured), so it is not a dependency here. The
@@ -63,14 +63,14 @@ documented deviation, the same as every other port.)
   adapter` on a CPU (exercising the mask generation, the mask-token replacement
   and the masked-pixel L1 loss), passes `contract-test`, and the encoder
   round-trip and a determinism check pass.
-- **Exercised (linear_eval):** a hermetic smoke fits the probe on a step-1
+- **Exercised (linear_eval):** a hermetic smoke fits the probe on a pretrain
   encoder over a two-class ImageFolder, passes `contract-test`, writes the
   comparable `linear_probe` accuracies, and writes **no** `encoder.pt`.
 - **Not a full run:** `configs/pretrain.yaml` is the SimMIM recipe (Swin-B, 192px,
   800 epochs, batch 2048, AdamW, warmup 10 → multistep at 700), a recipe, not a
   completed run.
 - **GPU:** the device resolution is verified on real hardware; see the device
-  mutation spec (`mutations/26_simmim-step1-device.json`).
+  mutation spec (`mutations/26_simmim-pretrain-device.json`).
 
 ## Environment
 

@@ -9,7 +9,7 @@ Context Encoder step 1 training: AlexNet-based inpainting (Pathak et al., 2016).
                  discriminator when adversarial training is on
 
 This is the AlexNet path of the captured `train.py`, extracted as a
-self-contained step-1 trainer. It is what the capture calls Step 1; the
+self-contained pretrain trainer. It is what the capture calls Step 1; the
 ViT-based Step 2 (and its two-AdamW, bfloat16, adversarial-always protocol) was
 not brought across.
 
@@ -24,7 +24,7 @@ Changed during the port, and recorded in provenance.json:
     captured `main()` returned only the total and dropped the components
   - **the run is seeded through `make_deterministic`.**
   - **single process, full precision.** The captured AMP/DDP/step-2 machinery is
-    not brought across; the step-1 loop's plain fp32 path is used, which runs on
+    not brought across; the pretrain loop's plain fp32 path is used, which runs on
     a CPU or a GPU unchanged
 """
 

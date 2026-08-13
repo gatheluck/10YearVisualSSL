@@ -2,13 +2,13 @@
 #
 # The probe reads the model this port trains -- the encoder's layer-6 (fc6)
 # features of both branches, concatenated (2 x 2048) -- so its number is a
-# genuine, comparable linear probe. The NCE knobs are step-1 only and are not
+# genuine, comparable linear probe. The NCE knobs are pretrain only and are not
 # accepted here.
 #
 # Two paths are passed at run time, not shipped:
 #   --set DATA_ROOT=<path>   an ImageFolder with train/ and val/ subdirectories
-#   --set ENCODER=<path>     encoder.pt from a step-1 run
-# The output path is fixed at --out. The model settings must match the step-1 run
+#   --set ENCODER=<path>     encoder.pt from a pretrain run
+# The output path is fixed at --out. The model settings must match the pretrain run
 # that produced ENCODER.
 stage: linear_eval
 seed: 42
@@ -17,7 +17,7 @@ device: auto
 encoder: "${ENCODER}"
 
 train:
-  # model (must match the step-1 run so encoder.pt loads)
+  # model (must match the pretrain run so encoder.pt loads)
   feat_dim: 128
   img_size: 224
   # probe: a single linear layer, SGD + cosine

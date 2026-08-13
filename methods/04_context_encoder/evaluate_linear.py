@@ -1,5 +1,5 @@
 """
-Linear evaluation for the Context Encoder step-1 (AlexNet) representation.
+Linear evaluation for the Context Encoder pretrain (AlexNet) representation.
 
 Freezes the pretrained encoder, extracts its 4096-d bottleneck features once,
 and trains a single linear classifier on ImageNet labels.

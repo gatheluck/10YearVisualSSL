@@ -15,7 +15,7 @@ Step 1 is that pretext.
 ## Scope — the from-scratch image adaptation (step 2), not the video caveat
 
 V-JEPA is a **video** method (pretrained on VideoMix2M). The capture has two paths:
-a **step-1 caveat** row (probe the released video ViT-H/16 on ImageNet images —
+a **pretrain caveat** row (probe the released video ViT-H/16 on ImageNet images —
 which the capture itself marks an appendix result, "very low accuracy, not a
 main-table success"), and a **step-2** unified-comparison that trains a
 V-JEPA-objective **image** ViT-B/16 from scratch on ImageNet at `num_frames=1`.
@@ -59,13 +59,13 @@ L2-normalised, a single linear layer trained with SGD under a cosine schedule).
   context/target forward, the 3D masks, `apply_masks`, the latent-prediction loss
   and the EMA target), passes `contract-test`, and the encoder round-trip and a
   determinism check pass.
-- **Exercised (linear_eval):** a hermetic smoke fits the probe on a step-1 encoder
+- **Exercised (linear_eval):** a hermetic smoke fits the probe on a pretrain encoder
   over a two-class ImageFolder, passes `contract-test`, writes the comparable
   `linear_probe` accuracies, and writes **no** `encoder.pt`.
 - **Not a full run:** `configs/pretrain.yaml` is the recipe (ViT-B/16, 224px, 300
   epochs, batch 1024, AdamW), a recipe, not a completed run.
 - **GPU:** the device resolution is verified on real hardware; see the device
-  mutation spec (`mutations/35_vjepa-step1-device.json`).
+  mutation spec (`mutations/35_vjepa-pretrain-device.json`).
 
 ## Environment
 

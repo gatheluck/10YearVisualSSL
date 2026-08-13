@@ -40,13 +40,13 @@ trained with SGD under a cosine schedule).
 - **Exercised (step 1):** a hermetic smoke — a tiny CFN, a few fabricated images,
   a 4-permutation puzzle — runs through `python -m adapter` on a CPU, passes
   `contract-test`, and the encoder round-trip and a determinism check pass.
-- **Exercised (linear_eval):** a hermetic smoke fits the probe on a step-1
+- **Exercised (linear_eval):** a hermetic smoke fits the probe on a pretrain
   encoder over a two-class ImageFolder, passes `contract-test`, writes the
   comparable `linear_probe` accuracies, and writes **no** `encoder.pt`.
 - **Not a full run:** `configs/pretrain.yaml` is the AlexNet/CFN recipe (1000
   permutations, 300 epochs), a recipe, not a completed run.
 - **GPU:** the device resolution is verified on real hardware; see the device
-  mutation spec (`mutations/05_jigsaw_puzzle-step1-device.json`).
+  mutation spec (`mutations/05_jigsaw_puzzle-pretrain-device.json`).
 
 ## Environment
 

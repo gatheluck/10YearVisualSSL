@@ -53,13 +53,13 @@ comparable across the ported methods.
   fabricated images, a 32px input and `out_dim=32` — runs through `python -m
   adapter` on a CPU, passes `contract-test`, and the encoder round-trip and a
   determinism check pass.
-- **Exercised (linear_eval):** a hermetic smoke fits the probe on a step-1
+- **Exercised (linear_eval):** a hermetic smoke fits the probe on a pretrain
   encoder over a two-class ImageFolder, passes `contract-test`, writes the
   comparable `linear_probe` accuracies, and writes **no** `encoder.pt`.
 - **Not a full run:** `configs/pretrain.yaml` is the SimCLR recipe (out_dim 128,
   1000 epochs, batch 4096, LARS lr 4.8), a recipe, not a completed run.
 - **GPU:** the device resolution is verified on real hardware; see the device
-  mutation spec (`mutations/14_simclrv1-step1-device.json`).
+  mutation spec (`mutations/14_simclrv1-pretrain-device.json`).
 
 ## Environment
 

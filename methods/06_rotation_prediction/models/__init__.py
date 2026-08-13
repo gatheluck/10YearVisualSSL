@@ -1,4 +1,4 @@
-"""The rotation model, in one place. Only the AlexNet-BN step-1 model is brought
+"""The rotation model, in one place. Only the AlexNet-BN pretrain model is brought
 across; the capture's ViT (step 2) is excluded like every method's step 2."""
 
 from __future__ import annotations

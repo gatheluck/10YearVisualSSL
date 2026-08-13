@@ -53,13 +53,13 @@ across the ported methods.
   fabricated images, a 32px input, a tiny queue (K=4) — runs through `python -m
   adapter` on a CPU, passes `contract-test`, and the encoder round-trip and a
   determinism check pass.
-- **Exercised (linear_eval):** a hermetic smoke fits the probe on a step-1
+- **Exercised (linear_eval):** a hermetic smoke fits the probe on a pretrain
   encoder over a two-class ImageFolder, passes `contract-test`, writes the
   comparable `linear_probe` accuracies, and writes **no** `encoder.pt`.
 - **Not a full run:** `configs/pretrain.yaml` is the MoCo v2 recipe (feature_dim 128,
   K 65536, τ 0.2, 200 epochs, cosine), a recipe, not a completed run.
 - **GPU:** the device resolution is verified on real hardware; see the device
-  mutation spec (`mutations/15_mocov2-step1-device.json`).
+  mutation spec (`mutations/15_mocov2-pretrain-device.json`).
 
 ## Environment
 

@@ -41,7 +41,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--config", default="configs/knowledge_transfer.yaml")
     parser.add_argument("--data_path", default=None)
     parser.add_argument("--encoder", default=None,
-                        help="VGG16 encoder.pt from a step-1 run")
+                        help="VGG16 encoder.pt from a pretrain run")
     parser.add_argument("--device", default="auto",
                         choices=["auto", "cuda", "cpu"])
     return parser

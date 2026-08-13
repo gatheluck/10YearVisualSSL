@@ -65,13 +65,13 @@ across the ported methods.
   images — runs through `python -m adapter` on a CPU (exercising the mask
   collator, the context/predictor/target forward and the EMA update), passes
   `contract-test`, and the encoder round-trip and a determinism check pass.
-- **Exercised (linear_eval):** a hermetic smoke fits the probe on a step-1
+- **Exercised (linear_eval):** a hermetic smoke fits the probe on a pretrain
   encoder over a two-class ImageFolder, passes `contract-test`, writes the
   comparable `linear_probe` accuracies, and writes **no** `encoder.pt`.
 - **Not a full run:** `configs/pretrain.yaml` is the I-JEPA recipe (`vit_huge`,
   224px, 300 epochs, batch 2048, AdamW, warmup 40), a recipe, not a completed run.
 - **GPU:** the device resolution is verified on real hardware; see the device
-  mutation spec (`mutations/29_ijepa-step1-device.json`).
+  mutation spec (`mutations/29_ijepa-pretrain-device.json`).
 
 ## Environment
 

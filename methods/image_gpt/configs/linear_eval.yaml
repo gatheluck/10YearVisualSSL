@@ -6,12 +6,12 @@
 #
 # Three paths are passed at run time, not shipped:
 #   --set DATA_ROOT=<path>   an ImageFolder with train/ and val/ subdirectories
-#   --set ENCODER=<path>     encoder.pt from a step-1 run
-#   --set CLUSTERS=<path>    clusters.npy from that same step-1 run (the probe
+#   --set ENCODER=<path>     encoder.pt from a pretrain run
+#   --set CLUSTERS=<path>    clusters.npy from that same pretrain run (the probe
 #                            must quantise with the clusters the model was
 #                            trained on)
 # The output path is not here; the contract fixes it at --out. The architecture
-# must match the step-1 run that produced ENCODER.
+# must match the pretrain run that produced ENCODER.
 stage: linear_eval
 seed: 42
 data_root: "${DATA_ROOT}"
@@ -20,7 +20,7 @@ encoder: "${ENCODER}"
 clusters: "${CLUSTERS}"
 
 train:
-  # model (must match the step-1 run)
+  # model (must match the pretrain run)
   vocab_size: 512
   img_size: 32
   n_layer: 24

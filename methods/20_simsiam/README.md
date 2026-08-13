@@ -25,7 +25,7 @@ notes; the short version:
 - it has an official-style **Python** linear evaluation, the same shape as the
   first port — so the second stage is a known quantity
 
-Ruled out with evidence: `35_vjepa` has no step-1 trainer at all and downloads
+Ruled out with evidence: `35_vjepa` has no pretrain trainer at all and downloads
 a checkpoint; `04_context_encoder` is 1161 lines of GAN with two models and two
 optimisers; `27_ibot` is the heaviest; `17_swav`'s official artefacts are only
 a shell script and a config.

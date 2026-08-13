@@ -7,7 +7,7 @@
 #
 # Two paths are passed at run time, not shipped:
 #   --set DATA_ROOT=<path>   the dataset root; pretraining reads its train/ subdirectory
-#   --set ENCODER=<path>     encoder.pt (VGG16) from a step-1 run
+#   --set ENCODER=<path>     encoder.pt (VGG16) from a pretrain run
 # The output path is fixed at --out; it writes a new encoder.pt (the AlexNet).
 stage: knowledge_transfer
 seed: 42

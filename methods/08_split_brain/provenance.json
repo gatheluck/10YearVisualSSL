@@ -22,12 +22,12 @@
     "only the AlexNet path is ported; the channel-split ViT step 2 (timm) is excluded, so the port has no timm dependency",
     "the RGB->CIE Lab conversion and the ab/L quantisation are pure numpy; the capture's dataset used scipy.spatial.cKDTree and skimage.color, but its own comment states the released ab target IS NumPy argmin (cKDTree only accelerates it and is corrected to match), so the port uses numpy argmin and depends on neither scipy nor scikit-image, keeping the torch-only closure",
     "the 313 ab-bin codebook is vendored and sha256-verified on load (the capture's copy is a symlink into the cluster's LIVE_ROOT); a missing or altered constant errors loudly",
-    "the capture ships no AlexNet step-1 recipe (its train.py trains the ViT step 2 under DDP + AdamW with a canonical contract); the port owns a thin single-process fp32 loop with a plain Adam optimiser, its knobs exposed in the config",
+    "the capture ships no AlexNet pretrain recipe (its train.py trains the ViT step 2 under DDP + AdamW with a canonical contract); the port owns a thin single-process fp32 loop with a plain Adam optimiser, its knobs exposed in the config",
     "the loss is the sum of the two per-pixel cross-entropies, with each target downsampled (nearest) to the decoder output resolution, as in the lab's training loop",
     "the device is resolved (resolve_device) instead of assumed CUDA",
     "main() split into build_parser()/run(args, config) returning the pretext loss and epoch count",
     "the run is seeded through make_deterministic (python, numpy, torch)",
     "the training loop drops the upstream DistributedDataParallel and TensorBoard so the same step runs on a CPU or a GPU unchanged, single-process fp32",
-    "DATA_ROOT is the dataset root; step-1 reads its train/ subdirectory (unified data-root convention via adapterlib.dataset_split_dir)."
+    "DATA_ROOT is the dataset root; the pretrain stage reads its train/ subdirectory (unified data-root convention via adapterlib.dataset_split_dir)."
   ]
 }

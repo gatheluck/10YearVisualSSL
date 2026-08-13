@@ -65,14 +65,14 @@ L2-normalised, a single linear layer trained with SGD under a cosine schedule).
   (exercising the multi-view forward, the patch-drop masking, the Sinkhorn MSN
   loss, me-max and the EMA target), passes `contract-test`, and the encoder
   round-trip and a determinism check pass.
-- **Exercised (linear_eval):** a hermetic smoke fits the probe on a step-1 encoder
+- **Exercised (linear_eval):** a hermetic smoke fits the probe on a pretrain encoder
   over a two-class ImageFolder, passes `contract-test`, writes the comparable
   `linear_probe` accuracies, and writes **no** `encoder.pt`.
 - **Not a full run:** `configs/pretrain.yaml` is the official deit_small MSN recipe
   (ViT-S/16, 224px, 1 rand + 10 focal, 1024 prototypes, 800 epochs, AdamW), a
   recipe, not a completed run.
 - **GPU:** the device resolution is verified on real hardware; see the device
-  mutation spec (`mutations/34_msn-step1-device.json`).
+  mutation spec (`mutations/34_msn-pretrain-device.json`).
 
 ## Environment
 

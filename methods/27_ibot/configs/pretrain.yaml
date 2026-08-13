@@ -8,7 +8,7 @@
 #   --set DATA_ROOT=<path>   the dataset root; pretraining reads its train/ subdirectory
 # The output path is not here either: the
 # contract fixes it at `--out`. Two captured keys are deliberately absent --
-# `data.val_path` and `training.optimizer` -- because the step-1 trainer does
+# `data.val_path` and `training.optimizer` -- because the pretrain trainer does
 # not read them (the optimizer is AdamW by construction). The pilot truncation
 # knobs `stop_after_epochs` / `max_steps_per_epoch` are not part of the
 # contract config, so a run is never silently cut short.

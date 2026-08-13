@@ -13,7 +13,7 @@
 # config that left them out would describe a run whose Sinkhorn epsilon,
 # warmup and prototype freezing were whatever the code defaulted to that day.
 #
-#   python3 bin/launch.py --config methods/17_swav/configs/step1.yaml \
+#   python3 bin/launch.py --config methods/17_swav/configs/pretrain.yaml \
 #       --method 17_swav --set DATA_ROOT=/path/to/imagenet
 #   --set DATA_ROOT=<path>   the dataset root; pretraining reads its train/ subdirectory
 

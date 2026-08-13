@@ -4,7 +4,7 @@ Paper: https://arxiv.org/abs/1604.07379
 
 Step 1 only: the AlexNet-based architecture. The step 2 ViT variant
 (ContextEncoderViT) and the official Caffe feature extractor were not brought
-across -- step 2 has no place in this port (the contract's stages are step1 and
+across -- step 2 has no place in this port (the contract's stages are pretrain and
 linear_eval), and dropping the ViT also drops its `timm` dependency. The
 ContextEncoderAlexNet and Discriminator classes below are the captured code,
 unchanged.
@@ -160,7 +160,7 @@ class Discriminator(nn.Module):
 
 
 def create_model(model_type='alexnet', **kwargs):
-    """Factory for the Context Encoder step-1 model.
+    """Factory for the Context Encoder pretrain model.
 
     Only 'alexnet' is available here. 'vit' belonged to step 2, which this port
     does not include (its model needed `timm` and was not brought across); it is

@@ -64,14 +64,14 @@ across the ported methods.
   through `python -m adapter` on a CPU (exercising the EMA momentum-encoder
   update), passes `contract-test`, and the encoder round-trip and a determinism
   check pass.
-- **Exercised (linear_eval):** a hermetic smoke fits the probe on a step-1
+- **Exercised (linear_eval):** a hermetic smoke fits the probe on a pretrain
   encoder over a two-class ImageFolder, passes `contract-test`, writes the
   comparable `linear_probe` accuracies, and writes **no** `encoder.pt`.
 - **Not a full run:** `configs/pretrain.yaml` is the MoCo v3 recipe (`vit_base`,
   projector 4096→256, predictor, 300 epochs, batch 4096, AdamW, warmup 40), a
   recipe, not a completed run.
 - **GPU:** the device resolution is verified on real hardware; see the device
-  mutation spec (`mutations/22_mocov3-step1-device.json`).
+  mutation spec (`mutations/22_mocov3-pretrain-device.json`).
 
 ## Environment
 

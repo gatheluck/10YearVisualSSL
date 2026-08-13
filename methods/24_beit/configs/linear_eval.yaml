@@ -4,7 +4,7 @@
 # patch tokens, one embed_dim vector per image), so its number is a genuine,
 # comparable linear probe. It follows the shared ARSSL protocol (mean-centre +
 # L2-normalise features, a single linear layer, SGD + cosine) used by the other
-# ported methods, so the number is comparable across them. The BEiT step-1 knobs
+# ported methods, so the number is comparable across them. The BEiT pretrain knobs
 # (tokenizer, masking, schedule) are not accepted here.
 #
 # The backbone dims are named so the frozen trunk can be rebuilt to load
@@ -13,7 +13,7 @@
 #
 # Two paths are passed at run time, not shipped:
 #   --set DATA_ROOT=<path>   an ImageFolder with train/ and val/ subdirectories
-#   --set ENCODER=<path>     encoder.pt from a step-1 run
+#   --set ENCODER=<path>     encoder.pt from a pretrain run
 # The output path is fixed at --out.
 stage: linear_eval
 seed: 0

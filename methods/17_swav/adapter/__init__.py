@@ -161,7 +161,7 @@ def to_run_config(config: dict, out: Path) -> dict:
         # The evaluation takes flags, not a document; `eval_args` builds them.
         return {"stage": stage}
 
-    check_crops(train)          # multi-crop is a step-1 setting
+    check_crops(train)          # multi-crop is a pretrain setting
 
     return {
         "model": {"out_dim": int(train["out_dim"]),

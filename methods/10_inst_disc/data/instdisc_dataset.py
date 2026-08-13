@@ -40,7 +40,7 @@ def get_instdisc_transforms(mode: str = "train", img_size: int = 224):
 class ImageFolderWithIndex(datasets.ImageFolder):
     """ImageFolder that returns (image, dataset_index, label).
 
-    The step-1 training root is resolved to its ``train/`` subdirectory under the
+    The pretrain training root is resolved to its ``train/`` subdirectory under the
     unified data-root convention (the caller passes the dataset root).
     """
 

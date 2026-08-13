@@ -23,7 +23,7 @@ the template of the three ports before it: `setup_dist()` returns early when
 reached), it uses **no automatic mixed precision**, and its multi-crop loader
 already builds a `DistributedSampler` only when distributed — so, unlike the
 SwAV loader, it runs on one process unchanged. It carries an official-style
-Python step-1 trainer and an official-style linear evaluation, so both stages
+Python pretrain trainer and an official-style linear evaluation, so both stages
 port faithfully.
 
 ## The linear evaluation
@@ -84,7 +84,7 @@ and are pinned by hash.
   could not start without a GPU. `resolve_device()` picks one, and asking for
   `cuda` where there is none is an error rather than a quiet fall back to the
   CPU — the two are not the same run. The device guard is mutation-tested
-  (`mutations/27_ibot-step1-device.json`)
+  (`mutations/27_ibot-pretrain-device.json`)
 - **`main()` is split into `build_parser()` and `run(args, config)`**, and
   `run` returns the epoch loss, its CLS and patch components and the epoch
   count. The captured version computed them and discarded them
@@ -103,7 +103,7 @@ and are pinned by hash.
 
 `configs/pretrain.yaml` holds the recipe the captured runs used. Two keys from the
 captured config are **deliberately absent** — `data.val_path` and
-`training.optimizer`. The step-1 trainer never reads them (the optimizer is
+`training.optimizer`. The pretrain trainer never reads them (the optimizer is
 AdamW by construction), and a key that is ignored is a setting claiming an
 effect it never had. The two pilot-only truncation knobs (`stop_after_epochs`,
 `max_steps_per_epoch`) are not part of the contract config either, so a run is
@@ -131,7 +131,7 @@ copy and its TensorBoard events under `work/`.
 ## What has and has not been exercised
 
 - **A real training step ran on the GPU.** On an NVIDIA A100 (driver CUDA 13.0)
-  the step-1 trainer completes a training step, writes a loadable `encoder.pt`,
+  the pretrain trainer completes a training step, writes a loadable `encoder.pt`,
   and the linear evaluation runs to a number — the tests
   `test_a_real_run_on_cuda_produces_a_loadable_encoder` and the linear-eval
   smoke test, on a handful of synthetic images (step 1 at 32-pixel crops; the

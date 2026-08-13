@@ -17,7 +17,7 @@
 # fixed in its code -- and a key that is ignored is a setting claiming an
 # effect it never had. The adapter refuses them for that reason.
 #
-#   python3 bin/launch.py --config methods/20_simsiam/configs/step1.yaml \
+#   python3 bin/launch.py --config methods/20_simsiam/configs/pretrain.yaml \
 #       --method 20_simsiam --set DATA_ROOT=/path/to/imagenet
 #   --set DATA_ROOT=<path>   the dataset root; pretraining reads its train/ subdirectory
 

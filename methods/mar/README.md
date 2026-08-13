@@ -62,7 +62,7 @@ section 7 is where a chosen representation would be decided.
 
 ## What has and has not been exercised
 
-- **Exercised:** a hermetic step-1 smoke on **fabricated cached latents** — no
+- **Exercised:** a hermetic pretrain smoke on **fabricated cached latents** — no
   VAE, no download — runs through `python -m adapter` on a CPU and passes
   `contract-test`, and the encoder round-trip. Real training uses cached VAE
   latents (the upstream `CachedFolder` `.npz` `moments` format); the ~335 MB VAE
@@ -70,7 +70,7 @@ section 7 is where a chosen representation would be decided.
 - **Not a full run:** `configs/pretrain.yaml` is the upstream `mar_base` recipe, not
   a completed training run.
 - **GPU:** the device resolution and the patched forward are verified on an
-  A100; see the device mutation spec (`mutations/mar-step1-device.json`).
+  A100; see the device mutation spec (`mutations/mar-pretrain-device.json`).
 
 ## Environment
 

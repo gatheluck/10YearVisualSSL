@@ -4,18 +4,18 @@
 # feature per image), so its number is a genuine, comparable linear probe. It
 # follows the shared ARSSL protocol (mean-centre + L2-normalise features, a
 # single linear layer, SGD + cosine) used by the other ported methods, so the
-# number is comparable across them. The SimSiam step-1 knobs (the predictor,
+# number is comparable across them. The SimSiam pretrain knobs (the predictor,
 # stop-gradient, negative-cosine loss) are not accepted here.
 #
 # `dim` and `pred_dim` are carried through but shape only the projector and
 # predictor, which linear evaluation discards; the backbone that encoder.pt
 # holds is identical under any value (measured -- see
-# mutations/20_simsiam-linear-eval.json). They match the step-1 config so the
+# mutations/20_simsiam-linear-eval.json). They match the pretrain config so the
 # rebuilt model is byte-for-byte the one that trained.
 #
 # Two paths are passed at run time, not shipped:
 #   --set DATA_ROOT=<path>   an ImageFolder with train/ and val/ subdirectories
-#   --set ENCODER=<path>     encoder.pt from a step-1 run
+#   --set ENCODER=<path>     encoder.pt from a pretrain run
 # The output path is fixed at --out.
 stage: linear_eval
 seed: 42

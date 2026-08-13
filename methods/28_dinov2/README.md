@@ -46,7 +46,7 @@ resolution, so nothing is fetched and only the pipeline is exercised.
 - **Not exercised here:** a real linear-probe number, which needs the official
   4.5 GB `dinov2_vitg14_pretrain.pth` (fetch it with `bin/fetch-weights.py`).
 - **GPU:** the device resolution is verified on real hardware; see the device
-  mutation spec (`mutations/28_dinov2-device.json`).
+  mutation spec (`mutations/28_dinov2-linear-eval.json`).
 
 ## Environment
 

@@ -1,4 +1,4 @@
-"""The instance-discrimination model, in one place. Only the ResNet-50 step-1
+"""The instance-discrimination model, in one place. Only the ResNet-50 pretrain
 model is brought across; the capture's ViT (step 2) is excluded like every
 method's step 2."""
 

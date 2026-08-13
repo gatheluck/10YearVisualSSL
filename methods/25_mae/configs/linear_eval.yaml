@@ -6,8 +6,8 @@
 #
 # Two paths are passed at run time, not shipped:
 #   --set DATA_ROOT=<path>   an ImageFolder with train/ and val/ subdirectories
-#   --set ENCODER=<path>     encoder.pt from a step-1 run
-# The output path is fixed at --out. The architecture must match the step-1 run
+#   --set ENCODER=<path>     encoder.pt from a pretrain run
+# The output path is fixed at --out. The architecture must match the pretrain run
 # that produced ENCODER.
 stage: linear_eval
 seed: 42
@@ -16,7 +16,7 @@ device: auto
 encoder: "${ENCODER}"
 
 train:
-  # model (must match the step-1 run)
+  # model (must match the pretrain run)
   arch: vit_large_patch16
   img_size: 224
   patch_size: 16

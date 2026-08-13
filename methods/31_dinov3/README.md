@@ -63,13 +63,13 @@ using the shared single-feature probe instead is a documented deviation.)
   multi-crop forward, the Sinkhorn-centred DINO loss, the block-masked iBOT loss,
   KoLeo and the EMA teacher), passes `contract-test`, and the encoder round-trip
   and a determinism check pass.
-- **Exercised (linear_eval):** a hermetic smoke fits the probe on a step-1 encoder
+- **Exercised (linear_eval):** a hermetic smoke fits the probe on a pretrain encoder
   over a two-class ImageFolder, passes `contract-test`, writes the comparable
   `linear_probe` accuracies, and writes **no** `encoder.pt`.
 - **Not a full run:** `configs/pretrain.yaml` is the DINOv3 core recipe (ViT-B/16,
   224px, 2+8 crops, 300 epochs, batch 1024, AdamW), a recipe, not a completed run.
 - **GPU:** the device resolution is verified on real hardware; see the device
-  mutation spec (`mutations/31_dinov3-step1-device.json`).
+  mutation spec (`mutations/31_dinov3-pretrain-device.json`).
 
 ## Environment
 

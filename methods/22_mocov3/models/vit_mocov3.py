@@ -2,7 +2,7 @@
 ported from the lab's own implementation (following facebookresearch/moco-v3).
 
 - VisionTransformerMoCo with fixed 2D sin-cos positional embeddings, subclassing
-  timm's VisionTransformer (this is why timm is a step-1 dependency).
+  timm's VisionTransformer (this is why timm is a pretrain dependency).
 - Base + momentum encoders (the momentum encoder is an EMA copy, no gradient);
   each ViT's ``head`` is replaced by a 3-layer MLP projector; a 2-layer MLP
   predictor sits on the base encoder. A symmetric InfoNCE loss.

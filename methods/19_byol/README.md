@@ -51,13 +51,13 @@ across the ported methods.
   fabricated images, narrow projector/predictor at 32px — runs through `python -m
   adapter` on a CPU (exercising the EMA target update), passes `contract-test`,
   and the encoder round-trip and a determinism check pass.
-- **Exercised (linear_eval):** a hermetic smoke fits the probe on a step-1
+- **Exercised (linear_eval):** a hermetic smoke fits the probe on a pretrain
   encoder over a two-class ImageFolder, passes `contract-test`, writes the
   comparable `linear_probe` accuracies, and writes **no** `encoder.pt`.
 - **Not a full run:** `configs/pretrain.yaml` is the BYOL recipe (4096/256 MLPs,
   1000 epochs, batch 4096, LARS, EMA τ 0.996→1.0), a recipe, not a completed run.
 - **GPU:** the device resolution is verified on real hardware; see the device
-  mutation spec (`mutations/19_byol-step1-device.json`).
+  mutation spec (`mutations/19_byol-pretrain-device.json`).
 
 ## Environment
 

@@ -36,7 +36,7 @@ METHOD_DIR = Path(__file__).resolve().parent.parent
 # Architecture settings (build the model) ...
 MODEL_KEYS = frozenset({"vocab_size", "img_size", "n_layer", "n_head",
                         "n_embd"})
-# ... and the step-1 training settings.
+# ... and the pretrain training settings.
 PRETRAIN_TRAIN_ONLY = frozenset({"epochs", "batch_size", "num_workers", "lr",
                               "grad_clip"})
 PRETRAIN_TRAIN_KEYS = MODEL_KEYS | PRETRAIN_TRAIN_ONLY
@@ -48,7 +48,7 @@ EVAL_TRAIN_KEYS = MODEL_KEYS | EVAL_PROBE_KEYS
 
 TOP_KEYS = frozenset({"stage", "seed", "data_root", "device", "train"})
 # linear_eval also names the encoder to probe and the clusters to quantise with;
-# both come from a step-1 run.
+# both come from a pretrain run.
 EVAL_TOP_KEYS = TOP_KEYS | {"encoder", "clusters"}
 
 DEVICES = ("auto", "cuda", "cpu")
@@ -217,7 +217,7 @@ def run_training(config: dict, out: Path, _run=None) -> dict:
 
 def run_linear_eval(config: dict, out: Path, _run=None) -> dict:
     """Probe the trained model's middle layer. Reads encoder.pt (the model) and
-    clusters.npy (the colour space it was trained on), both from a step-1 run."""
+    clusters.npy (the colour space it was trained on), both from a pretrain run."""
     import numpy as np
     import torch
     if _run is None:

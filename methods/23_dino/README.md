@@ -64,14 +64,14 @@ probe instead is a documented deviation, the same as every other port.)
   fabricated images — runs through `python -m adapter` on a CPU (exercising the
   EMA teacher update and the centring), passes `contract-test`, and the encoder
   round-trip and a determinism check pass.
-- **Exercised (linear_eval):** a hermetic smoke fits the probe on a step-1
+- **Exercised (linear_eval):** a hermetic smoke fits the probe on a pretrain
   encoder over a two-class ImageFolder, passes `contract-test`, writes the
   comparable `linear_probe` accuracies, and writes **no** `encoder.pt`.
 - **Not a full run:** `configs/pretrain.yaml` is the DINO recipe (`vit_small`,
   out_dim 65536, 100 epochs, batch 1024, AdamW, warmup 10, multi-crop 2+8), a
   recipe, not a completed run.
 - **GPU:** the device resolution is verified on real hardware; see the device
-  mutation spec (`mutations/23_dino-step1-device.json`).
+  mutation spec (`mutations/23_dino-pretrain-device.json`).
 
 ## Environment
 

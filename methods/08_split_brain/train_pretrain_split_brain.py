@@ -9,7 +9,7 @@ output resolution, as in the lab's loop).
 The lab's captured train.py trains the ViT step 2 under DistributedDataParallel
 with AdamW and a canonical-contract scheduler; none of that applies to the
 single-process AlexNet step 1, so this port owns a thin fp32 loop with a plain
-Adam optimiser (the capture ships no AlexNet step-1 recipe; the optimiser knobs
+Adam optimiser (the capture ships no AlexNet pretrain recipe; the optimiser knobs
 are the port's, exposed in the config). The device is resolved rather than
 assumed CUDA. `encoder.pt` is the two branch encoders; the decoders are excluded.
 """

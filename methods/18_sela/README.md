@@ -57,13 +57,13 @@ across the ported methods.
   `python -m adapter` on a CPU (exercising the Sinkhorn reassignment path),
   passes `contract-test`, and the encoder round-trip and a determinism check
   pass.
-- **Exercised (linear_eval):** a hermetic smoke fits the probe on a step-1
+- **Exercised (linear_eval):** a hermetic smoke fits the probe on a pretrain
   encoder over a two-class ImageFolder, passes `contract-test`, writes the
   comparable `linear_probe` accuracies, and writes **no** `encoder.pt`.
 - **Not a full run:** `configs/pretrain.yaml` is the SeLa recipe (K 3000, 10 heads,
   λ 25, 400 epochs), a recipe, not a completed run.
 - **GPU:** the device resolution is verified on real hardware; see the device
-  mutation spec (`mutations/18_sela-step1-device.json`).
+  mutation spec (`mutations/18_sela-pretrain-device.json`).
 
 ## Environment
 
