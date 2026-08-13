@@ -1,6 +1,6 @@
 # What the capture evaluates, and what this repository currently runs
 
-Last updated: 2026-08-12
+Last updated: 2026-08-13
 
 This document records, **fact-based**, two things that are easy to conflate:
 
@@ -91,8 +91,9 @@ epochs)** ≈ ~20 numbers.
   `*_linear_probe_top1/5_accuracy` (comparable). There is **no vocabulary for
   mAP / mIoU / RMSE / AbsRel / video accuracy** — the other four tasks cannot
   even be recorded.
-- **Datasets referenced by configs**: ImageNet, and MNIST (for the VAE). No
-  COCO / ADE20k / NYUv2 / SSv2 anywhere in code or configs.
+- **Datasets referenced by configs**: ImageNet, and MNIST (for the VAE's
+  pretrain and its dataset-agnostic linear probe, which reads MNIST or an
+  ImageFolder). No COCO / ADE20k / NYUv2 / SSv2 anywhere in code or configs.
 - **Eval-only download methods** (dinov2 / aim / franca) probe the official
   frozen backbone on ImageNet — i.e. the ImageNet-classification cell of the
   capture's **Step 1 (as-is)**.

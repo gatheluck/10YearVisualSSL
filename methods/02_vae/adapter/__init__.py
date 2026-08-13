@@ -1,4 +1,4 @@
-"""Adapter for 02_vae, step 1 (Kingma & Welling, 2013).
+"""Adapter for 02_vae: pretrain and linear evaluation (Kingma & Welling, 2013).
 
     python -m adapter --config <resolved.json> --out <dir>
 
@@ -30,7 +30,8 @@ from pathlib import Path
 import adapterlib
 
 METHOD = "02_vae"
-STAGES = ("pretrain",)
+METHOD_DIR = Path(__file__).resolve().parent.parent
+STAGES = ("pretrain", "linear_eval")
 
 # Every setting the original reads, and no others.
 TRAIN_KEYS = frozenset({"epochs", "batch_size", "num_workers", "lr", "beta",
@@ -38,6 +39,16 @@ TRAIN_KEYS = frozenset({"epochs", "batch_size", "num_workers", "lr", "beta",
                         "print_freq"})
 TOP_KEYS = frozenset({"stage", "seed", "data_root", "device", "train"})
 DEVICES = ("auto", "cuda", "cpu")
+
+# The probe (linear_eval) reads a different, smaller set: the three model
+# settings that must match the pretrain run so encoder.pt loads, plus six probe
+# knobs. `beta`/`save_freq`/`print_freq` are pretraining-only and are refused
+# here so a config cannot claim an effect the probe never had.
+MODEL_KEYS = frozenset({"latent_dim", "hidden_dim", "img_size"})
+EVAL_PROBE_KEYS = frozenset({"epochs", "batch_size", "num_workers", "lr",
+                             "momentum", "weight_decay"})
+EVAL_TRAIN_KEYS = MODEL_KEYS | EVAL_PROBE_KEYS
+EVAL_TOP_KEYS = TOP_KEYS | {"encoder"}
 
 # The original writes checkpoints and TensorBoard events here. It gets a
 # subdirectory of --out so that nothing escapes and everything is listed.
@@ -50,6 +61,18 @@ ENCODER_PREFIXES = ("encoder.", "fc_mu.", "fc_logvar.")
 # with any other method's loss (CONTRACT, metric vocabulary).
 PRETRAIN_METRIC_NAMES = {
     "final_loss": "final_pretext_loss",
+    "epochs": "epochs_completed",
+    "metrics_unavailable": "metrics_unavailable",
+}
+
+# The probe's own numbers, and the comparable names the contract gives them.
+# Top-1/top-5 accuracy on the frozen representation is comparable across methods
+# (adapterlib.METRIC_VOCABULARY, the linear_probe family).
+LINEAR_EVAL_METRIC_NAMES = {
+    "best_top1_acc": "best_linear_probe_top1_accuracy",
+    "best_top5_acc_at_best_top1": "best_linear_probe_top5_accuracy",
+    "final_top1_acc": "final_linear_probe_top1_accuracy",
+    "final_top5_acc": "final_linear_probe_top5_accuracy",
     "epochs": "epochs_completed",
     "metrics_unavailable": "metrics_unavailable",
 }
@@ -203,8 +226,69 @@ def run_training(config: dict, out: Path, _run=None) -> dict:
     return metrics
 
 
+def validate_eval(config: dict) -> None:
+    """Refuse an eval config that is not exactly what the probe reads.
+
+    The probe stage reads the frozen encoder and the six probe knobs plus the
+    three model settings that must match the pretrain run. A pretraining-only
+    knob (`beta`, `save_freq`, ...) here would claim an effect the probe never
+    had, and an unresolved `${ENCODER}` would fit the linear layer on default
+    weights and report a number that looks like a result.
+    """
+    if "output" in config:
+        raise ConfigError(
+            "config: output is set. The output location is not a setting: the "
+            "contract fixes it at --out")
+    _named(EVAL_TOP_KEYS - set(config), set(config) - EVAL_TOP_KEYS, "config")
+    if config["stage"] != "linear_eval":
+        raise ConfigError(
+            f"config: stage is {config['stage']!r}; linear_eval was expected")
+    train = config["train"]
+    if not isinstance(train, dict):
+        raise ConfigError(f"config: train is {type(train).__name__}, "
+                          "not a mapping")
+    _named(EVAL_TRAIN_KEYS - set(train), set(train) - EVAL_TRAIN_KEYS,
+           "config.train")
+    if config["device"] not in DEVICES:
+        raise ConfigError(
+            f"config: device is {config['device']!r}; expected one of "
+            f"{', '.join(DEVICES)}")
+    if not config.get("encoder"):
+        raise ConfigError(
+            "config: encoder must be named -- the probe reads encoder.pt from a "
+            "pretrain run; an empty ${ENCODER} would fit on default weights")
+
+
+def run_linear_eval(config: dict, out: Path, _run=None) -> dict:
+    import torch
+    validate_eval(config)
+    if _run is None:
+        if str(METHOD_DIR) not in sys.path:
+            sys.path.insert(0, str(METHOD_DIR))
+        from evaluate_linear_vae import run as _run
+    state = torch.load(config["encoder"], map_location="cpu", weights_only=True)
+    model = load_encoder(state, config)
+    raw = _run(Namespace(config=None, data_path=None, device=config["device"]),
+               config=config, model=model) or {}
+    metrics, unusable = {}, 0
+    for k, v in raw.items():
+        if isinstance(v, bool) or not isinstance(v, (int, float)):
+            unusable += 1
+            continue
+        metrics[k] = v
+    unusable += sum(1 for k in ("best_top1_acc", "final_top1_acc")
+                    if k not in metrics)
+    if unusable:
+        metrics["metrics_unavailable"] = unusable
+    return metrics
+
+
 def body(ctx: adapterlib.Context) -> None:
     import torch
+    if ctx.stage == "linear_eval":
+        ctx.write_metrics(run_linear_eval(ctx.config, ctx.out),
+                          names=LINEAR_EVAL_METRIC_NAMES)
+        return
     metrics = run_training(ctx.config, ctx.out)
     latest = Path(ctx.out) / WORK / "checkpoint_latest.pth"
     if not latest.is_file():
@@ -217,6 +301,23 @@ def body(ctx: adapterlib.Context) -> None:
     ctx.write_metrics(metrics, names=PRETRAIN_METRIC_NAMES)
 
 
+def _stage_of(config_path) -> str:
+    import json
+    try:
+        return json.loads(Path(config_path).read_text(
+            encoding="utf-8")).get("stage") or STAGES[0]
+    except (OSError, ValueError, AttributeError):
+        return STAGES[0]
+
+
+def _absent_reason(config_path) -> "str | None":
+    if _stage_of(config_path) != "linear_eval":
+        return None
+    return ("this stage fits a linear probe on the frozen VAE encoder and "
+            "produces a classifier, not an encoder; it reads the encoder.pt "
+            "named in the config")
+
+
 def main(argv: list[str] | None = None) -> int:
     os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
@@ -225,7 +326,8 @@ def main(argv: list[str] | None = None) -> int:
     a = ap.parse_args(argv)
     try:
         return adapterlib.run(config=a.config, out=a.out, method=METHOD,
-                              stage="pretrain", body=body)
+                              stage=_stage_of(a.config), body=body,
+                              encoder_absent_reason=_absent_reason(a.config))
     except (adapterlib.AdapterError, ConfigError) as exc:
         print(f"  *** {exc}", file=sys.stderr)
         return 2

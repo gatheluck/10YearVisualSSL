@@ -533,6 +533,140 @@ class TestASmokeRun(Base):
             self.assertTrue(torch.equal(got, want), f"{key} came back changed")
         self.assertGreater(pairs, 0, "no saved weight reached the model")
 
+# --- linear_eval: the stage that closes 02_vae's pretrain+probe pipeline ---
+# The capture probes the VAE encoder's latent mean `mu` (models.VAE_CNN.get_features)
+# with a single linear layer, SGD + cosine, CrossEntropyLoss, inputs kept in [0,1]
+# (no ImageNet norm) and mu fed in unnormalised -- faithful to the VAE, and
+# deliberately different from the shared ARSSL probe. Dataset-agnostic: MNIST for
+# the shipped MNIST pretrain, ImageFolder if supplied.
+
+EVAL_TRAIN = {"latent_dim": 4, "hidden_dim": 8, "img_size": 28,
+              "epochs": 1, "batch_size": 4, "num_workers": 0,
+              "lr": 0.1, "momentum": 0.9, "weight_decay": 0.0}
+
+
+class TestLinearEvalConfig(Base):
+    def eval_config(self, **over) -> dict:
+        cfg = {"stage": "linear_eval", "seed": 0,
+               "data_root": str(self.tmp / "data"), "device": "cpu",
+               "encoder": str(self.tmp / "encoder.pt"), "train": dict(EVAL_TRAIN)}
+        for k, v in over.items():
+            if k == "train" and v is not None:
+                cfg["train"] = {**cfg["train"], **v}
+            else:
+                cfg[k] = v
+        return cfg
+
+    def test_linear_eval_is_accepted(self):
+        adapter.validate_eval(self.eval_config())          # must not raise
+
+    def test_the_encoder_must_be_named(self):
+        """An unresolved ${ENCODER} leaves it empty; a probe with no encoder
+        would fit on default weights and report a number that looks like a
+        result."""
+        with self.assertRaises(adapter.ConfigError) as e:
+            adapter.validate_eval(self.eval_config(encoder=""))
+        self.assertIn("encoder", str(e.exception))
+
+    def test_pretrain_only_settings_are_not_part_of_the_probe(self):
+        """`beta` is the VAE pretraining objective's knob; the probe never reads
+        it, so a config that sets it here claims an effect it did not have."""
+        with self.assertRaises(adapter.ConfigError) as e:
+            adapter.validate_eval(self.eval_config(train={"beta": 1.0}))
+        self.assertIn("beta", str(e.exception))
+
+
+class TestTheMetricsAreInTheVocabulary(unittest.TestCase):
+    def test_pretrain_maps_a_pretext_loss(self):
+        self.assertEqual(adapter.PRETRAIN_METRIC_NAMES["final_loss"],
+                         "final_pretext_loss")
+        self.assertIn("final_pretext_loss",
+                      adapter.adapterlib.METRIC_VOCABULARY)
+
+    def test_eval_maps_the_comparable_probe_numbers(self):
+        targets = set(adapter.LINEAR_EVAL_METRIC_NAMES.values())
+        for name in ("best_linear_probe_top1_accuracy",
+                     "final_linear_probe_top1_accuracy",
+                     "best_linear_probe_top5_accuracy",
+                     "final_linear_probe_top5_accuracy"):
+            self.assertIn(name, targets)
+            self.assertIn(name, adapter.adapterlib.METRIC_VOCABULARY)
+
+
+class TestTheEvalProducesNoEncoder(Base):
+    def _reason(self, stage):
+        p = self.tmp / "resolved.json"
+        p.write_text(json.dumps({"stage": stage}), encoding="utf-8")
+        return adapter._absent_reason(p)
+
+    def test_linear_eval_declares_no_encoder(self):
+        self.assertIsNotNone(self._reason("linear_eval"))
+
+    def test_pretrain_gives_no_reason(self):
+        self.assertIsNone(self._reason("pretrain"))
+
+
+class TestTheModelExposesMu(Base):
+    @needs_torch
+    def test_get_features_returns_one_mu_per_image(self):
+        import torch
+        vc = load("vae_cnn_mu", METHOD / "models" / "vae_cnn.py")
+        m = vc.VAE_CNN(latent_dim=4, image_size=28)
+        feats = m.get_features(torch.zeros(2, 3, 28, 28))
+        self.assertEqual(tuple(feats.shape), (2, 4),
+                         "the probe reads mu; it must be one latent per image")
+
+
+class TestALinearEvalSmoke(Base):
+    """The pipeline end to end: pretrain -> encoder.pt -> frozen linear probe.
+
+    This is what was missing. It exercises the same MNIST the shipped pretrain
+    uses (dataset-agnostic loader, MNIST branch), so the probe runs on the
+    representation the port actually trains.
+    """
+
+    def _adapter(self, cfg_dict, out):
+        cfg = self.tmp / (out.name + ".json")
+        cfg.write_text(json.dumps(cfg_dict), encoding="utf-8")
+        env = {**os.environ, "PYTHONPATH": str(ROOT)}
+        r = subprocess.run(
+            [sys.executable, "-m", "adapter", "--config", str(cfg),
+             "--out", str(out)], cwd=METHOD, env=env,
+            capture_output=True, text=True)
+        return cfg, r
+
+    def eval_config(self, encoder) -> dict:
+        return {"stage": "linear_eval", "seed": 0,
+                "data_root": str(self.tmp / "data"), "device": "cpu",
+                "encoder": str(encoder), "train": dict(EVAL_TRAIN)}
+
+    @needs_torch
+    def test_pretrain_then_probe_satisfies_the_contract(self):
+        tiny_mnist(self.tmp / "data")
+        pre = self.tmp / "pre"
+        _, r = self._adapter(self.config(), pre)
+        self.assertEqual(r.returncode, 0, r.stdout[-3000:] + r.stderr[-3000:])
+        encoder = pre / "encoder.pt"
+        self.assertTrue(encoder.is_file(), "pretrain produced no encoder.pt")
+
+        eout = self.tmp / "eval"
+        cfg, r = self._adapter(self.eval_config(encoder), eout)
+        self.assertEqual(r.returncode, 0, r.stdout[-3000:] + r.stderr[-3000:])
+        v = subprocess.run(
+            [sys.executable, str(BIN / "contract-test.py"), "--out",
+             str(eout), "--config", str(cfg), "--exit-status", "0"],
+            capture_output=True, text=True)
+        self.assertEqual(v.returncode, 0, v.stdout + v.stderr)
+
+        m = json.loads((eout / "metrics.json").read_text())["metrics"]
+        self.assertIn("final_linear_probe_top1_accuracy", m)
+        self.assertIn("final_linear_probe_top5_accuracy", m)
+        self.assertFalse((eout / "encoder.pt").exists(),
+                         "linear_eval must not write an encoder")
+        man = json.loads((eout / "run_manifest.json").read_text())
+        self.assertIn("encoder_absent_reason", man)
+
+
 class TestTheOriginalIsUnchanged(unittest.TestCase):
     def test_the_body_lives_in_run_and_main_only_parses(self):
         import ast
