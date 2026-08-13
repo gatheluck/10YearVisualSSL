@@ -158,6 +158,44 @@ EMA + queue: 13, 15. Memory bank + resume state: 10, 12, 33. EMA teacher + targe
 19. faiss k-means: 7. Multi-crop + distributed Sinkhorn: 17. Sinkhorn + second loader:
 18. Adversarial + transformer decoder: 4. Dual half-ViTs: 8. Custom non-timm ViT: 3.
 
+## 6a. Batch 1 detailed implementation notes (pretext+CE: 05, 09, 01)
+
+Exact capture specs (from `origin/snapshots`). All backbones: timm
+`vit_base_patch16_224(num_classes=0)` from scratch; AdamW lr 6e-4, wd 0.05,
+betas [0.9,0.999], 10-epoch warmup→cosine to min_lr 1e-6, grad-clip 1.0, AMP,
+`save_at_epochs 100/200/300`, seed 42, batch 1024.
+
+- **05_jigsaw_puzzle (100)** — the 9 permuted tiles are **reassembled into ONE
+  `[3,224,224]` image** in the dataset, then fed as a single image. Head:
+  `LayerNorm(768)→Linear(768,2048)→GELU→Dropout(drop_rate)→Linear(2048,100)`,
+  Linears `trunc_normal_(std=0.02)`, bias 0. Loss `CrossEntropy`. Config data:
+  `tile_size 72, tile_gap 4, puzzle_size 224, image_size 256` (3·72+2·4=224),
+  drop_rate 0.1, hidden_dim 2048, augmentation type1 (ColorJitter 0.4 + grayscale
+  0.2 per tile before assembly). **Local `data/jigsaw_dataset.py` returns tiles
+  `[9,..]` and dropped the assembly path** → add a new ViT dataset that emits the
+  assembled `[3,224,224]` + permutation label (native dataset untouched; not
+  pinned). Reuse the permutation generation (derangements, min Hamming 3, seed 42).
+- **09_jigsaw_puzzle_pp (701)** — same shape/head (→701). Data: `tile_size 74,
+  tile_gap 1, puzzle_size 224, image_size 256`, `grayscale_prob 0.7,
+  max_occlusions 2`, drop_rate 0.0, **per-tile independent normalization** (own
+  mean/std, NOT ImageNet), 701 perms cached. Local `data/jigsaw_pp_dataset.py`
+  explicitly dropped the `puzzle_size` assembly → add a ViT dataset that assembles
+  (70% grayscale grid, 0–2 occlusion tiles from another image, per-tile norm).
+- **01_context_prediction (8)** — **two patches share one ViT encoder**; each →
+  CLS `[B,768]`; concat `[B,1536]`; head
+  `LayerNorm(1536)→Linear(1536,2048)→GELU→Drop→Linear(2048,2048)→GELU→Drop→Linear(2048,8)`.
+  Forward takes `(center, context)`; loss CE over 8 positions. Config data:
+  `patch_size 224, patch_gap 48, image_size 255`, drop_rate/attn_drop 0.1,
+  `lr_scale_by_batch true` (1.5e-4·1024/256=6e-4). **The pinned
+  `data/context_dataset_official.py` already yields two patches + an 8-way label**
+  — reuse it; confirm/parameterize the patch size to 224 for the ViT (native uses
+  the AlexNet size). It is byte-pinned (captured_sha256), so do NOT edit it; if a
+  224 patch size is not reachable via its params, add a thin ViT dataset wrapper.
+
+Trainer note: 05/09 are single-input (image,label); **01 is two-input**
+(center,context,label) — the ViT trainer's step passes both to `model(center,
+context)`. All three: milestone save + `checkpoint_latest.pth`, return final_loss.
+
 ## 7. Reference implementation
 `methods/06_rotation_prediction/` — `models/vit_rotation.py`,
 `train_pretrain_vit_rotation.py`, `configs/pretrain_vit.yaml`, and the adapter's
