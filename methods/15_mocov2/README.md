@@ -13,11 +13,19 @@ negatives). Step 1 is that pretext.
 single linear), Gaussian-blur augmentation, and a cosine LR schedule. Everything
 else (queue K, EMA m, InfoNCE) is unchanged; the temperature is τ=0.2.
 
-## Scope — the ResNet-50 path only
+## Scope — the ResNet-50 path and the unified ViT-B/16 Step 2
 
-This port covers the paper-faithful **ResNet-50** step 1. The capture's ViT
-variant (`models/vit_mocov2.py`, step 2) imports `timm`, and is excluded as in
-every port — which also drops the `timm`, `tensorboard` and `tqdm` dependencies.
+This port covers the paper-faithful **ResNet-50** step 1 (`configs/pretrain.yaml`,
+SGD, the 2-layer MLP head and Gaussian-blur augmentation).
+
+It also ports the capture's **unified Step 2** (`configs/pretrain_vit.yaml`,
+`arch: vit`): the same ViT-B/16 backbone every method shares, trained from
+scratch with the momentum queue + InfoNCE, the CLS token through a 2-layer MLP
+projection (`Linear(768, 768) -> ReLU -> Linear(768, 128)`). Optimiser AdamW
+(betas 0.9, 0.95) with a 10-epoch warmup then cosine decay; checkpoints at
+100/200/300 epochs, each probed by the same frozen-backbone `linear_eval`. The
+ViT path needs `timm` (imported lazily); the native ResNet-50 path is
+byte-for-byte unchanged.
 
 ## Why this method, and what is new here
 

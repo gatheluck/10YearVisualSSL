@@ -1,0 +1,46 @@
+# MoCo v2 Step 2: unified ViT-B/16 pretraining, from scratch.
+#
+# The capture's Step-2 backbone is the same ViT-B/16 for every method; MoCo v2
+# plugs in a momentum queue + InfoNCE over two augmented views, the ViT's CLS
+# token through a 2-layer MLP projection (Linear-ReLU-Linear, the v2 head),
+# L2-normalised. Optimiser AdamW (betas 0.9, 0.95), linear warmup then cosine to
+# min_lr; checkpoints at 100/200/300. Matching the capture's ViT MoCo loop, there
+# is no AMP and no gradient clipping. The native ResNet-50/SGD pretrain
+# (configs/pretrain.yaml, no arch) is unchanged.
+#
+# One path is passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   the dataset root; pretraining reads its train/ subdirectory
+# The output path is fixed at --out.
+#
+#   python3 bin/launch.py --config methods/15_mocov2/configs/pretrain_vit.yaml \
+#       --method 15_mocov2 --set DATA_ROOT=/path/to/imagenet
+stage: pretrain
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+
+train:
+  arch: vit
+  # ViT-B/16 (build_mocov2_vit) + 2-layer MLP projection
+  feature_dim: 128
+  img_size: 224
+  patch_size: 16
+  embed_dim: 768
+  depth: 12
+  num_heads: 12
+  mlp_ratio: 4.0
+  drop_rate: 0.0
+  attn_drop_rate: 0.0
+  # MoCo (momentum queue)
+  queue_size: 65536       # K -- dictionary size
+  key_momentum: 0.999     # m -- key encoder EMA
+  temperature: 0.07       # tau -- InfoNCE temperature (unified Step-2 value)
+  # training: AdamW (betas 0.9, 0.95) + cosine (10-epoch warmup) to min_lr
+  epochs: 300
+  batch_size: 1024
+  num_workers: 8
+  lr: 0.0006
+  weight_decay: 0.05
+  warmup_epochs: 10
+  min_lr: 0.0
+  save_at_epochs: [100, 200, 300]

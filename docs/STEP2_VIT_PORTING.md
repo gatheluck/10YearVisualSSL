@@ -134,12 +134,12 @@ One family = one PR. Order by reuse (high → complex):
   `01_context_prediction` (PR #85). 05/09 reassemble tiles into one image; 01 shares
   the ViT over two patches + concat head. 01's eval (`evaluate_linear_official`)
   gained an optional pre-built-encoder path + dynamic feature dim.
-- [ ] **Batch 2 — contrastive:** SimCLR sub-batch **`14_simclrv1` + `16_simclrv2`**
-  done (stateless NT-Xent; ViT CLS → 2-/3-layer projector, reuse the two-view
-  dataset + `NTXentLoss`; AdamW default betas). **`13_mocov1` + `15_mocov2` next**
-  (EMA momentum encoder + 65536 queue: both are registered buffers/submodules so
-  they ride in `state_dict()` and resume restores them; InfoNCE in-model, AdamW
-  betas (0.9,0.95), mocov2 adds Gaussian blur).
+- [x] **Batch 2 — contrastive:** SimCLR `14_simclrv1`, `16_simclrv2` (stateless NT-Xent;
+  PR #86) and MoCo `13_mocov1`, `15_mocov2` (PR #87; EMA momentum encoder + 65536 FIFO
+  queue — both registered buffers/submodules, so they ride in `state_dict()` and resume
+  restores them; InfoNCE in-model returning `(loss, logits, labels)`; AdamW betas
+  (0.9, 0.95), no AMP/clip per the capture's ViT MoCo loop; mocov2 adds the 2-layer MLP
+  head + the two-view dataset's Gaussian blur). The queue size must divide the batch.
 - [ ] **Batch 3 — siamese + redundancy:** `20_simsiam`, `19_byol` (EMA teacher + target BN),
   `21_barlow_twins`.
 - [ ] **Batch 4 — NCE memory-bank:** `10_inst_disc`, `12_cmc`, `33_pirl` (persist/restore the
