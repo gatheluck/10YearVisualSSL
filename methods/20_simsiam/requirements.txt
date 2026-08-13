@@ -11,9 +11,13 @@
 # module level and writes event files through it. Making that conditional
 # would be a behaviour change to keep a lock file small.
 #
+# timm supplies the ViT-B/16 for the unified Step-2 path (arch: vit), imported
+# lazily so the native ResNet-50 path does not need it.
+#
 # These are floors. Use requirements.lock.txt to rebuild a run.
 
 torch>=2.1.0
 torchvision>=0.16.0
 PyYAML>=6.0
 tensorboard>=2.14.0
+timm>=0.9.0

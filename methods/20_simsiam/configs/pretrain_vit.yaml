@@ -1,0 +1,44 @@
+# SimSiam Step 2: unified ViT-B/16 pretraining, from scratch.
+#
+# The capture's Step-2 backbone is the same ViT-B/16 for every method; SimSiam
+# plugs in the negative-cosine objective (stop-gradient on the projector output)
+# over two augmented views, the ViT's CLS token through a 3-layer projector and a
+# 2-layer predictor. Optimiser AdamW (betas 0.9, 0.95), linear warmup then cosine
+# to min_lr applied to every group including the predictor; checkpoints at
+# 100/200/300. Matching the capture's ViT SimSiam loop, there is no AMP and no
+# gradient clipping. The native ResNet-50/SGD pretrain (configs/pretrain.yaml, no
+# arch) is unchanged.
+#
+# One path is passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   the dataset root; pretraining reads its train/ subdirectory
+# The output path is fixed at --out.
+#
+#   python3 bin/launch.py --config methods/20_simsiam/configs/pretrain_vit.yaml \
+#       --method 20_simsiam --set DATA_ROOT=/path/to/imagenet
+stage: pretrain
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+
+train:
+  arch: vit
+  # ViT-B/16 (build_simsiam_vit) + 3-layer projector + 2-layer predictor
+  dim: 768                # projector output dim (= ViT-Base embed_dim)
+  pred_dim: 192           # predictor bottleneck dim (= dim / 4)
+  img_size: 224
+  patch_size: 16
+  embed_dim: 768
+  depth: 12
+  num_heads: 12
+  mlp_ratio: 4.0
+  drop_rate: 0.0
+  attn_drop_rate: 0.0
+  # training: AdamW (betas 0.9, 0.95) + cosine (10-epoch warmup) to min_lr
+  epochs: 300
+  batch_size: 1024
+  num_workers: 8
+  lr: 0.0006
+  weight_decay: 0.05
+  warmup_epochs: 10
+  min_lr: 0.0
+  save_at_epochs: [100, 200, 300]
