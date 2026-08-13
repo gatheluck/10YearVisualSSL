@@ -1,4 +1,4 @@
-# 14_simclrv1 — step 1 (SimCLR v1 ResNet-50 pretext) + linear evaluation
+# 14_simclrv1 — SimCLR v1 pretext (ResNet-50 + unified ViT-B/16 Step 2) + linear evaluation
 
 Chen, Kornblith, Norouzi & Hinton, *A Simple Framework for Contrastive Learning
 of Visual Representations* (SimCLR v1), ICML 2020
@@ -12,9 +12,12 @@ linear warmup. Step 1 is that pretext.
 
 ## Scope — the ResNet-50 path only
 
-This port covers the paper-faithful **ResNet-50** step 1. The capture's ViT
-variant (`models/vit_simclr.py`, step 2) imports `timm`, and is excluded as in
-every port — which also drops the `timm`, `tensorboard` and `tqdm` dependencies.
+This port covers the paper-faithful **ResNet-50** pretext and, as part of the
+Step-2 fan-out, the capture's unified from-scratch **ViT-B/16** (`arch: vit`:
+`configs/pretrain_vit.yaml`, `models/vit_simclr.py`, `train_pretrain_vit_simclr.py`)
+— NT-Xent on two views, the ViT's CLS token through a 2-layer projector. The ViT
+path imports `timm`; the native ResNet-50 pretrain does not. `tensorboard` and
+`tqdm` remain unported. See docs/STEP2_VIT_PORTING.md.
 
 ## Why this method, and what is new here
 
@@ -64,7 +67,7 @@ comparable across the ported methods.
 ## Environment
 
 torch / torchvision / numpy / PyYAML — the self-contained methods' stack, no
-submodule and no extra (the ViT step 2's `timm` is not ported).
+submodule; the Step-2 ViT path adds `timm` (the native ResNet-50 path needs none).
 `requirements.lock.txt` (CPU) and `requirements.lock.cu130.txt` (CUDA 13.0) are
 the hashed closures (the same closure as `13_mocov1`: identical floors, identical
 resolution).
