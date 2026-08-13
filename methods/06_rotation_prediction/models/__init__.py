@@ -1,5 +1,6 @@
-"""The rotation model, in one place. Only the AlexNet-BN pretrain model is brought
-across; the capture's ViT (step 2) is excluded like every method's step 2."""
+"""The rotation models. The native AlexNet-BN pretrain model is exported here;
+the unified ViT-B/16 Step-2 model lives in ``vit_rotation.py`` and is imported
+lazily (only on the ``arch: vit`` path) so the native path never needs timm."""
 
 from __future__ import annotations
 
