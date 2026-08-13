@@ -11,11 +11,22 @@ online backbone + projector, with no predictor and no gradient. The loss is a
 **no negatives, no queue**. The EMA momentum τ follows a cosine schedule from
 0.996 to 1.0. Step 1 is that pretext.
 
-## Scope — the ResNet-50 path only
+## Scope — the ResNet-50 path and the unified ViT-B/16 Step 2
 
-This port covers the paper-faithful **ResNet-50** step 1. The capture's ViT
-variant (`models/vit_byol.py`, step 2) imports `timm`, and is excluded as in
-every port — which also drops the `timm`, `tensorboard` and `tqdm` dependencies.
+This port covers the paper-faithful **ResNet-50** step 1 (`configs/pretrain.yaml`,
+`arch: resnet50`, LARS).
+
+It also ports the capture's **unified Step 2** (`configs/pretrain_vit.yaml`,
+`arch: vit`): the same ViT-B/16 backbone every method shares, trained from
+scratch as the BYOL online encoder — projector (768→4096→256) and predictor
+(256→4096→256), an EMA target encoder+projector, the symmetric negative-cosine
+loss. Optimiser AdamW with the batch-linear LR scaling and a 10-epoch warmup then
+cosine decay, **AMP on CUDA and gradient clipping** (as the capture's BYOL ViT
+loop uses, unlike the MoCo/SimSiam ViT trainers); EMA tau 0.996→1.0 on a cosine
+schedule; checkpoints at 100/200/300 epochs, each probed by the same
+frozen-backbone `linear_eval` (its head sizes to the CLS feature dynamically).
+The ViT path needs `timm` (imported lazily); the native ResNet-50 path is
+byte-for-byte unchanged (`train_pretrain_vit_byol.py`, `models/vit_byol.py`).
 
 ## Why this method, and what is new here
 
@@ -62,7 +73,8 @@ across the ported methods.
 ## Environment
 
 torch / torchvision / numpy / PyYAML — the self-contained methods' stack, no
-submodule and no extra (the ViT step 2's `timm` is not ported).
+submodule — plus `timm` for the unified ViT-B/16 Step-2 path (imported lazily, so
+the native ResNet-50 path never needs it).
 `requirements.lock.txt` (CPU) and `requirements.lock.cu130.txt` (CUDA 13.0) are
 the hashed closures (the same closure as `14_simclrv1`: identical floors,
 identical resolution).
