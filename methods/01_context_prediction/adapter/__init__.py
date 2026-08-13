@@ -54,6 +54,45 @@ STAGES = {
 DEVICES = ("auto", "cuda", "cpu")
 ENCODER_PREFIX = "encoder."
 
+# Step-2 unified ViT-B/16 (`arch: vit`), faithful to the capture's train_step2_vit.
+# Selected by the optional `arch` key in train; absent = the native AlexNet
+# (step-based) pretrain, unchanged. The ViT pretrain is epoch-based.
+VIT_MODEL_KEYS = frozenset({"num_classes", "input_size", "patch_size",
+                            "embed_dim", "depth", "num_heads", "mlp_ratio",
+                            "hidden_dim", "drop_rate", "attn_drop_rate"})
+VIT_DATA_KEYS = frozenset({"patch_gap", "jitter"})
+VIT_TRAIN_ONLY = frozenset({"epochs", "batch_size", "num_workers", "lr",
+                            "weight_decay", "betas", "warmup_epochs", "min_lr",
+                            "clip_grad", "save_at_epochs"})
+VIT_PRETRAIN_TOP = frozenset({"seed", "data_root", "device", "train"})
+VIT_PRETRAIN_TRAIN = {"arch"} | VIT_MODEL_KEYS | VIT_DATA_KEYS | VIT_TRAIN_ONLY
+VIT_EVAL_TOP = frozenset({"seed", "data_root", "device", "train", "encoder"})
+VIT_EVAL_TRAIN = ({"arch"} | VIT_MODEL_KEYS
+                  | frozenset({"epochs", "batch_size", "feature_batch_size",
+                               "num_workers", "lr", "img_size"}))
+_VIT_FLOATS = ("mlp_ratio", "drop_rate", "attn_drop_rate")
+
+
+def _vit_run_config(config: dict, out: Path) -> dict:
+    train = config["train"]
+    return {
+        "seed": int(config["seed"]),
+        "model": {k: (float(train[k]) if k in _VIT_FLOATS else int(train[k]))
+                  for k in (VIT_MODEL_KEYS | VIT_DATA_KEYS)},
+        "training": {"epochs": int(train["epochs"]),
+                     "batch_size": int(train["batch_size"]),
+                     "num_workers": int(train["num_workers"]),
+                     "lr": float(train["lr"]),
+                     "weight_decay": float(train["weight_decay"]),
+                     "betas": [float(b) for b in train["betas"]],
+                     "warmup_epochs": int(train["warmup_epochs"]),
+                     "min_lr": float(train["min_lr"]),
+                     "clip_grad": float(train["clip_grad"]),
+                     "save_at_epochs": [int(e) for e in train["save_at_epochs"]]},
+        "data": {"data_root": str(config["data_root"])},
+        "output": {"checkpoint_dir": str(Path(out) / WORK)},
+    }
+
 # What the pretext evaluation is expected to report. Named, because `run()`
 # also returns `global_step`, and a step count is a number without being a
 # result: on its own it kept metrics.json looking populated when the
@@ -118,6 +157,33 @@ def to_args(config: dict, out: Path) -> Namespace:
             "supports it; until this adapter records what was resumed from, "
             "accepting the key would hide it")
     stage = stage_of(config)
+    _train0 = config.get("train", {})
+    if isinstance(_train0, dict) and _train0.get("arch") == "vit":
+        if stage == "pretrain":
+            top_keys, train_keys = VIT_PRETRAIN_TOP | {"stage"}, VIT_PRETRAIN_TRAIN
+        else:
+            top_keys, train_keys = VIT_EVAL_TOP | {"stage"}, VIT_EVAL_TRAIN
+        _named(top_keys - set(config), set(config) - top_keys, "config")
+        _named(train_keys - set(_train0), set(_train0) - train_keys,
+               "config.train")
+        device = config["device"]
+        if device not in DEVICES:
+            raise ConfigError(
+                f"config: device is {device!r}; expected one of "
+                f"{', '.join(DEVICES)}")
+        common = dict(data_path=str(config["data_root"]),
+                      save_dir=str(Path(out) / WORK),
+                      seed=int(config["seed"]), device=device, gpu=0)
+        if stage == "pretrain":
+            return Namespace(**common, resume=None)
+        return Namespace(
+            **common, checkpoint=None, encoder=str(config["encoder"]),
+            epochs=int(_train0["epochs"]),
+            batch_size=int(_train0["batch_size"]),
+            feature_batch_size=int(_train0["feature_batch_size"]),
+            num_workers=int(_train0["num_workers"]), lr=float(_train0["lr"]),
+            img_size=int(_train0["img_size"]))
+
     top_keys = STAGES[stage]["top"] | {"stage"}
     _named(top_keys - set(config), set(config) - top_keys, "config")
 
@@ -205,8 +271,14 @@ def load_encoder(state_dict: dict, config: dict):
     the config. It is still taken rather than assumed, so the signature is the
     same in every port and a consumer needs no special case.
     """
+    train = config.get("train", {}) if isinstance(config, dict) else {}
+    if train.get("arch") == "vit":
+        from models.vit_context import build_vit_context_model
+        from train_pretrain_vit_context import model_kwargs as vit_mk
+        model = build_vit_context_model(**vit_mk(train))
+        model.encoder.load_state_dict(state_dict, strict=True)
+        return model.get_encoder()
     from models.alexnet_context_official import build_official_context_alexnet
-    del config          # fixed by the pretext task, not by a setting
     encoder = build_official_context_alexnet(num_classes=8).get_encoder()
     encoder.load_state_dict(state_dict)
     return encoder
@@ -245,6 +317,25 @@ def load_final_state(out: Path, _load=None) -> dict:
     return _load(final, map_location="cpu", weights_only=False)
 
 
+def _run_vit(config: dict, out: Path, stage: str, _run=None) -> dict:
+    """The Step-2 ViT path: a config-based ViT trainer for pretrain, and the
+    linear probe fed a pre-built ViT encoder (via the arch-aware load_encoder)."""
+    import torch
+    args = to_args(config, out)               # validates the vit keys
+    Path(args.save_dir).mkdir(parents=True, exist_ok=True)
+    if stage == "pretrain":
+        if _run is None:
+            from train_pretrain_vit_context import run as _run
+        raw = _run(args, _vit_run_config(config, out)) or {}
+        return _usable_metrics(raw)
+    if _run is None:
+        from evaluate_linear_official import run as _run
+    state = torch.load(config["encoder"], map_location="cpu", weights_only=True)
+    encoder = load_encoder(state, config)
+    raw = _run(args, encoder=encoder)
+    return _eval_metrics(raw)
+
+
 def run_training(config: dict, out: Path, _run=None) -> dict:
     """Call the original run for this stage, and return contract-fit metrics.
 
@@ -252,6 +343,9 @@ def run_training(config: dict, out: Path, _run=None) -> dict:
     it defaults to the original for the stage the config names.
     """
     stage = stage_of(config)
+    _train = config.get("train", {})
+    if isinstance(_train, dict) and _train.get("arch") == "vit":
+        return _run_vit(config, out, stage, _run)
     if _run is None:
         if stage == "pretrain":
             from train_pretrain_alexnet_official import run as _run
@@ -309,6 +403,14 @@ def body(ctx: adapterlib.Context) -> None:
         state = load_final_state(ctx.out)
         torch.save(extract_encoder(state["state_dict"]),
                    Path(ctx.out) / "encoder.pt")
+        train = ctx.config.get("train", {})
+        if isinstance(train, dict) and train.get("arch") == "vit":
+            for n in train.get("save_at_epochs", []):
+                ck = Path(ctx.out) / WORK / f"checkpoint_epoch_{int(n)}.pth"
+                if ck.is_file():
+                    s = torch.load(ck, map_location="cpu", weights_only=False)
+                    torch.save(extract_encoder(s["state_dict"]),
+                               Path(ctx.out) / f"encoder_epoch{int(n)}.pt")
     ctx.write_metrics(metrics, names=(
         PRETRAIN_METRIC_NAMES if stage_of(ctx.config) == "pretrain"
         else LINEAR_EVAL_METRIC_NAMES))

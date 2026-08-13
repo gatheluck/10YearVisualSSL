@@ -9,6 +9,7 @@
   "note": "Only the two files listed in captured_sha256 came across untouched; their digests are pinned by tests/test_method_01_context_prediction.py. Everything in rewritten_during_the_port differs from the capture by design.",
   "rewritten_during_the_port": {
     "__init__.py": "re-exported the legacy track, which was not brought across",
+    "vit_step2": "the capture Step 2 (unified ViT-B/16, from scratch) is ported as an additive arch: vit pretrain path: models/vit_context.py (timm ViT-B/16, shared encoder over both patches + concat 8-way head), train_pretrain_vit_context.py (AdamW + warmup/cosine + grad-clip + AMP, milestone checkpoints 100/200/300), configs/pretrain_vit.yaml; the native step-based AlexNet pretrain and evaluate_linear_official are unchanged (the probe gained an optional pre-built-encoder path for the ViT); timm + PyYAML only on the arch: vit path",
     "data/__init__.py": "same",
     "models/__init__.py": "same",
     "train_pretrain_alexnet_official.py": "main() split into build_parser() and run(args); the hard-coded cuda device made selectable"

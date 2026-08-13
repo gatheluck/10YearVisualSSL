@@ -1,0 +1,52 @@
+# Jigsaw++ Step 2: unified ViT-B/16 permutation pretraining, from scratch.
+#
+# The capture's Step-2 backbone is the same ViT-B/16 for every method; Jigsaw++
+# plugs in its 701-way permutation objective with 70% grayscale and 0-2 occlusion
+# tiles. The 9 processed tiles are reassembled into one 224x224 image
+# (3*tile_size + 2*tile_gap = 224) and the ViT's CLS token feeds a
+# LayerNorm->Linear->GELU->Linear head (CrossEntropy). AdamW, linear warmup then
+# cosine to min_lr, grad clip, AMP on CUDA; checkpoints at 100/200/300. The native
+# VGG16 pretrain (configs/pretrain.yaml, arch defaults to vgg16) is unchanged, as
+# is the knowledge_transfer stage.
+#
+# One path is passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   the dataset root; pretraining reads its train/ subdirectory
+# The output path is fixed at --out.
+#
+#   python3 bin/launch.py --config methods/09_jigsaw_puzzle_pp/configs/pretrain_vit.yaml \
+#       --method 09_jigsaw_puzzle_pp --set DATA_ROOT=/path/to/imagenet
+stage: pretrain
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+
+train:
+  arch: vit
+  # puzzle assembly (JigsawPPViTDataset): 3*74 + 2*1 = 224
+  num_permutations: 701
+  tile_size: 74
+  tile_gap: 1
+  image_size: 256
+  puzzle_size: 224
+  grayscale_prob: 0.7
+  max_occlusions: 2
+  # ViT-B/16 (build_vit_jigsaw_pp_model) + permutation head
+  patch_size: 16
+  embed_dim: 768
+  depth: 12
+  num_heads: 12
+  mlp_ratio: 4.0
+  hidden_dim: 2048
+  drop_rate: 0.0
+  attn_drop_rate: 0.0
+  # training: AdamW + cosine (10-epoch warmup) to min_lr, AMP, grad clip
+  epochs: 300
+  batch_size: 1024
+  num_workers: 8
+  lr: 0.0006
+  weight_decay: 0.05
+  betas: [0.9, 0.999]
+  warmup_epochs: 10
+  min_lr: 1.0e-6
+  clip_grad: 1.0
+  save_at_epochs: [100, 200, 300]

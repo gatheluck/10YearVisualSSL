@@ -1,5 +1,6 @@
 """The jigsaw model, in one place. Only the AlexNet/CFN pretrain model is brought
-across; the capture's ViT (step 2) is excluded like every method's step 2."""
+across; the unified ViT-B/16 Step-2 model lives in vit_jigsaw.py and is
+imported lazily (only on the arch: vit path) so the native path needs no timm."""
 
 from __future__ import annotations
 

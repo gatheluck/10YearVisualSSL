@@ -95,9 +95,12 @@ def run(args, config: "dict | None" = None, model=None) -> dict:
     encoder.eval()
     for p in encoder.parameters():
         p.requires_grad = False
-    print(f"Jigsaw linear eval  device={device}  tile_size={train['tile_size']}")
+    print(f"Jigsaw linear eval  device={device}  "
+          f"input_size={train.get('puzzle_size', train.get('tile_size'))}")
 
-    size = int(train["tile_size"])
+    # native CFN probes at tile_size; the ViT Step-2 encoder wants the 224 puzzle.
+    size = int(train["puzzle_size"] if "puzzle_size" in train
+               else train["tile_size"])
     bs = int(train["batch_size"])
     nw = int(train["num_workers"])
     tr_ds, tr_loader = _build_loader(data_root, "train", size, bs, nw)

@@ -1,0 +1,48 @@
+# Context Prediction Step 2: unified ViT-B/16 pretraining, from scratch.
+#
+# The capture's Step-2 backbone is the same ViT-B/16 for every method; context
+# prediction plugs in its 8-way relative-position objective. Two patches (center
+# and a neighbour, 224x224) share one ViT; their CLS tokens are concatenated and
+# a LayerNorm->Linear->GELU->Linear->GELU->Linear head predicts the position
+# (CrossEntropy over 8). AdamW, linear warmup then cosine to min_lr, grad clip,
+# AMP on CUDA; checkpoints at 100/200/300. The native AlexNet pretrain
+# (configs/pretrain.yaml, no arch, step-based) is unchanged.
+#
+# One path is passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   the dataset root; pretraining reads its train/ subdirectory
+# The output path is fixed at --out.
+#
+#   python3 bin/launch.py --config methods/01_context_prediction/configs/pretrain_vit.yaml \
+#       --method 01_context_prediction --set DATA_ROOT=/path/to/imagenet
+stage: pretrain
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+
+train:
+  arch: vit
+  # patch-pair sampling (OfficialContextPredictionDataset): 224px patches
+  input_size: 224
+  patch_gap: 48
+  jitter: 7
+  # ViT-B/16 (build_vit_context_model): shared encoder over both patches + head
+  num_classes: 8
+  patch_size: 16
+  embed_dim: 768
+  depth: 12
+  num_heads: 12
+  mlp_ratio: 4.0
+  hidden_dim: 2048
+  drop_rate: 0.1
+  attn_drop_rate: 0.1
+  # training: AdamW + cosine (10-epoch warmup) to min_lr, AMP, grad clip
+  epochs: 300
+  batch_size: 1024
+  num_workers: 8
+  lr: 0.0006
+  weight_decay: 0.05
+  betas: [0.9, 0.999]
+  warmup_epochs: 10
+  min_lr: 1.0e-6
+  clip_grad: 1.0
+  save_at_epochs: [100, 200, 300]

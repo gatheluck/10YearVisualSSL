@@ -55,7 +55,23 @@ EVAL_PROBE_KEYS = frozenset({"epochs", "batch_size", "num_workers", "lr",
 # unchanged) or the knowledge-transfer AlexNet (arch=alexnet_cluster_cls).
 EVAL_TRAIN_KEYS = MODEL_KEYS | EVAL_PROBE_KEYS                       # arch=vgg16
 EVAL_ALEXNET_KEYS = frozenset({"arch", "dropout", "image_size"}) | EVAL_PROBE_KEYS
-ARCHS = ("vgg16", "alexnet_cluster_cls")
+ARCHS = ("vgg16", "alexnet_cluster_cls", "vit")
+
+# Step-2 unified ViT-B/16 (`arch: vit`), faithful to the capture's train_step2_vit.
+# The 9 processed tiles are reassembled into one puzzle image. `arch` is kept in
+# the key set (09's convention). The native VGG16 pretrain (no arch) and the
+# knowledge_transfer stage are unchanged.
+VIT_MODEL_KEYS = frozenset({"num_permutations", "puzzle_size", "patch_size",
+                            "embed_dim", "depth", "num_heads", "mlp_ratio",
+                            "hidden_dim", "drop_rate", "attn_drop_rate"})
+VIT_DATA_KEYS = frozenset({"tile_size", "tile_gap", "image_size",
+                           "grayscale_prob", "max_occlusions"})
+PRETRAIN_VIT_ONLY = frozenset({"epochs", "batch_size", "num_workers", "lr",
+                               "weight_decay", "betas", "warmup_epochs",
+                               "min_lr", "clip_grad", "save_at_epochs"})
+PRETRAIN_VIT_KEYS = {"arch"} | VIT_MODEL_KEYS | VIT_DATA_KEYS | PRETRAIN_VIT_ONLY
+EVAL_VIT_KEYS = {"arch"} | VIT_MODEL_KEYS | EVAL_PROBE_KEYS
+_VIT_FLOATS = ("mlp_ratio", "drop_rate", "attn_drop_rate", "grayscale_prob")
 
 TOP_KEYS = frozenset({"stage", "seed", "data_root", "device", "train"})
 EVAL_TOP_KEYS = TOP_KEYS | {"encoder"}
@@ -148,12 +164,26 @@ def to_run_config(config: dict, out: Path) -> dict:
     if stage == "linear_eval":
         top = EVAL_TOP_KEYS
         arch = eval_arch(config.get("train", {}))
-        keys = EVAL_ALEXNET_KEYS if arch == "alexnet_cluster_cls" \
-            else EVAL_TRAIN_KEYS
+        if arch == "alexnet_cluster_cls":
+            keys = EVAL_ALEXNET_KEYS
+        elif arch == "vit":
+            keys = EVAL_VIT_KEYS
+        else:
+            keys = EVAL_TRAIN_KEYS
     elif stage == "knowledge_transfer":
         top, keys = KT_TOP_KEYS, KT_TRAIN_KEYS
-    else:
-        top, keys = TOP_KEYS, PRETRAIN_TRAIN_KEYS
+    else:  # pretrain: native VGG16 (no arch) or the unified ViT (arch: vit)
+        top = TOP_KEYS
+        _pt = config.get("train", {})
+        parch = _pt.get("arch") if isinstance(_pt, dict) else None
+        if parch == "vit":
+            keys = PRETRAIN_VIT_KEYS
+        elif parch is None:
+            keys = PRETRAIN_TRAIN_KEYS
+        else:
+            raise ConfigError(
+                f"config.train: arch {parch!r} is not valid for the pretrain "
+                "stage; use 'vit' or omit it for the native VGG16")
     _named(top - set(config), set(config) - top, "config")
 
     train = config["train"]
@@ -177,6 +207,27 @@ def to_run_config(config: dict, out: Path) -> dict:
                    "image_size": int(train["image_size"]),
                    "dropout": float(train["dropout"])},
             "training": _training_section(train),
+            "data": {"data_root": str(config["data_root"])},
+            "output": {"checkpoint_dir": str(Path(out) / WORK)},
+        }
+
+    if train.get("arch") == "vit":
+        return {
+            "seed": int(config["seed"]),
+            "arch": "vit",
+            "model": {k: (float(train[k]) if k in _VIT_FLOATS else int(train[k]))
+                      for k in (VIT_MODEL_KEYS | VIT_DATA_KEYS)},
+            "training": {"epochs": int(train["epochs"]),
+                         "batch_size": int(train["batch_size"]),
+                         "num_workers": int(train["num_workers"]),
+                         "lr": float(train["lr"]),
+                         "weight_decay": float(train["weight_decay"]),
+                         "betas": [float(b) for b in train["betas"]],
+                         "warmup_epochs": int(train["warmup_epochs"]),
+                         "min_lr": float(train["min_lr"]),
+                         "clip_grad": float(train["clip_grad"]),
+                         "save_at_epochs": [int(e) for e in
+                                            train["save_at_epochs"]]},
             "data": {"data_root": str(config["data_root"])},
             "output": {"checkpoint_dir": str(Path(out) / WORK)},
         }
@@ -219,6 +270,11 @@ def load_encoder(state_dict: dict, config: dict):
         model = build_alexnet_cluster_cls_model(
             dropout=float(config["train"]["dropout"]))
         prefixes = ALEXNET_ENCODER_PREFIXES
+    elif arch == "vit":
+        from models.vit_jigsaw_pp import build_vit_jigsaw_pp_model
+        from train_pretrain_vit_jigsaw_pp import model_kwargs as vit_mk
+        model = build_vit_jigsaw_pp_model(**vit_mk(config["train"]))
+        prefixes = ENCODER_PREFIXES
     else:
         model = build_vgg16_jigsaw_pp_model(**model_kwargs(config["train"]))
         prefixes = ENCODER_PREFIXES
@@ -264,10 +320,14 @@ def _filter_numeric(raw: dict) -> tuple:
 
 
 def run_training(config: dict, out: Path, _run=None) -> dict:
+    arch = config.get("train", {}).get("arch")
     if _run is None:
         if str(METHOD_DIR) not in sys.path:
             sys.path.insert(0, str(METHOD_DIR))
-        from train_pretrain_jigsaw_pp import run as _run
+        if arch == "vit":
+            from train_pretrain_vit_jigsaw_pp import run as _run
+        else:
+            from train_pretrain_jigsaw_pp import run as _run
     args = to_args(config, out)
     run_config = to_run_config(config, out)
     Path(run_config["output"]["checkpoint_dir"]).mkdir(parents=True,
@@ -339,6 +399,14 @@ def body(ctx: adapterlib.Context) -> None:
     state = torch.load(latest, map_location="cpu", weights_only=False)
     torch.save(extract_encoder(state["model_state_dict"], prefixes),
                Path(ctx.out) / "encoder.pt")
+    train = ctx.config.get("train", {})
+    if ctx.stage == "pretrain" and train.get("arch") == "vit":
+        for n in train.get("save_at_epochs", []):
+            ck = Path(ctx.out) / WORK / f"checkpoint_epoch_{int(n)}.pth"
+            if ck.is_file():
+                s = torch.load(ck, map_location="cpu", weights_only=False)
+                torch.save(extract_encoder(s["model_state_dict"], prefixes),
+                           Path(ctx.out) / f"encoder_epoch{int(n)}.pt")
     ctx.write_metrics(metrics, names=PRETRAIN_METRIC_NAMES)
 
 

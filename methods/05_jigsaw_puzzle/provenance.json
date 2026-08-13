@@ -16,7 +16,7 @@
     "main() split into build_parser()/run(args, config) returning the pretext loss/accuracy and epoch count",
     "the run is seeded through make_deterministic (python, numpy, torch)",
     "the training loop drops the upstream DistributedDataParallel and the TensorBoard logging so the same step runs on a CPU or a GPU unchanged",
-    "the capture's step 2 (ViT jigsaw) is excluded, as in every port",
+    "the capture's Step 2 (unified ViT-B/16 jigsaw, from scratch) IS ported here (Batch 1 of the Step-2 fan-out): models/vit_jigsaw.py (timm ViT-B/16 num_classes=0 backbone under encoder.* + a permutation head), train_pretrain_vit_jigsaw.py (AdamW + warmup/cosine + grad-clip + AMP on CUDA, milestone checkpoints 100/200/300), configs/pretrain_vit.yaml (arch: vit) and data/jigsaw_vit_dataset.py (the 9 permuted tiles reassembled into one 224 image); selected by the config's arch key, so the native CFN pretrain and the contract stages/metrics (ImageNet linear probe) are unchanged, and timm is pulled in only on arch: vit",
     "DATA_ROOT is the dataset root; the pretrain stage reads its train/ subdirectory (unified data-root convention via adapterlib.dataset_split_dir)."
   ]
 }

@@ -198,12 +198,13 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def run(args) -> dict:
-    """The original body, unchanged apart from the input, seeding and return."""
-    source = args.encoder or args.checkpoint
-    if bool(args.encoder) == bool(args.checkpoint):
-        raise RuntimeError("give exactly one of --encoder and --checkpoint")
+def run(args, encoder=None) -> dict:
+    """The original body, unchanged apart from the input, seeding and return.
 
+    `encoder` may be a pre-built frozen encoder module (the ViT Step-2 path builds
+    it via the adapter's arch-aware `load_encoder` and passes it here); when it is
+    None the native path loads the AlexNet encoder from `--encoder`/`--checkpoint`.
+    """
     make_deterministic()
     device = resolve_device(getattr(args, "device", "auto"), args.gpu)
     if device.type == "cuda":
@@ -215,13 +216,21 @@ def run(args) -> dict:
     save_dir = Path(args.save_dir)
     save_dir.mkdir(parents=True, exist_ok=True)
 
-    ckpt = torch.load(source, map_location="cpu", weights_only=False)
-    kind, encoder_state = read_encoder_state(ckpt)
-    print(f"loaded the encoder from a {kind}: {source}", flush=True)
-    model = build_official_context_alexnet(num_classes=8)
-    model.to(device)
-    encoder = model.get_encoder()
-    encoder.load_state_dict(encoder_state, strict=True)
+    # Recorded in results.json for both paths; on the ViT path the encoder is
+    # passed in but args.encoder still names the file it came from.
+    source = args.encoder or args.checkpoint
+    ckpt = None
+    if encoder is None:
+        if bool(args.encoder) == bool(args.checkpoint):
+            raise RuntimeError("give exactly one of --encoder and --checkpoint")
+        ckpt = torch.load(source, map_location="cpu", weights_only=False)
+        kind, encoder_state = read_encoder_state(ckpt)
+        print(f"loaded the encoder from a {kind}: {source}", flush=True)
+        model = build_official_context_alexnet(num_classes=8).to(device)
+        encoder = model.get_encoder()
+        encoder.load_state_dict(encoder_state, strict=True)
+    else:
+        encoder = encoder.to(device)
     for p in encoder.parameters():
         p.requires_grad = False
 
@@ -232,7 +241,7 @@ def run(args) -> dict:
     val_features, val_labels = extract_features(encoder, val_loader, device)
     print(f"train_features={tuple(train_features.shape)} val_features={tuple(val_features.shape)}", flush=True)
 
-    classifier = LinearClassifier(4096, 1000).to(device)
+    classifier = LinearClassifier(train_features.shape[1], 1000).to(device)
     criterion = nn.CrossEntropyLoss().to(device)
     optimizer = optim.SGD(classifier.parameters(), lr=args.lr, momentum=0.9, weight_decay=0.0)
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs)
@@ -261,9 +270,10 @@ def run(args) -> dict:
 
     results = {
         "checkpoint": source,
-        "checkpoint_global_step": ckpt.get("global_step"),
-        "model_type": "official_style_alexnet_context",
-        "feature_dim": 4096,
+        "checkpoint_global_step": ckpt.get("global_step") if ckpt else None,
+        "model_type": "official_style_alexnet_context" if ckpt is not None
+        else "vit_context",
+        "feature_dim": int(train_features.shape[1]),
         "img_size": args.img_size,
         "linear_eval_preprocess": "ImageNet RandomResizedCrop/CenterCrop + ImageNet mean/std",
         "feature_protocol": "fc6 with adaptive 2x2 pool for 224x224 ImageNet images",
@@ -271,7 +281,7 @@ def run(args) -> dict:
         "best_top5_acc": best_top5,
         "final_top1_acc": final_top1,
         "final_top5_acc": final_top5,
-        "provenance": ckpt.get("protocol", {}),
+        "provenance": ckpt.get("protocol", {}) if ckpt else {},
     }
     with open(save_dir / "results.json", "w") as f:
         json.dump(results, f, indent=2)

@@ -50,6 +50,15 @@ except ImportError:
 
 needs_torch = unittest.skipUnless(HAVE_TORCH, "torch is not installed")
 
+try:
+    import timm                                        # noqa: F401
+    HAVE_TIMM = HAVE_TORCH
+except ImportError:
+    HAVE_TIMM = False
+
+needs_timm = unittest.skipUnless(
+    HAVE_TIMM, "the ViT Step-2 path needs timm (arch: vit)")
+
 
 def load(name: str, path: Path):
     """Delegates to the shared helper: two methods define `data` and `models`,
@@ -670,6 +679,154 @@ class TestASmokeRun(Base):
             pairs += 1
             self.assertTrue(torch.equal(got, want), f"{key} came back changed")
         self.assertGreater(pairs, 0, "no saved weight reached the model")
+
+# --- Step 2: unified ViT-B/16 (arch: vit), additive alongside the native
+# step-based AlexNet pretrain. Two 32px patches share the ViT; tiny dims for CPU.
+VIT_MODEL_ARGS = {"num_classes": 8, "image_size": 32, "patch_size": 16,
+                  "embed_dim": 16, "depth": 1, "num_heads": 2, "mlp_ratio": 4.0,
+                  "hidden_dim": 8, "drop_rate": 0.1, "attn_drop_rate": 0.1}
+VIT_TRAIN_TINY = {"arch": "vit", "input_size": 32, "patch_gap": 8, "jitter": 2,
+                  "num_classes": 8, "patch_size": 16, "embed_dim": 16,
+                  "depth": 1, "num_heads": 2, "mlp_ratio": 4.0, "hidden_dim": 8,
+                  "drop_rate": 0.1, "attn_drop_rate": 0.1, "epochs": 2,
+                  "batch_size": 2, "num_workers": 0, "lr": 0.0006,
+                  "weight_decay": 0.05, "betas": [0.9, 0.999], "warmup_epochs": 0,
+                  "min_lr": 1.0e-6, "clip_grad": 1.0, "save_at_epochs": [1, 2]}
+
+
+class TestVitConfigTranslation(Base):
+    def vit_config(self, train=None, **over) -> dict:
+        cfg = {"stage": "pretrain", "seed": 0,
+               "data_root": str(self.tmp / "data"), "device": "cpu",
+               "train": dict(train if train is not None else VIT_TRAIN_TINY)}
+        cfg.update(over)
+        return cfg
+
+    def test_the_vit_pretrain_config_is_accepted(self):
+        args = adapter.to_args(self.vit_config(), out=self.out)
+        self.assertTrue(Path(args.save_dir).is_relative_to(self.out))
+        built = adapter._vit_run_config(self.vit_config(), out=self.out)
+        self.assertEqual(built["model"]["embed_dim"], 16)
+        self.assertEqual(built["training"]["save_at_epochs"], [1, 2])
+
+    def test_native_pretrain_unchanged_when_arch_absent(self):
+        args = adapter.to_args(self.config(), out=self.out)
+        self.assertEqual(args.max_steps, 2)          # step-based native intact
+
+    def test_a_missing_vit_setting_is_refused_by_name(self):
+        for key in VIT_TRAIN_TINY:
+            if key == "arch":
+                continue
+            with self.subTest(key=key):
+                t = {k: v for k, v in VIT_TRAIN_TINY.items() if k != key}
+                with self.assertRaises(adapter.ConfigError) as e:
+                    adapter.to_args(self.vit_config(train=t), out=self.out)
+                self.assertIn(key, str(e.exception))
+
+    def test_native_knob_does_not_leak_into_the_vit_path(self):
+        with self.assertRaises(adapter.ConfigError) as e:
+            adapter.to_args(
+                self.vit_config(train={**VIT_TRAIN_TINY, "max_steps": 2}),
+                out=self.out)
+        self.assertIn("max_steps", str(e.exception))
+
+    def test_vit_knob_does_not_leak_into_the_native_path(self):
+        with self.assertRaises(adapter.ConfigError) as e:
+            adapter.to_args(self.config(train={"embed_dim": 768}), out=self.out)
+        self.assertIn("embed_dim", str(e.exception))
+
+
+class TestTheVitModel(unittest.TestCase):
+    def _model(self):
+        vc = load("vit_context", METHOD / "models" / "vit_context.py")
+        return vc.build_vit_context_model(**VIT_MODEL_ARGS)
+
+    @needs_timm
+    def test_the_encoder_returns_the_cls_feature(self):
+        import torch
+        feats = self._model().get_encoder()(torch.zeros(2, 3, 32, 32))
+        self.assertEqual(tuple(feats.shape), (2, VIT_MODEL_ARGS["embed_dim"]))
+
+    @needs_timm
+    def test_forward_predicts_over_the_eight_positions(self):
+        import torch
+        out = self._model()(torch.zeros(2, 3, 32, 32), torch.zeros(2, 3, 32, 32))
+        self.assertEqual(tuple(out.shape), (2, 8))
+
+    @needs_timm
+    def test_encoder_pt_holds_only_the_backbone(self):
+        got = adapter.extract_encoder(self._model().state_dict())
+        self.assertTrue(got)
+        self.assertIn("cls_token", got)              # prefix stripped
+        self.assertFalse([k for k in got if k.startswith("head")])
+
+    @needs_timm
+    def test_load_encoder_round_trips_the_vit_weights(self):
+        import torch
+        saved = adapter.extract_encoder(self._model().state_dict())
+        cfg = {"train": {"arch": "vit", "num_classes": 8, "input_size": 32,
+                         "patch_size": 16, "embed_dim": 16, "depth": 1,
+                         "num_heads": 2, "mlp_ratio": 4.0, "hidden_dim": 8,
+                         "drop_rate": 0.1, "attn_drop_rate": 0.1}}
+        enc = adapter.load_encoder(saved, cfg)        # a _ClsFeature wrapper
+        vit_state = enc.vit.state_dict()
+        pairs = 0
+        for k, want in saved.items():
+            got = vit_state.get(k)
+            if got is None:
+                continue
+            pairs += 1
+            self.assertTrue(torch.equal(got, want), f"{k} came back changed")
+        self.assertGreater(pairs, 0)
+
+
+class TestAVitStep2Smoke(Base):
+    def _adapter(self, cfg_dict, out):
+        cfg = self.tmp / (out.name + ".json")
+        cfg.write_text(json.dumps(cfg_dict), encoding="utf-8")
+        env = {**os.environ, "PYTHONPATH": str(ROOT)}
+        r = subprocess.run(
+            [sys.executable, "-m", "adapter", "--config", str(cfg),
+             "--out", str(out)], cwd=METHOD, env=env,
+            capture_output=True, text=True)
+        return cfg, r
+
+    def _eval_cfg(self, encoder) -> dict:
+        return {"stage": "linear_eval", "seed": 0,
+                "data_root": str(self.tmp / "data"), "device": "cpu",
+                "encoder": str(encoder),
+                "train": {"arch": "vit", "num_classes": 8, "input_size": 32,
+                          "patch_size": 16, "embed_dim": 16, "depth": 1,
+                          "num_heads": 2, "mlp_ratio": 4.0, "hidden_dim": 8,
+                          "drop_rate": 0.1, "attn_drop_rate": 0.1, "epochs": 1,
+                          "batch_size": 2, "feature_batch_size": 2,
+                          "num_workers": 0, "lr": 0.01, "img_size": 32}}
+
+    @needs_timm
+    def test_pretrain_milestones_then_probe_passes_contract(self):
+        tiny_imagenet(self.tmp / "data")
+        pre = self.tmp / "pre_out"
+        _, r = self._adapter(
+            {"stage": "pretrain", "seed": 0, "data_root": str(self.tmp / "data"),
+             "device": "cpu", "train": dict(VIT_TRAIN_TINY)}, pre)
+        self.assertEqual(r.returncode, 0, r.stdout[-3000:] + r.stderr[-3000:])
+        self.assertTrue((pre / "encoder.pt").is_file())
+        for n in (1, 2):
+            self.assertTrue((pre / f"encoder_epoch{n}.pt").is_file(),
+                            f"milestone encoder_epoch{n}.pt not written")
+
+        ev = self.tmp / "eval_out"
+        cfg, r = self._adapter(self._eval_cfg(pre / "encoder_epoch2.pt"), ev)
+        self.assertEqual(r.returncode, 0, r.stdout[-3000:] + r.stderr[-3000:])
+        v = subprocess.run(
+            [sys.executable, str(BIN / "contract-test.py"), "--out", str(ev),
+             "--config", str(cfg), "--exit-status", "0"],
+            capture_output=True, text=True)
+        self.assertEqual(v.returncode, 0, v.stdout + v.stderr)
+        m = json.loads((ev / "metrics.json").read_text())["metrics"]
+        self.assertIn("final_linear_probe_top1_accuracy", m)
+        self.assertFalse((ev / "encoder.pt").exists())
+
 
 if __name__ == "__main__":
     unittest.main()
