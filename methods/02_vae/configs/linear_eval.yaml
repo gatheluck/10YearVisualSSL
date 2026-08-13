@@ -1,0 +1,46 @@
+# VAE linear evaluation: a linear probe on the frozen VAE encoder.
+#
+# The probe reads the model this port trains -- the encoder's latent mean `mu`
+# (VAE_CNN.get_features), one latent_dim-d vector per image -- so its number is a
+# genuine, comparable linear probe (`*_linear_probe_top1/5_accuracy`).
+#
+# Faithful to the capture's VAE eval, not the shared ARSSL probe: inputs are kept
+# in [0,1] (no ImageNet mean/std, matching the VAE's reconstruction training) and
+# `mu` is fed to the linear layer without mean-centre / L2-normalise. SGD +
+# cosine, cross-entropy, top-1 and top-5. The loader is dataset-agnostic: it uses
+# torchvision MNIST for the shipped MNIST pretrain (10 classes) and an ImageFolder
+# if an ImageNet-style DATA_ROOT is given. Probing an MNIST-trained encoder on
+# ImageNet is the capture's MNIST->ImageNet cross-domain transfer; see
+# docs/EVALUATION.md for the comparability caveat.
+#
+# Two paths are passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   an MNIST directory, or an ImageFolder with train/ and
+#                            val/ subdirectories
+#   --set ENCODER=<path>     encoder.pt from a pretrain run
+# The output path is fixed at --out. The model settings (latent_dim, hidden_dim,
+# img_size) must match the pretrain run that produced ENCODER.
+#
+#   python3 bin/resolve-config.py --config methods/02_vae/configs/linear_eval.yaml \
+#       --set DATA_ROOT=/path/to/mnist --set ENCODER=/path/to/encoder.pt --out eval.json
+stage: linear_eval
+
+seed: 42
+
+data_root: "${DATA_ROOT}"
+
+device: auto
+
+encoder: "${ENCODER}"
+
+train:
+  # model (must match the pretrain run so encoder.pt loads)
+  latent_dim: 20
+  hidden_dim: 500
+  img_size: 28
+  # probe: a single linear layer, SGD + cosine
+  epochs: 100
+  batch_size: 256
+  num_workers: 8
+  lr: 0.1
+  momentum: 0.9
+  weight_decay: 0.0

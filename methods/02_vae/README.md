@@ -109,6 +109,29 @@ their digests pinned in `provenance.json`. Otherwise:
 5. `__init__.py`, `models/__init__.py` and `data/__init__.py` were rewritten;
    they re-exported `VAE_ViT`, which belongs to step 2 and is not here
 
+## Linear evaluation
+
+`linear_eval` fits a single linear layer on the frozen VAE encoder's latent mean
+`mu` (`VAE_CNN.get_features` -- the conv encoder, flattened, then `fc_mu`), one
+`latent_dim`-d vector per image. It reads the `encoder.pt` a pretrain run wrote
+and produces a classifier, not an encoder (the manifest carries an
+`encoder_absent_reason`).
+
+Faithful to the capture's VAE eval (`methods/2_vae/evaluate_linear.py`), not the
+shared ARSSL probe: inputs are kept in `[0,1]` (no ImageNet mean/std, matching
+the VAE's reconstruction training) and `mu` is fed to the linear layer without
+mean-centre / L2-normalise. SGD (momentum) under a cosine schedule,
+cross-entropy, top-1 and top-5. The loader is **dataset-agnostic**, as the
+capture's is: `torchvision.datasets.MNIST` for the shipped MNIST pretrain (10
+classes), or an `ImageFolder` (`train/`, `val/`) if an ImageNet-style DATA_ROOT
+is given, with the class count inferred from the dataset.
+
+The shipped pretrain is MNIST, so the paired probe is MNIST (10-class). The
+capture's own numbers came from probing on ImageNet-1k -- including the stated
+MNIST->ImageNet cross-domain transfer -- so the metric name is comparable
+(`*_linear_probe_top1/5_accuracy`) but its scale depends on the dataset; see
+docs/EVALUATION.md.
+
 ## What is not here yet
 
-Step 2 (ViT) and the linear evaluation.
+Step 2 (the unified ViT-B/16 backbone).
