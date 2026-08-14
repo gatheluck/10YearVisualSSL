@@ -1,0 +1,40 @@
+# MAE linear evaluation for a unified ViT-B/16 Step-2 encoder.
+#
+# Identical to linear_eval.yaml but with the ViT-B/16 dimensions, so it can probe
+# an encoder.pt produced by configs/pretrain_vit.yaml (recipe: unified). The probe
+# reads the model this port trains (the MAE encoder, global-average-pooled over
+# patch tokens), so its number is a genuine, comparable linear probe.
+#
+# Two paths are passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   an ImageFolder with train/ and val/ subdirectories
+#   --set ENCODER=<path>     encoder.pt (or encoder_epoch{N}.pt) from a Step-2 run
+# The output path is fixed at --out. The architecture must match the pretrain run
+# that produced ENCODER (here, the unified ViT-B/16).
+stage: linear_eval
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+encoder: "${ENCODER}"
+
+train:
+  # model (must match the unified ViT-B/16 pretrain run)
+  arch: vit_base_patch16
+  img_size: 224
+  patch_size: 16
+  enc_embed_dim: 768
+  enc_depth: 12
+  enc_num_heads: 12
+  dec_embed_dim: 512
+  dec_depth: 8
+  dec_num_heads: 16
+  mlp_ratio: 4.0
+  mask_ratio: 0.75
+  norm_pix_loss: true
+  # probe: global-average pooling of patch tokens (stronger for MAE), SGD + cosine.
+  pool: avg
+  epochs: 90
+  batch_size: 256
+  num_workers: 8
+  lr: 0.1
+  momentum: 0.9
+  weight_decay: 0.0

@@ -5,7 +5,11 @@
 MAE pretrains a masked autoencoder (step 1) and is evaluated by a linear probe on
 the encoder's features (linear_eval). It is a **self-contained re-implementation**
 -- the lab's own MAE code, torch-only, trained from scratch (no CC-BY-NC weights)
--- so there is no `third_party/` submodule.
+-- so there is no `third_party/` submodule. The capture's unified ViT-B/16 Step 2
+(recipe: unified) is also ported additively: the same MAE objective on a ViT-B/16
+encoder (vs the native ViT-L/16) under the unified recipe -- AdamW + a cosine LR
+schedule with 10-epoch warmup (which the native fixed-LR trainer lacks) and
+milestone checkpoints; the native ViT-L/16 path is byte-for-byte unchanged.
 
 `encoder.pt` is the encoder side of the model: the patch embedding, the CLS
 token, the encoder blocks and their norm. The decoder (`dec_*`, `mask_token`,
@@ -36,6 +40,15 @@ MODEL_KEYS = frozenset({"arch", "img_size", "patch_size", "enc_embed_dim",
 PRETRAIN_TRAIN_ONLY = frozenset({"epochs", "batch_size", "num_workers", "lr",
                               "weight_decay"})
 PRETRAIN_TRAIN_KEYS = MODEL_KEYS | PRETRAIN_TRAIN_ONLY
+# The unified ViT-B/16 Step-2 recipe (recipe: unified), additive to the native
+# ViT-L/16 recipe. The model arch is a shared key (vit_large natively, vit_base
+# for unified). The native trainer has no LR schedule; the unified one ADDS a
+# cosine schedule, so the unified-only training keys are warmup_epochs, min_lr and
+# save_at_epochs. `recipe` is stripped before key validation.
+RECIPES = ("native", "unified")
+UNIFIED_TRAIN_ONLY = PRETRAIN_TRAIN_ONLY | {"warmup_epochs", "min_lr",
+                                            "save_at_epochs"}
+PRETRAIN_UNIFIED_KEYS = MODEL_KEYS | UNIFIED_TRAIN_ONLY
 # The probe reads the architecture (to rebuild the model), the pooling, and its
 # own hyperparameters.
 EVAL_PROBE_KEYS = frozenset({"pool", "epochs", "batch_size", "num_workers",
@@ -108,7 +121,6 @@ def to_run_config(config: dict, out: Path) -> dict:
         raise ConfigError(
             f"config: stage is {stage!r}; known stages are "
             f"{', '.join(STAGES)}")
-    keys = EVAL_TRAIN_KEYS if stage == "linear_eval" else PRETRAIN_TRAIN_KEYS
     top = EVAL_TOP_KEYS if stage == "linear_eval" else TOP_KEYS
     _named(top - set(config), set(config) - top, "config")
 
@@ -116,7 +128,18 @@ def to_run_config(config: dict, out: Path) -> dict:
     if not isinstance(train, dict):
         raise ConfigError(f"config: train is {type(train).__name__}, "
                           "not a mapping")
-    _named(keys - set(train), set(train) - keys, "config.train")
+    # `recipe` selects the recipe; absent == native. Stripped before validation.
+    recipe = train.get("recipe", "native")
+    if recipe not in RECIPES:
+        raise ConfigError(
+            f"config.train: recipe is {recipe!r}; expected one of "
+            f"{', '.join(RECIPES)}")
+    rest = {k: v for k, v in train.items() if k != "recipe"}
+    if stage == "linear_eval":
+        keys = EVAL_TRAIN_KEYS
+    else:
+        keys = PRETRAIN_UNIFIED_KEYS if recipe == "unified" else PRETRAIN_TRAIN_KEYS
+    _named(keys - set(rest), set(rest) - keys, "config.train")
 
     if config["device"] not in DEVICES:
         raise ConfigError(
@@ -126,14 +149,20 @@ def to_run_config(config: dict, out: Path) -> dict:
     if stage == "linear_eval":
         return {"stage": stage}
 
+    training = {"epochs": int(train["epochs"]),
+                "batch_size": int(train["batch_size"]),
+                "num_workers": int(train["num_workers"]),
+                "lr": float(train["lr"]),
+                "weight_decay": float(train["weight_decay"])}
+    if recipe == "unified":
+        training["warmup_epochs"] = int(train["warmup_epochs"])
+        training["min_lr"] = float(train["min_lr"])
+        training["save_at_epochs"] = [int(e) for e in train["save_at_epochs"]]
+
     return {
         "seed": int(config["seed"]),
         "model": _model_section(train),
-        "training": {"epochs": int(train["epochs"]),
-                     "batch_size": int(train["batch_size"]),
-                     "num_workers": int(train["num_workers"]),
-                     "lr": float(train["lr"]),
-                     "weight_decay": float(train["weight_decay"])},
+        "training": training,
         "data": {"data_root": str(config["data_root"])},
         "output": {"checkpoint_dir": str(Path(out) / WORK)},
     }
@@ -187,10 +216,14 @@ def _filter_numeric(raw: dict) -> tuple:
 
 
 def run_training(config: dict, out: Path, _run=None) -> dict:
+    recipe = config.get("train", {}).get("recipe", "native")
     if _run is None:
         if str(METHOD_DIR) not in sys.path:
             sys.path.insert(0, str(METHOD_DIR))
-        from train_pretrain_mae import run as _run
+        if recipe == "unified":
+            from train_pretrain_vit_mae import run as _run
+        else:
+            from train_pretrain_mae import run as _run
     args = to_args(config, out)
     run_config = to_run_config(config, out)
     Path(run_config["output"]["checkpoint_dir"]).mkdir(parents=True,
@@ -239,6 +272,17 @@ def body(ctx: adapterlib.Context) -> None:
     state = torch.load(latest, map_location="cpu", weights_only=False)
     torch.save(extract_encoder(state["model_state_dict"]),
                Path(ctx.out) / "encoder.pt")
+    train = ctx.config.get("train", {})
+    if train.get("recipe") == "unified":
+        # The unified trainer writes checkpoint_epoch_{N}.pth per milestone; hand
+        # over encoder_epoch{N}.pt for each so the 100/200/300 sweep can probe
+        # each frozen encoder.
+        for n in train.get("save_at_epochs", []):
+            ck = Path(ctx.out) / WORK / f"checkpoint_epoch_{int(n)}.pth"
+            if ck.is_file():
+                s = torch.load(ck, map_location="cpu", weights_only=False)
+                torch.save(extract_encoder(s["model_state_dict"]),
+                           Path(ctx.out) / f"encoder_epoch{int(n)}.pt")
     ctx.write_metrics(metrics, names=PRETRAIN_METRIC_NAMES)
 
 
