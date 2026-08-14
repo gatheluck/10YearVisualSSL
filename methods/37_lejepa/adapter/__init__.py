@@ -9,7 +9,10 @@ combined as `SIGReg * lambda + invariance * (1 - lambda)` (step 1). linear_eval
 then probes the frozen backbone (its num_features feature). A self-contained
 re-implementation (the lab's own code); the ViT is timm's (built from scratch, no
 pretrained download, so the run stays hermetic) and SIGReg is reimplemented
-locally (no external package). The capture's step 2 (ViT fine-tune) is excluded.
+locally (no external package). The capture's unified ViT-B/16 Step 2 (recipe:
+unified) is also ported additively: the same objective on the same
+vit_base_patch16_224 backbone under the unified recipe (epochs 300, lr 6e-4,
+milestone checkpoints); the native paper recipe is byte-for-byte unchanged.
 
 `encoder.pt` is the bare backbone (`backbone.*`, the prefix stripped so it loads
 straight into a plain timm model); the projection MLP is training machinery and is
@@ -44,6 +47,15 @@ TRAINING_KEYS = frozenset({"epochs", "batch_size", "lr", "min_lr", "beta1",
                            "clip_grad"})
 PRETRAIN_TRAIN_KEYS = (MODEL_KEYS | AUG_KEYS | LEJEPA_KEYS | DATA_KEYS
                     | TRAINING_KEYS)
+# The unified ViT-B/16 Step-2 recipe (recipe: unified), additive to the native
+# recipe. LeJEPA's native backbone is already vit_base_patch16_224 and its
+# optimiser is already AdamW + fixed wd + cosine-to-min_lr, so the unified path
+# is the same key set plus `save_at_epochs` (milestone checkpoints); `recipe` is
+# stripped before key validation.
+RECIPES = ("native", "unified")
+UNIFIED_TRAINING_KEYS = TRAINING_KEYS | {"save_at_epochs"}
+PRETRAIN_UNIFIED_KEYS = (MODEL_KEYS | AUG_KEYS | LEJEPA_KEYS | DATA_KEYS
+                         | UNIFIED_TRAINING_KEYS)
 EVAL_MODEL_KEYS = frozenset({"name", "img_size", "drop_path_rate"})
 EVAL_PROBE_KEYS = frozenset({"epochs", "batch_size", "num_workers", "lr",
                              "momentum", "weight_decay"})
@@ -112,16 +124,19 @@ def _aug_section(train: dict) -> dict:
 
 
 def _training_section(train: dict) -> dict:
-    return {"epochs": int(train["epochs"]),
-            "batch_size": int(train["batch_size"]),
-            "lr": float(train["lr"]),
-            "min_lr": float(train["min_lr"]),
-            "beta1": float(train["beta1"]),
-            "beta2": float(train["beta2"]),
-            "eps": float(train["eps"]),
-            "weight_decay": float(train["weight_decay"]),
-            "warmup_epochs": int(train["warmup_epochs"]),
-            "clip_grad": float(train["clip_grad"])}
+    out = {"epochs": int(train["epochs"]),
+           "batch_size": int(train["batch_size"]),
+           "lr": float(train["lr"]),
+           "min_lr": float(train["min_lr"]),
+           "beta1": float(train["beta1"]),
+           "beta2": float(train["beta2"]),
+           "eps": float(train["eps"]),
+           "weight_decay": float(train["weight_decay"]),
+           "warmup_epochs": int(train["warmup_epochs"]),
+           "clip_grad": float(train["clip_grad"])}
+    if "save_at_epochs" in train:
+        out["save_at_epochs"] = [int(e) for e in train["save_at_epochs"]]
+    return out
 
 
 def to_run_config(config: dict, out: Path) -> dict:
@@ -137,7 +152,6 @@ def to_run_config(config: dict, out: Path) -> dict:
         raise ConfigError(
             f"config: stage is {stage!r}; known stages are "
             f"{', '.join(STAGES)}")
-    keys = EVAL_TRAIN_KEYS if stage == "linear_eval" else PRETRAIN_TRAIN_KEYS
     top = EVAL_TOP_KEYS if stage == "linear_eval" else TOP_KEYS
     _named(top - set(config), set(config) - top, "config")
 
@@ -145,7 +159,18 @@ def to_run_config(config: dict, out: Path) -> dict:
     if not isinstance(train, dict):
         raise ConfigError(f"config: train is {type(train).__name__}, "
                           "not a mapping")
-    _named(keys - set(train), set(train) - keys, "config.train")
+    # `recipe` selects the recipe; absent == native. Stripped before validation.
+    recipe = train.get("recipe", "native")
+    if recipe not in RECIPES:
+        raise ConfigError(
+            f"config.train: recipe is {recipe!r}; expected one of "
+            f"{', '.join(RECIPES)}")
+    rest = {k: v for k, v in train.items() if k != "recipe"}
+    if stage == "linear_eval":
+        keys = EVAL_TRAIN_KEYS
+    else:
+        keys = PRETRAIN_UNIFIED_KEYS if recipe == "unified" else PRETRAIN_TRAIN_KEYS
+    _named(keys - set(rest), set(rest) - keys, "config.train")
 
     if config["device"] not in DEVICES:
         raise ConfigError(
@@ -215,10 +240,14 @@ def _filter_numeric(raw: dict) -> tuple:
 
 
 def run_training(config: dict, out: Path, _run=None) -> dict:
+    recipe = config.get("train", {}).get("recipe", "native")
     if _run is None:
         if str(METHOD_DIR) not in sys.path:
             sys.path.insert(0, str(METHOD_DIR))
-        from train_pretrain_lejepa import run as _run
+        if recipe == "unified":
+            from train_pretrain_vit_lejepa import run as _run
+        else:
+            from train_pretrain_lejepa import run as _run
     args = to_args(config, out)
     run_config = to_run_config(config, out)
     Path(run_config["output"]["checkpoint_dir"]).mkdir(parents=True,
@@ -265,6 +294,17 @@ def body(ctx: adapterlib.Context) -> None:
     state = torch.load(latest, map_location="cpu", weights_only=False)
     torch.save(extract_encoder(state["model_state_dict"]),
                Path(ctx.out) / "encoder.pt")
+    train = ctx.config.get("train", {})
+    if train.get("recipe") == "unified":
+        # The unified trainer writes checkpoint_epoch_{N}.pth per milestone; hand
+        # over encoder_epoch{N}.pt for each so the 100/200/300 sweep can probe
+        # each frozen backbone.
+        for n in train.get("save_at_epochs", []):
+            ck = Path(ctx.out) / WORK / f"checkpoint_epoch_{int(n)}.pth"
+            if ck.is_file():
+                s = torch.load(ck, map_location="cpu", weights_only=False)
+                torch.save(extract_encoder(s["model_state_dict"]),
+                           Path(ctx.out) / f"encoder_epoch{int(n)}.pt")
     ctx.write_metrics(metrics, names=PRETRAIN_METRIC_NAMES)
 
 

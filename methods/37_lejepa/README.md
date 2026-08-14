@@ -17,11 +17,18 @@ features toward an isotropic Gaussian by comparing the empirical characteristic
 function of random 1-D **slices** of the batch against the standard-normal
 `exp(−t²/2)` on a trapezoidal quadrature grid. Step 1 is that pretext.
 
-## Scope — the ViT step 1 only
+## Scope — the ViT-B/16 step 1 and the unified Step 2
 
-This port covers LeJEPA's **ViT-B/16** step 1. The capture's step 2 (ViT
-fine-tune) is excluded, as in every port. `timm` supplies the ViT, built **from
-scratch** (no pretrained download), so the run stays hermetic. **SIGReg is
+This port covers LeJEPA's **ViT-B/16** step 1 (`configs/pretrain.yaml`, the paper
+recipe) **and** the capture's unified **ViT-B/16 Step 2** (`configs/pretrain_vit.yaml`,
+`recipe: unified`). Because LeJEPA's backbone is already `vit_base_patch16_224` and
+its optimiser is already AdamW + fixed weight decay + cosine-to-`min_lr`, the
+unified Step 2 is the *same* objective/backbone under the unified schedule (epochs
+100→300, lr 5e-4→6e-4, min_lr 5e-7→1e-6) with milestone checkpoints at 100/200/300,
+each probed by the same frozen-backbone `linear_eval`. It is selected by an explicit
+`recipe: unified` key (absent = the native paper recipe, byte-for-byte unchanged).
+`timm` supplies the ViT, built **from scratch** (no pretrained download), so the run
+stays hermetic — no new dependency for the Step-2 path. **SIGReg is
 reimplemented locally** — the capture's README states *"No external LeJEPA package
 is imported at runtime"*, and the only third-party imports are torch / torchvision
 / timm / yaml (measured), so this ports **self-contained**: no `third_party/`
@@ -77,6 +84,11 @@ single-feature probe instead is a documented deviation, the same as every port.)
 - **Not a full run:** `configs/pretrain.yaml` is the LeJEPA recipe (ViT-B/16, 224px,
   4 views, λ=0.02, 100 epochs, batch 1024, AdamW, warmup 10 → cosine), a recipe,
   not a completed run.
+- **Exercised (unified Step 2):** a hermetic smoke — `recipe: unified`, a tiny ViT
+  (the `name` key), two epochs with `save_at_epochs: [1, 2]` — runs through
+  `python -m adapter` on a CPU, writes `encoder.pt` and both `encoder_epoch{1,2}.pt`
+  milestones, and a milestone probe passes `contract-test`. The full 300-epoch
+  ViT-B/16 recipe has not been run here.
 - **GPU:** the device resolution is verified on real hardware; see the device
   mutation spec (`mutations/37_lejepa-pretrain-device.json`).
 
