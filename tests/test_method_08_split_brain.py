@@ -48,6 +48,15 @@ except ImportError:
 needs_deps = unittest.skipUnless(
     HAVE_DEPS, "08_split_brain needs torch, numpy, torchvision")
 
+try:
+    import timm                                          # noqa: F401
+    HAVE_TIMM = True
+except ImportError:
+    HAVE_TIMM = False
+
+needs_timm = unittest.skipUnless(
+    HAVE_TIMM, "the ViT Step-2 path needs timm (arch: vit)")
+
 
 def load(name: str, path: Path):
     return load_from(METHOD, name, path)
@@ -490,6 +499,183 @@ class TestTheOriginalIsReferencedNotCopied(unittest.TestCase):
         self.assertNotIn("DistributedDataParallel", used)
         self.assertNotIn("SummaryWriter", used)
         self.assertNotIn("timm", used)
+
+
+# --- Step 2: unified ViT-B/16 (arch: vit), additive alongside the native
+# AlexNet path. The two cross-channel branches keep their roles, but each backbone
+# is a half-width ViT-B/16 (embed_dim 384, 6 heads, per-branch in_chans 1/2) + a
+# conv decoder. encoder.pt keeps net1.encoder.* / net2.encoder.*; the eval feature
+# is the concatenated CLS of both branches. Tiny dims so a CPU smoke is cheap.
+VIT_MODEL_ARGS = {"img_size": 32, "patch_size": 16, "embed_dim": 16, "depth": 1,
+                  "num_heads": 2, "mlp_ratio": 4.0}
+VIT_MODEL_KNOBS = {"crop_size": 32, "patch_size": 16, "embed_dim": 16,
+                   "depth": 1, "num_heads": 2, "mlp_ratio": 4.0}
+VIT_TRAIN_TINY = {"arch": "vit", **VIT_MODEL_KNOBS, "epochs": 2, "batch_size": 2,
+                  "num_workers": 0, "lr": 6.0e-4, "weight_decay": 0.05,
+                  "warmup_epochs": 0, "min_lr": 0.0, "save_at_epochs": [1, 2]}
+VIT_EVAL_TINY = {"arch": "vit", **VIT_MODEL_KNOBS, "epochs": 2, "batch_size": 2,
+                 "num_workers": 0, "lr": 0.1, "momentum": 0.9,
+                 "weight_decay": 0.0}
+FEATURE_DIM_VIT = 2 * VIT_MODEL_KNOBS["embed_dim"]   # both branches' CLS
+
+
+class TestVitConfigTranslation(Base):
+    def vit_config(self, train=None, **over) -> dict:
+        cfg = {"stage": "pretrain", "seed": 0,
+               "data_root": str(self.tmp / "data"), "device": "cpu",
+               "train": dict(train if train is not None else VIT_TRAIN_TINY)}
+        for k, v in over.items():
+            cfg[k] = v
+        return cfg
+
+    def test_the_vit_step2_config_is_accepted(self):
+        built = adapter.to_run_config(self.vit_config(), self.out)
+        self.assertEqual(built["arch"], "vit")
+        self.assertEqual(built["model"]["embed_dim"], 16)
+        self.assertEqual(built["model"]["num_heads"], 2)
+        self.assertEqual(built["training"]["save_at_epochs"], [1, 2])
+
+    def test_the_native_path_has_no_top_level_arch(self):
+        built = adapter.to_run_config(self.config(), self.out)
+        self.assertNotIn("arch", built)
+
+    def test_a_bad_arch_is_refused_by_name(self):
+        with self.assertRaises(adapter.ConfigError) as e:
+            adapter.to_run_config(
+                self.vit_config(train={**VIT_TRAIN_TINY, "arch": "vitt"}),
+                self.out)
+        self.assertIn("arch", str(e.exception))
+
+    def test_a_missing_vit_setting_is_refused_by_name(self):
+        for key in VIT_TRAIN_TINY:
+            if key == "arch":
+                continue
+            with self.subTest(key=key):
+                t = {k: v for k, v in VIT_TRAIN_TINY.items() if k != key}
+                with self.assertRaises(adapter.ConfigError) as e:
+                    adapter.to_run_config(self.vit_config(train=t), self.out)
+                self.assertIn(key, str(e.exception))
+
+    def test_a_native_knob_does_not_leak_into_the_vit_path(self):
+        for key in ("beta1", "beta2", "lr_decay_rate"):
+            with self.subTest(key=key):
+                with self.assertRaises(adapter.ConfigError) as e:
+                    adapter.to_run_config(
+                        self.vit_config(train={**VIT_TRAIN_TINY, key: 1}),
+                        self.out)
+                self.assertIn(key, str(e.exception))
+
+    def test_a_vit_knob_does_not_leak_into_the_native_path(self):
+        for key in ("embed_dim", "warmup_epochs", "min_lr", "save_at_epochs"):
+            with self.subTest(key=key):
+                with self.assertRaises(adapter.ConfigError) as e:
+                    adapter.to_run_config(self.config(train={key: 1}), self.out)
+                self.assertIn(key, str(e.exception))
+
+
+class TestTheVitModel(unittest.TestCase):
+    def _model(self):
+        vm = load("vit_split_brain", METHOD / "models" / "vit_split_brain.py")
+        return vm.build_split_brain_vit(**VIT_MODEL_ARGS)
+
+    @needs_timm
+    def test_extract_features_concatenates_both_branches(self):
+        import torch
+        feats = self._model().extract_features(torch.randn(2, 1, 32, 32),
+                                               torch.randn(2, 2, 32, 32))
+        self.assertEqual(tuple(feats.shape), (2, FEATURE_DIM_VIT))
+
+    @needs_timm
+    def test_forward_predicts_both_cross_channel_maps(self):
+        import torch
+        ab_pred, l_pred = self._model()(torch.randn(2, 1, 32, 32),
+                                        torch.randn(2, 2, 32, 32))
+        # crop 32, patch 16 -> grid 2 -> decoder x4 -> 8x8
+        self.assertEqual(tuple(ab_pred.shape), (2, AB_CLASSES, 8, 8))
+        self.assertEqual(tuple(l_pred.shape), (2, L_CLASSES, 8, 8))
+
+    @needs_timm
+    def test_the_bidirectional_loss_reaches_every_parameter(self):
+        # Split-brain's ab-CE + L-CE must touch both branches (the capture's
+        # DDP-no-unused-parameters property); a dead branch is a real bug.
+        import torch
+        import torch.nn.functional as F
+        model = self._model()
+        ab_pred, l_pred = model(torch.randn(2, 1, 32, 32),
+                                torch.randn(2, 2, 32, 32))
+        ab_t = torch.randint(0, AB_CLASSES, (2, 8, 8))
+        l_t = torch.randint(0, L_CLASSES, (2, 8, 8))
+        (F.cross_entropy(ab_pred, ab_t) + F.cross_entropy(l_pred, l_t)).backward()
+        dead = [n for n, p in model.named_parameters()
+                if p.requires_grad and p.grad is None]
+        self.assertEqual(dead, [], f"parameters got no gradient: {dead[:5]}")
+
+    @needs_timm
+    def test_encoder_pt_holds_only_the_two_trunks(self):
+        got = adapter.extract_encoder(self._model().state_dict())
+        self.assertTrue(got)
+        self.assertTrue(all(k.startswith(("net1.encoder.", "net2.encoder."))
+                            for k in got))
+        self.assertFalse([k for k in got if "decoder" in k])
+
+    @needs_timm
+    def test_load_encoder_round_trips_the_trunks(self):
+        import torch
+        saved = adapter.extract_encoder(self._model().state_dict())
+        cfg = {"train": {"arch": "vit", **VIT_MODEL_KNOBS}}
+        model = adapter.load_encoder(saved, cfg)
+        loaded = model.state_dict()
+        pairs = 0
+        for k, want in saved.items():
+            got = loaded.get(k)
+            if got is None:
+                continue
+            pairs += 1
+            self.assertTrue(torch.equal(got, want), f"{k} came back changed")
+        self.assertGreater(pairs, 0, "no saved weight reached the trunks")
+
+
+class TestAVitStep2Smoke(Base):
+    def _adapter(self, cfg_dict, out):
+        cfg = self.tmp / (out.name + ".json")
+        cfg.write_text(json.dumps(cfg_dict), encoding="utf-8")
+        env = {**os.environ, "PYTHONPATH": str(ROOT)}
+        r = subprocess.run(
+            [sys.executable, "-m", "adapter", "--config", str(cfg),
+             "--out", str(out)], cwd=METHOD, env=env,
+            capture_output=True, text=True)
+        return cfg, r
+
+    @needs_timm
+    def test_pretrain_milestones_then_probe_passes_contract(self):
+        tiny_imagefolder(self.tmp / "data")
+        pre = self.tmp / "pre_out"
+        _, r = self._adapter(
+            {"stage": "pretrain", "seed": 0,
+             "data_root": str(self.tmp / "data"), "device": "cpu",
+             "train": dict(VIT_TRAIN_TINY)}, pre)
+        self.assertEqual(r.returncode, 0, r.stdout[-3000:] + r.stderr[-3000:])
+        self.assertTrue((pre / "encoder.pt").is_file())
+        for n in (1, 2):
+            self.assertTrue((pre / f"encoder_epoch{n}.pt").is_file(),
+                            f"milestone encoder_epoch{n}.pt not written")
+
+        tiny_split(self.tmp / "eval")
+        ev = self.tmp / "eval_out"
+        cfg, r = self._adapter(
+            {"stage": "linear_eval", "seed": 0,
+             "data_root": str(self.tmp / "eval"), "device": "cpu",
+             "encoder": str(pre / "encoder_epoch2.pt"),
+             "train": dict(VIT_EVAL_TINY)}, ev)
+        self.assertEqual(r.returncode, 0, r.stdout[-3000:] + r.stderr[-3000:])
+        v = subprocess.run(
+            [sys.executable, str(BIN / "contract-test.py"), "--out", str(ev),
+             "--config", str(cfg), "--exit-status", "0"],
+            capture_output=True, text=True)
+        self.assertEqual(v.returncode, 0, v.stdout + v.stderr)
+        m = json.loads((ev / "metrics.json").read_text())["metrics"]
+        self.assertIn("final_linear_probe_top1_accuracy", m)
+        self.assertFalse((ev / "encoder.pt").exists())
 
 
 if __name__ == "__main__":

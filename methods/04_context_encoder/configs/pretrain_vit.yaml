@@ -1,0 +1,48 @@
+# Context Encoder Step 2: unified ViT-B/16 pretraining, from scratch.
+#
+# The capture's Step-2 is the centre-hole inpainting task on a ViT-B/16 encoder +
+# a 4-layer transformer decoder, trained adversarially: the encoder sees the
+# image with the centred 112x112 hole zeroed, the decoder predicts the hole
+# patches, and a centre-hole discriminator scores real vs predicted hole pixels.
+# Generator loss = 0.999 * MSE(pred_hole, target_hole) + 0.001 * BCE(D, 1); both
+# nets use AdamW (betas 0.9, 0.999) + warmup/cosine to min_lr, AMP on CUDA,
+# grad-clip; checkpoints at 100/200/300. The native AlexNet pretrain
+# (configs/pretrain.yaml, no arch, SGD generator + Adam discriminator) is
+# unchanged.
+#
+# One path is passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   the dataset root; pretraining reads its train/ subdirectory
+# The output path is fixed at --out.
+#
+#   python3 bin/launch.py --config methods/04_context_encoder/configs/pretrain_vit.yaml \
+#       --method 04_context_encoder --set DATA_ROOT=/path/to/imagenet
+stage: pretrain
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+
+train:
+  arch: vit
+  # ViT-B/16 encoder (build_vit_context_encoder) + transformer decoder
+  image_size: 224
+  patch_size: 16
+  in_channels: 3
+  embed_dim: 768
+  depth: 12
+  num_heads: 12
+  mlp_ratio: 4.0
+  decoder_dim: 512
+  decoder_depth: 4
+  decoder_heads: 8
+  hole_size: 112
+  # training: AdamW (betas 0.9, 0.999) + cosine (10-epoch warmup) to min_lr, AMP
+  epochs: 300
+  batch_size: 1024
+  num_workers: 8
+  lr: 0.0006
+  weight_decay: 0.05
+  warmup_epochs: 10
+  min_lr: 1.0e-6
+  clip_grad: 1.0
+  adversarial_weight: 0.001
+  save_at_epochs: [100, 200, 300]

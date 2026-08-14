@@ -19,11 +19,17 @@ self-contained method. It is the one GAN of the six — two networks, two
 optimisers — so it exercises a training shape the other ports do not.
 
 **A labelling caveat worth stating.** In the capture, `model_type='alexnet'` is
-Step 1 and `model_type='vit'` is Step 2. This port brings across Step 1 (the
-AlexNet architecture). Step 2 — the ViT variant with its own two-optimiser,
-bfloat16, always-adversarial protocol, and the 812-line `utils.py` that holds it
-— was not brought across, exactly as every other method's step 2 was left out.
-Dropping the ViT also drops the `timm` dependency it needed.
+Step 1 and `model_type='vit'` is Step 2. This port brings across **both**: the
+native AlexNet Step 1 (`configs/pretrain.yaml`, no arch) and the unified
+**ViT-B/16 Step 2** (`configs/pretrain_vit.yaml`, `arch: vit`). The Step-2 path
+keeps the same centre-hole inpainting task on a ViT-B/16 encoder + a transformer
+decoder, always adversarial (two AdamW optimisers, generator + centre-hole
+discriminator), AdamW + warmup/cosine to `min_lr`, AMP on CUDA, gradient
+clipping; checkpoints at 100/200/300, each probed by the same frozen-backbone
+`linear_eval` (the mean patch-token feature, `embed_dim`). The capture's
+cluster-only machinery (DDP, bfloat16, the 812-line `utils.py` resume contract) is
+dropped, as in every port; the ViT path needs `timm` (imported lazily on
+`arch: vit`), and the native AlexNet path is byte-for-byte unchanged.
 
 ## The linear evaluation
 
@@ -36,8 +42,11 @@ It reports all four comparable accuracies (best and final top-1, best and final
 top-5). The handoff is the shape the earlier two-stage ports use: the adapter
 builds the encoder with `load_encoder` from `encoder.pt` and hands it in, rather
 than letting the evaluation rebuild the whole model from a training checkpoint.
-`model_type` other than `alexnet` (the ViT and the official Caffe feature paths)
-is refused by name.
+The probe is arch-aware: the AlexNet path reads the 4096-d bottleneck
+(`model(x) -> (_, features)`), the ViT path the mean patch-token feature
+(`model.get_features(x)`, `embed_dim`). The stand-alone CLI path can only rebuild
+the fixed AlexNet (the ViT needs its config dimensions; the official Caffe
+features stay step 2), so it refuses a bare `model_type='vit'` by name.
 
 ## What was new here
 
@@ -68,12 +77,17 @@ recorded in `provenance.json` rather than pinned.
   `cuda` where there is none is refused rather than served a CPU in silence
 - **`main()` is split into `build_parser()`/`run(...)`** in both the trainer and
   the evaluation, returning the metrics the captured versions discarded
-- **Single process, full precision.** The captured DDP and AMP paths, and the
-  step-2 protocol machinery, were not brought across; the pretrain loop's plain
-  fp32 path runs on a CPU or a GPU unchanged
-- **The ViT (step 2) was not brought across**, and with it `timm`,
-  `ContextEncoderViT`, the official Caffe feature extractor, and the step-2
-  half of `utils.py`, `datasets.py` and `evaluate_linear.py`
+- **Single process.** The captured DDP and the 812-line `utils.py` resume
+  contract were not brought across; the native pretrain loop is plain fp32, and
+  the ViT Step-2 loop uses AMP only on CUDA (fp32 on CPU) so both run unchanged
+  on a CPU or a GPU
+- **The unified ViT-B/16 Step 2 was added** (`models/vit_context_encoder.py`,
+  `train_pretrain_vit.py`, `configs/pretrain_vit.yaml`). The encoder is built as
+  a `VisionTransformer` (configurable, so a tiny model runs a CPU smoke; the
+  shipped config is ViT-B/16) under `self.encoder`, with a transformer decoder
+  predicting the hole patches; the shared `Discriminator` (sized to the hole) is
+  reused. The official Caffe feature extractor and the capture's bfloat16 remain
+  out. `timm` is imported only on the `arch: vit` path
 
 ## The configuration
 
@@ -106,8 +120,14 @@ python3 bin/launch.py --config methods/04_context_encoder/configs/linear_eval.ya
   checks it refuses `cuda` when no GPU is visible
 - **The full recipe has never been run.** 300 epochs of AlexNet inpainting on
   ImageNet needs the GPUs it was written for
-- **No multi-process run, and no mixed precision.** The captured DDP and AMP
-  paths were not brought across
+- **The ViT Step-2 path ran a hermetic CPU smoke.** A tiny ViT (16-d embed, one
+  block, 32px image, 16px hole) trains two epochs with `save_at_epochs: [1, 2]`
+  through `python -m adapter`, writes `encoder.pt` and both
+  `encoder_epoch{1,2}.pt` milestones (each an adversarial generator+discriminator
+  step), and a milestone probe passes `contract-test`. The full 300-epoch
+  ViT-B/16 recipe (bfloat16, DDP) has not been run here
+- **No multi-process run.** The captured DDP path was not brought across; AMP is
+  used on the ViT Step-2 path on CUDA only
 - **The container definition has never been built** on this machine
 - The numbers in the configs are the recipe, not results; no accuracy from this
   port has been measured against anything

@@ -6,13 +6,18 @@ Colorization as a self-supervised pretext: the L channel of a Lab image is the
 input, and a VGG-style CNN predicts the ab channels quantised to 313 bins as a
 per-pixel classification (step 1). linear_eval then probes the frozen CNN encoder
 trunk (512-d, global-average-pooled). A self-contained re-implementation (the
-lab's own code) -- no submodule. The capture's step 2 (ViT) is excluded, as in
-every port.
+lab's own code) -- no submodule. The capture's unified ViT-B/16 Step 2 (arch: vit)
+is also ported additively: a from-scratch ViT-B/16 (hand-written, no timm) reading
+the L channel + a CNN decoder for the same 313-bin ab classification, AdamW +
+warmup/cosine + AMP, milestone checkpoints; the native CNN path is byte-for-byte
+unchanged.
 
-`encoder.pt` is the CNN encoder trunk (`encoder.*`); the decoder and the 313-bin
-head are pretext machinery and are left out. `linear_eval` reads this
-`encoder.pt`; the representation is the model this port trains, so the probe
-number is a genuine, comparable linear probe.
+`encoder.pt` is the encoder trunk (`encoder.*`) -- the CNN trunk natively, or the
+ViT trunk on arch: vit; the decoder and the 313-bin head are pretext machinery and
+are left out of both. `linear_eval` reads this `encoder.pt` via the model's
+`get_encoder()` (512-d GAP for the CNN, the embed_dim CLS for the ViT); the
+representation is the model this port trains, so the probe number is a genuine,
+comparable linear probe.
 """
 
 from __future__ import annotations
@@ -39,6 +44,28 @@ PRETRAIN_TRAIN_KEYS = MODEL_KEYS | PRETRAIN_TRAIN_ONLY
 EVAL_PROBE_KEYS = frozenset({"epochs", "batch_size", "num_workers", "lr",
                              "momentum", "weight_decay"})
 EVAL_TRAIN_KEYS = MODEL_KEYS | EVAL_PROBE_KEYS
+
+# The unified ViT-B/16 Step-2 path (arch: vit), additive to the native CNN path.
+# The native path carries no `arch` key (arch absent == the CNN); an explicit
+# `arch: cnn` selects it too. The ViT is a self-contained, from-scratch ViT-B/16
+# (hand-written, **no timm**) reading the L channel, with a CNN decoder for the
+# 313-bin ab classification and the unified AdamW/cosine/AMP recipe. `arch` is
+# stripped before key validation, so these sets do not carry it. The ViT trunk
+# reads the crop (img_size sizes the resize, crop_size the model input).
+ARCHS = ("cnn", "vit")
+VIT_MODEL_KEYS = frozenset({"img_size", "crop_size", "patch_size", "embed_dim",
+                            "depth", "num_heads", "mlp_ratio", "drop_rate",
+                            "attn_drop_rate"})
+PRETRAIN_VIT_ONLY = frozenset({"num_bins", "epochs", "batch_size", "num_workers",
+                               "lr", "weight_decay", "warmup_epochs", "min_lr",
+                               "clip_grad", "use_class_rebalancing",
+                               "rebalance_lambda", "rebalance_sample_size",
+                               "save_at_epochs"})
+PRETRAIN_VIT_KEYS = VIT_MODEL_KEYS | PRETRAIN_VIT_ONLY
+EVAL_VIT_KEYS = VIT_MODEL_KEYS | EVAL_PROBE_KEYS
+_VIT_MODEL_INT = ("img_size", "crop_size", "patch_size", "embed_dim", "depth",
+                  "num_heads")
+_VIT_MODEL_FLOAT = ("mlp_ratio", "drop_rate", "attn_drop_rate")
 
 TOP_KEYS = frozenset({"stage", "seed", "data_root", "device", "train"})
 EVAL_TOP_KEYS = TOP_KEYS | {"encoder"}
@@ -102,7 +129,6 @@ def to_run_config(config: dict, out: Path) -> dict:
         raise ConfigError(
             f"config: stage is {stage!r}; known stages are "
             f"{', '.join(STAGES)}")
-    keys = EVAL_TRAIN_KEYS if stage == "linear_eval" else PRETRAIN_TRAIN_KEYS
     top = EVAL_TOP_KEYS if stage == "linear_eval" else TOP_KEYS
     _named(top - set(config), set(config) - top, "config")
 
@@ -110,7 +136,19 @@ def to_run_config(config: dict, out: Path) -> dict:
     if not isinstance(train, dict):
         raise ConfigError(f"config: train is {type(train).__name__}, "
                           "not a mapping")
-    _named(keys - set(train), set(train) - keys, "config.train")
+    # `arch` selects the path; absent == the native CNN. It is stripped before
+    # key validation, so the disjoint key sets cannot leak between paths.
+    arch = train.get("arch", "cnn")
+    if arch not in ARCHS:
+        raise ConfigError(
+            f"config.train: arch is {arch!r}; expected one of "
+            f"{', '.join(ARCHS)}")
+    rest = {k: v for k, v in train.items() if k != "arch"}
+    if stage == "linear_eval":
+        keys = EVAL_VIT_KEYS if arch == "vit" else EVAL_TRAIN_KEYS
+    else:
+        keys = PRETRAIN_VIT_KEYS if arch == "vit" else PRETRAIN_TRAIN_KEYS
+    _named(keys - set(rest), set(rest) - keys, "config.train")
 
     if config["device"] not in DEVICES:
         raise ConfigError(
@@ -119,6 +157,35 @@ def to_run_config(config: dict, out: Path) -> dict:
 
     if stage == "linear_eval":
         return {"stage": stage}
+
+    if arch == "vit":
+        model = {k: (float(train[k]) if k in _VIT_MODEL_FLOAT else int(train[k]))
+                 for k in VIT_MODEL_KEYS}
+        model["num_bins"] = int(train["num_bins"])       # sizes the decoder head
+        return {
+            "seed": int(config["seed"]),
+            "arch": "vit",
+            "model": model,
+            "data": {"data_root": str(config["data_root"]),
+                     "img_size": int(train["img_size"]),
+                     "crop_size": int(train["crop_size"])},
+            "training": {"epochs": int(train["epochs"]),
+                         "batch_size": int(train["batch_size"]),
+                         "num_workers": int(train["num_workers"]),
+                         "lr": float(train["lr"]),
+                         "weight_decay": float(train["weight_decay"]),
+                         "warmup_epochs": int(train["warmup_epochs"]),
+                         "min_lr": float(train["min_lr"]),
+                         "clip_grad": float(train["clip_grad"]),
+                         "use_class_rebalancing": bool(
+                             train["use_class_rebalancing"]),
+                         "rebalance_lambda": float(train["rebalance_lambda"]),
+                         "rebalance_sample_size": int(
+                             train["rebalance_sample_size"]),
+                         "save_at_epochs": [int(e) for e in
+                                            train["save_at_epochs"]]},
+            "output": {"checkpoint_dir": str(Path(out) / WORK)},
+        }
 
     return {
         "seed": int(config["seed"]),
@@ -162,9 +229,16 @@ def extract_encoder(state_dict: dict) -> dict:
 def load_encoder(state_dict: dict, config: dict):
     if str(METHOD_DIR) not in sys.path:
         sys.path.insert(0, str(METHOD_DIR))
-    from models import build_colorization_cnn
-    from train_pretrain_colorization import model_config
-    model = build_colorization_cnn(model_config(config["train"]))
+    train = config["train"]
+    if train.get("arch") == "vit":
+        from models import build_vit_colorization
+        from train_pretrain_vit_colorization import model_kwargs as vit_mk
+        # num_bins shapes only the decoder (not encoder.*), so it defaults here.
+        model = build_vit_colorization(**vit_mk(train))
+    else:
+        from models import build_colorization_cnn
+        from train_pretrain_colorization import model_config
+        model = build_colorization_cnn(model_config(train))
     missing, unexpected = model.load_state_dict(state_dict, strict=False)
     if unexpected:
         raise RuntimeError(
@@ -188,10 +262,14 @@ def _filter_numeric(raw: dict) -> tuple:
 
 
 def run_training(config: dict, out: Path, _run=None) -> dict:
+    arch = config.get("train", {}).get("arch")
     if _run is None:
         if str(METHOD_DIR) not in sys.path:
             sys.path.insert(0, str(METHOD_DIR))
-        from train_pretrain_colorization import run as _run
+        if arch == "vit":
+            from train_pretrain_vit_colorization import run as _run
+        else:
+            from train_pretrain_colorization import run as _run
     args = to_args(config, out)
     run_config = to_run_config(config, out)
     Path(run_config["output"]["checkpoint_dir"]).mkdir(parents=True,
@@ -238,6 +316,17 @@ def body(ctx: adapterlib.Context) -> None:
     state = torch.load(latest, map_location="cpu", weights_only=False)
     torch.save(extract_encoder(state["model_state_dict"]),
                Path(ctx.out) / "encoder.pt")
+    train = ctx.config.get("train", {})
+    if train.get("arch") == "vit":
+        # The ViT trainer writes a checkpoint_epoch_{N}.pth per milestone; hand
+        # over encoder_epoch{N}.pt for each so the 100/200/300 sweep can probe
+        # each frozen backbone.
+        for n in train.get("save_at_epochs", []):
+            ck = Path(ctx.out) / WORK / f"checkpoint_epoch_{int(n)}.pth"
+            if ck.is_file():
+                s = torch.load(ck, map_location="cpu", weights_only=False)
+                torch.save(extract_encoder(s["model_state_dict"]),
+                           Path(ctx.out) / f"encoder_epoch{int(n)}.pt")
     ctx.write_metrics(metrics, names=PRETRAIN_METRIC_NAMES)
 
 

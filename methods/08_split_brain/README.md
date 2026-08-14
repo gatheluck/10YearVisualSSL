@@ -9,12 +9,20 @@ channels. Two cross-channel AlexNet branches predict one from the other: **net1*
 maps L → the quantised ab channels (313 bins), **net2** maps ab → the quantised L
 channel (50 bins), each a per-pixel classification. Step 1 is that pretext.
 
-## Scope — the AlexNet path only
+## Scope — the AlexNet path and the unified ViT-B/16 Step 2
 
-This port brings across the **AlexNet** path: the two cross-channel branches, the
-numpy Lab conversion and L/ab quantisation, and the summed cross-entropy loss.
-The captured step 2 (a channel-split ViT, timm) is excluded, as in every port —
-so this port has **no timm dependency**.
+This port brings across the **AlexNet** path (`configs/pretrain.yaml`, no arch):
+the two cross-channel branches, the numpy Lab conversion and L/ab quantisation,
+and the summed cross-entropy loss. It **also** ports the capture's unified
+**ViT-B/16 Step 2** (`configs/pretrain_vit.yaml`, `arch: vit`): the two branches
+keep their roles, but each backbone is a from-scratch **half-width ViT-B/16**
+(`embed_dim` 384, 6 heads, per-branch `in_chans` 1/2) + a conv decoder. `net1`
+predicts the ab bins from L, `net2` the L bins from ab; the loss is the same
+ab-CE + L-CE, which reaches every parameter of both branches. Optimiser AdamW
+(betas 0.9, 0.999) with warmup + cosine to `min_lr`, AMP on CUDA; checkpoints at
+100/200/300, each probed by the same frozen-backbone `linear_eval` (the two
+branches' concatenated CLS, 2·`embed_dim`). The ViT path needs `timm` (imported
+lazily); the native AlexNet path is byte-for-byte unchanged and needs no timm.
 
 ## Why this method, and what is new here
 
@@ -71,17 +79,23 @@ methods use, so the number is comparable across them.
 - **Not a full run:** `configs/pretrain.yaml` is a recipe (224px crop, 200 epochs),
   not a completed run; its optimiser is the port's single-process choice (the
   capture ships no AlexNet pretrain recipe).
-- **Not ported:** the channel-split ViT step 2.
+- **Exercised (ViT Step 2):** a hermetic smoke — two tiny half-ViTs (16-d embed,
+  one block), 32px crop, two epochs with `save_at_epochs: [1, 2]` — runs through
+  `python -m adapter` on a CPU, writes `encoder.pt` and both `encoder_epoch{1,2}.pt`
+  milestones, and a milestone probe passes `contract-test`. A model test also
+  asserts the ab-CE + L-CE loss reaches **every** parameter of both branches (the
+  capture's DDP-no-unused-parameters property). The full 300-epoch ViT-B/16
+  recipe has not been run here.
 - **GPU:** the device resolution is verified on real hardware; see the device
   mutation spec (`mutations/08_split_brain-pretrain-device.json`).
 
 ## Environment
 
-torch / torchvision / numpy / PyYAML — the self-contained methods' stack, no
-submodule and no extra (the Lab conversion and quantisation are numpy, not
-scipy/scikit-image). `requirements.lock.txt` (CPU) and
-`requirements.lock.cu130.txt` (CUDA 13.0) are the hashed closures (the same
-closure as `image_gpt`).
+torch / torchvision / numpy / PyYAML — the self-contained methods' stack (the Lab
+conversion and quantisation are numpy, not scipy/scikit-image) — **plus `timm`**
+for the unified ViT-B/16 Step-2 path (imported lazily, so the native AlexNet path
+never needs it). `requirements.lock.txt` (CPU) and `requirements.lock.cu130.txt`
+(CUDA 13.0) are the hashed closures.
 
     pip install --require-hashes \
         --index-url https://download.pytorch.org/whl/cpu \

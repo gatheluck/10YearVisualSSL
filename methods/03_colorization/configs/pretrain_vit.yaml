@@ -1,0 +1,48 @@
+# Colorization Step 2: unified ViT-B/16 pretraining, from scratch.
+#
+# The capture's Step-2 backbone is a from-scratch ViT-B/16 (hand-written, no
+# timm) reading the grayscale L channel (in_chans=1); a lightweight CNN decoder
+# upsamples the patch grid back to the per-pixel 313-bin ab classification -- the
+# same colorization pretext the native CNN path uses. Optimiser AdamW (betas
+# 0.9, 0.999), linear warmup then cosine to min_lr, AMP on CUDA, grad-clip;
+# checkpoints at 100/200/300. The native VGG-style CNN pretrain
+# (configs/pretrain.yaml, no arch, Adam + step decay) is unchanged.
+#
+# One path is passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   the dataset root; pretraining reads its train/ subdirectory
+# The output path is fixed at --out.
+#
+#   python3 bin/launch.py --config methods/03_colorization/configs/pretrain_vit.yaml \
+#       --method 03_colorization --set DATA_ROOT=/path/to/imagenet
+stage: pretrain
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+
+train:
+  arch: vit
+  # ViT-B/16 (build_vit_colorization) + CNN decoder -> 313-bin ab classification
+  num_bins: 313
+  img_size: 256           # Resize before cropping
+  crop_size: 224          # RandomCrop (patch_size 16 -> decoder output = crop_size)
+  patch_size: 16
+  embed_dim: 768
+  depth: 12
+  num_heads: 12
+  mlp_ratio: 4.0
+  drop_rate: 0.1
+  attn_drop_rate: 0.1
+  # training: AdamW (betas 0.9, 0.999) + cosine (10-epoch warmup) to min_lr, AMP, clip
+  epochs: 300
+  batch_size: 1024
+  num_workers: 16
+  lr: 0.00015
+  weight_decay: 0.05
+  warmup_epochs: 10
+  min_lr: 1.0e-6
+  clip_grad: 1.0
+  # class rebalancing for rare colours (paper Section 3.1)
+  use_class_rebalancing: true
+  rebalance_lambda: 0.5
+  rebalance_sample_size: 10000
+  save_at_epochs: [100, 200, 300]

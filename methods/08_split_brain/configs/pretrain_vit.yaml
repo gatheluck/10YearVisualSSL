@@ -1,0 +1,40 @@
+# Split-Brain Step 2: unified ViT-B/16 pretraining, from scratch.
+#
+# The capture's Step-2 keeps the split-brain autoencoder's two cross-channel
+# branches, but each backbone is a from-scratch half-width ViT-B/16 (embed_dim
+# 384, 6 heads, per-branch in_chans 1/2) + a conv decoder. net1 predicts the ab
+# bins (313) from L; net2 predicts the L bins (50) from ab; the loss is the sum
+# of the two per-pixel cross-entropies. Optimiser AdamW (betas 0.9, 0.999),
+# linear warmup then cosine to min_lr; checkpoints at 100/200/300. The native
+# AlexNet pretrain (configs/pretrain.yaml, no arch, Adam + step decay) is
+# unchanged.
+#
+# One path is passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   the dataset root; pretraining reads its train/ subdirectory
+# The output path is fixed at --out.
+#
+#   python3 bin/launch.py --config methods/08_split_brain/configs/pretrain_vit.yaml \
+#       --method 08_split_brain --set DATA_ROOT=/path/to/imagenet
+stage: pretrain
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+
+train:
+  arch: vit
+  # two half-width ViT-B/16 branches (build_split_brain_vit); heads fixed 313/50
+  crop_size: 224
+  patch_size: 16
+  embed_dim: 384
+  depth: 12
+  num_heads: 6
+  mlp_ratio: 4.0
+  # training: AdamW (betas 0.9, 0.999) + cosine (10-epoch warmup) to min_lr
+  epochs: 300
+  batch_size: 1024
+  num_workers: 8
+  lr: 0.0006
+  weight_decay: 0.05
+  warmup_epochs: 10
+  min_lr: 0.0
+  save_at_epochs: [100, 200, 300]
