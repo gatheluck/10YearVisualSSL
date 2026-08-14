@@ -27,6 +27,7 @@
     "the run is seeded through make_deterministic (python, numpy, torch); the DataLoader gets a seeded generator",
     "the training loop drops the upstream DistributedDataParallel and TensorBoard/tqdm, single-process fp32; the latent-prediction loss, the 3D masks, the EMA target and the AdamW warmup+cosine schedule are kept faithfully",
     "encoder.pt is the EMA target encoder; the probe follows the lab's shared ARSSL protocol so the number is comparable across the ported methods",
-    "DATA_ROOT is the dataset root; the pretrain stage reads its train/ subdirectory (unified data-root convention via adapterlib.dataset_split_dir)."
+    "DATA_ROOT is the dataset root; the pretrain stage reads its train/ subdirectory (unified data-root convention via adapterlib.dataset_split_dir).",
+    "milestone checkpoints for the Step-2 100/200/300 frozen-backbone probe sweep: train.save_at_epochs lists the epochs at which the trainer writes checkpoint_epoch_{N}.pth (in addition to checkpoint_latest.pth), and the adapter extracts each as encoder_epoch{N}.pt (the target encoder). This config is already the unified ViT-B/16 Step 2, so there is one recipe and no recipe selector; an empty save_at_epochs writes only the final encoder.pt (the prior behaviour, unchanged)."
   ]
 }

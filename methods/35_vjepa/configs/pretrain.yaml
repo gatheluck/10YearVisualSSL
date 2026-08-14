@@ -66,3 +66,6 @@ train:
   clip_grad: 10.0
   ema_start: 0.996
   ema_final: 1.0
+  # milestone checkpoints for the 100/200/300 frozen-backbone probe sweep (this
+  # config is already the unified ViT-B/16 Step 2, so no recipe selector is needed)
+  save_at_epochs: [100, 200, 300]

@@ -242,6 +242,11 @@ def run(args, config: "dict | None" = None) -> dict:
           f"  embed_dim={m['embed_dim']}  gram=core_only (excluded)")
     print("=" * 72)
 
+    # Milestone checkpoints for the 100/200/300 frozen-backbone probe sweep. This
+    # config is already the unified ViT-B/16 Step 2, so the milestones are part of
+    # the recipe; an empty save_at_epochs writes only checkpoint_latest.pth.
+    save_at = {int(n) for n in t.get("save_at_epochs", [])}
+
     global_step = 0
     final_loss = None
     for epoch in range(total_epochs):
@@ -299,10 +304,13 @@ def run(args, config: "dict | None" = None) -> dict:
         print(f"  [{epoch}] dinov3_loss={final_loss}  dino={loss_dino.item():.4f}"
               f"  ibot={loss_ibot.item():.4f}  koleo={loss_koleo.item():.4f}"
               f"  lr={lr:.3g}  m={momentum:.4f}")
-        torch.save({"epoch": epoch, "teacher_state_dict": teacher.state_dict(),
-                    "student_state_dict": student.state_dict(),
-                    "loss": final_loss, "config": cfg},
-                   os.path.join(save_dir, "checkpoint_latest.pth"))
+        ckpt = {"epoch": epoch, "teacher_state_dict": teacher.state_dict(),
+                "student_state_dict": student.state_dict(),
+                "loss": final_loss, "config": cfg}
+        torch.save(ckpt, os.path.join(save_dir, "checkpoint_latest.pth"))
+        if (epoch + 1) in save_at:
+            torch.save(ckpt, os.path.join(
+                save_dir, f"checkpoint_epoch_{epoch + 1}.pth"))
 
     print("\nDINOv3 Step 2 (core) training complete!")
     ran = total_epochs > 0 and final_loss is not None

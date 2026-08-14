@@ -1,0 +1,71 @@
+# iBOT step 2 (unified ViT-B/16): the "A Decade of Visual SSL" Step-2 recipe.
+#
+# The additive unified path (recipe: unified). It plugs the same iBOT objective
+# into ViT-Base/16 -- 300 epochs, batch 1024, a direct lr 6e-4 (= 1.5e-4 x
+# 1024/256, used as-is, not rescaled again), a fixed weight decay 0.05, 10-epoch
+# warmup then cosine to min_lr, grad_clip 0.3 and freeze_last_layer 3 (the
+# official ViT-B stability settings), with milestone checkpoints at 100/200/300.
+# The native step-1 recipe (configs/pretrain.yaml, ViT-Small/16) is left
+# byte-for-byte unchanged.
+#
+# These are the settings the captured cluster run used -- the recipe, not a
+# result. Nothing here has executed a full run; the method README says exactly
+# what was and was not exercised.
+#
+# The data path is not in this file:
+#   --set DATA_ROOT=<path>   the dataset root; pretraining reads its train/ subdirectory
+# The output path is not here either: the contract fixes it at `--out`.
+recipe: unified
+stage: pretrain
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+
+model:
+  arch: vit_base
+  patch_size: 16
+  embed_dim: 768
+  drop_path_rate: 0.1
+
+data:
+  global_size: 224
+  local_size: 96
+  n_global_crops: 2
+  n_local_crops: 10
+  global_crops_scale: [0.25, 1.0]
+  local_crops_scale: [0.05, 0.25]
+  num_workers: 8
+
+ibot:
+  out_dim: 8192
+  head_hidden_dim: 2048
+  head_bottleneck_dim: 256
+  head_nlayers: 3
+  shared_head: true
+  norm_last_layer: true
+  student_temp: 0.1
+  teacher_temp: 0.07
+  teacher_patch_temp: 0.07
+  teacher_temp_warmup: 0.04
+  teacher_patch_temp_warmup: 0.04
+  teacher_temp_warmup_epochs: 30
+  lambda_token: 1.0
+  mask_ratio_min: 0.1
+  mask_ratio_max: 0.5
+  pred_shape: block
+  teacher_momentum_start: 0.996
+  teacher_momentum_end: 1.0
+  center_momentum: 0.9
+  center_momentum_patch: 0.9
+
+training:
+  epochs: 300
+  batch_size: 1024
+  lr: 6.0e-4
+  min_lr: 1.0e-6
+  weight_decay: 0.05
+  warmup_epochs: 10
+  grad_clip: 0.3
+  freeze_last_layer: 3
+  save_at_epochs: [100, 200, 300]
+  print_freq: 50

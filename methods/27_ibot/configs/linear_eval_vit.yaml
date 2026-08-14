@@ -1,0 +1,30 @@
+# iBOT linear evaluation: frozen ViT-Base/16 teacher backbone on ImageNet-1k.
+#
+# This is the evaluation for the unified Step-2 encoder (arch vit_base). It is
+# identical to configs/linear_eval.yaml except for the architecture, which the
+# adapter uses to rebuild the ViT-Base/16 encoder from encoder.pt. The frozen
+# encoder is fit with a linear classifier on real labels -- the numbers this
+# project compares.
+#
+# The encoder to evaluate is `encoder.pt` (or a milestone encoder_epoch{N}.pt)
+# from a unified pretrain run: pass it with `--set ENCODER=<path>`. The data path
+# is `--set DATA_ROOT=<path>` (the evaluation reads `<path>/train` and
+# `<path>/val`). The output path is `--out`. The teacher backbone and the online
+# protocol are fixed by the adapter, not settings here.
+stage: linear_eval
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+encoder: "${ENCODER}"
+
+model:
+  arch: vit_base
+  patch_size: 16
+  n_last_blocks: 4
+  avgpool_patchtokens: 0
+
+eval:
+  epochs: 100
+  batch_size: 256
+  lr: 1.0e-3
+  num_workers: 8

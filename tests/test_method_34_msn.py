@@ -84,6 +84,22 @@ EVAL_TRAIN = {**{k: MODEL[k] for k in EVAL_MODEL_ARGS},
               "epochs": 2, "batch_size": 2, "num_workers": 0, "lr": 0.1,
               "momentum": 0.9, "weight_decay": 0.0}
 
+# The additive unified deit_base/16 Step-2 recipe (recipe: unified, in `train`).
+# The native MSN trainer already implements the recipe -- it uses the lr directly
+# (init_opt takes ref_lr as-is; the capture baked lr=6e-4 into the config), builds
+# the arch from the config dims (deit_base = embed_dim 768, num_heads 12), and its
+# cosine weight-decay is constant when weight_decay == final_weight_decay. The only
+# addition is milestone checkpoints (save_at_epochs), the sole unified-only key. The
+# smoke keeps the tiny dims for CPU speed (the arch is set by shared value keys, not
+# by the recipe); deit_base is covered by config translation.
+UNIFIED_TRAINING = {"epochs": 1, "batch_size": 2, "lr": 6.0e-4, "start_lr": 0.0,
+                    "final_lr": 1.0e-6, "warmup": 0, "weight_decay": 0.05,
+                    "final_weight_decay": 0.05, "clip_grad": 3.0,
+                    "ema_start": 0.996, "ema_final": 1.0, "save_at_epochs": [1]}
+UNIFIED_TRAIN = {"recipe": "unified", **MODEL, **DATA, **CRITERION,
+                 **UNIFIED_TRAINING}
+DEIT_BASE_MODEL = {**MODEL, "embed_dim": 768, "num_heads": 12}
+
 
 def _submodule_present() -> bool:
     return (UPSTREAM / "src" / "deit.py").is_file()
@@ -481,6 +497,115 @@ class TestALinearEvalSmoke(Base):
         self.assertEqual(man["stage"], "linear_eval")
         self.assertEqual(man["status"], "ok", man.get("error", ""))
         self.assertIn("encoder_absent_reason", man)
+
+
+class TestUnifiedConfigTranslation(Base):
+    """The additive recipe: unified branch, selected in `train`. Its only extra
+    key over the native step-1 set is save_at_epochs (milestones); the arch is
+    changed by value (deit_base dims), not by a new key."""
+
+    def unified_config(self, **over) -> dict:
+        cfg = {"stage": "pretrain", "seed": 0,
+               "data_root": str(self.tmp / "data"), "device": "cpu",
+               "train": dict(UNIFIED_TRAIN)}
+        for k, v in over.items():
+            if k == "train" and v:
+                cfg["train"] = {**cfg["train"], **v}
+            elif k != "train":
+                cfg[k] = v
+        return cfg
+
+    def test_the_unified_recipe_is_accepted(self):
+        built = adapter.to_run_config(self.unified_config(), out=self.out)
+        self.assertEqual(built["training"]["save_at_epochs"], [1])
+        self.assertEqual(built["training"]["weight_decay"], 0.05)
+        self.assertEqual(built["training"]["final_weight_decay"], 0.05)
+        self.assertNotIn("recipe", built)
+        self.assertNotIn("recipe", built["training"])
+
+    def test_the_native_recipe_is_still_accepted(self):
+        native = self.config()
+        self.assertNotIn("recipe", native["train"])
+        built = adapter.to_run_config(native, out=self.out)
+        self.assertNotIn("save_at_epochs", built["training"])
+
+    def test_the_unified_recipe_accepts_deit_base_dims(self):
+        built = adapter.to_run_config(
+            self.unified_config(train=DEIT_BASE_MODEL), out=self.out)
+        self.assertEqual(built["model"]["embed_dim"], 768)
+        self.assertEqual(built["model"]["num_heads"], 12)
+
+    def test_a_missing_unified_key_is_refused_by_name(self):
+        for key in ("save_at_epochs", "weight_decay", "embed_dim"):
+            with self.subTest(key=key):
+                cfg = self.unified_config()
+                cfg["train"] = {k: v for k, v in UNIFIED_TRAIN.items() if k != key}
+                with self.assertRaises(adapter.ConfigError) as e:
+                    adapter.to_run_config(cfg, out=self.out)
+                self.assertIn(key, str(e.exception))
+
+    def test_an_unknown_unified_key_is_refused(self):
+        with self.assertRaises(adapter.ConfigError) as e:
+            adapter.to_run_config(self.unified_config(train={"mystery": 1}),
+                                  out=self.out)
+        self.assertIn("mystery", str(e.exception))
+
+    def test_the_unified_only_key_on_the_native_path_is_refused(self):
+        """save_at_epochs is the unified milestone knob; the native step-1 recipe
+        does not know it."""
+        cfg = self.config()
+        cfg["train"] = {**cfg["train"], "save_at_epochs": [1]}
+        with self.assertRaises(adapter.ConfigError) as e:
+            adapter.to_run_config(cfg, out=self.out)
+        self.assertIn("save_at_epochs", str(e.exception))
+
+    def test_a_bad_recipe_value_is_refused_by_name(self):
+        with self.assertRaises(adapter.ConfigError) as e:
+            adapter.to_run_config(self.unified_config(train={"recipe": "turbo"}),
+                                  out=self.out)
+        self.assertIn("turbo", str(e.exception))
+
+
+class TestAUnifiedStep2Smoke(Base):
+    """A real unified-recipe run on a CPU (tiny dims for speed): milestone
+    checkpoints and the full contract chain."""
+
+    def run_adapter(self, **over):
+        tiny_imagefolder(self.tmp / "data" / "train")
+        cfg = {"stage": "pretrain", "seed": 0,
+               "data_root": str(self.tmp / "data"), "device": "cpu",
+               "train": {**UNIFIED_TRAIN, **over.pop("train", {})}}
+        for k, v in over.items():
+            cfg[k] = v
+        p = self.tmp / "resolved.json"
+        p.write_text(json.dumps(cfg), encoding="utf-8")
+        env = {**os.environ, "PYTHONPATH": str(ROOT)}
+        return p, subprocess.run(
+            [sys.executable, "-m", "adapter", "--config", str(p),
+             "--out", str(self.out)],
+            cwd=METHOD, env=env, capture_output=True, text=True)
+
+    @needs_deps
+    def test_it_completes_and_satisfies_the_contract(self):
+        if not _submodule_present():
+            self.skipTest("the msn submodule is not checked out here")
+        cfg, r = self.run_adapter()
+        self.assertEqual(r.returncode, 0, r.stdout[-3000:] + r.stderr[-3000:])
+        v = subprocess.run(
+            [sys.executable, str(BIN / "contract-test.py"), "--out",
+             str(self.out), "--config", str(cfg), "--exit-status", "0"],
+            capture_output=True, text=True)
+        self.assertEqual(v.returncode, 0, v.stdout + v.stderr)
+
+    @needs_deps
+    def test_each_milestone_encoder_is_written(self):
+        if not _submodule_present():
+            self.skipTest("the msn submodule is not checked out here")
+        _, r = self.run_adapter(train={"epochs": 2, "save_at_epochs": [1, 2]})
+        self.assertEqual(r.returncode, 0, r.stdout[-3000:] + r.stderr[-3000:])
+        self.assertTrue((self.out / "encoder.pt").is_file())
+        self.assertTrue((self.out / "encoder_epoch1.pt").is_file())
+        self.assertTrue((self.out / "encoder_epoch2.pt").is_file())
 
 
 class TestTheOriginalIsReferencedNotCopied(unittest.TestCase):

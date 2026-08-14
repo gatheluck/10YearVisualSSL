@@ -1,0 +1,72 @@
+# MSN step 2 (unified deit_base/16): the "A Decade of Visual SSL" Step-2 recipe.
+#
+# The additive unified path (recipe: unified, in `train`). It plugs the same MSN
+# objective into the deit_base/16 backbone (embed_dim 768, depth 12, heads 12) --
+# 300 epochs, a direct lr 6e-4 (= 1.5e-4 x 1024/256; init_opt uses it as-is), a
+# fixed weight decay 0.05 (weight_decay == final_weight_decay, so the cosine is
+# constant), 10-epoch warmup, with milestone checkpoints at 100/200/300. The
+# native step-1 recipe (configs/pretrain.yaml, deit_small) is left unchanged;
+# absent `recipe` selects it.
+#
+# Licence: the msn code is CC BY-NC 4.0 (non-commercial). This port is for academic
+# research only; see provenance.json and README.md.
+#
+# These are the settings the captured cluster run used -- the recipe, not a
+# result. Nothing here has executed a full run; the README says exactly what was
+# and was not exercised.
+#
+# One path is passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   the dataset root; pretraining reads its train/ subdirectory
+# The output path is fixed at --out.
+stage: pretrain
+seed: 0
+data_root: "${DATA_ROOT}"
+device: auto
+
+train:
+  recipe: unified
+  # model (build_msn_model): deit_base ViT trunk + projection head fc
+  img_size: 224
+  patch_size: 16
+  embed_dim: 768
+  depth: 12
+  num_heads: 12
+  mlp_ratio: 4.0
+  use_bn: true
+  hidden_dim: 2048
+  output_dim: 256
+  drop_path_rate: 0.0
+  # data (multi-view: rand + focal crops)
+  focal_size: 96
+  rand_crop_scale: [0.3, 1.0]
+  focal_crop_scale: [0.05, 0.3]
+  color_jitter: 0.5
+  rand_views: 1
+  focal_views: 10
+  patch_drop: 0.15
+  num_workers: 10
+  label_smoothing: 0.0
+  # criterion (MSN loss over prototypes + me-max)
+  num_proto: 1024
+  temperature: 0.1
+  start_sharpen: 0.25
+  final_sharpen: 0.25
+  me_max: true
+  memax_weight: 1.0
+  use_ent: true
+  ent_weight: 0.0
+  use_sinkhorn: true
+  # training (AdamW; direct lr; constant WD; warmup->cosine LR; EMA 0.996 -> 1.0)
+  epochs: 300
+  batch_size: 128
+  lr: 6.0e-4
+  start_lr: 0.0
+  final_lr: 1.0e-6
+  warmup: 10
+  weight_decay: 0.05
+  final_weight_decay: 0.05
+  clip_grad: 3.0
+  ema_start: 0.996
+  ema_final: 1.0
+  # milestone checkpoints for the frozen-backbone probe sweep
+  save_at_epochs: [100, 200, 300]

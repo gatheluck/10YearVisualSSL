@@ -1,4 +1,4 @@
-# 34_msn — step 1 (MSN pretext) + linear evaluation
+# 34_msn — step 1 (MSN pretext) + unified deit_base/16 step 2 + linear evaluation
 
 Assran et al., *Masked Siamese Networks for Label-Efficient Learning*, 2022
 ([arXiv:2204.07141](https://arxiv.org/abs/2204.07141)).
@@ -33,6 +33,29 @@ Two things are rewritten in the port (documented in `provenance.json`):
   grayscale, blur, ImageNet norm) is kept faithfully;
 - the linear probe is the shared **ARSSL** probe rather than the official cyanure
   logistic probe (the same deviation as every port).
+
+## Step 2 (unified deit_base/16), added additively
+
+The capture's Step 2 plugs the **same** MSN objective into the unified
+**deit_base/16** backbone (embed_dim 768, depth 12, heads 12; 300 epochs, `lr`
+6e-4, fixed weight decay 0.05, checkpointed at 100/200/300). It is selected by a
+`recipe: unified` key in `train`; **absent `recipe` is the native deit_small
+step-1 path, unchanged**, and the unified recipe's only extra key over the native
+set is `save_at_epochs` (the milestone knob), refused by name on the native path.
+
+**No separate trainer was needed — the native `train_pretrain_msn.py` already
+implements the unified recipe.** The official `src.msn_train.init_opt` takes the
+`lr` directly (the capture baked `lr = 1.5e-4 × 1024/256 = 6e-4` into the config,
+so there is nothing to rescale), the arch is built from the config dims
+(`deit_base` is just `embed_dim: 768`, `num_heads: 12`), and its cosine
+weight-decay is **constant** when `weight_decay == final_weight_decay`. The only
+addition is a milestone checkpoint: the trainer writes `checkpoint_epoch_{N}.pth`
+at each `training.save_at_epochs`, a guarded block that is empty for the native
+config (which never sets that key), so the native behaviour is byte-for-byte
+unchanged — the DRY choice over duplicating the loop into a second file. The
+adapter writes `encoder.pt` (the final anchor trunk) plus
+`encoder_epoch{100,200,300}.pt`, one frozen backbone per milestone; probe a
+unified encoder with `configs/linear_eval_vit.yaml` (deit_base dims).
 
 ## Licence — non-commercial research use only
 

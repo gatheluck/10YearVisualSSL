@@ -178,6 +178,11 @@ def run(args, config: "dict | None" = None) -> dict:
           f"model={m['model_name']}  masks={len(cfgs_mask)}  loss_exp={loss_exp}")
     print("=" * 72)
 
+    # Milestone checkpoints for the 100/200/300 frozen-backbone probe sweep. This
+    # config is already the unified ViT-B/16 Step 2, so the milestones are part of
+    # the recipe; an empty save_at_epochs writes only checkpoint_latest.pth.
+    save_at = {int(n) for n in t.get("save_at_epochs", [])}
+
     global_step = 0
     final_loss = None
     for epoch in range(total_epochs):
@@ -226,11 +231,14 @@ def run(args, config: "dict | None" = None) -> dict:
         final_loss = running / count if count else None
         print(f"  [{epoch}] vjepa_loss={final_loss}  jepa={loss_jepa.item():.4f}"
               f"  lr={lr:.3g}  ema={momentum:.4f}")
-        torch.save({"epoch": epoch,
-                    "target_encoder_state_dict": target_encoder.state_dict(),
-                    "encoder_state_dict": encoder.state_dict(),
-                    "loss": final_loss, "config": cfg},
-                   os.path.join(save_dir, "checkpoint_latest.pth"))
+        ckpt = {"epoch": epoch,
+                "target_encoder_state_dict": target_encoder.state_dict(),
+                "encoder_state_dict": encoder.state_dict(),
+                "loss": final_loss, "config": cfg}
+        torch.save(ckpt, os.path.join(save_dir, "checkpoint_latest.pth"))
+        if (epoch + 1) in save_at:
+            torch.save(ckpt, os.path.join(
+                save_dir, f"checkpoint_epoch_{epoch + 1}.pth"))
 
     print("\nV-JEPA Step 2 training complete!")
     ran = total_epochs > 0 and final_loss is not None

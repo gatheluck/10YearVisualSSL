@@ -221,14 +221,62 @@ One family = one PR. Order by reuse (high → complex):
     disjoint keys: unified `{lr,clip_grad,save_at_epochs}` vs native `{learning_rate,
     momentum_cosine}`). 25 = vit_large→vit_base + **adds** cosine+warmup (native fixed-LR
     trainer lacks it); ships `configs/linear_eval_vit.yaml`.
-  - **7c (next):** `27_ibot` (**the hard one** — nested config so `recipe` is a top-level
-    key; reimplement the multi-crop loop because the native one bakes in `lr × batch/256`;
-    fixed wd, `grad_clip 0.3`, `freeze_last_layer 3`, drop the health keys; widen
-    `ARCHS`/`ARCH_EMBED_DIM`/`load_encoder` to `vit_base`; native trainer/eval import
-    tensorboard at module top but `needs_deps` already requires it, so the smoke skips
-    safely), `29_ijepa` (own ViT vit_base; `augmentation: step2`; predictor dims change),
-    `34_msn` (deit_base via the pinned submodule, config-reachable, licence-safe),
-    `31_dinov3`+`35_vjepa` (already unified ViT-B/16 → milestone-only, no `recipe` key).
+  - **7c (in progress):** `27_ibot` **DONE** (committed on `port/vit-step2-batch7c-vit-native`).
+    The nested config took `recipe` as a **top-level** key (stripped before the TOP_KEYS
+    check); a fresh single-process `train_pretrain_vit_ibot.py` (the native loop bakes in
+    `lr × batch/256`, so it could not be reused) reusing the native pure helpers
+    (schedule/setter/clip/meter/device/seed — DRY); fixed wd, `mask_ratio_min/max` (the
+    loader's `step="step2"` path, **already carried** in `data/multicrop.py`), `grad_clip
+    0.3`, `freeze_last_layer 3`, dropped health keys; two-way-disjoint key sets
+    (unified `{weight_decay,save_at_epochs,mask_ratio_min/max}` vs native
+    `{weight_decay_start/end,checkpoint_health,fail_fast_after_epoch,save_freq,pred_ratio,
+    pred_ratio_var,pred_start_epoch}`); widened `ARCHS`(native vit_small only)/`UNIFIED_ARCHS`
+    (vit_base)/`EVAL_ARCHS`(both)/`ARCH_EMBED_DIM`/`load_encoder`. The models (`vit_base`),
+    the loader (step2) and the eval (`_EMBED_DIMS`/`_VIT_BUILDERS` already list vit_base)
+    were all already carried, so **no model/loader/eval edits and no lock change** were
+    needed. Ships `configs/pretrain_vit.yaml` + `configs/linear_eval_vit.yaml`. Full 27
+    module 75 tests OK (255s < 300s CI bound); base gate EXIT=0; key-set-split guard
+    mutation-killed by the both-ways leakage tests.
+    `29_ijepa` **DONE** (recipe: unified in `train`, flat-config like 22/25). Notable:
+    the native `train_pretrain_ijepa.py` **already implements the recipe** — it uses
+    `lr` directly (no ×bs/256), builds the config-named arch (`vit_base` is a builder),
+    reads `augmentation: step2` from the config, and its cosine wd is constant when
+    `weight_decay==final_wd`. So **no separate `train_pretrain_vit_ijepa.py`**: the native
+    trainer was extended with a **guarded** milestone save (`checkpoint_epoch_{N}.pth` at
+    `save_at_epochs`, empty for the native config → byte-for-byte unchanged), the DRY
+    choice over duplicating an identical loop (the playbook's "or can be extended" case).
+    Two-way disjoint keys: native-only `use_horizontal_flip` (step2 aug ignores it) vs
+    unified-only `save_at_epochs`. Smoke keeps `vit_tiny` for CPU speed (arch is a shared
+    key, not the selector); `vit_base` covered by config translation + a `load_encoder`
+    round trip. `captured_sha256` empty (nothing pinned), models/loader already carry
+    `vit_base`/`step2`, so no model/loader/eval/lock change. Full 29 module 45 tests OK
+    (62s); base gate EXIT=0; key-set-split mutation-killed.
+    `34_msn` **DONE** (recipe: unified in `train`, deit_base via the pinned
+    `third_party/msn` submodule — no upstream edit). Same shape as 29: the native
+    `train_pretrain_msn.py` already implements the recipe (`src.msn_train.init_opt`
+    takes `lr` directly; arch built from config dims → `deit_base` = embed_dim 768/
+    heads 12; cosine wd constant when `weight_decay==final_weight_decay`), so **no
+    separate trainer** — extended with a guarded milestone save. `save_at_epochs` is
+    the sole unified-only key (one-way leakage guard, refused on native), since the
+    capture's step2 changes only values, not the key set. Smoke keeps tiny dims for
+    CPU speed; deit_base covered by config translation. Full 34 module 41 tests OK
+    (65s); base gate EXIT=0; recipe-split mutation-killed.
+    `31_dinov3` **DONE** (milestone-only, **no `recipe` key** — this config is already
+    the unified ViT-B/16 Step 2). Added a required `save_at_epochs` key (declared in the
+    sole pretrain key set), a guarded trainer milestone save (`checkpoint_epoch_{N}.pth`;
+    empty list → only `checkpoint_latest.pth`, prior behaviour), and body extraction of
+    `encoder_epoch{N}.pt` (teacher backbone, `backbone.` from `teacher_state_dict`). Full
+    31 module 33 tests OK (56s); base gate EXIT=0; milestone-save mutation-killed by the
+    milestone test.
+    `35_vjepa` **DONE** (milestone-only, **no `recipe` key** — already unified ViT-B/16
+    Step 2; pinned `third_party/jepa` submodule, `ENCODER_PREFIX=""` from
+    `target_encoder_state_dict`). Same shape as 31: declared `save_at_epochs`, guarded
+    trainer milestone save, body extraction of `encoder_epoch{N}.pt`. Full 35 module 34
+    tests OK (73s); base gate EXIT=0; milestone-save mutation-killed.
+
+  **7c COMPLETE** (27_ibot, 29_ijepa, 34_msn, 31_dinov3, 35_vjepa) on branch
+  `port/vit-step2-batch7c-vit-native`. Ready to PR once reviewed. Remaining fan-out
+  work: the separate `26_simmim` PR (below).
   - **Separate PR:** `26_simmim` (native is Swin-B, not ViT → new `simmim_vit.py` +
     pixel-mask loader + arch branch in `load_encoder` **and** eval; non-additive-to-eval).
 

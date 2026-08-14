@@ -1,4 +1,4 @@
-# 29_ijepa — step 1 (I-JEPA ViT pretext) + linear evaluation
+# 29_ijepa — step 1 (I-JEPA ViT pretext) + unified ViT-B/16 step 2 + linear evaluation
 
 Assran et al., *Self-Supervised Learning from Images with a Joint-Embedding
 Predictive Architecture* (I-JEPA), 2023
@@ -11,13 +11,40 @@ representations of several masked **target blocks**; the targets come from an
 layer-normalised, and the loss is a **smooth-L1** in latent space. No pixel
 reconstruction, no hand-crafted augmentation invariances. Step 1 is that pretext.
 
-## Scope — the ViT step 1 only
+## Scope — the ViT step 1 and the unified step 2
 
-This port covers I-JEPA's ViT step 1. The capture's step 2 (ViT-B) is excluded, as
-in every port. I-JEPA ships **its own** Vision Transformer
+This port covers I-JEPA's ViT step 1 (the native ViT-H/14 recipe) and, added
+additively, the capture's unified **ViT-B/16 step 2** (see the Step 2 section
+below). I-JEPA ships **its own** Vision Transformer
 (`models/vision_transformer.py` — measured: it imports only `torch`, **not
 `timm`**) and trains **from scratch on ImageNet-1k**, so this port is
 **torch-only** and hermetic.
+
+## Step 2 (unified ViT-B/16), added additively
+
+The capture's Step 2 plugs the **same** I-JEPA objective into the unified
+**ViT-Base/16** backbone (300 epochs, batch 1024, `lr` 6e-4, fixed weight decay
+0.05, checkpointed at 100/200/300). It is selected by a `recipe: unified` key in
+`train`; **absent `recipe` is the native ViT-H/14 step-1 path, unchanged**, and
+the native and unified key sets are disjoint (native-only `use_horizontal_flip`,
+which the step-2 augmentation ignores, versus unified-only `save_at_epochs`), so a
+knob from one recipe on the other is refused by name.
+
+**No separate trainer was needed — the native `train_pretrain_ijepa.py` already
+implements the unified recipe.** It uses the `lr` directly (the capture baked
+`lr = 1.5e-4 × 1024/256 = 6e-4` into the config, so there is nothing to rescale),
+it builds the arch named in the config (`vit_base` is one of its builders), its
+augmentation is read from the config (`augmentation: step2` — crop + flip +
+ColorJitter), and its cosine weight-decay is **constant** when `weight_decay ==
+final_wd`. The only addition is a milestone checkpoint: the trainer writes
+`checkpoint_epoch_{N}.pth` at each `training.save_at_epochs`, a guarded block that
+is empty (and so writes nothing beyond `checkpoint_latest.pth`) for the native
+config, which never sets that key. Duplicating the training loop into a second
+file to add two lines would have been a second copy of one rule; extending it,
+guarded, keeps one implementation. The adapter writes `encoder.pt` (the final
+target encoder) plus `encoder_epoch{100,200,300}.pt`, one frozen target ViT per
+milestone; probe a unified encoder with `configs/linear_eval_vit.yaml`
+(`name: vit_base`).
 
 ## Why this method, and what is new here
 

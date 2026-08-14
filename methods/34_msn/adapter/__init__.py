@@ -56,6 +56,16 @@ TRAINING_KEYS = frozenset({"epochs", "batch_size", "lr", "start_lr", "final_lr",
                            "warmup", "weight_decay", "final_weight_decay",
                            "clip_grad", "ema_start", "ema_final"})
 PRETRAIN_TRAIN_KEYS = MODEL_KEYS | DATA_KEYS | CRITERION_KEYS | TRAINING_KEYS
+# The additive unified deit_base/16 Step-2 recipe (recipe: unified, a key in
+# `train`; absent == the native step-1 path). The native MSN trainer already
+# implements the recipe: init_opt takes the lr directly (no batch/256 rescale;
+# the capture baked lr=6e-4 into the config), the arch is built from the config
+# dims (deit_base = embed_dim 768, num_heads 12), and its cosine weight-decay is
+# constant when weight_decay == final_weight_decay. The only addition is milestone
+# checkpoints (save_at_epochs), the sole unified-only key. `recipe` is stripped
+# before the key check.
+RECIPES = ("native", "unified")
+PRETRAIN_UNIFIED_KEYS = PRETRAIN_TRAIN_KEYS | {"save_at_epochs"}
 
 EVAL_MODEL_KEYS = frozenset({"img_size", "patch_size", "embed_dim", "depth",
                              "num_heads", "mlp_ratio", "drop_path_rate"})
@@ -162,14 +172,12 @@ def to_run_config(config: dict, out: Path) -> dict:
     if stage not in STAGES:
         raise ConfigError(
             f"config: stage is {stage!r}; known stages are {', '.join(STAGES)}")
-    keys = EVAL_TRAIN_KEYS if stage == "linear_eval" else PRETRAIN_TRAIN_KEYS
     top = EVAL_TOP_KEYS if stage == "linear_eval" else TOP_KEYS
     _named(top - set(config), set(config) - top, "config")
 
     train = config["train"]
     if not isinstance(train, dict):
         raise ConfigError(f"config: train is {type(train).__name__}, not a mapping")
-    _named(keys - set(train), set(train) - keys, "config.train")
 
     if config["device"] not in DEVICES:
         raise ConfigError(
@@ -177,14 +185,31 @@ def to_run_config(config: dict, out: Path) -> dict:
             f"{', '.join(DEVICES)}")
 
     if stage == "linear_eval":
+        _named(EVAL_TRAIN_KEYS - set(train), set(train) - EVAL_TRAIN_KEYS,
+               "config.train")
         return {"stage": stage}
+
+    # `recipe` selects the pretrain recipe; absent == native. It is a key in
+    # `train`, consumed here and not passed on, so it is excluded from the check.
+    recipe = train.get("recipe", "native")
+    if recipe not in RECIPES:
+        raise ConfigError(
+            f"config.train: recipe is {recipe!r}; expected one of "
+            f"{', '.join(RECIPES)}")
+    keys = PRETRAIN_UNIFIED_KEYS if recipe == "unified" else PRETRAIN_TRAIN_KEYS
+    rest = {k: v for k, v in train.items() if k != "recipe"}
+    _named(keys - set(rest), set(rest) - keys, "config.train")
+
+    training = _training_section(train)
+    if recipe == "unified":
+        training["save_at_epochs"] = [int(e) for e in train["save_at_epochs"]]
 
     return {
         "seed": int(config["seed"]),
         "model": _model_section(train),
         "data": _data_section(config, train),
         "criterion": _criterion_section(train),
-        "training": _training_section(train),
+        "training": training,
         "output": {"checkpoint_dir": str(Path(out) / WORK)},
     }
 
@@ -284,6 +309,17 @@ def body(ctx: adapterlib.Context) -> None:
     state = torch.load(latest, map_location="cpu", weights_only=False)
     torch.save(extract_encoder(state["model_state_dict"]),
                Path(ctx.out) / "encoder.pt")
+    if ctx.config.get("train", {}).get("recipe") == "unified":
+        # The trainer writes checkpoint_epoch_{N}.pth at each save_at_epochs; hand
+        # over encoder_epoch{N}.pt (the anchor trunk) for each so the 100/200/300
+        # sweep can probe every frozen milestone.
+        work = Path(ctx.out) / WORK
+        for n in ctx.config["train"].get("save_at_epochs", []):
+            ck = work / f"checkpoint_epoch_{int(n)}.pth"
+            if ck.is_file():
+                s = torch.load(ck, map_location="cpu", weights_only=False)
+                torch.save(extract_encoder(s["model_state_dict"]),
+                           Path(ctx.out) / f"encoder_epoch{int(n)}.pt")
     ctx.write_metrics(metrics, names=PRETRAIN_METRIC_NAMES)
 
 
