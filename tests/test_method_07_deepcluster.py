@@ -12,7 +12,9 @@ the capture and the original DeepCluster repo use (the capture ships faiss as th
 required paper-target backend and marks its sklearn fallback "not the official
 protocol"). faiss-gpu has a linux-x86_64-only wheel, so this method is
 **GPU / x86_64-linux only**: faiss lives in the CUDA lock, not the (cross-platform)
-CPU lock. The captured ViT step 2 is excluded, as in every port.
+CPU lock. The unified ViT-B/16 Step 2 (arch: vit) is also ported additively --
+the same faiss k-means self-labelling on a from-scratch ViT-B/16, AdamW/cosine,
+milestone checkpoints -- so its smoke is likewise gated on faiss (and timm).
 """
 
 from __future__ import annotations
@@ -52,11 +54,19 @@ try:
 except ImportError:
     HAVE_FAISS = False
 
+try:
+    import timm                                          # noqa: F401
+    HAVE_TIMM = True
+except ImportError:
+    HAVE_TIMM = False
+
 needs_deps = unittest.skipUnless(
     HAVE_DEPS, "07_deepcluster needs torch, numpy, torchvision")
 needs_faiss = unittest.skipUnless(
     HAVE_DEPS and HAVE_FAISS,
     "07_deepcluster's clustering needs faiss (GPU / x86_64-linux only)")
+needs_timm = unittest.skipUnless(
+    HAVE_TIMM, "the ViT Step-2 path needs timm (arch: vit)")
 
 
 def load(name: str, path: Path):
@@ -482,6 +492,192 @@ class TestTheOriginalIsReferencedNotCopied(unittest.TestCase):
         self.assertNotIn("DistributedDataParallel", used)
         self.assertNotIn("SummaryWriter", used)
         self.assertNotIn("timm", used)
+
+
+# --- Step 2: unified ViT-B/16 (arch: vit), additive alongside the native
+# AlexNet-BN path. One from-scratch ViT-B/16 backbone + a reset-each-epoch head;
+# the same per-epoch faiss k-means self-labelling, the unified AdamW/cosine
+# recipe with milestone checkpoints. Tiny dims so a CPU smoke is cheap.
+VIT_MODEL_ARGS = {"num_classes": 8, "image_size": 32, "patch_size": 16,
+                  "embed_dim": 16, "depth": 1, "num_heads": 2, "mlp_ratio": 4.0,
+                  "drop_rate": 0.0, "attn_drop_rate": 0.0}
+VIT_MODEL_KNOBS = {"image_size": 32, "patch_size": 16, "embed_dim": 16,
+                   "depth": 1, "num_heads": 2, "mlp_ratio": 4.0,
+                   "drop_rate": 0.0, "attn_drop_rate": 0.0}
+VIT_TRAIN_TINY = {"arch": "vit", **VIT_MODEL_KNOBS, "k": 4, "pca_dim": 4,
+                  "epochs": 2, "batch_size": 2, "feat_batch_size": 4,
+                  "num_workers": 0, "lr": 6.0e-4, "weight_decay": 0.05,
+                  "warmup_epochs": 0, "min_lr": 0.0, "save_at_epochs": [1, 2]}
+VIT_EVAL_TINY = {"arch": "vit", **VIT_MODEL_KNOBS, "epochs": 2, "batch_size": 2,
+                 "num_workers": 0, "lr": 0.1, "momentum": 0.9,
+                 "weight_decay": 0.0}
+FEATURE_DIM_VIT = VIT_MODEL_KNOBS["embed_dim"]
+
+
+class TestVitConfigTranslation(Base):
+    def vit_config(self, train=None, **over) -> dict:
+        cfg = {"stage": "pretrain", "seed": 0,
+               "data_root": str(self.tmp / "data"), "device": "cpu",
+               "train": dict(train if train is not None else VIT_TRAIN_TINY)}
+        for k, v in over.items():
+            cfg[k] = v
+        return cfg
+
+    def test_the_vit_step2_config_is_accepted(self):
+        built = adapter.to_run_config(self.vit_config(), self.out)
+        self.assertEqual(built["arch"], "vit")
+        self.assertEqual(built["model"]["embed_dim"], 16)
+        self.assertEqual(built["clustering"]["k"], 4)
+        self.assertEqual(built["clustering"]["pca_dim"], 4)
+        self.assertEqual(built["training"]["save_at_epochs"], [1, 2])
+
+    def test_the_native_path_has_no_top_level_arch(self):
+        built = adapter.to_run_config(self.config(), self.out)
+        self.assertNotIn("arch", built)
+
+    def test_a_bad_arch_is_refused_by_name(self):
+        with self.assertRaises(adapter.ConfigError) as e:
+            adapter.to_run_config(
+                self.vit_config(train={**VIT_TRAIN_TINY, "arch": "alexnext"}),
+                self.out)
+        self.assertIn("arch", str(e.exception))
+
+    def test_a_missing_vit_setting_is_refused_by_name(self):
+        for key in VIT_TRAIN_TINY:
+            if key == "arch":
+                continue
+            with self.subTest(key=key):
+                t = {k: v for k, v in VIT_TRAIN_TINY.items() if k != key}
+                with self.assertRaises(adapter.ConfigError) as e:
+                    adapter.to_run_config(self.vit_config(train=t), self.out)
+                self.assertIn(key, str(e.exception))
+
+    def test_a_native_knob_does_not_leak_into_the_vit_path(self):
+        # momentum / lr_decay_rate belong to the SGD native path, not AdamW.
+        for key in ("momentum", "lr_decay_rate", "sobel", "crop_size"):
+            with self.subTest(key=key):
+                with self.assertRaises(adapter.ConfigError) as e:
+                    adapter.to_run_config(
+                        self.vit_config(train={**VIT_TRAIN_TINY, key: 1}),
+                        self.out)
+                self.assertIn(key, str(e.exception))
+
+    def test_a_vit_knob_does_not_leak_into_the_native_path(self):
+        for key in ("embed_dim", "warmup_epochs", "min_lr", "save_at_epochs"):
+            with self.subTest(key=key):
+                with self.assertRaises(adapter.ConfigError) as e:
+                    adapter.to_run_config(
+                        self.config(train={key: 1}), self.out)
+                self.assertIn(key, str(e.exception))
+
+
+class TestTheVitModel(unittest.TestCase):
+    def _model(self):
+        vm = load("vit_deepcluster", METHOD / "models" / "vit_deepcluster.py")
+        return vm.build_vit_deepcluster(**VIT_MODEL_ARGS)
+
+    @needs_timm
+    def test_get_features_returns_the_cls_feature(self):
+        import torch
+        feats = self._model().get_features(torch.randn(2, 3, 32, 32))
+        self.assertEqual(tuple(feats.shape), (2, FEATURE_DIM_VIT))
+
+    @needs_timm
+    def test_get_features_accepts_the_before_final_relu_flag(self):
+        # Signature parity with the AlexNet path, so the shared
+        # extract_features_for_clustering reuses it; the flag is ignored.
+        import torch
+        m = self._model()
+        x = torch.randn(2, 3, 32, 32)
+        a = m.get_features(x, before_final_relu=True)
+        b = m.get_features(x, before_final_relu=False)
+        self.assertTrue(torch.equal(a, b))
+
+    @needs_timm
+    def test_forward_scores_every_image(self):
+        import torch
+        logits = self._model()(torch.randn(2, 3, 32, 32))
+        self.assertEqual(tuple(logits.shape), (2, VIT_MODEL_ARGS["num_classes"]))
+
+    @needs_timm
+    def test_reset_top_layer_keeps_shape_and_reinitialises(self):
+        import torch
+        m = self._model()
+        before = m.top_layer.weight.detach().clone()
+        with torch.no_grad():
+            m.top_layer.weight.add_(1.0)
+        m.reset_top_layer(VIT_MODEL_ARGS["num_classes"], torch.device("cpu"),
+                          seed=0)
+        self.assertEqual(m.top_layer.out_features, VIT_MODEL_ARGS["num_classes"])
+        self.assertFalse(torch.equal(m.top_layer.weight.detach(),
+                                     before + 1.0))
+
+    @needs_timm
+    def test_encoder_pt_holds_only_the_backbone(self):
+        got = adapter.extract_encoder(self._model().state_dict())
+        self.assertTrue(got)
+        self.assertTrue(all(k.startswith("backbone.") for k in got))
+        self.assertFalse([k for k in got if k.startswith("top_layer")])
+
+    @needs_timm
+    def test_load_encoder_round_trips_the_backbone(self):
+        import torch
+        saved = adapter.extract_encoder(self._model().state_dict())
+        cfg = {"train": {"arch": "vit", **VIT_MODEL_KNOBS}}
+        model = adapter.load_encoder(saved, cfg)
+        loaded = model.state_dict()
+        pairs = 0
+        for k, want in saved.items():
+            got = loaded.get(k)
+            if got is None:
+                continue
+            pairs += 1
+            self.assertTrue(torch.equal(got, want), f"{k} came back changed")
+        self.assertGreater(pairs, 0, "no saved weight reached the backbone")
+
+
+class TestAVitStep2Smoke(Base):
+    def _adapter(self, cfg_dict, out):
+        cfg = self.tmp / (out.name + ".json")
+        cfg.write_text(json.dumps(cfg_dict), encoding="utf-8")
+        env = {**os.environ, "PYTHONPATH": str(ROOT)}
+        r = subprocess.run(
+            [sys.executable, "-m", "adapter", "--config", str(cfg),
+             "--out", str(out)], cwd=METHOD, env=env,
+            capture_output=True, text=True)
+        return cfg, r
+
+    @needs_faiss
+    @needs_timm
+    def test_pretrain_milestones_then_probe_passes_contract(self):
+        tiny_imagefolder(self.tmp / "data")
+        pre = self.tmp / "pre_out"
+        _, r = self._adapter(
+            {"stage": "pretrain", "seed": 0,
+             "data_root": str(self.tmp / "data"), "device": "cpu",
+             "train": dict(VIT_TRAIN_TINY)}, pre)
+        self.assertEqual(r.returncode, 0, r.stdout[-3000:] + r.stderr[-3000:])
+        self.assertTrue((pre / "encoder.pt").is_file())
+        for n in (1, 2):
+            self.assertTrue((pre / f"encoder_epoch{n}.pt").is_file(),
+                            f"milestone encoder_epoch{n}.pt not written")
+
+        tiny_split(self.tmp / "eval")
+        ev = self.tmp / "eval_out"
+        cfg, r = self._adapter(
+            {"stage": "linear_eval", "seed": 0,
+             "data_root": str(self.tmp / "eval"), "device": "cpu",
+             "encoder": str(pre / "encoder_epoch2.pt"),
+             "train": dict(VIT_EVAL_TINY)}, ev)
+        self.assertEqual(r.returncode, 0, r.stdout[-3000:] + r.stderr[-3000:])
+        v = subprocess.run(
+            [sys.executable, str(BIN / "contract-test.py"), "--out", str(ev),
+             "--config", str(cfg), "--exit-status", "0"],
+            capture_output=True, text=True)
+        self.assertEqual(v.returncode, 0, v.stdout + v.stderr)
+        m = json.loads((ev / "metrics.json").read_text())["metrics"]
+        self.assertIn("final_linear_probe_top1_accuracy", m)
+        self.assertFalse((ev / "encoder.pt").exists())
 
 
 if __name__ == "__main__":

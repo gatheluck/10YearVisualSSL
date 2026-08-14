@@ -1,0 +1,48 @@
+# DeepCluster Step 2: unified ViT-B/16 pretraining, from scratch.
+#
+# The capture's Step-2 backbone is the same ViT-B/16 for every method; DeepCluster
+# plugs in a reset-each-epoch linear head and self-labels by k-means: each epoch
+# the CLS features over the dataset are PCA-whitened and k-means clustered (faiss)
+# into pseudo-labels, the head is reset, and the network is trained with
+# cross-entropy on them. Optimiser AdamW (betas 0.9, 0.999), linear warmup then
+# cosine to min_lr, AMP on CUDA; checkpoints at 100/200/300. The native AlexNet-BN
+# pretrain (configs/pretrain.yaml, no arch, SGD + Sobel) is unchanged.
+#
+# The clustering uses faiss (the paper-target backend), so this path is
+# GPU / x86_64-linux only, the same as the native path.
+#
+# One path is passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   the dataset root; pretraining reads its train/ subdirectory
+# The output path is fixed at --out.
+#
+#   python3 bin/launch.py --config methods/07_deepcluster/configs/pretrain_vit.yaml \
+#       --method 07_deepcluster --set DATA_ROOT=/path/to/imagenet
+stage: pretrain
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+
+train:
+  arch: vit
+  # ViT-B/16 (build_vit_deepcluster) + reset-each-epoch Linear(768, k) head
+  image_size: 224
+  patch_size: 16
+  embed_dim: 768
+  depth: 12
+  num_heads: 12
+  mlp_ratio: 4.0
+  drop_rate: 0.0
+  attn_drop_rate: 0.0
+  # DeepCluster k-means (faiss): k clusters, PCA-whitening to pca_dim
+  k: 1000
+  pca_dim: 128
+  # training: AdamW (betas 0.9, 0.999) + cosine (10-epoch warmup) to min_lr, AMP
+  epochs: 300
+  batch_size: 128
+  feat_batch_size: 128
+  num_workers: 8
+  lr: 0.0006
+  weight_decay: 0.05
+  warmup_epochs: 10
+  min_lr: 1.0e-6
+  save_at_epochs: [100, 200, 300]

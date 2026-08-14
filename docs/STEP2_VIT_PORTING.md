@@ -158,8 +158,22 @@ One family = one PR. Order by reuse (high → complex):
   10/12/33 native trainers/evals import no tensorboard, so the Batch-3 timm-only-venv hazard
   does not recur here. Gotcha: 33's load_encoder must default feature_dim/num_patches
   (they shape only the excluded projector), since the linear_eval config omits them.
-- [ ] **Batch 5 — clustering (individually):** `07_deepcluster` (faiss k-means),
-  `17_swav` (multi-crop + distributed Sinkhorn), `18_sela` (Sinkhorn + second loader).
+- [x] **Batch 5 — clustering (PR #91):** `18_sela` (single `top_layer=Linear(768,k)`
+  prototype head, per-epoch Sinkhorn-Knopp OT, AdamW+AMP; reuses
+  `compute_hard_sinkhorn_assignments`+`create_indexed_train_loader`), `17_swav`
+  (proj MLP + `prototypes`, multi-crop list-forward mirroring `ResNetSwAV` so the
+  native `train_epoch`/`swav_loss`/distributed-Sinkhorn are reused; AdamW, milestone
+  ckpts), `07_deepcluster` (from-scratch ViT + reset-each-epoch head; reuses the port's
+  **faiss** `extract_features_for_clustering`+`run_kmeans` and `DeepClusterDataset`,
+  AdamW+cosine+AMP). All three: `arch` absent == native (17/07 native carry no `arch`
+  key; 18 native `arch: resnetv2`), disjoint ViT/native key sets, arch-aware eval
+  `in_dim` (embed_dim). 17 has a `tensorboard` floor → lazy-import fix + `@needs_torch`
+  smoke gate (Batch-3 hazard). **07 is faiss GPU/x86_64-only**, so its ViT smoke is
+  gated `@needs_faiss`+`@needs_timm` and its `encoder.pt` union-prefixes
+  `features.`/`classifier.` (AlexNet) with `backbone.` (ViT). 07's locks were
+  regenerated with uv (constrained to the existing pins) rather than spliced: 07's
+  CUDA closure already pinned `packaging==26.3` vs the fleet's `26.2`, which a splice
+  cannot reconcile.
 - [ ] **Batch 6 — dense/generative (bespoke, last):** `03_colorization` (custom non-timm ViT),
   `04_context_encoder` (adversarial + transformer decoder), `08_split_brain` (dual half-ViTs).
 

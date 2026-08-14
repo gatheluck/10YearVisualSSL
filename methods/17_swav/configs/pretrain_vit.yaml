@@ -1,0 +1,55 @@
+# SwAV Step 2: unified ViT-B/16 pretraining, from scratch.
+#
+# The capture's Step-2 backbone is the same ViT-B/16 for every method; SwAV plugs
+# in a projection head + learnable prototypes and the multi-crop swapped-assignment
+# objective: 2 global (224) + 6 local (96) crops, online Sinkhorn-Knopp for the
+# assignments, cross-view swapped prediction. Optimiser AdamW (betas 0.9, 0.999),
+# linear warmup then cosine to min_lr; checkpoints at 100/200/300. The native
+# ResNet-50/LARS multi-crop pretrain (configs/pretrain.yaml, no arch) is unchanged.
+#
+# One path is passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   the dataset root; pretraining reads its train/ subdirectory
+# The output path is fixed at --out.
+#
+#   python3 bin/launch.py --config methods/17_swav/configs/pretrain_vit.yaml \
+#       --method 17_swav --set DATA_ROOT=/path/to/imagenet
+stage: pretrain
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+
+train:
+  arch: vit
+  # ViT-B/16 (build_vit_swav) + projection head (768->2048->128) + prototypes
+  out_dim: 128
+  hidden_mlp: 2048
+  nmb_prototypes: 3000
+  image_size: 224
+  patch_size: 16
+  embed_dim: 768
+  depth: 12
+  num_heads: 12
+  mlp_ratio: 4.0
+  drop_rate: 0.0
+  attn_drop_rate: 0.0
+  # multi-crop: 2 global (224) + 6 local (96)
+  size_crops: [224, 96]
+  nmb_crops: [2, 6]
+  min_scale_crops: [0.14, 0.05]
+  max_scale_crops: [1.0, 0.14]
+  num_workers: 8
+  color_jitter_strength: 1.0
+  # loss (swapped assignment + Sinkhorn)
+  temperature: 0.1
+  sinkhorn_iters: 3
+  sinkhorn_eps: 0.05
+  # training: AdamW (betas 0.9, 0.999) + cosine (10-epoch warmup) to min_lr
+  epochs: 300
+  batch_size: 1024
+  lr: 0.0006
+  weight_decay: 0.05
+  warmup_epochs: 10
+  min_lr: 1.0e-6
+  print_freq: 100
+  freeze_prototypes_steps: 313
+  save_at_epochs: [100, 200, 300]

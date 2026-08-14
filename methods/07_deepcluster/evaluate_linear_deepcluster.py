@@ -84,19 +84,27 @@ def run(args, config: "dict | None" = None, model=None) -> dict:
     seed = int(cfg.get("seed", 42))
     make_deterministic(seed)
 
+    # arch: vit reads the ViT CLS feature (embed_dim); the native path reads the
+    # AlexNet-BN fc7 (4096). The probe sizes its head to whatever get_features
+    # returns, so only the backbone build and the crop size are arch-specific.
+    arch = train.get("arch")
     if model is None:
-        from models import build_alexnet_deepcluster
-        model = build_alexnet_deepcluster(sobel=bool(train["sobel"]))
+        if arch == "vit":
+            from models import build_vit_deepcluster
+            from train_pretrain_vit_deepcluster import model_kwargs
+            model = build_vit_deepcluster(**model_kwargs(train))
+        else:
+            from models import build_alexnet_deepcluster
+            model = build_alexnet_deepcluster(sobel=bool(train["sobel"]))
     model = model.to(device)
     model.eval()
     for p in model.parameters():
         p.requires_grad = False
-    print(f"DeepCluster linear eval  device={device}  "
-          f"crop_size={train['crop_size']}")
+    csz = int(train["image_size"]) if arch == "vit" else int(train["crop_size"])
+    print(f"DeepCluster linear eval  device={device}  crop_size={csz}")
 
     bs = int(train["batch_size"])
     nw = int(train["num_workers"])
-    csz = int(train["crop_size"])
     tr_ds, tr_loader = _build_loader(data_root, "train", csz, bs, nw)
     va_ds, va_loader = _build_loader(data_root, "val", csz, bs, nw)
     if tr_ds.classes != va_ds.classes:
