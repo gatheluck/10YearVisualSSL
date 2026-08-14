@@ -14,8 +14,13 @@ its own bank row and away from `m` random negatives. Step 1 is that pretext.
 **A self-contained re-implementation** ported from the capture's own
 `methods/10_inst_disc` (the lab's own ResNet-50 model, NCE memory-bank loss and
 dataset, torch/torchvision only) — no `third_party/` submodule. The capture's
-step 2 (a ViT variant) is excluded, as in every port, which also drops its `timm`
-dependency.
+unified Step 2 (`configs/pretrain_vit.yaml`, `arch: vit`) is also ported
+additively: the same ViT-B/16 backbone every method shares, its CLS token through
+`Linear(768, 128)`, trained from scratch under the same NCE memory-bank objective
+(AdamW + warmup/cosine, no AMP/clip; checkpoints at 100/200/300, each probed by
+the same frozen-backbone `linear_eval`, whose head sizes to the CLS feature). The
+ViT path needs `timm` (imported lazily); the native ResNet-50 path is
+byte-for-byte unchanged.
 
 The lab wrapper trains under `DistributedDataParallel` and logs to TensorBoard;
 neither is needed for a single-process run, so `train_pretrain_instdisc.py` owns a
@@ -56,9 +61,10 @@ L2-normalised, a single linear layer trained with SGD under a cosine schedule).
 ## Environment
 
 torch / torchvision / numpy / PyYAML — the self-contained methods' stack, no
-submodule and no extra. `requirements.lock.txt` (CPU) and
+submodule — plus `timm` for the unified ViT-B/16 Step-2 path (imported lazily, so
+the native ResNet-50 path never needs it). `requirements.lock.txt` (CPU) and
 `requirements.lock.cu130.txt` (CUDA 13.0) are the hashed closures (the same
-closure as `image_gpt`: identical floors, identical resolution).
+closure as `14_simclrv1`: identical floors, identical resolution).
 
     pip install --require-hashes \
         --index-url https://download.pytorch.org/whl/cpu \
