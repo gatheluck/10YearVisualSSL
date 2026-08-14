@@ -10,10 +10,16 @@ the ViT predicts the visual tokens at the masked positions — a **cross-entropy
 over the dVAE vocabulary** (the image analogue of BERT's masked-token prediction).
 Step 1 is that pretext.
 
-## Scope — the ViT-Base step 1 only
+## Scope — the ViT-Base/16 step 1 and the unified Step 2
 
-This port covers BEiT's **ViT-Base/16** step 1. The capture's step 2 (ViT
-fine-tuning) is excluded, as in every port. The ViT is the lab's **own**
+This port covers BEiT's **ViT-Base/16** step 1 (`configs/pretrain.yaml`, the paper
+recipe) **and** the capture's unified **ViT-B/16 Step 2** (`configs/pretrain_vit.yaml`,
+`recipe: unified`). BEiT is already ViT-B/16 with AdamW + fixed weight decay, so the
+unified Step 2 is the *same* MIM objective/architecture/masking/dVAE tokenizer under
+the unified schedule (epochs 800→300, batch 2048→1024, lr 1.5e-3→6e-4; betas 0.9/0.999
+retained) with milestone checkpoints at 100/200/300, each probed by the same
+frozen-backbone `linear_eval`. It is selected by an explicit `recipe: unified` key
+(absent = the native paper recipe, byte-for-byte unchanged). The ViT is the lab's **own**
 (LayerScale blocks) — **no `timm`**. The MIM targets come from the frozen **OpenAI
 DALL-E dVAE** tokenizer: for a **real run** it is a hash-pinned download of
 `encoder.pkl` (`provenance.json` → `tokenizer_artifact`), a pickled `nn.Module`
@@ -79,6 +85,11 @@ port.)
   passed as `--set TOKENIZER_CKPT=<path>`, plus the `third_party/dall_e` submodule
   checked out (`git submodule update --init third_party/dall_e`) and its own deps
   (`requests`, `attr`, …) installed.
+- **Exercised (unified Step 2):** a hermetic smoke — `recipe: unified`, the tiny
+  dims + random tokenizer, two epochs with `save_at_epochs: [1, 2]` — runs through
+  `python -m adapter` on a CPU, writes `encoder.pt` and both `encoder_epoch{1,2}.pt`
+  milestones, and a milestone probe passes `contract-test`. The full 300-epoch
+  ViT-B/16 recipe has not been run here.
 - **GPU:** the device resolution is verified on real hardware; see the device
   mutation spec (`mutations/24_beit-pretrain-device.json`).
 

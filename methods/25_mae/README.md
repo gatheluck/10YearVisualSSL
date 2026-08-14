@@ -8,6 +8,18 @@ sees only the visible tokens, and a lightweight decoder reconstructs the masked
 pixels (MSE loss). Step 1 is that pretraining. The representation is the
 encoder, global-average-pooled over patch tokens.
 
+## Scope — the ViT-L/16 step 1 and the unified ViT-B/16 Step 2
+
+This port covers MAE's **ViT-L/16** step 1 (`configs/pretrain.yaml`, the paper
+recipe) **and** the capture's unified **ViT-B/16 Step 2** (`configs/pretrain_vit.yaml`,
+`recipe: unified`): the *same* MAE objective on a ViT-B/16 encoder (`build_mae`
+supports it) under the unified recipe — AdamW (betas 0.9/0.95, fixed wd 0.05) with
+a **cosine LR schedule + 10-epoch warmup to min_lr**, which the native fixed-LR
+Step-1 trainer does not have — with milestone checkpoints at 100/200/300. It is
+selected by an explicit `recipe: unified` key (absent = the native ViT-L/16 recipe,
+byte-for-byte unchanged). A unified encoder is probed with
+`configs/linear_eval_vit.yaml` (the ViT-B/16 dimensions).
+
 ## Why this method, and what is new here
 
 **25_mae is a self-contained re-implementation.** The capture's
@@ -46,6 +58,11 @@ L2-normalised, a single linear layer trained with SGD under a cosine schedule).
   comparable `linear_probe` accuracies, and writes **no** `encoder.pt`.
 - **Not a full run:** `configs/pretrain.yaml` is the ViT-L/16 recipe (MAE pretrains
   for 1600 epochs); it is a recipe, not a completed run.
+- **Exercised (unified Step 2):** a hermetic smoke — `recipe: unified`, the tiny
+  vit_base dims, two epochs with `save_at_epochs: [1, 2]` — runs through
+  `python -m adapter` on a CPU, writes `encoder.pt` and both `encoder_epoch{1,2}.pt`
+  milestones, and a milestone probe passes `contract-test`. The full 300-epoch
+  ViT-B/16 recipe has not been run here.
 - **GPU:** the device resolution is verified on real hardware; see the device
   mutation spec (`mutations/25_mae-pretrain-device.json`).
 

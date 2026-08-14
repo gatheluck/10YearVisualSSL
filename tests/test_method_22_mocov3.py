@@ -489,5 +489,119 @@ class TestTheOriginalIsReferencedNotCopied(unittest.TestCase):
         self.assertNotIn("autocast", used)
 
 
+# --- Step 2: unified ViT-B/16 (recipe: unified), additive alongside the native
+# recipe. MoCo v3 is already ViT-B/16; the objective/model are unchanged, the
+# recipe differs -- direct `lr` (native `learning_rate`), FIXED EMA momentum
+# (native cosine-anneals it via `momentum_cosine`), `clip_grad`, and milestone
+# checkpoints. A genuine two-way disjoint key set. Smoke runs true vit_base @ 32px.
+UNIFIED_TRAIN = {"recipe": "unified", "arch": "vit_base", "proj_dim": 32,
+                 "mlp_dim": 64, "stop_grad_conv1": True, "img_size": 32,
+                 "crop_min": 0.08, "temperature": 0.2, "momentum": 0.99,
+                 "epochs": 2, "batch_size": 2, "num_workers": 0, "lr": 6.0e-4,
+                 "min_lr": 1.0e-6, "weight_decay": 0.05, "warmup_epochs": 0,
+                 "betas": [0.9, 0.95], "clip_grad": 3.0, "save_at_epochs": [1, 2]}
+UNIFIED_EVAL_TRAIN = {"arch": "vit_base", "img_size": 32, "epochs": 2,
+                      "batch_size": 2, "num_workers": 0, "lr": 0.1,
+                      "momentum": 0.9, "weight_decay": 0.0}
+
+
+class TestUnifiedConfigTranslation(Base):
+    def unified_config(self, train=None, **over) -> dict:
+        cfg = {"stage": "pretrain", "seed": 0,
+               "data_root": str(self.tmp / "data"), "device": "cpu",
+               "train": dict(train if train is not None else UNIFIED_TRAIN)}
+        for k, v in over.items():
+            cfg[k] = v
+        return cfg
+
+    def test_the_unified_step2_config_is_accepted(self):
+        built = adapter.to_run_config(self.unified_config(), self.out)
+        self.assertEqual(built["model"]["arch"], "vit_base")
+        self.assertEqual(built["training"]["lr"], 6.0e-4)
+        self.assertEqual(built["training"]["save_at_epochs"], [1, 2])
+        self.assertNotIn("momentum_cosine", built["mocov3"])
+        self.assertNotIn("learning_rate", built["training"])
+
+    def test_the_native_run_config_has_no_recipe_key(self):
+        built = adapter.to_run_config(self.config(), self.out)
+        self.assertNotIn("recipe", built)
+
+    def test_a_bad_recipe_is_refused_by_name(self):
+        with self.assertRaises(adapter.ConfigError) as e:
+            adapter.to_run_config(
+                self.unified_config(train={**UNIFIED_TRAIN, "recipe": "fancy"}),
+                self.out)
+        self.assertIn("recipe", str(e.exception))
+
+    def test_a_missing_unified_setting_is_refused_by_name(self):
+        for key in UNIFIED_TRAIN:
+            if key == "recipe":
+                continue
+            with self.subTest(key=key):
+                t = {k: v for k, v in UNIFIED_TRAIN.items() if k != key}
+                with self.assertRaises(adapter.ConfigError) as e:
+                    adapter.to_run_config(self.unified_config(train=t), self.out)
+                self.assertIn(key, str(e.exception))
+
+    def test_a_native_knob_does_not_leak_into_the_unified_path(self):
+        for key in ("learning_rate", "momentum_cosine"):
+            with self.subTest(key=key):
+                with self.assertRaises(adapter.ConfigError) as e:
+                    adapter.to_run_config(
+                        self.unified_config(train={**UNIFIED_TRAIN, key: 1}),
+                        self.out)
+                self.assertIn(key, str(e.exception))
+
+    def test_a_unified_knob_does_not_leak_into_the_native_path(self):
+        for key in ("lr", "clip_grad", "save_at_epochs"):
+            with self.subTest(key=key):
+                with self.assertRaises(adapter.ConfigError) as e:
+                    adapter.to_run_config(self.config(train={key: 1}), self.out)
+                self.assertIn(key, str(e.exception))
+
+
+class TestAUnifiedStep2Smoke(Base):
+    def _adapter(self, cfg_dict, out):
+        cfg = self.tmp / (out.name + ".json")
+        cfg.write_text(json.dumps(cfg_dict), encoding="utf-8")
+        env = {**os.environ, "PYTHONPATH": str(ROOT)}
+        r = subprocess.run(
+            [sys.executable, "-m", "adapter", "--config", str(cfg),
+             "--out", str(out)], cwd=METHOD, env=env,
+            capture_output=True, text=True)
+        return cfg, r
+
+    @needs_deps
+    def test_pretrain_milestones_then_probe_passes_contract(self):
+        tiny_imagefolder(self.tmp / "data")
+        pre = self.tmp / "pre_out"
+        _, r = self._adapter(
+            {"stage": "pretrain", "seed": 0,
+             "data_root": str(self.tmp / "data"), "device": "cpu",
+             "train": dict(UNIFIED_TRAIN)}, pre)
+        self.assertEqual(r.returncode, 0, r.stdout[-3000:] + r.stderr[-3000:])
+        self.assertTrue((pre / "encoder.pt").is_file())
+        for n in (1, 2):
+            self.assertTrue((pre / f"encoder_epoch{n}.pt").is_file(),
+                            f"milestone encoder_epoch{n}.pt not written")
+
+        tiny_split(self.tmp / "eval")
+        ev = self.tmp / "eval_out"
+        cfg, r = self._adapter(
+            {"stage": "linear_eval", "seed": 0,
+             "data_root": str(self.tmp / "eval"), "device": "cpu",
+             "encoder": str(pre / "encoder_epoch2.pt"),
+             "train": dict(UNIFIED_EVAL_TRAIN)}, ev)
+        self.assertEqual(r.returncode, 0, r.stdout[-3000:] + r.stderr[-3000:])
+        v = subprocess.run(
+            [sys.executable, str(BIN / "contract-test.py"), "--out", str(ev),
+             "--config", str(cfg), "--exit-status", "0"],
+            capture_output=True, text=True)
+        self.assertEqual(v.returncode, 0, v.stdout + v.stderr)
+        m = json.loads((ev / "metrics.json").read_text())["metrics"]
+        self.assertIn("final_linear_probe_top1_accuracy", m)
+        self.assertFalse((ev / "encoder.pt").exists())
+
+
 if __name__ == "__main__":
     unittest.main()

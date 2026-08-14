@@ -1,0 +1,54 @@
+# BEiT Step 2: unified ViT-B/16 pretraining, from scratch.
+#
+# The *same* BEiT masked-image-modeling objective, ViT-B/16 architecture,
+# blockwise masking and DALL-E dVAE tokenizer as Step 1 -- only the schedule
+# changes to the unified recipe (epochs 800->300, batch 2048->1024, lr
+# 1.5e-3->6e-4) and milestone checkpoints are written at 100/200/300. AdamW betas
+# 0.9/0.999 and fixed weight decay 0.05 are retained (the capture's BEiT Step 2
+# keeps them). Selected by `recipe: unified` (absent == the native paper recipe,
+# byte-for-byte unchanged). The ViT is the port's own (no timm), so no lock change.
+#
+# Two paths are passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   the dataset root; pretraining reads its train/ subdirectory
+#   --set TOKENIZER_CKPT=<path>   the DALL-E encoder.pkl (empty -> random tokenizer)
+# The output path is fixed at --out.
+#
+#   python3 bin/launch.py --config methods/24_beit/configs/pretrain_vit.yaml \
+#       --method 24_beit --set DATA_ROOT=/path/to/imagenet --set TOKENIZER_CKPT=/path/to/encoder.pkl
+stage: pretrain
+seed: 0
+data_root: "${DATA_ROOT}"
+device: auto
+
+train:
+  recipe: unified
+  # model (build_beit): ViT-Base/16, LayerScale blocks, MIM head embed_dim->vocab
+  img_size: 224
+  patch_size: 16
+  vocab_size: 8192
+  embed_dim: 768
+  depth: 12
+  num_heads: 12
+  mlp_ratio: 4.0
+  drop_path_rate: 0.1
+  init_values: 0.1
+  # tokenizer (the frozen DALL-E dVAE; empty ckpt -> random tokenizer smoke)
+  ckpt: "${TOKENIZER_CKPT}"
+  token_size: 112
+  input_is_mapped: true
+  # data
+  num_workers: 8
+  # masking (blockwise, 14x14 patch grid)
+  num_masking_patches: 75
+  min_num_patches: 16
+  # training: AdamW (betas 0.9, 0.999) + linear warmup then cosine decay (unified)
+  epochs: 300
+  batch_size: 1024
+  lr: 6.0e-4
+  beta1: 0.9
+  beta2: 0.999
+  eps: 1.0e-8
+  weight_decay: 0.05
+  warmup_epochs: 10
+  clip_grad: 3.0
+  save_at_epochs: [100, 200, 300]

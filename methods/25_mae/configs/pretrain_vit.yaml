@@ -1,0 +1,46 @@
+# MAE Step 2: unified ViT-B/16 pretraining, from scratch.
+#
+# The *same* masked-autoencoder objective as Step 1, but on the unified ViT-B/16
+# encoder (arch: vit_base_patch16, which build_mae supports) under the unified
+# recipe: AdamW (betas 0.9/0.95, fixed wd 0.05) with a cosine LR schedule +
+# 10-epoch warmup to min_lr -- which the native Step-1 recipe does NOT have (it
+# uses a fixed LR) -- and milestone checkpoints at 100/200/300. Selected by
+# `recipe: unified` (absent == the native ViT-L/16 recipe, byte-for-byte unchanged).
+# The ViT is the port's own (no timm), so no lock change. The linear probe of a
+# unified encoder uses configs/linear_eval_vit.yaml (vit_base dims).
+#
+# One path is passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   the dataset root; pretraining reads its train/ subdirectory
+# The output path is fixed at --out.
+#
+#   python3 bin/launch.py --config methods/25_mae/configs/pretrain_vit.yaml \
+#       --method 25_mae --set DATA_ROOT=/path/to/imagenet
+stage: pretrain
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+
+train:
+  recipe: unified
+  # model (build_mae): ViT-B/16 encoder + the MAE decoder
+  arch: vit_base_patch16
+  img_size: 224
+  patch_size: 16
+  enc_embed_dim: 768
+  enc_depth: 12
+  enc_num_heads: 12
+  dec_embed_dim: 512
+  dec_depth: 8
+  dec_num_heads: 16
+  mlp_ratio: 4.0
+  mask_ratio: 0.75
+  norm_pix_loss: true
+  # training: AdamW (betas 0.9, 0.95) + cosine (10-epoch warmup) to min_lr (unified)
+  epochs: 300
+  batch_size: 1024
+  num_workers: 8
+  lr: 6.0e-4               # unified: 1.5e-4 * batch_size / 256 for batch 1024
+  weight_decay: 0.05
+  warmup_epochs: 10
+  min_lr: 0.0
+  save_at_epochs: [100, 200, 300]
