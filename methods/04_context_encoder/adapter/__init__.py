@@ -8,16 +8,21 @@ centre-hole adversarial discriminator. The representation the rest of the
 project wants is the encoder plus its 4096-d bottleneck; the decoder and the
 discriminator are training machinery.
 
-**Only step 1 is here.** The capture's step 1 is the AlexNet architecture; its
-step 2 is a ViT variant (with its own two-optimiser, bfloat16, always-adversarial
-protocol) that -- like every other method's step 2 -- was not brought across.
-Dropping it also drops the `timm` dependency it needed.
+**Both steps are here.** The native step 1 is the AlexNet architecture. The
+capture's unified ViT-B/16 Step 2 (arch: vit) is also ported additively: the same
+centre-hole inpainting task on a ViT-B/16 encoder + a transformer decoder, always
+adversarial (two AdamW optimisers), AdamW + warmup/cosine; the native AlexNet path
+is byte-for-byte unchanged. The ViT path needs `timm` (imported lazily on
+arch: vit).
 
-`encoder.pt` holds the encoder and the bottleneck (`encoder.*` and `fc.*`); the
-decoder (`decoder_fc`, `decoder`) and the discriminator are left out. The
-original's own linear evaluation reads the representation as
-`model(x) -> (_, features)` -- the bottleneck output -- so `load_encoder`
-rebuilds the model and the evaluation runs it that way.
+`encoder.pt` holds the encoder (`encoder.*`) and, on the AlexNet path, its 4096-d
+bottleneck (`fc.*`); the decoder (`decoder_fc`, `decoder`, and the ViT's
+`decoder_embed`/`decoder_pred`/`mask_token`/`decoder_pos_embed`) and the
+discriminator are left out. The ViT has no `fc.`, so the same `("encoder.", "fc.")`
+prefix set keeps the right weights for either arch. The AlexNet linear evaluation
+reads the representation as `model(x) -> (_, features)`; the ViT reads the mean
+patch-token feature via `model.get_features(x)` -- `load_encoder` rebuilds the
+right model and the evaluation runs it the right way.
 """
 
 from __future__ import annotations
@@ -46,6 +51,29 @@ TOP_KEYS = frozenset({"stage", "seed", "data_root", "device", "train"})
 EVAL_TOP_KEYS = TOP_KEYS | {"encoder"}
 EVAL_TRAIN_KEYS = frozenset({"epochs", "batch_size", "num_workers", "lr",
                              "momentum", "weight_decay", "img_size"})
+
+# The unified ViT-B/16 Step-2 path (arch: vit), additive to the native AlexNet
+# path. The native path carries no `arch` key (arch absent == alexnet); an
+# explicit `arch: alexnet` selects it too. The ViT keeps the centre-hole
+# inpainting task but on a ViT-B/16 encoder + a transformer decoder, always
+# adversarial, under AdamW + warmup/cosine. `arch` is stripped before key
+# validation, so these sets do not carry it.
+ARCHS = ("alexnet", "vit")
+VIT_MODEL_KEYS = frozenset({"image_size", "patch_size", "in_channels",
+                            "embed_dim", "depth", "num_heads", "mlp_ratio",
+                            "decoder_dim", "decoder_depth", "decoder_heads",
+                            "hole_size"})
+PRETRAIN_VIT_ONLY = frozenset({"epochs", "batch_size", "num_workers", "lr",
+                               "weight_decay", "warmup_epochs", "min_lr",
+                               "clip_grad", "adversarial_weight",
+                               "save_at_epochs"})
+PRETRAIN_VIT_KEYS = VIT_MODEL_KEYS | PRETRAIN_VIT_ONLY
+EVAL_VIT_KEYS = VIT_MODEL_KEYS | frozenset({"epochs", "batch_size",
+                                            "num_workers", "lr", "momentum",
+                                            "weight_decay"})
+_VIT_MODEL_INT = ("image_size", "patch_size", "in_channels", "embed_dim",
+                  "depth", "num_heads", "decoder_dim", "decoder_depth",
+                  "decoder_heads", "hole_size")
 
 DEVICES = ("auto", "cuda", "cpu")
 LOSS_TYPES = ("l1", "l2", "smooth_l1")
@@ -112,14 +140,25 @@ def to_run_config(config: dict, out: Path) -> dict:
             f"config: stage is {stage!r}; known stages are "
             f"{', '.join(STAGES)}")
     top = EVAL_TOP_KEYS if stage == "linear_eval" else TOP_KEYS
-    keys = EVAL_TRAIN_KEYS if stage == "linear_eval" else TRAIN_KEYS
     _named(top - set(config), set(config) - top, "config")
 
     train = config["train"]
     if not isinstance(train, dict):
         raise ConfigError(f"config: train is {type(train).__name__}, "
                           "not a mapping")
-    _named(keys - set(train), set(train) - keys, "config.train")
+    # `arch` selects the path; absent == the native AlexNet. It is stripped
+    # before key validation, so the disjoint key sets cannot leak between paths.
+    arch = train.get("arch", "alexnet")
+    if arch not in ARCHS:
+        raise ConfigError(
+            f"config.train: arch is {arch!r}; expected one of "
+            f"{', '.join(ARCHS)}")
+    rest = {k: v for k, v in train.items() if k != "arch"}
+    if stage == "linear_eval":
+        keys = EVAL_VIT_KEYS if arch == "vit" else EVAL_TRAIN_KEYS
+    else:
+        keys = PRETRAIN_VIT_KEYS if arch == "vit" else TRAIN_KEYS
+    _named(keys - set(rest), set(rest) - keys, "config.train")
 
     if config["device"] not in DEVICES:
         raise ConfigError(
@@ -129,6 +168,28 @@ def to_run_config(config: dict, out: Path) -> dict:
     if stage == "linear_eval":
         # The evaluation takes flags, not a document; `eval_args` builds them.
         return {"stage": stage}
+
+    if arch == "vit":
+        model = {k: int(train[k]) for k in _VIT_MODEL_INT}
+        model["mlp_ratio"] = float(train["mlp_ratio"])
+        return {
+            "seed": int(config["seed"]),
+            "arch": "vit",
+            "model": model,
+            "data": {"train_path": str(config["data_root"]),
+                     "num_workers": int(train["num_workers"])},
+            "training": {"epochs": int(train["epochs"]),
+                         "batch_size": int(train["batch_size"]),
+                         "lr": float(train["lr"]),
+                         "weight_decay": float(train["weight_decay"]),
+                         "warmup_epochs": int(train["warmup_epochs"]),
+                         "min_lr": float(train["min_lr"]),
+                         "clip_grad": float(train["clip_grad"]),
+                         "adversarial_weight": float(train["adversarial_weight"]),
+                         "save_at_epochs": [int(e) for e in
+                                            train["save_at_epochs"]]},
+            "checkpoint": {"save_dir": str(Path(out) / WORK)},
+        }
 
     if train["loss_type"] not in LOSS_TYPES:
         raise ConfigError(
@@ -165,14 +226,17 @@ def to_args(config: dict, out: Path) -> Namespace:
 
 
 def eval_args(config: dict, out: Path) -> Namespace:
-    """The flags the original's evaluation reads. `model_type` is fixed to
-    `alexnet`: the ViT and official Caffe paths are step 2 / not brought
-    across."""
+    """The flags the original's evaluation reads. `model_type` is arch-aware:
+    `vit` for the unified Step-2 encoder, `alexnet` for the native path (the
+    official Caffe feature path stays step 2 / not brought across)."""
     to_run_config(config, out)          # validate before building arguments
     train = config["train"]
+    is_vit = train.get("arch") == "vit"
+    img_size = int(train["image_size"] if is_vit else train["img_size"])
     return Namespace(
-        checkpoint=str(config["encoder"]), model_type="alexnet",
-        data_path=str(config["data_root"]), img_size=int(train["img_size"]),
+        checkpoint=str(config["encoder"]),
+        model_type="vit" if is_vit else "alexnet",
+        data_path=str(config["data_root"]), img_size=img_size,
         batch_size=int(train["batch_size"]), num_workers=int(train["num_workers"]),
         epochs=int(train["epochs"]), lr=float(train["lr"]),
         momentum=float(train["momentum"]),
@@ -206,12 +270,21 @@ def load_encoder(state_dict: dict, config: dict):
     """The other half of `extract_encoder`: put it back into the model.
 
     The AlexNet architecture is fixed (channels=3), so no config shape is
-    needed. The keys keep their prefixes and load into the whole model; the
-    decoder is expected to be missing (it is not shipped), the encoder and the
-    bottleneck are not.
+    needed. The ViT is sized from the config's model keys. The keys keep their
+    prefixes and load into the whole model; the decoder (and, for the ViT, the
+    prediction head / mask token / decoder position embedding / mask buffers) is
+    expected to be missing, the encoder is not.
     """
-    from models import create_model
-    model = create_model("alexnet", channels=3)
+    train = config["train"]
+    if train.get("arch") == "vit":
+        if str(Path(__file__).resolve().parent.parent) not in sys.path:
+            sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+        from models import build_vit_context_encoder
+        from train_pretrain_vit import model_kwargs as vit_mk
+        model = build_vit_context_encoder(**vit_mk(train))
+    else:
+        from models import create_model
+        model = create_model("alexnet", channels=3)
     missing, unexpected = model.load_state_dict(state_dict, strict=False)
     if unexpected:
         raise RuntimeError(
@@ -236,7 +309,10 @@ def _filter_numeric(raw: dict) -> tuple:
 
 def run_training(config: dict, out: Path, _run=None) -> dict:
     if _run is None:
-        from train_pretrain import run as _run
+        if config.get("train", {}).get("arch") == "vit":
+            from train_pretrain_vit import run as _run
+        else:
+            from train_pretrain import run as _run
     args = to_args(config, out)
     run_config = to_run_config(config, out)
     Path(run_config["checkpoint"]["save_dir"]).mkdir(parents=True, exist_ok=True)
@@ -285,10 +361,22 @@ def body(ctx: adapterlib.Context) -> None:
                           names=LINEAR_EVAL_METRIC_NAMES)
         return
     metrics = run_training(ctx.config, ctx.out)
-    state = torch.load(latest_checkpoint(Path(ctx.out) / WORK),
+    work = Path(ctx.out) / WORK
+    state = torch.load(latest_checkpoint(work),
                        map_location="cpu", weights_only=False)
     torch.save(extract_encoder(state["model_state_dict"]),
                Path(ctx.out) / "encoder.pt")
+    train = ctx.config.get("train", {})
+    if train.get("arch") == "vit":
+        # The ViT trainer writes a checkpoint_epoch_{N}.pth per milestone; hand
+        # over encoder_epoch{N}.pt for each so the 100/200/300 sweep can probe
+        # each frozen backbone.
+        for n in train.get("save_at_epochs", []):
+            ck = work / f"checkpoint_epoch_{int(n)}.pth"
+            if ck.is_file():
+                s = torch.load(ck, map_location="cpu", weights_only=False)
+                torch.save(extract_encoder(s["model_state_dict"]),
+                           Path(ctx.out) / f"encoder_epoch{int(n)}.pt")
     ctx.write_metrics(metrics, names=PRETRAIN_METRIC_NAMES)
 
 

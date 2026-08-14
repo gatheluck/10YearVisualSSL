@@ -104,12 +104,18 @@ def load_encoder(checkpoint, model_type):
 
 
 @torch.no_grad()
-def extract_features(model, data_loader, device):
-    """Extract the AlexNet bottleneck features (model(x) -> (_, features))."""
+def extract_features(model, data_loader, device, model_type="alexnet"):
+    """The frozen representation, per arch: the AlexNet 4096-d bottleneck
+    (`model(x) -> (_, features)`), or the ViT mean patch-token feature
+    (`model.get_features(x)`, embed_dim)."""
     model.eval()
     feats, labels = [], []
     for images, lbs in data_loader:
-        _, features = model(images.to(device, non_blocking=True))
+        images = images.to(device, non_blocking=True)
+        if model_type == "vit":
+            features = model.get_features(images)
+        else:
+            _, features = model(images)
         feats.append(features.cpu())
         labels.append(lbs)
     return torch.cat(feats), torch.cat(labels)
@@ -121,12 +127,18 @@ def _topk(outputs, labels, k):
 
 
 def run(args, encoder=None, in_dim=None) -> dict:
-    """The captured evaluation, callable in process and returning its numbers."""
-    if args.model_type != 'alexnet':
+    """The captured evaluation, callable in process and returning its numbers.
+
+    The adapter hands in a rebuilt `encoder`; on that path both 'alexnet' and
+    'vit' are supported. The stand-alone CLI path (encoder is None) can only
+    rebuild the fixed AlexNet architecture -- the ViT needs its config dims and
+    the official Caffe features are step 2 -- so it still refuses non-alexnet.
+    """
+    if encoder is None and args.model_type != 'alexnet':
         raise NotImplementedError(
-            f"model_type={args.model_type!r} belongs to step 2 / the official "
-            "Caffe path, which this port does not include; only 'alexnet' is "
-            "available")
+            f"model_type={args.model_type!r} cannot be rebuilt stand-alone (the "
+            "ViT needs its config dimensions; the official Caffe features are "
+            "step 2). Hand in an encoder built from the config, or use 'alexnet'")
 
     device = resolve_device(getattr(args, 'device', 'auto'), 0)
     make_deterministic(int(getattr(args, 'seed', 42)))
@@ -149,8 +161,10 @@ def run(args, encoder=None, in_dim=None) -> dict:
         img_size=args.img_size, preprocess='torch')
 
     # Features are extracted once and cached, as in the captured evaluation.
-    train_features, train_labels = extract_features(model, train_loader, device)
-    val_features, val_labels = extract_features(model, val_loader, device)
+    train_features, train_labels = extract_features(
+        model, train_loader, device, args.model_type)
+    val_features, val_labels = extract_features(
+        model, val_loader, device, args.model_type)
     if in_dim is None:
         in_dim = train_features.shape[1]
 

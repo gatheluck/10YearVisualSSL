@@ -174,8 +174,22 @@ One family = one PR. Order by reuse (high → complex):
   regenerated with uv (constrained to the existing pins) rather than spliced: 07's
   CUDA closure already pinned `packaging==26.3` vs the fleet's `26.2`, which a splice
   cannot reconcile.
-- [ ] **Batch 6 — dense/generative (bespoke, last):** `03_colorization` (custom non-timm ViT),
-  `04_context_encoder` (adversarial + transformer decoder), `08_split_brain` (dual half-ViTs).
+- [x] **Batch 6 — dense/generative (PR #TBD):** `03_colorization` (a **self-contained,
+  hand-written** ViT-B/16 -- no timm -- reading the L channel + a CNN decoder for the same
+  313-bin ab classification; trunk under `self.encoder`, `get_encoder()`->CLS, so the eval is
+  unchanged and the closure stays torch-only), `08_split_brain` (dual half-width ViT-B/16
+  branches, embed_dim 384/6 heads, per-branch in_chans 1/2; `net1.encoder.`/`net2.encoder.`
+  prefixes unchanged; ab-CE + L-CE reaches every parameter; needs timm), `04_context_encoder`
+  (the one GAN: ViT-B/16 encoder + a transformer decoder predicting the hole patches, always
+  adversarial with two AdamW optimisers, reusing the shared `Discriminator`; `encoder.pt` is
+  `encoder.*` only -- the ViT has no `fc.`, so the native `("encoder.","fc.")` set still keeps
+  it; arch-aware eval reads `get_features` mean patch-tokens; needs timm). Pattern notes: 03's
+  ViT trunk pos-embed is sized to the **crop**, not the resize `img_size`; 04 builds the encoder
+  as `VisionTransformer` directly (not `create_model('vit_base_patch16_224')`) so a tiny CPU
+  smoke runs; 03/08/04 reuse each method's native dataset + eval unchanged (eval already
+  arch-agnostic or `get_encoder()`-based). Locks: 03 no timm (self-contained); 08 timm delta via
+  uv-constrained regen (packaging==26.2 fleet); 04 already had packaging==26.2 so the timm delta
+  was appended to its shared closure (blocks with `# wheel.whl` comments the coverage test reads).
 
 **Deferred, separate efforts (different nature, not this fan-out):**
 - **ViT-native methods** (`22_mocov3`, `23_dino`, `24_beit`, `25_mae`, `26_simmim`,
