@@ -51,6 +51,17 @@ trains, so the probe number is a genuine, comparable linear probe. The probe
 follows the lab's shared ARSSL protocol (features cached once, mean-centred and
 L2-normalised, a single linear layer trained with SGD under a cosine schedule).
 
+## Milestone checkpoints for the frozen-backbone sweep
+
+This config **is** the unified ViT-B/16 Step 2 already, so there is a single
+recipe and no `recipe` selector. To support the Step-2 protocol's 100/200/300
+frozen-backbone probe sweep, `train.save_at_epochs` lists the epochs at which the
+trainer writes a `checkpoint_epoch_{N}.pth` (in addition to
+`checkpoint_latest.pth`); the adapter hands each over as `encoder_epoch{N}.pt`, one
+frozen target encoder per milestone, so `linear_eval` can be run at each. An empty
+`save_at_epochs` writes only the final `encoder.pt` — the behaviour before this key
+existed is unchanged.
+
 ## What has and has not been exercised
 
 - **Exercised (step 1):** a hermetic smoke — a tiny `vit_tiny` at 64px

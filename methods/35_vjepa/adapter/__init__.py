@@ -55,7 +55,7 @@ MASK_KEYS = frozenset({"mask"})
 TRAINING_KEYS = frozenset({"epochs", "batch_size", "lr", "start_lr", "final_lr",
                            "weight_decay", "final_weight_decay", "warmup_epochs",
                            "beta1", "beta2", "eps", "clip_grad", "ema_start",
-                           "ema_final"})
+                           "ema_final", "save_at_epochs"})
 PRETRAIN_TRAIN_KEYS = (MODEL_KEYS | DATA_KEYS | LOSS_KEYS | MASK_KEYS
                     | TRAINING_KEYS)
 EVAL_PROBE_KEYS = frozenset({"epochs", "batch_size", "num_workers", "lr",
@@ -123,7 +123,8 @@ def _training_section(t: dict) -> dict:
             "beta1": float(t["beta1"]), "beta2": float(t["beta2"]),
             "eps": float(t["eps"]), "clip_grad": float(t["clip_grad"]),
             "ema_start": float(t["ema_start"]),
-            "ema_final": float(t["ema_final"])}
+            "ema_final": float(t["ema_final"]),
+            "save_at_epochs": [int(e) for e in t["save_at_epochs"]]}
 
 
 def to_run_config(config: dict, out: Path) -> dict:
@@ -266,6 +267,16 @@ def body(ctx: adapterlib.Context) -> None:
     state = torch.load(latest, map_location="cpu", weights_only=False)
     torch.save(extract_encoder(state["target_encoder_state_dict"]),
                Path(ctx.out) / "encoder.pt")
+    # This config is already the unified ViT-B/16 Step 2, so there is one recipe
+    # and no selector; save_at_epochs writes checkpoint_epoch_{N}.pth per milestone
+    # and the target encoder is handed over as encoder_epoch{N}.pt for the sweep.
+    work = Path(ctx.out) / WORK
+    for n in ctx.config.get("train", {}).get("save_at_epochs", []):
+        ck = work / f"checkpoint_epoch_{int(n)}.pth"
+        if ck.is_file():
+            s = torch.load(ck, map_location="cpu", weights_only=False)
+            torch.save(extract_encoder(s["target_encoder_state_dict"]),
+                       Path(ctx.out) / f"encoder_epoch{int(n)}.pt")
     ctx.write_metrics(metrics, names=PRETRAIN_METRIC_NAMES)
 
 

@@ -77,7 +77,8 @@ LOSS = {"loss_exp": 1.0, "reg_coeff": 0.0}
 TRAINING = {"epochs": 1, "batch_size": 2, "lr": 6.0e-4, "start_lr": 0.0,
             "final_lr": 1.0e-6, "weight_decay": 0.05, "final_weight_decay": 0.05,
             "warmup_epochs": 0, "beta1": 0.9, "beta2": 0.95, "eps": 1.0e-8,
-            "clip_grad": 10.0, "ema_start": 0.996, "ema_final": 1.0}
+            "clip_grad": 10.0, "ema_start": 0.996, "ema_final": 1.0,
+            "save_at_epochs": []}
 TRAIN = {**MODEL, **DATA, "mask": MASK, **LOSS, **TRAINING}
 EVAL_TRAIN = {**MODEL, "epochs": 2, "batch_size": 2, "num_workers": 0, "lr": 0.1,
               "momentum": 0.9, "weight_decay": 0.0}
@@ -382,6 +383,20 @@ class TestAStep1Smoke(Base):
         self.assertTrue((self.out / "encoder.pt").is_file())
         m = json.loads((self.out / "metrics.json").read_text())["metrics"]
         self.assertIn("final_pretext_loss", m)
+
+    @needs_deps
+    def test_each_milestone_encoder_is_written(self):
+        """save_at_epochs writes checkpoint_epoch_{N}.pth per milestone; the
+        adapter hands over encoder_epoch{N}.pt (the target encoder) for each so
+        the 100/200/300 sweep can probe every frozen milestone. This config is
+        already the unified ViT-B/16 Step 2, so no recipe key is needed."""
+        if not _submodule_present():
+            self.skipTest("the jepa submodule is not checked out here")
+        _, r = self.run_adapter(train={"epochs": 2, "save_at_epochs": [1, 2]})
+        self.assertEqual(r.returncode, 0, r.stdout[-3000:] + r.stderr[-3000:])
+        self.assertTrue((self.out / "encoder.pt").is_file())
+        self.assertTrue((self.out / "encoder_epoch1.pt").is_file())
+        self.assertTrue((self.out / "encoder_epoch2.pt").is_file())
 
     @needs_deps
     def test_the_encoder_pt_it_wrote_loads_back(self):

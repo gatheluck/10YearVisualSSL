@@ -267,9 +267,16 @@ One family = one PR. Order by reuse (high → complex):
     empty list → only `checkpoint_latest.pth`, prior behaviour), and body extraction of
     `encoder_epoch{N}.pt` (teacher backbone, `backbone.` from `teacher_state_dict`). Full
     31 module 33 tests OK (56s); base gate EXIT=0; milestone-save mutation-killed by the
-    milestone test. Next in 7c:
-    `35_vjepa` (already unified ViT-B/16 → milestone-only, no `recipe` key; pinned
-    `third_party/jepa` submodule, `ENCODER_PREFIX=""` from `target_encoder_state_dict`).
+    milestone test.
+    `35_vjepa` **DONE** (milestone-only, **no `recipe` key** — already unified ViT-B/16
+    Step 2; pinned `third_party/jepa` submodule, `ENCODER_PREFIX=""` from
+    `target_encoder_state_dict`). Same shape as 31: declared `save_at_epochs`, guarded
+    trainer milestone save, body extraction of `encoder_epoch{N}.pt`. Full 35 module 34
+    tests OK (73s); base gate EXIT=0; milestone-save mutation-killed.
+
+  **7c COMPLETE** (27_ibot, 29_ijepa, 34_msn, 31_dinov3, 35_vjepa) on branch
+  `port/vit-step2-batch7c-vit-native`. Ready to PR once reviewed. Remaining fan-out
+  work: the separate `26_simmim` PR (below).
   - **Separate PR:** `26_simmim` (native is Swin-B, not ViT → new `simmim_vit.py` +
     pixel-mask loader + arch branch in `load_encoder` **and** eval; non-additive-to-eval).
 
