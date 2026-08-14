@@ -81,7 +81,7 @@ TRAINING = {"epochs": 1, "batch_size": 2, "lr": 1.0e-3, "min_lr": 1.0e-6,
             "teacher_momentum_start": 0.99, "teacher_momentum_end": 1.0,
             "grad_clip": 3.0, "ibot_mask_ratio_min": 0.1,
             "ibot_mask_ratio_max": 0.5, "ibot_mask_sample_probability": 0.5,
-            "koleo_loss_weight": 0.1}
+            "koleo_loss_weight": 0.1, "save_at_epochs": []}
 LOSS = {"student_temp": 0.1, "teacher_temp_start": 0.04, "teacher_temp_end": 0.07,
         "teacher_temp_warmup_epochs": 0, "sk_n_iters": 3}
 TRAIN = {**MODEL, **DATA, **TRAINING, **LOSS}
@@ -404,6 +404,18 @@ class TestAStep1Smoke(Base):
         self.assertTrue((self.out / "encoder.pt").is_file())
         m = json.loads((self.out / "metrics.json").read_text())["metrics"]
         self.assertIn("final_pretext_loss", m)
+
+    @needs_deps
+    def test_each_milestone_encoder_is_written(self):
+        """save_at_epochs writes checkpoint_epoch_{N}.pth per milestone; the
+        adapter hands over encoder_epoch{N}.pt (the teacher backbone) for each so
+        the 100/200/300 sweep can probe every frozen milestone. This config is
+        already the unified ViT-B/16 Step 2, so no recipe key is needed."""
+        _, r = self.run_adapter(train={"epochs": 2, "save_at_epochs": [1, 2]})
+        self.assertEqual(r.returncode, 0, r.stdout[-3000:] + r.stderr[-3000:])
+        self.assertTrue((self.out / "encoder.pt").is_file())
+        self.assertTrue((self.out / "encoder_epoch1.pt").is_file())
+        self.assertTrue((self.out / "encoder_epoch2.pt").is_file())
 
     @needs_deps
     def test_the_encoder_pt_it_wrote_loads_back(self):

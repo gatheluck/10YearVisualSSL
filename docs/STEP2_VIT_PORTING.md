@@ -260,8 +260,16 @@ One family = one PR. Order by reuse (high → complex):
     the sole unified-only key (one-way leakage guard, refused on native), since the
     capture's step2 changes only values, not the key set. Smoke keeps tiny dims for
     CPU speed; deit_base covered by config translation. Full 34 module 41 tests OK
-    (65s); base gate EXIT=0; recipe-split mutation-killed. Next in 7c:
-    `31_dinov3`+`35_vjepa` (already unified ViT-B/16 → milestone-only, no `recipe` key).
+    (65s); base gate EXIT=0; recipe-split mutation-killed.
+    `31_dinov3` **DONE** (milestone-only, **no `recipe` key** — this config is already
+    the unified ViT-B/16 Step 2). Added a required `save_at_epochs` key (declared in the
+    sole pretrain key set), a guarded trainer milestone save (`checkpoint_epoch_{N}.pth`;
+    empty list → only `checkpoint_latest.pth`, prior behaviour), and body extraction of
+    `encoder_epoch{N}.pt` (teacher backbone, `backbone.` from `teacher_state_dict`). Full
+    31 module 33 tests OK (56s); base gate EXIT=0; milestone-save mutation-killed by the
+    milestone test. Next in 7c:
+    `35_vjepa` (already unified ViT-B/16 → milestone-only, no `recipe` key; pinned
+    `third_party/jepa` submodule, `ENCODER_PREFIX=""` from `target_encoder_state_dict`).
   - **Separate PR:** `26_simmim` (native is Swin-B, not ViT → new `simmim_vit.py` +
     pixel-mask loader + arch branch in `load_encoder` **and** eval; non-additive-to-eval).
 

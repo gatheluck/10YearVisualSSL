@@ -51,7 +51,7 @@ TRAINING_KEYS = frozenset({"epochs", "batch_size", "lr", "min_lr",
                            "teacher_momentum_start", "teacher_momentum_end",
                            "grad_clip", "ibot_mask_ratio_min",
                            "ibot_mask_ratio_max", "ibot_mask_sample_probability",
-                           "koleo_loss_weight"})
+                           "koleo_loss_weight", "save_at_epochs"})
 LOSS_KEYS = frozenset({"student_temp", "teacher_temp_start", "teacher_temp_end",
                        "teacher_temp_warmup_epochs", "sk_n_iters"})
 PRETRAIN_TRAIN_KEYS = MODEL_KEYS | DATA_KEYS | TRAINING_KEYS | LOSS_KEYS
@@ -139,7 +139,8 @@ def _training_section(t: dict) -> dict:
             "ibot_mask_ratio_min": float(t["ibot_mask_ratio_min"]),
             "ibot_mask_ratio_max": float(t["ibot_mask_ratio_max"]),
             "ibot_mask_sample_probability": float(t["ibot_mask_sample_probability"]),
-            "koleo_loss_weight": float(t["koleo_loss_weight"])}
+            "koleo_loss_weight": float(t["koleo_loss_weight"]),
+            "save_at_epochs": [int(e) for e in t["save_at_epochs"]]}
 
 
 def _loss_section(t: dict) -> dict:
@@ -280,6 +281,16 @@ def body(ctx: adapterlib.Context) -> None:
     state = torch.load(latest, map_location="cpu", weights_only=False)
     torch.save(extract_encoder(state["teacher_state_dict"]),
                Path(ctx.out) / "encoder.pt")
+    # This config is already the unified ViT-B/16 Step 2, so there is one recipe
+    # and no selector; save_at_epochs writes checkpoint_epoch_{N}.pth per milestone
+    # and the teacher backbone is handed over as encoder_epoch{N}.pt for the sweep.
+    work = Path(ctx.out) / WORK
+    for n in ctx.config.get("train", {}).get("save_at_epochs", []):
+        ck = work / f"checkpoint_epoch_{int(n)}.pth"
+        if ck.is_file():
+            s = torch.load(ck, map_location="cpu", weights_only=False)
+            torch.save(extract_encoder(s["teacher_state_dict"]),
+                       Path(ctx.out) / f"encoder_epoch{int(n)}.pt")
     ctx.write_metrics(metrics, names=PRETRAIN_METRIC_NAMES)
 
 

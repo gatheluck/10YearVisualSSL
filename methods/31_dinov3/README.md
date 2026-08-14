@@ -55,6 +55,17 @@ L2-normalised, a single linear layer trained with SGD under a cosine schedule).
 (The capture's own DINOv3 eval trains plain linear heads on the frozen backbone;
 using the shared single-feature probe instead is a documented deviation.)
 
+## Milestone checkpoints for the frozen-backbone sweep
+
+This config **is** the unified ViT-B/16 Step 2 already, so there is a single
+recipe and no `recipe` selector. To support the Step-2 protocol's 100/200/300
+frozen-backbone probe sweep, `train.save_at_epochs` lists the epochs at which the
+trainer writes a `checkpoint_epoch_{N}.pth` (in addition to
+`checkpoint_latest.pth`); the adapter hands each over as `encoder_epoch{N}.pt`,
+one frozen teacher backbone per milestone, so `linear_eval` can be run at each. An
+empty `save_at_epochs` writes only the final `encoder.pt` — the behaviour before
+this key existed is unchanged.
+
 ## What has and has not been exercised
 
 - **Exercised (step 1):** a hermetic smoke — a tiny ViT at 32px (a 2×2 patch grid,
