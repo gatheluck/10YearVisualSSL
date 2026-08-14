@@ -8,11 +8,20 @@ and a VGG-style CNN predicts the **ab** colour channels — quantised into **313
 in-gamut bins — as a per-pixel classification, trained with a (class-rebalanced)
 cross-entropy. Step 1 is that pretext.
 
-## Scope — the paper-faithful CNN path only
+## Scope — the CNN path and the unified ViT-B/16 Step 2
 
-This port brings across the **CNN** path: the VGG-style encoder/decoder, the
-numpy Lab conversion and 313-bin quantisation, and the class-rebalanced loss. The
-captured step 2 (a ViT variant) is excluded, as in every port.
+This port brings across the paper-faithful **CNN** path (`configs/pretrain.yaml`,
+no arch): the VGG-style encoder/decoder, the numpy Lab conversion and 313-bin
+quantisation, and the class-rebalanced loss. It **also** ports the capture's
+unified **ViT-B/16 Step 2** (`configs/pretrain_vit.yaml`, `arch: vit`): a
+from-scratch ViT-B/16 (hand-written attention — **no timm**) reads the L channel
+(`in_chans=1`), and a lightweight CNN decoder upsamples the patch grid back to the
+same 313-bin per-pixel ab classification. Optimiser AdamW (betas 0.9, 0.999) with
+warmup + cosine to `min_lr`, AMP on CUDA, gradient clipping; checkpoints at
+100/200/300, each probed by the same frozen-backbone `linear_eval` (the CLS
+embedding, `embed_dim`-d). The native CNN path is byte-for-byte unchanged, and —
+because the ViT is self-contained — the closure stays torch-only (no new
+dependency).
 
 ## Why this method, and what is new here
 
@@ -69,7 +78,11 @@ number is comparable across them.
   comparable `linear_probe` accuracies, and writes **no** `encoder.pt`.
 - **Not a full run:** `configs/pretrain.yaml` is the paper-target recipe (313 bins,
   224px crop, 300 epochs, class rebalancing on), a recipe, not a completed run.
-- **Not ported:** the ViT step 2.
+- **Exercised (ViT Step 2):** a hermetic smoke — a tiny ViT (16-d embed, one
+  block), 32px crop, two epochs with `save_at_epochs: [1, 2]` — runs through
+  `python -m adapter` on a CPU, writes `encoder.pt` and both `encoder_epoch{1,2}.pt`
+  milestones, and a milestone probe passes `contract-test`. The full 300-epoch
+  ViT-B/16 recipe has not been run here.
 - **GPU:** the device resolution is verified on real hardware; see the device
   mutation spec (`mutations/03_colorization-pretrain-device.json`).
 
@@ -77,9 +90,9 @@ number is comparable across them.
 
 torch / torchvision / numpy / PyYAML — the self-contained methods' stack, no
 submodule and no extra (the Lab conversion and ab quantisation are numpy, not
-opencv/scikit-image). `requirements.lock.txt` (CPU) and
-`requirements.lock.cu130.txt` (CUDA 13.0) are the hashed closures (the same
-closure as `image_gpt`).
+opencv/scikit-image; the ViT Step-2 backbone is hand-written, so it adds **no**
+timm dependency). `requirements.lock.txt` (CPU) and `requirements.lock.cu130.txt`
+(CUDA 13.0) are the hashed closures (the same closure as `image_gpt`).
 
     pip install --require-hashes \
         --index-url https://download.pytorch.org/whl/cpu \
