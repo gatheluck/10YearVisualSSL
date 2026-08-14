@@ -86,11 +86,23 @@ def resolve_device(spec: str, local_rank: int = 0) -> "torch.device":
 
 
 def make_deterministic(seed: int) -> None:
-    """Seed everything the run draws from."""
+    """Seed everything the run draws from, and pin the sources of run-to-run
+    nondeterminism so two runs of one config produce bit-identical weights.
+
+    Seeding alone is not enough here: this is the one GAN (two models, two
+    optimisers), and its multi-threaded floating-point reductions gave a
+    different reduction order -- and so slightly different weights -- from one
+    run to the next in multi-core CI containers, which is why its
+    same-config-twice determinism test flaked there. Single-threading and
+    deterministic algorithms remove that source; every other method already
+    pins these, and this brings 04 in line."""
     random.seed(seed)
     torch.manual_seed(seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
+    torch.use_deterministic_algorithms(True, warn_only=True)
+    torch.backends.cudnn.deterministic = True
+    torch.set_num_threads(1)
 
 
 def compute_reconstruction_loss(pred, target, loss_type="l2"):
