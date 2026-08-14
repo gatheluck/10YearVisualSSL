@@ -1,0 +1,48 @@
+# SeLa Step 2: unified ViT-B/16 pretraining, from scratch.
+#
+# The capture's Step-2 backbone is the same ViT-B/16 for every method; SeLa plugs
+# in a single linear prototype head and self-labels by Sinkhorn-Knopp optimal
+# transport: each epoch the prototype logits over the dataset are turned into
+# balanced hard pseudo-labels, and the network is trained with cross-entropy on
+# them. Optimiser AdamW (betas 0.9, 0.999), linear warmup then cosine to min_lr,
+# AMP on CUDA; checkpoints at 100/200/300. The native ResNetv2 pretrain
+# (configs/pretrain.yaml, arch: resnetv2, multi-head SGD) is unchanged.
+#
+# One path is passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   the dataset root; pretraining reads its train/ subdirectory
+# The output path is fixed at --out.
+#
+#   python3 bin/launch.py --config methods/18_sela/configs/pretrain_vit.yaml \
+#       --method 18_sela --set DATA_ROOT=/path/to/imagenet
+stage: pretrain
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+
+train:
+  arch: vit
+  # ViT-B/16 (build_vit_sela) + single Linear(768, k) prototype head
+  image_size: 224
+  patch_size: 16
+  embed_dim: 768
+  depth: 12
+  num_heads: 12
+  mlp_ratio: 4.0
+  drop_rate: 0.0
+  attn_drop_rate: 0.0
+  # SeLa clustering / Sinkhorn
+  k: 1000
+  sinkhorn_iters: 3
+  sinkhorn_tol: 0.1
+  lambda: 25
+  epsilon: 0.05
+  temperature: 1.0
+  # training: AdamW (betas 0.9, 0.999) + cosine (10-epoch warmup) to min_lr, AMP
+  epochs: 300
+  batch_size: 1024
+  num_workers: 8
+  lr: 0.0006
+  weight_decay: 0.05
+  warmup_epochs: 10
+  min_lr: 1.0e-6
+  save_at_epochs: [100, 200, 300]

@@ -10,12 +10,17 @@ transport**, which forces a balanced (equipartitioned) assignment over K cluster
 and the network is trained with cross-entropy on the resulting hard targets,
 averaged over the heads. Step 1 is that self-labelling pretext.
 
-## Scope — the ResNet path only
+## Scope — the ResNet path and the unified ViT-B/16 Step 2
 
 This port covers the paper-faithful **ResNet** step 1 (the official ResNetV2-50 by
-default, or a torchvision ResNet-50 via `arch`). The capture's ViT variant
-(`models/vit_sela.py`, step 2) imports `timm`, and is excluded as in every port —
-which also drops the `timm`, `tensorboard` and `tqdm` dependencies.
+default, or a torchvision ResNet-50 via `arch`; multi-head, SGD) **and** the
+capture's unified **ViT-B/16 Step 2** (`configs/pretrain_vit.yaml`, `arch: vit`):
+the same ViT-B/16 backbone every method shares with a **single** linear prototype
+head, self-labelled from scratch by per-epoch Sinkhorn-Knopp optimal transport,
+cross-entropy on the hard assignments. Optimiser AdamW (betas 0.9, 0.999) with
+warmup + cosine and AMP on CUDA; checkpoints at 100/200/300 epochs, each probed by
+the same frozen-backbone `linear_eval`. The ViT path needs `timm` (imported
+lazily); the native ResNet path is byte-for-byte unchanged.
 
 Unlike DeepCluster, the prototype heads are **not reset** each epoch and there is
 **no Sobel front-end**; the assignment is balanced by optimal transport rather
@@ -68,8 +73,9 @@ across the ported methods.
 ## Environment
 
 torch / torchvision / numpy / PyYAML — the self-contained methods' stack, no
-submodule and no extra (the Sinkhorn is pure torch; the ViT step 2's `timm` is not
-ported). `requirements.lock.txt` (CPU) and `requirements.lock.cu130.txt` (CUDA
+submodule (the Sinkhorn is pure torch) — plus `timm` for the unified ViT-B/16
+Step-2 path (imported lazily, so the native ResNet path never needs it).
+`requirements.lock.txt` (CPU) and `requirements.lock.cu130.txt` (CUDA
 13.0) are the hashed closures (the same closure as `14_simclrv1`: identical
 floors, identical resolution).
 
