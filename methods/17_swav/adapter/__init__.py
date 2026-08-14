@@ -57,6 +57,30 @@ EVAL_TOP_KEYS = TOP_KEYS | {"encoder"}
 EVAL_TRAIN_KEYS = frozenset({"epochs", "batch_size", "lr", "weight_decay",
                              "num_workers", "img_size", "out_dim", "hidden_mlp",
                              "nmb_prototypes"})
+
+# The unified ViT-B/16 Step-2 path (arch: vit), additive to the native ResNet-50
+# path. The multi-crop lists, loss (temperature, Sinkhorn) and prototype/head
+# dims are shared; the ViT adds its trunk dimensions and an AdamW/cosine recipe
+# with milestone checkpoints. The native and ViT key sets are disjoint so a knob
+# from one path cannot leak into the other.
+ARCHS = ("resnet", "vit")
+VIT_MODEL_KEYS = frozenset({"out_dim", "hidden_mlp", "nmb_prototypes",
+                            "image_size", "patch_size", "embed_dim", "depth",
+                            "num_heads", "mlp_ratio", "drop_rate",
+                            "attn_drop_rate"})
+VIT_LOSS_KEYS = frozenset({"temperature", "sinkhorn_iters", "sinkhorn_eps"})
+VIT_DATA_KEYS = frozenset({"num_workers", "color_jitter_strength"}) | set(CROP_KEYS)
+PRETRAIN_VIT_ONLY = frozenset({"epochs", "batch_size", "lr", "weight_decay",
+                               "warmup_epochs", "min_lr", "print_freq",
+                               "freeze_prototypes_steps", "save_at_epochs"})
+PRETRAIN_VIT_KEYS = (VIT_MODEL_KEYS | VIT_LOSS_KEYS | VIT_DATA_KEYS
+                     | PRETRAIN_VIT_ONLY)
+EVAL_VIT_KEYS = frozenset({"image_size", "patch_size", "embed_dim", "depth",
+                           "num_heads", "mlp_ratio", "drop_rate",
+                           "attn_drop_rate", "epochs", "batch_size", "lr",
+                           "weight_decay", "num_workers"})
+_VIT_FLOATS = ("mlp_ratio", "drop_rate", "attn_drop_rate")
+
 DEVICES = ("auto", "cuda", "cpu")
 
 # ResNet-50's pooled feature width, which the original's own evaluation also
@@ -143,14 +167,23 @@ def to_run_config(config: dict, out: Path) -> dict:
             f"config: stage is {stage!r}; known stages are "
             f"{', '.join(STAGES)}")
     top = EVAL_TOP_KEYS if stage == "linear_eval" else TOP_KEYS
-    keys = EVAL_TRAIN_KEYS if stage == "linear_eval" else TRAIN_KEYS
     _named(top - set(config), set(config) - top, "config")
 
     train = config["train"]
     if not isinstance(train, dict):
         raise ConfigError(f"config: train is {type(train).__name__}, "
                           "not a mapping")
-    _named(keys - set(train), set(train) - keys, "config.train")
+    arch = train.get("arch", "resnet")
+    if arch not in ARCHS:
+        raise ConfigError(
+            f"config.train: arch is {arch!r}; expected one of "
+            f"{', '.join(ARCHS)}")
+    rest = {k: v for k, v in train.items() if k != "arch"}
+    if stage == "linear_eval":
+        keys = EVAL_VIT_KEYS if arch == "vit" else EVAL_TRAIN_KEYS
+    else:
+        keys = PRETRAIN_VIT_KEYS if arch == "vit" else TRAIN_KEYS
+    _named(keys - set(rest), set(rest) - keys, "config.train")
 
     if config["device"] not in DEVICES:
         raise ConfigError(
@@ -161,7 +194,35 @@ def to_run_config(config: dict, out: Path) -> dict:
         # The evaluation takes flags, not a document; `eval_args` builds them.
         return {"stage": stage}
 
-    check_crops(train)          # multi-crop is a pretrain setting
+    check_crops(rest)          # multi-crop is a pretrain setting
+
+    if arch == "vit":
+        return {
+            "arch": "vit",
+            "model": {k: (float(train[k]) if k in _VIT_FLOATS else int(train[k]))
+                      for k in VIT_MODEL_KEYS},
+            "data": {"train_path": str(Path(config["data_root"]) / "train"),
+                     "num_workers": int(train["num_workers"]),
+                     "color_jitter_strength":
+                         float(train["color_jitter_strength"]),
+                     **{k: list(train[k]) for k in CROP_KEYS}},
+            "loss": {"temperature": float(train["temperature"]),
+                     "sinkhorn_eps": float(train["sinkhorn_eps"]),
+                     "sinkhorn_iters": int(train["sinkhorn_iters"])},
+            "training": {"epochs": int(train["epochs"]),
+                         "batch_size": int(train["batch_size"]),
+                         "lr": float(train["lr"]),
+                         "weight_decay": float(train["weight_decay"]),
+                         "warmup_epochs": int(train["warmup_epochs"]),
+                         "min_lr": float(train["min_lr"]),
+                         "print_freq": int(train["print_freq"]),
+                         "freeze_prototypes_steps":
+                             int(train["freeze_prototypes_steps"]),
+                         "save_at_epochs": [int(e) for e in
+                                            train["save_at_epochs"]]},
+            "checkpoint": {"save_dir": str(Path(out) / WORK)},
+            "seed": int(config["seed"]),
+        }
 
     return {
         "model": {"out_dim": int(train["out_dim"]),
@@ -206,12 +267,15 @@ def eval_args(config: dict, out: Path) -> Namespace:
     `resnet`: the ViT is step 2, which this port does not include."""
     to_run_config(config, out)          # validate before building arguments
     train = config["train"]
+    is_vit = train.get("arch", "resnet") == "vit"
+    img_size = int(train["image_size"] if is_vit else train["img_size"])
     return Namespace(
-        checkpoint=str(config["encoder"]), model_type="resnet",
+        checkpoint=str(config["encoder"]),
+        model_type="vit" if is_vit else "resnet",
         data_path=str(config["data_root"]),
         batch_size=int(train["batch_size"]), epochs=int(train["epochs"]),
         lr=float(train["lr"]), weight_decay=float(train["weight_decay"]),
-        num_workers=int(train["num_workers"]), img_size=int(train["img_size"]),
+        num_workers=int(train["num_workers"]), img_size=img_size,
         save_dir=str(Path(out) / WORK), gpu=0, resume_linear="",
         device=str(config["device"]), seed=int(config["seed"]))
 
@@ -242,11 +306,16 @@ def load_encoder(state_dict: dict, config: dict):
     self-describing: the projection head and the prototype count size the
     model it belongs to.
     """
-    from models import build_resnet_swav
     train = config["train"]
-    model = build_resnet_swav(
-        out_dim=int(train["out_dim"]), hidden_mlp=int(train["hidden_mlp"]),
-        nmb_prototypes=int(train["nmb_prototypes"]))
+    if train.get("arch", "resnet") == "vit":
+        from models import build_vit_swav
+        from train_pretrain_vit_swav import model_kwargs as vit_mk
+        model = build_vit_swav(**vit_mk(train))
+    else:
+        from models import build_resnet_swav
+        model = build_resnet_swav(
+            out_dim=int(train["out_dim"]), hidden_mlp=int(train["hidden_mlp"]),
+            nmb_prototypes=int(train["nmb_prototypes"]))
     missing, unexpected = model.load_state_dict(state_dict, strict=False)
     if unexpected:
         raise RuntimeError(
@@ -261,8 +330,12 @@ def load_encoder(state_dict: dict, config: dict):
 
 
 def run_training(config: dict, out: Path, _run=None) -> dict:
+    arch = config.get("train", {}).get("arch", "resnet")
     if _run is None:
-        from train_pretrain_resnet import run as _run
+        if arch == "vit":
+            from train_pretrain_vit_swav import run as _run
+        else:
+            from train_pretrain_resnet import run as _run
     args = to_args(config, out)
     run_config = to_run_config(config, out)
     Path(run_config["checkpoint"]["save_dir"]).mkdir(parents=True,
@@ -308,7 +381,12 @@ def run_linear_eval(config: dict, out: Path, _run=None) -> dict:
     state = torch.load(config["encoder"], map_location="cpu",
                        weights_only=True)
     encoder = load_encoder(state, config)
-    raw = _run(args, encoder=encoder, in_dim=BACKBONE_DIM) or {}
+    # The frozen feature width: ViT's CLS embedding (embed_dim) for arch: vit,
+    # ResNet-50's pooled 2048 otherwise.
+    train = config["train"]
+    in_dim = (int(train["embed_dim"]) if train.get("arch", "resnet") == "vit"
+              else BACKBONE_DIM)
+    raw = _run(args, encoder=encoder, in_dim=in_dim) or {}
     metrics, unusable = {}, 0
     for key, value in raw.items():
         if isinstance(value, bool) or not isinstance(value, (int, float)):
@@ -329,10 +407,31 @@ def body(ctx: adapterlib.Context) -> None:
                           names=LINEAR_EVAL_METRIC_NAMES)
         return
     metrics = run_training(ctx.config, ctx.out)
-    state = torch.load(latest_checkpoint(Path(ctx.out) / WORK),
-                       map_location="cpu", weights_only=False)
-    torch.save(extract_encoder(state["state_dict"]),
-               Path(ctx.out) / "encoder.pt")
+    work = Path(ctx.out) / WORK
+    train = ctx.config.get("train", {})
+    if train.get("arch", "resnet") == "vit":
+        # The ViT trainer writes checkpoint_latest.pth (final) and a
+        # checkpoint_epoch_{N}.pth at each milestone; hand over encoder.pt for
+        # the final state and encoder_epoch{N}.pt for each milestone probe.
+        latest = work / "checkpoint_latest.pth"
+        if not latest.is_file():
+            raise RuntimeError(
+                f"training finished but {latest} was not written; there is no "
+                "encoder to hand over")
+        state = torch.load(latest, map_location="cpu", weights_only=False)
+        torch.save(extract_encoder(state["state_dict"]),
+                   Path(ctx.out) / "encoder.pt")
+        for n in train.get("save_at_epochs", []):
+            ck = work / f"checkpoint_epoch_{int(n)}.pth"
+            if ck.is_file():
+                s = torch.load(ck, map_location="cpu", weights_only=False)
+                torch.save(extract_encoder(s["state_dict"]),
+                           Path(ctx.out) / f"encoder_epoch{int(n)}.pt")
+    else:
+        state = torch.load(latest_checkpoint(work),
+                           map_location="cpu", weights_only=False)
+        torch.save(extract_encoder(state["state_dict"]),
+                   Path(ctx.out) / "encoder.pt")
     ctx.write_metrics(metrics, names=PRETRAIN_METRIC_NAMES)
 
 
