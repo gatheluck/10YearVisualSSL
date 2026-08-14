@@ -47,7 +47,9 @@ from a training checkpoint with `strict=True`, while the contract's artifact
 is `encoder.pt` — the backbone alone. Rather than teach the evaluation a
 second way to recognise a file, the adapter builds the encoder with
 `load_encoder` and hands it in, so one place knows how an encoder is loaded.
-`model_type='vit'` now refuses by name, because step 2 was not brought across.
+This is also how the ViT Step-2 path probes its backbone: the adapter builds
+the ViT encoder and passes `in_dim=embed_dim`, so the captured file's internal
+`model_type='vit'` loader stays intentionally unused (it still refuses by name).
 
 ## What was new here
 
@@ -85,9 +87,15 @@ Recorded in full in `provenance.json`; `models/simsiam_resnet.py` and
   and those draw from torch's generator — measured, not assumed, which is why
   the captured `data/simsiam_dataset.py` needed no change. `random` is seeded
   as well, so a transform added later cannot break reproducibility in silence
-- **Step 2 was not brought across.** `train_step2_vit.py` and
-  `models/simsiam_vit.py` have no official-style variant in the capture, which
-  is the same reason step 2 was left out of the first port
+- **The unified ViT-B/16 Step 2 is ported, additively.** `configs/pretrain_vit.yaml`
+  (`arch: vit`) trains the same ViT-B/16 backbone every method shares — from
+  scratch, the CLS token through a 3-layer projector and 2-layer predictor, the
+  negative-cosine objective with stop-gradient on the projector output — with
+  AdamW (betas 0.9, 0.95), a 10-epoch warmup then cosine decay applied to every
+  group including the predictor, and checkpoints at 100/200/300 epochs each
+  probed by the same frozen-backbone `linear_eval`. It needs `timm` (imported
+  lazily); the native ResNet-50 path is byte-for-byte unchanged
+  (`train_pretrain_vit_simsiam.py`, `models/vit_simsiam.py`)
 
 ## The configuration
 

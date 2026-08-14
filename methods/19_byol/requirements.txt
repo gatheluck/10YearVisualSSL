@@ -7,9 +7,11 @@
 # cosine loss, the LARS optimizer, the EMA schedule, the two-view dataset, the
 # trainer and the probe are all here. torch is imported directly; numpy seeds the
 # run; torchvision provides ResNet-50, the ImageFolder and transforms; PyYAML is
-# read to load a YAML config on the stand-alone path. The capture's ViT step 2
-# (which needs timm) is not ported, so timm is not a dep.
+# read to load a YAML config on the stand-alone path. timm supplies the ViT-B/16
+# for the unified Step-2 path (arch: vit), imported lazily so the native
+# ResNet-50 path does not need it.
 torch>=2.0.0
 torchvision>=0.15.0
 numpy>=1.24.0
 PyYAML>=6.0
+timm>=0.9.0

@@ -1,18 +1,20 @@
 # What this method imports, and nothing else. Checked in both directions by
 # tests/test_method_requirements.py.
 #
-# The captured file also listed timm, tqdm and numpy. **Step 1 imports none of
-# them**, measured across the trainer, the model, the loader and the
-# optimiser: timm and tqdm belong to the step 2 track that was not brought
-# across, and numpy arrives as a dependency of torch rather than as something
-# this code calls.
+# timm supplies the ViT-B/16 for the unified Step-2 path (arch: vit), imported
+# lazily so the native ResNet-50 path does not need it. numpy arrives as a
+# dependency of torch rather than as something this code calls, so it is not a
+# floor.
 #
 # **Pillow is here, and it was not in the port before this one.** This
 # method's augmentation builds its own solarisation and blur on PIL rather
 # than going through torchvision, so the import is real.
 #
-# tensorboard is here because the captured trainer imports SummaryWriter at
-# module level.
+# tensorboard is here because the native trainer and linear-eval write event
+# files through SummaryWriter. The import is lazy (inside the function that
+# creates the writer), so the ViT Step-2 path -- which reuses this module's
+# resolve_device/make_deterministic and its eval, but writes no tensorboard logs
+# of its own -- does not drag tensorboard into venvs that have timm but not it.
 #
 # These are floors. Use requirements.lock.txt to rebuild a run.
 
@@ -21,3 +23,4 @@ torchvision>=0.16.0
 Pillow>=9.5.0
 PyYAML>=6.0
 tensorboard>=2.14.0
+timm>=0.9.0

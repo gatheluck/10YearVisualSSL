@@ -1,0 +1,52 @@
+# BYOL Step 2: unified ViT-B/16 pretraining, from scratch.
+#
+# The capture's Step-2 backbone is the same ViT-B/16 for every method; BYOL plugs
+# in an online encoder + projector + predictor and an EMA target encoder +
+# projector, under the symmetric negative-cosine loss (no negatives, no queue).
+# The ViT's CLS token feeds the projector (768->4096->256) and the predictor
+# (256->4096->256). Optimiser AdamW (default betas), the batch-linear LR scaling
+# and warmup->cosine to min_lr, AMP on CUDA and gradient clipping (as the capture's
+# BYOL ViT loop uses); EMA tau 0.996->1.0 on a cosine schedule; checkpoints at
+# 100/200/300. The native ResNet-50/LARS pretrain (configs/pretrain.yaml,
+# arch: resnet50) is unchanged.
+#
+# One path is passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   the dataset root; pretraining reads its train/ subdirectory
+# The output path is fixed at --out.
+#
+#   python3 bin/launch.py --config methods/19_byol/configs/pretrain_vit.yaml \
+#       --method 19_byol --set DATA_ROOT=/path/to/imagenet
+stage: pretrain
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+
+train:
+  arch: vit
+  # ViT-B/16 (build_byol_vit); encoder_dim is the ViT embed dim (CLS feature)
+  encoder_dim: 768
+  proj_hidden_dim: 4096
+  proj_output_dim: 256
+  pred_hidden_dim: 4096
+  pred_output_dim: 256
+  image_size: 224
+  patch_size: 16
+  depth: 12
+  num_heads: 12
+  mlp_ratio: 4.0
+  drop_rate: 0.0
+  attn_drop_rate: 0.0
+  # training: AdamW + batch-linear LR scaling + warmup/cosine, AMP, grad clip
+  epochs: 300
+  batch_size: 1024
+  num_workers: 8
+  learning_rate: 0.00015    # 1.5e-4; scaled by batch_size/256 -> 6e-4
+  lr_scale_by_batch: true
+  lr_scale_base: 256
+  weight_decay: 0.05
+  warmup_epochs: 10
+  min_lr: 1.0e-6
+  ema_tau_base: 0.996
+  ema_tau_final: 1.0
+  clip_grad: 1.0
+  save_at_epochs: [100, 200, 300]

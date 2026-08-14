@@ -21,7 +21,6 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader, DistributedSampler
-from torch.utils.tensorboard import SummaryWriter
 from torchvision import datasets, transforms
 
 ROOT = Path(__file__).parent
@@ -279,6 +278,11 @@ def run(args, encoder=None, in_dim=None) -> dict:
 
     writer = None
     if is_main():
+        # Imported here, not at module top: tensorboard is native-eval-only
+        # logging machinery, and importing it eagerly would drag it into the ViT
+        # Step-2 path (whose adapter imports this module's run()) under venvs that
+        # have timm but not tensorboard.
+        from torch.utils.tensorboard import SummaryWriter
         writer = SummaryWriter(os.path.join(args.save_dir, "logs", datetime.now().strftime("%Y%m%d_%H%M%S")))
         print("=" * 72)
         print("SimSiam official-style linear evaluation")
