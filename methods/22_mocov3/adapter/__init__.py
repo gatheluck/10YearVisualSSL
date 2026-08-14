@@ -9,7 +9,10 @@ momentum key (step 1). linear_eval then probes the frozen base ViT trunk (its CL
 feature, embed_dim). A self-contained re-implementation (the lab's own code,
 following facebookresearch/moco-v3); timm supplies the VisionTransformer base
 class, but the ViT is built from scratch, so the run stays hermetic. The
-capture's step 2 (also ViT) is excluded, as in every port.
+capture's unified ViT-B/16 Step 2 (recipe: unified) is also ported additively:
+the same objective on the same ViT-B/16 under the unified recipe (direct lr 6e-4,
+fixed EMA momentum, grad-clip, milestone checkpoints); the native paper recipe is
+byte-for-byte unchanged.
 
 `encoder.pt` is the base ViT trunk (`base_encoder.*` minus the projector
 `base_encoder.head.*`); the projector, predictor and momentum encoder are
@@ -43,6 +46,20 @@ PRETRAIN_TRAIN_KEYS = MODEL_KEYS | MOCOV3_KEYS | DATA_KEYS | PRETRAIN_TRAIN_ONLY
 EVAL_PROBE_KEYS = frozenset({"epochs", "batch_size", "num_workers", "lr",
                              "momentum", "weight_decay"})
 EVAL_TRAIN_KEYS = frozenset({"arch", "img_size"}) | EVAL_PROBE_KEYS
+
+# The unified ViT-B/16 Step-2 recipe (recipe: unified), additive to the native
+# recipe. MoCo v3 is already ViT-B/16, so the objective/model are unchanged; the
+# recipe differs -- a direct `lr` (native uses `learning_rate` = base x batch/256),
+# a FIXED EMA momentum (native cosine-anneals it, `momentum_cosine`), gradient
+# clipping (`clip_grad`), and milestone checkpoints (`save_at_epochs`). `recipe`
+# is stripped before key validation, so the disjoint sets cannot leak.
+RECIPES = ("native", "unified")
+UNIFIED_MOCOV3_KEYS = frozenset({"temperature", "momentum"})
+UNIFIED_TRAIN_ONLY = frozenset({"epochs", "batch_size", "num_workers", "lr",
+                                "min_lr", "weight_decay", "warmup_epochs",
+                                "betas", "clip_grad", "save_at_epochs"})
+PRETRAIN_UNIFIED_KEYS = (MODEL_KEYS | UNIFIED_MOCOV3_KEYS | DATA_KEYS
+                         | UNIFIED_TRAIN_ONLY)
 
 TOP_KEYS = frozenset({"stage", "seed", "data_root", "device", "train"})
 EVAL_TOP_KEYS = TOP_KEYS | {"encoder"}
@@ -114,6 +131,25 @@ def _training_section(train: dict) -> dict:
             "betas": [float(b) for b in train["betas"]]}
 
 
+def _mocov3_section_unified(train: dict) -> dict:
+    # The unified recipe uses a fixed EMA momentum (no cosine schedule).
+    return {"temperature": float(train["temperature"]),
+            "momentum": float(train["momentum"])}
+
+
+def _training_section_unified(train: dict) -> dict:
+    return {"epochs": int(train["epochs"]),
+            "batch_size": int(train["batch_size"]),
+            "num_workers": int(train["num_workers"]),
+            "lr": float(train["lr"]),
+            "min_lr": float(train["min_lr"]),
+            "weight_decay": float(train["weight_decay"]),
+            "warmup_epochs": int(train["warmup_epochs"]),
+            "betas": [float(b) for b in train["betas"]],
+            "clip_grad": float(train["clip_grad"]),
+            "save_at_epochs": [int(e) for e in train["save_at_epochs"]]}
+
+
 def to_run_config(config: dict, out: Path) -> dict:
     for key in ("output", "checkpoint"):
         if key in config:
@@ -127,7 +163,6 @@ def to_run_config(config: dict, out: Path) -> dict:
         raise ConfigError(
             f"config: stage is {stage!r}; known stages are "
             f"{', '.join(STAGES)}")
-    keys = EVAL_TRAIN_KEYS if stage == "linear_eval" else PRETRAIN_TRAIN_KEYS
     top = EVAL_TOP_KEYS if stage == "linear_eval" else TOP_KEYS
     _named(top - set(config), set(config) - top, "config")
 
@@ -135,7 +170,18 @@ def to_run_config(config: dict, out: Path) -> dict:
     if not isinstance(train, dict):
         raise ConfigError(f"config: train is {type(train).__name__}, "
                           "not a mapping")
-    _named(keys - set(train), set(train) - keys, "config.train")
+    # `recipe` selects the recipe; absent == native. Stripped before validation.
+    recipe = train.get("recipe", "native")
+    if recipe not in RECIPES:
+        raise ConfigError(
+            f"config.train: recipe is {recipe!r}; expected one of "
+            f"{', '.join(RECIPES)}")
+    rest = {k: v for k, v in train.items() if k != "recipe"}
+    if stage == "linear_eval":
+        keys = EVAL_TRAIN_KEYS
+    else:
+        keys = PRETRAIN_UNIFIED_KEYS if recipe == "unified" else PRETRAIN_TRAIN_KEYS
+    _named(keys - set(rest), set(rest) - keys, "config.train")
 
     if config["device"] not in DEVICES:
         raise ConfigError(
@@ -148,10 +194,12 @@ def to_run_config(config: dict, out: Path) -> dict:
     return {
         "seed": int(config["seed"]),
         "model": _model_section(train),
-        "mocov3": _mocov3_section(train),
+        "mocov3": (_mocov3_section_unified(train) if recipe == "unified"
+                   else _mocov3_section(train)),
         "data": {"data_root": str(config["data_root"]),
                  "crop_min": float(train["crop_min"])},
-        "training": _training_section(train),
+        "training": (_training_section_unified(train) if recipe == "unified"
+                     else _training_section(train)),
         "output": {"checkpoint_dir": str(Path(out) / WORK)},
     }
 
@@ -206,10 +254,14 @@ def _filter_numeric(raw: dict) -> tuple:
 
 
 def run_training(config: dict, out: Path, _run=None) -> dict:
+    recipe = config.get("train", {}).get("recipe", "native")
     if _run is None:
         if str(METHOD_DIR) not in sys.path:
             sys.path.insert(0, str(METHOD_DIR))
-        from train_pretrain_mocov3 import run as _run
+        if recipe == "unified":
+            from train_pretrain_vit_mocov3 import run as _run
+        else:
+            from train_pretrain_mocov3 import run as _run
     args = to_args(config, out)
     run_config = to_run_config(config, out)
     Path(run_config["output"]["checkpoint_dir"]).mkdir(parents=True,
@@ -256,6 +308,17 @@ def body(ctx: adapterlib.Context) -> None:
     state = torch.load(latest, map_location="cpu", weights_only=False)
     torch.save(extract_encoder(state["model_state_dict"]),
                Path(ctx.out) / "encoder.pt")
+    train = ctx.config.get("train", {})
+    if train.get("recipe") == "unified":
+        # The unified trainer writes checkpoint_epoch_{N}.pth per milestone; hand
+        # over encoder_epoch{N}.pt for each so the 100/200/300 sweep can probe
+        # each frozen backbone.
+        for n in train.get("save_at_epochs", []):
+            ck = Path(ctx.out) / WORK / f"checkpoint_epoch_{int(n)}.pth"
+            if ck.is_file():
+                s = torch.load(ck, map_location="cpu", weights_only=False)
+                torch.save(extract_encoder(s["model_state_dict"]),
+                           Path(ctx.out) / f"encoder_epoch{int(n)}.pt")
     ctx.write_metrics(metrics, names=PRETRAIN_METRIC_NAMES)
 
 

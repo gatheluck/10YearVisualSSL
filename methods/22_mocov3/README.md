@@ -11,10 +11,18 @@ encoder. The loss is a **symmetric InfoNCE**: each predicted query is contrasted
 against the other view's momentum key (temperature-scaled). The EMA momentum
 follows a cosine schedule from its base to 1.0. Step 1 is that pretext.
 
-## Scope — the ViT step 1 only
+## Scope — the ViT step 1 and the unified ViT-B/16 Step 2
 
-This port covers MoCo v3's **ViT** step 1. The capture's step 2 (also ViT) is
-excluded, as in every port. Unlike the ResNet ports, MoCo v3's step 1 is
+This port covers MoCo v3's **ViT-B/16** step 1 (`configs/pretrain.yaml`, the paper
+recipe) **and** the capture's unified **ViT-B/16 Step 2** (`configs/pretrain_vit.yaml`,
+`recipe: unified`). MoCo v3 is already ViT-B/16, so the unified Step 2 is the *same*
+objective/backbone under the unified recipe: a direct `lr` 6e-4 (step 1 uses
+`learning_rate` = base LR × batch/256), a **fixed** EMA momentum (step 1 cosine-
+anneals it to 1.0), gradient clipping, and the unified schedule (300 epochs, batch
+1024, wd 0.05, 10-epoch warmup) with milestone checkpoints at 100/200/300, each
+probed by the same frozen-backbone `linear_eval`. It is selected by an explicit
+`recipe: unified` key (absent = the native paper recipe, byte-for-byte unchanged).
+Unlike the ResNet ports, MoCo v3's step 1 is
 genuinely ViT-based, so **`timm` is a real dependency** here — it supplies the
 `VisionTransformer` base class. This is the **first ported method that needs
 `timm`**. The ViT is built **from scratch** (no pretrained download), so the run
@@ -70,6 +78,11 @@ across the ported methods.
 - **Not a full run:** `configs/pretrain.yaml` is the MoCo v3 recipe (`vit_base`,
   projector 4096→256, predictor, 300 epochs, batch 4096, AdamW, warmup 40), a
   recipe, not a completed run.
+- **Exercised (unified Step 2):** a hermetic smoke — `recipe: unified`,
+  `arch: vit_base` at 32px, two epochs with `save_at_epochs: [1, 2]` — runs
+  through `python -m adapter` on a CPU, writes `encoder.pt` and both
+  `encoder_epoch{1,2}.pt` milestones, and a milestone probe passes `contract-test`.
+  The full 300-epoch ViT-B/16 recipe has not been run here.
 - **GPU:** the device resolution is verified on real hardware; see the device
   mutation spec (`mutations/22_mocov3-pretrain-device.json`).
 
