@@ -1,0 +1,50 @@
+# CMC Step 2: unified ViT-B/16 pretraining, from scratch.
+#
+# The capture's Step-2 backbone is the same ViT-B/16 for every method; CMC plugs
+# in two ViT branches -- one for the L channel (in_chans 1), one for ab
+# (in_chans 2) -- each with a 3-layer MLP projector to an L2-normalised feat_dim
+# embedding, trained by the cross-view NCE objective over two momentum memory
+# banks. Optimiser AdamW (betas 0.9, 0.95), linear warmup then cosine to min_lr;
+# checkpoints at 100/200/300 (both banks ride in each checkpoint). Matching the
+# capture's ViT CMC loop, there is no AMP and no gradient clipping. The native
+# two-branch AlexNet pretrain (configs/pretrain.yaml, no arch) is unchanged.
+#
+# One path is passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   the dataset root; pretraining reads its train/ subdirectory
+# The output path is fixed at --out.
+#
+#   python3 bin/launch.py --config methods/12_cmc/configs/pretrain_vit.yaml \
+#       --method 12_cmc --set DATA_ROOT=/path/to/imagenet
+stage: pretrain
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+
+train:
+  arch: vit
+  # two ViT-B/16 branches (build_vit_cmc) + two 3-layer MLP projectors
+  feat_dim: 256
+  hidden_dim: 2048
+  img_size: 224
+  patch_size: 16
+  embed_dim: 768
+  depth: 12
+  num_heads: 12
+  mlp_ratio: 4.0
+  drop_rate: 0.0
+  attn_drop_rate: 0.0
+  # NCE (two memory banks, cross-view scored)
+  temperature: 0.07
+  nce_momentum: 0.5
+  num_negatives: 65536
+  # data augmentation
+  crop_low: 0.08
+  # training: AdamW (betas 0.9, 0.95) + cosine (10-epoch warmup) to min_lr
+  epochs: 300
+  batch_size: 1024
+  num_workers: 8
+  lr: 0.0006
+  weight_decay: 0.05
+  warmup_epochs: 10
+  min_lr: 0.0
+  save_at_epochs: [100, 200, 300]

@@ -149,8 +149,15 @@ One family = one PR. Order by reuse (high → complex):
   → made arch-aware (`embed_dim`); BYOL eval was already dynamic. Reused-native-module
   imports (`vit_byol`, `vit_barlow`) use a package/standalone import fallback for the
   test's `load_from`.
-- [ ] **Batch 4 — NCE memory-bank:** `10_inst_disc`, `12_cmc`, `33_pirl` (persist/restore the
-  bank on resume; index-carrying dataset).
+- [x] **Batch 4 — NCE memory-bank** (PR #89): `10_inst_disc` (single ViT + fc; bank in the
+  checkpoint), `12_cmc` (two ViT branches, in_chans 1/2, Lab split, two banks; probe
+  concatenates both CLS), `33_pirl` (jigsaw view = nine patches reassembled into one image,
+  single ViT; memory bank + jigsaw NCE, grad-clip). All reuse each method's index-carrying
+  dataset + NCE module; the bank rides in the checkpoint (10/12) or is re-seeded from the
+  model (33, initialize_from_model). Eval `in_dim` is dynamic for all three (no eval change);
+  10/12/33 native trainers/evals import no tensorboard, so the Batch-3 timm-only-venv hazard
+  does not recur here. Gotcha: 33's load_encoder must default feature_dim/num_patches
+  (they shape only the excluded projector), since the linear_eval config omits them.
 - [ ] **Batch 5 — clustering (individually):** `07_deepcluster` (faiss k-means),
   `17_swav` (multi-crop + distributed Sinkhorn), `18_sela` (Sinkhorn + second loader).
 - [ ] **Batch 6 — dense/generative (bespoke, last):** `03_colorization` (custom non-timm ViT),

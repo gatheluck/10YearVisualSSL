@@ -8,10 +8,12 @@
 # directly; torchvision provides ResNet-50, the ImageFolder and transforms; Pillow
 # (PIL.Image) is imported directly to load and convert images; numpy is used by
 # the tests' fixtures; PyYAML is read to load a YAML config on the stand-alone
-# path. The ViT step 2 is excluded, as in every port (so no timm); TensorBoard and
+# path. timm supplies the ViT-B/16 for the unified Step-2 path (arch: vit),
+# imported lazily so the native ResNet-50 path does not need it; TensorBoard and
 # tqdm are dropped.
 torch>=2.0.0
 torchvision>=0.15.0
 numpy>=1.24.0
 Pillow>=9.5.0
 PyYAML>=6.0
+timm>=0.9.0

@@ -9,13 +9,20 @@ L2-normalised embedding, and an **NCE** loss over two momentum **memory banks**
 (one per view, scored cross-view) pulls the two views of an image together and
 apart from K negatives. Step 1 is that pretext.
 
-## Scope — the paper-faithful AlexNet path only
+## Scope — the paper-faithful AlexNet path and the unified ViT-B/16 Step 2
 
 The capture ships a CMC AlexNet step 1, a ViT step 2, and an optional ResNet
-linear-classifier variant. This port brings across the **AlexNet** path only: the
+linear-classifier variant. This port brings across the **AlexNet** path (the
 two-branch encoder, the two-bank NCE loss with alias-method negative sampling,
-and the Lab dataset. The captured step 2 (a ViT variant) and the ResNet
-linear-classifier variant are excluded, as in every port.
+and the Lab dataset) **and** the capture's unified **ViT-B/16 Step 2**
+(`configs/pretrain_vit.yaml`, `arch: vit`): two ViT branches — one for the L
+channel (`in_chans` 1), one for ab (`in_chans` 2) — each with a 3-layer MLP
+projector, trained from scratch by the same cross-view NCE memory-bank objective;
+AdamW + warmup/cosine, no AMP/clip; checkpoints at 100/200/300 epochs, the linear
+probe reading both branches' concatenated CLS features. The ViT path needs `timm`
+(imported lazily); the native AlexNet path is byte-for-byte unchanged. The
+capture's optional ResNet linear-classifier variant remains excluded, as in every
+port.
 
 ## Why this method, and what is new here
 
@@ -64,18 +71,21 @@ trained with SGD under a cosine schedule).
   comparable `linear_probe` accuracies, and writes **no** `encoder.pt`.
 - **Not a full run:** `configs/pretrain.yaml` is the paper-target recipe (feat_dim
   128, K 16384, T 0.07, 240 epochs, 224px), a recipe, not a completed run.
-- **Not ported:** the ViT step 2 and the optional ResNet linear-classifier
-  variant.
+- **Exercised (ViT Step 2):** a hermetic smoke trains the two-branch ViT under
+  the two-bank NCE objective, writes milestone encoders, and probes the
+  concatenated CLS features through `contract-test` (tiny ViT dims, CPU).
+- **Not ported:** the optional ResNet linear-classifier variant.
 - **GPU:** the device resolution is verified on real hardware; see the device
   mutation spec (`mutations/12_cmc-pretrain-device.json`).
 
 ## Environment
 
 torch / torchvision / numpy / PyYAML — the self-contained methods' stack, no
-submodule and no extra (the Lab conversion is numpy, not scikit-image).
-`requirements.lock.txt` (CPU) and `requirements.lock.cu130.txt` (CUDA 13.0) are
-the hashed closures (the same closure as `image_gpt`: identical floors, identical
-resolution).
+submodule (the Lab conversion is numpy, not scikit-image) — plus `timm` for the
+unified ViT-B/16 Step-2 path (imported lazily, so the native AlexNet path never
+needs it). `requirements.lock.txt` (CPU) and `requirements.lock.cu130.txt`
+(CUDA 13.0) are the hashed closures (the same closure as `14_simclrv1`: identical
+floors, identical resolution).
 
     pip install --require-hashes \
         --index-url https://download.pytorch.org/whl/cpu \
