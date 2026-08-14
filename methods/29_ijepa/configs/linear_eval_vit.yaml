@@ -1,0 +1,33 @@
+# I-JEPA linear evaluation: a linear probe on the frozen unified ViT-B/16 target
+# encoder.
+#
+# This is the evaluation for the unified Step-2 encoder (name vit_base). It is
+# identical to configs/linear_eval.yaml except for the encoder dims (name +
+# patch_size), which the adapter uses to rebuild the target ViT and load
+# encoder.pt. The probe reads the target ViT's mean-pooled patch tokens (I-JEPA
+# has no CLS token) and follows the shared ARSSL protocol (mean-centre +
+# L2-normalise, a single linear layer, SGD + cosine), so the number is comparable.
+#
+# Two paths are passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   an ImageFolder with train/ and val/ subdirectories
+#   --set ENCODER=<path>     encoder.pt (or a milestone encoder_epoch{N}.pt) from a
+#                            unified pretrain run
+# The output path is fixed at --out.
+stage: linear_eval
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+encoder: "${ENCODER}"
+
+train:
+  # model (the backbone is a fixed target ViT encoder; these dims rebuild it)
+  name: vit_base
+  img_size: 224
+  patch_size: 16
+  # probe: a single linear layer, SGD + cosine
+  epochs: 100
+  batch_size: 256
+  num_workers: 10
+  lr: 0.1
+  momentum: 0.9
+  weight_decay: 0.0

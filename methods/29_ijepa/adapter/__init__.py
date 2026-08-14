@@ -46,6 +46,17 @@ TRAINING_KEYS = frozenset({"epochs", "batch_size", "lr", "start_lr", "final_lr",
 EMA_KEYS = frozenset({"start_ema", "final_ema"})
 PRETRAIN_TRAIN_KEYS = (MODEL_KEYS | PREDICTOR_KEYS | DATA_KEYS | MASKING_KEYS
                     | TRAINING_KEYS | EMA_KEYS)
+# The additive unified ViT-B/16 Step-2 recipe (recipe: unified, a key in `train`;
+# absent == the native step-1 path). The native I-JEPA trainer already implements
+# the unified recipe -- it uses the lr directly (no batch/256 rescale), reads the
+# arch and augmentation from the config, and its cosine weight-decay is constant
+# when weight_decay == final_wd -- so the only additions are augmentation: step2
+# (which ignores use_horizontal_flip, so that native-only key is dropped) and
+# milestone checkpoints (save_at_epochs). The two key sets are disjoint, so a knob
+# from one recipe on the other is refused by name.
+RECIPES = ("native", "unified")
+PRETRAIN_UNIFIED_KEYS = (PRETRAIN_TRAIN_KEYS - {"use_horizontal_flip"}
+                         ) | {"save_at_epochs"}
 EVAL_MODEL_KEYS = frozenset({"name", "img_size", "patch_size"})
 EVAL_PROBE_KEYS = frozenset({"epochs", "batch_size", "num_workers", "lr",
                              "momentum", "weight_decay"})
@@ -144,7 +155,6 @@ def to_run_config(config: dict, out: Path) -> dict:
         raise ConfigError(
             f"config: stage is {stage!r}; known stages are "
             f"{', '.join(STAGES)}")
-    keys = EVAL_TRAIN_KEYS if stage == "linear_eval" else PRETRAIN_TRAIN_KEYS
     top = EVAL_TOP_KEYS if stage == "linear_eval" else TOP_KEYS
     _named(top - set(config), set(config) - top, "config")
 
@@ -152,7 +162,6 @@ def to_run_config(config: dict, out: Path) -> dict:
     if not isinstance(train, dict):
         raise ConfigError(f"config: train is {type(train).__name__}, "
                           "not a mapping")
-    _named(keys - set(train), set(train) - keys, "config.train")
 
     if config["device"] not in DEVICES:
         raise ConfigError(
@@ -160,7 +169,27 @@ def to_run_config(config: dict, out: Path) -> dict:
             f"{', '.join(DEVICES)}")
 
     if stage == "linear_eval":
+        _named(EVAL_TRAIN_KEYS - set(train), set(train) - EVAL_TRAIN_KEYS,
+               "config.train")
         return {"stage": stage}
+
+    # `recipe` selects the pretrain recipe; absent == native. It is a key in
+    # `train`, consumed here and not passed on, so it is excluded from the check.
+    recipe = train.get("recipe", "native")
+    if recipe not in RECIPES:
+        raise ConfigError(
+            f"config.train: recipe is {recipe!r}; expected one of "
+            f"{', '.join(RECIPES)}")
+    keys = PRETRAIN_UNIFIED_KEYS if recipe == "unified" else PRETRAIN_TRAIN_KEYS
+    rest = {k: v for k, v in train.items() if k != "recipe"}
+    _named(keys - set(rest), set(rest) - keys, "config.train")
+
+    # step-2 augmentation ignores use_horizontal_flip, so it is not a unified key;
+    # the trainer still reads it, so a fixed False is passed on.
+    use_flip = bool(train["use_horizontal_flip"]) if recipe != "unified" else False
+    training = _training_section(train)
+    if recipe == "unified":
+        training["save_at_epochs"] = [int(e) for e in train["save_at_epochs"]]
 
     return {
         "seed": int(config["seed"]),
@@ -168,10 +197,10 @@ def to_run_config(config: dict, out: Path) -> dict:
         "predictor": _predictor_section(train),
         "data": {"data_root": str(config["data_root"]),
                  "augmentation": str(train["augmentation"]),
-                 "use_horizontal_flip": bool(train["use_horizontal_flip"]),
+                 "use_horizontal_flip": use_flip,
                  "num_workers": int(train["num_workers"])},
         "masking": _masking_section(train),
-        "training": _training_section(train),
+        "training": training,
         "ema": {"start_ema": float(train["start_ema"]),
                 "final_ema": float(train["final_ema"])},
         "output": {"checkpoint_dir": str(Path(out) / WORK)},
@@ -274,6 +303,17 @@ def body(ctx: adapterlib.Context) -> None:
     state = torch.load(latest, map_location="cpu", weights_only=False)
     torch.save(extract_encoder(state["model_state_dict"]),
                Path(ctx.out) / "encoder.pt")
+    if ctx.config.get("train", {}).get("recipe") == "unified":
+        # The trainer writes checkpoint_epoch_{N}.pth at each save_at_epochs; hand
+        # over encoder_epoch{N}.pt (the target encoder) for each so the 100/200/300
+        # sweep can probe every frozen milestone.
+        work = Path(ctx.out) / WORK
+        for n in ctx.config["train"].get("save_at_epochs", []):
+            ck = work / f"checkpoint_epoch_{int(n)}.pth"
+            if ck.is_file():
+                s = torch.load(ck, map_location="cpu", weights_only=False)
+                torch.save(extract_encoder(s["model_state_dict"]),
+                           Path(ctx.out) / f"encoder_epoch{int(n)}.pt")
     ctx.write_metrics(metrics, names=PRETRAIN_METRIC_NAMES)
 
 

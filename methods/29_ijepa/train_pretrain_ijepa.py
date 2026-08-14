@@ -170,6 +170,10 @@ def run(args, config: "dict | None" = None) -> dict:
         use_horizontal_flip=bool(d["use_horizontal_flip"]), seed=seed)
 
     total_epochs = int(t["epochs"])
+    # Milestone checkpoints for the additive unified Step-2 recipe. The native
+    # step-1 config never sets save_at_epochs, so this is empty and only
+    # checkpoint_latest.pth is written -- the native behaviour is unchanged.
+    save_at = {int(n) for n in t.get("save_at_epochs", [])}
     ipe = max(1, len(loader))
     ipe_scale = float(t["ipe_scale"])
     total_steps = max(1, int(total_epochs * ipe * ipe_scale))
@@ -243,10 +247,13 @@ def run(args, config: "dict | None" = None) -> dict:
                             ("encoder.", encoder), ("predictor.", predictor)):
             for k, v in mod.state_dict().items():
                 model_state[prefix + k] = v
-        torch.save({"epoch": epoch, "model_state_dict": model_state,
-                    "optimizer_state_dict": optimizer.state_dict(),
-                    "loss": final_loss, "config": cfg},
-                   os.path.join(save_dir, "checkpoint_latest.pth"))
+        ckpt = {"epoch": epoch, "model_state_dict": model_state,
+                "optimizer_state_dict": optimizer.state_dict(),
+                "loss": final_loss, "config": cfg}
+        torch.save(ckpt, os.path.join(save_dir, "checkpoint_latest.pth"))
+        if (epoch + 1) in save_at:
+            torch.save(ckpt, os.path.join(
+                save_dir, f"checkpoint_epoch_{epoch + 1}.pth"))
 
     print("\nI-JEPA Step 1 training complete!")
     ran = total_epochs > 0 and final_loss is not None

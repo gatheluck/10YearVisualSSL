@@ -236,8 +236,21 @@ One family = one PR. Order by reuse (high → complex):
     were all already carried, so **no model/loader/eval edits and no lock change** were
     needed. Ships `configs/pretrain_vit.yaml` + `configs/linear_eval_vit.yaml`. Full 27
     module 75 tests OK (255s < 300s CI bound); base gate EXIT=0; key-set-split guard
-    mutation-killed by the both-ways leakage tests. Next in 7c:
-    `29_ijepa` (own ViT vit_base; `augmentation: step2`; predictor dims change),
+    mutation-killed by the both-ways leakage tests.
+    `29_ijepa` **DONE** (recipe: unified in `train`, flat-config like 22/25). Notable:
+    the native `train_pretrain_ijepa.py` **already implements the recipe** — it uses
+    `lr` directly (no ×bs/256), builds the config-named arch (`vit_base` is a builder),
+    reads `augmentation: step2` from the config, and its cosine wd is constant when
+    `weight_decay==final_wd`. So **no separate `train_pretrain_vit_ijepa.py`**: the native
+    trainer was extended with a **guarded** milestone save (`checkpoint_epoch_{N}.pth` at
+    `save_at_epochs`, empty for the native config → byte-for-byte unchanged), the DRY
+    choice over duplicating an identical loop (the playbook's "or can be extended" case).
+    Two-way disjoint keys: native-only `use_horizontal_flip` (step2 aug ignores it) vs
+    unified-only `save_at_epochs`. Smoke keeps `vit_tiny` for CPU speed (arch is a shared
+    key, not the selector); `vit_base` covered by config translation + a `load_encoder`
+    round trip. `captured_sha256` empty (nothing pinned), models/loader already carry
+    `vit_base`/`step2`, so no model/loader/eval/lock change. Full 29 module 45 tests OK
+    (62s); base gate EXIT=0; key-set-split mutation-killed. Next in 7c:
     `34_msn` (deit_base via the pinned submodule, config-reachable, licence-safe),
     `31_dinov3`+`35_vjepa` (already unified ViT-B/16 → milestone-only, no `recipe` key).
   - **Separate PR:** `26_simmim` (native is Swin-B, not ViT → new `simmim_vit.py` +

@@ -84,6 +84,25 @@ EVAL_TRAIN = {"name": "vit_tiny", "img_size": IMG, "patch_size": PATCH,
               "epochs": 2, "batch_size": 2, "num_workers": 0, "lr": 0.1,
               "momentum": 0.9, "weight_decay": 0.0}
 
+# The additive unified ViT-B/16 Step-2 recipe (recipe: unified, in `train`). The
+# native I-JEPA trainer already uses the lr directly (no batch/256 rescale), reads
+# the arch and augmentation from the config, and its cosine weight-decay is
+# constant when weight_decay == final_wd -- so the unified recipe is the native
+# loop with two changes only: augmentation: step2 (which ignores use_horizontal_flip,
+# so that native-only key is dropped) and milestone checkpoints (save_at_epochs).
+# The two recipes' key sets are disjoint: native-only use_horizontal_flip vs
+# unified-only save_at_epochs. The smoke keeps vit_tiny for CPU speed (arch is a
+# shared key, not what the recipe selects); vit_base is covered by config
+# translation and a load_encoder round trip.
+UNIFIED_DATA = {"augmentation": "step2", "num_workers": 0}
+UNIFIED_TRAINING = {"epochs": 1, "batch_size": 2, "lr": 6.0e-4, "start_lr": 0.0,
+                    "final_lr": 1.0e-6, "weight_decay": 0.05, "final_wd": 0.05,
+                    "warmup_epochs": 0, "clip_grad": 10.0, "ipe_scale": 1.0,
+                    "beta1": 0.9, "beta2": 0.95, "start_ema": 0.996,
+                    "final_ema": 1.0, "save_at_epochs": [1]}
+UNIFIED_TRAIN = {"recipe": "unified", **MODEL, **PREDICTOR, **UNIFIED_DATA,
+                 **MASKING, **UNIFIED_TRAINING}
+
 
 def tiny_imagefolder(root: Path, n: int = 6) -> Path:
     import numpy as np
@@ -512,6 +531,141 @@ class TestALinearEvalSmoke(Base):
         self.assertEqual(man["stage"], "linear_eval")
         self.assertEqual(man["status"], "ok", man.get("error", ""))
         self.assertIn("encoder_absent_reason", man)
+
+
+class TestUnifiedConfigTranslation(Base):
+    """The additive recipe: unified branch, selected in `train`, validated against
+    its own key set (disjoint from native so nothing leaks)."""
+
+    def unified_config(self, **over) -> dict:
+        cfg = {"stage": "pretrain", "seed": 0,
+               "data_root": str(self.tmp / "data"), "device": "cpu",
+               "train": dict(UNIFIED_TRAIN)}
+        for k, v in over.items():
+            if k == "train" and v:
+                cfg["train"] = {**cfg["train"], **v}
+            elif k != "train":
+                cfg[k] = v
+        return cfg
+
+    def test_the_unified_recipe_is_accepted(self):
+        built = adapter.to_run_config(self.unified_config(), out=self.out)
+        self.assertEqual(built["data"]["augmentation"], "step2")
+        self.assertEqual(built["training"]["weight_decay"], 0.05)
+        self.assertEqual(built["training"]["final_wd"], 0.05)
+        self.assertEqual(built["training"]["save_at_epochs"], [1])
+        # `recipe` is the selector; it is not passed on to the trainer.
+        self.assertNotIn("recipe", built)
+        self.assertNotIn("recipe", built["training"])
+
+    def test_the_native_recipe_is_still_accepted(self):
+        native = self.config()
+        self.assertNotIn("recipe", native["train"])
+        built = adapter.to_run_config(native, out=self.out)
+        self.assertIn("use_horizontal_flip", built["data"])
+        self.assertNotIn("save_at_epochs", built["training"])
+
+    def test_the_unified_recipe_accepts_vit_base(self):
+        built = adapter.to_run_config(
+            self.unified_config(train={"name": "vit_base", "patch_size": 16}),
+            out=self.out)
+        self.assertEqual(built["model"]["name"], "vit_base")
+
+    def test_a_missing_unified_key_is_refused_by_name(self):
+        for key in ("save_at_epochs", "weight_decay", "augmentation"):
+            with self.subTest(key=key):
+                cfg = self.unified_config()
+                cfg["train"] = {k: v for k, v in UNIFIED_TRAIN.items() if k != key}
+                with self.assertRaises(adapter.ConfigError) as e:
+                    adapter.to_run_config(cfg, out=self.out)
+                self.assertIn(key, str(e.exception))
+
+    def test_an_unknown_unified_key_is_refused(self):
+        with self.assertRaises(adapter.ConfigError) as e:
+            adapter.to_run_config(self.unified_config(train={"mystery": 1}),
+                                  out=self.out)
+        self.assertIn("mystery", str(e.exception))
+
+    def test_a_native_only_key_on_the_unified_path_is_refused(self):
+        """use_horizontal_flip is step-1 only; step-2 augmentation ignores it, so
+        it is unknown to the unified recipe."""
+        with self.assertRaises(adapter.ConfigError) as e:
+            adapter.to_run_config(
+                self.unified_config(train={"use_horizontal_flip": False}),
+                out=self.out)
+        self.assertIn("use_horizontal_flip", str(e.exception))
+
+    def test_a_unified_only_key_on_the_native_path_is_refused(self):
+        """save_at_epochs is the unified milestone knob; the native step-1 recipe
+        does not know it."""
+        cfg = self.config()
+        cfg["train"] = {**cfg["train"], "save_at_epochs": [1]}
+        with self.assertRaises(adapter.ConfigError) as e:
+            adapter.to_run_config(cfg, out=self.out)
+        self.assertIn("save_at_epochs", str(e.exception))
+
+    def test_a_bad_recipe_value_is_refused_by_name(self):
+        with self.assertRaises(adapter.ConfigError) as e:
+            adapter.to_run_config(self.unified_config(train={"recipe": "turbo"}),
+                                  out=self.out)
+        self.assertIn("turbo", str(e.exception))
+
+
+class TestUnifiedLoadEncoder(unittest.TestCase):
+    @needs_deps
+    def test_load_encoder_round_trips_a_vit_base(self):
+        import torch
+        m = load("this_methods_models", METHOD / "models" / "__init__.py")
+        encoder = m.build_ijepa_encoder("vit_base", img_size=224, patch_size=16)
+        saved = encoder.state_dict()
+        cfg = {"train": {"name": "vit_base", "img_size": 224, "patch_size": 16}}
+        loaded = adapter.load_encoder(saved, cfg).state_dict()
+        pairs = 0
+        for key, want in saved.items():
+            got = loaded.get(key)
+            if got is None:
+                continue
+            pairs += 1
+            self.assertTrue(torch.equal(got, want), f"{key} came back changed")
+        self.assertGreater(pairs, 0, "no saved weight reached the model")
+
+
+class TestAUnifiedStep2Smoke(Base):
+    """A real unified-recipe run on a CPU (vit_tiny for speed): step-2
+    augmentation, milestone checkpoints, and the full contract chain."""
+
+    def run_adapter(self, **over):
+        tiny_imagefolder(self.tmp / "data" / "train")
+        cfg = {"stage": "pretrain", "seed": 0,
+               "data_root": str(self.tmp / "data"), "device": "cpu",
+               "train": {**UNIFIED_TRAIN, **over.pop("train", {})}}
+        for k, v in over.items():
+            cfg[k] = v
+        p = self.tmp / "resolved.json"
+        p.write_text(json.dumps(cfg), encoding="utf-8")
+        env = {**os.environ, "PYTHONPATH": str(ROOT)}
+        return p, subprocess.run(
+            [sys.executable, "-m", "adapter", "--config", str(p),
+             "--out", str(self.out)],
+            cwd=METHOD, env=env, capture_output=True, text=True)
+
+    @needs_deps
+    def test_it_completes_and_satisfies_the_contract(self):
+        cfg, r = self.run_adapter()
+        self.assertEqual(r.returncode, 0, r.stdout[-3000:] + r.stderr[-3000:])
+        v = subprocess.run(
+            [sys.executable, str(BIN / "contract-test.py"), "--out",
+             str(self.out), "--config", str(cfg), "--exit-status", "0"],
+            capture_output=True, text=True)
+        self.assertEqual(v.returncode, 0, v.stdout + v.stderr)
+
+    @needs_deps
+    def test_each_milestone_encoder_is_written(self):
+        _, r = self.run_adapter(train={"epochs": 2, "save_at_epochs": [1, 2]})
+        self.assertEqual(r.returncode, 0, r.stdout[-3000:] + r.stderr[-3000:])
+        self.assertTrue((self.out / "encoder.pt").is_file())
+        self.assertTrue((self.out / "encoder_epoch1.pt").is_file())
+        self.assertTrue((self.out / "encoder_epoch2.pt").is_file())
 
 
 class TestTheOriginalIsReferencedNotCopied(unittest.TestCase):
