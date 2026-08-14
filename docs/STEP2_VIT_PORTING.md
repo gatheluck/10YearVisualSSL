@@ -210,7 +210,31 @@ One family = one PR. Order by reuse (high → complex):
   change. Per-method gotchas to assess before fan-out: whether each method's ViT/build
   accepts `vit_base` (MAE=vit_large, iBOT/others differ), whether the native trainer needs
   a separate `train_pretrain_vit_<name>.py` or can be extended, and 22 (already vit_base →
-  recipe/milestone alignment only). Deferred until the pilot PR is reviewed.
+  recipe/milestone alignment only).
+
+  **Sub-PR progress (split into reviewable slices, ~2-4 methods each):**
+  - **7a (PR #93):** `23_dino` (pilot), `37_lejepa`. Establishes the `recipe: unified`
+    pattern. `load_encoder`/eval unchanged; DINO no timm, LeJEPA timm already a dep.
+  - **7b (pushed; PR after #93 merges):** `24_beit`, `22_mocov3`, `25_mae`. All
+    `recipe: unified`, native paths byte-for-byte unchanged, no lock changes. 24 = same
+    MIM/tokenizer, keep betas 0.9/0.999. 22 = fixed EMA momentum + direct `lr` (two-way
+    disjoint keys: unified `{lr,clip_grad,save_at_epochs}` vs native `{learning_rate,
+    momentum_cosine}`). 25 = vit_large→vit_base + **adds** cosine+warmup (native fixed-LR
+    trainer lacks it); ships `configs/linear_eval_vit.yaml`.
+  - **7c (next):** `27_ibot` (**the hard one** — nested config so `recipe` is a top-level
+    key; reimplement the multi-crop loop because the native one bakes in `lr × batch/256`;
+    fixed wd, `grad_clip 0.3`, `freeze_last_layer 3`, drop the health keys; widen
+    `ARCHS`/`ARCH_EMBED_DIM`/`load_encoder` to `vit_base`; native trainer/eval import
+    tensorboard at module top but `needs_deps` already requires it, so the smoke skips
+    safely), `29_ijepa` (own ViT vit_base; `augmentation: step2`; predictor dims change),
+    `34_msn` (deit_base via the pinned submodule, config-reachable, licence-safe),
+    `31_dinov3`+`35_vjepa` (already unified ViT-B/16 → milestone-only, no `recipe` key).
+  - **Separate PR:** `26_simmim` (native is Swin-B, not ViT → new `simmim_vit.py` +
+    pixel-mask loader + arch branch in `load_encoder` **and** eval; non-additive-to-eval).
+
+  Consistency (verified across 23/37/24/22/25): uniform `RECIPES`/recipe-strip/routing/
+  milestone `encoder_epoch{N}.pt`; each `pretrain_vit.yaml` carries `recipe: unified` +
+  `save_at_epochs` + the DATA_ROOT line; no native config gained a `recipe` key.
 
 **Deferred, separate efforts (different nature, not this fan-out):**
 - **Generative** (`image_gpt`, `mar`, `var`) and **eval-only download** (`28_dinov2`,
