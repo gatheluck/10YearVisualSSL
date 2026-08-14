@@ -918,6 +918,7 @@ class TestAVitStep2Smoke(Base):
                           "num_workers": 0, "lr": 0.1, "optimizer": "sgd",
                           "weight_decay": 0.0, "print_freq": 1}}
 
+    @needs_torch  # the smoke runs the eval subprocess, which writes tensorboard logs
     @needs_timm
     def test_pretrain_milestones_then_probe_passes_contract(self):
         tiny_imagenet(self.tmp / "data")

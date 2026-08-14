@@ -44,7 +44,6 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
-from torch.utils.tensorboard import SummaryWriter
 
 ROOT = Path(__file__).parent
 sys.path.insert(0, str(ROOT))
@@ -211,6 +210,11 @@ def run(args, encoder=None, in_dim=None) -> dict:
     optimizer = optim.SGD(cls.parameters(), lr=args.lr, momentum=0.9, weight_decay=0)
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs)
 
+    # Imported here, not at module top: tensorboard is native-eval-only logging
+    # machinery, and importing it eagerly would drag it into the ViT Step-2 path
+    # (whose adapter imports this module's run()) under venvs that have timm but
+    # not tensorboard.
+    from torch.utils.tensorboard import SummaryWriter
     log_dir = os.path.join(args.save_dir, "logs", datetime.now().strftime("%Y%m%d_%H%M%S"))
     writer  = SummaryWriter(log_dir)
     best_acc1 = 0.0

@@ -54,7 +54,6 @@ import torch.nn.functional as F
 import torch.optim as optim
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
-from torch.utils.tensorboard import SummaryWriter
 
 ROOT = Path(__file__).parent
 sys.path.insert(0, str(ROOT))
@@ -237,6 +236,11 @@ def run(args, config: dict | None = None) -> dict:
 
     writer = None
     if is_main():
+        # Imported here, not at module top: tensorboard is native-trainer-only
+        # logging machinery, and importing it eagerly would drag it into the ViT
+        # Step-2 path (which imports resolve_device/make_deterministic from this
+        # module) under venvs that have timm but not tensorboard.
+        from torch.utils.tensorboard import SummaryWriter
         log_dir = os.path.join(save_dir, "logs", datetime.now().strftime("%Y%m%d_%H%M%S"))
         writer = SummaryWriter(log_dir)
         with open(os.path.join(save_dir, "config.yaml"), "w") as f:
