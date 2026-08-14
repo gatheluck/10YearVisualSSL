@@ -47,6 +47,24 @@ EVAL_PROBE_KEYS = frozenset({"epochs", "batch_size", "num_workers", "lr",
                              "momentum", "weight_decay"})
 EVAL_TRAIN_KEYS = EVAL_MODEL_KEYS | EVAL_PROBE_KEYS
 
+# The unified ViT-B/16 Step-2 path (arch: vit), additive to the native ResNet-50
+# path. `arch` (already a model key here, "resnet50" natively) selects the path;
+# the ViT adds its trunk dimensions and an AdamW/cosine/clip recipe with milestone
+# checkpoints. The jigsaw data keys, NCE, loss and memory keys are shared.
+ARCHS = ("resnet50", "vit")
+VIT_MODEL_KEYS = frozenset({"arch", "feature_dim", "num_patches", "patch_size",
+                            "embed_dim", "depth", "num_heads", "mlp_ratio",
+                            "drop_rate", "attn_drop_rate"})
+PRETRAIN_VIT_TRAINING = frozenset({"epochs", "batch_size", "lr", "weight_decay",
+                                   "warmup_epochs", "min_lr", "clip_grad",
+                                   "save_at_epochs"})
+PRETRAIN_VIT_KEYS = (VIT_MODEL_KEYS | DATA_KEYS | NCE_KEYS | LOSS_KEYS
+                     | MEMORY_KEYS | PRETRAIN_VIT_TRAINING)
+EVAL_VIT_KEYS = frozenset({"arch", "image_size", "patch_size", "embed_dim",
+                           "depth", "num_heads", "mlp_ratio", "drop_rate",
+                           "attn_drop_rate"}) | EVAL_PROBE_KEYS
+_VIT_FLOATS = ("mlp_ratio", "drop_rate", "attn_drop_rate")
+
 TOP_KEYS = frozenset({"stage", "seed", "data_root", "device", "train"})
 EVAL_TOP_KEYS = TOP_KEYS | {"encoder"}
 DEVICES = ("auto", "cuda", "cpu")
@@ -133,7 +151,6 @@ def to_run_config(config: dict, out: Path) -> dict:
         raise ConfigError(
             f"config: stage is {stage!r}; known stages are "
             f"{', '.join(STAGES)}")
-    keys = EVAL_TRAIN_KEYS if stage == "linear_eval" else PRETRAIN_TRAIN_KEYS
     top = EVAL_TOP_KEYS if stage == "linear_eval" else TOP_KEYS
     _named(top - set(config), set(config) - top, "config")
 
@@ -141,6 +158,15 @@ def to_run_config(config: dict, out: Path) -> dict:
     if not isinstance(train, dict):
         raise ConfigError(f"config: train is {type(train).__name__}, "
                           "not a mapping")
+    arch = train.get("arch")
+    if arch not in ARCHS:
+        raise ConfigError(
+            f"config.train: arch is {arch!r}; expected one of "
+            f"{', '.join(ARCHS)}")
+    if stage == "linear_eval":
+        keys = EVAL_VIT_KEYS if arch == "vit" else EVAL_TRAIN_KEYS
+    else:
+        keys = PRETRAIN_VIT_KEYS if arch == "vit" else PRETRAIN_TRAIN_KEYS
     _named(keys - set(train), set(train) - keys, "config.train")
 
     if config["device"] not in DEVICES:
@@ -150,6 +176,31 @@ def to_run_config(config: dict, out: Path) -> dict:
 
     if stage == "linear_eval":
         return {"stage": stage}
+
+    if arch == "vit":
+        model = {k: (float(train[k]) if k in _VIT_FLOATS
+                     else str(train[k]) if k == "arch" else int(train[k]))
+                 for k in VIT_MODEL_KEYS}
+        return {
+            "seed": int(config["seed"]),
+            "arch": "vit",
+            "model": model,
+            "data": _data_section(config, train),
+            "nce": _nce_section(train),
+            "loss": {"jigsaw_weight": float(train["jigsaw_weight"])},
+            "memory": {"initialize_from_model":
+                       bool(train["initialize_from_model"])},
+            "training": {"epochs": int(train["epochs"]),
+                         "batch_size": int(train["batch_size"]),
+                         "lr": float(train["lr"]),
+                         "weight_decay": float(train["weight_decay"]),
+                         "warmup_epochs": int(train["warmup_epochs"]),
+                         "min_lr": float(train["min_lr"]),
+                         "clip_grad": float(train["clip_grad"]),
+                         "save_at_epochs": [int(e) for e in
+                                            train["save_at_epochs"]]},
+            "output": {"checkpoint_dir": str(Path(out) / WORK)},
+        }
 
     return {
         "seed": int(config["seed"]),
@@ -182,10 +233,17 @@ def extract_encoder(state_dict: dict) -> dict:
 def load_encoder(state_dict: dict, config: dict):
     if str(METHOD_DIR) not in sys.path:
         sys.path.insert(0, str(METHOD_DIR))
-    from models import build_resnet_pirl
-    # The ResNet-50 trunk is independent of feature_dim/num_patches (those shape
-    # the excluded projection heads), so build the defaults and load encoder.*.
-    model = build_resnet_pirl()
+    train = config["train"]
+    if train.get("arch") == "vit":
+        from models import build_vit_pirl
+        from train_pretrain_vit_pirl import model_kwargs as vit_mk
+        model = build_vit_pirl(**vit_mk(train))
+    else:
+        from models import build_resnet_pirl
+        # The ResNet-50 trunk is independent of feature_dim/num_patches (those
+        # shape the excluded projection heads), so build defaults and load
+        # encoder.*.
+        model = build_resnet_pirl()
     missing, unexpected = model.load_state_dict(state_dict, strict=False)
     if unexpected:
         raise RuntimeError(
@@ -209,10 +267,14 @@ def _filter_numeric(raw: dict) -> tuple:
 
 
 def run_training(config: dict, out: Path, _run=None) -> dict:
+    arch = config.get("train", {}).get("arch")
     if _run is None:
         if str(METHOD_DIR) not in sys.path:
             sys.path.insert(0, str(METHOD_DIR))
-        from train_pretrain_pirl import run as _run
+        if arch == "vit":
+            from train_pretrain_vit_pirl import run as _run
+        else:
+            from train_pretrain_pirl import run as _run
     args = to_args(config, out)
     run_config = to_run_config(config, out)
     Path(run_config["output"]["checkpoint_dir"]).mkdir(parents=True,
@@ -259,6 +321,14 @@ def body(ctx: adapterlib.Context) -> None:
     state = torch.load(latest, map_location="cpu", weights_only=False)
     torch.save(extract_encoder(state["model_state_dict"]),
                Path(ctx.out) / "encoder.pt")
+    train = ctx.config.get("train", {})
+    if train.get("arch") == "vit":
+        for n in train.get("save_at_epochs", []):
+            ck = Path(ctx.out) / WORK / f"checkpoint_epoch_{int(n)}.pth"
+            if ck.is_file():
+                s = torch.load(ck, map_location="cpu", weights_only=False)
+                torch.save(extract_encoder(s["model_state_dict"]),
+                           Path(ctx.out) / f"encoder_epoch{int(n)}.pt")
     ctx.write_metrics(metrics, names=PRETRAIN_METRIC_NAMES)
 
 

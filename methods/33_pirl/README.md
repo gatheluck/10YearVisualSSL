@@ -12,11 +12,19 @@ projected and concatenated). Both are contrasted against a momentum-updated
 the loss is a convex combination of the image-NCE and the jigsaw-NCE. The bank is
 updated with the image representation each step. Step 1 is that pretext.
 
-## Scope — the ResNet-50 step 1 only
+## Scope — the ResNet-50 step 1 and the unified ViT-B/16 Step 2
 
-This port covers PIRL's ResNet-50 step 1. The capture's step 2 (ViT) is excluded,
-as in every port — so no `timm`; the port is **torch-only** (torchvision supplies
-ResNet-50).
+This port covers PIRL's ResNet-50 step 1 (`configs/pretrain.yaml`, SGD) **and**
+the capture's unified **ViT-B/16 Step 2** (`configs/pretrain_vit.yaml`,
+`arch: vit`): the same ViT-B/16 backbone every method shares, trained from scratch
+with the jigsaw pretext + memory-bank NCE. The jigsaw view reassembles the nine
+shuffled patches into one image (resized to the ViT input) and encodes it with the
+same backbone (unlike the native ResNet path, which encodes each patch
+separately); the CLS token feeds a `Linear(768, 128)` projection. Optimiser AdamW
+(betas 0.9, 0.95) with warmup + cosine and gradient clipping; checkpoints at
+100/200/300 epochs, each probed by the same frozen-backbone `linear_eval`. The ViT
+path needs `timm` (imported lazily); the native ResNet-50 path is byte-for-byte
+unchanged.
 
 ## Why this method, and what is new here
 
@@ -71,10 +79,11 @@ across the ported methods.
 
 ## Environment
 
-torch / torchvision / numpy / Pillow / PyYAML — the self-contained torch-only
-stack (no submodule, no `timm`; the ViT step 2 is not ported). `requirements.lock.txt`
-(CPU) and `requirements.lock.cu130.txt` (CUDA 13.0) are the hashed closures (the
-same closure as `05_jigsaw_puzzle`: identical floors, identical resolution).
+torch / torchvision / numpy / Pillow / PyYAML — the self-contained stack, no
+submodule — plus `timm` for the unified ViT-B/16 Step-2 path (imported lazily, so
+the native ResNet-50 path never needs it). `requirements.lock.txt` (CPU) and
+`requirements.lock.cu130.txt` (CUDA 13.0) are the hashed closures (the same
+closure as `14_simclrv1`: identical floors, identical resolution).
 
     pip install --require-hashes \
         --index-url https://download.pytorch.org/whl/cpu \
