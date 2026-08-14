@@ -1,0 +1,53 @@
+# DINO Step 2: unified ViT-B/16 pretraining, from scratch.
+#
+# The *same* DINO self-distillation objective, head and multi-crop as Step 1, but
+# on the unified ViT-B/16 backbone (arch: vit_base) under the unified Step-2
+# recipe -- selected by `recipe: unified` (absent == the native ViT-S/16 paper
+# recipe, which is byte-for-byte unchanged). AdamW lr 6e-4, a FIXED weight decay
+# (Step 1 cosine-schedules it), betas (0.9, 0.95), per-iteration cosine LR with a
+# 10-epoch warmup, 300 epochs; checkpoints at 100/200/300. DINO ships its own ViT
+# (vit_base supported), so this stays torch-only -- no timm.
+#
+# One path is passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   the dataset root; pretraining reads its train/ subdirectory
+# The output path is fixed at --out.
+#
+#   python3 bin/launch.py --config methods/23_dino/configs/pretrain_vit.yaml \
+#       --method 23_dino --set DATA_ROOT=/path/to/imagenet
+stage: pretrain
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+
+train:
+  recipe: unified
+  # model (build_dino): ViT-B/16 (embed 768, depth 12, heads 12)
+  arch: vit_base
+  img_size: 224
+  # DINO head + multi-crop + temperatures + teacher EMA base (same objective)
+  out_dim: 65536
+  hidden_dim: 2048
+  bottleneck_dim: 256
+  use_bn_in_head: false
+  norm_last_layer: true
+  n_local_crops: 8
+  local_size: 96
+  global_crops_scale: [0.4, 1.0]
+  local_crops_scale: [0.05, 0.4]
+  student_temp: 0.1
+  teacher_temp_init: 0.04
+  teacher_temp_final: 0.07     # unified ViT-B warms the teacher temp 0.04 -> 0.07
+  teacher_temp_warmup_epochs: 30
+  momentum_teacher: 0.996      # EMA momentum start (cosine schedule to 1.0)
+  # training: AdamW (betas 0.9, 0.95) + per-iter cosine (10-epoch warmup) to min_lr
+  epochs: 300
+  batch_size: 1024
+  num_workers: 8
+  drop_path_rate: 0.1
+  lr: 6.0e-4                   # 1.5e-4 * batch_size / 256 for batch 1024
+  min_lr: 1.0e-6
+  warmup_epochs: 10
+  weight_decay: 0.05          # FIXED (the native ViT-S recipe cosine-schedules it)
+  clip_grad: 3.0
+  freeze_last_layer: 1
+  save_at_epochs: [100, 200, 300]

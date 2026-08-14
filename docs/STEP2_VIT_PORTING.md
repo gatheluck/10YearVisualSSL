@@ -191,13 +191,28 @@ One family = one PR. Order by reuse (high → complex):
   uv-constrained regen (packaging==26.2 fleet); 04 already had packaging==26.2 so the timm delta
   was appended to its shared closure (blocks with `# wheel.whl` comments the coverage test reads).
 
+- [ ] **Batch 7 — ViT-native (config-alignment; pilot landed, fan-out pending):**
+  `22_mocov3` (already `vit_base`), `23_dino`, `24_beit`, `25_mae`, `26_simmim`,
+  `27_ibot`, `29_ijepa`, `31_dinov3`, `32_nepa`, `34_msn`, `35_vjepa`, `37_lejepa`.
+  Their pretrain is already a ViT but their paper's size (23/27 vit_small, 25 vit_large;
+  22 already vit_base) and recipe, not the unified ViT-B/16 + Step-2 recipe. **Different
+  from the fan-out:** same objective/head/dataloader, but `arch: vit_base` + the unified
+  recipe (fixed wd, milestones). **Selector is a new explicit `recipe: unified` key**
+  (absent = native) — because these methods already use `arch` for model size, so the
+  fan-out's `arch: vit` selector can't apply. The capture ships a per-method
+  `configs/step2_vit_b.yaml` + `train_step2_vit_b.py` (drop its DDP/`step2_protocol`
+  resume machinery). **Pilot: `23_dino` (PR #TBD)** — additive `configs/pretrain_vit.yaml`
+  (`recipe: unified`, `arch: vit_base`) + `train_pretrain_vit_dino.py` (reuses
+  `build_dino`/`get_dino_dataloader`/in-model loss; fixed wd; milestone ckpts) + adapter
+  `recipe`-branch (disjoint key sets: native `weight_decay_start/end` vs unified
+  `weight_decay`+`save_at_epochs`) + milestone `encoder_epoch{N}.pt`; `load_encoder`/eval
+  unchanged (read `arch`/`img_size`). DINO's own ViT supports `vit_base`, so no timm/lock
+  change. Per-method gotchas to assess before fan-out: whether each method's ViT/build
+  accepts `vit_base` (MAE=vit_large, iBOT/others differ), whether the native trainer needs
+  a separate `train_pretrain_vit_<name>.py` or can be extended, and 22 (already vit_base →
+  recipe/milestone alignment only). Deferred until the pilot PR is reviewed.
+
 **Deferred, separate efforts (different nature, not this fan-out):**
-- **ViT-native methods** (`22_mocov3`, `23_dino`, `24_beit`, `25_mae`, `26_simmim`,
-  `27_ibot`, `29_ijepa`, `31_dinov3`, `32_nepa`, `34_msn`, `35_vjepa`, `37_lejepa`):
-  their pretrain is already a ViT, but not necessarily the unified **ViT-B/16** with
-  the Step-2 recipe (e.g. 23/27 = vit_small, 25 = vit_large). The task there is a
-  Step-2 **config alignment** to ViT-B/16 + the unified recipe, not a new trainer —
-  assess per method.
 - **Generative** (`image_gpt`, `mar`, `var`) and **eval-only download** (`28_dinov2`,
   `30_aim`, `36_franca`): the capture also ran a from-scratch ViT Step-2 for these;
   scope later.

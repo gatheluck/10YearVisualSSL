@@ -11,12 +11,21 @@ sharpened* output and the student's *sharpened* output, averaged over the crop
 pairs where the views differ. An online **centre** (EMA) prevents collapse; the
 teacher momentum follows a cosine schedule 0.996 → 1.0. Step 1 is that pretext.
 
-## Scope — the ViT-S/16 step 1 only
+## Scope — the ViT-S/16 step 1 and the unified ViT-B/16 Step 2
 
-This port covers DINO's **ViT-S/16** step 1. The capture's step 2 (ViT-B) is
-excluded, as in every port. DINO ships **its own** Vision Transformer
+This port covers DINO's **ViT-S/16** step 1 (`configs/pretrain.yaml`, the paper
+recipe) **and** the capture's unified **ViT-B/16 Step 2** (`configs/pretrain_vit.yaml`,
+`recipe: unified`): the *same* DINO objective, head and multi-crop, but on
+`arch: vit_base` under the unified recipe — AdamW lr 6e-4, a **fixed** weight
+decay (step 1 cosine-schedules it), betas (0.9, 0.95), per-iteration cosine LR
+with a 10-epoch warmup, 300 epochs, milestone checkpoints at 100/200/300, each
+probed by the same frozen-teacher `linear_eval`. Because these ViT-native methods
+already use `arch` for the model *size*, the Step-2 path is selected by an
+explicit `recipe: unified` key (absent = the native ViT-S/16 recipe, byte-for-byte
+unchanged). DINO ships **its own** Vision Transformer
 (`models/vision_transformer.py` — measured: it imports only `torch`, **not
-`timm`**), so this port is **torch-only**, unlike the timm-based MoCo v3.
+`timm`**, and `vit_base` is a build option), so **both** paths are torch-only,
+unlike the timm-based MoCo v3 — no new dependency.
 
 ## Why this method, and what is new here
 
@@ -70,6 +79,11 @@ probe instead is a documented deviation, the same as every other port.)
 - **Not a full run:** `configs/pretrain.yaml` is the DINO recipe (`vit_small`,
   out_dim 65536, 100 epochs, batch 1024, AdamW, warmup 10, multi-crop 2+8), a
   recipe, not a completed run.
+- **Exercised (unified ViT-B/16 Step 2):** a hermetic smoke — `recipe: unified`,
+  `arch: vit_base` at 32px, a narrow head, 2 local crops, two epochs with
+  `save_at_epochs: [1, 2]` — runs through `python -m adapter` on a CPU, writes
+  `encoder.pt` and both `encoder_epoch{1,2}.pt` milestones, and a milestone probe
+  passes `contract-test`. The full 300-epoch ViT-B/16 recipe has not been run here.
 - **GPU:** the device resolution is verified on real hardware; see the device
   mutation spec (`mutations/23_dino-pretrain-device.json`).
 
