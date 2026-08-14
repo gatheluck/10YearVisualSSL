@@ -8,7 +8,10 @@ centred + sharpened cross-entropy distils the teacher into the student (step 1).
 linear_eval then probes the frozen teacher ViT backbone (its CLS feature,
 embed_dim). A self-contained re-implementation (the lab's own code, following
 facebookresearch/dino); DINO ships its own ViT, so the port is torch-only -- no
-timm. The capture's step 2 (ViT-B) is excluded, as in every port.
+timm. The capture's unified ViT-B/16 Step 2 (recipe: unified) is also ported
+additively: the same DINO objective on the unified ViT-B/16 (arch: vit_base)
+under the unified recipe (fixed weight decay + milestone checkpoints); the native
+ViT-S/16 paper recipe is byte-for-byte unchanged.
 
 `encoder.pt` is the teacher ViT backbone (`teacher.backbone.*`, the prefix
 stripped so it loads straight into a plain VisionTransformer): the class token,
@@ -48,6 +51,19 @@ PRETRAIN_TRAIN_KEYS = MODEL_KEYS | DINO_KEYS | PRETRAIN_TRAIN_ONLY
 EVAL_PROBE_KEYS = frozenset({"epochs", "batch_size", "num_workers", "lr",
                              "momentum", "weight_decay"})
 EVAL_TRAIN_KEYS = frozenset({"arch", "img_size"}) | EVAL_PROBE_KEYS
+
+# The unified ViT-B/16 Step-2 recipe (recipe: unified), additive to the native
+# ViT-S/16 paper recipe. These methods already use `arch` for the model *size*
+# (vit_small natively), so the Step-2 path is selected by an explicit `recipe`
+# key (absent == native), stripped before key validation. Same DINO objective
+# and head; the training recipe differs -- a FIXED weight decay (native
+# cosine-schedules it via weight_decay_start/end) and milestone checkpoints.
+RECIPES = ("native", "unified")
+UNIFIED_TRAIN_ONLY = frozenset({"epochs", "batch_size", "num_workers",
+                                "drop_path_rate", "lr", "min_lr",
+                                "warmup_epochs", "weight_decay", "clip_grad",
+                                "freeze_last_layer", "save_at_epochs"})
+PRETRAIN_UNIFIED_KEYS = MODEL_KEYS | DINO_KEYS | UNIFIED_TRAIN_ONLY
 
 TOP_KEYS = frozenset({"stage", "seed", "data_root", "device", "train"})
 EVAL_TOP_KEYS = TOP_KEYS | {"encoder"}
@@ -130,6 +146,19 @@ def _training_section(train: dict) -> dict:
             "freeze_last_layer": int(train["freeze_last_layer"])}
 
 
+def _training_section_unified(train: dict) -> dict:
+    return {"epochs": int(train["epochs"]),
+            "batch_size": int(train["batch_size"]),
+            "drop_path_rate": float(train["drop_path_rate"]),
+            "lr": float(train["lr"]),
+            "min_lr": float(train["min_lr"]),
+            "warmup_epochs": int(train["warmup_epochs"]),
+            "weight_decay": float(train["weight_decay"]),
+            "clip_grad": float(train["clip_grad"]),
+            "freeze_last_layer": int(train["freeze_last_layer"]),
+            "save_at_epochs": [int(e) for e in train["save_at_epochs"]]}
+
+
 def to_run_config(config: dict, out: Path) -> dict:
     for key in ("output", "checkpoint"):
         if key in config:
@@ -143,7 +172,6 @@ def to_run_config(config: dict, out: Path) -> dict:
         raise ConfigError(
             f"config: stage is {stage!r}; known stages are "
             f"{', '.join(STAGES)}")
-    keys = EVAL_TRAIN_KEYS if stage == "linear_eval" else PRETRAIN_TRAIN_KEYS
     top = EVAL_TOP_KEYS if stage == "linear_eval" else TOP_KEYS
     _named(top - set(config), set(config) - top, "config")
 
@@ -151,7 +179,20 @@ def to_run_config(config: dict, out: Path) -> dict:
     if not isinstance(train, dict):
         raise ConfigError(f"config: train is {type(train).__name__}, "
                           "not a mapping")
-    _named(keys - set(train), set(train) - keys, "config.train")
+    # `recipe` selects the training recipe; absent == the native ViT-S/16 paper
+    # recipe. It is stripped before key validation, so the disjoint recipe key
+    # sets cannot leak between paths.
+    recipe = train.get("recipe", "native")
+    if recipe not in RECIPES:
+        raise ConfigError(
+            f"config.train: recipe is {recipe!r}; expected one of "
+            f"{', '.join(RECIPES)}")
+    rest = {k: v for k, v in train.items() if k != "recipe"}
+    if stage == "linear_eval":
+        keys = EVAL_TRAIN_KEYS
+    else:
+        keys = PRETRAIN_UNIFIED_KEYS if recipe == "unified" else PRETRAIN_TRAIN_KEYS
+    _named(keys - set(rest), set(rest) - keys, "config.train")
 
     if config["device"] not in DEVICES:
         raise ConfigError(
@@ -167,7 +208,8 @@ def to_run_config(config: dict, out: Path) -> dict:
         "dino": _dino_section(train),
         "data": {"data_root": str(config["data_root"]),
                  "num_workers": int(train["num_workers"])},
-        "training": _training_section(train),
+        "training": (_training_section_unified(train) if recipe == "unified"
+                     else _training_section(train)),
         "output": {"checkpoint_dir": str(Path(out) / WORK)},
     }
 
@@ -217,10 +259,14 @@ def _filter_numeric(raw: dict) -> tuple:
 
 
 def run_training(config: dict, out: Path, _run=None) -> dict:
+    recipe = config.get("train", {}).get("recipe", "native")
     if _run is None:
         if str(METHOD_DIR) not in sys.path:
             sys.path.insert(0, str(METHOD_DIR))
-        from train_pretrain_dino import run as _run
+        if recipe == "unified":
+            from train_pretrain_vit_dino import run as _run
+        else:
+            from train_pretrain_dino import run as _run
     args = to_args(config, out)
     run_config = to_run_config(config, out)
     Path(run_config["output"]["checkpoint_dir"]).mkdir(parents=True,
@@ -267,6 +313,17 @@ def body(ctx: adapterlib.Context) -> None:
     state = torch.load(latest, map_location="cpu", weights_only=False)
     torch.save(extract_encoder(state["model_state_dict"]),
                Path(ctx.out) / "encoder.pt")
+    train = ctx.config.get("train", {})
+    if train.get("recipe") == "unified":
+        # The unified trainer writes a checkpoint_epoch_{N}.pth per milestone;
+        # hand over encoder_epoch{N}.pt for each so the 100/200/300 sweep can
+        # probe each frozen teacher backbone.
+        for n in train.get("save_at_epochs", []):
+            ck = Path(ctx.out) / WORK / f"checkpoint_epoch_{int(n)}.pth"
+            if ck.is_file():
+                s = torch.load(ck, map_location="cpu", weights_only=False)
+                torch.save(extract_encoder(s["model_state_dict"]),
+                           Path(ctx.out) / f"encoder_epoch{int(n)}.pt")
     ctx.write_metrics(metrics, names=PRETRAIN_METRIC_NAMES)
 
 
