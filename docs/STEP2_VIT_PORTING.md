@@ -174,7 +174,7 @@ One family = one PR. Order by reuse (high → complex):
   regenerated with uv (constrained to the existing pins) rather than spliced: 07's
   CUDA closure already pinned `packaging==26.3` vs the fleet's `26.2`, which a splice
   cannot reconcile.
-- [x] **Batch 6 — dense/generative (PR #TBD):** `03_colorization` (a **self-contained,
+- [x] **Batch 6 — dense/generative (PR #92):** `03_colorization` (a **self-contained,
   hand-written** ViT-B/16 -- no timm -- reading the L channel + a CNN decoder for the same
   313-bin ab classification; trunk under `self.encoder`, `get_encoder()`->CLS, so the eval is
   unchanged and the closure stays torch-only), `08_split_brain` (dual half-width ViT-B/16
