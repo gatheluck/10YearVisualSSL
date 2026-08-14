@@ -250,8 +250,17 @@ One family = one PR. Order by reuse (high → complex):
     key, not the selector); `vit_base` covered by config translation + a `load_encoder`
     round trip. `captured_sha256` empty (nothing pinned), models/loader already carry
     `vit_base`/`step2`, so no model/loader/eval/lock change. Full 29 module 45 tests OK
-    (62s); base gate EXIT=0; key-set-split mutation-killed. Next in 7c:
-    `34_msn` (deit_base via the pinned submodule, config-reachable, licence-safe),
+    (62s); base gate EXIT=0; key-set-split mutation-killed.
+    `34_msn` **DONE** (recipe: unified in `train`, deit_base via the pinned
+    `third_party/msn` submodule — no upstream edit). Same shape as 29: the native
+    `train_pretrain_msn.py` already implements the recipe (`src.msn_train.init_opt`
+    takes `lr` directly; arch built from config dims → `deit_base` = embed_dim 768/
+    heads 12; cosine wd constant when `weight_decay==final_weight_decay`), so **no
+    separate trainer** — extended with a guarded milestone save. `save_at_epochs` is
+    the sole unified-only key (one-way leakage guard, refused on native), since the
+    capture's step2 changes only values, not the key set. Smoke keeps tiny dims for
+    CPU speed; deit_base covered by config translation. Full 34 module 41 tests OK
+    (65s); base gate EXIT=0; recipe-split mutation-killed. Next in 7c:
     `31_dinov3`+`35_vjepa` (already unified ViT-B/16 → milestone-only, no `recipe` key).
   - **Separate PR:** `26_simmim` (native is Swin-B, not ViT → new `simmim_vit.py` +
     pixel-mask loader + arch branch in `load_encoder` **and** eval; non-additive-to-eval).

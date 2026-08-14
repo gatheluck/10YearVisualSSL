@@ -159,6 +159,10 @@ def run(args, config: "dict | None" = None) -> dict:
         focal_views=focal_views, num_workers=int(d["num_workers"]), seed=seed)
 
     epochs = int(t["epochs"])
+    # Milestone checkpoints for the additive unified Step-2 recipe. The native
+    # step-1 config never sets save_at_epochs, so this is empty and only
+    # checkpoint_latest.pth is written -- the native behaviour is unchanged.
+    save_at = {int(n) for n in t.get("save_at_epochs", [])}
     ipe = max(1, len(loader))
     encoder, optimizer, scheduler, wd_scheduler = init_opt(
         encoder=encoder, iterations_per_epoch=ipe, start_lr=float(t["start_lr"]),
@@ -223,10 +227,13 @@ def run(args, config: "dict | None" = None) -> dict:
         final_loss = running / count if count else None
         print(f"  [{epoch}] msn_loss={final_loss}  ploss={ploss.item():.4f}"
               f"  me_max={me_max.item():.4f}")
-        torch.save({"epoch": epoch, "model_state_dict": encoder.state_dict(),
-                    "prototypes": prototypes.detach().cpu(), "loss": final_loss,
-                    "config": cfg},
-                   os.path.join(save_dir, "checkpoint_latest.pth"))
+        ckpt = {"epoch": epoch, "model_state_dict": encoder.state_dict(),
+                "prototypes": prototypes.detach().cpu(), "loss": final_loss,
+                "config": cfg}
+        torch.save(ckpt, os.path.join(save_dir, "checkpoint_latest.pth"))
+        if (epoch + 1) in save_at:
+            torch.save(ckpt, os.path.join(
+                save_dir, f"checkpoint_epoch_{epoch + 1}.pth"))
 
     print("\nMSN Step 1 training complete!")
     ran = epochs > 0 and final_loss is not None
