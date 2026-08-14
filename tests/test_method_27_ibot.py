@@ -100,6 +100,33 @@ EVAL_MODEL = {"arch": "vit_small", "patch_size": 16, "n_last_blocks": 4,
               "avgpool_patchtokens": 0}
 EVAL = {"epochs": 1, "batch_size": 2, "num_workers": 0, "lr": 1.0e-3}
 
+# ── The unified ViT-B/16 Step-2 recipe (recipe: unified) ─────────────────────
+# The capture's Step 2 plugs the same iBOT objective into the unified ViT-B/16
+# backbone (arch vit_base, embed_dim 768). It differs from the native step-1
+# recipe by: mask_ratio_min/max instead of pred_ratio/pred_ratio_var, a fixed
+# weight_decay instead of a start/end cosine, a direct lr (no batch/256 rescale),
+# grad_clip 0.3, freeze_last_layer 3, and milestone checkpoints (save_at_epochs).
+# As with the native smoke, only the head and crops are shrunk -- the ViT-Base
+# backbone (embed_dim=768, depth=12) is the real one.
+UNIFIED_MODEL = {"arch": "vit_base", "patch_size": 16, "embed_dim": 768,
+                 "drop_path_rate": 0.0}
+UNIFIED_IBOT = {"out_dim": 64, "head_hidden_dim": 64, "head_bottleneck_dim": 32,
+                "head_nlayers": 1, "shared_head": True, "norm_last_layer": True,
+                "student_temp": 0.1, "teacher_temp": 0.04,
+                "teacher_patch_temp": 0.04, "teacher_temp_warmup": 0.04,
+                "teacher_patch_temp_warmup": 0.04,
+                "teacher_temp_warmup_epochs": 0, "lambda_token": 1.0,
+                "mask_ratio_min": 0.1, "mask_ratio_max": 0.5,
+                "pred_shape": "block",
+                "teacher_momentum_start": 0.996, "teacher_momentum_end": 1.0,
+                "center_momentum": 0.9, "center_momentum_patch": 0.9}
+UNIFIED_TRAINING = {"epochs": 1, "batch_size": 2, "lr": 6.0e-4, "min_lr": 1.0e-6,
+                    "weight_decay": 0.05, "warmup_epochs": 0, "grad_clip": 0.3,
+                    "freeze_last_layer": 0, "save_at_epochs": [1],
+                    "print_freq": 1}
+UNIFIED_EVAL_MODEL = {"arch": "vit_base", "patch_size": 16, "n_last_blocks": 4,
+                      "avgpool_patchtokens": 0}
+
 
 def tiny_imagenet(root: Path, n: int = 4) -> Path:
     """A few synthetic images in the layout `ImageFolder` walks.
@@ -711,6 +738,236 @@ class TestTheLinearEvaluationRuns(Base):
         self.assertEqual(man["stage"], "linear_eval")
 
 
+class UnifiedBase(Base):
+    """The unified ViT-B/16 Step-2 pretrain config (recipe: unified). The recipe
+    is a top-level key; absent means the native step-1 path."""
+
+    def config(self, **over) -> dict:
+        cfg = {"recipe": "unified", "stage": "pretrain", "seed": 0,
+               "data_root": str(self.tmp / "data"), "device": "cpu",
+               "model": copy.deepcopy(UNIFIED_MODEL),
+               "data": copy.deepcopy(DATA), "ibot": copy.deepcopy(UNIFIED_IBOT),
+               "training": copy.deepcopy(UNIFIED_TRAINING)}
+        for k, v in over.items():
+            if k in ("model", "data", "ibot", "training") and isinstance(v, dict):
+                cfg[k] = {**cfg[k], **v}
+            else:
+                cfg[k] = v
+        return cfg
+
+
+class TestTheUnifiedConfigIsTranslated(UnifiedBase):
+    """The additive Step-2 branch: selected by recipe: unified, validated against
+    its own key sets, disjoint from the native ones so nothing leaks."""
+
+    def test_the_unified_recipe_is_accepted(self):
+        built = adapter.to_run_config(self.config(), self.out)
+        self.assertEqual(built["training"]["weight_decay"], 0.05)
+        self.assertEqual(built["ibot"]["mask_ratio_min"], 0.1)
+        self.assertEqual(built["ibot"]["mask_ratio_max"], 0.5)
+        self.assertEqual(built["training"]["save_at_epochs"], [1])
+        # `recipe` is consumed by the selector, not passed to the trainer.
+        self.assertNotIn("recipe", built)
+
+    def test_the_native_recipe_is_still_accepted(self):
+        """Regression: a config with no recipe is the native step-1 path."""
+        native = Base.config(self)
+        self.assertNotIn("recipe", native)
+        built = adapter.to_run_config(native, self.out)
+        self.assertEqual(built["model"]["arch"], "vit_small")
+        self.assertIn("weight_decay_start", built["training"])
+
+    def test_the_unified_recipe_needs_vit_base(self):
+        with self.assertRaises(adapter.ConfigError) as e:
+            adapter.to_run_config(
+                self.config(model={"arch": "vit_small", "embed_dim": 384}),
+                self.out)
+        self.assertIn("vit_small", str(e.exception))
+
+    def test_the_unified_embed_dim_must_match_vit_base(self):
+        with self.assertRaises(adapter.ConfigError) as e:
+            adapter.to_run_config(self.config(model={"embed_dim": 384}),
+                                  self.out)
+        self.assertIn("embed_dim", str(e.exception))
+
+    def test_a_missing_unified_key_is_refused_by_name(self):
+        for block, key in (("training", "weight_decay"),
+                           ("training", "save_at_epochs"),
+                           ("ibot", "mask_ratio_min"),
+                           ("ibot", "mask_ratio_max")):
+            with self.subTest(key=key):
+                cfg = self.config()
+                del cfg[block][key]
+                with self.assertRaises(adapter.ConfigError) as e:
+                    adapter.to_run_config(cfg, self.out)
+                self.assertIn(key, str(e.exception))
+
+    def test_an_unknown_unified_key_is_refused(self):
+        cfg = self.config()
+        cfg["training"]["mystery"] = 1
+        with self.assertRaises(adapter.ConfigError) as e:
+            adapter.to_run_config(cfg, self.out)
+        self.assertIn("mystery", str(e.exception))
+
+    def test_a_native_only_key_on_the_unified_path_is_refused(self):
+        """Leakage one way: the native cosine-WD and masking knobs are unknown
+        to the unified recipe."""
+        for block, key, value in (("training", "weight_decay_start", 0.04),
+                                  ("training", "weight_decay_end", 0.4),
+                                  ("ibot", "pred_ratio", [0.0, 0.3]),
+                                  ("ibot", "pred_ratio_var", [0.0, 0.2])):
+            with self.subTest(key=key):
+                cfg = self.config()
+                cfg[block][key] = value
+                with self.assertRaises(adapter.ConfigError) as e:
+                    adapter.to_run_config(cfg, self.out)
+                self.assertIn(key, str(e.exception))
+
+    def test_a_unified_only_key_on_the_native_path_is_refused(self):
+        """Leakage the other way: the unified fixed-WD and mask-ratio knobs are
+        unknown to the native step-1 recipe."""
+        for block, key, value in (("training", "weight_decay", 0.05),
+                                  ("training", "save_at_epochs", [1]),
+                                  ("ibot", "mask_ratio_min", 0.1),
+                                  ("ibot", "mask_ratio_max", 0.5)):
+            with self.subTest(key=key):
+                cfg = Base.config(self)
+                cfg[block][key] = value
+                with self.assertRaises(adapter.ConfigError) as e:
+                    adapter.to_run_config(cfg, self.out)
+                self.assertIn(key, str(e.exception))
+
+    def test_a_bad_recipe_value_is_refused_by_name(self):
+        with self.assertRaises(adapter.ConfigError) as e:
+            adapter.to_run_config(self.config(recipe="turbo"), self.out)
+        self.assertIn("turbo", str(e.exception))
+
+    def test_a_malformed_scale_range_is_still_refused(self):
+        with self.assertRaises(adapter.ConfigError) as e:
+            adapter.to_run_config(
+                self.config(data={"global_crops_scale": 0.5}), self.out)
+        self.assertIn("global_crops_scale", str(e.exception))
+
+
+class TestUnifiedArchWidening(Base):
+    @needs_torch
+    def test_load_encoder_builds_a_vit_base_and_round_trips(self):
+        import torch
+        models = load("this_methods_models", METHOD / "models" / "__init__.py")
+        teacher = models.vit_base(patch_size=UNIFIED_MODEL["patch_size"],
+                                  use_mask_token=False)
+        saved = teacher.state_dict()
+        cfg = UnifiedBase.config(self)
+        loaded = adapter.load_encoder(saved, cfg).state_dict()
+        pairs = 0
+        for key, want in saved.items():
+            got = loaded.get(key)
+            if got is None:
+                continue
+            pairs += 1
+            self.assertTrue(torch.equal(got, want), f"{key} came back changed")
+        self.assertGreater(pairs, 0, "no saved weight reached the model")
+
+    def test_the_evaluation_accepts_a_vit_base_encoder(self):
+        cfg = {"stage": "linear_eval", "seed": 0,
+               "data_root": str(self.tmp / "data"),
+               "encoder": str(self.tmp / "encoder.pt"), "device": "cpu",
+               "model": copy.deepcopy(UNIFIED_EVAL_MODEL),
+               "eval": copy.deepcopy(EVAL)}
+        args = adapter.eval_args(cfg, self.out)
+        self.assertEqual(args.model_type, "vit_base")
+
+
+@needs_torch
+class TestTheUnifiedSmokeRuns(UnifiedBase):
+    """A real unified ViT-B/16 run, on a CPU, through the whole contract chain."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        tiny_imagenet(self.tmp / "data")
+
+    def test_it_completes_and_satisfies_the_contract(self):
+        cfg_path, r = self.run_adapter(self.config())
+        self.assertEqual(r.returncode, 0, r.stdout[-3000:] + r.stderr[-3000:])
+        v = subprocess.run(
+            [sys.executable, str(BIN / "contract-test.py"), "--out",
+             str(self.out), "--config", str(cfg_path), "--exit-status", "0"],
+            capture_output=True, text=True)
+        self.assertEqual(v.returncode, 0, v.stdout + v.stderr)
+
+    def test_the_encoder_is_a_vit_base_teacher_backbone(self):
+        import torch
+        self.run_adapter(self.config())
+        state = torch.load(self.out / "encoder.pt", map_location="cpu",
+                           weights_only=True)
+        self.assertTrue(state, "the encoder is empty")
+        models = load("this_methods_models", METHOD / "models" / "__init__.py")
+        teacher_keys = set(models.vit_base(
+            patch_size=UNIFIED_MODEL["patch_size"],
+            use_mask_token=False).state_dict())
+        self.assertEqual(set(state), teacher_keys,
+                         "encoder.pt is not exactly a ViT-Base teacher backbone")
+        self.assertNotIn("mask_token", state,
+                         "mask_token present -- this is the student, not teacher")
+
+    def test_each_milestone_encoder_is_written(self):
+        """save_at_epochs writes checkpoint_epoch_{N}.pth per milestone; the
+        adapter hands over encoder_epoch{N}.pt for each so the 100/200/300 sweep
+        can probe every frozen backbone."""
+        _, r = self.run_adapter(self.config(training={"epochs": 2,
+                                                      "save_at_epochs": [1, 2]}))
+        self.assertEqual(r.returncode, 0, r.stdout[-3000:] + r.stderr[-3000:])
+        self.assertTrue((self.out / "encoder.pt").is_file())
+        self.assertTrue((self.out / "encoder_epoch1.pt").is_file())
+        self.assertTrue((self.out / "encoder_epoch2.pt").is_file())
+
+
+@needs_torch
+class TestTheUnifiedLinearEvaluationRuns(Base):
+    def setUp(self) -> None:
+        super().setUp()
+        tiny_classified(self.tmp / "data")
+
+    def make_encoder(self) -> None:
+        tiny_imagenet(self.tmp / "data")
+        first = TestTheUnifiedSmokeRuns("test_it_completes_and_satisfies_the_contract")
+        first.tmp, first.out = self.tmp, self.tmp / "step2out"
+        _, r = first.run_adapter(UnifiedBase.config(first))
+        self.assertEqual(r.returncode, 0, r.stdout[-2000:] + r.stderr[-2000:])
+        (self.tmp / "encoder.pt").write_bytes(
+            (first.out / "encoder.pt").read_bytes())
+
+    def config(self, **over) -> dict:
+        cfg = {"stage": "linear_eval", "seed": 0,
+               "data_root": str(self.tmp / "data"),
+               "encoder": str(self.tmp / "encoder.pt"), "device": "cpu",
+               "model": copy.deepcopy(UNIFIED_EVAL_MODEL),
+               "eval": copy.deepcopy(EVAL)}
+        for k, v in over.items():
+            if k in ("model", "eval") and isinstance(v, dict):
+                cfg[k] = {**cfg[k], **v}
+            else:
+                cfg[k] = v
+        return cfg
+
+    def test_it_completes_and_satisfies_the_contract(self):
+        self.make_encoder()
+        cfg_path, r = self.run_adapter(self.config())
+        self.assertEqual(r.returncode, 0, r.stdout[-3000:] + r.stderr[-3000:])
+        v = subprocess.run(
+            [sys.executable, str(BIN / "contract-test.py"), "--out",
+             str(self.out), "--config", str(cfg_path), "--exit-status", "0"],
+            capture_output=True, text=True)
+        self.assertEqual(v.returncode, 0, v.stdout + v.stderr)
+
+    def test_the_numbers_are_comparable_ones(self):
+        self.make_encoder()
+        self.run_adapter(self.config())
+        doc = json.loads((self.out / "metrics.json").read_text())
+        self.assertIn("final_linear_probe_top1_accuracy", doc["metrics"])
+        self.assertFalse((self.out / "encoder.pt").exists())
+
+
 class TestWhatCameFromTheCapture(unittest.TestCase):
     def test_the_captured_files_are_unchanged(self):
         expected = json.loads(
@@ -732,6 +989,14 @@ class TestWhatCameFromTheCapture(unittest.TestCase):
         doc = json.loads((METHOD / "provenance.json").read_text())
         self.assertIn("train_pretrain.py", doc["rewritten_during_the_port"])
         self.assertIn("evaluate_linear.py", doc["rewritten_during_the_port"])
+
+    def test_the_unified_step2_files_are_recorded(self):
+        """The additive Step-2 port authored three files; provenance names each
+        so the port is fully documented."""
+        doc = json.loads((METHOD / "provenance.json").read_text())
+        for rel in ("train_pretrain_vit_ibot.py", "configs/pretrain_vit.yaml",
+                    "configs/linear_eval_vit.yaml"):
+            self.assertIn(rel, doc["rewritten_during_the_port"])
 
 
 if __name__ == "__main__":

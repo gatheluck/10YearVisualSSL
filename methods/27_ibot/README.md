@@ -1,4 +1,4 @@
-# 27_ibot — step 1 and linear evaluation
+# 27_ibot — step 1, unified ViT-B/16 step 2, and linear evaluation
 
 Zhou, Wei, Wang, Shen, Xie, Yuille and Kong, *iBOT: Image BERT Pre-Training
 with Online Tokenizer*, 2021 ([arXiv:2111.07832](https://arxiv.org/abs/2111.07832)).
@@ -92,12 +92,39 @@ and are pinned by hash.
   block masking draw from Python's `random` and from torch; both are seeded, so
   the same config twice gives the same `encoder.pt` — checked by test
 - **The backbone is chosen from `model.arch`** rather than hard-coded, so the
-  resolved config says which architecture ran. Only `vit_small` is accepted;
-  `vit_base` belongs to step 2
-- **Step 2 was not brought across.** `train_step2_vit.py`,
-  `configs/step2_vit_b.yaml`, the step-2 shell script and
-  `tests/test_step2_protocol.py` are step 2 (ViT-B), which the contract does
-  not adopt (its stages are `pretrain` and `linear_eval`)
+  resolved config says which architecture ran. The native pretrain accepts
+  `vit_small`; the unified Step 2 (below) accepts `vit_base`
+
+## Step 2 (unified ViT-B/16), added additively
+
+The capture's Step 2 plugs the **same** iBOT objective into the unified
+**ViT-Base/16** backbone (300 epochs, batch 1024, `lr` 6e-4, fixed weight decay
+0.05, checkpointed at 100/200/300). It is ported additively, selected by a
+top-level `recipe: unified` key; **absent `recipe` is the native step-1 path,
+byte-for-byte unchanged**, and the native and unified config key sets are
+disjoint so a knob from one recipe on the other is refused by name.
+
+`train_pretrain_vit_ibot.py` is faithful to the capture's `train_step2_vit.py`
+but single process, exactly as `train_pretrain.py` was for step 1. It differs
+from step 1 only where the capture's step-2 config does: the `lr` is used
+directly (the capture baked `lr = 1.5e-4 × 1024/256 = 6e-4` into the config, so
+it is **not** rescaled a second time), weight decay is **fixed** (not the
+0.04→0.4 cosine), masking is set by `ibot.mask_ratio_min`/`mask_ratio_max`,
+`grad_clip` is 0.3 and `freeze_last_layer` 3 (the official ViT-B stability
+settings), and a milestone `checkpoint_epoch_{N}.pth` is written at each
+`training.save_at_epochs`. The device resolution, seeding, the cosine schedule,
+the LR setter, the gradient clip and the meter are imported from
+`train_pretrain.py` — one implementation per method. The capture's step-2
+multi-GPU DDP, its per-rank RNG-state checkpointing and its anti-collapse health
+gate are production-only and dropped for a single-process run.
+
+The adapter writes `encoder.pt` (the final teacher backbone) plus
+`encoder_epoch{100,200,300}.pt`, one frozen ViT-Base/16 teacher per milestone,
+so the linear probe can be run at each. Probe a unified encoder with
+`configs/linear_eval_vit.yaml` (arch `vit_base`). The production-only artefacts
+of the capture's step 2 — the shell script and `tests/test_step2_protocol.py`,
+its protocol-version validation and its resume machinery — are not brought
+across; the contract's stages are `pretrain` and `linear_eval`.
 
 ## The configuration
 

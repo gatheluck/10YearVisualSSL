@@ -7,6 +7,14 @@ image patch and the [CLS] token predict the teacher's assignment, and the
 teacher is an EMA of the student. The encoder the rest of the project wants is
 the backbone; the heads and the centering buffers are training machinery.
 
+The native pretrain is ViT-Small/16 (step 1). The additive unified Step 2
+(`recipe: unified`, a top-level key) plugs the same objective into ViT-Base/16
+and runs the capture's step-2 recipe -- a direct (un-rescaled) lr, a fixed
+weight decay, mask_ratio_min/max masking, grad_clip 0.3, freeze_last_layer 3 --
+writing a milestone checkpoint at each `training.save_at_epochs`. It is
+non-destructive: absent `recipe` is the native path, byte-for-byte unchanged,
+and the two recipes' key sets are disjoint.
+
 **Which backbone is the encoder is read from the original's own recipe, not
 decided here.** The model exposes `get_encoder()` returning the student, but
 every official linear-evaluation script probes `--checkpoint_key teacher`, and
@@ -41,12 +49,17 @@ from pathlib import Path
 import adapterlib
 
 METHOD = "27_ibot"
+METHOD_DIR = Path(__file__).resolve().parent.parent
 STAGES = ("pretrain", "linear_eval")
 
-# Step 1 is ViT-Small/16. `vit_base` is step 2's backbone, and step 2 has no
-# official-style variant in the capture, so it was not brought across.
+# The native step-1 pretrain is ViT-Small/16. The additive unified Step 2
+# (recipe: unified) plugs the same iBOT objective into ViT-Base/16. Native
+# pretrain accepts vit_small only; the unified recipe accepts vit_base only; the
+# linear evaluation reads either, since it probes whichever encoder was produced.
 ARCHS = ("vit_small",)
-ARCH_EMBED_DIM = {"vit_small": 384}
+UNIFIED_ARCHS = ("vit_base",)
+EVAL_ARCHS = ("vit_small", "vit_base")
+ARCH_EMBED_DIM = {"vit_small": 384, "vit_base": 768}
 
 # Every setting the trainer reads, grouped as the original groups them. None is
 # optional here even where the original reads it with a default: a default that
@@ -74,10 +87,32 @@ HEALTH_KEYS = frozenset({"min_total_loss", "min_component_loss",
 TOP_KEYS = frozenset({"stage", "seed", "data_root", "device",
                       "model", "data", "ibot", "training"})
 
-# The four settings written as `[low, high]` lists, checked together because a
-# malformed one only fails deep inside the loader with nothing to say.
+# The additive unified Step-2 recipe (recipe: unified), selected by a top-level
+# `recipe` key (absent == the native step-1 path). It plugs the same iBOT
+# objective into ViT-Base/16 and differs from step 1 only in the knobs the
+# capture's step-2 config changes:
+#   - masking by mask_ratio_min/max, not pred_ratio/pred_ratio_var/pred_start_epoch;
+#   - a fixed weight_decay, not a start/end cosine, and no collapse-guard health
+#     block (checkpoint_health / fail_fast_after_epoch);
+#   - milestone checkpoints (save_at_epochs) instead of save_freq.
+# The native and unified key sets are disjoint, so a knob from one recipe on the
+# other is refused by name rather than silently ignored.
+RECIPES = ("native", "unified")
+IBOT_UNIFIED_KEYS = (IBOT_KEYS - {"pred_ratio", "pred_ratio_var",
+                                  "pred_start_epoch"}
+                     ) | {"mask_ratio_min", "mask_ratio_max"}
+TRAINING_UNIFIED_KEYS = (TRAINING_KEYS - {"weight_decay_start",
+                                          "weight_decay_end", "checkpoint_health",
+                                          "fail_fast_after_epoch", "save_freq"}
+                         ) | {"weight_decay", "save_at_epochs"}
+
+# The `[low, high]` settings checked together because a malformed one only fails
+# deep inside the loader with nothing to say. The unified recipe drops the
+# pred_ratio pair (it uses scalar mask ratios the loader validates).
 RANGE_KEYS = (("data", "global_crops_scale"), ("data", "local_crops_scale"),
               ("ibot", "pred_ratio"), ("ibot", "pred_ratio_var"))
+UNIFIED_RANGE_KEYS = (("data", "global_crops_scale"),
+                      ("data", "local_crops_scale"))
 
 # The second stage freezes an encoder and fits a linear head; it reads its own
 # small set of flags and needs the encoder to load.
@@ -155,14 +190,14 @@ def _block(config: dict, name: str, keys: frozenset) -> dict:
     return value
 
 
-def check_ranges(config: dict) -> None:
+def check_ranges(config: dict, range_keys=RANGE_KEYS) -> None:
     """The `[low, high]` settings, refused by name if malformed.
 
     The loader and the loss read these as two-element sequences; a scalar or a
     three-element list fails deep inside with nothing to say which one was
     wrong.
     """
-    for block, key in RANGE_KEYS:
+    for block, key in range_keys:
         value = config[block][key]
         if not isinstance(value, list) or len(value) != 2 or \
                 not all(isinstance(v, (int, float)) and
@@ -203,35 +238,50 @@ def to_run_config(config: dict, out: Path) -> dict:
                "config")
         model = _block(config, "model", EVAL_MODEL_KEYS)
         _block(config, "eval", EVAL_KEYS)
-        if model["arch"] not in ARCHS:
+        if model["arch"] not in EVAL_ARCHS:
             raise ConfigError(
                 f"config.model: arch is {model['arch']!r}; expected one of "
-                f"{', '.join(ARCHS)}")
+                f"{', '.join(EVAL_ARCHS)}")
         # The evaluation takes flags, not a document; `eval_args` builds them.
         return {"stage": stage}
 
-    _named(TOP_KEYS - set(config), set(config) - TOP_KEYS, "config")
+    # `recipe` selects the pretrain recipe; absent == native. It is a top-level
+    # key, consumed here and not passed on, so it is excluded from the key check.
+    recipe = config.get("recipe", "native")
+    if recipe not in RECIPES:
+        raise ConfigError(
+            f"config: recipe is {recipe!r}; expected one of "
+            f"{', '.join(RECIPES)}")
+    present = set(config) - {"recipe"}
+    _named(TOP_KEYS - present, present - TOP_KEYS, "config")
     model = _block(config, "model", MODEL_KEYS)
     data = _block(config, "data", DATA_KEYS)
-    ibot = _block(config, "ibot", IBOT_KEYS)
-    training = _block(config, "training", TRAINING_KEYS)
-    if not isinstance(training["checkpoint_health"], dict):
-        raise ConfigError("config.training: checkpoint_health is not a mapping")
-    _named(HEALTH_KEYS - set(training["checkpoint_health"]),
-           set(training["checkpoint_health"]) - HEALTH_KEYS,
-           "config.training.checkpoint_health")
+    if recipe == "unified":
+        ibot = _block(config, "ibot", IBOT_UNIFIED_KEYS)
+        training = _block(config, "training", TRAINING_UNIFIED_KEYS)
+        archs, range_keys = UNIFIED_ARCHS, UNIFIED_RANGE_KEYS
+    else:
+        ibot = _block(config, "ibot", IBOT_KEYS)
+        training = _block(config, "training", TRAINING_KEYS)
+        if not isinstance(training["checkpoint_health"], dict):
+            raise ConfigError(
+                "config.training: checkpoint_health is not a mapping")
+        _named(HEALTH_KEYS - set(training["checkpoint_health"]),
+               set(training["checkpoint_health"]) - HEALTH_KEYS,
+               "config.training.checkpoint_health")
+        archs, range_keys = ARCHS, RANGE_KEYS
 
-    if model["arch"] not in ARCHS:
+    if model["arch"] not in archs:
         raise ConfigError(
             f"config.model: arch is {model['arch']!r}; expected one of "
-            f"{', '.join(ARCHS)}")
+            f"{', '.join(archs)}")
     expected_dim = ARCH_EMBED_DIM[model["arch"]]
     if model["embed_dim"] != expected_dim:
         raise ConfigError(
             f"config.model: embed_dim is {model['embed_dim']!r}, but "
             f"{model['arch']} has embed_dim {expected_dim}; a config that "
             "disagrees with its architecture would misdescribe the run")
-    check_ranges(config)
+    check_ranges(config, range_keys)
 
     return {
         "model": dict(model),
@@ -302,14 +352,14 @@ def load_encoder(state_dict: dict, config: dict):
     differently shaped one and `load_state_dict` would report a wall of
     mismatches. Required, not optional -- found by writing the round-trip test.
     """
-    from models import vit_small
-    builders = {"vit_small": vit_small}
+    from models import vit_small, vit_base
+    builders = {"vit_small": vit_small, "vit_base": vit_base}
     model_cfg = config["model"]
     arch = model_cfg["arch"]
     if arch not in builders:
         raise RuntimeError(
             f"config.model.arch is {arch!r}; only {', '.join(builders)} can be "
-            "rebuilt here (vit_base belongs to step 2, not brought across)")
+            "rebuilt here")
     model = builders[arch](patch_size=int(model_cfg["patch_size"]),
                            use_mask_token=False)
     missing, unexpected = model.load_state_dict(state_dict, strict=False)
@@ -335,8 +385,14 @@ def _filter_numeric(raw: dict) -> tuple:
 
 
 def run_training(config: dict, out: Path, _run=None) -> dict:
+    recipe = config.get("recipe", "native")
     if _run is None:
-        from train_pretrain import run as _run
+        if str(METHOD_DIR) not in sys.path:
+            sys.path.insert(0, str(METHOD_DIR))
+        if recipe == "unified":
+            from train_pretrain_vit_ibot import run as _run
+        else:
+            from train_pretrain import run as _run
     args = to_args(config, out)
     run_config = to_run_config(config, out)
     Path(run_config["checkpoint"]["save_dir"]).mkdir(parents=True,
@@ -395,11 +451,22 @@ def body(ctx: adapterlib.Context) -> None:
                           names=LINEAR_EVAL_METRIC_NAMES)
         return
     metrics = run_training(ctx.config, ctx.out)
+    work = Path(ctx.out) / WORK
     # The iBOT checkpoint stores the whole model under the key `model`.
-    state = torch.load(latest_checkpoint(Path(ctx.out) / WORK),
+    state = torch.load(latest_checkpoint(work),
                        map_location="cpu", weights_only=False)
     torch.save(extract_encoder(state["model"]),
                Path(ctx.out) / "encoder.pt")
+    if ctx.config.get("recipe") == "unified":
+        # The unified trainer writes checkpoint_epoch_{N}.pth per milestone; hand
+        # over encoder_epoch{N}.pt for each so the 100/200/300 sweep can probe
+        # each frozen teacher backbone.
+        for n in ctx.config.get("training", {}).get("save_at_epochs", []):
+            ck = work / f"checkpoint_epoch_{int(n)}.pth"
+            if ck.is_file():
+                s = torch.load(ck, map_location="cpu", weights_only=False)
+                torch.save(extract_encoder(s["model"]),
+                           Path(ctx.out) / f"encoder_epoch{int(n)}.pt")
     ctx.write_metrics(metrics, names=PRETRAIN_METRIC_NAMES)
 
 

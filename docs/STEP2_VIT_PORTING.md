@@ -221,12 +221,23 @@ One family = one PR. Order by reuse (high → complex):
     disjoint keys: unified `{lr,clip_grad,save_at_epochs}` vs native `{learning_rate,
     momentum_cosine}`). 25 = vit_large→vit_base + **adds** cosine+warmup (native fixed-LR
     trainer lacks it); ships `configs/linear_eval_vit.yaml`.
-  - **7c (next):** `27_ibot` (**the hard one** — nested config so `recipe` is a top-level
-    key; reimplement the multi-crop loop because the native one bakes in `lr × batch/256`;
-    fixed wd, `grad_clip 0.3`, `freeze_last_layer 3`, drop the health keys; widen
-    `ARCHS`/`ARCH_EMBED_DIM`/`load_encoder` to `vit_base`; native trainer/eval import
-    tensorboard at module top but `needs_deps` already requires it, so the smoke skips
-    safely), `29_ijepa` (own ViT vit_base; `augmentation: step2`; predictor dims change),
+  - **7c (in progress):** `27_ibot` **DONE** (committed on `port/vit-step2-batch7c-vit-native`).
+    The nested config took `recipe` as a **top-level** key (stripped before the TOP_KEYS
+    check); a fresh single-process `train_pretrain_vit_ibot.py` (the native loop bakes in
+    `lr × batch/256`, so it could not be reused) reusing the native pure helpers
+    (schedule/setter/clip/meter/device/seed — DRY); fixed wd, `mask_ratio_min/max` (the
+    loader's `step="step2"` path, **already carried** in `data/multicrop.py`), `grad_clip
+    0.3`, `freeze_last_layer 3`, dropped health keys; two-way-disjoint key sets
+    (unified `{weight_decay,save_at_epochs,mask_ratio_min/max}` vs native
+    `{weight_decay_start/end,checkpoint_health,fail_fast_after_epoch,save_freq,pred_ratio,
+    pred_ratio_var,pred_start_epoch}`); widened `ARCHS`(native vit_small only)/`UNIFIED_ARCHS`
+    (vit_base)/`EVAL_ARCHS`(both)/`ARCH_EMBED_DIM`/`load_encoder`. The models (`vit_base`),
+    the loader (step2) and the eval (`_EMBED_DIMS`/`_VIT_BUILDERS` already list vit_base)
+    were all already carried, so **no model/loader/eval edits and no lock change** were
+    needed. Ships `configs/pretrain_vit.yaml` + `configs/linear_eval_vit.yaml`. Full 27
+    module 75 tests OK (255s < 300s CI bound); base gate EXIT=0; key-set-split guard
+    mutation-killed by the both-ways leakage tests. Next in 7c:
+    `29_ijepa` (own ViT vit_base; `augmentation: step2`; predictor dims change),
     `34_msn` (deit_base via the pinned submodule, config-reachable, licence-safe),
     `31_dinov3`+`35_vjepa` (already unified ViT-B/16 → milestone-only, no `recipe` key).
   - **Separate PR:** `26_simmim` (native is Swin-B, not ViT → new `simmim_vit.py` +
