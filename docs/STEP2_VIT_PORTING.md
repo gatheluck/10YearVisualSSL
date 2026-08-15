@@ -274,11 +274,24 @@ One family = one PR. Order by reuse (high → complex):
     trainer milestone save, body extraction of `encoder_epoch{N}.pt`. Full 35 module 34
     tests OK (73s); base gate EXIT=0; milestone-save mutation-killed.
 
-  **7c COMPLETE** (27_ibot, 29_ijepa, 34_msn, 31_dinov3, 35_vjepa) on branch
-  `port/vit-step2-batch7c-vit-native`. Ready to PR once reviewed. Remaining fan-out
-  work: the separate `26_simmim` PR (below).
-  - **Separate PR:** `26_simmim` (native is Swin-B, not ViT → new `simmim_vit.py` +
-    pixel-mask loader + arch branch in `load_encoder` **and** eval; non-additive-to-eval).
+  **7c COMPLETE and MERGED** (PR #95: 27_ibot, 29_ijepa, 34_msn, 31_dinov3, 35_vjepa).
+  - **Separate PR — `26_simmim` DONE** (branch `port/vit-step2-simmim`). SimMIM's
+    native backbone is a **Swin**, so the unified Step 2 is a genuinely different
+    backbone (a timm **ViT-B/16**), not a re-tune — the only **non-additive-to-eval**
+    port. New `models/simmim_vit.py` (`build_simmim_vit` + `build_vit_encoder`, ViT
+    dims threaded through `timm.create_model` so a tiny CPU smoke runs), new
+    `train_pretrain_vit_simmim.py` (single-process, direct lr, warmup→cosine, pixel
+    mask via `return_pixel_mask=True`, milestone saves). Adapter `recipe: unified`
+    branch (two-way disjoint keys: native `window_size`/`depths`/multistep-decay ↔
+    unified `depth`/`mlp_ratio`/`min_lr`/`save_at_epochs`), ViT `load_encoder` branch,
+    and `evaluate_linear_simmim.py` gains a `pool` arg — **CLS for the ViT, mean for
+    the Swin** — fixed from the recipe by `adapter.eval_pool`. Full 26 module 47 tests
+    OK (90s); base gate EXIT=0; two guards mutation-killed (pool decision; recipe
+    key-set split). timm already a dep → no lock change.
+
+  **ViT Step-2 fan-out COMPLETE**: all Step-1&2 methods that admit a unified ViT-B/16
+  Step 2 are ported (Batches 1–6 + 7a/7b/7c + 26_simmim). Remaining = the deferred
+  generative / eval-only-download efforts below (different nature).
 
   Consistency (verified across 23/37/24/22/25): uniform `RECIPES`/recipe-strip/routing/
   milestone `encoder_epoch{N}.pt`; each `pretrain_vit.yaml` carries `recipe: unified` +

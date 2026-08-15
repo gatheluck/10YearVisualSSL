@@ -55,11 +55,23 @@ def _build_loader(data_root: str, split: str, image_size: int, batch_size: int,
 
 
 @torch.no_grad()
-def extract_features(backbone, loader, device):
+def extract_features(backbone, loader, device, pool: str = "mean"):
+    """One feature per image from the frozen backbone.
+
+    ``pool="mean"`` mean-pools the tokens -- the native Swin representation.
+    ``pool="cls"`` takes the CLS token (index 0) -- the unified ViT representation
+    (the capture's own choice; the timm ViT is built with global_pool="" so
+    forward_features returns all tokens including CLS).
+    """
     feats, labels = [], []
     for imgs, lbs in loader:
         x = backbone.forward_features(imgs.to(device, non_blocking=True))
-        x = x.reshape(x.size(0), -1, x.size(-1)).mean(1)   # mean-pool Swin tokens
+        if pool == "cls":
+            x = x.reshape(x.size(0), -1, x.size(-1))[:, 0]
+        elif pool == "mean":
+            x = x.reshape(x.size(0), -1, x.size(-1)).mean(1)
+        else:
+            raise ValueError(f"unknown pool {pool!r}; expected 'mean' or 'cls'")
         feats.append(x.float().cpu())
         labels.append(lbs)
     return torch.cat(feats), torch.cat(labels)
@@ -89,7 +101,8 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def run(args, config: "dict | None" = None, model=None) -> dict:
+def run(args, config: "dict | None" = None, model=None,
+        pool: str = "mean") -> dict:
     if config is not None:
         cfg = config
     else:
@@ -104,18 +117,29 @@ def run(args, config: "dict | None" = None, model=None) -> dict:
     make_deterministic(seed)
 
     isz = int(train["img_size"])
+    unified = train.get("recipe", "native") == "unified"
+    if unified:
+        pool = "cls"                       # the unified ViT probes its CLS token
     if model is None:
-        from models import build_swin_encoder
-        model = build_swin_encoder(
-            img_size=isz, patch_size=int(train["patch_size"]),
-            window_size=int(train["window_size"]),
-            embed_dim=int(train["embed_dim"]), depths=tuple(train["depths"]),
-            num_heads=tuple(train["num_heads"]))
+        if unified:
+            from models import build_vit_encoder
+            model = build_vit_encoder(
+                img_size=isz, patch_size=int(train["patch_size"]),
+                embed_dim=int(train["embed_dim"]), depth=int(train["depth"]),
+                num_heads=int(train["num_heads"]),
+                mlp_ratio=float(train["mlp_ratio"]))
+        else:
+            from models import build_swin_encoder
+            model = build_swin_encoder(
+                img_size=isz, patch_size=int(train["patch_size"]),
+                window_size=int(train["window_size"]),
+                embed_dim=int(train["embed_dim"]), depths=tuple(train["depths"]),
+                num_heads=tuple(train["num_heads"]))
     backbone = model.to(device)
     backbone.eval()
     for p in backbone.parameters():
         p.requires_grad = False
-    print(f"SimMIM linear eval  device={device}  img_size={isz}")
+    print(f"SimMIM linear eval  device={device}  img_size={isz}  pool={pool}")
 
     bs = int(train["batch_size"])
     nw = int(train["num_workers"])
@@ -127,8 +151,8 @@ def run(args, config: "dict | None" = None, model=None) -> dict:
             f"{va_ds.classes}")
     num_classes = len(tr_ds.classes)
 
-    train_feats, train_labels = extract_features(backbone, tr_loader, device)
-    val_feats, val_labels = extract_features(backbone, va_loader, device)
+    train_feats, train_labels = extract_features(backbone, tr_loader, device, pool)
+    val_feats, val_labels = extract_features(backbone, va_loader, device, pool)
     train_feats, val_feats = normalize_features(train_feats, val_feats)
     in_dim = train_feats.shape[1]
 
