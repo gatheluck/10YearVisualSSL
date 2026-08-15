@@ -123,8 +123,8 @@ The adapter writes `encoder.pt` (the final teacher backbone) plus
 so the linear probe can be run at each. Probe a unified encoder with
 `configs/linear_eval_vit.yaml` (arch `vit_base`). The production-only artefacts
 of the capture's step 2 — the shell script and `tests/test_step2_protocol.py`,
-its protocol-version validation and its resume machinery — are not brought
-across; the contract's stages are `pretrain` and `linear_eval`.
+its protocol-version validation and its resume machinery — are omitted; the
+contract's stages are `pretrain` and `linear_eval`.
 
 ## The configuration
 

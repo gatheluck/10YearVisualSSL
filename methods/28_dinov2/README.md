@@ -15,7 +15,8 @@ Two comparisons live here:
   with `recipe: unified` freezes that trained `encoder.pt` and probes its CLS
   token. This is what removes the data confound: every method's Step 2 trains on
   the same ImageNet-1k with the same unified ViT-B/16 recipe, so the numbers sit
-  on one axis. (Added after the initial eval-only port; see the Step 2 section.)
+  on one axis. (Added after the initial port, which probed only the downloaded
+  Step-1 backbone; see the Step 2 section.)
 
 ## Step 2 (unified ViT-B/16), from scratch
 
@@ -75,9 +76,10 @@ resolution, so nothing is fetched and only the pipeline is exercised.
 
 ## Environment
 
-torch / torchvision / numpy / PyYAML — the eval-only torch-only stack (same closure
-as `36_franca`; the pinned upstream adds `tqdm`, imported through `PYTHONPATH` and
-never installed, so it is not in the lock). No `timm`, no `xformers` (disabled).
+torch / torchvision / numpy / PyYAML, plus `timm` for the Step-2 ViT-B/16 backbone
+(same closure as `36_franca`; the pinned upstream adds `tqdm`, imported through
+`PYTHONPATH` and never installed, so it is not in the lock). The Step-1 backbone
+under `third_party/dinov2` runs torch-only, with `xformers` disabled.
 
     git submodule update --init third_party/dinov2   # populate the pinned model
     pip install --require-hashes \

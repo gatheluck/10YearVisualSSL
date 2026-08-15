@@ -65,16 +65,19 @@ ported methods use, so the number is comparable across them.
   comparable `linear_probe` accuracies, and writes **no** `encoder.pt`.
 - **Not a full run:** `configs/pretrain.yaml` is the paper-target recipe (feature_dim
   128, K 65536, m 0.999, 200 epochs, 224px), a recipe, not a completed run.
-- **Not ported:** the ViT step 2.
+- **Exercised (ViT Step 2):** a hermetic smoke trains the unified ViT-B/16 under
+  the momentum-queue InfoNCE objective, writes milestone encoders, and probes the
+  CLS feature through `contract-test` (tiny ViT dims, CPU).
 - **GPU:** the device resolution is verified on real hardware; see the device
   mutation spec (`mutations/13_mocov1-pretrain-device.json`).
 
 ## Environment
 
 torch / torchvision / numpy / PyYAML — the self-contained methods' stack, no
-submodule and no extra. `requirements.lock.txt` (CPU) and
-`requirements.lock.cu130.txt` (CUDA 13.0) are the hashed closures (the same
-closure as `image_gpt`: identical floors, identical resolution).
+submodule; the Step-2 ViT path adds `timm` (the native ResNet-50 path needs
+none). `requirements.lock.txt` (CPU) and `requirements.lock.cu130.txt`
+(CUDA 13.0) are the hashed closures (the same closure as `15_mocov2`: identical
+floors, identical resolution).
 
     pip install --require-hashes \
         --index-url https://download.pytorch.org/whl/cpu \

@@ -36,7 +36,7 @@ train:
   epochs: 300
   batch_size: 1024
   num_workers: 16
-  lr: 0.00015
+  lr: 0.0006             # unified peak = 1.5e-4 x (batch_size / 256); used directly
   weight_decay: 0.05
   warmup_epochs: 10
   min_lr: 1.0e-6
