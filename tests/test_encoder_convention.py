@@ -285,10 +285,24 @@ class TestEveryPortAgreesOnWhatEncoderPtHolds(unittest.TestCase):
         self.assertTrue(produces_encoder(unreadable))  # unknown -> stricter path
 
     def test_both_shapes_are_present_so_the_split_is_exercised(self):
-        """Guard against the split silently covering nothing: the repository has
-        at least one encoder-producing port and at least one eval-only port."""
+        """Guard against the split silently covering nothing: both encoder shapes
+        are exercised by real ports.
+
+        One shape is a stage that produces an `encoder.pt` (a `pretrain` stage);
+        the other is a stage that produces none and declares it via
+        `_absent_reason`. Originally the no-encoder shape belonged to wholly
+        eval-only ports (28_dinov2 / 30_aim / 36_franca). Those gained a
+        from-scratch unified Step-2 `pretrain`, so the no-encoder shape is now
+        carried by their `linear_eval` stage (which still writes a classifier, not
+        an encoder) rather than a whole port -- checked here through the
+        `_absent_reason` any linear_eval port declares, so the split stays
+        covered whether or not a wholly eval-only port exists."""
         self.assertTrue(encoder_ports(), "no encoder-producing port found")
-        self.assertTrue(eval_only_ports(), "no eval-only port found")
+        no_encoder = [p for p in ports() if defines(p, "_absent_reason")]
+        self.assertTrue(
+            no_encoder,
+            "no port declares the no-encoder path (_absent_reason); the "
+            "encoder-absent branch of the contract is then never exercised")
 
 
 if __name__ == "__main__":

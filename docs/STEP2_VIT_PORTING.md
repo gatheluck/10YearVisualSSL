@@ -322,8 +322,26 @@ and puts them on the same axis. Ported as full method-ports (add a `pretrain` st
   Step-1 download probe; **timm added to the lock at fleet `1.0.28`** (same closure as 28).
   Step-2 paths verified (model round-trip, pretrain→contract+milestones, Step-2 eval→
   contract+comparable); base gate EXIT=0; eval recipe-split mutation-killed.
-- **`30_aim` (next)** is autoregressive (Prefix-LM, pixel MSE) + a different probe +
-  **apple-amlr non-commercial** (must be marked in provenance/README).
+- **`30_aim` DONE** (branch `port/vit-step2-aim`, stacked on 36). Autoregressive
+  (prefix-LM next-patch pixel MSE) — a different family from DINOv2/Franca, so an
+  independent port: `models/aim_vit.py` (the lab's own torch-only AIM re-impl) +
+  `data/aim_dataset.py` copied verbatim, single-process `train_pretrain_vit_aim.py`,
+  adapter `pretrain` + `recipe: unified` Step-2 eval (probes the trained trunk;
+  `encoder.pt` excludes `predictor.`; the eval averages the last N blocks + mean-pool).
+  **No lock change** (AIM is torch/numpy only — no timm). **Licence marked**: the
+  Step-2 uses the lab's own from-scratch code (not apple's), so apple-amlr binds only
+  Step-1. TDD caught a `grad_clip`/`clip_grad` key mismatch (fixed). Step-2 paths
+  verified; base gate EXIT=0; eval recipe-split mutation-killed.
+
+  **Cross-cutting fix in this PR:** converting all three eval-only ports to two-stage
+  leaves the repo with **zero** wholly-eval-only ports, so
+  `test_encoder_convention.test_both_shapes_are_present_so_the_split_is_exercised`
+  (which required ≥1 eval-only port) was updated: the no-encoder shape is now carried
+  by the `linear_eval` stage of the two-stage methods, checked via any port that
+  declares `_absent_reason` (non-vacuous; fails if no port declares the no-encoder path).
+
+  **Eval-only-download trio COMPLETE** (28_dinov2, 36_franca, 30_aim) — each now has
+  its from-scratch unified Step 2 alongside the unchanged eval-only Step-1 probe.
 - **Generative** (`image_gpt`, `mar`, `var`): the from-scratch Step-2 is generative;
   the probe-target question (docs/EVAL_DOWNLOAD.md) is separate. Scope later.
 
