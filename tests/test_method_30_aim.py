@@ -53,6 +53,19 @@ except ImportError:
 needs_deps = unittest.skipUnless(
     HAVE_DEPS, "30_aim needs torch, torchvision, huggingface_hub")
 
+try:
+    import torch as _torch                              # noqa: F401
+    import torchvision as _tv                           # noqa: F401
+    import numpy as _np                                 # noqa: F401
+    HAVE_TORCH = True
+except ImportError:
+    HAVE_TORCH = False
+
+# The unified Step-2 is the lab's own torch-only AIM; it does not need the apple
+# ml-aim package (huggingface_hub), unlike the eval-only Step-1.
+needs_torch = unittest.skipUnless(
+    HAVE_TORCH, "30_aim Step-2 needs torch, torchvision and numpy")
+
 
 def load(name: str, path: Path):
     return load_from(METHOD, name, path)
@@ -71,6 +84,37 @@ EVAL_TRAIN = {"name": "aim_tiny", "ckpt": "", "img_size": 32, "patch_size": 16,
               "momentum": 0.9, "weight_decay": 0.0}
 
 EMBED_DIM = 32
+
+# The unified Step-2 (from-scratch) recipe, tiny for a CPU smoke: an AIM ViT with
+# embed_dim 32 / depth 2 at 32px (patch 16 -> a 2x2 token grid), a 1-block head,
+# the last block averaged. The shipped config is the real ViT-B/16 recipe.
+VIT_EMBED = 32
+UNIFIED_PRETRAIN = {
+    "model": {"name": "aim_base_patch16", "img_size": 32, "patch_size": 16,
+              "embed_dim": VIT_EMBED, "depth": 2, "num_heads": 2, "mlp_ratio": 2.0,
+              "head_depth": 1, "head_dim": 32, "prefix_fraction_min": 0.10,
+              "prefix_fraction_max": 0.50},
+    "data": {"num_workers": 0},
+    "training": {"epochs": 1, "batch_size": 2, "lr": 6.0e-4, "min_lr": 0.0,
+                 "warmup_epochs": 0, "beta1": 0.9, "beta2": 0.95,
+                 "weight_decay": 0.05, "grad_clip": 1.0, "save_at_epochs": []},
+}
+UNIFIED_EVAL = {"recipe": "unified", "img_size": 32, "patch_size": 16,
+                "embed_dim": VIT_EMBED, "depth": 2, "num_heads": 2, "mlp_ratio": 2.0,
+                "num_feature_layers": 2, "epochs": 2, "batch_size": 2,
+                "num_workers": 0, "lr": 0.1, "momentum": 0.9, "weight_decay": 0.0}
+
+
+def _deep_pretrain(**over) -> dict:
+    import copy
+    cfg = {"stage": "pretrain", "seed": 0, "device": "cpu",
+           **copy.deepcopy(UNIFIED_PRETRAIN)}
+    for k, v in over.items():
+        if isinstance(v, dict) and isinstance(cfg.get(k), dict):
+            cfg[k] = {**cfg[k], **v}
+        else:
+            cfg[k] = v
+    return cfg
 
 
 def _submodule_present() -> bool:
@@ -147,8 +191,8 @@ class TestConfigTranslation(Base):
     def test_linear_eval_is_accepted(self):
         adapter.to_run_config(self.eval_config(), out=self.out)
 
-    def test_this_method_only_has_linear_eval(self):
-        self.assertEqual(adapter.STAGES, ("linear_eval",))
+    def test_it_has_pretrain_and_linear_eval(self):
+        self.assertEqual(adapter.STAGES, ("pretrain", "linear_eval"))
 
     def test_a_missing_setting_is_refused_by_name(self):
         for key in EVAL_TRAIN:
@@ -165,9 +209,9 @@ class TestConfigTranslation(Base):
                                   out=self.out)
         self.assertIn("grad_clip", str(e.exception))
 
-    def test_a_step1_stage_is_refused(self):
+    def test_an_unknown_stage_is_refused(self):
         with self.assertRaises(adapter.ConfigError):
-            adapter.to_run_config(self.eval_config(stage="pretrain"), out=self.out)
+            adapter.to_run_config(self.eval_config(stage="step3"), out=self.out)
 
     def test_a_config_that_sets_output_is_refused(self):
         cfg = self.eval_config()
@@ -331,6 +375,162 @@ class TestALinearEvalSmoke(Base):
         cfg, r = self.run_adapter(device="cuda")
         self.assertEqual(r.returncode, 0, r.stdout[-3000:] + r.stderr[-3000:])
         self.assertIn("cuda", r.stdout.lower())
+
+
+class TestTheUnifiedPretrainConfig(Base):
+    """The from-scratch Step-2 pretrain config (nested)."""
+
+    def test_pretrain_is_accepted(self):
+        built = adapter.to_run_config(_deep_pretrain(
+            data_root=str(self.tmp / "data")), out=self.out)
+        self.assertEqual(built["model"]["embed_dim"], VIT_EMBED)
+        self.assertEqual(built["training"]["save_at_epochs"], [])
+        self.assertEqual(built["data"]["train_path"],
+                         str(self.tmp / "data" / "train"))
+
+    def test_a_missing_block_key_is_refused_by_name(self):
+        for block, key in (("training", "lr"), ("model", "embed_dim"),
+                           ("model", "prefix_fraction_min"), ("data", "num_workers")):
+            with self.subTest(key=key):
+                cfg = _deep_pretrain(data_root=str(self.tmp / "data"))
+                del cfg[block][key]
+                with self.assertRaises(adapter.ConfigError) as e:
+                    adapter.to_run_config(cfg, out=self.out)
+                self.assertIn(key, str(e.exception))
+
+    def test_an_unknown_block_key_is_refused(self):
+        cfg = _deep_pretrain(data_root=str(self.tmp / "data"))
+        cfg["training"]["mystery"] = 1
+        with self.assertRaises(adapter.ConfigError) as e:
+            adapter.to_run_config(cfg, out=self.out)
+        self.assertIn("mystery", str(e.exception))
+
+    def test_a_non_aim_base_name_is_refused(self):
+        cfg = _deep_pretrain(data_root=str(self.tmp / "data"),
+                             model={"name": "aim_huge"})
+        with self.assertRaises(adapter.ConfigError) as e:
+            adapter.to_run_config(cfg, out=self.out)
+        self.assertIn("aim_huge", str(e.exception))
+
+
+class TestTheUnifiedEvalConfig(Base):
+    def unified_eval_config(self, **over) -> dict:
+        cfg = {"stage": "linear_eval", "seed": 0,
+               "data_root": str(self.tmp / "data"), "device": "cpu",
+               "encoder": str(self.tmp / "encoder.pt"), "train": dict(UNIFIED_EVAL)}
+        for k, v in over.items():
+            if k == "train" and v:
+                cfg["train"] = {**cfg["train"], **v}
+            elif k != "train":
+                cfg[k] = v
+        return cfg
+
+    def test_unified_eval_is_accepted(self):
+        adapter.to_run_config(self.unified_eval_config(), out=self.out)
+
+    def test_unified_eval_needs_an_encoder(self):
+        cfg = self.unified_eval_config()
+        del cfg["encoder"]
+        with self.assertRaises(adapter.ConfigError) as e:
+            adapter.to_run_config(cfg, out=self.out)
+        self.assertIn("encoder", str(e.exception))
+
+    def test_a_download_key_on_the_unified_eval_is_refused(self):
+        with self.assertRaises(adapter.ConfigError) as e:
+            adapter.to_run_config(self.unified_eval_config(train={"ckpt": ""}),
+                                  out=self.out)
+        self.assertIn("ckpt", str(e.exception))
+
+
+class TestTheUnifiedModel(unittest.TestCase):
+    def models(self):
+        return load("aim_models", METHOD / "models" / "__init__.py")
+
+    @needs_torch
+    def test_extract_then_load_round_trips_the_trunk(self):
+        import torch
+        m = self.models()
+        model = m.AIMViT(img_size=32, patch_size=16, embed_dim=VIT_EMBED, depth=2,
+                         num_heads=2, mlp_ratio=2.0, head_depth=1, head_dim=32)
+        enc_state = adapter.extract_encoder(model.state_dict())
+        self.assertTrue(enc_state)
+        self.assertFalse(any(k.startswith("predictor.") for k in enc_state))
+        cfg = {"train": {"img_size": 32, "patch_size": 16, "embed_dim": VIT_EMBED,
+                         "depth": 2, "num_heads": 2, "mlp_ratio": 2.0}}
+        loaded = adapter.load_encoder(enc_state, cfg).state_dict()
+        pairs = 0
+        for key, want in enc_state.items():
+            got = loaded.get(key)
+            if got is None:
+                continue
+            pairs += 1
+            self.assertTrue(torch.equal(got, want), f"{key} changed")
+        self.assertGreater(pairs, 0, "no saved weight reached the model")
+
+
+@needs_torch
+class TestAUnifiedPretrainSmoke(Base):
+    def run_adapter(self, **over):
+        tiny_split(self.tmp / "data")          # provides data/train/{c0,c1}
+        cfg = _deep_pretrain(data_root=str(self.tmp / "data"), **over)
+        p = self.tmp / "resolved.json"
+        p.write_text(json.dumps(cfg), encoding="utf-8")
+        env = {**os.environ, "PYTHONPATH": str(ROOT)}
+        return p, subprocess.run(
+            [sys.executable, "-m", "adapter", "--config", str(p),
+             "--out", str(self.out)],
+            cwd=METHOD, env=env, capture_output=True, text=True)
+
+    def test_it_completes_and_satisfies_the_contract(self):
+        cfg, r = self.run_adapter()
+        self.assertEqual(r.returncode, 0, r.stdout[-3000:] + r.stderr[-3000:])
+        v = subprocess.run(
+            [sys.executable, str(BIN / "contract-test.py"), "--out",
+             str(self.out), "--config", str(cfg), "--exit-status", "0"],
+            capture_output=True, text=True)
+        self.assertEqual(v.returncode, 0, v.stdout + v.stderr)
+        self.assertTrue((self.out / "encoder.pt").is_file())
+
+    def test_each_milestone_encoder_is_written(self):
+        _, r = self.run_adapter(training={"epochs": 2, "save_at_epochs": [1, 2]})
+        self.assertEqual(r.returncode, 0, r.stdout[-3000:] + r.stderr[-3000:])
+        self.assertTrue((self.out / "encoder_epoch1.pt").is_file())
+        self.assertTrue((self.out / "encoder_epoch2.pt").is_file())
+
+
+@needs_torch
+class TestAUnifiedLinearEvalSmoke(Base):
+    def _step2_encoder(self) -> Path:
+        first = TestAUnifiedPretrainSmoke("test_it_completes_and_satisfies_the_contract")
+        first.tmp, first.out = self.tmp, self.tmp / "s2out"
+        _, r = first.run_adapter()
+        self.assertEqual(r.returncode, 0, r.stdout[-2000:] + r.stderr[-2000:])
+        return first.out / "encoder.pt"
+
+    def run_eval(self):
+        enc = self._step2_encoder()
+        cfg = {"stage": "linear_eval", "seed": 0,
+               "data_root": str(self.tmp / "data"), "device": "cpu",
+               "encoder": str(enc), "train": dict(UNIFIED_EVAL)}
+        p = self.tmp / "resolved.json"
+        p.write_text(json.dumps(cfg), encoding="utf-8")
+        env = {**os.environ, "PYTHONPATH": str(ROOT)}
+        return p, subprocess.run(
+            [sys.executable, "-m", "adapter", "--config", str(p),
+             "--out", str(self.out)],
+            cwd=METHOD, env=env, capture_output=True, text=True)
+
+    def test_it_completes_and_reports_comparable_numbers(self):
+        cfg, r = self.run_eval()
+        self.assertEqual(r.returncode, 0, r.stdout[-3000:] + r.stderr[-3000:])
+        v = subprocess.run(
+            [sys.executable, str(BIN / "contract-test.py"), "--out",
+             str(self.out), "--config", str(cfg), "--exit-status", "0"],
+            capture_output=True, text=True)
+        self.assertEqual(v.returncode, 0, v.stdout + v.stderr)
+        m = json.loads((self.out / "metrics.json").read_text())["metrics"]
+        self.assertIn("final_linear_probe_top1_accuracy", m)
+        self.assertFalse((self.out / "encoder.pt").exists())
 
 
 if __name__ == "__main__":

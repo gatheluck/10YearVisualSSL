@@ -1,13 +1,41 @@
-# 30_aim — linear evaluation only (frozen pretrained AIM backbone)
+# 30_aim — as-is Step-1 probe + unified ViT-B/16 Step-2 pretrain + linear eval
 
 El-Nouby et al., *Scalable Pre-training of Large Autoregressive Image Models*,
 2024 ([arXiv:2401.08541](https://arxiv.org/abs/2401.08541)).
 
-AIM pretrains a ViT **autoregressively** (predict image patches in raster order),
-at scale, on DFN-2B+ (~2B uncurated images). This is an **eval-only** port: like
-`28_dinov2` and `36_franca`, it fits a linear probe on the **frozen official
-pretrained backbone** (AIM-600M, ViT-H/14) and reports a comparable number,
-because the from-scratch pretraining data (DFN-2B+) is not public.
+AIM pretrains a ViT **autoregressively** (predict image patches in raster order).
+Two comparisons live here:
+
+- **Step 1 (as-is)** — a `linear_eval` with no `recipe`: fit a linear probe on the
+  **frozen official pretrained backbone** (AIM-600M, ViT-H/14, downloaded from
+  `apple/AIM`), because AIM's from-scratch data (DFN-2B+, ~2B images) is not public.
+
+- **Step 2 (unified)** — `pretrain` trains an AIM **ViT-B/16 from scratch** on
+  ImageNet-1k with the prefix-LM next-patch objective, then `linear_eval` with
+  `recipe: unified` probes the trained `encoder.pt`. This puts AIM on the same axis
+  as every other method's Step 2 (all train on ImageNet-1k, so the data confound is
+  gone). (Added after the initial eval-only port; see the Step 2 section.)
+
+## Step 2 (unified ViT-B/16), from scratch
+
+`train_pretrain_vit_aim.py` is a single-process port of the capture's
+`train_step2_vit.py`. AIM is autoregressive: a prefix-LM ViT trunk sees a random
+prefix of patches bidirectionally and predicts the rest in raster order (per-patch
+normalised pixels, MSE). There is no teacher, no multi-crop and no masking collator
+— the prefix is sampled inside the model's forward. AdamW (betas 0.9/0.95), a
+per-epoch warmup→cosine LR, gradient-norm clipping, milestone saves; DDP / bf16
+autocast / TensorBoard dropped, device resolved. `encoder.pt` is the AIM **trunk**
+(the MLP prediction head, `predictor.*`, is excluded); the adapter also writes
+`encoder_epoch{100,200,300}.pt`. The Step-2 probe is AIM's own: the last
+`num_feature_layers` blocks averaged (bidirectional, no causal mask) then
+mean-pooled. Probe a Step-2 encoder with `configs/linear_eval_vit.yaml`.
+
+**Licence — the Step-2 pretraining is not bound by apple-amlr.** `models/aim_vit.py`
+is the lab's **own** from-scratch re-implementation (torch-only, following the AIM
+paper's Appendix D), trained on ImageNet-1k. It uses no apple code or weights. The
+apple-amlr non-commercial licence applies **only** to the Step-1 as-is probe, which
+imports the official `apple/ml-aim` package and downloads the AIM-600M weights
+(both pinned, never copied). See the Licence section below and `provenance.json`.
 
 ## Scope — the eval-only "as-is SSL comparison"
 

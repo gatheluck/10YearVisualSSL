@@ -129,6 +129,13 @@ def extract_feature(model, imgs, train: dict, device) -> "torch.Tensor":
     """The probed representation: average the last `num_feature_layers` block
     outputs, then mean-pool the patch tokens -> [B, D]."""
     num_feature_layers = int(train["num_feature_layers"])
+    if train.get("recipe") == "unified":
+        # Step 2: the from-scratch AIMViT. Its forward_features runs the trunk
+        # bidirectionally and averages the chosen layers; mean-pool the patches.
+        n_blocks = len(model.blocks)
+        layer_ids = list(range(max(0, n_blocks - num_feature_layers), n_blocks))
+        feats = model.forward_features(imgs.to(device), layer_ids=layer_ids)
+        return feats.mean(dim=1)
     blocks = _find_blocks(model)[-num_feature_layers:]
     captured: list = []
     hooks = [b.register_forward_hook(
