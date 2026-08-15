@@ -83,7 +83,7 @@ excluded/not-ported. Fix the prose AND mechanise with a guard test.
          nothing" → Step-2 writes encoder.pt, Step-1 as-is writes none).
    - [x] Fix finding C (03_colorization lr 0.00015 → 0.0006). Verified the trainer uses
          `lr` directly (no batch scaling) and peers 06/01 pin 0.0006; no test pinned it.
-   - [x] base gate EXIT=0 (2426 passed). Commit + PR: **pending this turn.**
+   - [x] base gate EXIT=0 (2426 passed). Commit + **PR #101** (open).
 2. [ ] **11_cpc Step-2 port** (finding A) — own PR, strict TDD.
 3. [ ] **32_nepa Step-2 port** (finding A) — own PR, strict TDD.
 
