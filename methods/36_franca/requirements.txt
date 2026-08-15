@@ -13,5 +13,6 @@
 # with; PyYAML is read to load a YAML config on the stand-alone path.
 torch>=2.1.0
 torchvision>=0.16.0
+timm>=0.9.0
 numpy>=1.24.0
 PyYAML>=6.0
