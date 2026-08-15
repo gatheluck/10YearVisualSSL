@@ -48,8 +48,17 @@ try:
 except ImportError:
     HAVE_DEPS = False
 
+try:
+    import timm                                        # noqa: F401
+    HAVE_TIMM = HAVE_DEPS
+except ImportError:
+    HAVE_TIMM = False
+
 needs_deps = unittest.skipUnless(
     HAVE_DEPS, "36_franca needs torch and torchvision")
+# The unified Step-2 backbone is a timm ViT; the eval-only Step-1 does not need it.
+needs_timm = unittest.skipUnless(
+    HAVE_TIMM, "36_franca Step-2 needs torch, torchvision and timm")
 
 
 def load(name: str, path: Path):
@@ -67,6 +76,47 @@ EVAL_TRAIN = {"name": "franca_vitb14", "weights": "IN21K", "ckpt": "",
               "momentum": 0.9, "weight_decay": 0.0}
 
 EMBED_DIM = 768   # ViT-B
+
+# The unified Step-2 (from-scratch) recipe, tiny for a CPU smoke: a ViT with
+# embed_dim 32 / depth 2 at 32px (patch 16 -> a 2x2 token grid), 2 global + 2 local
+# crops, Franca nested heads over [16, 32]. The shipped config is ViT-B/16.
+VIT_EMBED = 32
+UNIFIED_PRETRAIN = {
+    "model": {"arch": "vit_base_patch16_224", "patch_size": 16,
+              "embed_dim": VIT_EMBED, "depth": 2, "num_heads": 2, "mlp_ratio": 2.0,
+              "img_size": 32, "nesting_dims": [16, 32]},
+    "head": {"out_dim": 64, "hidden_dim": 32, "bottleneck_dim": 16, "nlayers": 2},
+    "data": {"global_crop_size": 32, "local_crop_size": 16, "n_global_crops": 2,
+             "n_local_crops": 2, "global_crops_scale": [0.32, 1.0],
+             "local_crops_scale": [0.05, 0.32], "num_workers": 0},
+    "dino": {"student_temp": 0.1, "teacher_temp_min": 0.04, "teacher_temp_max": 0.07,
+             "teacher_temp_warmup_epochs": 0, "loss_weight": 1.0},
+    "ibot": {"mask_sample_probability": 0.5, "mask_ratio_min_max": [0.1, 0.5],
+             "sinkhorn_iterations": 3, "loss_weight": 1.0},
+    "koleo": {"loss_weight": 0.1},
+    "training": {"epochs": 1, "batch_size": 2, "lr": 6.0e-4, "min_lr": 1.0e-6,
+                 "warmup_epochs": 0, "beta1": 0.9, "beta2": 0.95,
+                 "weight_decay": 0.05, "final_weight_decay": 0.05,
+                 "momentum_teacher_min": 0.992, "momentum_teacher_max": 1.0,
+                 "clip_grad": 3.0, "save_at_epochs": []},
+}
+UNIFIED_EVAL = {"recipe": "unified", "arch": "vit_base_patch16_224",
+                "patch_size": 16, "embed_dim": VIT_EMBED, "depth": 2,
+                "num_heads": 2, "mlp_ratio": 2.0, "resolution": 32,
+                "epochs": 2, "batch_size": 2, "num_workers": 0, "lr": 0.1,
+                "momentum": 0.9, "weight_decay": 0.0}
+
+
+def _deep_pretrain(**over) -> dict:
+    import copy
+    cfg = {"stage": "pretrain", "seed": 0, "device": "cpu",
+           **copy.deepcopy(UNIFIED_PRETRAIN)}
+    for k, v in over.items():
+        if isinstance(v, dict) and isinstance(cfg.get(k), dict):
+            cfg[k] = {**cfg[k], **v}
+        else:
+            cfg[k] = v
+    return cfg
 
 
 def tiny_split(root: Path, per: int = 3) -> Path:
@@ -124,8 +174,8 @@ class TestConfigTranslation(Base):
     def test_linear_eval_is_accepted(self):
         adapter.to_run_config(self.eval_config(), out=self.out)
 
-    def test_this_method_only_has_linear_eval(self):
-        self.assertEqual(adapter.STAGES, ("linear_eval",))
+    def test_it_has_pretrain_and_linear_eval(self):
+        self.assertEqual(adapter.STAGES, ("pretrain", "linear_eval"))
 
     def test_a_missing_setting_is_refused_by_name(self):
         for key in EVAL_TRAIN:
@@ -142,9 +192,9 @@ class TestConfigTranslation(Base):
                                   out=self.out)
         self.assertIn("grad_clip", str(e.exception))
 
-    def test_a_step1_stage_is_refused(self):
+    def test_an_unknown_stage_is_refused(self):
         with self.assertRaises(adapter.ConfigError):
-            adapter.to_run_config(self.eval_config(stage="pretrain"), out=self.out)
+            adapter.to_run_config(self.eval_config(stage="step3"), out=self.out)
 
     def test_a_config_that_sets_output_is_refused(self):
         cfg = self.eval_config()
@@ -307,6 +357,167 @@ class TestALinearEvalSmoke(Base):
         cfg, r = self.run_adapter(device="cuda")
         self.assertEqual(r.returncode, 0, r.stdout[-3000:] + r.stderr[-3000:])
         self.assertIn("cuda", r.stdout.lower())
+
+
+class TestTheUnifiedPretrainConfig(Base):
+    """The from-scratch Step-2 pretrain config (nested, with Franca's head block)."""
+
+    def test_pretrain_is_accepted(self):
+        built = adapter.to_run_config(_deep_pretrain(
+            data_root=str(self.tmp / "data")), out=self.out)
+        self.assertEqual(built["model"]["nesting_dims"], [16, 32])
+        self.assertEqual(built["training"]["save_at_epochs"], [])
+        self.assertEqual(built["data"]["train_path"],
+                         str(self.tmp / "data" / "train"))
+
+    def test_a_missing_block_key_is_refused_by_name(self):
+        for block, key in (("training", "lr"), ("head", "out_dim"),
+                           ("ibot", "sinkhorn_iterations"), ("model", "nesting_dims")):
+            with self.subTest(key=key):
+                cfg = _deep_pretrain(data_root=str(self.tmp / "data"))
+                del cfg[block][key]
+                with self.assertRaises(adapter.ConfigError) as e:
+                    adapter.to_run_config(cfg, out=self.out)
+                self.assertIn(key, str(e.exception))
+
+    def test_an_unknown_block_key_is_refused(self):
+        cfg = _deep_pretrain(data_root=str(self.tmp / "data"))
+        cfg["head"]["mystery"] = 1
+        with self.assertRaises(adapter.ConfigError) as e:
+            adapter.to_run_config(cfg, out=self.out)
+        self.assertIn("mystery", str(e.exception))
+
+    def test_a_non_vit_base_arch_is_refused(self):
+        cfg = _deep_pretrain(data_root=str(self.tmp / "data"),
+                             model={"arch": "vit_small_patch16_224"})
+        with self.assertRaises(adapter.ConfigError) as e:
+            adapter.to_run_config(cfg, out=self.out)
+        self.assertIn("vit_small_patch16_224", str(e.exception))
+
+
+class TestTheUnifiedEvalConfig(Base):
+    def unified_eval_config(self, **over) -> dict:
+        cfg = {"stage": "linear_eval", "seed": 0,
+               "data_root": str(self.tmp / "data"), "device": "cpu",
+               "encoder": str(self.tmp / "encoder.pt"), "train": dict(UNIFIED_EVAL)}
+        for k, v in over.items():
+            if k == "train" and v:
+                cfg["train"] = {**cfg["train"], **v}
+            elif k != "train":
+                cfg[k] = v
+        return cfg
+
+    def test_unified_eval_is_accepted(self):
+        adapter.to_run_config(self.unified_eval_config(), out=self.out)
+
+    def test_unified_eval_needs_an_encoder(self):
+        cfg = self.unified_eval_config()
+        del cfg["encoder"]
+        with self.assertRaises(adapter.ConfigError) as e:
+            adapter.to_run_config(cfg, out=self.out)
+        self.assertIn("encoder", str(e.exception))
+
+    def test_a_download_key_on_the_unified_eval_is_refused(self):
+        with self.assertRaises(adapter.ConfigError) as e:
+            adapter.to_run_config(self.unified_eval_config(train={"ckpt": ""}),
+                                  out=self.out)
+        self.assertIn("ckpt", str(e.exception))
+
+
+class TestTheUnifiedModel(unittest.TestCase):
+    def models(self):
+        return load("franca_models", METHOD / "models" / "__init__.py")
+
+    @needs_timm
+    def test_extract_then_load_round_trips_the_teacher_backbone(self):
+        import torch
+        m = self.models()
+        model = m.build_franca_model({
+            "model": {"arch": "vit_base_patch16_224", "patch_size": 16,
+                      "embed_dim": VIT_EMBED, "depth": 2, "num_heads": 2,
+                      "mlp_ratio": 2.0, "img_size": 32, "nesting_dims": [16, 32]},
+            "head": {"out_dim": 64, "hidden_dim": 32, "bottleneck_dim": 16,
+                     "nlayers": 2}})
+        enc_state = adapter.extract_encoder(model.state_dict())
+        self.assertTrue(enc_state)
+        self.assertFalse(any(k.startswith("student") for k in enc_state))
+        cfg = {"train": {"arch": "vit_base_patch16_224", "patch_size": 16,
+                         "embed_dim": VIT_EMBED, "depth": 2, "num_heads": 2,
+                         "mlp_ratio": 2.0, "resolution": 32}}
+        loaded = adapter.load_encoder(enc_state, cfg).state_dict()
+        pairs = 0
+        for key, want in enc_state.items():
+            got = loaded.get(key)
+            if got is None:
+                continue
+            pairs += 1
+            self.assertTrue(torch.equal(got, want), f"{key} changed")
+        self.assertGreater(pairs, 0, "no saved weight reached the model")
+
+
+@needs_timm
+class TestAUnifiedPretrainSmoke(Base):
+    def run_adapter(self, **over):
+        tiny_split(self.tmp / "data")          # provides data/train/{c0,c1}
+        cfg = _deep_pretrain(data_root=str(self.tmp / "data"), **over)
+        p = self.tmp / "resolved.json"
+        p.write_text(json.dumps(cfg), encoding="utf-8")
+        env = {**os.environ, "PYTHONPATH": str(ROOT)}
+        return p, subprocess.run(
+            [sys.executable, "-m", "adapter", "--config", str(p),
+             "--out", str(self.out)],
+            cwd=METHOD, env=env, capture_output=True, text=True)
+
+    def test_it_completes_and_satisfies_the_contract(self):
+        cfg, r = self.run_adapter()
+        self.assertEqual(r.returncode, 0, r.stdout[-3000:] + r.stderr[-3000:])
+        v = subprocess.run(
+            [sys.executable, str(BIN / "contract-test.py"), "--out",
+             str(self.out), "--config", str(cfg), "--exit-status", "0"],
+            capture_output=True, text=True)
+        self.assertEqual(v.returncode, 0, v.stdout + v.stderr)
+        self.assertTrue((self.out / "encoder.pt").is_file())
+
+    def test_each_milestone_encoder_is_written(self):
+        _, r = self.run_adapter(training={"epochs": 2, "save_at_epochs": [1, 2]})
+        self.assertEqual(r.returncode, 0, r.stdout[-3000:] + r.stderr[-3000:])
+        self.assertTrue((self.out / "encoder_epoch1.pt").is_file())
+        self.assertTrue((self.out / "encoder_epoch2.pt").is_file())
+
+
+@needs_timm
+class TestAUnifiedLinearEvalSmoke(Base):
+    def _step2_encoder(self) -> Path:
+        first = TestAUnifiedPretrainSmoke("test_it_completes_and_satisfies_the_contract")
+        first.tmp, first.out = self.tmp, self.tmp / "s2out"
+        _, r = first.run_adapter()
+        self.assertEqual(r.returncode, 0, r.stdout[-2000:] + r.stderr[-2000:])
+        return first.out / "encoder.pt"
+
+    def run_eval(self):
+        enc = self._step2_encoder()
+        cfg = {"stage": "linear_eval", "seed": 0,
+               "data_root": str(self.tmp / "data"), "device": "cpu",
+               "encoder": str(enc), "train": dict(UNIFIED_EVAL)}
+        p = self.tmp / "resolved.json"
+        p.write_text(json.dumps(cfg), encoding="utf-8")
+        env = {**os.environ, "PYTHONPATH": str(ROOT)}
+        return p, subprocess.run(
+            [sys.executable, "-m", "adapter", "--config", str(p),
+             "--out", str(self.out)],
+            cwd=METHOD, env=env, capture_output=True, text=True)
+
+    def test_it_completes_and_reports_comparable_numbers(self):
+        cfg, r = self.run_eval()
+        self.assertEqual(r.returncode, 0, r.stdout[-3000:] + r.stderr[-3000:])
+        v = subprocess.run(
+            [sys.executable, str(BIN / "contract-test.py"), "--out",
+             str(self.out), "--config", str(cfg), "--exit-status", "0"],
+            capture_output=True, text=True)
+        self.assertEqual(v.returncode, 0, v.stdout + v.stderr)
+        m = json.loads((self.out / "metrics.json").read_text())["metrics"]
+        self.assertIn("final_linear_probe_top1_accuracy", m)
+        self.assertFalse((self.out / "encoder.pt").exists())
 
 
 if __name__ == "__main__":
