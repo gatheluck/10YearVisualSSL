@@ -6,8 +6,11 @@
 # submodule): the patch encoder, the PixelCNN context, the InfoNCE loss, the
 # patch-grid dataset, the trainer and the probe are all here. torch is imported
 # directly; numpy seeds the run; torchvision provides the ImageFolder and
-# transforms; PyYAML is read to load a YAML config on the stand-alone path.
+# transforms; PyYAML is read to load a YAML config on the stand-alone path. timm
+# supplies the ViT-B/16 for the unified Step-2 path (arch: vit), imported lazily
+# so the native visual-CPC-2018 path needs none.
 torch>=2.0.0
 torchvision>=0.15.0
+timm>=0.9.0
 numpy>=1.24.0
 PyYAML>=6.0

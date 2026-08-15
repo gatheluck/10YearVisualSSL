@@ -345,6 +345,22 @@ and puts them on the same axis. Ported as full method-ports (add a `pretrain` st
 - **Generative** (`image_gpt`, `mar`, `var`): the from-scratch Step-2 is generative;
   the probe-target question (docs/EVAL_DOWNLOAD.md) is separate. Scope later.
 
+**Gap methods missed by the fan-out** (their native Step-1 landed after the batches,
+so the batches never touched them; the capture ships a `step2_vit.yaml` + `models/
+{cpc,nepa}_vit.py` + `train_step2_vit.py` for each):
+- **`11_cpc` DONE** (branch `port/vit-step2-cpc`). CPC on the ViT patch grid: a timm
+  ViT-B/16's patch tokens are the CPC **z-grid** (14×14), a **column-wise GRU** gives
+  the context, `pred_steps` linear predictors score **InfoNCE**; probed at the ViT
+  **CLS** token. Additive `arch: vit` (native `visual_cpc2018` patch-encoder path
+  unchanged); `models/vit_cpc.py` + `train_pretrain_vit_cpc.py` +
+  `configs/pretrain_vit.yaml` + `configs/linear_eval_vit.yaml`; `encoder.pt` is the ViT
+  trunk under `encoder.` (same prefix as the native encoder), milestones 100/200/300.
+  The eval is **arch-aware** (the native eval reads a patch grid; the ViT reads plain
+  224 images at the CLS token). **timm added to the lock at fleet `1.0.28`** (same
+  closure as `13_mocov1`). z_dim==embed_dim guard + arch key-set split both
+  mutation-killed; full 11_cpc module (43 tests) OK under a timm venv; base gate EXIT=0.
+- **`32_nepa` PENDING** — same gap shape; next.
+
 ## 6. Complexity flags (schedule carefully)
 EMA + queue: 13, 15. Memory bank + resume state: 10, 12, 33. EMA teacher + target BN:
 19. faiss k-means: 7. Multi-crop + distributed Sinkhorn: 17. Sinkhorn + second loader:

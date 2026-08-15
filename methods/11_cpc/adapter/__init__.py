@@ -4,15 +4,17 @@
 
 Contrastive Predictive Coding, the paper-faithful visual CPC 2018 path: a patch
 encoder + PixelCNN context predict future rows of the patch grid under InfoNCE
-(step 1), then a linear probe on the grid-averaged z (linear_eval). A
+(pretrain), then a linear probe on the grid-averaged z (linear_eval). A
 self-contained re-implementation (the lab's own code) -- no submodule. The
-capture's deprecated local baseline (cpc_resnet) and its step 2 (ViT) are
-excluded.
+capture's unified ViT-B/16 Step 2 (arch: vit) is ported additively: the ViT's
+patch tokens as the CPC z-grid, a column-GRU context, InfoNCE, probed at the ViT
+CLS token. The capture's deprecated local baseline (cpc_resnet) is excluded.
 
-`encoder.pt` is the patch encoder (`encoder.*`); the PixelCNN context and the
-InfoNCE predictors are pretext machinery and are left out. `linear_eval` reads
-this `encoder.pt`; the representation is the model this port trains, so the probe
-number is a genuine, comparable linear probe.
+`encoder.pt` is the patch encoder for the native path and the ViT trunk for the
+Step-2 path (both `encoder.*`); the context and the InfoNCE predictors are pretext
+machinery and are left out. `linear_eval` reads this `encoder.pt`; the
+representation is the model this port trains, so the probe number is a genuine,
+comparable linear probe.
 """
 
 from __future__ import annotations
@@ -39,6 +41,21 @@ PRETRAIN_TRAIN_KEYS = MODEL_KEYS | DATA_KEYS | PRETRAIN_TRAIN_ONLY
 EVAL_PROBE_KEYS = frozenset({"epochs", "batch_size", "num_workers", "lr",
                              "momentum", "weight_decay"})
 EVAL_TRAIN_KEYS = MODEL_KEYS | DATA_KEYS | EVAL_PROBE_KEYS
+
+# The unified ViT-B/16 Step-2 path (arch: vit), additive to the native
+# visual-CPC-2018 patch-encoder path. The ViT adds its own model dimensions, the
+# InfoNCE temperature, and an AdamW/cosine recipe with milestone checkpoints.
+ARCHS = ("cpc2018", "vit")
+VIT_MODEL_KEYS = frozenset({"z_dim", "c_dim", "pred_steps", "img_size",
+                            "patch_size", "embed_dim", "depth", "num_heads",
+                            "mlp_ratio", "drop_rate", "attn_drop_rate"})
+CPC_LOSS_KEYS = frozenset({"temperature"})
+PRETRAIN_VIT_ONLY = frozenset({"epochs", "batch_size", "num_workers", "lr",
+                               "weight_decay", "warmup_epochs", "min_lr",
+                               "save_at_epochs"})
+PRETRAIN_VIT_KEYS = VIT_MODEL_KEYS | CPC_LOSS_KEYS | PRETRAIN_VIT_ONLY
+EVAL_VIT_KEYS = VIT_MODEL_KEYS | EVAL_PROBE_KEYS
+_VIT_FLOATS = ("mlp_ratio", "drop_rate", "attn_drop_rate")
 
 TOP_KEYS = frozenset({"stage", "seed", "data_root", "device", "train"})
 EVAL_TOP_KEYS = TOP_KEYS | {"encoder"}
@@ -108,7 +125,6 @@ def to_run_config(config: dict, out: Path) -> dict:
         raise ConfigError(
             f"config: stage is {stage!r}; known stages are "
             f"{', '.join(STAGES)}")
-    keys = EVAL_TRAIN_KEYS if stage == "linear_eval" else PRETRAIN_TRAIN_KEYS
     top = EVAL_TOP_KEYS if stage == "linear_eval" else TOP_KEYS
     _named(top - set(config), set(config) - top, "config")
 
@@ -116,7 +132,17 @@ def to_run_config(config: dict, out: Path) -> dict:
     if not isinstance(train, dict):
         raise ConfigError(f"config: train is {type(train).__name__}, "
                           "not a mapping")
-    _named(keys - set(train), set(train) - keys, "config.train")
+    arch = train.get("arch", "cpc2018")
+    if arch not in ARCHS:
+        raise ConfigError(
+            f"config.train: arch is {arch!r}; expected one of "
+            f"{', '.join(ARCHS)}")
+    rest = {k: v for k, v in train.items() if k != "arch"}
+    if arch == "vit":
+        keys = EVAL_VIT_KEYS if stage == "linear_eval" else PRETRAIN_VIT_KEYS
+    else:
+        keys = EVAL_TRAIN_KEYS if stage == "linear_eval" else PRETRAIN_TRAIN_KEYS
+    _named(keys - set(rest), set(rest) - keys, "config.train")
 
     if config["device"] not in DEVICES:
         raise ConfigError(
@@ -125,6 +151,27 @@ def to_run_config(config: dict, out: Path) -> dict:
 
     if stage == "linear_eval":
         return {"stage": stage}
+
+    if arch == "vit":
+        return {
+            "seed": int(config["seed"]),
+            "arch": "vit",
+            "model": {k: (float(train[k]) if k in _VIT_FLOATS else int(train[k]))
+                      for k in VIT_MODEL_KEYS},
+            "cpc": {"temperature": float(train["temperature"])},
+            "data": {"data_root": str(config["data_root"]),
+                     "img_size": int(train["img_size"])},
+            "training": {"epochs": int(train["epochs"]),
+                         "batch_size": int(train["batch_size"]),
+                         "num_workers": int(train["num_workers"]),
+                         "lr": float(train["lr"]),
+                         "weight_decay": float(train["weight_decay"]),
+                         "warmup_epochs": int(train["warmup_epochs"]),
+                         "min_lr": float(train["min_lr"]),
+                         "save_at_epochs": [int(e) for e in
+                                            train["save_at_epochs"]]},
+            "output": {"checkpoint_dir": str(Path(out) / WORK)},
+        }
 
     return {
         "seed": int(config["seed"]),
@@ -160,9 +207,15 @@ def extract_encoder(state_dict: dict) -> dict:
 def load_encoder(state_dict: dict, config: dict):
     if str(METHOD_DIR) not in sys.path:
         sys.path.insert(0, str(METHOD_DIR))
-    from models import build_visual_cpc2018_from_config
-    from train_pretrain_cpc2018 import model_config
-    model = build_visual_cpc2018_from_config(model_config(config["train"]))
+    train = config["train"]
+    if train.get("arch", "cpc2018") == "vit":
+        from models import build_cpc_vit
+        from train_pretrain_vit_cpc import model_kwargs
+        model = build_cpc_vit(**model_kwargs(train))
+    else:
+        from models import build_visual_cpc2018_from_config
+        from train_pretrain_cpc2018 import model_config
+        model = build_visual_cpc2018_from_config(model_config(train))
     missing, unexpected = model.load_state_dict(state_dict, strict=False)
     if unexpected:
         raise RuntimeError(
@@ -186,10 +239,14 @@ def _filter_numeric(raw: dict) -> tuple:
 
 
 def run_training(config: dict, out: Path, _run=None) -> dict:
+    arch = config.get("train", {}).get("arch", "cpc2018")
     if _run is None:
         if str(METHOD_DIR) not in sys.path:
             sys.path.insert(0, str(METHOD_DIR))
-        from train_pretrain_cpc2018 import run as _run
+        if arch == "vit":
+            from train_pretrain_vit_cpc import run as _run
+        else:
+            from train_pretrain_cpc2018 import run as _run
     args = to_args(config, out)
     run_config = to_run_config(config, out)
     Path(run_config["output"]["checkpoint_dir"]).mkdir(parents=True,
@@ -236,6 +293,14 @@ def body(ctx: adapterlib.Context) -> None:
     state = torch.load(latest, map_location="cpu", weights_only=False)
     torch.save(extract_encoder(state["model_state_dict"]),
                Path(ctx.out) / "encoder.pt")
+    train = ctx.config.get("train", {})
+    if train.get("arch", "cpc2018") == "vit":
+        for n in train.get("save_at_epochs", []):
+            ck = Path(ctx.out) / WORK / f"checkpoint_epoch_{int(n)}.pth"
+            if ck.is_file():
+                s = torch.load(ck, map_location="cpu", weights_only=False)
+                torch.save(extract_encoder(s["model_state_dict"]),
+                           Path(ctx.out) / f"encoder_epoch{int(n)}.pt")
     ctx.write_metrics(metrics, names=PRETRAIN_METRIC_NAMES)
 
 

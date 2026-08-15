@@ -40,6 +40,26 @@ def _build_loader(data_root: str, split: str, d: dict, batch_size: int,
     return dataset, loader
 
 
+def _build_vit_loader(data_root: str, split: str, d: dict, batch_size: int,
+                      num_workers: int):
+    """The Step-2 ViT probes plain images at the CLS token, not the native patch
+    grid: resize + centre crop + ImageNet normalisation."""
+    from torchvision import datasets, transforms
+    img_size = int(d["img_size"])
+    tf = transforms.Compose([
+        transforms.Resize(int(img_size * 1.14)),
+        transforms.CenterCrop(img_size),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                             std=[0.229, 0.224, 0.225]),
+    ])
+    dataset = datasets.ImageFolder(str(Path(data_root) / split), transform=tf)
+    loader = torch.utils.data.DataLoader(
+        dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers,
+        drop_last=False)
+    return dataset, loader
+
+
 @torch.no_grad()
 def extract_features(encoder, loader, device):
     feats, labels = [], []
@@ -87,21 +107,28 @@ def run(args, config: "dict | None" = None, model=None) -> dict:
     seed = int(cfg.get("seed", 42))
     make_deterministic(seed)
 
+    arch = train.get("arch", "cpc2018")
     if model is None:
-        from models import build_visual_cpc2018_from_config
-        from train_pretrain_cpc2018 import model_config
-        model = build_visual_cpc2018_from_config(model_config(train))
+        if arch == "vit":
+            from models import build_cpc_vit
+            from train_pretrain_vit_cpc import model_kwargs
+            model = build_cpc_vit(**model_kwargs(train))
+        else:
+            from models import build_visual_cpc2018_from_config
+            from train_pretrain_cpc2018 import model_config
+            model = build_visual_cpc2018_from_config(model_config(train))
     encoder = model.get_encoder().to(device)
     encoder.eval()
     for p in encoder.parameters():
         p.requires_grad = False
-    print(f"Visual CPC 2018 linear eval  device={device}  "
+    print(f"CPC linear eval  arch={arch}  device={device}  "
           f"img_size={train['img_size']}")
 
     bs = int(train["batch_size"])
     nw = int(train["num_workers"])
-    tr_ds, tr_loader = _build_loader(data_root, "train", train, bs, nw)
-    va_ds, va_loader = _build_loader(data_root, "val", train, bs, nw)
+    build = _build_vit_loader if arch == "vit" else _build_loader
+    tr_ds, tr_loader = build(data_root, "train", train, bs, nw)
+    va_ds, va_loader = build(data_root, "val", train, bs, nw)
     if tr_ds.classes != va_ds.classes:
         raise RuntimeError(
             f"train and val hold different classes: {tr_ds.classes} vs "
