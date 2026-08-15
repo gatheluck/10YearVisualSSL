@@ -14,7 +14,8 @@ Two comparisons live here:
   ImageNet-1k with Franca's objective, then `linear_eval` with `recipe: unified`
   probes the trained `encoder.pt` at its CLS token. This puts Franca on the same
   axis as every other method's Step 2 (all train on ImageNet-1k, so the data
-  confound is gone). (Added after the initial eval-only port; see the Step 2 section.)
+  confound is gone). (Added after the initial port, which probed only the
+  downloaded Step-1 backbone; see the Step 2 section.)
 
 ## Step 2 (unified ViT-B/16), from scratch
 
@@ -45,8 +46,10 @@ representation is a genuine SSL ViT (Franca's pretrained CLS token), so the numb
 
 The model is the pinned upstream `valeoai/Franca` under `third_party/franca`,
 imported and never copied, and pinned **directly** (no fork): the frozen forward
-has no hardcoded device. The inventory's `submodule+patch` (9984B) is for the
-excluded Step 2.
+has no hardcoded device. The inventory's `submodule+patch` (9984B) is the
+capture's own Step-2 implementation; this port re-implements the unified Step 2
+additively as port-authored files (see the Step 2 section) rather than applying
+that patch.
 
 Changed during the port (see `provenance.json`): the device is resolved rather
 than assumed CUDA; features are extracted in fp32 (the capture used a bfloat16
@@ -80,8 +83,9 @@ downloaded and its accuracy is meaningless — only the pipeline is exercised.
 The eval stack is torch / torchvision / numpy / PyYAML; the pinned upstream also
 imports tqdm, which is in the lock (`requirements.lock.in`). The heavier
 dependencies in the upstream's own `requirements.txt` (pytorch-lightning,
-omegaconf, webdataset, …) are for the excluded Step 2 training and are not needed
-to build and probe the frozen backbone.
+omegaconf, webdataset, …) drive the capture's own Step-2 training pipeline; this
+port's additive Step 2 is port-authored and does not use them (it needs only
+`timm`), so they are absent from the lock.
 
     git submodule update --init third_party/franca
     pip install --require-hashes \
