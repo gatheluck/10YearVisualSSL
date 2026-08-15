@@ -1,0 +1,48 @@
+# SimMIM step 2 (unified ViT-B/16): the "A Decade of Visual SSL" Step-2 recipe.
+#
+# The additive unified path (recipe: unified). SimMIM's step 1 is Swin-based
+# (configs/pretrain.yaml); the unified Step 2 plugs the same masked-image-modelling
+# objective into a timm ViT-B/16 -- 300 epochs, batch 1024, a direct lr 6e-4
+# (= 1.5e-4 x 1024/256; the trainer does not rescale it), betas (0.9, 0.95), fixed
+# weight decay 0.05, 10-epoch warmup then cosine to min_lr, with milestone
+# checkpoints at 100/200/300. The native Swin-B path is left unchanged; absent
+# `recipe` selects it.
+#
+# These are the settings the captured cluster run used -- the recipe, not a
+# result. Nothing here has executed a full run; the README says exactly what was
+# and was not exercised.
+#
+# One path is passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   the dataset root; pretraining reads its train/ subdirectory
+# The output path is fixed at --out.
+stage: pretrain
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+
+train:
+  recipe: unified
+  # model (build_simmim_vit): timm ViT-B/16, pixel-space masking
+  img_size: 224
+  patch_size: 16
+  mask_patch_size: 16           # one mask unit = one ViT patch
+  embed_dim: 768
+  depth: 12
+  num_heads: 12
+  mlp_ratio: 4.0
+  drop_path_rate: 0.1
+  # data
+  mask_ratio: 0.6               # 60% of patches masked
+  num_workers: 8
+  # training (AdamW; direct lr; linear warmup then cosine to min_lr)
+  epochs: 300
+  batch_size: 1024
+  lr: 6.0e-4
+  betas: [0.9, 0.95]
+  weight_decay: 0.05
+  warmup_epochs: 10
+  warmup_lr: 1.0e-6
+  min_lr: 1.0e-6
+  clip_grad: 3.0
+  # milestone checkpoints for the frozen-backbone probe sweep
+  save_at_epochs: [100, 200, 300]

@@ -1,4 +1,4 @@
-# 26_simmim — step 1 (SimMIM Swin-B pretext) + linear evaluation
+# 26_simmim — step 1 (SimMIM Swin-B pretext) + unified ViT-B/16 step 2 + linear evaluation
 
 Xie et al., *SimMIM: A Simple Framework for Masked Image Modeling*, 2022
 ([arXiv:2111.09886](https://arxiv.org/abs/2111.09886)).
@@ -9,15 +9,42 @@ replaced by a learned **mask token**; the full token grid is encoded; a
 lightweight **1×1 conv + PixelShuffle** decoder reconstructs pixels; an **L1
 loss** is taken only on the masked pixels. Step 1 is that pretext.
 
-## Scope — the Swin-B step 1 only
+## Scope — the Swin-B step 1 and the unified ViT-B/16 step 2
 
-This port covers SimMIM's **Swin-B** step 1. The capture's step 2 (ViT) is
-excluded, as in every port. SimMIM's step 1 is genuinely **Swin**-based, so
-**`timm` is a pretrain dependency** (it supplies the `SwinTransformer`) — this is
-the repo's **first Swin backbone**. The `transformers` package in the capture's
+This port covers SimMIM's **Swin-B** step 1 and, added additively, the capture's
+unified **ViT-B/16** step 2 (see the Step 2 section below). SimMIM's step 1 is
+genuinely **Swin**-based, so **`timm` is a pretrain dependency** (it supplies the
+`SwinTransformer`, and — for step 2 — the `VisionTransformer`) — this is the repo's
+**first Swin backbone**. The `transformers` package in the capture's
 `requirements.txt` is **docstring-only** (a note about HuggingFace pretrained
-weights) and is **never imported** (measured), so it is not a dependency here. The
-Swin is built **from scratch** (no pretrained download), so the run stays hermetic.
+weights) and is **never imported** (measured), so it is not a dependency here. Both
+backbones are built **from scratch** (no pretrained download), so the run stays
+hermetic.
+
+## Step 2 (unified ViT-B/16), added additively
+
+Unlike the other ViT Step-2 ports, SimMIM's native backbone is a **Swin**, not a
+ViT — so the unified Step 2 is a genuinely **different backbone**, not a re-tuning
+of the same one. The capture plugs the same masked-image-modelling objective into
+a **timm ViT-B/16** (`models/simmim_vit.py`): 300 epochs, batch 1024, a direct
+`lr` 6e-4, betas (0.9, 0.95), fixed weight decay 0.05, 10-epoch warmup then cosine
+to `min_lr`, checkpointed at 100/200/300. It is selected by a `recipe: unified`
+key in `train`; **absent `recipe` is the native Swin-B path, unchanged**, and the
+native and unified config key sets are disjoint (native-only `window_size`/`depths`
+/multistep-decay knobs ↔ unified-only `depth`/`mlp_ratio`/`min_lr`/`save_at_epochs`).
+
+The masking is pixel-space, as in the Swin variant (masked pixels replaced by a
+learned mask token, one mask unit = one ViT patch); the dataloader already
+supports the pixel-mask path (`return_pixel_mask=True`). `train_pretrain_vit_simmim.py`
+is single-process, reusing the native trainer's device resolution and seeding
+(one implementation per method). `encoder.pt` is the bare timm ViT (`encoder.*`).
+
+**This is the only Step-2 port that is non-additive to the linear evaluation.**
+The native probe mean-pools the Swin tokens; the ViT's representation is its **CLS
+token** (the capture's own choice), so `evaluate_linear_simmim.py` gains a `pool`
+argument (`cls` for the ViT, `mean` for the Swin), fixed from the recipe by the
+adapter. The adapter writes `encoder.pt` plus `encoder_epoch{100,200,300}.pt`, one
+frozen ViT per milestone; probe a unified encoder with `configs/linear_eval_vit.yaml`.
 
 ## Why this method, and what is new here
 

@@ -1,0 +1,36 @@
+# SimMIM linear evaluation: a linear probe on the frozen unified ViT-B/16 encoder.
+#
+# This is the evaluation for the unified Step-2 encoder (recipe: unified). The
+# representation is the ViT's CLS token (the capture's own choice), whereas the
+# native Swin eval (configs/linear_eval.yaml) mean-pools tokens. The adapter uses
+# these dims to rebuild the timm ViT and load encoder.pt, and fixes the CLS pooling
+# from the recipe. The probe follows the shared ARSSL protocol (mean-centre +
+# L2-normalise, a single linear layer, SGD + cosine), so the number is comparable.
+#
+# Two paths are passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   an ImageFolder with train/ and val/ subdirectories
+#   --set ENCODER=<path>     encoder.pt (or a milestone encoder_epoch{N}.pt) from a
+#                            unified pretrain run
+# The output path is fixed at --out.
+stage: linear_eval
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+encoder: "${ENCODER}"
+
+train:
+  recipe: unified
+  # model (the backbone is a fixed timm ViT; these dims rebuild it)
+  img_size: 224
+  patch_size: 16
+  embed_dim: 768
+  depth: 12
+  num_heads: 12
+  mlp_ratio: 4.0
+  # probe: a single linear layer, SGD + cosine
+  epochs: 100
+  batch_size: 256
+  num_workers: 8
+  lr: 0.1
+  momentum: 0.9
+  weight_decay: 0.0
