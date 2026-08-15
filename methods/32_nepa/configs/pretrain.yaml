@@ -4,7 +4,8 @@
 # These are the paper-target settings -- the recipe, not a result. Nothing here
 # has executed a full run; the README says what was and was not exercised. NEPA
 # ships its own ViT (no timm) and trains from scratch on ImageNet-1k, so the run
-# is torch-only and hermetic. The capture's step 2 (ViT-B) is not ported.
+# is torch-only and hermetic. The capture's unified ViT-B/16 Step 2 is ported
+# additively in configs/pretrain_vit.yaml (this native step-1 config is unchanged).
 #
 # One path is passed at run time, not shipped:
 #   --set DATA_ROOT=<path>   the dataset root; pretraining reads its train/ subdirectory

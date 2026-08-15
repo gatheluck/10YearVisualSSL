@@ -12,8 +12,9 @@ trains from scratch on ImageNet, so the run is torch-only and hermetic.
 `encoder.pt` is the **EMA** model (`ema_model.*`, the prefix stripped so it loads
 into a plain NEPAModel; the capture evaluates the EMA model by default). The online
 model is training machinery and is excluded. `linear_eval` probes the EMA model's
-avg-pooled autoregressive output (embed_dim). The captured step 2 (ViT-B) is
-excluded, as in every port.
+avg-pooled autoregressive output (embed_dim). The capture's unified ViT-B/16 Step 2
+is ported additively: the same NEPAModel at patch_size 16 with the unified recipe
+and milestone checkpoints, probed at its raw patch embeddings (pool: embed).
 """
 
 from __future__ import annotations
@@ -466,6 +467,91 @@ class TestTheOriginalIsReferencedNotCopied(unittest.TestCase):
         self.assertNotIn("DistributedDataParallel", used)
         self.assertNotIn("SummaryWriter", used)
         self.assertNotIn("autocast", used)
+
+
+# --- Step 2: unified ViT-B/16, additive alongside the native NEPA step 1. Same
+# NEPAModel (no timm, no new arch) with the unified recipe values (patch_size 16,
+# step2 augmentation, 300ep/1024-batch/base_lr 1.5e-4) and milestone checkpoints
+# at 100/200/300; the linear probe pools raw patch embeddings (pool: embed, the
+# capture's step2 choice). Tiny dims for a CPU smoke.
+VIT_TRAIN_TINY = {**MODEL, **EMA, "augmentation": "step2", "num_workers": 0,
+                  "epochs": 2, "batch_size": 2, "base_lr": 1.5e-4,
+                  "weight_decay": 0.05, "beta1": 0.9, "beta2": 0.95,
+                  "warmup_epochs": 0, "clip_grad": 3.0, "save_at_epochs": [1, 2]}
+VIT_EVAL_TINY = {**MODEL, "epochs": 1, "batch_size": 2, "num_workers": 0,
+                 "lr": 0.1, "momentum": 0.9, "weight_decay": 0.0,
+                 "pool": "embed"}
+
+
+class TestStep2ConfigTranslation(Base):
+    def test_the_step2_config_passes_save_at_epochs_through(self):
+        built = adapter.to_run_config(
+            self.config(train=VIT_TRAIN_TINY), out=self.out)
+        self.assertEqual(built["training"]["save_at_epochs"], [1, 2])
+        self.assertEqual(built["data"]["augmentation"], "step2")
+
+    def test_native_pretrain_is_accepted_without_save_at_epochs(self):
+        built = adapter.to_run_config(self.config(), out=self.out)
+        self.assertEqual(built["training"].get("save_at_epochs", []), [])
+
+    def test_an_unknown_pretrain_key_is_still_refused(self):
+        with self.assertRaises(adapter.ConfigError) as e:
+            adapter.to_run_config(
+                self.config(train={"bogus_knob": 1}), out=self.out)
+        self.assertIn("bogus_knob", str(e.exception))
+
+    def test_the_eval_accepts_an_optional_pool(self):
+        built = adapter.to_run_config(
+            self.eval_config(train=VIT_EVAL_TINY), out=self.out)
+        self.assertEqual(built["stage"], "linear_eval")
+
+    def test_an_unknown_eval_key_is_still_refused(self):
+        with self.assertRaises(adapter.ConfigError) as e:
+            adapter.to_run_config(
+                self.eval_config(train={"bogus_probe": 1}), out=self.out)
+        self.assertIn("bogus_probe", str(e.exception))
+
+
+class TestAStep2MilestoneSmoke(Base):
+    def _adapter(self, cfg_dict, out):
+        cfg = self.tmp / (out.name + ".json")
+        cfg.write_text(json.dumps(cfg_dict), encoding="utf-8")
+        env = {**os.environ, "PYTHONPATH": str(ROOT)}
+        r = subprocess.run(
+            [sys.executable, "-m", "adapter", "--config", str(cfg),
+             "--out", str(out)], cwd=METHOD, env=env,
+            capture_output=True, text=True)
+        return cfg, r
+
+    @needs_deps
+    def test_pretrain_milestones_then_probe_passes_contract(self):
+        tiny_imagefolder(self.tmp / "data" / "train")
+        pre = self.tmp / "pre_out"
+        _, r = self._adapter(
+            {"stage": "pretrain", "seed": 0, "data_root": str(self.tmp / "data"),
+             "device": "cpu", "train": dict(VIT_TRAIN_TINY)}, pre)
+        self.assertEqual(r.returncode, 0, r.stdout[-3000:] + r.stderr[-3000:])
+        self.assertTrue((pre / "encoder.pt").is_file())
+        for n in (1, 2):
+            self.assertTrue((pre / f"encoder_epoch{n}.pt").is_file(),
+                            f"milestone encoder_epoch{n}.pt not written")
+
+        tiny_split(self.tmp / "eval")
+        ev = self.tmp / "eval_out"
+        cfg, r = self._adapter(
+            {"stage": "linear_eval", "seed": 0,
+             "data_root": str(self.tmp / "eval"), "device": "cpu",
+             "encoder": str(pre / "encoder_epoch2.pt"),
+             "train": dict(VIT_EVAL_TINY)}, ev)
+        self.assertEqual(r.returncode, 0, r.stdout[-3000:] + r.stderr[-3000:])
+        v = subprocess.run(
+            [sys.executable, str(BIN / "contract-test.py"), "--out", str(ev),
+             "--config", str(cfg), "--exit-status", "0"],
+            capture_output=True, text=True)
+        self.assertEqual(v.returncode, 0, v.stdout + v.stderr)
+        m = json.loads((ev / "metrics.json").read_text())["metrics"]
+        self.assertIn("final_linear_probe_top1_accuracy", m)
+        self.assertFalse((ev / "encoder.pt").exists())
 
 
 if __name__ == "__main__":

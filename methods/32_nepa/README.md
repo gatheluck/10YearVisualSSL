@@ -1,4 +1,4 @@
-# 32_nepa — step 1 (NEPA ViT pretext) + linear evaluation
+# 32_nepa — step 1 (NEPA ViT pretext) + unified ViT-B/16 step 2 + linear evaluation
 
 Xu et al., *NEPA: Next-Embedding Predictive Autoregression*, 2025
 ([arXiv:2512.16922](https://arxiv.org/abs/2512.16922)).
@@ -10,13 +10,26 @@ and a **stop-gradient** shifted target `z[:, 1:]` (SimSiam style). An EMA copy o
 the whole model is kept for evaluation. The ViT uses **2D RoPE**, **QK-norm**,
 **LayerScale** and GeLU (optionally SwiGLU). Step 1 is that pretext.
 
-## Scope — the ViT step 1 only
+## Scope — the ViT step 1 and the unified ViT-B/16 step 2
 
-This port covers NEPA's ViT step 1. The capture's step 2 (ViT-B) is excluded, as
-in every port. NEPA ships **its own** Vision Transformer (`models/nepa_vit.py` —
-measured: it imports only `torch`, **not `timm`**, despite `timm` appearing as a
-floor in the capture's `requirements.txt`) and trains **from scratch on
-ImageNet-1k**, so this port is **torch-only** and hermetic.
+This port covers NEPA's ViT step 1 **and** the capture's unified ViT-B/16 Step 2
+(see the Step 2 section below). NEPA ships **its own** Vision Transformer
+(`models/nepa_vit.py` — measured: it imports only `torch`, **not `timm`**, despite
+`timm` appearing as a floor in the capture's `requirements.txt`) and trains **from
+scratch on ImageNet-1k**, so this port is **torch-only** and hermetic for both.
+
+## Step 2 (unified ViT-B/16), added additively
+
+The unified Step 2 is the **same `NEPAModel`** at the unified setting — no new
+model, no `arch` key. `configs/pretrain_vit.yaml` selects it: standard **ViT-B/16**
+(`patch_size: 16` vs step 1's 14), the **step2** augmentation (RandomResizedCrop +
+flip + ColorJitter), SwiGLU, AdamW with the unified recipe (peak LR =
+`base_lr × batch/256` = 6e-4, wd 0.05, 10-epoch warmup → cosine), and milestone
+checkpoints via `save_at_epochs: [100, 200, 300]` (absent in the native config, so
+step 1 is unchanged). The adapter writes `encoder.pt` plus `encoder_epoch{100,200,
+300}.pt`, one frozen EMA model per milestone. The Step-2 linear probe pools the
+**raw patch embeddings** (`configs/linear_eval_vit.yaml`, `pool: embed`, the
+capture's step2 choice) rather than the native AR-output average (`pool: avg`).
 
 ## Why this method, and what is new here
 
@@ -65,6 +78,9 @@ a cosine schedule), which makes the number comparable across the ported methods.
 - **Exercised (linear_eval):** a hermetic smoke fits the probe on a pretrain
   encoder over a two-class ImageFolder, passes `contract-test`, writes the
   comparable `linear_probe` accuracies, and writes **no** `encoder.pt`.
+- **Exercised (ViT Step 2):** a hermetic smoke trains the unified ViT-B/16 (tiny
+  dims) with `save_at_epochs`, writes milestone encoders, and probes the raw patch
+  embeddings (`pool: embed`) through `contract-test` on a CPU.
 - **Not a full run:** `configs/pretrain.yaml` is the NEPA recipe (ViT-B/14, 224px,
   1600 epochs, batch 4096, AdamW, warmup 40), a recipe, not a completed run.
 - **GPU:** the device resolution is verified on real hardware; see the device

@@ -1,0 +1,54 @@
+# NEPA Step 2: unified ViT-B/16 pretraining, from scratch.
+#
+# The same NEPAModel as step 1 (causal AR predictor + EMA, no timm) at the
+# unified Step-2 setting: standard ViT-B/16 (patch_size 16), the step2
+# augmentation (RandomResizedCrop + flip + ColorJitter), AdamW with the unified
+# recipe (peak LR = base_lr * batch/256 = 6e-4, wd 0.05, 10-epoch warmup ->
+# cosine), and milestone checkpoints at 100/200/300. The native ViT-B/14 official
+# pretrain (configs/pretrain.yaml, no save_at_epochs) is unchanged.
+#
+# One path is passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   the dataset root; pretraining reads its train/ subdirectory
+# The output path is fixed at --out.
+#
+#   python3 bin/launch.py --config methods/32_nepa/configs/pretrain_vit.yaml \
+#       --method 32_nepa --set DATA_ROOT=/path/to/imagenet
+stage: pretrain
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+
+train:
+  # model (unified ViT-B/16; standard patch_size 16 for fair comparison)
+  embed_dim: 768
+  depth: 12
+  num_heads: 12
+  patch_size: 16
+  img_size: 224
+  mlp_ratio: 4.0
+  use_swiglu: true             # unified step-2 config uses SwiGLU
+  use_qk_norm: true
+  use_rope: true
+  use_cls_token: true
+  patch_embed_norm: false
+  layerscale_init: 1.0e-5
+  layer_norm_eps: 1.0e-12
+  rope_theta: 100.0
+  pos_embed_shift: null
+  pos_embed_jitter: null
+  pos_embed_rescale: 2.0
+  # EMA target
+  ema_decay: 0.9999
+  # data
+  augmentation: step2          # RandomResizedCrop + HFlip + ColorJitter
+  num_workers: 10
+  # training (AdamW + cosine LR with warmup; peak LR = base_lr * batch_size / 256)
+  epochs: 300
+  batch_size: 1024
+  base_lr: 1.5e-4
+  weight_decay: 0.05
+  beta1: 0.9
+  beta2: 0.95
+  warmup_epochs: 10
+  clip_grad: 3.0
+  save_at_epochs: [100, 200, 300]
