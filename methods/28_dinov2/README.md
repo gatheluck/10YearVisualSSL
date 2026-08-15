@@ -1,14 +1,39 @@
-# 28_dinov2 — linear evaluation only (frozen DINOv2 backbone)
+# 28_dinov2 — as-is Step-1 probe + unified ViT-B/16 Step-2 pretrain + linear eval
 
 Oquab et al., *DINOv2: Learning Robust Visual Features without Supervision*, 2023
 ([arXiv:2304.07193](https://arxiv.org/abs/2304.07193)).
 
-An **eval-only** port — a `linear_eval` stage and **no step 1** — the DINOv2
-sibling of `36_franca`. In the capture, DINOv2's "Step 1" is a frozen-backbone
-probe: the official pretrained **ViT-g/14** (LVD-142M) is downloaded and a linear
-probe is fit on its frozen **CLS token**, because the from-scratch SSL data
-(LVD-142M) is not public. That from-scratch pretraining is the excluded step, as
-in every port.
+Two comparisons live here:
+
+- **Step 1 (as-is)** — a `linear_eval` with no `recipe`: the official pretrained
+  **ViT-g/14** (LVD-142M) is downloaded (`third_party/dinov2`) and a linear probe
+  is fit on its frozen **CLS token**. DINOv2's from-scratch SSL data (LVD-142M) is
+  not public, so the as-is row reuses the official backbone. This trains nothing.
+
+- **Step 2 (unified)** — `pretrain` trains a **ViT-B/16 from scratch** on
+  ImageNet-1k with the DINOv2 objective (DINO + iBOT + KoLeo), then `linear_eval`
+  with `recipe: unified` freezes that trained `encoder.pt` and probes its CLS
+  token. This is what removes the data confound: every method's Step 2 trains on
+  the same ImageNet-1k with the same unified ViT-B/16 recipe, so the numbers sit
+  on one axis. (Added after the initial eval-only port; see the Step 2 section.)
+
+## Step 2 (unified ViT-B/16), from scratch
+
+`train_pretrain_vit_dinov2.py` is a single-process port of the capture's
+`train_step2_vit.py`: a student and its EMA teacher (timm ViT-B/16), the shared
+DINO/iBOT prototype head, DINO + iBOT + KoLeo losses, a per-epoch warmup→cosine LR
+(peak = `base_lr × batch/1024`), a per-step teacher-momentum cosine, teacher-temp
+warmup, `freeze_last_layer` for the first epoch and gradient-norm clipping — all
+faithful. The capture's DDP, TensorBoard and distributed collapse-gate are dropped
+for a single-process fp32 run; the device is resolved rather than assumed CUDA. The
+DINOv2 model/loss/data are the capture's own (`models/`, `data/`), timm-based, so
+**timm is a Step-2 dependency** (built from scratch, no download → hermetic).
+
+`encoder.pt` (Step 2) is the EMA **teacher backbone** (`teacher_bb.*`, prefix
+stripped so it loads into a plain `DINOv2Backbone`); the heads, the student and the
+centering buffers are excluded. The adapter also writes `encoder_epoch{100,200,300}.pt`
+for the milestone probe sweep. Probe a Step-2 encoder with
+`configs/linear_eval_vit.yaml` (`recipe: unified`, CLS token).
 
 ## What is probed, and why it's comparable
 

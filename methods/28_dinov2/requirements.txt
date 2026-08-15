@@ -2,14 +2,16 @@
 # directions by tests/test_method_requirements.py. Floors only; the exact hashed
 # closure is in requirements.lock.txt (CPU) and requirements.lock.cu130.txt.
 #
-# An eval-only port (linear_eval, no step 1). The DINOv2 backbone is the pinned
+# Two comparisons live here. Step 1 (as-is): the DINOv2 backbone is the pinned
 # upstream under third_party/dinov2 (imported, not copied), built with the
-# xformers path disabled so the forward is torch-only. torch is imported
-# directly; numpy seeds the run; torchvision provides the ImageFolder and
-# transforms; PyYAML is read to load a YAML config on the stand-alone path. The
-# from-scratch SSL pretraining (LVD-142M) is the capture's excluded step; this
-# probes a frozen, hash-pinned downloaded checkpoint. No timm, no tensorboard.
+# xformers path disabled so the forward is torch-only. Step 2 (unified): a
+# from-scratch ViT-B/16 (DINO + iBOT + KoLeo) whose backbone is a **timm**
+# VisionTransformer -- so timm is a step-2 dependency (built from scratch, no
+# pretrained download, so the run stays hermetic). torch is imported directly;
+# numpy seeds the run; torchvision provides the ImageFolder and transforms;
+# PyYAML is read to load a YAML config on the stand-alone path. No tensorboard.
 torch>=2.1.0
 torchvision>=0.16.0
+timm>=0.9.0
 numpy>=1.24.0
 PyYAML>=6.0
