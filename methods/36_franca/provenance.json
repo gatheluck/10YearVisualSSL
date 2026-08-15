@@ -1,7 +1,7 @@
 {
   "captured_at": "2026-08-05",
   "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
-  "captured_note": "The inventory (docs/INVENTORY.md) classifies Franca as submodule+patch, Apache. The 9984B patch is for the capture's Step 2 (from-scratch SSL pretraining), which is excluded like every method's step 2. The portable part is the capture's Step 1: a frozen pretrained-backbone linear probe (methods/36_franca/README.md: 'analogous to DINOv2 ... not local Franca pretraining'). The frozen forward has no hardcoded device, so this port pins the upstream DIRECTLY with no fork.",
+  "captured_note": "The inventory (docs/INVENTORY.md) classifies Franca as submodule+patch, Apache. The 9984B patch is the capture's own Step-2 implementation (from-scratch SSL pretraining); this port re-implements the unified Step 2 additively as port-authored files (see the Step 2 note below) rather than applying that patch. The other portable part is the capture's Step 1: a frozen pretrained-backbone linear probe (methods/36_franca/README.md: 'analogous to DINOv2 ... not local Franca pretraining'). The frozen forward has no hardcoded device, so this port pins the upstream DIRECTLY with no fork.",
   "paper": {
     "title": "Franca",
     "arxiv": "2507.14137",

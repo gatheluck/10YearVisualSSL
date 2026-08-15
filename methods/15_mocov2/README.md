@@ -72,10 +72,10 @@ across the ported methods.
 ## Environment
 
 torch / torchvision / numpy / PyYAML — the self-contained methods' stack, no
-submodule and no extra (the ViT step 2's `timm` is not ported).
-`requirements.lock.txt` (CPU) and `requirements.lock.cu130.txt` (CUDA 13.0) are
-the hashed closures (the same closure as `13_mocov1`: identical floors, identical
-resolution).
+submodule; the Step-2 ViT path adds `timm` (the native ResNet-50 path needs
+none). `requirements.lock.txt` (CPU) and `requirements.lock.cu130.txt`
+(CUDA 13.0) are the hashed closures (the same closure as `13_mocov1`: identical
+floors, identical resolution).
 
     pip install --require-hashes \
         --index-url https://download.pytorch.org/whl/cpu \

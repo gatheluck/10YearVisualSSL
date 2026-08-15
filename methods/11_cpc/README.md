@@ -1,4 +1,4 @@
-# 11_cpc — step 1 (visual CPC 2018 pretext) + linear evaluation
+# 11_cpc — step 1 (visual CPC 2018 pretext) + unified ViT-B/16 step 2 + linear evaluation
 
 van den Oord, Li & Vinyals, *Representation Learning with Contrastive Predictive
 Coding*, 2018 ([arXiv:1807.03748](https://arxiv.org/abs/1807.03748)).
@@ -17,8 +17,23 @@ protocol mismatch** that "must not be submitted as a paper-ready Step 1 job" (it
 ImageNet linear-eval reaches only 6.4% top-1 vs the paper's ~48.7%). It is
 **excluded**. This port brings across the **corrected `visual_cpc2018`** path: a
 ResNet-v2-101-style no-BN patch encoder, a PixelCNN masked-conv context, and
-InfoNCE over future rows of the patch grid. The captured step 2 (a ViT variant)
-is excluded, as in every port.
+InfoNCE over future rows of the patch grid. The capture's unified ViT-B/16 Step 2
+is ported additively alongside it (see the Step 2 section below).
+
+## Step 2 (unified ViT-B/16), added additively
+
+Selected by `arch: vit` in `configs/pretrain_vit.yaml` (absent = the native
+`visual_cpc2018` path, unchanged). The capture's `train_step2_vit.py` reworks CPC
+onto the shared **ViT-B/16**: a timm `VisionTransformer` reads a plain 224×224
+image, and its **patch tokens become the CPC z-grid** (14×14 for ViT-B/16). A
+column-wise GRU gives the context, `pred_steps` linear predictors score InfoNCE.
+Optimiser AdamW (lr used directly, the capture baked `1.5e-4 × 1024/256 = 6e-4`
+into the config), linear warmup then cosine to `min_lr`; milestone checkpoints at
+100/200/300. `encoder.pt` is the ViT trunk (`encoder.*`, so it loads into a plain
+`VisionTransformer`); the column GRU and the InfoNCE predictors are training
+machinery. The linear probe reads the ViT's **CLS token** (768-d) on plain images
+(`configs/linear_eval_vit.yaml`, `arch: vit`), not the native patch grid. The ViT
+path needs `timm`, imported lazily so the native path never does.
 
 ## Why this method, and what is new here
 
@@ -60,6 +75,9 @@ single linear layer trained with SGD under a cosine schedule).
 - **Exercised (linear_eval):** a hermetic smoke fits the probe on a step-1
   encoder over a two-class ImageFolder, passes `contract-test`, writes the
   comparable `linear_probe` accuracies, and writes **no** `encoder.pt`.
+- **Exercised (ViT Step 2):** a hermetic smoke trains the unified ViT-B/16 on a
+  2×2 patch grid (tiny dims), writes milestone encoders, and probes the CLS
+  feature through `contract-test` on a CPU.
 - **Not a full run:** `configs/pretrain.yaml` is the paper-target recipe (1024-d,
   7×7 grid, 5 prediction steps, 200 epochs), a recipe, not a completed run.
 - **Not ported:** the deprecated local baseline (`cpc_resnet`).
@@ -69,9 +87,10 @@ single linear layer trained with SGD under a cosine schedule).
 ## Environment
 
 torch / torchvision / numpy / PyYAML — the self-contained methods' stack, no
-submodule and no extra. `requirements.lock.txt` (CPU) and
-`requirements.lock.cu130.txt` (CUDA 13.0) are the hashed closures (the same
-closure as `image_gpt`: identical floors, identical resolution).
+submodule; the Step-2 ViT path adds `timm` (the native visual-CPC-2018 path needs
+none). `requirements.lock.txt` (CPU) and `requirements.lock.cu130.txt` (CUDA 13.0)
+are the hashed closures (the same closure as `13_mocov1`: identical floors,
+identical resolution).
 
     pip install --require-hashes \
         --index-url https://download.pytorch.org/whl/cpu \

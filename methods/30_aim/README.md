@@ -14,7 +14,8 @@ Two comparisons live here:
   ImageNet-1k with the prefix-LM next-patch objective, then `linear_eval` with
   `recipe: unified` probes the trained `encoder.pt`. This puts AIM on the same axis
   as every other method's Step 2 (all train on ImageNet-1k, so the data confound is
-  gone). (Added after the initial eval-only port; see the Step 2 section.)
+  gone). (Added after the initial port, which probed only the downloaded Step-1
+  backbone; see the Step 2 section.)
 
 ## Step 2 (unified ViT-B/16), from scratch
 
@@ -37,14 +38,17 @@ apple-amlr non-commercial licence applies **only** to the Step-1 as-is probe, wh
 imports the official `apple/ml-aim` package and downloads the AIM-600M weights
 (both pinned, never copied). See the Licence section below and `provenance.json`.
 
-## Scope — the eval-only "as-is SSL comparison"
+## Scope — two comparisons on the unified axis
 
-The capture's AIM "Step 1" is a frozen-backbone probe: download the official
-AIM-600M and probe it. That is what this port covers. AIM's from-scratch
-autoregressive pretraining on the unavailable DFN-2B+ (and the capture's own
-from-scratch step 2, `models/aim_vit.py`) is the **excluded step**, as in every
-port. This port **trains nothing** and produces **no `encoder.pt`**; it probes a
-frozen, hash-pinned downloaded backbone.
+The capture's AIM **Step 1** is a frozen-backbone probe: download the official
+AIM-600M and probe it. AIM's from-scratch autoregressive pretraining used the
+unavailable DFN-2B+, so the as-is Step-1 row reuses that official downloaded
+backbone (this Step-1 comparison **trains nothing** and writes **no `encoder.pt`**;
+it probes a frozen, hash-pinned downloaded backbone). The capture's own
+from-scratch **Step 2** (`models/aim_vit.py`) is ported additively: a ViT-B/16
+trained from scratch on ImageNet-1k with the prefix-LM next-patch objective, then
+linear-probed (`recipe: unified`), so AIM sits on the same unified axis as every
+other method. The eval-only Step-1 download path is unchanged.
 
 ## Licence — non-commercial research use only
 
