@@ -1,0 +1,37 @@
+# Franca linear evaluation (Step 2): a probe on the frozen from-scratch ViT-B/16.
+#
+# This is the evaluation for the unified Step-2 encoder (recipe: unified). It
+# freezes the trained encoder.pt (the EMA teacher backbone this port's pretrain
+# produced) and probes its CLS token. It is a different comparison from the
+# eval-only Step-1 (configs/linear_eval.yaml), which probes the official
+# downloaded ViT-B/14. The probe follows the shared ARSSL protocol (mean-centre +
+# L2-normalise, a single linear layer, SGD + cosine), so the number is comparable.
+#
+# Two paths are passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   an ImageFolder with train/ and val/ subdirectories
+#   --set ENCODER=<path>     encoder.pt (or a milestone encoder_epoch{N}.pt) from a
+#                            unified pretrain run
+# The output path is fixed at --out.
+stage: linear_eval
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+encoder: "${ENCODER}"
+
+train:
+  recipe: unified
+  # backbone (this port's models/): the trained ViT-B/16 the pretrain produced.
+  arch: vit_base_patch16_224
+  patch_size: 16
+  embed_dim: 768
+  depth: 12
+  num_heads: 12
+  mlp_ratio: 4.0
+  resolution: 224
+  # probe: a single linear layer, SGD + cosine.
+  epochs: 100
+  batch_size: 256
+  num_workers: 8
+  lr: 0.001
+  momentum: 0.9
+  weight_decay: 0.0

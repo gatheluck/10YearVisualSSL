@@ -312,9 +312,18 @@ and puts them on the same axis. Ported as full method-ports (add a `pretrain` st
   the eval-only Step-1 download probe; **timm added to the lock at fleet `1.0.28`**.
   Full Step-2 paths verified (model round-trip, pretrain→contract+milestones,
   Step-2 eval→contract); base gate EXIT=0; eval recipe-split mutation-killed.
-- **`36_franca` (next)** reuses 28's DINOv2 backbone/loss + Franca's nested/Matryoshka
-  heads + own loader; **`30_aim`** is autoregressive (Prefix-LM, pixel MSE) + a
-  different probe + **apple-amlr non-commercial** (must be marked in provenance/README).
+- **`36_franca` DONE** (branch `port/vit-step2-franca`, stacked on 28). Reuses the
+  DINOv2 ViT backbone + KoLeo (vendored into `models/`, since methods are isolated) and
+  adds Franca's own contribution: nested **MatryoshkaHead** + **Sinkhorn-Knopp**
+  DINO/iBOT losses (no centering). The capture's `franca_data` cross-imported 28's
+  augmentation — vendored here to avoid a `data` package collision. Single-process
+  `train_pretrain_vit_franca.py`; adapter grew a `pretrain` stage + a `recipe: unified`
+  Step-2 eval (probes the trained `teacher_bb` encoder.pt at CLS) alongside the eval-only
+  Step-1 download probe; **timm added to the lock at fleet `1.0.28`** (same closure as 28).
+  Step-2 paths verified (model round-trip, pretrain→contract+milestones, Step-2 eval→
+  contract+comparable); base gate EXIT=0; eval recipe-split mutation-killed.
+- **`30_aim` (next)** is autoregressive (Prefix-LM, pixel MSE) + a different probe +
+  **apple-amlr non-commercial** (must be marked in provenance/README).
 - **Generative** (`image_gpt`, `mar`, `var`): the from-scratch Step-2 is generative;
   the probe-target question (docs/EVAL_DOWNLOAD.md) is separate. Scope later.
 

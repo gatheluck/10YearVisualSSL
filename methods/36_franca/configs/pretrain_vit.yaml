@@ -1,0 +1,78 @@
+# Franca step 2 (unified ViT-B/16): the "A Decade of Visual SSL" Step-2 recipe.
+#
+# The from-scratch unified Step 2. It trains a ViT-B/16 on ImageNet-1k with
+# Franca's objective -- a DINOv2-style backbone + Franca's nested Matryoshka
+# DINO/iBOT heads and Sinkhorn-Knopp losses + KoLeo -- 300 epochs, batch 1024,
+# lr 6e-4, fixed weight decay 0.05, 10-epoch warmup then cosine, with milestone
+# checkpoints at 100/200/300. This is a different comparison from the eval-only
+# Step-1 (configs/linear_eval.yaml), which probes the official downloaded
+# ViT-B/14 -- the from-scratch Step 2 removes the data confound (every method
+# trains on ImageNet-1k here).
+#
+# These are the settings the captured cluster run used -- the recipe, not a
+# result. Nothing here has executed a full run; the README says exactly what was
+# and was not exercised.
+#
+# One path is passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   the dataset root; pretraining reads its train/ subdirectory
+# The output path is fixed at --out.
+stage: pretrain
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+
+model:
+  arch: vit_base_patch16_224
+  patch_size: 16
+  embed_dim: 768
+  depth: 12
+  num_heads: 12
+  mlp_ratio: 4.0
+  img_size: 224
+  nesting_dims: [48, 96, 192, 384, 768]
+
+head:
+  out_dim: 131072
+  hidden_dim: 2048
+  bottleneck_dim: 384
+  nlayers: 3
+
+data:
+  global_crop_size: 224
+  local_crop_size: 96
+  n_global_crops: 2
+  n_local_crops: 8
+  global_crops_scale: [0.32, 1.0]
+  local_crops_scale: [0.05, 0.32]
+  num_workers: 8
+
+dino:
+  student_temp: 0.1
+  teacher_temp_min: 0.04
+  teacher_temp_max: 0.07
+  teacher_temp_warmup_epochs: 30
+  loss_weight: 1.0
+
+ibot:
+  mask_sample_probability: 0.5
+  mask_ratio_min_max: [0.1, 0.65]
+  sinkhorn_iterations: 3
+  loss_weight: 1.0
+
+koleo:
+  loss_weight: 0.1
+
+training:
+  epochs: 300
+  batch_size: 1024
+  lr: 6.0e-4
+  min_lr: 1.0e-6
+  warmup_epochs: 10
+  beta1: 0.9
+  beta2: 0.95
+  weight_decay: 0.05
+  final_weight_decay: 0.05
+  momentum_teacher_min: 0.992
+  momentum_teacher_max: 1.0
+  clip_grad: 3.0
+  save_at_epochs: [100, 200, 300]

@@ -95,11 +95,17 @@ def build_model(official_dir: Path, train: dict, device: "torch.device"):
 
 @torch.no_grad()
 def extract_cls(model, imgs, train: dict, device) -> "torch.Tensor":
-    """The probed representation: the backbone's `feature_key` output. A token
-    grid ([B, N, D]) is mean-pooled; a CLS vector ([B, D]) is taken as is."""
+    """The probed representation.
+
+    Step 2 (from-scratch): the encoder is this port's own ``DINOv2Backbone``,
+    whose ``get_cls_token`` returns the CLS ([B, D]) -- Franca's Step-2 backbone.
+    Step 1 (as-is): the official Franca backbone returns a dict; the ``feature_key``
+    output is taken (a token grid [B, N, D] is mean-pooled, a CLS vector as is)."""
+    imgs = imgs.to(device)
+    if hasattr(model, "get_cls_token"):        # the from-scratch DINOv2Backbone
+        return model.get_cls_token(imgs)
     feature_key = train.get("feature_key", "x_norm_clstoken")
-    out = model.forward_features(imgs.to(device),
-                                 use_rasa_head=bool(train["use_rasa_head"]))
+    out = model.forward_features(imgs, use_rasa_head=bool(train["use_rasa_head"]))
     feat = out[feature_key]
     if feat.ndim == 3:
         feat = feat.mean(dim=1)

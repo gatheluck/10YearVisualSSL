@@ -1,22 +1,47 @@
-# 36_franca — linear evaluation (frozen pretrained backbone)
+# 36_franca — as-is Step-1 probe + unified ViT-B/16 Step-2 pretrain + linear eval
 
 Franca ([arXiv:2507.14137](https://arxiv.org/abs/2507.14137)), a self-supervised
 ViT foundation model in the DINOv2 lineage.
 
-## Why this method, and what is new here
+Two comparisons live here:
 
-**This is the first eval-only port: a `linear_eval` stage and no step 1.** In the
-capture (`methods/36_franca/README.md`), Franca's "Step 1" is a *caveat eval* --
-freeze the official pretrained Franca **ViT-B/14 In21K** backbone and fit a
-linear probe on frozen CLS features, "analogous to DINOv2 ... **not local Franca
-pretraining**". The from-scratch SSL pretraining (DINO/iBOT/Sinkhorn/KoLeo,
-H100-class) is the capture's Step 2, and is excluded like every method's step 2.
+- **Step 1 (as-is)** — a `linear_eval` with no `recipe`: freeze the official
+  pretrained Franca **ViT-B/14 In21K** backbone (downloaded, `third_party/franca`)
+  and probe its frozen CLS token, "analogous to DINOv2 ... **not local Franca
+  pretraining**". This trains nothing and produces no `encoder.pt`.
 
-So this port **trains nothing** and produces **no `encoder.pt`**; it probes a
-frozen, downloaded backbone. This is the frozen-backbone / weight-download shape
-that CONTRACT section 7 left open — see `docs/EVAL_DOWNLOAD.md`. Unlike var (which
-probes a tokeniser), the representation here is a genuine SSL ViT (Franca's
-pretrained CLS token), so the number **is** comparable.
+- **Step 2 (unified)** — `pretrain` trains a **ViT-B/16 from scratch** on
+  ImageNet-1k with Franca's objective, then `linear_eval` with `recipe: unified`
+  probes the trained `encoder.pt` at its CLS token. This puts Franca on the same
+  axis as every other method's Step 2 (all train on ImageNet-1k, so the data
+  confound is gone). (Added after the initial eval-only port; see the Step 2 section.)
+
+## Step 2 (unified ViT-B/16), from scratch
+
+Franca shares DINOv2's DINO+iBOT+KoLeo core but is a distinct method: its
+contribution is the **nested Matryoshka projection heads** (coarse-to-fine
+prototype sets over `nesting_dims = [48, 96, 192, 384, 768]`) and **Sinkhorn-Knopp**
+teacher normalisation (instead of DINOv2's EMA centering). `train_pretrain_vit_franca.py`
+is a single-process port of the capture's `train_step2_vit.py` (per-step
+warmup→cosine LR, per-step teacher-momentum and teacher-temp schedules, the
+Sinkhorn DINO/iBOT losses + KoLeo, gradient-norm clipping, milestone saves). The
+capture's DDP / bf16 autocast / TensorBoard / health-gate are dropped; the device
+is resolved. `models/` reuses the DINOv2 ViT backbone (shared design with
+28_dinov2, vendored so the method is self-contained) and adds `MatryoshkaHead` +
+the Sinkhorn losses; the multi-crop / cyclic-mask data is vendored too. **timm is a
+Step-2 dependency** (the ViT is built from scratch, so CI stays hermetic).
+
+`encoder.pt` (Step 2) is the EMA **teacher backbone** (`teacher_bb.*`), with the
+nested heads and student excluded; the adapter also writes
+`encoder_epoch{100,200,300}.pt` for the milestone sweep. Probe a Step-2 encoder
+with `configs/linear_eval_vit.yaml` (`recipe: unified`, CLS token).
+
+## The eval-only Step 1 (unchanged)
+
+This is the frozen-backbone / weight-download shape that CONTRACT section 7 left
+open — see `docs/EVAL_DOWNLOAD.md`. Unlike var (which probes a tokeniser), the
+representation is a genuine SSL ViT (Franca's pretrained CLS token), so the number
+**is** comparable.
 
 The model is the pinned upstream `valeoai/Franca` under `third_party/franca`,
 imported and never copied, and pinned **directly** (no fork): the frozen forward
