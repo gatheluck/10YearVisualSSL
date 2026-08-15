@@ -108,10 +108,17 @@ def build_model(official_dir: Path, train: dict, device: "torch.device"):
 
 @torch.no_grad()
 def extract_cls(model, imgs, train: dict, device) -> "torch.Tensor":
-    """The probed representation: the backbone's `feature_key` output. A CLS
-    vector ([B, D]) is taken as is; a token grid ([B, N, D]) is mean-pooled."""
+    """The probed representation.
+
+    Step 2 (from-scratch): the encoder is this port's own ``DINOv2Backbone``,
+    whose ``get_cls_token`` returns the CLS ([B, D]) -- the capture's own choice.
+    Step 1 (as-is): the official DINOv2 backbone returns a dict; the ``feature_key``
+    output (a CLS vector) is taken as is, a token grid ([B, N, D]) mean-pooled."""
+    imgs = imgs.to(device)
+    if hasattr(model, "get_cls_token"):        # the from-scratch DINOv2Backbone
+        return model.get_cls_token(imgs)
     feature_key = train.get("feature_key", "x_norm_clstoken")
-    out = model.forward_features(imgs.to(device))
+    out = model.forward_features(imgs)
     feat = out[feature_key]
     if feat.ndim == 3:
         feat = feat.mean(dim=1)
@@ -191,8 +198,12 @@ def run(args, config: "dict | None" = None, model=None,
             official_dir = Path(__file__).resolve().parent.parent.parent \
                 / "third_party" / "dinov2"
         model = build_model(Path(official_dir), train, device)
-    print(f"DINOv2 linear eval  device={device}  arch={train['name']}  "
-          f"backbone={'pretrained' if train.get('ckpt') else 'random (smoke)'}")
+    if train.get("recipe") == "unified":
+        print(f"DINOv2 linear eval (Step 2)  device={device}  "
+              f"arch={train.get('arch')}  backbone=trained encoder.pt (CLS probe)")
+    else:
+        print(f"DINOv2 linear eval  device={device}  arch={train['name']}  "
+              f"backbone={'pretrained' if train.get('ckpt') else 'random (smoke)'}")
 
     res = int(train["resolution"])
     bs = int(train["batch_size"])

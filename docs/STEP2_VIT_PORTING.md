@@ -297,10 +297,26 @@ One family = one PR. Order by reuse (high → complex):
   milestone `encoder_epoch{N}.pt`; each `pretrain_vit.yaml` carries `recipe: unified` +
   `save_at_epochs` + the DATA_ROOT line; no native config gained a `recipe` key.
 
-**Deferred, separate efforts (different nature, not this fan-out):**
-- **Generative** (`image_gpt`, `mar`, `var`) and **eval-only download** (`28_dinov2`,
-  `30_aim`, `36_franca`): the capture also ran a from-scratch ViT Step-2 for these;
-  scope later.
+**Eval-only-download methods — adding their from-scratch unified Step 2:**
+These three (`28_dinov2`, `30_aim`, `36_franca`) were first ported **eval-only**
+(the CSV's Step-1 "as-is" cell: download official weights → probe), because their
+*original* pretraining data is non-public. But the capture ships a **self-contained
+from-scratch ViT-B/16 Step 2** for each (`train_step2_vit.py` + own models), and the
+unified Step 2 trains on ImageNet-1k for everyone — so it removes the data confound
+and puts them on the same axis. Ported as full method-ports (add a `pretrain` stage
++ a Step-2 `linear_eval`, keeping the eval-only Step-1):
+- **`28_dinov2` DONE** (branch `port/vit-step2-dinov2`). DINO+iBOT+KoLeo ViT-B/16
+  from scratch; `models/`+`data/` ported from the capture (timm ViT); single-process
+  `train_pretrain_vit_dinov2.py`; adapter grew a `pretrain` stage + a `recipe: unified`
+  Step-2 eval (probes the trained `teacher_bb` encoder.pt at its CLS token) alongside
+  the eval-only Step-1 download probe; **timm added to the lock at fleet `1.0.28`**.
+  Full Step-2 paths verified (model round-trip, pretrain→contract+milestones,
+  Step-2 eval→contract); base gate EXIT=0; eval recipe-split mutation-killed.
+- **`36_franca` (next)** reuses 28's DINOv2 backbone/loss + Franca's nested/Matryoshka
+  heads + own loader; **`30_aim`** is autoregressive (Prefix-LM, pixel MSE) + a
+  different probe + **apple-amlr non-commercial** (must be marked in provenance/README).
+- **Generative** (`image_gpt`, `mar`, `var`): the from-scratch Step-2 is generative;
+  the probe-target question (docs/EVAL_DOWNLOAD.md) is separate. Scope later.
 
 ## 6. Complexity flags (schedule carefully)
 EMA + queue: 13, 15. Memory bank + resume state: 10, 12, 33. EMA teacher + target BN:

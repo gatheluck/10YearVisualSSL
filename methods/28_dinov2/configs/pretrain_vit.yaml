@@ -1,0 +1,77 @@
+# DINOv2 step 2 (unified ViT-B/16): the "A Decade of Visual SSL" Step-2 recipe.
+#
+# The from-scratch unified Step 2. It trains a ViT-B/16 on ImageNet-1k with the
+# DINOv2 objective (DINO + iBOT + KoLeo), 300 epochs, batch 1024, peak lr 6e-4
+# (= base_lr 6e-4 x batch/1024), fixed weight decay 0.05, 10-epoch warmup then
+# cosine, with milestone checkpoints at 100/200/300. This is a different comparison
+# from the eval-only Step-1 (configs/linear_eval.yaml), which probes the official
+# downloaded ViT-g/14 -- the from-scratch Step 2 removes the data confound (every
+# method trains on ImageNet-1k here).
+#
+# These are the settings the captured cluster run used -- the recipe, not a
+# result. Nothing here has executed a full run; the README says exactly what was
+# and was not exercised.
+#
+# One path is passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   the dataset root; pretraining reads its train/ subdirectory
+# The output path is fixed at --out.
+stage: pretrain
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+
+model:
+  arch: vit_base_patch16_224
+  patch_size: 16
+  embed_dim: 768
+  depth: 12
+  num_heads: 12
+  mlp_ratio: 4.0
+  img_size: 224
+
+data:
+  global_crop_size: 224
+  local_crop_size: 96
+  n_global_crops: 2
+  n_local_crops: 8
+  global_crops_scale: [0.32, 1.0]
+  local_crops_scale: [0.05, 0.32]
+  num_workers: 8
+
+dino:
+  out_dim: 65536
+  head_bottleneck_dim: 256
+  head_nlayers: 3
+  head_hidden_dim: 2048
+  student_temp: 0.1
+  teacher_temp_min: 0.04
+  teacher_temp_max: 0.07
+  teacher_temp_warmup_epochs: 30
+  center_momentum: 0.9
+
+ibot:
+  out_dim: 65536
+  separate_head: false
+  mask_sample_probability: 0.5
+  mask_ratio_min_max: [0.1, 0.5]
+  loss_weight: 1.0
+
+koleo:
+  loss_weight: 0.1
+
+dino_loss_weight: 1.0
+
+training:
+  epochs: 300
+  batch_size: 1024
+  base_lr: 0.0006
+  min_lr: 1.0e-6
+  warmup_epochs: 10
+  beta1: 0.9
+  beta2: 0.95
+  weight_decay: 0.05
+  momentum_teacher_min: 0.992
+  momentum_teacher_max: 1.0
+  clip_grad: 3.0
+  freeze_last_layer_epochs: 1
+  save_at_epochs: [100, 200, 300]
