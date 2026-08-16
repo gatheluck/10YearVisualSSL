@@ -17,7 +17,7 @@ license-clean pattern as `25_mae`/`image_gpt`/the clean six). Those port
 **self-contained on the existing `pretrain → encoder.pt → linear_probe` contract**;
 no submodule, no download, no noncommercial entanglement. Five have no `models/`
 (`8_split_brain`(done, `08_split_brain` -- a plain AlexNet, self-contained after all),
-`34_msn`, `35_vjepa`, `36_franca`(done, eval-only), `37_lejepa`)
+`34_msn`, `35_vjepa`, `36_franca`(done), `37_lejepa`)
 and need a submodule / eval-only treatment (and, for msn/vjepa/lejepa, a
 noncommercial-licence decision).
 
@@ -84,9 +84,9 @@ rest — e.g. capture `14_simclrv1` ↔ list #14 = PIRL; capture `17_swav` ↔ l
 | 27 | SimMIM | `26_simmim` | no | ported (`26_simmim`; needs timm for Swin -- reuses the `22_mocov3` lock; the `transformers` dep was docstring-only, measured; encoder.pt is the bare Swin) |
 | 28 | iBOT | `27_ibot` | no | ported (`27_ibot`) |
 | 29 | MSN | `34_msn` | no | ported (`34_msn`; **submodule-import**: pins `facebookresearch/msn` (third_party/msn @4388dc1, CC BY-NC 4.0, research-use) and imports its ViT (src/deit) + MSN loss (src/losses) + optimiser (src/msn_train.init_opt) into a single-process trainer; anchor/target EMA + prototypes + me-max; encoder.pt = anchor ViT trunk (fc excluded). The multi-view aug is reimplemented (upstream trips Pillow 12.x); DDP/submitit/cyanure dropped, shared ARSSL probe; torch-only closure. Nothing under the licence is copied) |
-| 30 | DINOv2 | `28_dinov2` | no | ported (`28_dinov2`; **eval-only download**, the first of that phase, Franca shape: pinned `third_party/dinov2` submodule (xformers disabled -> torch-only), the official ViT-g/14 LVD-142M weights hash-pinned via `bin/fetch-weights.py`; the from-scratch path (LVD-142M, not public) is the excluded step) |
+| 30 | DINOv2 | `28_dinov2` | no | ported (`28_dinov2`; **two comparisons**. Step-1 (as-is): pinned `third_party/dinov2` submodule (xformers disabled -> torch-only), official ViT-g/14 LVD-142M weights hash-pinned via `bin/fetch-weights.py` (the original LVD-142M data is not public, so the as-is row reuses the official backbone). Step-2 (unified): a from-scratch ViT-B/16 (DINO+iBOT+KoLeo) on ImageNet-1k, ported additively) |
 | 31 | I-JEPA | `29_ijepa` | no | ported (`29_ijepa`; torch-only -- I-JEPA ships its own ViT, NOT timm, measured; trains from scratch on ImageNet; encoder.pt is the EMA target encoder) |
-| 32 | AIM | `30_aim` | no | ported (`30_aim`; **eval-only download**, Franca/dinov2 shape: pinned `third_party/ml-aim` submodule (Apple's `aim`), the official AIM-600M ViT-H/14 (DFN-2B+) backbone hash-pinned via `bin/fetch-weights.py`, probed on the last-6-block average patch-mean-pooled; from-scratch DFN-2B+ pretraining is the excluded step. Licence apple-amlr = non-commercial research; nothing under it copied (submodule + download), academic-research use only) |
+| 32 | AIM | `30_aim` | no | ported (`30_aim`; **two comparisons**. Step-1 (as-is): pinned `third_party/ml-aim` submodule (Apple's `aim`), official AIM-600M ViT-H/14 (DFN-2B+) backbone hash-pinned via `bin/fetch-weights.py`, probed on the last-6-block average patch-mean-pooled (DFN-2B+ is not public, so the as-is row reuses the official backbone). Step-2 (unified): a from-scratch ViT-B/16 (prefix-LM next-patch MSE) on ImageNet-1k, ported additively (the lab's own torch-only AIM re-impl, not apple's code/weights). Licence apple-amlr binds only the Step-1 probe = non-commercial research; nothing under it copied (submodule + download), academic-research use only) |
 | 33 | V-JEPA | `35_vjepa` | no | ported (`35_vjepa`; **submodule-import** of `facebookresearch/jepa` (third_party/jepa @51c59d5, CC BY-NC 4.0, research-use). Ports the capture's step-2 image adaptation (num_frames=1 image ViT-B/16, from scratch on ImageNet) -- a genuine comparable row, NOT the pretrain caveat probe of the released video model. Imports init_video_model + 3D MaskCollator + apply_masks; context/target EMA + latent smooth-L1 prediction; encoder.pt = EMA target encoder. torch-only closure; single-process (DDP/TensorBoard dropped); shared ARSSL probe. Nothing under the licence is copied) |
 | 34 | Franca | `36_franca` | no | ported (`36_franca`) |
 | 35 | DINOv3 | `31_dinov3` | no | ported (`31_dinov3`; torch-only, from-scratch on ImageNet -- the capture's **step 2** unified SSL comparison, DINOv3 **core** objective: own ViT (register tokens + axial RoPE) + DINO (Sinkhorn centring) + iBOT + KoLeo, EMA teacher, multi-crop; encoder.pt = teacher backbone (prefix stripped). The capture's step 1 (HF-**gated** official weights) and the released **Gram anchoring** stage (`gram.mode: core_only`) are excluded; a from-scratch re-implementation, so no Meta code/weights are used) |
@@ -116,7 +116,7 @@ a clean torch+timm self-contained port. It is **now ported** (`37_lejepa`). With
 it done, the genuinely-clean from-scratch tier is exhausted. On 2026-08-10 the user
 ruled that **non-commercial-licensed code may be used for academic research** (with
 careful licence documentation), which unblocks the remaining eval-only /
-non-commercial tier. `30_aim` is **now ported** as an eval-only download (see below).
+non-commercial tier. `30_aim` is **now ported** (an as-is Step-1 download probe plus a from-scratch unified Step-2; see below).
 `31_dinov3` is **now ported** (2026-08-10): its eval-only download path is blocked
 (HF login-gated weights), but its capture **step 2** -- the from-scratch unified SSL
 comparison -- is self-contained torch-only code (own ViT + DINO/iBOT/KoLeo losses,
