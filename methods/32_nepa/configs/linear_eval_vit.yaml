@@ -1,0 +1,46 @@
+# NEPA unified ViT-B/16 linear evaluation: a linear probe on the frozen EMA model.
+#
+# Probes the ViT-B/16 the Step-2 pretrain trains. The unified Step-2 setting pools
+# the raw patch embeddings (pool: embed, the capture's step2 choice), one embed_dim
+# vector per image, rather than the native AR-output average (pool: avg). Follows
+# the shared ARSSL protocol (mean-centre + L2-normalise, a single linear layer,
+# SGD + cosine). The model dimensions must match the Step-2 run so encoder.pt
+# loads (patch_size 16, SwiGLU).
+#
+# Two paths are passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   an ImageFolder with train/ and val/ subdirectories
+#   --set ENCODER=<path>     encoder.pt (or encoder_epoch{N}.pt) from a Step-2 run
+# The output path is fixed at --out.
+stage: linear_eval
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+encoder: "${ENCODER}"
+
+train:
+  # model (must match the Step-2 run so encoder.pt loads)
+  embed_dim: 768
+  depth: 12
+  num_heads: 12
+  patch_size: 16
+  img_size: 224
+  mlp_ratio: 4.0
+  use_swiglu: true
+  use_qk_norm: true
+  use_rope: true
+  use_cls_token: true
+  patch_embed_norm: false
+  layerscale_init: 1.0e-5
+  layer_norm_eps: 1.0e-12
+  rope_theta: 100.0
+  pos_embed_shift: null
+  pos_embed_jitter: null
+  pos_embed_rescale: 2.0
+  # probe: a single linear layer, SGD + cosine
+  epochs: 100
+  batch_size: 256
+  num_workers: 10
+  lr: 0.001
+  momentum: 0.9
+  weight_decay: 0.0
+  pool: embed                  # unified step-2 probes raw patch embeddings

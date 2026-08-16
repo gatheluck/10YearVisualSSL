@@ -146,6 +146,7 @@ def run(args, config: "dict | None" = None) -> dict:
     warmup_steps = int(t["warmup_epochs"]) * steps_per_epoch
     peak_lr = float(t["base_lr"]) * int(t["batch_size"]) / 256.0
     clip_grad = float(t["clip_grad"])
+    save_at = {int(n) for n in t.get("save_at_epochs", [])}
 
     print("=" * 72)
     print("NEPA  Step 1: ViT + causal AR predictor + EMA  (arXiv:2512.16922)")
@@ -176,10 +177,13 @@ def run(args, config: "dict | None" = None) -> dict:
             global_step += 1
         final_loss = running / count if count else None
         print(f"  [{epoch}] nepa_loss={final_loss}  lr={lr:.6g}")
-        torch.save({"epoch": epoch, "model_state_dict": model.state_dict(),
-                    "optimizer_state_dict": optimizer.state_dict(),
-                    "loss": final_loss, "config": cfg},
-                   os.path.join(save_dir, "checkpoint_latest.pth"))
+        ckpt = {"epoch": epoch, "model_state_dict": model.state_dict(),
+                "optimizer_state_dict": optimizer.state_dict(),
+                "loss": final_loss, "config": cfg}
+        torch.save(ckpt, os.path.join(save_dir, "checkpoint_latest.pth"))
+        if (epoch + 1) in save_at:
+            torch.save(ckpt, os.path.join(save_dir,
+                                          f"checkpoint_epoch_{epoch + 1}.pth"))
 
     print("\nNEPA Step 1 training complete!")
     ran = total_epochs > 0 and final_loss is not None

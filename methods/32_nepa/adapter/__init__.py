@@ -8,7 +8,9 @@ cosine similarity between z_hat[:, :-1] and a stop-gradient shifted target
 z[:, 1:] (step 1). An EMA copy of the model is kept for evaluation. linear_eval
 then probes the frozen EMA model's avg-pooled predictor output (embed_dim). A
 self-contained re-implementation (the lab's own code); NEPA ships its own ViT, so
-the port is torch-only -- no timm. The capture's step 2 (ViT-B) is excluded.
+the port is torch-only -- no timm. The capture's unified ViT-B/16 Step 2 is ported
+additively: the same NEPAModel at patch_size 16 with the unified recipe and
+milestone checkpoints (select it with configs/pretrain_vit.yaml, save_at_epochs).
 
 `encoder.pt` is the EMA model (`ema_model.*`, the prefix stripped so it loads into
 a plain NEPAModel; the capture evaluates the EMA model by default). The online
@@ -45,6 +47,13 @@ PRETRAIN_TRAIN_KEYS = MODEL_KEYS | EMA_KEYS | DATA_KEYS | TRAINING_KEYS
 EVAL_PROBE_KEYS = frozenset({"epochs", "batch_size", "num_workers", "lr",
                              "momentum", "weight_decay"})
 EVAL_TRAIN_KEYS = MODEL_KEYS | EVAL_PROBE_KEYS
+
+# Optional keys, allowed but not required, so the native and unified-Step-2 configs
+# share one key set. save_at_epochs (absent = no milestones) selects the unified
+# ViT-B/16 Step-2 milestone sweep; pool (absent = "avg", the native AR-output
+# probe) selects the Step-2's raw-patch-embedding probe (pool: embed).
+PRETRAIN_OPTIONAL = frozenset({"save_at_epochs"})
+EVAL_OPTIONAL = frozenset({"pool"})
 
 TOP_KEYS = frozenset({"stage", "seed", "data_root", "device", "train"})
 EVAL_TOP_KEYS = TOP_KEYS | {"encoder"}
@@ -135,6 +144,7 @@ def to_run_config(config: dict, out: Path) -> dict:
             f"config: stage is {stage!r}; known stages are "
             f"{', '.join(STAGES)}")
     keys = EVAL_TRAIN_KEYS if stage == "linear_eval" else PRETRAIN_TRAIN_KEYS
+    optional = EVAL_OPTIONAL if stage == "linear_eval" else PRETRAIN_OPTIONAL
     top = EVAL_TOP_KEYS if stage == "linear_eval" else TOP_KEYS
     _named(top - set(config), set(config) - top, "config")
 
@@ -142,7 +152,7 @@ def to_run_config(config: dict, out: Path) -> dict:
     if not isinstance(train, dict):
         raise ConfigError(f"config: train is {type(train).__name__}, "
                           "not a mapping")
-    _named(keys - set(train), set(train) - keys, "config.train")
+    _named(keys - set(train), set(train) - keys - optional, "config.train")
 
     if config["device"] not in DEVICES:
         raise ConfigError(
@@ -159,7 +169,9 @@ def to_run_config(config: dict, out: Path) -> dict:
         "data": {"data_root": str(config["data_root"]),
                  "augmentation": str(train["augmentation"]),
                  "num_workers": int(train["num_workers"])},
-        "training": _training_section(train),
+        "training": {**_training_section(train),
+                     "save_at_epochs": [int(e) for e in
+                                        train.get("save_at_epochs", [])]},
         "output": {"checkpoint_dir": str(Path(out) / WORK)},
     }
 
@@ -259,6 +271,12 @@ def body(ctx: adapterlib.Context) -> None:
     state = torch.load(latest, map_location="cpu", weights_only=False)
     torch.save(extract_encoder(state["model_state_dict"]),
                Path(ctx.out) / "encoder.pt")
+    for n in ctx.config.get("train", {}).get("save_at_epochs", []):
+        ck = Path(ctx.out) / WORK / f"checkpoint_epoch_{int(n)}.pth"
+        if ck.is_file():
+            s = torch.load(ck, map_location="cpu", weights_only=False)
+            torch.save(extract_encoder(s["model_state_dict"]),
+                       Path(ctx.out) / f"encoder_epoch{int(n)}.pt")
     ctx.write_metrics(metrics, names=PRETRAIN_METRIC_NAMES)
 
 

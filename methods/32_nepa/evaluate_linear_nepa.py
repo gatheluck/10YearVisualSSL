@@ -39,11 +39,11 @@ def _build_loader(data_root: str, split: str, image_size: int, batch_size: int,
 
 
 @torch.no_grad()
-def extract_features(model, loader, device):
+def extract_features(model, loader, device, pool: str = "avg"):
     feats, labels = [], []
     for imgs, lbs in loader:
         f = model.extract_features(imgs.to(device, non_blocking=True),
-                                   use_ema=False, pool="avg")
+                                   use_ema=False, pool=pool)
         feats.append(f.float().cpu())
         labels.append(lbs)
     return torch.cat(feats), torch.cat(labels)
@@ -100,6 +100,7 @@ def run(args, config: "dict | None" = None, model=None) -> dict:
 
     bs = int(train["batch_size"])
     nw = int(train["num_workers"])
+    pool = str(train.get("pool", "avg"))
     tr_ds, tr_loader = _build_loader(data_root, "train", isz, bs, nw)
     va_ds, va_loader = _build_loader(data_root, "val", isz, bs, nw)
     if tr_ds.classes != va_ds.classes:
@@ -108,8 +109,8 @@ def run(args, config: "dict | None" = None, model=None) -> dict:
             f"{va_ds.classes}")
     num_classes = len(tr_ds.classes)
 
-    train_feats, train_labels = extract_features(model, tr_loader, device)
-    val_feats, val_labels = extract_features(model, va_loader, device)
+    train_feats, train_labels = extract_features(model, tr_loader, device, pool)
+    val_feats, val_labels = extract_features(model, va_loader, device, pool)
     train_feats, val_feats = normalize_features(train_feats, val_feats)
     in_dim = train_feats.shape[1]
 

@@ -359,7 +359,19 @@ so the batches never touched them; the capture ships a `step2_vit.yaml` + `model
   224 images at the CLS token). **timm added to the lock at fleet `1.0.28`** (same
   closure as `13_mocov1`). z_dim==embed_dim guard + arch key-set split both
   mutation-killed; full 11_cpc module (43 tests) OK under a timm venv; base gate EXIT=0.
-- **`32_nepa` PENDING** — same gap shape; next.
+- **`32_nepa` DONE** (branch `port/vit-step2-nepa`, PR #103). Milestone-only /
+  config-align (like 31/35): the native port already ports `NEPAModel`, so Step 2 is
+  the **same model + trainer** at the unified setting — **no new model, no arch key,
+  no timm**. `configs/pretrain_vit.yaml` (patch_size 16 vs step-1 14,
+  `augmentation: step2`, SwiGLU, unified AdamW, `save_at_epochs: [100,200,300]`) +
+  `configs/linear_eval_vit.yaml` (`pool: embed`, the capture's step2
+  raw-patch-embedding probe). Additive: the trainer honours `save_at_epochs` (absent =
+  native, unchanged); the dataset gained a `step2` augmentation; the eval gained an
+  optional `pool` (default `avg`); the adapter treats `save_at_epochs`/`pool` as
+  **optional** keys (native and Step-2 share one key set) and extracts milestone
+  `encoder_epoch{N}.pt`. Two guards mutation-killed (milestone save; optional-key
+  allowance); full 32_nepa module OK under torch; base gate EXIT=0. **No lock change**
+  (torch-only).
 
 ## 6. Complexity flags (schedule carefully)
 EMA + queue: 13, 15. Memory bank + resume state: 10, 12, 33. EMA teacher + target BN:
