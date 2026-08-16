@@ -114,6 +114,21 @@ def step2_methods() -> list:
                   if m.is_dir() and m.name[0].isdigit() and has_step2(m))
 
 
+_README_ROW = re.compile(r"^\|\s*`(\d+_[a-z0-9_]+)`\s*\|(.*)$")
+
+
+def readme_table_rows() -> dict:
+    """The root README Methods table, as {method_name: row_text}. The root table
+    is a separate file from the per-method READMEs, so the per-method guard above
+    does not cover it -- a row can still deny a Step 2 the method now ships."""
+    rows = {}
+    for line in (ROOT / "README.md").read_text(encoding="utf-8").splitlines():
+        m = _README_ROW.match(line)
+        if m:
+            rows[m.group(1)] = m.group(2)
+    return rows
+
+
 class TestStep2DocsDoNotDenyTheStep2(unittest.TestCase):
     def test_there_are_step2_methods_to_check(self):
         """A guard over an empty set proves nothing."""
@@ -151,6 +166,28 @@ class TestStep2DocsDoNotDenyTheStep2(unittest.TestCase):
             "these methods write encoder.pt (Step 2) but their docs claim the "
             "whole port trains nothing / has no encoder.pt (scope it to Step 1):\n"
             + "\n".join(f"  - {o}" for o in offences))
+
+    def test_the_readme_table_row_does_not_deny_the_step2(self):
+        rows = readme_table_rows()
+        names = {m.name for m in step2_methods()}
+        offences = []
+        for name in sorted(names):
+            row = rows.get(name)
+            if row is None:
+                continue
+            # Strip markdown emphasis/code marks so a bolded claim
+            # ("**eval-only** port") is not a way past the detector.
+            clean = row.replace("*", "").replace("`", "")
+            for sent in stale_step2_claims(clean):
+                offences.append(f"{name}: {sent[:120]}")
+        self.assertEqual(
+            offences, [],
+            "these methods have a Step 2 but their root README table row denies "
+            "it:\n" + "\n".join(f"  - {o}" for o in offences))
+
+    def test_the_readme_table_was_actually_read(self):
+        """A guard over an empty parse proves nothing."""
+        self.assertGreater(len(readme_table_rows()), 30)
 
     # ---- detector controls (positive + negative) ----
     def test_detector_flags_a_real_denial(self):
