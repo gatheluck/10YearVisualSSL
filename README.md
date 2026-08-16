@@ -37,7 +37,7 @@ assume it.
 | `bin/resolve-config.py` | **implemented and tested.** Produces the canonical resolved config and its `config_sha256` |
 | `bin/contract-test.py` | **implemented and tested.** Decides by machine that a port is finished |
 | `platforms/` | **implemented and tested.** Platform separation; `local` is self-contained |
-| `methods/` | **forty methods ported and tested** (thirty-eight with a linear evaluation; `36_franca`, `28_dinov2` and `30_aim` are eval-only ports, with no step 1). The per-method table is below under [Methods](#methods) |
+| `methods/` | **forty methods ported and tested** (thirty-nine with a linear evaluation; only `mar` is pretrain-only). `28_dinov2`, `30_aim` and `36_franca` pair an as-is Step-1 download probe with a from-scratch unified Step-2. The per-method table is below under [Methods](#methods) |
 | `bin/launch.py` | **implemented and tested.** One command: resolve, submit, verify, record |
 | `adapterlib/` | **implemented and tested.** The one place a `run_manifest.json` is written |
 | `LICENSE` | **MIT** (Copyright (c) 2026 LIMIT.Lab) |

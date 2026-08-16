@@ -36,8 +36,10 @@ _EXCLUSION = re.compile(
     r"\b(exclud\w*|not ported|not brought across|no place in this port|"
     r"has no place|is not part of this port)\b", re.IGNORECASE)
 # A whole-method "eval-only port" claim (distinct from the correct phrase
-# "the eval-only Step-1 path", which describes only the Step-1 stage).
-_EVAL_ONLY_PORT = re.compile(r"\beval-only port\b", re.IGNORECASE)
+# "the eval-only Step-1 path/download", which describes only the Step-1 stage).
+# Singular and plural both count -- a status line summarising "X, Y and Z are
+# eval-only ports" is the same whole-port claim.
+_EVAL_ONLY_PORT = re.compile(r"\beval-only ports?\b", re.IGNORECASE)
 
 # A WHOLE-PORT no-training / no-encoder claim. 28_dinov2 / 30_aim / 36_franca began
 # as eval-only ports whose docs said the whole port "trains nothing" and that
@@ -129,6 +131,39 @@ def readme_table_rows() -> dict:
     return rows
 
 
+# Status/roadmap docs are prose, not the per-method files or the Methods table, so
+# the guards above miss them. These carry a *current-status* claim per method (e.g.
+# the README Status row, the roadmap's ported/what-is-excluded column), so a
+# present-tense denial of a shipped Step 2 here is drift. Accurate *history* lives
+# in STEP2_VIT_PORTING.md / STEP2_CONSISTENCY_AUDIT.md ("were first ported
+# eval-only", "converting the trio to two-stage"), which are deliberately NOT
+# scanned.
+STATUS_DOCS = ("README.md", "docs/PORTING_ROADMAP.md")
+
+
+def status_doc_denials() -> list:
+    """(doc, method, sentence) for every status-doc line that references a Step-2
+    method and denies its Step 2. Discovery-based: methods are found on disk, never
+    listed, and a line is attributed to a method by its `NN_name` token."""
+    names = [m.name for m in step2_methods()]
+    tokens = {name: re.compile(r"`" + re.escape(name) + r"`") for name in names}
+    out = []
+    for doc in STATUS_DOCS:
+        path = ROOT / doc
+        if not path.is_file():
+            continue
+        for line in path.read_text(encoding="utf-8").splitlines():
+            clean = line.replace("*", "").replace("`", "")
+            hits = stale_step2_claims(clean)
+            if not hits:
+                continue
+            for name in names:
+                if tokens[name].search(line):
+                    for sent in hits:
+                        out.append((doc, name, sent))
+    return out
+
+
 class TestStep2DocsDoNotDenyTheStep2(unittest.TestCase):
     def test_there_are_step2_methods_to_check(self):
         """A guard over an empty set proves nothing."""
@@ -188,6 +223,27 @@ class TestStep2DocsDoNotDenyTheStep2(unittest.TestCase):
     def test_the_readme_table_was_actually_read(self):
         """A guard over an empty parse proves nothing."""
         self.assertGreater(len(readme_table_rows()), 30)
+
+    def test_status_docs_do_not_deny_a_step2(self):
+        offences = [f"{doc} [{name}]: {sent[:110]}"
+                    for doc, name, sent in status_doc_denials()]
+        self.assertEqual(
+            offences, [],
+            "these status docs (README Status/prose, PORTING_ROADMAP) deny a "
+            "Step 2 that is now ported:\n" + "\n".join(f"  - {o}" for o in offences))
+
+    def test_the_status_docs_reference_step2_methods(self):
+        """A guard that references no method proves nothing: every status doc must
+        actually mention some Step-2 method (else the scan is vacuous)."""
+        names = [m.name for m in step2_methods()]
+        for doc in STATUS_DOCS:
+            path = ROOT / doc
+            if not path.is_file():
+                continue
+            text = path.read_text(encoding="utf-8")
+            with self.subTest(doc=doc):
+                self.assertTrue(any(f"`{n}`" in text for n in names),
+                                f"{doc} references no Step-2 method")
 
     # ---- detector controls (positive + negative) ----
     def test_detector_flags_a_real_denial(self):

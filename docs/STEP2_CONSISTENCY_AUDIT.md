@@ -66,6 +66,15 @@ Two of the trio escaped even a root-table `step 2` match because markdown bold
 (`**eval-only** port`) split the phrase. → **fix the rows AND extend the guard to the
 root table** (strip markdown emphasis first). Deliverable 4 below.
 
+### F. DOC DRIFT — status docs (README Status row, PORTING_ROADMAP) still call the trio eval-only
+The #101 + #104 guards cover per-method README/provenance and the root Methods **table**,
+but not the README **Status** summary row nor `docs/PORTING_ROADMAP.md`. After the trio
+(28/30/36) became two-stage: README Status said "…are **eval-only ports, with no step 1**"
+(and the count was stale, 38→39), and the roadmap's status column said "eval-only download …
+the from-scratch path is **the excluded step**". → fix + extend the guard to these status
+docs (line-scan keyed by a `NN_name` reference, markdown-stripped; broaden the eval-only
+detector to the plural "eval-only ports"). Deliverable 5 below.
+
 ## Remediation plan & progress
 1. [x] **Consistency PR** (branch `port/step2-consistency-audit`):
    - [x] Guard test `tests/test_step2_docs_consistency.py` (RED first, then GREEN).
@@ -105,6 +114,13 @@ root table** (strip markdown emphasis first). Deliverable 4 below.
        (parses the Methods table rows, strips markdown emphasis, reuses the step2-absent
        detector; mutation-killed) and fixed all 16 drifted rows to say the unified
        Step 2 is ported additively (the eval-only trio 28/30/36 reframed as two-stage:
-       Step-1 as-is + from-scratch Step-2). base gate EXIT=0.
+       Step-1 as-is + from-scratch Step-2). base gate EXIT=0. **PR #104** (merged).
+5. [x] **Status-docs consistency PR** (finding F, branch `fix/status-docs-step2-drift`):
+       fixed the README Status row (trio "eval-only ports, no step 1" → two-stage; count
+       38→39, only `mar` pretrain-only) and the roadmap's 28/30/36 rows + summary prose
+       (kept the accurate *history* narrative). Extended `tests/test_step2_docs_consistency.py`
+       with a status-docs line-scan (README.md + docs/PORTING_ROADMAP.md, keyed by a
+       `NN_name` reference, markdown-stripped; `_EVAL_ONLY_PORT` broadened to the plural)
+       + a "docs reference step2 methods" control; mutation-killed. base gate EXIT=0.
 
 Keep this file updated as each item lands (check the boxes, note the PR number).
