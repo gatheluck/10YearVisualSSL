@@ -56,6 +56,16 @@ excluded/not-ported. Fix the prose AND mechanise with a guard test.
   nested config (native config was nested). Correct.
 - All milestone/encoder/save_at_epochs/DATA_ROOT mechanics uniform; base gate green.
 
+### E. DOC DRIFT — the ROOT README methods table denies Step-2s that ARE ported
+Found while fixing the root table's 11_cpc/32_nepa rows: the per-method guard (finding
+B) scans `methods/*/README.md` + `provenance.json`, **not** the root `README.md`
+methods table — so 16 rows still said "the ViT step 2 … is excluded" (14/15/16/18/19/
+22/23/24/26/29/33/34/36/37) or framed the eval-only trio (28/30/36) as "eval-only port
+(no step 1) … pretraining is the excluded step" after they gained a from-scratch Step 2.
+Two of the trio escaped even a root-table `step 2` match because markdown bold
+(`**eval-only** port`) split the phrase. → **fix the rows AND extend the guard to the
+root table** (strip markdown emphasis first). Deliverable 4 below.
+
 ## Remediation plan & progress
 1. [x] **Consistency PR** (branch `port/step2-consistency-audit`):
    - [x] Guard test `tests/test_step2_docs_consistency.py` (RED first, then GREEN).
@@ -84,7 +94,17 @@ excluded/not-ported. Fix the prose AND mechanise with a guard test.
    - [x] Fix finding C (03_colorization lr 0.00015 → 0.0006). Verified the trainer uses
          `lr` directly (no batch scaling) and peers 06/01 pin 0.0006; no test pinned it.
    - [x] base gate EXIT=0 (2426 passed). Commit + **PR #101** (open).
-2. [ ] **11_cpc Step-2 port** (finding A) — own PR, strict TDD.
-3. [ ] **32_nepa Step-2 port** (finding A) — own PR, strict TDD.
+2. [x] **11_cpc Step-2 port** (finding A) — **PR #102** (merged). CPC on the ViT patch
+       grid; additive `arch: vit`; timm at fleet `1.0.28`; arch-aware eval; 2 guards
+       mutation-killed.
+3. [x] **32_nepa Step-2 port** (finding A) — **PR #103** (merged). Milestone-only /
+       config-align (native already ports NEPAModel); no new model/arch/timm; optional
+       `save_at_epochs` + `pool: embed`; step2 augmentation; 2 guards mutation-killed.
+4. [x] **Root-table consistency PR** (finding E, branch `fix/readme-table-step2-drift`):
+       extended `tests/test_step2_docs_consistency.py` with a root-README-table guard
+       (parses the Methods table rows, strips markdown emphasis, reuses the step2-absent
+       detector; mutation-killed) and fixed all 16 drifted rows to say the unified
+       Step 2 is ported additively (the eval-only trio 28/30/36 reframed as two-stage:
+       Step-1 as-is + from-scratch Step-2). base gate EXIT=0.
 
 Keep this file updated as each item lands (check the boxes, note the PR number).
