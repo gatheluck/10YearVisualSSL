@@ -1,0 +1,17 @@
+# What the 38_clip port's own files import, and nothing else. Checked in both
+# directions by tests/test_method_requirements.py. Floors only; the exact hashed
+# closure is in requirements.lock.txt (CPU) and requirements.lock.cu130.txt.
+#
+# A submodule-import port: the CLIP model constructor, its BPE tokenizer and the
+# official ImageNet prompt metadata are the official openai/CLIP code under
+# third_party/CLIP, imported through PYTHONPATH and never copied or installed. This
+# port's own files import only torch (the trainer, the probe, the model builders),
+# torchvision (the ImageFolder + transforms), numpy (the seeding) and PyYAML (the
+# YAML config on the stand-alone path). The pinned `clip` package's OWN runtime
+# deps (ftfy, regex, tqdm, packaging, and ftfy's wcwidth) are needed to import it,
+# so they are pinned in the locks -- but they are the submodule's imports, not this
+# port's, so they are not declared here (the import check reads this port's files).
+torch>=2.1.0
+torchvision>=0.16.0
+numpy>=1.24.0
+PyYAML>=6.0

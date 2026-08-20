@@ -1,0 +1,58 @@
+{
+  "_note": "Run: .venvs/38_clip/bin/python bin/mutate.py --spec mutations/38_clip-adapter.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/38_clip/bin/python (an interpreter with this method's lock, ftfy/regex, and the openai/CLIP submodule checked out, so the probe/smoke/round-trip tests run). Proves the guards are not vacuous: the supervised-label-text disclosure cannot be dropped or claimed comparable, a downstream probe number cannot borrow a pretext name, the trained image tower is what encoder.pt saves, and the device is resolved rather than assumed.",
+  "targets": [
+    {
+      "label": "the supervised-label-text disclosure can be dropped",
+      "file": "methods/38_clip/adapter/__init__.py",
+      "old": "    if definition.get(\"supervised_label_text_adaptation\") is not True:",
+      "new": "    if definition.get(\"supervised_label_text_adaptation\") is None:",
+      "tests": [
+        "tests.test_method_38_clip.TestTheDisclosureIsEnforced.test_pretrain_refuses_a_missing_supervision_flag"
+      ]
+    },
+    {
+      "label": "the Step-2 number can be claimed comparable",
+      "file": "methods/38_clip/adapter/__init__.py",
+      "old": "    if definition.get(\"main_vssl_comparability\") is not False:",
+      "new": "    if definition.get(\"main_vssl_comparability\") is None:",
+      "tests": [
+        "tests.test_method_38_clip.TestTheDisclosureIsEnforced.test_pretrain_refuses_claiming_comparability"
+      ]
+    },
+    {
+      "label": "a downstream probe number is mapped to a non-comparable name",
+      "file": "methods/38_clip/adapter/__init__.py",
+      "old": "    \"final_top1_acc\": \"final_linear_probe_top1_accuracy\",",
+      "new": "    \"final_top1_acc\": \"epochs_completed\",",
+      "tests": [
+        "tests.test_method_38_clip.TestTheMetricsAreComparable"
+      ]
+    },
+    {
+      "label": "encoder.pt saves nothing (the image-tower prefix is wrong)",
+      "file": "methods/38_clip/adapter/__init__.py",
+      "old": "ENCODER_PREFIX = \"visual.\"",
+      "new": "ENCODER_PREFIX = \"clip_no_such_prefix.\"",
+      "tests": [
+        "tests.test_method_38_clip.TestTheUnifiedModel.test_extract_then_load_round_trips_the_image_tower",
+        "tests.test_method_38_clip.TestAUnifiedPretrainSmoke.test_it_completes_and_satisfies_the_contract"
+      ]
+    },
+    {
+      "label": "cpu is not honoured -- the requested cpu returns a cuda device",
+      "file": "methods/38_clip/evaluate_linear_clip.py",
+      "old": "    if spec == \"cpu\":\n        return torch.device(\"cpu\")",
+      "new": "    if spec == \"cpu\":\n        return torch.device(\"cuda\")",
+      "tests": [
+        "tests.test_method_38_clip.TestTheDeviceIsResolved"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-08-20",
+    "measured_with": ".venvs/38_clip (CPU lock: torch 2.13.0+cpu, ftfy, regex; openai/CLIP submodule checked out at third_party/CLIP) on a CPU-only machine",
+    "killed": 5,
+    "total": 5,
+    "equivalent": []
+  }
+}

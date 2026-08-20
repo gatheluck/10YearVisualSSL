@@ -1,0 +1,39 @@
+{
+  "captured_at": "2026-08-20",
+  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
+  "captured_note": "Ported from the capture's methods/38_clip, which references the official openai/CLIP repo (it ships no model of its own; clip_utils.py imports the official constructor, BPE tokenizer and ImageNet prompt metadata). The capture has two comparisons: a Step-1 as-is probe of the released OpenAI ViT-B/32 (frozen image tower, ImageNet linear probe) and a Step-2 from-scratch training of the official CLIP ViT-B/16 on ImageNet-1k, pairing each labeled image with an official OpenAI ImageNet class-name prompt (a symmetric image-text contrastive loss). This port covers BOTH: the Step-1 as-is download probe (like 28_dinov2 / 30_aim / 36_franca) and the Step-2 from-scratch label-text adaptation (a milestone 100/200/300 encoder sweep, like the other unified Step-2 ports). It pins openai/CLIP as the submodule third_party/CLIP and IMPORTS its CLIP/VisionTransformer constructor, its BPE tokenizer (clip.tokenize) and its ImageNet class names + 80 prompt templates (from the pinned notebook), never copying or installing them. The port keeps the capture directory numbering (38).",
+  "paper": {
+    "title": "Learning Transferable Visual Models From Natural Language Supervision (CLIP)",
+    "authors": "Radford, Kim, Hallacy, Ramesh, Goh, Agarwal, Sastry, Askell, Mishkin, Clark, Krueger, Sutskever",
+    "year": 2021,
+    "arxiv": "2103.00020"
+  },
+  "upstream": {
+    "repo": "https://github.com/openai/CLIP",
+    "commit": "d05afc436d78f1c48dc0dbf8e5980a9d471f35f6",
+    "license": "MIT",
+    "note": "The CLIP model constructor (clip.model.CLIP / VisionTransformer), the BPE tokenizer (clip.tokenize; its vocab bpe_simple_vocab_16e6.txt.gz ships inside the submodule) and the official ImageNet class names + 80 prompt templates (notebooks/Prompt_Engineering_for_ImageNet.ipynb) are imported from this pinned submodule through PYTHONPATH; never copied or installed. openai/CLIP exposes a top-level `clip` package, so the import is lazy and collision-safe (purge `clip`/`clip.*` from sys.modules, strip other third_party roots from sys.path, insert third_party/CLIP first), the same pattern the vjepa/msn ports use for their `src`/`app` packages. The imported package's runtime deps (ftfy, regex, tqdm, packaging) are in this method's locks, not in requirements.txt (they are the submodule's imports, not this port's own)."
+  },
+  "scope": "Both CLIP comparisons are ported. Step 1 (as-is): the released OpenAI ViT-B/32 image tower is frozen and its pooled image embedding is linear-probed on ImageNet-1k -- CLIP's 400M image-text training data and pipeline are not public, so the as-is row reuses the released checkpoint (the pinned, sha256-verified backbone_artifact download). Step 2 (label-text adaptation): the official CLIP ViT-B/16 (image tower + 12-layer text tower) is trained from scratch on ImageNet-1k, pairing each labeled image with an official ImageNet class-name prompt, then the frozen image tower is probed at milestones 100/200/300. The exact CLIP 400M-pair pretraining is undefined under the ImageNet-1k Step-2 restriction (no captions), so this is a supervised label-text adaptation, disclosed as such and NOT a comparable unlabeled-VSSL result.",
+  "encoder": "encoder.pt is written only by the Step-2 pretrain stage: the trained CLIP image tower (`visual.*`, the prefix stripped so it loads into a plain clip.model.VisionTransformer). The text tower and the logit scale are training machinery and are not saved. Milestone encoders encoder_epoch{100,200,300}.pt are the same image tower at each save_at_epochs checkpoint. The Step-1 as-is linear_eval writes no encoder.pt (it reads a frozen download) and records encoder_absent_reason in the manifest.",
+  "linear_eval": "Two backbones share the shared linear protocol. Step 1 probes the frozen official ViT-B/32 image tower loaded through clip.load from the sha256-pinned backbone_artifact download (bin/fetch-weights.py; docs/EVAL_DOWNLOAD.md); the hermetic smoke leaves the ckpt empty and builds a random tiny image tower, so CI downloads nothing. Step 2 (recipe: unified) probes the trained encoder.pt image tower. Both probe the pooled image embedding (visual(x) == encode_image), extracted in fp32 (the capture used a bf16 autocast, a GPU speed path). This port follows the repository's shared ARSSL probe (mean-centre + L2-normalise, a single linear layer, SGD momentum + cosine, top1/top5) rather than the capture's own CLIP probe (which used no feature normalisation), so the number is consistent with the other ported methods; the Step-2 number remains labelled a supervised-adaptation reference, not a comparable VSSL result.",
+  "backbone_artifact": {
+    "name": "OpenAI CLIP ViT-B/32 (Step-1 as-is backbone)",
+    "url": "https://openaipublic.azureedge.net/clip/models/40d365715913c9da98579312b702a82c18be219cc2a73407c4526f58eba950af/ViT-B-32.pt",
+    "filename": "ViT-B-32.pt",
+    "sha256": "40d365715913c9da98579312b702a82c18be219cc2a73407c4526f58eba950af",
+    "bytes": 353976522,
+    "license": "MIT (openai/CLIP)",
+    "sha256_source": "the sha256 is embedded in the official openai/CLIP download URL (clip/clip.py _MODELS['ViT-B/32']); the byte count is the download's Content-Length, measured 2026-08-20"
+  },
+  "rewritten_during_the_port": [
+    "the capture's two .sh PBS reservation-launcher wrappers (which only refuse direct execution) are NOT ported; this port owns a thin single-process loop, as every prior port does",
+    "the Step-2 trainer drops DistributedDataParallel, the 8-GPU differentiable all-gather (GatherFeatures), the BF16 autocast and the atomic reservation-launcher resume; it keeps faithfully the per-step warmup->cosine LR (lr_at_step), AdamW, the deterministic per-sample prompt choice (choose_prompt_tokens), gradient-norm clipping and the logit-scale clamp, single-process fp32",
+    "the device is resolved (resolve_device) instead of assuming CUDA; the run is seeded through make_deterministic (python, numpy, torch, single-thread deterministic); main() is split into build_parser()/run(args, config) returning the training loss and epoch count",
+    "prompts: a real run uses the official 1000 ImageNet class names and 80 templates from the pinned submodule notebook (prompts.use_official_imagenet=true, requires a 1000-class dataset); the hermetic smoke sets it false and builds prompts from the dataset's own folder names with a generic template, so a tiny 2-class CPU smoke needs no 1000-class ImageNet",
+    "encoder.pt is the trained image tower (visual.*); the linear probe follows the shared ARSSL protocol so the Step-2 number is consistent with the other ported methods",
+    "the model dimensions are config-driven so the hermetic smoke builds a tiny CLIP (vision_width kept at 64, the smallest that keeps CLIP's derived vision_heads=vision_width//64 >= 1; vocab_size kept at the tokenizer's 49408)",
+    "DATA_ROOT is the dataset root; the pretrain stage reads its train/ subdirectory (unified data-root convention via adapterlib.dataset_split_dir); the eval reads train/ and val/",
+    "the supervised-label-text disclosure (supervised_label_text_adaptation=true / main_vssl_comparability=false) is enforced by the adapter config guard and stamped into every Step-2 checkpoint, faithful to the capture's requirement that this not be reported as unlabeled VSSL"
+  ]
+}

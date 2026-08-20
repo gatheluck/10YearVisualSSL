@@ -1,0 +1,69 @@
+# CLIP Step 2 (label-text adaptation): the official ViT-B/16 trained from scratch.
+#
+# Each labeled ImageNet-1k image is paired with an official OpenAI ImageNet
+# class-name prompt and the symmetric image-text contrastive loss is minimised, for
+# 300 epochs, global batch 1024, AdamW, base lr 6e-4, weight decay 0.05, 10-epoch
+# warmup then cosine, gradient clipping at 1.0, with milestone checkpoints at
+# 100/200/300.
+#
+# WARNING: this is a supervised label-text adaptation, NOT unlabeled VSSL. Every
+# checkpoint and result records supervised_label_text_adaptation=true and
+# main_vssl_comparability=false; it must not be reported as a comparable
+# self-supervised ImageNet result. See the adapter docstring and provenance.json.
+#
+# These are the settings the captured cluster run used -- the recipe, not a result.
+# Nothing here has executed a full run; the README says what was and was not run.
+#
+# One path is passed at run time, not shipped:
+#   --set DATA_ROOT=<path>   the dataset root; pretraining reads its train/ subdirectory
+# The output path is fixed at --out.
+stage: pretrain
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+
+definition:
+  source_method: OpenAI CLIP
+  source_code_commit: d05afc436d78f1c48dc0dbf8e5980a9d471f35f6
+  adaptation: ImageNet class-name text prompts paired with labeled images
+  supervised_label_text_adaptation: true
+  main_vssl_comparability: false
+
+model:
+  # image tower: the official CLIP ViT-B/16.
+  embed_dim: 512
+  image_resolution: 224
+  vision_layers: 12
+  vision_width: 768
+  vision_patch_size: 16
+  # text tower: the official 12-layer CLIP text transformer.
+  context_length: 77
+  vocab_size: 49408
+  transformer_width: 512
+  transformer_heads: 8
+  transformer_layers: 12
+
+data:
+  image_size: 224
+  num_workers: 8
+
+prompts:
+  # The real run uses the official 1000 ImageNet class names and 80 templates from
+  # the pinned submodule notebook. `templates` is the fallback used only when
+  # use_official_imagenet is false (the hermetic smoke, on non-ImageNet data).
+  use_official_imagenet: true
+  templates:
+    - "a photo of a {}."
+
+training:
+  epochs: 300
+  batch_size: 1024
+  lr: 6.0e-4
+  min_lr: 1.0e-6
+  beta1: 0.9
+  beta2: 0.95
+  eps: 1.0e-8
+  weight_decay: 5.0e-2
+  warmup_epochs: 10
+  clip_grad_norm: 1.0
+  save_at_epochs: [100, 200, 300]

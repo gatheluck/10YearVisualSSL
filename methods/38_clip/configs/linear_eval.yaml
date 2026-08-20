@@ -1,0 +1,42 @@
+# CLIP linear evaluation (Step 1, as-is): a probe on the frozen official ViT-B/32.
+#
+# CLIP's "Step 1" reuses the released OpenAI ViT-B/32 (its 400M image-text training
+# data and pipeline are not public), freezes the image tower and probes its pooled
+# image embedding (encode_image). This is a genuine learned representation, so the
+# number is comparable (the "pretrained-backbone reuse" row, like 36_franca). See
+# docs/EVAL_DOWNLOAD.md.
+#
+# Two paths are passed at run time, not shipped:
+#   --set DATA_ROOT=<path>        an ImageFolder with train/ and val/ subdirectories
+#   --set CLIP_VITB32_CKPT=<path> the official ViT-B/32 weight. Obtain it with
+#                                 `python3 bin/fetch-weights.py --provenance
+#                                 methods/38_clip/provenance.json --artifact
+#                                 backbone_artifact --out <dir>` (pinned by sha256
+#                                 in provenance.json). Required for a meaningful
+#                                 number; the hermetic smoke leaves it empty and
+#                                 builds a random tiny tower, so its accuracy is
+#                                 meaningless and only the pipeline runs.
+# The output path is fixed at --out.
+stage: linear_eval
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+
+train:
+  # backbone (third_party/CLIP): the official ViT-B/32. The dims below build the
+  # random tiny tower for the hermetic smoke; a real run loads the pinned
+  # checkpoint through clip.load, whose architecture is fixed by the weight.
+  ckpt: "${CLIP_VITB32_CKPT}"
+  resolution: 224
+  patch_size: 32
+  width: 768
+  layers: 12
+  heads: 12
+  output_dim: 512
+  # probe: a single linear layer, SGD + cosine.
+  epochs: 100
+  batch_size: 32
+  num_workers: 8
+  lr: 0.1
+  momentum: 0.9
+  weight_decay: 0.0

@@ -1,4 +1,4 @@
-# Porting roadmap — the 37 Step 1&2 methods, order, and status
+# Porting roadmap — the 38 Step 1&2 methods, order, and status
 
 Last updated: 2026-08-11
 
@@ -7,19 +7,19 @@ externalised here so the plan survives across sessions. Generative-AR methods
 (`var`, `mar`, `image_gpt`) belong to **other steps**, not this list, and are
 already ported as pilots for the submodule / eval-only / download machinery.
 
-## The 37 methods (Step 1&2), and how the capture holds them
+## The 38 methods (Step 1&2), and how the capture holds them
 
 The capture (`gatheluck/10YearVisualSSLCapturePrivate`, `snapshots` branch) has a
-**self-contained `methods/<n>_<name>/` directory for every one of the 37**, and
+**self-contained `methods/<n>_<name>/` directory for every one of the 38**, and
 ~32 of them carry the lab's **own** model code under `models/*.py` (an
 independent implementation following the paper, torch-based — the same
 license-clean pattern as `25_mae`/`image_gpt`/the clean six). Those port
 **self-contained on the existing `pretrain → encoder.pt → linear_probe` contract**;
-no submodule, no download, no noncommercial entanglement. Five have no `models/`
+no submodule, no download, no noncommercial entanglement. Six have no `models/`
 (`8_split_brain`(done, `08_split_brain` -- a plain AlexNet, self-contained after all),
-`34_msn`, `35_vjepa`, `36_franca`(done), `37_lejepa`)
+`34_msn`, `35_vjepa`, `36_franca`(done), `37_lejepa`, `38_clip`)
 and need a submodule / eval-only treatment (and, for msn/vjepa/lejepa, a
-noncommercial-licence decision).
+noncommercial-licence decision; `38_clip` is MIT, so no such decision).
 
 **Verify per method at port time** (do not assume): the model header's licence
 (lab-own vs a copy of author code → the latter needs a submodule reference), the
@@ -92,6 +92,7 @@ rest — e.g. capture `14_simclrv1` ↔ list #14 = PIRL; capture `17_swav` ↔ l
 | 35 | DINOv3 | `31_dinov3` | no | ported (`31_dinov3`; torch-only, from-scratch on ImageNet -- the capture's **step 2** unified SSL comparison, DINOv3 **core** objective: own ViT (register tokens + axial RoPE) + DINO (Sinkhorn centring) + iBOT + KoLeo, EMA teacher, multi-crop; encoder.pt = teacher backbone (prefix stripped). The capture's step 1 (HF-**gated** official weights) and the released **Gram anchoring** stage (`gram.mode: core_only`) are excluded; a from-scratch re-implementation, so no Meta code/weights are used) |
 | 36 | LeJEPA | `37_lejepa` | no | ported (`37_lejepa`; torch+timm, from-scratch on ImageNet -- a timm ViT + projector trained by SIGReg (Epps-Pulley quadrature + random slicing, reimplemented locally, no external package) + a cross-view invariance loss; encoder.pt is the bare backbone, prefix stripped) |
 | 37 | NEPA | `32_nepa` | no | ported (`32_nepa`; torch-only -- its own ViT with 2D RoPE / QK-norm / causal autoregressive predictor, from scratch on ImageNet; encoder.pt is the EMA model) |
+| 38 | CLIP | `38_clip` | **yes** | ported (`38_clip`; a 38th method added to the capture after the original decade list. **submodule-import** of `openai/CLIP` (third_party/CLIP @d05afc4, **MIT**, imported not copied). **two comparisons**: Step-1 (as-is) freezes the released official ViT-B/32 image tower (a sha256-pinned download via `bin/fetch-weights.py`) and probes its pooled image embedding (CLIP's 400M image-text data is not public, so the as-is row reuses the released checkpoint); Step-2 trains a CLIP ViT-B/16 from scratch on ImageNet-1k, pairing each labeled image with an official ImageNet class-name prompt (symmetric image-text contrastive loss), probed frozen at milestones 100/200/300. Step-2 is a **supervised label-text adaptation**, stamped `supervised_label_text_adaptation=true` / `main_vssl_comparability=false` -- a CLIP-adaptation reference, not a comparable unlabeled number. Model constructor + BPE tokenizer + ImageNet prompts imported from the submodule; single-process (DDP/all-gather dropped); shared ARSSL probe. MIT, so nothing under a noncommercial licence and nothing copied) |
 
 ## Numbering decision (resolved 2026-08-09): keep the capture numbering
 
@@ -102,7 +103,7 @@ list #15). Renaming the eight already-ported mismatched dirs (`01`, `02`, `17`,
 references — is deferred to publication; keeping the capture numbers now avoids
 that churn and preserves provenance alignment with the (append-only) Capture
 repository. So **HOLD was lifted**, and every method has since been ported: no
-`HOLD` cells remain in the table above (all 37 rows read "ported").
+`HOLD` cells remain in the table above (all 38 rows read "ported").
 
 **Porting order used:** by capture-directory number, torch-only (tier-A)
 self-contained methods first, then the special-dep / submodule / eval-only tier
@@ -134,9 +135,10 @@ pretrain caveat probe of the released video model, it ports the capture's step-2
 adaptation -- pin `facebookresearch/jepa` as a submodule and import init_video_model
 + the 3D mask collator to train a V-JEPA-objective image ViT-B/16 (num_frames=1) from
 scratch on ImageNet, a genuine comparable row; CC-BY-NC documented, nothing copied.
-**ALL 37 Step-1&2-list methods are now ported** (the three generative-AR pilots
-`image_gpt`, `mar`, `var` are separate — see the intro — bringing the repository
-to 40 ported methods in total). `24_beit` is ported (torch-only ViT + a hash-pinned DALL-E dVAE
+**ALL 38 Step-1&2 methods are now ported** (the original 37-method decade list
+plus `38_clip`, a CLIP method the capture added afterwards; the three
+generative-AR pilots `image_gpt`, `mar`, `var` are separate — see the intro —
+bringing the repository to 41 ported methods in total). `24_beit` is ported (torch-only ViT + a hash-pinned DALL-E dVAE
 tokeniser download, lazy-imported for a real run via the `third_party/dall_e`
 submodule; the smoke uses a random tokeniser). **The eval-only-download phase is
 underway**: `28_dinov2` and `30_aim` are ported in the Franca-style
