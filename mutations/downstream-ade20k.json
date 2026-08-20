@@ -1,0 +1,47 @@
+{
+  "_note": "Run: .venvs/06_rotation_prediction/bin/python bin/mutate.py --spec mutations/downstream-ade20k.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/06_rotation_prediction/bin/python (any interpreter with torch/torchvision/timm/PIL). Proves the downstream ADE20K guards are not vacuous: the device is resolved not assumed, a config that names the output is refused, a subset/smoke run is stamped non-recordable, the contract refuses an unlisted output, and a metric outside the downstream vocabulary is refused.",
+  "targets": [
+    {
+      "label": "cpu is not honoured -- the requested cpu returns a cuda device",
+      "file": "downstream/ade20k.py",
+      "old": "    if spec == \"cpu\":\n        return torch.device(\"cpu\")",
+      "new": "    if spec == \"cpu\":\n        return torch.device(\"cuda\")",
+      "tests": ["tests.test_downstream_ade20k.TestTheDeviceIsResolved"]
+    },
+    {
+      "label": "a config that names the output location is no longer refused",
+      "file": "downstream/ade20k.py",
+      "old": "        if key in cfg:\n            raise ConfigError(",
+      "new": "        if False:\n            raise ConfigError(",
+      "tests": ["tests.test_downstream_ade20k.TestConfigValidation.test_setting_the_output_is_refused"]
+    },
+    {
+      "label": "a subset/smoke run is wrongly stamped recordable",
+      "file": "downstream/ade20k.py",
+      "old": "\"record_value\": not subset_mode,",
+      "new": "\"record_value\": True,",
+      "tests": ["tests.test_downstream_ade20k.TestASmoke.test_a_subset_run_is_not_recordable"]
+    },
+    {
+      "label": "the contract stops catching an unlisted output",
+      "file": "downstream/contract.py",
+      "old": "            if rel not in listed:",
+      "new": "            if False:",
+      "tests": ["tests.test_downstream_ade20k.TestTheDownstreamContract.test_verify_passes_a_good_run_and_fails_an_unlisted_file"]
+    },
+    {
+      "label": "a metric outside the downstream vocabulary is accepted",
+      "file": "downstream/contract.py",
+      "old": "        if target not in DOWNSTREAM_METRICS:",
+      "new": "        if False:",
+      "tests": ["tests.test_downstream_ade20k.TestTheDownstreamContract.test_write_metrics_refuses_a_name_outside_the_vocabulary"]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-08-20",
+    "measured_with": ".venvs/06_rotation_prediction (torch/torchvision/timm/PIL) on a CPU-only machine",
+    "killed": 5,
+    "total": 5,
+    "equivalent": []
+  }
+}

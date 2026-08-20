@@ -78,10 +78,16 @@ Concretely the port grows:
   adapter (`forward_features -> [B,C,h,w]`, `out_channels`), plus a CLIP branch
   (CLIP's `VisionTransformer` has no `patch_embed.proj`, so its conv-patch tap
   differs), and a ResNet-layer4 adapter for the ResNet Step-1 backbones;
-- a **downstream contract**: each task run emits a manifest + a metric JSON, and
-  a `contract-test`-style check decides "the task ran" by machine (exit 0 + a
-  status, the same shape as the method contract). The metric vocabulary gains the
-  task metrics (`ade20k_miou`, `coco_map`, `nyuv2_rmse`, `ssv2_top1`, …).
+- a **downstream contract** of the *same shape* as the method contract — a run
+  emits `run_manifest.json` + `metrics.json` and a checker decides "the task ran"
+  by machine (exit 0 **and** `status: ok`, neither trusted alone). It is a
+  **separate** contract (`downstream/contract.py`, with its own metric names
+  `ade20k_miou`, `coco_map`, `nyuv2_rmse`, `ssv2_top1`, …), **not** an extension of
+  the method vocabulary in `adapterlib`: that vocabulary is method-scoped — every
+  name in it must be produced by a `methods/*/adapter`
+  (`tests/test_metric_vocabulary.py`), and a cross-method task metric is produced
+  by no method, so it cannot live there. (Measured 2026-08-20; this corrects an
+  earlier draft that said the method vocabulary would "gain" the task metrics.)
 
 ## 3. Hermetic CI, real numbers, and datasets
 
@@ -124,10 +130,15 @@ is no lock-breaking framework to reconcile.
 
 ## 5. Migration order (portable/light first, the ViT-Step-2-pilot pattern)
 
-1. **Scaffolding + ADE20K segmentation (pilot).** No new heavy dependency. Stands
-   up the `downstream/` package, the registry, the shared **ViT-B/16 spatial
-   adapter** (+ a CLIP branch), the hermetic CPU smoke, and the downstream
-   manifest/metric contract (mIoU). This becomes the template for the rest.
+1. **Scaffolding + ADE20K segmentation (pilot). DONE.** No new heavy dependency.
+   Stood up the `downstream/` package: `contract.py` (the downstream
+   manifest/metric contract + `verify`), `spatial_backbones.py` (the frozen ViT
+   spatial adapter, `forward_features -> [B,C,h,w]` + `out_channels`; `resnet50`/
+   `clip_vit` kinds raise a clear `NotImplementedError` until their tasks need
+   them), and `ade20k.py` (dataset + 1x1-conv readout head + train/eval, mIoU +
+   pixel accuracy). Config-driven (`--config <resolved.json> --out <dir>`), a
+   hermetic CPU smoke on a random tiny ViT + synthetic data, `subset_or_smoke` /
+   `record_value` honesty, 5/5 mutation-killed. This is the template for the rest.
 2. **COCO detection.** Adds `pycocotools`; reuses the spatial adapter; mAP.
 3. **NYUv2 depth.** Adds `h5py`; a depth head; RMSE / δ metrics.
 4. **SSv2 video.** Adds `av`; frame-based for an image backbone; the heaviest and
