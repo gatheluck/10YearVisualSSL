@@ -22,3 +22,6 @@
 [submodule "third_party/jepa"]
 	path = third_party/jepa
 	url = https://github.com/facebookresearch/jepa.git
+[submodule "third_party/CLIP"]
+	path = third_party/CLIP
+	url = https://github.com/openai/CLIP.git
