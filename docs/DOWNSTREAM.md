@@ -164,8 +164,19 @@ that has its dependency.
    train/val split adapts to the file size (the real 1449-image file keeps the
    capture's 795/654; a tiny hermetic `.mat` splits in half), so the CPU smoke on a
    random tiny ViT needs no real NYUv2. 5/5 mutation-killed.
-4. **SSv2 video.** Adds `av`; frame-based for an image backbone; the heaviest and
-   most niche, so last.
+4. **SSv2 video. DONE.** `downstream/ssv2.py`: decode `num_frames` per video with
+   **PyAV**, average the per-frame frozen features, plain linear classifier over the
+   174 SSv2 classes, top-1 / top-5. `labels/labels.json` (bracket-stripped template
+   -> id) + `labels/{split}.json` entries + `videos/<id>.webm`. Adds `av` (PyAV).
+   The capture's on-disk feature-cache sharding (an ABCI throughput optimisation) is
+   dropped for the port's thin single-process loop. Hermetic smoke on a random tiny
+   ViT + synthetic vp9 `.webm` clips; 5/5 mutation-killed.
+
+**All four downstream tasks are now ported** (ADE20K / COCO / NYUv2 / SSv2), on the
+shared `downstream/` subsystem; the ImageNet-1k column stays the per-method
+`linear_eval`. The remaining piece is the **open infra item** in §4 (a dedicated
+downstream venv + lock + CI job so the `pycocotools`/`h5py`/`av` smokes run in CI,
+not just locally).
 
 Each step follows the repository's discipline: RED test first, hermetic smoke +
 `contract-test`-style check, a measured mutation spec, `discover-not-list`
