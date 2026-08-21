@@ -37,6 +37,8 @@ DOWNSTREAM_METRICS = {
     "ade20k_pixel_accuracy": COMPARABLE,
     "coco_map": COMPARABLE,
     "coco_map_50": COMPARABLE,
+    "nyuv2_rmse": COMPARABLE,
+    "nyuv2_absrel": COMPARABLE,
     "epochs_completed": PER_TASK,
     "metrics_unavailable": PER_TASK,
 }
