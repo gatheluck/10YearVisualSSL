@@ -127,15 +127,21 @@ the harness needs none of the heavy frameworks:
 Each is a single fleet delta. Because the harness is torchvision-native, there is
 no lock-breaking framework to reconcile.
 
-**Open infra item (measured 2026-08-21).** The `downstream/` subsystem has no
-env/lock of its own yet: the ADE20K smoke runs under any `timm` method venv, and
-the COCO smoke needs `pycocotools`, which no method venv carries — so a downstream
-smoke that needs an absent package **skips** in CI (its `needs_*` guard), and its
-"does it run" guarantee is currently local-only. The one-time follow-up is a
-dedicated **downstream venv + hashed lock** (`torch`/`torchvision`/`timm`/
-`pycocotools`/`h5py`/`av`, one env for all four tasks) and a CI job that runs the
-downstream smokes under it. Until then, run a task's smoke locally under a venv
-that has its dependency.
+**The downstream environment and its CI job (resolved 2026-08-21).** The task
+dependencies `pycocotools` / `h5py` / `av` are carried by no method venv, so in the
+per-method `locked` matrix a downstream smoke that needs an absent package only
+**skips** (its `needs_*` guard) — "the smoke passes" would then be a claim nothing
+in CI ever checked. So the subsystem has its **own environment**,
+`downstream/requirements.lock.txt` (the fleet timm closure —
+`torch`/`torchvision`/`timm` at the fleet versions — plus `pycocotools`/`h5py`/`av`;
+pinned and hashed, one env for all four tasks), and the CI `downstream` job
+(`.github/workflows/tests.yml`) installs it hash-checked and runs the four task
+smokes for real. It is **CI-only and single-platform** (linux x86_64, the runner):
+unlike a method lock it is not built for the three deployment platforms and is not
+in the fleet cross-check, and it pins `torch==2.13.0+cpu` (the CPU wheel) rather
+than the fleet's bare `2.13.0`. Regenerate with `uv pip compile` against the cpu
+index (cp312, x86_64, `--generate-hashes`), held to the fleet pins. To run a smoke
+locally, use any environment that has the task's dependency.
 
 ## 5. Migration order (portable/light first, the ViT-Step-2-pilot pattern)
 
