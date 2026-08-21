@@ -132,6 +132,10 @@ shown so the shape is visible before it is built.
 │   └── contract-test.py              decides by machine that a port is finished
 ├── adapterlib/                     the one place a run_manifest.json is written
 │   └── __init__.py                                                    exists
+├── downstream/                     cross-method downstream tasks      exists
+│   ├── contract.py                   the downstream contract: write + verify
+│   ├── spatial_backbones.py          frozen backbone -> [B,C,h,w] + out_channels
+│   └── ade20k.py                     ADE20K segmentation (the pilot)
 ├── methods/                        one directory per method
 │   ├── _reference/                   known-good adapter; trains nothing exists
 │   │   └── adapter/
