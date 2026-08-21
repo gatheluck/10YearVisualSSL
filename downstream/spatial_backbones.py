@@ -42,6 +42,11 @@ class FrozenViTSpatialBackbone(nn.Module):
     def train(self, mode: bool = True):        # stays frozen; never trains
         return super().train(False)
 
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # torchvision detection/segmentation backbones are called as backbone(x);
+        # a bare tensor is wrapped into an OrderedDict({"0": ...}) downstream.
+        return self.forward_features(x)
+
     @torch.no_grad()
     def forward_features(self, x: torch.Tensor) -> torch.Tensor:
         tokens = self.vit.forward_features(x)          # [B, prefix + h*w, D]
@@ -64,7 +69,11 @@ def _build_vit(spec: dict) -> FrozenViTSpatialBackbone:
     import timm
     arch = spec.get("arch", "vit_base_patch16_224")
     patch_size = int(spec.get("patch_size", 16))
-    kwargs = {"pretrained": False, "num_classes": 0,
+    # dynamic_img_size interpolates the position embedding, so one ViT serves
+    # both a fixed-size probe (ADE20K) and the variable, padded inputs a detection
+    # transform produces (COCO). The spatial reshape recomputes the grid from the
+    # actual input, so it stays correct at any size.
+    kwargs = {"pretrained": False, "num_classes": 0, "dynamic_img_size": True,
               "img_size": int(spec["img_size"]), "patch_size": patch_size}
     for key in ("embed_dim", "depth", "num_heads"):
         if key in spec:

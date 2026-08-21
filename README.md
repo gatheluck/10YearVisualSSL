@@ -135,7 +135,8 @@ shown so the shape is visible before it is built.
 ├── downstream/                     cross-method downstream tasks      exists
 │   ├── contract.py                   the downstream contract: write + verify
 │   ├── spatial_backbones.py          frozen backbone -> [B,C,h,w] + out_channels
-│   └── ade20k.py                     ADE20K segmentation (the pilot)
+│   ├── ade20k.py                     ADE20K segmentation (the pilot)
+│   └── coco.py                       COCO detection (Faster R-CNN + mAP)
 ├── methods/                        one directory per method
 │   ├── _reference/                   known-good adapter; trains nothing exists
 │   │   └── adapter/

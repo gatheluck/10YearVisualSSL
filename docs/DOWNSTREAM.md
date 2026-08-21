@@ -124,9 +124,18 @@ the harness needs none of the heavy frameworks:
 | NYUv2 depth | `h5py` | reads the labelled `.mat` |
 | SSv2 video | `av` (PyAV) | video decoding |
 
-Each is a single fleet delta: pin one version, add it to both locks (CPU +
-cu130), as `timm`/`ftfy` were. Because the harness is torchvision-native, there
-is no lock-breaking framework to reconcile.
+Each is a single fleet delta. Because the harness is torchvision-native, there is
+no lock-breaking framework to reconcile.
+
+**Open infra item (measured 2026-08-21).** The `downstream/` subsystem has no
+env/lock of its own yet: the ADE20K smoke runs under any `timm` method venv, and
+the COCO smoke needs `pycocotools`, which no method venv carries — so a downstream
+smoke that needs an absent package **skips** in CI (its `needs_*` guard), and its
+"does it run" guarantee is currently local-only. The one-time follow-up is a
+dedicated **downstream venv + hashed lock** (`torch`/`torchvision`/`timm`/
+`pycocotools`/`h5py`/`av`, one env for all four tasks) and a CI job that runs the
+downstream smokes under it. Until then, run a task's smoke locally under a venv
+that has its dependency.
 
 ## 5. Migration order (portable/light first, the ViT-Step-2-pilot pattern)
 
@@ -139,7 +148,15 @@ is no lock-breaking framework to reconcile.
    pixel accuracy). Config-driven (`--config <resolved.json> --out <dir>`), a
    hermetic CPU smoke on a random tiny ViT + synthetic data, `subset_or_smoke` /
    `record_value` honesty, 5/5 mutation-killed. This is the template for the rest.
-2. **COCO detection.** Adds `pycocotools`; reuses the spatial adapter; mAP.
+2. **COCO detection. DONE.** `downstream/coco.py`: a torchvision **Faster R-CNN**
+   RPN/ROI head on the frozen backbone's single feature map (`featmap_names ["0"]`,
+   `size_divisible = patch_size`), 91 classes, COCO **bbox mAP** / mAP@50 via
+   `pycocotools`. Reuses the spatial adapter — extended to `dynamic_img_size=True`
+   so one ViT serves both the fixed-size probe and the variable, padded inputs a
+   detection transform produces; anchor sizes are a config key (paper
+   `(32,64,128,256,512)`; the smoke uses small anchors on a tiny feature map). Adds
+   `pycocotools` (the first downstream dependency delta). Hermetic smoke on a random
+   tiny ViT + a synthetic 2-image COCO; 4/4 mutation-killed.
 3. **NYUv2 depth.** Adds `h5py`; a depth head; RMSE / δ metrics.
 4. **SSv2 video.** Adds `av`; frame-based for an image backbone; the heaviest and
    most niche, so last.
