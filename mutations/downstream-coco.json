@@ -1,0 +1,40 @@
+{
+  "_note": "Run: .venvs/06_rotation_prediction/bin/python bin/mutate.py --spec mutations/downstream-coco.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/06_rotation_prediction/bin/python (an interpreter with torch/torchvision/timm/pycocotools). Proves the downstream COCO guards are not vacuous: the device is resolved not assumed, a config that names the output is refused, a subset/smoke run is stamped non-recordable, and the COCO mAP is reported under its contract name.",
+  "targets": [
+    {
+      "label": "cpu is not honoured -- the requested cpu returns a cuda device",
+      "file": "downstream/coco.py",
+      "old": "    if spec == \"cpu\":\n        return torch.device(\"cpu\")",
+      "new": "    if spec == \"cpu\":\n        return torch.device(\"cuda\")",
+      "tests": ["tests.test_downstream_coco.TestTheDeviceIsResolved"]
+    },
+    {
+      "label": "a config that names the output location is no longer refused",
+      "file": "downstream/coco.py",
+      "old": "        if key in cfg:\n            raise ConfigError(",
+      "new": "        if False:\n            raise ConfigError(",
+      "tests": ["tests.test_downstream_coco.TestConfigValidation.test_setting_the_output_is_refused"]
+    },
+    {
+      "label": "a subset/smoke run is wrongly stamped recordable",
+      "file": "downstream/coco.py",
+      "old": "\"record_value\": not subset_mode,",
+      "new": "\"record_value\": True,",
+      "tests": ["tests.test_downstream_coco.TestASmoke.test_a_subset_run_is_not_recordable"]
+    },
+    {
+      "label": "the COCO mAP is not reported under its contract name",
+      "file": "downstream/coco.py",
+      "old": "METRIC_NAMES = {\"bbox_mAP\": \"coco_map\", \"bbox_mAP_50\": \"coco_map_50\",",
+      "new": "METRIC_NAMES = {\"bbox_mAP\": None, \"bbox_mAP_50\": \"coco_map_50\",",
+      "tests": ["tests.test_downstream_coco.TestASmoke.test_it_completes_and_satisfies_the_downstream_contract"]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-08-21",
+    "measured_with": ".venvs/06_rotation_prediction (torch/torchvision/timm/pycocotools) on a CPU-only machine",
+    "killed": 4,
+    "total": 4,
+    "equivalent": []
+  }
+}

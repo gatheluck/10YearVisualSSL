@@ -35,6 +35,8 @@ PER_TASK = "per-task"
 DOWNSTREAM_METRICS = {
     "ade20k_miou": COMPARABLE,
     "ade20k_pixel_accuracy": COMPARABLE,
+    "coco_map": COMPARABLE,
+    "coco_map_50": COMPARABLE,
     "epochs_completed": PER_TASK,
     "metrics_unavailable": PER_TASK,
 }
