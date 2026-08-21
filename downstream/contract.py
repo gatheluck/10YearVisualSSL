@@ -39,6 +39,8 @@ DOWNSTREAM_METRICS = {
     "coco_map_50": COMPARABLE,
     "nyuv2_rmse": COMPARABLE,
     "nyuv2_absrel": COMPARABLE,
+    "ssv2_top1": COMPARABLE,
+    "ssv2_top5": COMPARABLE,
     "epochs_completed": PER_TASK,
     "metrics_unavailable": PER_TASK,
 }
