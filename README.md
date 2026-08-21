@@ -37,9 +37,10 @@ assume it.
 | `bin/resolve-config.py` | **implemented and tested.** Produces the canonical resolved config and its `config_sha256` |
 | `bin/contract-test.py` | **implemented and tested.** Decides by machine that a port is finished |
 | `platforms/` | **implemented and tested.** Platform separation; `local` is self-contained |
-| `methods/` | **forty methods ported and tested** (thirty-nine with a linear evaluation; only `mar` is pretrain-only). `28_dinov2`, `30_aim` and `36_franca` pair an as-is Step-1 download probe with a from-scratch unified Step-2. The per-method table is below under [Methods](#methods) |
+| `methods/` | **forty-one methods ported and tested** (forty with a linear evaluation; only `mar` is pretrain-only). `28_dinov2`, `30_aim` and `36_franca` pair an as-is Step-1 download probe with a from-scratch unified Step-2. The per-method table is below under [Methods](#methods) |
 | `bin/launch.py` | **implemented and tested.** One command: resolve, submit, verify, record |
 | `adapterlib/` | **implemented and tested.** The one place a `run_manifest.json` is written |
+| `downstream/` | **implemented and tested** (hermetic smokes run in CI). A cross-method downstream battery beyond the ImageNet-1k probe: ADE20K segmentation, COCO detection, NYUv2 depth, SSv2 video — each freezes a method's backbone, trains only a task head, and is decided by its own contract. See [docs/DOWNSTREAM.md](docs/DOWNSTREAM.md) |
 | `LICENSE` | **MIT** (Copyright (c) 2026 LIMIT.Lab) |
 
 Three adapters exist and the chain runs end to end on a CPU: a configuration
@@ -58,8 +59,11 @@ README says exactly what was and was not exercised.
 Every method ported so far lives under `methods/`, one directory each, with its
 own locked environment and adapter. **Step 1** is the self-supervised
 pretraining; **linear eval** is the frozen-feature linear probe that produces
-the downstream numbers this project exists to compare. Directory names are
-zero-padded so they sort in numeric order.
+the ImageNet-1k number this project exists to compare. Directory names are
+zero-padded so they sort in numeric order. Beyond the ImageNet-1k probe, a
+cross-method `downstream/` subsystem evaluates a frozen backbone on four further
+tasks (ADE20K segmentation, COCO detection, NYUv2 depth, SSv2 video) — see
+[docs/DOWNSTREAM.md](docs/DOWNSTREAM.md).
 
 | Directory | Method | Stages | Notes |
 |---|---|---|---|
@@ -105,7 +109,7 @@ zero-padded so they sort in numeric order.
 | `mar` | MAR — Li et al., NeurIPS 2024 | step 1 | the first `submodule+patch` port: the model is the pinned `third_party/mar` fork, imported not copied; `linear_eval` deferred — its captured eval path is unrecoverable (CONTRACT §7, docs/EVAL_DOWNLOAD.md) |
 | `var` | VAR — Tian et al., NeurIPS 2024 | step 1 + linear eval | the first `submodule+adapter` port: `third_party/var` pinned directly (no fork). Next-scale autoregressive generation; `linear_eval` probes the pretrained VQVAE **tokeniser** (a hash-pinned download), which measures the fixed tokeniser rather than VAR's learned representation (CONTRACT §7, docs/EVAL_DOWNLOAD.md) |
 
-Thirty-seven produce **comparable** `linear_probe` accuracy on a genuinely learned
+Thirty-eight produce **comparable** `linear_probe` accuracy on a genuinely learned
 representation. `02_vae` is pretext-only and `mar` has no linear eval; `var`'s
 `linear_eval` probes a fixed pretrained tokeniser rather than its own learned
 representation, so its number is not comparable in the same sense
@@ -138,7 +142,9 @@ shown so the shape is visible before it is built.
 │   ├── ade20k.py                     ADE20K segmentation (the pilot)
 │   ├── coco.py                       COCO detection (Faster R-CNN + mAP)
 │   ├── nyuv2.py                      NYUv2 depth (DPT head + RMSE/AbsRel)
-│   └── ssv2.py                       SSv2 video (frame-average linear + top-1/5)
+│   ├── ssv2.py                       SSv2 video (frame-average linear + top-1/5)
+│   ├── requirements.txt              the downstream env's direct deps
+│   └── requirements.lock.txt         its pinned, hashed closure (CI runs it)
 ├── methods/                        one directory per method
 │   ├── _reference/                   known-good adapter; trains nothing exists
 │   │   └── adapter/
@@ -189,6 +195,8 @@ shown so the shape is visible before it is built.
 ├── docs/
 │   ├── PLATFORMS.md                  the platform separation          exists
 │   ├── EVAL_DOWNLOAD.md              generative-method probes + weights
+│   ├── EVALUATION.md                 the 5-task eval axis, and coverage
+│   ├── DOWNSTREAM.md                 the cross-method downstream tasks
 │   ├── PORTING_ROADMAP.md            the 38 Step 1&2 methods, order, status
 │   └── GPU.md                        GPU env + the device invariant   exists
 ├── tests/                          one file per unit, plus the chain  exists

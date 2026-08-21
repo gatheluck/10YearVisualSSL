@@ -1,6 +1,6 @@
 # What the capture evaluates, and what this repository currently runs
 
-Last updated: 2026-08-13
+Last updated: 2026-08-21
 
 This document records, **fact-based**, two things that are easy to conflate:
 
@@ -85,15 +85,24 @@ epochs)** ≈ ~20 numbers.
 
 - **Pipeline per method**: adapter stages `pretrain` (self-supervised pretraining →
   `encoder.pt`) and `linear_eval` (frozen linear probe).
-- **The only downstream evaluation is ImageNet-1k classification linear probe
-  (Top-1/Top-5).** This is enforced by the contract itself:
-  `adapterlib.METRIC_VOCABULARY` contains only `final_pretext_*` (per-method) and
-  `*_linear_probe_top1/5_accuracy` (comparable). There is **no vocabulary for
-  mAP / mIoU / RMSE / AbsRel / video accuracy** — the other four tasks cannot
-  even be recorded.
-- **Datasets referenced by configs**: ImageNet, and MNIST (for the VAE's
-  pretrain and its dataset-agnostic linear probe, which reads MNIST or an
-  ImageFolder). No COCO / ADE20k / NYUv2 / SSv2 anywhere in code or configs.
+- **ImageNet-1k classification is the per-method probe**: the `linear_eval`
+  stage, whose comparable metrics live in `adapterlib.METRIC_VOCABULARY`
+  (`*_linear_probe_top1/5_accuracy`).
+- **The other four downstream tasks are now implemented** (2026-08-21), in a
+  cross-method `downstream/` subsystem — see docs/DOWNSTREAM.md: **ADE20K**
+  segmentation (mIoU/pACC), **COCO** detection (bbox mAP / mAP@50), **NYUv2**
+  depth (RMSE/AbsRel), **SSv2** video (Top-1/5). Each freezes a method's backbone,
+  trains only a task head, and is decided by its **own** contract
+  (`downstream/contract.py`, with its own metric names `ade20k_miou`, `coco_map`,
+  `nyuv2_rmse`, `ssv2_top1`, …) — deliberately separate from the method vocabulary,
+  which is method-scoped (every name there must be produced by a `methods/*/adapter`,
+  `tests/test_metric_vocabulary.py`). **CI runs all four as hermetic smokes** (a
+  random tiny ViT + synthetic data) via the `downstream` job in
+  `.github/workflows/tests.yml`.
+- **Datasets**: ImageNet + MNIST for the method pipeline. The downstream tasks read
+  COCO / ADE20k / NYUv2 / SSv2 at run time through `COCO_ROOT` / `ADE20K_ROOT` /
+  `NYUV2_ROOT` / `SSV2_ROOT` (docs/DOWNSTREAM.md §3); CI ships none of them and
+  downloads nothing — a real number needs a GPU and the real dataset.
 - **Eval-only download methods** (dinov2 / aim / franca) probe the official
   frozen backbone on ImageNet — i.e. the ImageNet-classification cell of the
   capture's **Step 1 (as-is)**.
@@ -124,15 +133,17 @@ Step-2 backbone for the other methods yet.
 | Step 1 as-is (official/native frozen backbone) | partial: eval-only download methods, ImageNet only |
 | Unified ViT-B/16 Step-2 backbone | **pilot: `06_rotation_prediction`** (`configs/pretrain_vit.yaml`); other methods still native arch |
 | 100 / 200 / 300 epoch sweep + per-checkpoint eval | **pilot: `06`** writes `encoder_epoch{100,200,300}.pt`, probe run per milestone; no cross-method driver yet |
-| COCO detection (frozen + FRCNN, mAP) | **not implemented** (no code, config, or metric vocabulary) |
-| ADE20k segmentation (linear, mIoU/pACC) | **not implemented** |
-| NYUv2 depth (frozen + DPT, RMSE/AbsRel) | **not implemented** |
-| SSv2 video (linear, Top-1/5) | **not implemented** |
+| COCO detection (frozen + FRCNN, mAP) | **implemented** (`downstream/coco.py`; hermetic smoke in CI; real number needs GPU + `COCO_ROOT`) |
+| ADE20k segmentation (linear, mIoU/pACC) | **implemented** (`downstream/ade20k.py`; hermetic smoke in CI; needs GPU + `ADE20K_ROOT`) |
+| NYUv2 depth (frozen + DPT, RMSE/AbsRel) | **implemented** (`downstream/nyuv2.py`; hermetic smoke in CI; needs GPU + `NYUV2_ROOT`) |
+| SSv2 video (linear, Top-1/5) | **implemented** (`downstream/ssv2.py`; hermetic smoke in CI; needs GPU + `SSV2_ROOT`) |
 
-Net: the current implementation produces, in effect, **one column** of the
-capture's table — ImageNet-1k classification — and none of the detection,
-segmentation, depth, or video tasks, nor the structured Step-1/Step-2 ×
-epoch-sweep matrix.
+Net: the **task coverage** is now complete — the ImageNet-1k column plus all four
+detection / segmentation / depth / video tasks are implemented and their pipelines
+run in CI as hermetic smokes. What remains before the full capture *table* can be
+reproduced is **real numbers** (GPU + the real datasets, which CI never ships) and
+the **structured Step-1/Step-2 × 100/200/300 sweep driver** that aggregates them
+across methods and milestones — not new task code.
 
 ---
 
@@ -158,16 +169,24 @@ code stage token (`tests/test_stage_vocabulary.py` forbids `step1` as a stage).
 
 ## 5. What closing the gap would require
 
-Reproducing the full capture table in this repository would need, at least:
+Done (2026-08-21):
 
-1. **New contract evaluation stages and metric vocabulary** for detection
-   (mAP), segmentation (mIoU / pACC), depth (RMSE / AbsRel), and video
-   (Top-1/5), alongside the existing `linear_eval`.
-2. **Downstream data adapters and frozen-backbone eval code** for COCO
-   (FRCNN head), ADE20k (linear), NYUv2 (DPT head), and SSv2 (linear).
-3. **A unified ViT-B/16 Step-2 pretraining path** per method (the capture's
-   "unified SSL comparison" backbone), and a **100/200/300 epoch sweep** with
-   per-checkpoint frozen evaluation and result aggregation.
+1. ~~**Downstream contract + metric vocabulary**~~ — **done**: the downstream
+   contract (`downstream/contract.py`) with its own vocabulary (`coco_map`,
+   `ade20k_miou`, `nyuv2_rmse`, `ssv2_top1`, …), separate from the method one.
+2. ~~**Downstream data adapters and frozen-backbone eval code**~~ — **done**:
+   `downstream/{ade20k,coco,nyuv2,ssv2}.py`, each on the shared frozen spatial
+   backbone (`downstream/spatial_backbones.py`), run in CI as hermetic smokes.
 
-This is comparable in size to the porting effort itself and should be scoped and
-built incrementally, strict TDD, one task at a time.
+What still remains before the full capture *table* is reproduced:
+
+3. **Real numbers** — a GPU and the real datasets (`COCO_ROOT` / `ADE20K_ROOT` /
+   `NYUV2_ROOT` / `SSV2_ROOT`); CI is hermetic and ships none of them.
+4. **The Step-1/Step-2 × 100/200/300 sweep driver** — a cross-method orchestrator
+   that runs each task on each method's as-is Step-1 backbone and its from-scratch
+   Step-2 `encoder_epoch{100,200,300}.pt`, and aggregates the cells into the table.
+   The per-method Step-2 milestone encoders already exist; this is the driver +
+   aggregation over them, not new task code.
+
+The remaining work is orchestration and real-data runs, not new evaluation code;
+it should be scoped and built incrementally, strict TDD.
