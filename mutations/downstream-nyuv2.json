@@ -1,0 +1,47 @@
+{
+  "_note": "Run: .venvs/06_rotation_prediction/bin/python bin/mutate.py --spec mutations/downstream-nyuv2.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/06_rotation_prediction/bin/python (an interpreter with torch/torchvision/timm/h5py). Proves the downstream NYUv2 guards are not vacuous: the device is resolved not assumed, a config that names the output is refused, a subset/smoke run is stamped non-recordable, RMSE is reported under its contract name, and the labelled-file split keeps the capture's 795/654 for the full file.",
+  "targets": [
+    {
+      "label": "cpu is not honoured -- the requested cpu returns a cuda device",
+      "file": "downstream/nyuv2.py",
+      "old": "    if spec == \"cpu\":\n        return torch.device(\"cpu\")",
+      "new": "    if spec == \"cpu\":\n        return torch.device(\"cuda\")",
+      "tests": ["tests.test_downstream_nyuv2.TestTheDeviceIsResolved"]
+    },
+    {
+      "label": "a config that names the output location is no longer refused",
+      "file": "downstream/nyuv2.py",
+      "old": "        if key in cfg:\n            raise ConfigError(",
+      "new": "        if False:\n            raise ConfigError(",
+      "tests": ["tests.test_downstream_nyuv2.TestConfigValidation.test_setting_the_output_is_refused"]
+    },
+    {
+      "label": "a subset/smoke run is wrongly stamped recordable",
+      "file": "downstream/nyuv2.py",
+      "old": "\"record_value\": not subset_mode,",
+      "new": "\"record_value\": True,",
+      "tests": ["tests.test_downstream_nyuv2.TestASmoke.test_a_subset_run_is_not_recordable"]
+    },
+    {
+      "label": "the RMSE is not reported under its contract name",
+      "file": "downstream/nyuv2.py",
+      "old": "METRIC_NAMES = {\"rmse\": \"nyuv2_rmse\", \"abs_rel\": \"nyuv2_absrel\",",
+      "new": "METRIC_NAMES = {\"rmse\": None, \"abs_rel\": \"nyuv2_absrel\",",
+      "tests": ["tests.test_downstream_nyuv2.TestASmoke.test_it_completes_and_satisfies_the_downstream_contract"]
+    },
+    {
+      "label": "the labelled-file split no longer keeps the capture's 795/654",
+      "file": "downstream/nyuv2.py",
+      "old": "    if n >= FULL_SIZE:",
+      "new": "    if False:",
+      "tests": ["tests.test_downstream_nyuv2.TestConfigValidation.test_the_split_keeps_the_capture_split_for_the_full_file"]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-08-21",
+    "measured_with": ".venvs/06_rotation_prediction (torch/torchvision/timm/h5py) on a CPU-only machine",
+    "killed": 5,
+    "total": 5,
+    "equivalent": []
+  }
+}

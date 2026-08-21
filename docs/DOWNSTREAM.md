@@ -157,7 +157,13 @@ that has its dependency.
    `(32,64,128,256,512)`; the smoke uses small anchors on a tiny feature map). Adds
    `pycocotools` (the first downstream dependency delta). Hermetic smoke on a random
    tiny ViT + a synthetic 2-image COCO; 4/4 mutation-killed.
-3. **NYUv2 depth.** Adds `h5py`; a depth head; RMSE / δ metrics.
+3. **NYUv2 depth. DONE.** `downstream/nyuv2.py`: the labelled
+   `nyu_depth_v2_labeled.mat` read via `h5py`, a DPT-style progressive-upsampling
+   depth head on the frozen backbone, masked-L1 training, **RMSE** / **AbsRel**
+   over valid depths. Reuses the spatial adapter + contract. Adds `h5py`. The
+   train/val split adapts to the file size (the real 1449-image file keeps the
+   capture's 795/654; a tiny hermetic `.mat` splits in half), so the CPU smoke on a
+   random tiny ViT needs no real NYUv2. 5/5 mutation-killed.
 4. **SSv2 video.** Adds `av`; frame-based for an image backbone; the heaviest and
    most niche, so last.
 
