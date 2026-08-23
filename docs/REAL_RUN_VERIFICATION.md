@@ -183,10 +183,36 @@ weight/eval lands in the right place" holds by machine.
      **Still to fan out:** the four downstream tasks (a downstream stage /
      `data_shape` fed a real method `encoder.pt`) and the 100/200/300 Step-2
      milestones.
-4. **Cross-method output-layout contract.** A `contract-test`-style checker that
-   verifies, over the whole matrix, that every weight and evaluation artifact
-   exists at its expected place with a valid manifest — the machine judgment of
-   "everything landed where it should".
+4. **Cross-method output-layout contract — done (2026-08-23):**
+   `bin/matrix-audit.py` is the independent judge of a produced grid. It answers
+   "did every declared weight and evaluation land?" from two sources only — the
+   outputs on disk and each method's own `real_run_smoke.json` — and **never**
+   from the matrix's own claim of success. Per cell (expectations re-derived from
+   the spec, not the cell): the run directory and `out/run_manifest.json`
+   (`status: ok`) exist, every declared `produces` file is present, the
+   `produces_metric` is in `metrics.json`, and `launch.json` records `outcome:
+   ok` + `contract_ok`. Across a method's cells: the stages present must be an
+   in-order prefix of the declared ones, and a method whose last cell is ok must
+   have run all its stages (no silently dropped final stage). It also fails if
+   the matrix's own status disagrees with what the disk shows.
+   - **It is a genuinely separate check, not a mirror of the driver.**
+     `matrix-run.py` trusts `launch.py`/`contract-test` per run and records the
+     cell outcome; the auditor re-reads the tree and enforces the *spec's*
+     `produces`/`produces_metric` on disk, so a driver that self-reports `ok`
+     with a missing `encoder.pt` does not survive (`contract-test` checks the
+     generic manifest, not each method's declared artifacts).
+   - **Tests (`tests/test_matrix_audit.py`):** mostly hermetic — a fabricated
+     runs tree + `matrix.json` exercise the auditor in the base environment, with
+     a positive (complete tree passes) and two negatives (delete a produced file;
+     corrupt a manifest while the cell claims ok). One **integration** test runs
+     the real `matrix-run → matrix-audit` chain under a method venv so the
+     fabricated fixture cannot drift from the real layout. **Non-vacuity proven
+     by mutation** (`mutations/matrix-audit.json`, 2/2 killed): removing the
+     on-disk produced-file check, and accepting a failed manifest, are each
+     caught by a negative control.
+   - **One implementation, shared:** the auditor loads `discover_specs`/
+     `SPEC_NAME` from `bin/matrix-run.py` rather than keep a second copy of
+     "which methods declare a spec".
 
 Current entry point: **step 4** (the cross-method output-layout contract).
 Steps 1–3 are done and gated green (base suite EXIT=0, 2026-08-23). Two fan-outs

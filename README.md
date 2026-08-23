@@ -129,6 +129,7 @@ shown so the shape is visible before it is built.
 │   ├── resolve-config.py             authoring config -> canonical resolved JSON
 │   ├── launch.py                     resolve, submit, verify, record
 │   ├── matrix-run.py                  drive the method x stage grid; one verdict
+│   ├── matrix-audit.py                judge a produced grid: did everything land?
 │   ├── verify-environment.py         is this the locked environment?
 │   ├── run-ci-locally.py            run the workflow here, by reading it
 │   ├── mutate.py                     break the code, check the tests notice

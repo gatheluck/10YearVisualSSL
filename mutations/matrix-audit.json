@@ -1,0 +1,23 @@
+{
+  "_note": "Run: python3 bin/mutate.py --spec mutations/matrix-audit.json. Hermetic (no torch): the auditor only reads files, so the fabricated-tree controls in tests/test_matrix_audit.py run in the base environment. Proves the audit is an independent judge of the produced tree, not a mirror of the matrix's own claim: it fails when a declared produced file is absent, and when a cell claims ok while its manifest says otherwise. See docs/REAL_RUN_VERIFICATION.md step 4.",
+  "targets": [
+    {
+      "label": "a missing produced file is no longer noticed on disk",
+      "file": "bin/matrix-audit.py",
+      "old": "        if not (out / fname).is_file():",
+      "new": "        if False:",
+      "tests": [
+        "tests.test_matrix_audit.MatrixAudit.test_a_missing_produced_file_fails_the_audit"
+      ]
+    },
+    {
+      "label": "a failed manifest is accepted even when the cell claims ok",
+      "file": "bin/matrix-audit.py",
+      "old": "            if _load_json(manifest).get(\"status\") != \"ok\":",
+      "new": "            if False:",
+      "tests": [
+        "tests.test_matrix_audit.MatrixAudit.test_a_cell_claimed_ok_that_actually_failed_is_caught"
+      ]
+    }
+  ]
+}
