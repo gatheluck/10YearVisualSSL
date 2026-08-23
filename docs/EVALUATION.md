@@ -190,3 +190,9 @@ What still remains before the full capture *table* is reproduced:
 
 The remaining work is orchestration and real-data runs, not new evaluation code;
 it should be scoped and built incrementally, strict TDD.
+
+The next phase — a **short-epoch real-run harness** that drives every method
+across every task on the actual `launch.py` chain and checks by machine that
+every weight and evaluation artifact lands where it should — is designed in
+`docs/REAL_RUN_VERIFICATION.md` (measured test-suite state + the strict-TDD plan
+for items 3 and 4 above).

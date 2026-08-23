@@ -1,0 +1,31 @@
+{
+  "description": "Short real-run smoke for 06_rotation_prediction: pretrain -> encoder.pt -> linear_eval, one epoch on tiny real-shaped ImageFolder data. Discovered and driven by tests/test_real_run_smoke.py (docs/REAL_RUN_VERIFICATION.md step 2). This is the per-method registry entry the method x task matrix driver (step 3) will also read; it lives in the method's own directory so no shared file names a method (tests/test_no_hard_coded_methods.py).",
+  "data_shape": "imagefolder_2class",
+  "needs": ["torch", "torchvision", "numpy", "PIL"],
+  "stages": [
+    {
+      "name": "pretrain",
+      "config": "configs/pretrain.yaml",
+      "sets": {"DATA_ROOT": "@data"},
+      "overrides": {
+        "train.epochs": 1,
+        "train.batch_size": 2,
+        "train.num_workers": 0,
+        "train.image_size": 64
+      },
+      "produces": ["encoder.pt"]
+    },
+    {
+      "name": "linear_eval",
+      "config": "configs/linear_eval.yaml",
+      "sets": {"DATA_ROOT": "@data", "ENCODER": "@encoder"},
+      "overrides": {
+        "train.epochs": 1,
+        "train.batch_size": 2,
+        "train.num_workers": 0,
+        "train.image_size": 64
+      },
+      "produces_metric": "final_linear_probe_top1_accuracy"
+    }
+  ]
+}
