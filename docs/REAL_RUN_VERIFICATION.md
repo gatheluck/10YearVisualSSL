@@ -214,11 +214,46 @@ weight/eval lands in the right place" holds by machine.
      `SPEC_NAME` from `bin/matrix-run.py` rather than keep a second copy of
      "which methods declare a spec".
 
-Current entry point: **step 4** (the cross-method output-layout contract).
-Steps 1–3 are done and gated green (base suite EXIT=0, 2026-08-23). Two fan-outs
-remain and can proceed in parallel with step 4: (a) more methods each shipping a
-`real_run_smoke.json` (coverage widens with no code change), and (b) the four
-downstream tasks + 100/200/300 milestones wired into the grid.
+All four steps are done and gated green (base suite EXIT=0, 2026-08-23). Two
+fan-outs remain and proceed with no change to the driver, the auditor, or the
+tests -- coverage widens purely by methods declaring a spec: (a) more methods each
+shipping a `real_run_smoke.json`, and (b) the four downstream tasks + 100/200/300
+milestones wired into the grid.
+
+### Fan-out (a): methods declaring a real-run smoke (in progress)
+
+Each `real_run_smoke.json` is **verified by a real 1-epoch run under the method's
+own venv**, not written from a template: the override keys are read from that
+method's config schema (e.g. `train.img_size` for 10/13/14/15, `train.image_size`
+for 19/06, `train.warmup_epochs=0` where the schedule warms up over many epochs,
+`train.queue_size` shrunk for the momentum-queue methods), and the run is driven
+through `matrix-run -> matrix-audit` to confirm `encoder.pt` and the linear-probe
+metric land. Declaring a spec today (measured 2026-08-23, all `pretrain ->
+linear_eval` on `imagefolder_2class`):
+
+- `06_rotation_prediction` (the pilot), `10_inst_disc`, `13_mocov1`,
+  `14_simclrv1`, `15_mocov2`, `19_byol` -- six methods, each verified green.
+
+**Every discovered spec runs under every method's `locked` venv.** The smoke test
+gates a spec only on its `needs` importing, and all six need the same four
+(`torch`/`torchvision`/`numpy`/`PIL`), so a locked job runs all six real-runs, not
+just its own. This was measured green under two venvs -- `15_mocov2` (a
+participant) and `05_jigsaw_puzzle` (a non-participant), all six landing in ~130 s
+each -- so a ported method runs under another method's pinned deps. The cost grows
+with the spec count; if it becomes a burden the gate can be narrowed to the owning
+method, but the cross-method run is itself a compatibility signal and is left on
+for now.
+
+**Not every method fits the hermetic local backend yet.** `launch.py` always sets
+`LOCAL_RANK=0`/`RANK=0`/`WORLD_SIZE=1` for a single-process local run
+(`bin/launch.py`), and six methods' trainers -- `01_context_prediction`,
+`02_vae`, `17_swav`, `20_simsiam`, `21_barlow_twins`, `27_ibot` -- call
+`dist.init_process_group(backend="nccl")` as soon as `LOCAL_RANK` is present, which
+fails on a CPU host with `MASTER_ADDR expected, but not set`. This is a real
+finding surfaced by the harness (the driver reports it as a failed cell, never a
+silent pass), not a spec bug; giving those methods a local real-run means teaching
+their trainer a single-process path (or the local backend a rendezvous), and is
+tracked as future work rather than worked around with a broken spec.
 
 Each step follows the repository discipline (CLAUDE.md): RED test first, judge by
 exit status, a measured mutation spec for every new guard, discover-not-list, and
