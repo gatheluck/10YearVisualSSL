@@ -118,6 +118,44 @@ jobs:
       - name: Run the whole suite
         run: .venv/bin/python -m unittest discover -s tests -v
 
+  # The cross-method downstream tasks (docs/DOWNSTREAM.md) -- ADE20K, COCO, NYUv2,
+  # SSv2 -- need pycocotools / h5py / av, which no method carries. In the `locked`
+  # matrix their smokes therefore only ever skip (the `needs_*` guards), so this
+  # job installs the one downstream environment and runs them for real. Without it
+  # "the smoke passes" would be a claim nothing in CI ever checked. No submodules:
+  # the smokes build a random tiny timm ViT, they do not touch third_party/.
+  downstream:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+        with:
+          submodules: recursive
+      # Keyed on the lock, like the method matrix: a changed lock misses the cache
+      # rather than handing back an environment the lock does not describe.
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
+        with:
+          python-version-file: .python-version
+          cache: pip
+          cache-dependency-path: |
+            downstream/requirements.lock.txt
+            requirements-tools.lock.txt
+      - name: Install the downstream environment, hash-checked
+        run: |
+          python3 -m venv .venv
+          .venv/bin/pip install --require-hashes \
+            --index-url https://download.pytorch.org/whl/cpu \
+            --extra-index-url https://pypi.org/simple \
+            -r downstream/requirements.lock.txt \
+            -r requirements-tools.lock.txt
+      # The four task smokes, each end to end through its entrypoint and the
+      # downstream contract (downstream.contract.verify), on a random tiny ViT and
+      # synthetic data -- so the pipeline is exercised while nothing downloads.
+      - name: Run the downstream task smokes
+        run: |
+          PYTHONPATH=. .venv/bin/python -m unittest -v \
+            tests.test_downstream_ade20k tests.test_downstream_coco \
+            tests.test_downstream_nyuv2 tests.test_downstream_ssv2
+
   # Slower, so it runs before a merge rather than on every push. Built once by
   # hand originally, with nothing re-checking it since.
   container:

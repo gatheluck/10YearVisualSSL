@@ -205,11 +205,17 @@ class TestWhatItRuns(unittest.TestCase):
 
     @needs_yaml
     def test_the_install_is_hash_checked_and_names_every_lock(self):
-        """Both locks, with the method's one coming from the matrix.
+        """Every install is hash-checked and names a lock plus the tooling lock.
 
         This used to name method 1's lock literally, which is how a second
         method arrived uncovered. It now requires the pair without naming
-        either method.
+        either method. Two install shapes are allowed: the **per-method** jobs,
+        whose method lock must come from the matrix (never a literal name --
+        also guarded by `test_the_methods_are_discovered_rather_than_listed`),
+        and the single **downstream** job, whose one shared lock
+        (`downstream/requirements.lock.txt`) is not per-method and so is not
+        matrixed. Both must be `--require-hashes`, name a `requirements.lock.txt`,
+        and name the tooling lock.
         """
         for name, doc in parsed().items():
             installs = [str(s.get("run", ""))
@@ -221,9 +227,10 @@ class TestWhatItRuns(unittest.TestCase):
                 for ins in installs:
                     self.assertIn("--require-hashes", ins)
                     self.assertIn(TOOLING_LOCK, ins)
-                    self.assertIn("matrix.", ins,
-                                  "the method lock is not from the matrix")
                     self.assertIn("requirements.lock.txt", ins)
+                    if "methods/" in ins:      # a per-method install
+                        self.assertIn("matrix.", ins,
+                                      "the method lock is not from the matrix")
 
     @needs_yaml
     def test_the_environment_is_verified_against_the_locks(self):
