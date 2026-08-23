@@ -1,0 +1,23 @@
+{
+  "_note": "Run: PYTHONPATH=/home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL .venvs/06_rotation_prediction/bin/python bin/mutate.py --spec mutations/matrix-run.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/06_rotation_prediction/bin/python. Proves the grid's verdict is not vacuous: the whole grid is 'ok' (and exits 0) only when every cell is 'ok'. Each mutation is killed by the negative control in tests/test_matrix_run.py, which forces one cell to fail with an empty data root. Needs a torch venv, since a real cell must actually run for the negative control to have a failing cell. See docs/REAL_RUN_VERIFICATION.md step 3.",
+  "targets": [
+    {
+      "label": "the grid calls itself ok regardless of any cell's outcome",
+      "file": "bin/matrix-run.py",
+      "old": "    ok = bool(cells) and all(c[\"outcome\"] == \"ok\" for c in cells)",
+      "new": "    ok = True",
+      "tests": [
+        "tests.test_matrix_run.MatrixRun.test_a_failing_cell_fails_the_whole_grid"
+      ]
+    },
+    {
+      "label": "the exit status ignores the grid's verdict (always success)",
+      "file": "bin/matrix-run.py",
+      "old": "    return 0 if report[\"status\"] == \"ok\" else 1",
+      "new": "    return 0",
+      "tests": [
+        "tests.test_matrix_run.MatrixRun.test_a_failing_cell_fails_the_whole_grid"
+      ]
+    }
+  ]
+}
