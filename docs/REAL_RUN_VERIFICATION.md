@@ -231,31 +231,38 @@ the schedule warms up over many epochs, `train.queue_size`/`train.num_negatives`
 shrunk for the momentum-queue and NCE-bank methods -- including `train.num_negatives`
 for PIRL's memory bank (33) -- `train.k` shrunk for SeLa's self-labelling clusters,
 and `train.rebalance_sample_size` shrunk for colorization's class-rebalancing prior
-(03)). The matrix now spans both architecture families: three ViT methods declare a
-spec (`23_dino`, DINO's own ViT-S/16 -- `train.img_size` and `train.local_size` stay
-divisible by the patch size 16, `train.n_local_crops` shrunk; `22_mocov3`, a
-timm-backed ViT-Base whose spec therefore lists `timm` in `needs`). Two methods keep
-a large input on purpose: `09_jigsaw_puzzle_pp` cannot shrink `train.image_size`
-below `3*tile_size` (its 3x3 grid of 75px tiles), so it runs at the default 255. The
-run is driven through `matrix-run -> matrix-audit` to confirm `encoder.pt` and the
-linear-probe metric land. Declaring a spec today (measured 2026-08-24, all
-`pretrain -> linear_eval` on `imagefolder_2class`):
+(03)). The matrix now spans both architecture families: six ViT methods declare a
+spec. Some own their ViT (`23_dino`, DINO's ViT-S/16, and `31_dinov3`, ViT-B/16 with
+registers + RoPE -- `train.img_size`/`train.global_size`/`train.local_size` stay
+divisible by the patch size 16, `train.n_local_crops` shrunk, temperature/LR warmups
+zeroed); some are timm-backed (`22_mocov3`, ViT-Base, and `37_lejepa`,
+`vit_base_patch16_224` -- timm interpolates its position embedding to `img_size=64`),
+whose specs therefore list `timm` in `needs`. `25_mae` shows the masked-autoencoder
+shape: its model is parameterisable (`models/mae_vit.py` says so explicitly), so the
+default ViT-Large is shrunk to a tiny encoder/decoder via the dim keys -- applied
+identically in both stages so `linear_eval` rebuilds the encoder `encoder.pt` holds.
+Two methods keep a large input on purpose: `09_jigsaw_puzzle_pp` cannot shrink
+`train.image_size` below `3*tile_size` (its 3x3 grid of 75px tiles), so it runs at
+the default 255. The run is driven through `matrix-run -> matrix-audit` to confirm
+`encoder.pt` and the linear-probe metric land. Declaring a spec today (measured
+2026-08-24, all `pretrain -> linear_eval` on `imagefolder_2class`):
 
 - `03_colorization`, `06_rotation_prediction` (the pilot), `08_split_brain`,
   `09_jigsaw_puzzle_pp`, `10_inst_disc`, `12_cmc`, `13_mocov1`, `14_simclrv1`,
   `15_mocov2`, `16_simclrv2`, `18_sela`, `19_byol`, `22_mocov3`, `23_dino`,
-  `33_pirl` -- fifteen methods, each verified green.
+  `25_mae`, `31_dinov3`, `33_pirl`, `37_lejepa` -- eighteen methods, each verified
+  green.
 
 **Every discovered spec runs under every method's `locked` venv, gated on `needs`.**
 The smoke test runs a spec only when its `needs` import in the current venv:
-fourteen of the fifteen need the same four (`torch`/`torchvision`/`numpy`/`PIL`) and
-run everywhere, while `22_mocov3` also needs `timm`, so it runs only under a
-timm-carrying venv and is skipped -- by the gate, not silently -- elsewhere. This was
-measured green under a timm-carrying non-participant venv (`26_simmim`), all fifteen
-landing in ~411 s together -- so a ported method runs under another method's pinned
-deps, across both architecture families. The cost grows with the spec count; if it
-becomes a burden the gate can be narrowed to the owning method, but the cross-method
-run is itself a compatibility signal and is left on for now.
+sixteen of the eighteen need the same four (`torch`/`torchvision`/`numpy`/`PIL`) and
+run everywhere, while `22_mocov3` and `37_lejepa` also need `timm`, so they run only
+under a timm-carrying venv and are skipped -- by the gate, not silently -- elsewhere.
+This was measured green under a timm-carrying non-participant venv (`26_simmim`), all
+eighteen landing in ~374 s together -- so a ported method runs under another method's
+pinned deps, across both architecture families. The cost grows with the spec count;
+if it becomes a burden the gate can be narrowed to the owning method, but the
+cross-method run is itself a compatibility signal and is left on for now.
 
 **Not every method fits the hermetic local backend yet.** `launch.py` always sets
 `LOCAL_RANK=0`/`RANK=0`/`WORLD_SIZE=1` for a single-process local run
