@@ -1,0 +1,29 @@
+{
+  "description": "Short real-run smoke for 04_context_encoder (AlexNet inpainting, the one GAN): pretrain -> encoder.pt -> linear_eval, one epoch on tiny real-shaped ImageFolder data. Discovered and driven by tests/test_real_run_smoke.py and bin/matrix-run.py (docs/REAL_RUN_VERIFICATION.md steps 2-3). Lives in the method's own directory so no shared file names a method. The geometry is fixed by the architecture, not shrunk: the decoder reconstructs a 128x128 centre hole (mask_size=128) and the centre-hole discriminator sees that same 128x128, so mask_size stays 128 and img_size stays 227 (> mask_size). The encoder ends in AdaptiveAvgPool2d((7,7)), so it accepts any input and linear_eval need not match img_size. Adversarial training is left on (use_adversarial=true) so the real GAN path runs. Only the run-length knobs (epochs/batch_size/num_workers) are overridden; the last epoch always checkpoints (epoch == total_epochs-1).",
+  "data_shape": "imagefolder_2class",
+  "needs": ["torch", "torchvision", "numpy", "PIL"],
+  "stages": [
+    {
+      "name": "pretrain",
+      "config": "configs/pretrain.yaml",
+      "sets": {"DATA_ROOT": "@data"},
+      "overrides": {
+        "train.epochs": 1,
+        "train.batch_size": 2,
+        "train.num_workers": 0
+      },
+      "produces": ["encoder.pt"]
+    },
+    {
+      "name": "linear_eval",
+      "config": "configs/linear_eval.yaml",
+      "sets": {"DATA_ROOT": "@data", "ENCODER": "@encoder"},
+      "overrides": {
+        "train.epochs": 1,
+        "train.batch_size": 2,
+        "train.num_workers": 0
+      },
+      "produces_metric": "final_linear_probe_top1_accuracy"
+    }
+  ]
+}
