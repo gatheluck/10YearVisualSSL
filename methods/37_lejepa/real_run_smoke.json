@@ -1,0 +1,33 @@
+{
+  "description": "Short real-run smoke for 37_lejepa: pretrain -> encoder.pt -> linear_eval, one epoch on tiny real-shaped ImageFolder data. Discovered and driven by tests/test_real_run_smoke.py and bin/matrix-run.py (docs/REAL_RUN_VERIFICATION.md steps 2-3). Lives in the method's own directory so no shared file names a method. This is a timm-backed ViT method (vit_base_patch16_224), so `needs` lists timm; train.img_size stays divisible by the patch size 16 (64, timm interpolates the position embedding), train.views is shrunk for the multi-view forward, and train.warmup_epochs is zeroed for the one-epoch schedule.",
+  "data_shape": "imagefolder_2class",
+  "needs": ["torch", "torchvision", "numpy", "PIL", "timm"],
+  "stages": [
+    {
+      "name": "pretrain",
+      "config": "configs/pretrain.yaml",
+      "sets": {"DATA_ROOT": "@data"},
+      "overrides": {
+        "train.epochs": 1,
+        "train.batch_size": 2,
+        "train.num_workers": 0,
+        "train.img_size": 64,
+        "train.views": 2,
+        "train.warmup_epochs": 0
+      },
+      "produces": ["encoder.pt"]
+    },
+    {
+      "name": "linear_eval",
+      "config": "configs/linear_eval.yaml",
+      "sets": {"DATA_ROOT": "@data", "ENCODER": "@encoder"},
+      "overrides": {
+        "train.epochs": 1,
+        "train.batch_size": 2,
+        "train.num_workers": 0,
+        "train.img_size": 64
+      },
+      "produces_metric": "final_linear_probe_top1_accuracy"
+    }
+  ]
+}

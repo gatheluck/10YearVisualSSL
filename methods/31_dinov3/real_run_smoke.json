@@ -1,0 +1,36 @@
+{
+  "description": "Short real-run smoke for 31_dinov3: pretrain -> encoder.pt -> linear_eval, one epoch on tiny real-shaped ImageFolder data. Discovered and driven by tests/test_real_run_smoke.py and bin/matrix-run.py (docs/REAL_RUN_VERIFICATION.md steps 2-3). Lives in the method's own directory so no shared file names a method. This is a ViT method (DINOv3's own ViT-B/16 with registers + RoPE, no timm): train.img_size and train.global_size (64) and train.local_size (32) stay divisible by the patch size 16, train.n_local_crops is shrunk for the multi-crop forward, and the temperature/LR warmups are zeroed so the one-epoch schedule is well defined.",
+  "data_shape": "imagefolder_2class",
+  "needs": ["torch", "torchvision", "numpy", "PIL"],
+  "stages": [
+    {
+      "name": "pretrain",
+      "config": "configs/pretrain.yaml",
+      "sets": {"DATA_ROOT": "@data"},
+      "overrides": {
+        "train.epochs": 1,
+        "train.batch_size": 2,
+        "train.num_workers": 0,
+        "train.img_size": 64,
+        "train.global_size": 64,
+        "train.local_size": 32,
+        "train.n_local_crops": 2,
+        "train.warmup_epochs": 0,
+        "train.teacher_temp_warmup_epochs": 0
+      },
+      "produces": ["encoder.pt"]
+    },
+    {
+      "name": "linear_eval",
+      "config": "configs/linear_eval.yaml",
+      "sets": {"DATA_ROOT": "@data", "ENCODER": "@encoder"},
+      "overrides": {
+        "train.epochs": 1,
+        "train.batch_size": 2,
+        "train.num_workers": 0,
+        "train.img_size": 64
+      },
+      "produces_metric": "final_linear_probe_top1_accuracy"
+    }
+  ]
+}
