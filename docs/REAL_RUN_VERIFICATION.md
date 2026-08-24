@@ -231,7 +231,7 @@ the schedule warms up over many epochs, `train.queue_size`/`train.num_negatives`
 shrunk for the momentum-queue and NCE-bank methods -- including `train.num_negatives`
 for PIRL's memory bank (33) -- `train.k` shrunk for SeLa's self-labelling clusters,
 and `train.rebalance_sample_size` shrunk for colorization's class-rebalancing prior
-(03)). The matrix now spans both architecture families: six ViT methods declare a
+(03)). The matrix now spans both architecture families: eight ViT methods declare a
 spec. Some own their ViT (`23_dino`, DINO's ViT-S/16, and `31_dinov3`, ViT-B/16 with
 registers + RoPE -- `train.img_size`/`train.global_size`/`train.local_size` stay
 divisible by the patch size 16, `train.n_local_crops` shrunk, temperature/LR warmups
@@ -241,7 +241,12 @@ whose specs therefore list `timm` in `needs`. `25_mae` shows the masked-autoenco
 shape: its model is parameterisable (`models/mae_vit.py` says so explicitly), so the
 default ViT-Large is shrunk to a tiny encoder/decoder via the dim keys -- applied
 identically in both stages so `linear_eval` rebuilds the encoder `encoder.pt` holds.
-Two methods keep a large input on purpose: `09_jigsaw_puzzle_pp` cannot shrink
+The patch-14 JEPA family shrinks the same way: `29_ijepa` builds the tiny `vit_tiny`
+variant its port added to `models/vision_transformer.py` (`train.name=vit_tiny`), and
+`32_nepa` is built from explicit dims (`train.embed_dim`/`depth`/`num_heads`), both
+kept identical across the two stages; each runs at `train.img_size=70`, divisible by
+the patch size 14 (a 5x5 patch grid), with `train.warmup_epochs=0`. Two methods keep a
+large input on purpose: `09_jigsaw_puzzle_pp` cannot shrink
 `train.image_size` below `3*tile_size` (its 3x3 grid of 75px tiles), so it runs at
 the default 255. The run is driven through `matrix-run -> matrix-audit` to confirm
 `encoder.pt` and the linear-probe metric land. Declaring a spec today (measured
@@ -250,16 +255,16 @@ the default 255. The run is driven through `matrix-run -> matrix-audit` to confi
 - `03_colorization`, `06_rotation_prediction` (the pilot), `08_split_brain`,
   `09_jigsaw_puzzle_pp`, `10_inst_disc`, `12_cmc`, `13_mocov1`, `14_simclrv1`,
   `15_mocov2`, `16_simclrv2`, `18_sela`, `19_byol`, `22_mocov3`, `23_dino`,
-  `25_mae`, `31_dinov3`, `33_pirl`, `37_lejepa` -- eighteen methods, each verified
-  green.
+  `25_mae`, `29_ijepa`, `31_dinov3`, `32_nepa`, `33_pirl`, `37_lejepa` -- twenty
+  methods, each verified green.
 
 **Every discovered spec runs under every method's `locked` venv, gated on `needs`.**
 The smoke test runs a spec only when its `needs` import in the current venv:
-sixteen of the eighteen need the same four (`torch`/`torchvision`/`numpy`/`PIL`) and
+eighteen of the twenty need the same four (`torch`/`torchvision`/`numpy`/`PIL`) and
 run everywhere, while `22_mocov3` and `37_lejepa` also need `timm`, so they run only
 under a timm-carrying venv and are skipped -- by the gate, not silently -- elsewhere.
 This was measured green under a timm-carrying non-participant venv (`26_simmim`), all
-eighteen landing in ~374 s together -- so a ported method runs under another method's
+twenty landing in ~539 s together -- so a ported method runs under another method's
 pinned deps, across both architecture families. The cost grows with the spec count;
 if it becomes a burden the gate can be narrowed to the owning method, but the
 cross-method run is itself a compatibility signal and is left on for now.
