@@ -1,0 +1,49 @@
+{
+  "description": "Short real-run smoke for 11_cpc (visual CPC 2018, native patch-encoder path): pretrain -> encoder.pt -> linear_eval, one epoch on tiny real-shaped ImageFolder data. Discovered and driven by tests/test_real_run_smoke.py and bin/matrix-run.py (docs/REAL_RUN_VERIFICATION.md steps 2-3). Lives in the method's own directory so no shared file names a method. The paper's 7x7 patch grid is shrunk to the smallest the port allows (the dataset relaxes the grid check to >=2x2 'so a small hermetic CPU smoke can run'): img_size 32, patch_size 16, stride 16 -> a 2x2 grid, at which the InfoNCE loss still predicts one future row (pred_steps 1). The ResNet-v2-101 patch encoder is narrowed via encoder_width_mult and z_dim/c_dim. Every model and patch-grid key is set identically in both stages, because linear_eval rebuilds the encoder from them to load encoder.pt (adapter.load_encoder).",
+  "data_shape": "imagefolder_2class",
+  "needs": ["torch", "torchvision", "numpy", "PIL"],
+  "stages": [
+    {
+      "name": "pretrain",
+      "config": "configs/pretrain.yaml",
+      "sets": {"DATA_ROOT": "@data"},
+      "overrides": {
+        "train.epochs": 1,
+        "train.batch_size": 2,
+        "train.num_workers": 0,
+        "train.z_dim": 64,
+        "train.c_dim": 64,
+        "train.pred_steps": 1,
+        "train.context_layers": 1,
+        "train.encoder_width_mult": 0.25,
+        "train.source_size": 40,
+        "train.img_size": 32,
+        "train.patch_size": 16,
+        "train.patch_crop_size": 12,
+        "train.stride": 16
+      },
+      "produces": ["encoder.pt"]
+    },
+    {
+      "name": "linear_eval",
+      "config": "configs/linear_eval.yaml",
+      "sets": {"DATA_ROOT": "@data", "ENCODER": "@encoder"},
+      "overrides": {
+        "train.epochs": 1,
+        "train.batch_size": 2,
+        "train.num_workers": 0,
+        "train.z_dim": 64,
+        "train.c_dim": 64,
+        "train.pred_steps": 1,
+        "train.context_layers": 1,
+        "train.encoder_width_mult": 0.25,
+        "train.source_size": 40,
+        "train.img_size": 32,
+        "train.patch_size": 16,
+        "train.patch_crop_size": 12,
+        "train.stride": 16
+      },
+      "produces_metric": "final_linear_probe_top1_accuracy"
+    }
+  ]
+}

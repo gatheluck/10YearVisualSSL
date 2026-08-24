@@ -245,26 +245,33 @@ The patch-14 JEPA family shrinks the same way: `29_ijepa` builds the tiny `vit_t
 variant its port added to `models/vision_transformer.py` (`train.name=vit_tiny`), and
 `32_nepa` is built from explicit dims (`train.embed_dim`/`depth`/`num_heads`), both
 kept identical across the two stages; each runs at `train.img_size=70`, divisible by
-the patch size 14 (a 5x5 patch grid), with `train.warmup_epochs=0`. Two methods keep a
-large input on purpose: `09_jigsaw_puzzle_pp` cannot shrink
-`train.image_size` below `3*tile_size` (its 3x3 grid of 75px tiles), so it runs at
-the default 255. The run is driven through `matrix-run -> matrix-audit` to confirm
+the patch size 14 (a 5x5 patch grid), with `train.warmup_epochs=0`. `11_cpc` (visual
+CPC 2018) is the patch-grid predictive-coding shape: its dataset relaxes the paper's
+7x7 grid to any `>=2x2` grid for a hermetic smoke, so `train.img_size`/`patch_size`/
+`stride` shrink to a 2x2 grid (at which the InfoNCE loss still predicts one future
+row, `train.pred_steps=1`) and the ResNet-v2-101 patch encoder is narrowed with
+`train.z_dim`/`train.encoder_width_mult` -- every model and patch-grid key set
+identically in both stages so `linear_eval` rebuilds the encoder `encoder.pt` holds.
+Two jigsaw methods keep a large input on purpose: `05_jigsaw_puzzle` and
+`09_jigsaw_puzzle_pp` cannot shrink `train.image_size` below `3*tile_size` (their 3x3
+grid of 75px tiles), so both run at the default 255 (the AlexNet/CFN encoder is light
+enough at that resolution). The run is driven through `matrix-run -> matrix-audit` to confirm
 `encoder.pt` and the linear-probe metric land. Declaring a spec today (measured
 2026-08-24, all `pretrain -> linear_eval` on `imagefolder_2class`):
 
-- `03_colorization`, `06_rotation_prediction` (the pilot), `08_split_brain`,
-  `09_jigsaw_puzzle_pp`, `10_inst_disc`, `12_cmc`, `13_mocov1`, `14_simclrv1`,
-  `15_mocov2`, `16_simclrv2`, `18_sela`, `19_byol`, `22_mocov3`, `23_dino`,
-  `25_mae`, `29_ijepa`, `31_dinov3`, `32_nepa`, `33_pirl`, `37_lejepa` -- twenty
-  methods, each verified green.
+- `03_colorization`, `05_jigsaw_puzzle`, `06_rotation_prediction` (the pilot),
+  `08_split_brain`, `09_jigsaw_puzzle_pp`, `10_inst_disc`, `11_cpc`, `12_cmc`,
+  `13_mocov1`, `14_simclrv1`, `15_mocov2`, `16_simclrv2`, `18_sela`, `19_byol`,
+  `22_mocov3`, `23_dino`, `25_mae`, `29_ijepa`, `31_dinov3`, `32_nepa`, `33_pirl`,
+  `37_lejepa` -- twenty-two methods, each verified green.
 
 **Every discovered spec runs under every method's `locked` venv, gated on `needs`.**
 The smoke test runs a spec only when its `needs` import in the current venv:
-eighteen of the twenty need the same four (`torch`/`torchvision`/`numpy`/`PIL`) and
+twenty of the twenty-two need the same four (`torch`/`torchvision`/`numpy`/`PIL`) and
 run everywhere, while `22_mocov3` and `37_lejepa` also need `timm`, so they run only
 under a timm-carrying venv and are skipped -- by the gate, not silently -- elsewhere.
 This was measured green under a timm-carrying non-participant venv (`26_simmim`), all
-twenty landing in ~539 s together -- so a ported method runs under another method's
+twenty-two landing in ~431 s together -- so a ported method runs under another method's
 pinned deps, across both architecture families. The cost grows with the spec count;
 if it becomes a burden the gate can be narrowed to the owning method, but the
 cross-method run is itself a compatibility signal and is left on for now.
