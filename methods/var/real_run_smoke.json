@@ -1,0 +1,40 @@
+{
+  "description": "Short real-run smoke for var (VAR next-scale autoregressive generative pretraining): pretrain -> encoder.pt and an independent linear_eval, one epoch each on tiny real-shaped ImageFolder data. Discovered and driven by tests/test_real_run_smoke.py and bin/matrix-run.py (docs/REAL_RUN_VERIFICATION.md steps 2-3). Lives in the method's own directory so no shared file names a method. This is the EVAL_DOWNLOAD generative shape (docs/EVAL_DOWNLOAD.md): the probe reads the VQVAE tokeniser's features, NOT the VAR transformer that pretrain trains, so linear_eval consumes no encoder.pt and the two stages are independent. The full VAR-d16 recipe (depth 16, ch 160, vocab_size 4096, patch_nums up to 16) is shrunk to the tiny architecture the method's own test exercises on CPU: patch_nums [1,2,3], vocab_size 16, ch 32, num_classes 4, depth 2 -- the real architecture, just small. The pretrained VQVAE tokeniser is a download (bin/fetch-weights.py); the hermetic smoke leaves VQVAE_CKPT empty so a random VQVAE is built instead, exercising the pipeline (its accuracy is meaningless by design). linear_eval runs at img_size 32 (a 2x2 map over the VQVAE's 16x downsample). The same model keys are set in both stages so the tokeniser is rebuilt identically; only the run-length knobs and the tiny-arch dims are overridden.",
+  "data_shape": "imagefolder_2class",
+  "needs": ["torch", "torchvision", "numpy", "PIL", "huggingface_hub"],
+  "stages": [
+    {
+      "name": "pretrain",
+      "config": "configs/pretrain.yaml",
+      "sets": {"DATA_ROOT": "@data", "VQVAE_CKPT": ""},
+      "overrides": {
+        "train.epochs": 1,
+        "train.batch_size": 2,
+        "train.num_workers": 0,
+        "train.patch_nums": [1, 2, 3],
+        "train.vocab_size": 16,
+        "train.ch": 32,
+        "train.num_classes": 4,
+        "train.depth": 2
+      },
+      "produces": ["encoder.pt"]
+    },
+    {
+      "name": "linear_eval",
+      "config": "configs/linear_eval.yaml",
+      "sets": {"DATA_ROOT": "@data", "VQVAE_CKPT": ""},
+      "overrides": {
+        "train.epochs": 1,
+        "train.batch_size": 2,
+        "train.num_workers": 0,
+        "train.patch_nums": [1, 2, 3],
+        "train.vocab_size": 16,
+        "train.ch": 32,
+        "train.num_classes": 4,
+        "train.depth": 2,
+        "train.img_size": 32
+      },
+      "produces_metric": "final_linear_probe_top1_accuracy"
+    }
+  ]
+}
