@@ -281,24 +281,37 @@ the method's own test exercises on CPU (`train.patch_nums=[1,2,3]`, `train.vocab
 a download, so the hermetic smoke leaves `VQVAE_CKPT` empty and a random VQVAE is built
 instead (its accuracy is meaningless by design -- only the pipeline is exercised), with
 `linear_eval` at `train.img_size=32` (a 2x2 map over the tokeniser's 16x downsample). The run is driven through `matrix-run -> matrix-audit` to confirm
-`encoder.pt` and the linear-probe metric land. Declaring a spec today (measured
-2026-08-24, all `pretrain -> linear_eval` on `imagefolder_2class`):
+`encoder.pt` and the linear-probe metric land. `image_gpt` (iGPT, generative
+pretraining from pixels) is the first spec to thread a second artifact between its
+own stages: unlike the `EVAL_DOWNLOAD` shape, its probe reads the model `pretrain`
+trains (`IGPT.extract_features`), so `linear_eval` consumes both the `encoder.pt`
+(via `@encoder`) *and* the `clusters.npy` colour clusters fit during pretraining
+(via `@produces:clusters.npy`) -- the probe must quantise images with the same
+colour space the model was trained on. `@produces:<file>` is the general form the
+driver grew for exactly this (`@encoder` stays a backward-compatible alias for
+`@produces:encoder.pt`); a request for a file no earlier stage produced is a hard,
+named failure, never a silently empty `--set`. The iGPT-S recipe (`vocab_size=512`,
+`img_size=32`, `n_layer=24`, `n_head=8`, `n_embd=512`) is shrunk to the tiny
+architecture the method's own test exercises on CPU (`vocab_size=8`, `img_size=8`,
+`n_layer=2`, `n_head=2`, `n_embd=32`), every model key set identically in both
+stages so `load_encoder` rebuilds the same model. Declaring a spec today (measured
+2026-08-25, all `pretrain -> linear_eval` on `imagefolder_2class`):
 
 - `03_colorization`, `04_context_encoder`, `05_jigsaw_puzzle`,
   `06_rotation_prediction` (the pilot), `08_split_brain`, `09_jigsaw_puzzle_pp`,
   `10_inst_disc`, `11_cpc`, `12_cmc`, `13_mocov1`, `14_simclrv1`, `15_mocov2`,
   `16_simclrv2`, `18_sela`, `19_byol`, `22_mocov3`, `23_dino`, `25_mae`, `26_simmim`,
-  `29_ijepa`, `31_dinov3`, `32_nepa`, `33_pirl`, `37_lejepa`, `var` -- twenty-five
-  methods, each verified green.
+  `29_ijepa`, `31_dinov3`, `32_nepa`, `33_pirl`, `37_lejepa`, `var`, `image_gpt` --
+  twenty-six methods, each verified green.
 
 **Every discovered spec runs under every method's `locked` venv, gated on `needs`.**
 The smoke test runs a spec only when its `needs` import in the current venv:
-twenty-one of the twenty-five need the same four (`torch`/`torchvision`/`numpy`/`PIL`)
+twenty-two of the twenty-six need the same four (`torch`/`torchvision`/`numpy`/`PIL`)
 and run everywhere, while `22_mocov3`, `26_simmim` and `37_lejepa` also need `timm` and
 `var` also needs `huggingface_hub`, so those four run only under a venv carrying the extra
 dep and are skipped -- by the gate, not silently -- elsewhere. This was measured green
 under the `26_simmim` venv (which carries both `timm` and `huggingface_hub`), all
-twenty-five landing in ~508 s together -- so a ported method runs under another
+twenty-six landing in ~711 s together (measured 2026-08-25) -- so a ported method runs under another
 method's pinned deps, across both architecture families. The cost grows with the spec count;
 if it becomes a burden the gate can be narrowed to the owning method, but the
 cross-method run is itself a compatibility signal and is left on for now.

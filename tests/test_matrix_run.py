@@ -121,5 +121,73 @@ class MatrixRun(unittest.TestCase):
                         report)
 
 
+class ArtifactThreading(unittest.TestCase):
+    """A later stage may consume any file an earlier stage of the same method
+    produced, not only `encoder.pt`. `@encoder` stays a backward-compatible
+    alias for `@produces:encoder.pt`; `@produces:<file>` threads any declared
+    artifact (e.g. image_gpt's `clusters.npy`, which its linear_eval must
+    quantise with). These are hermetic: they exercise the resolution and the
+    threading directly, needing no torch and no launch.py."""
+
+    def d(self):
+        return _real_run.driver()
+
+    def test_produces_token_resolves_a_named_artifact(self):
+        d = self.d()
+        path = Path("/some/run/out/clusters.npy")
+        stage = {"name": "linear_eval", "config": "configs/linear_eval.yaml",
+                 "sets": {"CLUSTERS": "@produces:clusters.npy"}}
+        cmd = d.stage_command("m", stage, Path("/runs"), "local",
+                              Path("/data"), {"clusters.npy": path}, None)
+        self.assertIn(f"CLUSTERS={path.resolve()}", " ".join(cmd))
+
+    def test_encoder_token_still_resolves(self):
+        d = self.d()
+        path = Path("/r/out/encoder.pt")
+        stage = {"name": "linear_eval", "config": "configs/linear_eval.yaml",
+                 "sets": {"ENCODER": "@encoder"}}
+        cmd = d.stage_command("m", stage, Path("/runs"), "local",
+                              Path("/data"), {"encoder.pt": path}, None)
+        self.assertIn(f"ENCODER={path.resolve()}", " ".join(cmd))
+
+    def test_produces_token_before_produced_is_reported(self):
+        d = self.d()
+        stage = {"name": "linear_eval", "config": "configs/linear_eval.yaml",
+                 "sets": {"CLUSTERS": "@produces:clusters.npy"}}
+        with self.assertRaises(d.MatrixError) as cm:
+            d.stage_command("m", stage, Path("/runs"), "local",
+                            Path("/data"), {}, None)
+        self.assertIn("clusters.npy", str(cm.exception))
+
+    def test_run_method_threads_all_produced_files_not_just_encoder(self):
+        d = self.d()
+        seen = {}
+
+        def fake_run_stage(method, stage, runs, platform, data_root,
+                           produced=None, python=None):
+            seen[stage["name"]] = dict(produced or {})
+            rd = Path("/runs") / f"{method}-{stage['name']}"
+            return {"method": method, "stage": stage["name"], "run_dir": rd,
+                    "returncode": 0, "outcome": "ok",
+                    "produces": list(stage.get("produces", [])),
+                    "produces_metric": stage.get("produces_metric")}
+
+        orig = d.run_stage
+        d.run_stage = fake_run_stage
+        try:
+            spec = {"data_shape": "s", "stages": [
+                {"name": "pretrain", "config": "c",
+                 "produces": ["encoder.pt", "clusters.npy"]},
+                {"name": "linear_eval", "config": "c",
+                 "sets": {"C": "@produces:clusters.npy"}},
+            ]}
+            d.run_method("m", spec, {"s": Path("/data")}, Path("/runs"),
+                         "local", None)
+        finally:
+            d.run_stage = orig
+        self.assertIn("clusters.npy", seen["linear_eval"])
+        self.assertIn("encoder.pt", seen["linear_eval"])
+
+
 if __name__ == "__main__":
     unittest.main()
