@@ -25,9 +25,12 @@ All numbers below are from a run on this machine, not an estimate.
 | Full suite in-process | a torch venv (`.venvs/06_…`) | **EXIT=0**, 2546 tests, **149 skipped**, ~3712 s (~62 min) |
 
 The full in-process run (`.venvs/06_rotation_prediction`, which carries
-torch+timm+downstream deps) leaves only 149 skips — the CUDA/GPU path and a few
-other methods' specific deps (e.g. huggingface_hub for var/aim) that 06's venv
-does not carry. No failures and no in-process `models/` namespace collisions.
+torch+timm+downstream deps, and -- measured 2026-08-24 -- `huggingface_hub` too)
+leaves only 149 skips — the CUDA/GPU path, a few other methods' specific deps that
+06's venv does not carry, and checkout-gated tests: `var`/`aim`, for instance, skip
+not for a missing dep (06 carries `huggingface_hub`) but because those tests need a
+pinned external checkpoint via `needs_checkout`, which is absent here.
+No failures and no in-process `models/` namespace collisions.
 This is one cell of CI's `locked` matrix, reproduced locally; CI runs it per
 method.
 
@@ -268,7 +271,16 @@ port asserts -- `encoder_stride = train.patch_size * 2^(len(depths)-1) = 32`, an
 `train.img_size=32` is divisible by both that stride and `train.mask_patch_size=8`
 (itself a multiple of `train.patch_size=4`), so the mask grid matches the token grid
 and the PixelShuffle decoder reconstructs to 32x32; every model key is set identically
-in both stages so `linear_eval` rebuilds the same Swin. The run is driven through `matrix-run -> matrix-audit` to confirm
+in both stages so `linear_eval` rebuilds the same Swin. `var` (VAR next-scale
+autoregressive generative pretraining) is the `EVAL_DOWNLOAD` generative shape
+(`docs/EVAL_DOWNLOAD.md`): its probe reads the VQVAE tokeniser's features, not the VAR
+transformer that `pretrain` trains, so `linear_eval` consumes no `encoder.pt` and the two
+stages are independent. The full VAR-d16 recipe is shrunk to the tiny real architecture
+the method's own test exercises on CPU (`train.patch_nums=[1,2,3]`, `train.vocab_size=16`,
+`train.ch=32`, `train.num_classes=4`, `train.depth=2`); the pretrained VQVAE tokeniser is
+a download, so the hermetic smoke leaves `VQVAE_CKPT` empty and a random VQVAE is built
+instead (its accuracy is meaningless by design -- only the pipeline is exercised), with
+`linear_eval` at `train.img_size=32` (a 2x2 map over the tokeniser's 16x downsample). The run is driven through `matrix-run -> matrix-audit` to confirm
 `encoder.pt` and the linear-probe metric land. Declaring a spec today (measured
 2026-08-24, all `pretrain -> linear_eval` on `imagefolder_2class`):
 
@@ -276,16 +288,17 @@ in both stages so `linear_eval` rebuilds the same Swin. The run is driven throug
   `06_rotation_prediction` (the pilot), `08_split_brain`, `09_jigsaw_puzzle_pp`,
   `10_inst_disc`, `11_cpc`, `12_cmc`, `13_mocov1`, `14_simclrv1`, `15_mocov2`,
   `16_simclrv2`, `18_sela`, `19_byol`, `22_mocov3`, `23_dino`, `25_mae`, `26_simmim`,
-  `29_ijepa`, `31_dinov3`, `32_nepa`, `33_pirl`, `37_lejepa` -- twenty-four methods,
-  each verified green.
+  `29_ijepa`, `31_dinov3`, `32_nepa`, `33_pirl`, `37_lejepa`, `var` -- twenty-five
+  methods, each verified green.
 
 **Every discovered spec runs under every method's `locked` venv, gated on `needs`.**
 The smoke test runs a spec only when its `needs` import in the current venv:
-twenty-one of the twenty-four need the same four (`torch`/`torchvision`/`numpy`/`PIL`)
-and run everywhere, while `22_mocov3`, `26_simmim` and `37_lejepa` also need `timm`, so
-they run only under a timm-carrying venv and are skipped -- by the gate, not silently --
-elsewhere. This was measured green under the timm-carrying `26_simmim` venv, all
-twenty-four landing in ~632 s together -- so a ported method runs under another
+twenty-one of the twenty-five need the same four (`torch`/`torchvision`/`numpy`/`PIL`)
+and run everywhere, while `22_mocov3`, `26_simmim` and `37_lejepa` also need `timm` and
+`var` also needs `huggingface_hub`, so those four run only under a venv carrying the extra
+dep and are skipped -- by the gate, not silently -- elsewhere. This was measured green
+under the `26_simmim` venv (which carries both `timm` and `huggingface_hub`), all
+twenty-five landing in ~508 s together -- so a ported method runs under another
 method's pinned deps, across both architecture families. The cost grows with the spec count;
 if it becomes a burden the gate can be narrowed to the owning method, but the
 cross-method run is itself a compatibility signal and is left on for now.
