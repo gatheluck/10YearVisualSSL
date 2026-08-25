@@ -1,9 +1,9 @@
 # Real-run verification: what the tests guarantee today, and the short-epoch matrix to build
 
-Last updated: 2026-08-23
+Last updated: 2026-08-24
 
 This document records, **fact-based and measured**, the state of the test suite as
-of 2026-08-23 and the design for the next phase: a **short-epoch real-run harness**
+of 2026-08-24 and the design for the next phase: a **short-epoch real-run harness**
 that drives every method across every downstream task on the actual `launch.py`
 chain and checks by machine that every weight and evaluation artifact lands where
 it should. It exists so the analysis and the plan survive across sessions.
@@ -255,24 +255,38 @@ identically in both stages so `linear_eval` rebuilds the encoder `encoder.pt` ho
 Two jigsaw methods keep a large input on purpose: `05_jigsaw_puzzle` and
 `09_jigsaw_puzzle_pp` cannot shrink `train.image_size` below `3*tile_size` (their 3x3
 grid of 75px tiles), so both run at the default 255 (the AlexNet/CFN encoder is light
-enough at that resolution). The run is driven through `matrix-run -> matrix-audit` to confirm
+enough at that resolution). `04_context_encoder` is the one GAN (AlexNet inpainting):
+its geometry is fixed by the architecture rather than shrunk -- the decoder
+reconstructs a 128x128 centre hole and the discriminator sees that same 128x128, so
+`mask_size` stays 128 and `img_size` stays 227, while the encoder's terminal
+`AdaptiveAvgPool2d((7,7))` accepts any input so `linear_eval` need not match the
+pretrain size; only the run-length knobs are overridden and the adversarial path runs.
+`26_simmim` is the Swin masked-image-modeling shape: the default Swin-B is shrunk to a
+tiny four-stage tower (`train.embed_dim=32`, `train.depths=[2,2,2,2]`,
+`train.num_heads=[2,4,8,16]`) whose geometry still satisfies every divisibility the
+port asserts -- `encoder_stride = train.patch_size * 2^(len(depths)-1) = 32`, and
+`train.img_size=32` is divisible by both that stride and `train.mask_patch_size=8`
+(itself a multiple of `train.patch_size=4`), so the mask grid matches the token grid
+and the PixelShuffle decoder reconstructs to 32x32; every model key is set identically
+in both stages so `linear_eval` rebuilds the same Swin. The run is driven through `matrix-run -> matrix-audit` to confirm
 `encoder.pt` and the linear-probe metric land. Declaring a spec today (measured
 2026-08-24, all `pretrain -> linear_eval` on `imagefolder_2class`):
 
-- `03_colorization`, `05_jigsaw_puzzle`, `06_rotation_prediction` (the pilot),
-  `08_split_brain`, `09_jigsaw_puzzle_pp`, `10_inst_disc`, `11_cpc`, `12_cmc`,
-  `13_mocov1`, `14_simclrv1`, `15_mocov2`, `16_simclrv2`, `18_sela`, `19_byol`,
-  `22_mocov3`, `23_dino`, `25_mae`, `29_ijepa`, `31_dinov3`, `32_nepa`, `33_pirl`,
-  `37_lejepa` -- twenty-two methods, each verified green.
+- `03_colorization`, `04_context_encoder`, `05_jigsaw_puzzle`,
+  `06_rotation_prediction` (the pilot), `08_split_brain`, `09_jigsaw_puzzle_pp`,
+  `10_inst_disc`, `11_cpc`, `12_cmc`, `13_mocov1`, `14_simclrv1`, `15_mocov2`,
+  `16_simclrv2`, `18_sela`, `19_byol`, `22_mocov3`, `23_dino`, `25_mae`, `26_simmim`,
+  `29_ijepa`, `31_dinov3`, `32_nepa`, `33_pirl`, `37_lejepa` -- twenty-four methods,
+  each verified green.
 
 **Every discovered spec runs under every method's `locked` venv, gated on `needs`.**
 The smoke test runs a spec only when its `needs` import in the current venv:
-twenty of the twenty-two need the same four (`torch`/`torchvision`/`numpy`/`PIL`) and
-run everywhere, while `22_mocov3` and `37_lejepa` also need `timm`, so they run only
-under a timm-carrying venv and are skipped -- by the gate, not silently -- elsewhere.
-This was measured green under a timm-carrying non-participant venv (`26_simmim`), all
-twenty-two landing in ~431 s together -- so a ported method runs under another method's
-pinned deps, across both architecture families. The cost grows with the spec count;
+twenty-one of the twenty-four need the same four (`torch`/`torchvision`/`numpy`/`PIL`)
+and run everywhere, while `22_mocov3`, `26_simmim` and `37_lejepa` also need `timm`, so
+they run only under a timm-carrying venv and are skipped -- by the gate, not silently --
+elsewhere. This was measured green under the timm-carrying `26_simmim` venv, all
+twenty-four landing in ~632 s together -- so a ported method runs under another
+method's pinned deps, across both architecture families. The cost grows with the spec count;
 if it becomes a burden the gate can be narrowed to the owning method, but the
 cross-method run is itself a compatibility signal and is left on for now.
 

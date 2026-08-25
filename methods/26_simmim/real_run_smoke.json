@@ -1,0 +1,43 @@
+{
+  "description": "Short real-run smoke for 26_simmim (Swin masked image modeling): pretrain -> encoder.pt -> linear_eval, one epoch on tiny real-shaped ImageFolder data. Discovered and driven by tests/test_real_run_smoke.py and bin/matrix-run.py (docs/REAL_RUN_VERIFICATION.md steps 2-3). Lives in the method's own directory so no shared file names a method. The default is a full Swin-B (embed_dim 128, depths [2,2,18,2], img_size 192); here the Swin is shrunk to a tiny four-stage tower whose geometry still satisfies every divisibility constraint the port asserts: encoder_stride = patch_size * 2^(len(depths)-1) = 4*8 = 32, and img_size 32 is divisible by both encoder_stride and mask_patch_size 8, mask_patch_size 8 is a multiple of patch_size 4, so the mask grid (img_size/patch_size = 8x8) matches the token grid and the PixelShuffle decoder reconstructs back to 32x32. embed_dim 32 with num_heads [2,4,8,16] gives a constant head_dim of 16 across stages. Every model key (img_size/patch_size/window_size/embed_dim/depths/num_heads plus mask_patch_size/drop_path_rate for pretrain) is set IDENTICALLY in both stages so linear_eval rebuilds the same Swin to load encoder.pt. Only the run-length knobs (epochs/batch_size/num_workers) are also overridden.",
+  "data_shape": "imagefolder_2class",
+  "needs": ["torch", "torchvision", "numpy", "PIL", "timm"],
+  "stages": [
+    {
+      "name": "pretrain",
+      "config": "configs/pretrain.yaml",
+      "sets": {"DATA_ROOT": "@data"},
+      "overrides": {
+        "train.epochs": 1,
+        "train.batch_size": 2,
+        "train.num_workers": 0,
+        "train.img_size": 32,
+        "train.patch_size": 4,
+        "train.window_size": 4,
+        "train.embed_dim": 32,
+        "train.depths": [2, 2, 2, 2],
+        "train.num_heads": [2, 4, 8, 16],
+        "train.mask_patch_size": 8,
+        "train.drop_path_rate": 0.0
+      },
+      "produces": ["encoder.pt"]
+    },
+    {
+      "name": "linear_eval",
+      "config": "configs/linear_eval.yaml",
+      "sets": {"DATA_ROOT": "@data", "ENCODER": "@encoder"},
+      "overrides": {
+        "train.epochs": 1,
+        "train.batch_size": 2,
+        "train.num_workers": 0,
+        "train.img_size": 32,
+        "train.patch_size": 4,
+        "train.window_size": 4,
+        "train.embed_dim": 32,
+        "train.depths": [2, 2, 2, 2],
+        "train.num_heads": [2, 4, 8, 16]
+      },
+      "produces_metric": "final_linear_probe_top1_accuracy"
+    }
+  ]
+}
