@@ -1,0 +1,51 @@
+{
+  "description": "Short real-run smoke for 24_beit (BEiT: masked image modeling with dVAE visual tokens, Bao et al. 2021): pretrain -> encoder.pt -> linear_eval, one epoch each on tiny real-shaped ImageFolder data. Discovered and driven by tests/test_real_run_smoke.py and bin/matrix-run.py (docs/REAL_RUN_VERIFICATION.md steps 2-3). Lives in the method's own directory so no shared file names a method. Its probe reads the model pretrain trains (the frozen BEiT backbone's mean-pooled patch tokens), so linear_eval consumes encoder.pt via @encoder -- the standard shape, NOT the EVAL_DOWNLOAD one. The MIM targets come from a dVAE tokenizer: for a real run this is the frozen OpenAI DALL-E encoder (a hash-pinned download named in provenance.json), but the hermetic smoke leaves TOKENIZER_CKPT empty so the adapter builds a RANDOM tokenizer instead -- nothing is downloaded and no submodule is needed (its accuracy is meaningless by design; only the pipeline is exercised). The paper's ViT-Base/16 (img_size 224, embed_dim 768, depth 12, 8192 tokens, token_size 112, num_masking_patches 75) is shrunk to the tiny architecture the method's own test exercises on CPU: img_size 32 / patch_size 16 (a 2x2 = 4 patch grid), token_size 16 (stride 8 -> a 2x2 = 4 token grid matching the patch grid), embed_dim 32, depth 2, num_heads 4, vocab_size 16, mlp_ratio 2.0, num_masking_patches 2 of 4, min_num_patches 1 -- the real architecture, just small. Every model key is set identically in both stages so load_encoder rebuilds the same BEiT trunk; the tokenizer and masking keys are pretrain-only (the linear_eval config rejects them). Only the run-length knobs (epochs/batch_size/num_workers, warmup_epochs 0) and the tiny-arch dims are overridden.",
+  "data_shape": "imagefolder_2class",
+  "needs": ["torch", "torchvision", "numpy", "PIL"],
+  "stages": [
+    {
+      "name": "pretrain",
+      "config": "configs/pretrain.yaml",
+      "sets": {"DATA_ROOT": "@data", "TOKENIZER_CKPT": ""},
+      "overrides": {
+        "train.epochs": 1,
+        "train.batch_size": 2,
+        "train.num_workers": 0,
+        "train.warmup_epochs": 0,
+        "train.img_size": 32,
+        "train.patch_size": 16,
+        "train.vocab_size": 16,
+        "train.embed_dim": 32,
+        "train.depth": 2,
+        "train.num_heads": 4,
+        "train.mlp_ratio": 2.0,
+        "train.drop_path_rate": 0.0,
+        "train.init_values": 0.1,
+        "train.token_size": 16,
+        "train.num_masking_patches": 2,
+        "train.min_num_patches": 1
+      },
+      "produces": ["encoder.pt"]
+    },
+    {
+      "name": "linear_eval",
+      "config": "configs/linear_eval.yaml",
+      "sets": {"DATA_ROOT": "@data", "ENCODER": "@encoder"},
+      "overrides": {
+        "train.epochs": 1,
+        "train.batch_size": 2,
+        "train.num_workers": 0,
+        "train.img_size": 32,
+        "train.patch_size": 16,
+        "train.vocab_size": 16,
+        "train.embed_dim": 32,
+        "train.depth": 2,
+        "train.num_heads": 4,
+        "train.mlp_ratio": 2.0,
+        "train.drop_path_rate": 0.0,
+        "train.init_values": 0.1
+      },
+      "produces_metric": "final_linear_probe_top1_accuracy"
+    }
+  ]
+}
