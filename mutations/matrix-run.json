@@ -18,6 +18,24 @@
       "tests": [
         "tests.test_matrix_run.MatrixRun.test_a_failing_cell_fails_the_whole_grid"
       ]
+    },
+    {
+      "label": "only encoder.pt threads to later stages, not every produced file",
+      "file": "bin/matrix-run.py",
+      "old": "                produced[fname] = cell[\"run_dir\"] / \"out\" / fname",
+      "new": "                produced[\"encoder.pt\"] = cell[\"run_dir\"] / \"out\" / \"encoder.pt\"",
+      "tests": [
+        "tests.test_matrix_run.ArtifactThreading.test_run_method_threads_all_produced_files_not_just_encoder"
+      ]
+    },
+    {
+      "label": "a request for an unproduced artifact is not reported (silent, not a named failure)",
+      "file": "bin/matrix-run.py",
+      "old": "    if not produced or fname not in produced:",
+      "new": "    if False:",
+      "tests": [
+        "tests.test_matrix_run.ArtifactThreading.test_produces_token_before_produced_is_reported"
+      ]
     }
   ]
 }

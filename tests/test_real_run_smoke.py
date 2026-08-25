@@ -100,14 +100,17 @@ class RealRun(unittest.TestCase):
                 runs = self.tmp / method / "runs"
                 data = _real_run.build_data(
                     spec["data_shape"], self.tmp / method / "data")
-                encoder = None
+                # Thread every file a stage produces to a later stage that asks
+                # for it (@encoder for encoder.pt, @produces:<file> for any
+                # other, e.g. image_gpt's clusters.npy) -- the same convention
+                # bin/matrix-run.py's run_method uses, so the two cannot drift.
+                produced = {}
                 for stage in spec["stages"]:
                     cell = drv.run_stage(method, stage, runs, PLATFORM, data,
-                                         encoder)
+                                         produced)
                     self.check_stage(cell)
                     for fname in stage.get("produces", []):
-                        if fname == "encoder.pt":
-                            encoder = Path(cell["run_dir"]) / "out" / "encoder.pt"
+                        produced[fname] = Path(cell["run_dir"]) / "out" / fname
 
 
 if __name__ == "__main__":

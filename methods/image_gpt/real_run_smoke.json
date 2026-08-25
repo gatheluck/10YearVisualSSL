@@ -1,0 +1,43 @@
+{
+  "description": "Short real-run smoke for image_gpt (iGPT: generative pretraining from pixels, Chen et al. 2020): pretrain -> encoder.pt + clusters.npy -> linear_eval, one epoch each on tiny real-shaped ImageFolder data. Discovered and driven by tests/test_real_run_smoke.py and bin/matrix-run.py (docs/REAL_RUN_VERIFICATION.md steps 2-3). Lives in the method's own directory so no shared file names a method. Unlike the EVAL_DOWNLOAD generative shape, iGPT's probe reads the model this port trains (IGPT.extract_features), so linear_eval consumes the pretrained encoder.pt. It ALSO needs clusters.npy: the colour clusters fit during pretraining, which the probe must quantise images with (the same colour space the model was trained on). encoder.pt threads via @encoder; clusters.npy threads via @produces:clusters.npy -- the first spec to exercise the general artifact-threading the driver grew for exactly this. The iGPT-S recipe (vocab_size 512, img_size 32, n_layer 24, n_head 8, n_embd 512, 300 epochs) is shrunk to the tiny architecture the method's own test exercises on CPU: vocab_size 8, img_size 8, n_layer 2, n_head 2, n_embd 32 -- the real architecture, just small. The same model keys are set in both stages so load_encoder rebuilds the model identically; only the run-length knobs and the tiny-arch dims are overridden.",
+  "data_shape": "imagefolder_2class",
+  "needs": ["torch", "torchvision", "numpy", "PIL"],
+  "stages": [
+    {
+      "name": "pretrain",
+      "config": "configs/pretrain.yaml",
+      "sets": {"DATA_ROOT": "@data"},
+      "overrides": {
+        "train.epochs": 1,
+        "train.batch_size": 2,
+        "train.num_workers": 0,
+        "train.vocab_size": 8,
+        "train.img_size": 8,
+        "train.n_layer": 2,
+        "train.n_head": 2,
+        "train.n_embd": 32
+      },
+      "produces": ["encoder.pt", "clusters.npy"]
+    },
+    {
+      "name": "linear_eval",
+      "config": "configs/linear_eval.yaml",
+      "sets": {
+        "DATA_ROOT": "@data",
+        "ENCODER": "@encoder",
+        "CLUSTERS": "@produces:clusters.npy"
+      },
+      "overrides": {
+        "train.epochs": 1,
+        "train.batch_size": 2,
+        "train.num_workers": 0,
+        "train.vocab_size": 8,
+        "train.img_size": 8,
+        "train.n_layer": 2,
+        "train.n_head": 2,
+        "train.n_embd": 32
+      },
+      "produces_metric": "final_linear_probe_top1_accuracy"
+    }
+  ]
+}

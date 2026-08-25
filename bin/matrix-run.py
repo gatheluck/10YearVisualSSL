@@ -16,11 +16,15 @@ copied) and adds only three things over a hand-run loop.
 method with a spec joins the grid with no edit here. No method is named in this
 file (tests/test_no_hard_coded_methods.py).
 
-**The encoder threads through a method's own stages.** A stage may ask for
+**Artifacts thread through a method's own stages.** A stage may ask for
 `@encoder`, meaning the `encoder.pt` an earlier stage of the same method
-produced; the grid resolves it to that file. `@data` is resolved from the
-`--data SHAPE=PATH` mapping for the spec's `data_shape` -- a shape with no
-mapping is a hard, reported failure, never a skipped cell that reads as a pass.
+produced, or `@produces:<file>` for any other file an earlier stage declared
+(e.g. image_gpt's `clusters.npy`, which its linear_eval must quantise with);
+the grid resolves each to that file on disk, and a request for one no earlier
+stage produced is a hard, named failure rather than a silently empty `--set`.
+`@data` is resolved from the `--data SHAPE=PATH` mapping for the spec's
+`data_shape` -- a shape with no mapping is a hard, reported failure, never a
+skipped cell that reads as a pass.
 
 **The grid's verdict is one artifact.** `matrix.json` records every cell's run
 directory and outcome, and the grid succeeds only when every cell does. One
@@ -74,8 +78,19 @@ def _new_run_dir(runs: Path, method: str, before: set) -> Path | None:
     return new.pop() if len(new) == 1 else None
 
 
+def _produced_path(method: str, stage: dict, fname: str, produced) -> str:
+    """The on-disk path of a file an earlier stage of this method produced.
+    A request for one no earlier stage produced is a hard, named failure --
+    never a silently empty `--set` that would read as a pass."""
+    if not produced or fname not in produced:
+        raise MatrixError(
+            f"{method}/{stage['name']}: {fname} requested before any stage "
+            "produced it")
+    return str(Path(produced[fname]).resolve())
+
+
 def stage_command(method: str, stage: dict, runs: Path, platform: str,
-                  data_root, encoder, python) -> list[str]:
+                  data_root, produced, python) -> list[str]:
     cmd = [sys.executable, str(LAUNCH), "--method", method,
            "--platform", platform, "--runs-dir", str(runs),
            "--config", str(METHODS / method / stage["config"])]
@@ -85,11 +100,10 @@ def stage_command(method: str, stage: dict, runs: Path, platform: str,
         if val == "@data":
             val = str(data_root)
         elif val == "@encoder":
-            if encoder is None:
-                raise MatrixError(
-                    f"{method}/{stage['name']}: @encoder requested before any "
-                    "stage produced encoder.pt")
-            val = str(Path(encoder).resolve())
+            val = _produced_path(method, stage, "encoder.pt", produced)
+        elif isinstance(val, str) and val.startswith("@produces:"):
+            val = _produced_path(method, stage, val[len("@produces:"):],
+                                 produced)
         cmd += ["--set", f"{key}={val}"]
     for key, val in stage.get("overrides", {}).items():
         cmd += ["--override", f"{key}={val}"]
@@ -97,13 +111,13 @@ def stage_command(method: str, stage: dict, runs: Path, platform: str,
 
 
 def run_stage(method: str, stage: dict, runs, platform: str, data_root,
-              encoder=None, python=None) -> dict:
+              produced=None, python=None) -> dict:
     """Run one stage through launch.py; return a cell record. Never raises for a
     failed run -- a failure is a cell with outcome != "ok", carrying its
     diagnostics, so the grid can report it rather than abort."""
     runs = Path(runs)
     before = set(runs.glob(f"{method}-*")) if runs.is_dir() else set()
-    cmd = stage_command(method, stage, runs, platform, data_root, encoder,
+    cmd = stage_command(method, stage, runs, platform, data_root, produced,
                         python)
     proc = subprocess.run(cmd, capture_output=True, text=True)
     run_dir = _new_run_dir(runs, method, before)
@@ -133,8 +147,9 @@ def run_stage(method: str, stage: dict, runs, platform: str, data_root,
 
 def run_method(method: str, spec: dict, data_roots: dict, runs, platform: str,
                python=None) -> list[dict]:
-    """Run one method's stages in order, threading its encoder.pt from the
-    stage that produces it to the stage that asks for it."""
+    """Run one method's stages in order, threading every file a stage produces
+    to a later stage that asks for it (`@encoder` for encoder.pt, `@produces:
+    <file>` for any other, e.g. clusters.npy)."""
     shape = spec.get("data_shape")
     if shape not in data_roots:
         return [{
@@ -146,21 +161,21 @@ def run_method(method: str, spec: dict, data_roots: dict, runs, platform: str,
         }]
     data_root = data_roots[shape]
     cells = []
-    encoder = None
+    produced = {}
     for stage in spec.get("stages", []):
         try:
             cell = run_stage(method, stage, runs, platform, data_root,
-                             encoder, python)
+                             produced, python)
         except MatrixError as exc:
             cell = {"method": method, "stage": stage.get("name"),
                     "run_dir": None, "returncode": None, "outcome": "failed",
                     "produces": [], "produces_metric": None, "error": str(exc)}
         cells.append(cell)
         if cell["outcome"] != "ok":
-            break  # a later stage that needs this one's encoder cannot run
+            break  # a later stage that needs this one's artifacts cannot run
         for fname in stage.get("produces", []):
-            if fname == "encoder.pt" and cell["run_dir"] is not None:
-                encoder = cell["run_dir"] / "out" / "encoder.pt"
+            if cell["run_dir"] is not None:
+                produced[fname] = cell["run_dir"] / "out" / fname
     return cells
 
 
