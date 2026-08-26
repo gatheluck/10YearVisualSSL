@@ -1,0 +1,20 @@
+{
+  "description": "Short real-run smoke for 28_dinov2 (DINOv2 self-distillation). This is the EVAL_DOWNLOAD eval-only shape (docs/EVAL_DOWNLOAD.md): the capture's 'Step 1' is a linear probe on the official pretrained DINOv2 ViT backbone, and the from-scratch SSL pretraining on the unavailable LVD-142M is the excluded step, so this port's real-run smoke is a single linear_eval stage that reads a frozen backbone and produces no encoder.pt. Discovered and driven by tests/test_real_run_smoke.py and bin/matrix-run.py (docs/REAL_RUN_VERIFICATION.md steps 2-3); the spec lives in the method's own directory so no shared file names a method. The default ViT-g/14 backbone is shrunk to the smallest builder (dinov2_vits14) at resolution 28 (a 2x2 patch14 grid) -- the tiny architecture the method's own test (tests/test_method_28_dinov2.py) exercises on CPU. The official checkpoint is a pinned sha256 download (bin/fetch-weights.py); the hermetic smoke leaves DINOV2_CKPT empty so the backbone is built pretrained=False (random), exercising the pipeline while downloading nothing (its accuracy is meaningless by design). The linear probe's run-length knobs are cut to one epoch. Only keys the native linear_eval config accepts are overridden; embed_dim/depth/patch_size are fixed by the named builder and are not config keys here.",
+  "data_shape": "imagefolder_2class",
+  "needs": ["torch", "torchvision", "numpy", "PIL"],
+  "stages": [
+    {
+      "name": "linear_eval",
+      "config": "configs/linear_eval.yaml",
+      "sets": {"DATA_ROOT": "@data", "DINOV2_CKPT": ""},
+      "overrides": {
+        "train.name": "dinov2_vits14",
+        "train.resolution": 28,
+        "train.epochs": 1,
+        "train.batch_size": 2,
+        "train.num_workers": 0
+      },
+      "produces_metric": "final_linear_probe_top1_accuracy"
+    }
+  ]
+}

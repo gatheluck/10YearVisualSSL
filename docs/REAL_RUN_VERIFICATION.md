@@ -310,24 +310,39 @@ grid, `token_size=16` -> a matching 2x2 token grid, `embed_dim=32`, `depth=2`,
 `num_heads=4`, `vocab_size=16`, `num_masking_patches=2` of 4); every model key is set
 identically in both stages so `load_encoder` rebuilds the same trunk, while the
 tokenizer and masking keys are pretrain-only (the `linear_eval` config rejects them).
+`28_dinov2` (DINOv2 self-distillation) is the first `EVAL_DOWNLOAD` eval-only shape in
+this list (`docs/EVAL_DOWNLOAD.md`): the capture's "Step 1" is a linear probe on the
+official pretrained DINOv2 ViT backbone -- a genuine SSL representation, so the number
+is comparable -- and the from-scratch pretraining on the unavailable LVD-142M is the
+excluded step, so the port has no `pretrain` stage at all and its smoke is a single
+`linear_eval` that reads a frozen backbone and produces no `encoder.pt`. The official
+ViT-g/14 checkpoint is a pinned sha256 download (`bin/fetch-weights.py`); like `var`
+and `24_beit`, the hermetic smoke leaves `DINOV2_CKPT` empty so the backbone is built
+`pretrained=False` (random), downloading nothing (its accuracy is meaningless by
+design). The default `dinov2_vitg14` builder is swapped for the smallest,
+`dinov2_vits14`, at `train.resolution=28` (a 2x2 patch14 grid) -- the tiny backbone the
+method's own test exercises on CPU; the ViT's `embed_dim`/`depth`/`patch_size` are
+fixed by the named builder and are not config keys, so only the builder name,
+resolution and run-length knobs are overridden.
 Declaring a spec today (measured
-2026-08-25, all `pretrain -> linear_eval` on `imagefolder_2class`):
+2026-08-26 on `imagefolder_2class`, each `pretrain -> linear_eval` except the eval-only
+`28_dinov2`, a single `linear_eval` stage):
 
 - `03_colorization`, `04_context_encoder`, `05_jigsaw_puzzle`,
   `06_rotation_prediction` (the pilot), `08_split_brain`, `09_jigsaw_puzzle_pp`,
   `10_inst_disc`, `11_cpc`, `12_cmc`, `13_mocov1`, `14_simclrv1`, `15_mocov2`,
   `16_simclrv2`, `18_sela`, `19_byol`, `22_mocov3`, `23_dino`, `25_mae`, `26_simmim`,
-  `24_beit`, `29_ijepa`, `31_dinov3`, `32_nepa`, `33_pirl`, `37_lejepa`, `var`,
-  `image_gpt` -- twenty-seven methods, each verified green.
+  `24_beit`, `28_dinov2`, `29_ijepa`, `31_dinov3`, `32_nepa`, `33_pirl`, `37_lejepa`,
+  `var`, `image_gpt` -- twenty-eight methods, each verified green.
 
 **Every discovered spec runs under every method's `locked` venv, gated on `needs`.**
 The smoke test runs a spec only when its `needs` import in the current venv:
-twenty-three of the twenty-seven need the same four (`torch`/`torchvision`/`numpy`/`PIL`)
+twenty-four of the twenty-eight need the same four (`torch`/`torchvision`/`numpy`/`PIL`)
 and run everywhere, while `22_mocov3`, `26_simmim` and `37_lejepa` also need `timm` and
 `var` also needs `huggingface_hub`, so those four run only under a venv carrying the extra
 dep and are skipped -- by the gate, not silently -- elsewhere. This was measured green
 under the `26_simmim` venv (which carries both `timm` and `huggingface_hub`), all
-twenty-seven landing in ~738 s together (measured 2026-08-25) -- so a ported method runs under another
+twenty-eight landing in ~502 s together (measured 2026-08-26) -- so a ported method runs under another
 method's pinned deps, across both architecture families. The cost grows with the spec count;
 if it becomes a burden the gate can be narrowed to the owning method, but the
 cross-method run is itself a compatibility signal and is left on for now.
