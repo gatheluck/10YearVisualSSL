@@ -1,0 +1,24 @@
+{
+  "description": "Short real-run smoke for 30_aim (AIM autoregressive image modeling, El-Nouby et al. 2024). This is the EVAL_DOWNLOAD eval-only shape (docs/EVAL_DOWNLOAD.md): AIM's from-scratch pretraining is on the non-public DFN-2B+, so the capture reuses the official AIM-600M backbone and this port has no runnable step 1, only a single linear_eval stage that probes a frozen backbone and produces no encoder.pt. Discovered and driven by tests/test_real_run_smoke.py and bin/matrix-run.py (docs/REAL_RUN_VERIFICATION.md steps 2-3); the spec lives in the method's own directory so no shared file names a method. Unlike dinov2/franca (whose architecture is fixed by a named builder), AIM's dims are explicit config keys, so the AIM-600M recipe (ViT-H/14, embed_dim 1536, 24 blocks, 12 heads) is shrunk directly to the tiny architecture the method's own test (tests/test_method_30_aim.py) exercises on CPU (img_size 32, patch_size 16, embed_dim 32, 4 blocks, 4 heads, 2 feature layers). The official checkpoint is a pinned sha256 download (bin/fetch-weights.py); the hermetic smoke leaves CKPT empty so the backbone is built random (no load), exercising the pipeline while downloading nothing (its accuracy is meaningless by design). num_feature_layers (2) stays <= num_blocks (4); the run-length knobs are cut to one epoch.",
+  "data_shape": "imagefolder_2class",
+  "needs": ["torch", "torchvision", "numpy", "PIL", "huggingface_hub"],
+  "stages": [
+    {
+      "name": "linear_eval",
+      "config": "configs/linear_eval.yaml",
+      "sets": {"DATA_ROOT": "@data", "CKPT": ""},
+      "overrides": {
+        "train.img_size": 32,
+        "train.patch_size": 16,
+        "train.embed_dim": 32,
+        "train.num_blocks": 4,
+        "train.num_heads": 4,
+        "train.num_feature_layers": 2,
+        "train.epochs": 1,
+        "train.batch_size": 2,
+        "train.num_workers": 0
+      },
+      "produces_metric": "final_linear_probe_top1_accuracy"
+    }
+  ]
+}
