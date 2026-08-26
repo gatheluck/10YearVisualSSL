@@ -1,0 +1,24 @@
+{
+  "description": "Short real-run smoke for 38_clip (CLIP contrastive image-text, Radford et al. 2021). This is the EVAL_DOWNLOAD eval-only shape (docs/EVAL_DOWNLOAD.md): CLIP's from-scratch pretraining is on the non-public 400M image-text WIT dataset, so the capture's 'Step 1' reuses the released OpenAI ViT-B/32 image tower, freezes it and probes its pooled encode_image embedding (a genuine learned representation, so the number is comparable, like 36_franca). This port therefore has no runnable step 1, only a single linear_eval stage that reads a frozen backbone and produces no encoder.pt. Discovered and driven by tests/test_real_run_smoke.py and bin/matrix-run.py (docs/REAL_RUN_VERIFICATION.md steps 2-3); the spec lives in the method's own directory so no shared file names a method. Unlike dinov2/franca (named builder), CLIP's image-tower dims are explicit config keys, so the ViT-B/32 recipe (resolution 224, patch 32, width 768, 12 layers/heads, output_dim 512) is shrunk directly to the tiny tower the method's own test (tests/test_method_38_clip.py) exercises on CPU: resolution 32, patch_size 16, width 64 (kept a multiple of 64 because CLIP derives its head count as width // 64), 2 layers, 1 head, output_dim 16. The official checkpoint is a pinned sha256 download (bin/fetch-weights.py); the hermetic smoke leaves CLIP_VITB32_CKPT empty so the tower is built random (no clip.load, no download), exercising the pipeline while downloading nothing (its accuracy is meaningless by design). The pinned OpenAI clip package instantiates its BPE tokenizer at import time, so ftfy and regex are needed even on this eval-only path; the run-length knobs are cut to one epoch.",
+  "data_shape": "imagefolder_2class",
+  "needs": ["torch", "torchvision", "numpy", "PIL", "ftfy", "regex"],
+  "stages": [
+    {
+      "name": "linear_eval",
+      "config": "configs/linear_eval.yaml",
+      "sets": {"DATA_ROOT": "@data", "CLIP_VITB32_CKPT": ""},
+      "overrides": {
+        "train.resolution": 32,
+        "train.patch_size": 16,
+        "train.width": 64,
+        "train.layers": 2,
+        "train.heads": 1,
+        "train.output_dim": 16,
+        "train.epochs": 1,
+        "train.batch_size": 2,
+        "train.num_workers": 0
+      },
+      "produces_metric": "final_linear_probe_top1_accuracy"
+    }
+  ]
+}
