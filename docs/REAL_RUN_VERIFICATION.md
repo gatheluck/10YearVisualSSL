@@ -294,24 +294,40 @@ named failure, never a silently empty `--set`. The iGPT-S recipe (`vocab_size=51
 `img_size=32`, `n_layer=24`, `n_head=8`, `n_embd=512`) is shrunk to the tiny
 architecture the method's own test exercises on CPU (`vocab_size=8`, `img_size=8`,
 `n_layer=2`, `n_head=2`, `n_embd=32`), every model key set identically in both
-stages so `load_encoder` rebuilds the same model. Declaring a spec today (measured
+stages so `load_encoder` rebuilds the same model. `24_beit` (BEiT masked image
+modeling with dVAE visual tokens) follows the standard shape -- its probe reads the
+model `pretrain` trains (the frozen BEiT backbone's mean-pooled patch tokens), so
+`linear_eval` consumes `encoder.pt` via `@encoder`. Its MIM targets come from a dVAE
+tokenizer that is the frozen OpenAI DALL-E encoder for a real run (a hash-pinned
+download named in `provenance.json`), but -- exactly like `var`'s VQVAE -- the
+hermetic smoke leaves `TOKENIZER_CKPT` empty so the adapter builds a *random*
+tokenizer instead (its accuracy is meaningless by design; only the pipeline is
+exercised), so nothing is downloaded and no submodule is needed. The paper's
+ViT-Base/16 (`img_size=224`, `embed_dim=768`, `depth=12`, 8192 tokens,
+`token_size=112`, `num_masking_patches=75`) is shrunk to the tiny architecture the
+method's own test exercises on CPU (`img_size=32`/`patch_size=16` -> a 2x2 patch
+grid, `token_size=16` -> a matching 2x2 token grid, `embed_dim=32`, `depth=2`,
+`num_heads=4`, `vocab_size=16`, `num_masking_patches=2` of 4); every model key is set
+identically in both stages so `load_encoder` rebuilds the same trunk, while the
+tokenizer and masking keys are pretrain-only (the `linear_eval` config rejects them).
+Declaring a spec today (measured
 2026-08-25, all `pretrain -> linear_eval` on `imagefolder_2class`):
 
 - `03_colorization`, `04_context_encoder`, `05_jigsaw_puzzle`,
   `06_rotation_prediction` (the pilot), `08_split_brain`, `09_jigsaw_puzzle_pp`,
   `10_inst_disc`, `11_cpc`, `12_cmc`, `13_mocov1`, `14_simclrv1`, `15_mocov2`,
   `16_simclrv2`, `18_sela`, `19_byol`, `22_mocov3`, `23_dino`, `25_mae`, `26_simmim`,
-  `29_ijepa`, `31_dinov3`, `32_nepa`, `33_pirl`, `37_lejepa`, `var`, `image_gpt` --
-  twenty-six methods, each verified green.
+  `24_beit`, `29_ijepa`, `31_dinov3`, `32_nepa`, `33_pirl`, `37_lejepa`, `var`,
+  `image_gpt` -- twenty-seven methods, each verified green.
 
 **Every discovered spec runs under every method's `locked` venv, gated on `needs`.**
 The smoke test runs a spec only when its `needs` import in the current venv:
-twenty-two of the twenty-six need the same four (`torch`/`torchvision`/`numpy`/`PIL`)
+twenty-three of the twenty-seven need the same four (`torch`/`torchvision`/`numpy`/`PIL`)
 and run everywhere, while `22_mocov3`, `26_simmim` and `37_lejepa` also need `timm` and
 `var` also needs `huggingface_hub`, so those four run only under a venv carrying the extra
 dep and are skipped -- by the gate, not silently -- elsewhere. This was measured green
 under the `26_simmim` venv (which carries both `timm` and `huggingface_hub`), all
-twenty-six landing in ~711 s together (measured 2026-08-25) -- so a ported method runs under another
+twenty-seven landing in ~738 s together (measured 2026-08-25) -- so a ported method runs under another
 method's pinned deps, across both architecture families. The cost grows with the spec count;
 if it becomes a burden the gate can be narrowed to the owning method, but the
 cross-method run is itself a compatibility signal and is left on for now.
