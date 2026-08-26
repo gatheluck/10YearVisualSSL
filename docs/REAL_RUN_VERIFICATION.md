@@ -334,25 +334,35 @@ is fixed by a named builder), AIM's dims are explicit config keys, so the AIM-60
 architecture the method's own test exercises on CPU (`img_size=32`, `patch_size=16`,
 `embed_dim=32`, `num_blocks=4`, `num_heads=4`, `num_feature_layers=2`), keeping
 `num_feature_layers <= num_blocks`.
+`36_franca` (Franca self-supervised ViT) is the same eval-only shape as `28_dinov2`: its
+capture "Step 1" is a linear probe on the official pretrained Franca ViT-B/14 In21K
+backbone -- a genuine SSL representation, so the number is comparable -- and its
+from-scratch SSL pretraining is the excluded Step 2, so the port has no `pretrain` stage
+and its smoke is a single `linear_eval` reading a frozen backbone, producing no
+`encoder.pt`, with `FRANCA_CKPT` left empty so the backbone is random and nothing is
+downloaded. Like `28_dinov2`, the architecture is fixed by the named builder
+(`franca_vitb14`, the smallest, `embed_dim=768`), not by config dims, so only
+`train.resolution` (518 -> 28, a 2x2 patch14 grid) and the run-length knobs are
+overridden.
 Declaring a spec today (measured
 2026-08-26 on `imagefolder_2class`, each `pretrain -> linear_eval` except the eval-only
-`28_dinov2` and `30_aim`, a single `linear_eval` stage each):
+`28_dinov2`, `30_aim` and `36_franca`, a single `linear_eval` stage each):
 
 - `03_colorization`, `04_context_encoder`, `05_jigsaw_puzzle`,
   `06_rotation_prediction` (the pilot), `08_split_brain`, `09_jigsaw_puzzle_pp`,
   `10_inst_disc`, `11_cpc`, `12_cmc`, `13_mocov1`, `14_simclrv1`, `15_mocov2`,
   `16_simclrv2`, `18_sela`, `19_byol`, `22_mocov3`, `23_dino`, `25_mae`, `26_simmim`,
   `24_beit`, `28_dinov2`, `29_ijepa`, `30_aim`, `31_dinov3`, `32_nepa`, `33_pirl`,
-  `37_lejepa`, `var`, `image_gpt` -- twenty-nine methods, each verified green.
+  `36_franca`, `37_lejepa`, `var`, `image_gpt` -- thirty methods, each verified green.
 
 **Every discovered spec runs under every method's `locked` venv, gated on `needs`.**
 The smoke test runs a spec only when its `needs` import in the current venv:
-twenty-four of the twenty-nine need the same four (`torch`/`torchvision`/`numpy`/`PIL`)
+twenty-five of the thirty need the same four (`torch`/`torchvision`/`numpy`/`PIL`)
 and run everywhere, while `22_mocov3`, `26_simmim` and `37_lejepa` also need `timm` and
 `var` and `30_aim` also need `huggingface_hub`, so those five run only under a venv carrying the extra
 dep and are skipped -- by the gate, not silently -- elsewhere. This was measured green
 under the `26_simmim` venv (which carries both `timm` and `huggingface_hub`), all
-twenty-nine landing in ~522 s together (measured 2026-08-26) -- so a ported method runs under another
+thirty landing in ~783 s together (measured 2026-08-26) -- so a ported method runs under another
 method's pinned deps, across both architecture families. The cost grows with the spec count;
 if it becomes a burden the gate can be narrowed to the owning method, but the
 cross-method run is itself a compatibility signal and is left on for now.
