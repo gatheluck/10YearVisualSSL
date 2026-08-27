@@ -344,28 +344,49 @@ downloaded. Like `28_dinov2`, the architecture is fixed by the named builder
 (`franca_vitb14`, the smallest, `embed_dim=768`), not by config dims, so only
 `train.resolution` (518 -> 28, a 2x2 patch14 grid) and the run-length knobs are
 overridden.
+`38_clip` (CLIP contrastive image-text, Radford et al. 2021) is the same eval-only shape:
+its capture "Step 1" reuses the released OpenAI ViT-B/32 image tower, freezes it and probes
+its pooled `encode_image` embedding -- a genuine learned representation, so the number is
+comparable, like `36_franca` -- because CLIP's from-scratch training is on the non-public
+400M image-text WIT dataset, so the port has no `pretrain` stage and its smoke is a single
+`linear_eval` reading a frozen backbone, producing no `encoder.pt`, with `CLIP_VITB32_CKPT`
+left empty so the tower is built random (no `clip.load`, no download). Unlike `28_dinov2`
+(named builder), CLIP's image-tower dims are explicit config keys, so the ViT-B/32 recipe
+(`resolution=224`, `patch=32`, `width=768`, 12 layers/heads, `output_dim=512`) is shrunk
+directly to the tiny tower the method's own test exercises on CPU (`resolution=32`,
+`patch_size=16`, `width=64` -- kept a multiple of 64 because CLIP derives its head count as
+`width // 64` -- `layers=2`, `heads=1`, `output_dim=16`). The pinned OpenAI `clip` package
+instantiates its BPE tokenizer at import time, so `ftfy` and `regex` are needed even on this
+eval-only path, which is why its spec lists them in `needs`.
 Declaring a spec today (measured
 2026-08-26 on `imagefolder_2class`, each `pretrain -> linear_eval` except the eval-only
-`28_dinov2`, `30_aim` and `36_franca`, a single `linear_eval` stage each):
+`28_dinov2`, `30_aim`, `36_franca` and `38_clip`, a single `linear_eval` stage each):
 
 - `03_colorization`, `04_context_encoder`, `05_jigsaw_puzzle`,
   `06_rotation_prediction` (the pilot), `08_split_brain`, `09_jigsaw_puzzle_pp`,
   `10_inst_disc`, `11_cpc`, `12_cmc`, `13_mocov1`, `14_simclrv1`, `15_mocov2`,
   `16_simclrv2`, `18_sela`, `19_byol`, `22_mocov3`, `23_dino`, `25_mae`, `26_simmim`,
   `24_beit`, `28_dinov2`, `29_ijepa`, `30_aim`, `31_dinov3`, `32_nepa`, `33_pirl`,
-  `36_franca`, `37_lejepa`, `var`, `image_gpt` -- thirty methods, each verified green.
+  `36_franca`, `37_lejepa`, `38_clip`, `var`, `image_gpt` -- thirty-one methods, each
+  verified green.
 
 **Every discovered spec runs under every method's `locked` venv, gated on `needs`.**
 The smoke test runs a spec only when its `needs` import in the current venv:
-twenty-five of the thirty need the same four (`torch`/`torchvision`/`numpy`/`PIL`)
-and run everywhere, while `22_mocov3`, `26_simmim` and `37_lejepa` also need `timm` and
-`var` and `30_aim` also need `huggingface_hub`, so those five run only under a venv carrying the extra
-dep and are skipped -- by the gate, not silently -- elsewhere. This was measured green
-under the `26_simmim` venv (which carries both `timm` and `huggingface_hub`), all
-thirty landing in ~783 s together (measured 2026-08-26) -- so a ported method runs under another
-method's pinned deps, across both architecture families. The cost grows with the spec count;
-if it becomes a burden the gate can be narrowed to the owning method, but the
-cross-method run is itself a compatibility signal and is left on for now.
+twenty-five of the thirty-one need the same four (`torch`/`torchvision`/`numpy`/`PIL`)
+and run everywhere, while `22_mocov3`, `26_simmim` and `37_lejepa` also need `timm`,
+`var` and `30_aim` also need `huggingface_hub`, and `38_clip` also needs `ftfy` and
+`regex` (the pinned OpenAI `clip` package builds its BPE tokenizer at import), so those
+six run only under a venv carrying the extra dep and are skipped -- by the gate, not
+silently -- elsewhere. Thirty of the thirty-one were measured green together under the
+`26_simmim` venv (which carries `timm` and `huggingface_hub` but not `ftfy`/`regex`),
+landing in ~743 s (measured 2026-08-26); `38_clip` was the one gate-skip there (that
+venv lacks `ftfy`/`regex`) and was instead verified green under its own `.venvs/38_clip`
+via `matrix-run -> matrix-audit`. No single venv carries every extra, so the whole
+thirty-one cannot land in one run; together the two venvs cover all of them -- a ported
+method runs under another method's pinned deps, across both architecture families. The
+cost grows with the spec count; if it becomes a burden the gate can be narrowed to the
+owning method, but the cross-method run is itself a compatibility signal and is left on
+for now.
 
 **Not every method fits the hermetic local backend yet.** `launch.py` always sets
 `LOCAL_RANK=0`/`RANK=0`/`WORLD_SIZE=1` for a single-process local run
