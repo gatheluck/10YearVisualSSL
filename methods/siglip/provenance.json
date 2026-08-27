@@ -1,0 +1,28 @@
+{
+  "captured_at": "2026-08-27",
+  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
+  "captured_note": "SigLIP appears in the capture's Step-3 CompEval (multimodal) evaluation as an as-is comparison: the official sigmoid-loss image-text pretrained image tower is downloaded and a linear probe is fit on its frozen pooled image embedding, because the from-scratch pretraining (the WebLI image-text corpus, many TPU-days) is not reproduced. This port carries that as-is comparison only. There is NO author submodule: the SigLIP model class is timm's (a pinned pip dependency, timm==1.0.28), imported not copied, and the weights are a sha256-pinned download.",
+  "paper": {
+    "title": "Sigmoid Loss for Language Image Pre-Training",
+    "arxiv": "2303.15343",
+    "official_repo": "https://github.com/google-research/big_vision"
+  },
+  "note": "Eval-only port (a single linear_eval stage, no pretraining). The backbone is timm's vit_base_patch16_siglip_224.webli (the SigLIP image tower, no class token, a MAP attention-pool head), built with pretrained=False and the sha256-pinned checkpoint (backbone_artifact below) loaded into it. Because the source is a pip dependency and not a git submodule, this file records NO upstream block and the adapter defines no UPSTREAM (test_port_completeness's both-places rule requires them to agree, and here both are absent).",
+  "linear_eval": "Probes SigLIP's pooled pre-classifier image embedding (timm model built with num_classes=0), frozen. SigLIP's image-text pretraining yields a genuine learned representation, so the number is comparable (the multimodal 'pretrained-backbone reuse' row, the SigLIP sibling of 38_clip). A real run needs the official checkpoint (backbone_artifact below, fetched and hash-verified by bin/fetch-weights.py --artifact backbone_artifact, passed as the config's train.ckpt); the hermetic smoke leaves ckpt empty and builds a random tiny SigLIP-style ViT, so nothing is downloaded and only the pipeline is exercised. See docs/EVAL_DOWNLOAD.md.",
+  "backbone_artifact": {
+    "name": "ViT-B/16 SigLIP 224px image tower (timm)",
+    "url": "https://huggingface.co/timm/vit_base_patch16_siglip_224.webli/resolve/8db107e594ed7552e44e108f16650d81ac6de9a6/pytorch_model.bin",
+    "filename": "vit_base_patch16_siglip_224.webli.pytorch_model.bin",
+    "sha256": "cdcf73d937a9b4d904a2d7b86943f881cf3126fdd60762d4348f86e1c837feb7",
+    "bytes": 371597458,
+    "license": "Apache-2.0",
+    "sha256_source": "read on 2026-08-27 from the HuggingFace LFS metadata (https://huggingface.co/api/models/timm/vit_base_patch16_siglip_224.webli/paths-info/main, lfs.oid for pytorch_model.bin at revision 8db107e594ed7552e44e108f16650d81ac6de9a6); bin/fetch-weights.py re-verifies this value on download"
+  },
+  "rewritten_during_the_port": [
+    "the model class is timm's, not a copied or submoduled author repository; the pretrained weights are a sha256-pinned HuggingFace download (backbone_artifact) rather than a timm pretrained=True auto-download, so CI never fetches and a real run is hash-verified",
+    "the device is resolved (resolve_device) instead of assumed CUDA",
+    "features are extracted in fp32 (no autocast), so the frozen-feature probe runs identically on a CPU or a pre-Ampere GPU",
+    "the probe follows this port's shared frozen-backbone protocol (mean-centre + L2-normalise, a single linear layer with SGD + cosine), returning the four comparable linear-probe accuracies and the epoch count",
+    "the input normalisation is taken from the backbone's own timm data config (SigLIP uses a symmetric 0.5 mean/std, not ImageNet's); the crop resolution is read from the config so the hermetic smoke can shrink it and build a random tiny SigLIP-style VisionTransformer (no class token, a MAP attention-pool head) instead of the full ViT-B/16"
+  ]
+}

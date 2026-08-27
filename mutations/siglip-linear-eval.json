@@ -1,0 +1,84 @@
+{
+  "_note": "Run: .venvs/37_lejepa/bin/python bin/mutate.py --spec mutations/siglip-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/37_lejepa/bin/python (an interpreter with torch/torchvision/timm==1.0.28, so the device tests run in-process). siglip is a pure eval-only port: these guards prove the config refusals are not vacuous, a downstream probe number cannot borrow a pretext name, the absent encoder is declared, and the device is resolved rather than assumed.",
+  "targets": [
+    {
+      "label": "a config that fixes the output location is no longer refused",
+      "file": "methods/siglip/adapter/__init__.py",
+      "old": "    for key in (\"output\", \"result_dir\", \"checkpoint_dir\", \"checkpoint\"):\n        if key in config:",
+      "new": "    for key in (\"output\", \"result_dir\", \"checkpoint_dir\", \"checkpoint\"):\n        if False:",
+      "tests": [
+        "tests.test_method_siglip.TestConfigTranslation.test_a_config_that_sets_output_is_refused"
+      ]
+    },
+    {
+      "label": "a missing train setting is silently accepted",
+      "file": "methods/siglip/adapter/__init__.py",
+      "old": "    _named(EVAL_TRAIN_KEYS - set(train), set(train) - EVAL_TRAIN_KEYS,",
+      "new": "    _named(set(), set(train) - EVAL_TRAIN_KEYS,",
+      "tests": [
+        "tests.test_method_siglip.TestConfigTranslation.test_a_missing_setting_is_refused_by_name"
+      ]
+    },
+    {
+      "label": "an unknown train setting is silently accepted",
+      "file": "methods/siglip/adapter/__init__.py",
+      "old": "    _named(EVAL_TRAIN_KEYS - set(train), set(train) - EVAL_TRAIN_KEYS,\n           \"config.train\")",
+      "new": "    _named(EVAL_TRAIN_KEYS - set(train), set(),\n           \"config.train\")",
+      "tests": [
+        "tests.test_method_siglip.TestConfigTranslation.test_an_unknown_setting_is_refused"
+      ]
+    },
+    {
+      "label": "an unknown stage is no longer refused",
+      "file": "methods/siglip/adapter/__init__.py",
+      "old": "    stage = config.get(\"stage\")\n    if stage not in STAGES:",
+      "new": "    stage = config.get(\"stage\")\n    if False:",
+      "tests": [
+        "tests.test_method_siglip.TestConfigTranslation.test_an_unknown_stage_is_refused"
+      ]
+    },
+    {
+      "label": "a downstream probe number is mapped to a pretext name",
+      "file": "methods/siglip/adapter/__init__.py",
+      "old": "    \"final_top1_acc\": \"final_linear_probe_top1_accuracy\",",
+      "new": "    \"final_top1_acc\": \"final_pretext_top1_accuracy\",",
+      "tests": [
+        "tests.test_method_siglip.TestTheMetricsAreComparable"
+      ]
+    },
+    {
+      "label": "the absent encoder is not explained",
+      "file": "methods/siglip/adapter/__init__.py",
+      "old": "    if _stage_of(config_path) != \"linear_eval\":\n        return None\n    return (",
+      "new": "    if True:\n        return None\n    return (",
+      "tests": [
+        "tests.test_method_siglip.TestTheEvalProducesNoEncoder"
+      ]
+    },
+    {
+      "label": "cpu is not honoured -- the requested cpu returns a cuda device",
+      "file": "methods/siglip/evaluate_linear_siglip.py",
+      "old": "    if spec == \"cpu\":\n        return torch.device(\"cpu\")",
+      "new": "    if spec == \"cpu\":\n        return torch.device(\"cuda\")",
+      "tests": [
+        "tests.test_method_siglip.TestTheDeviceIsResolved"
+      ]
+    },
+    {
+      "label": "cuda without a gpu is no longer refused, it falls back silently",
+      "file": "methods/siglip/evaluate_linear_siglip.py",
+      "old": "        if not torch.cuda.is_available():",
+      "new": "        if False:",
+      "tests": [
+        "tests.test_method_siglip.TestTheDeviceIsResolved"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-08-27",
+    "measured_with": ".venvs/37_lejepa (torch==2.13.0, torchvision==0.28.0, timm==1.0.28 -- the same stack siglip's lock pins), CPU-only host (no CUDA device); the device tests exercise the cuda-refusal path by mocking torch.cuda.is_available",
+    "killed": 8,
+    "total": 8,
+    "equivalent": []
+  }
+}
