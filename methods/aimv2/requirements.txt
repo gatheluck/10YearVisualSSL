@@ -1,0 +1,17 @@
+# What the aimv2 port's own files import, and nothing else. Checked in both
+# directions by tests/test_method_requirements.py. Floors only; the exact hashed
+# closure is in requirements.lock.txt (CPU) and requirements.lock.cu130.txt.
+#
+# There is NO author submodule: the AIMv2 model class is timm's (a pinned pip
+# dependency), and the pretrained weights are a sha256-pinned download recorded as
+# backbone_artifact in provenance.json.
+#
+# torch is imported directly; numpy backs the seeding and feature handling; timm
+# provides the AIMv2 model and its data config; torchvision provides the
+# ImageFolder and transforms the probe reads images with; PyYAML is read to load a
+# YAML config on the stand-alone path.
+torch>=2.1.0
+torchvision>=0.16.0
+timm>=1.0.0
+numpy>=1.24.0
+PyYAML>=6.0

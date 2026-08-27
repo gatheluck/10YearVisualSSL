@@ -1,0 +1,28 @@
+{
+  "captured_at": "2026-08-27",
+  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
+  "captured_note": "AIMv2 appears in the capture's Step-3 Autoreg-SSL evaluation (methods_step3/ARSSL) as an as-is comparison (Track A): the official multimodal-autoregressively pretrained backbone is downloaded and a linear probe is fit on its frozen features, because the from-scratch pretraining (billions of image-text pairs, many GPU-days) is not reproduced. This port carries that as-is comparison only. There is NO author submodule: the AIMv2 model class is timm's (a pinned pip dependency, timm==1.0.28), imported not copied, and the weights are a sha256-pinned download.",
+  "paper": {
+    "title": "Multimodal Autoregressive Pre-training of Large Vision Encoders",
+    "arxiv": "2411.14402",
+    "official_repo": "https://github.com/apple/ml-aim"
+  },
+  "note": "Eval-only port (a single linear_eval stage, no pretraining). The backbone is timm's aimv2_large_patch14_224.apple_pt, built with pretrained=False and the sha256-pinned checkpoint (backbone_artifact below) loaded into it. Because the source is a pip dependency and not a git submodule, this file records NO upstream block and the adapter defines no UPSTREAM (test_port_completeness's both-places rule requires them to agree, and here both are absent).",
+  "linear_eval": "Probes AIMv2's pooled pre-classifier feature (timm model built with num_classes=0), frozen. AIMv2's multimodal autoregressive pretraining is a genuine representation-learning objective, so the number is comparable (the 'pretrained-backbone reuse' row, analogous to eva02 / DINOv2 / Franca). A real run needs the official checkpoint (backbone_artifact below, fetched and hash-verified by bin/fetch-weights.py --artifact backbone_artifact, passed as the config's train.ckpt); the hermetic smoke leaves ckpt empty and builds a random tiny AIMv2, so nothing is downloaded and only the pipeline is exercised. See docs/EVAL_DOWNLOAD.md.",
+  "backbone_artifact": {
+    "name": "AIMv2-Large/14 224px backbone (timm)",
+    "url": "https://huggingface.co/timm/aimv2_large_patch14_224.apple_pt/resolve/4ecf1a8825bbd2b5a334523c67c428b6b9a34ca1/pytorch_model.bin",
+    "filename": "aimv2_large_patch14_224.apple_pt.pytorch_model.bin",
+    "sha256": "37861b19be35dccbdb13a272d42f5e89d3357d36c8d79fa98a95ca24c699f66e",
+    "bytes": 1236867006,
+    "license": "Apple Sample Code License",
+    "sha256_source": "read on 2026-08-27 from the HuggingFace LFS metadata (https://huggingface.co/api/models/timm/aimv2_large_patch14_224.apple_pt, siblings[].lfs.sha256 for pytorch_model.bin at revision 4ecf1a8825bbd2b5a334523c67c428b6b9a34ca1); bin/fetch-weights.py re-verifies this value on download"
+  },
+  "rewritten_during_the_port": [
+    "the model class is timm's, not a copied or submoduled author repository; the pretrained weights are a sha256-pinned HuggingFace download (backbone_artifact) rather than a timm pretrained=True auto-download, so CI never fetches and a real run is hash-verified",
+    "the device is resolved (resolve_device) instead of assumed CUDA",
+    "features are extracted in fp32 (no autocast), so the frozen-feature probe runs identically on a CPU or a pre-Ampere GPU",
+    "the probe follows this port's shared frozen-backbone protocol (mean-centre + L2-normalise, a single linear layer with SGD + cosine), returning the four comparable linear-probe accuracies and the epoch count",
+    "the input normalisation is taken from the backbone's own timm data config (AIMv2 uses a CLIP-style mean/std, not ImageNet's); the crop resolution is read from the config so the hermetic smoke can shrink it and build a random tiny AIMv2-style VisionTransformer (RMSNorm, SwiGLU MLP, no class token) instead of the full ViT-L/14"
+  ]
+}
