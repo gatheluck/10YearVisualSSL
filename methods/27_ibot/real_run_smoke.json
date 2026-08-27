@@ -1,0 +1,51 @@
+{
+  "description": "Short real-run smoke for 27_ibot (iBOT, Zhou et al. 2021): pretrain -> encoder.pt (the teacher ViT backbone) -> linear_eval, one epoch on tiny real-shaped ImageFolder data. Discovered and driven by tests/test_real_run_smoke.py and bin/matrix-run.py (docs/REAL_RUN_VERIFICATION.md steps 2-3); the spec lives in the method's own directory so no shared file names a method. 27_ibot is one of the methods whose trainer previously called dist.init_process_group(backend='nccl') the moment LOCAL_RANK was present, so it could not run on the single-process local backend (bin/launch.py exports WORLD_SIZE=1/RANK=0/LOCAL_RANK=0 but no MASTER_ADDR): the fix gates the distributed setup on WORLD_SIZE>1 in setup_dist() (train_pretrain.py), matching the repo device invariant (docs/GPU.md) and the single-process shape every other CPU-verified method already uses. Only pretrain stood up a process group; evaluate_linear.py never did. The config is nested (model/data/ibot/training); following the method's own test (tests/test_method_27_ibot.py), the ViT-Small backbone (embed_dim 384) is kept but its crops and heads are shrunk: global/local crop 224/96 -> 32/16, n_local_crops 10 -> 1, DINO/iBOT head out_dim 8192 -> 64, head_hidden_dim 2048 -> 64, head_bottleneck_dim 256 -> 32, head_nlayers 3 -> 1, teacher temps and their warmup relaxed, and the checkpoint-health band widened (a one-step random model's loss falls outside the real-training band, so fail_fast must not trip). One epoch, batch_size 2. linear_eval reads the same ViT-Small teacher (its positional embedding interpolates from the tiny pretrain grid), one epoch, batch_size 2. Both stages import torch.utils.tensorboard (SummaryWriter), so needs lists tensorboard; a venv without it gate-skips this spec, which is then verified under the method's own .venvs/27_ibot (the 38_clip pattern).",
+  "data_shape": "imagefolder_2class",
+  "needs": ["torch", "torchvision", "numpy", "PIL", "tensorboard"],
+  "stages": [
+    {
+      "name": "pretrain",
+      "config": "configs/pretrain.yaml",
+      "sets": {"DATA_ROOT": "@data"},
+      "overrides": {
+        "model.drop_path_rate": 0.0,
+        "data.global_size": 32,
+        "data.local_size": 16,
+        "data.n_local_crops": 1,
+        "data.num_workers": 0,
+        "data.global_crops_scale": [0.5, 1.0],
+        "data.local_crops_scale": [0.2, 0.5],
+        "ibot.out_dim": 64,
+        "ibot.head_hidden_dim": 64,
+        "ibot.head_bottleneck_dim": 32,
+        "ibot.head_nlayers": 1,
+        "ibot.teacher_temp": 0.04,
+        "ibot.teacher_patch_temp": 0.04,
+        "ibot.teacher_temp_warmup_epochs": 0,
+        "ibot.pred_ratio_var": [0.0, 0.0],
+        "training.epochs": 1,
+        "training.batch_size": 2,
+        "training.warmup_epochs": 0,
+        "training.freeze_last_layer": 0,
+        "training.checkpoint_health.min_total_loss": 0.0,
+        "training.checkpoint_health.min_component_loss": 0.0,
+        "training.checkpoint_health.max_total_loss": 1000000.0,
+        "training.fail_fast_after_epoch": 1000,
+        "training.print_freq": 1,
+        "training.save_freq": 1
+      },
+      "produces": ["encoder.pt"]
+    },
+    {
+      "name": "linear_eval",
+      "config": "configs/linear_eval.yaml",
+      "sets": {"DATA_ROOT": "@data", "ENCODER": "@encoder"},
+      "overrides": {
+        "eval.epochs": 1,
+        "eval.batch_size": 2,
+        "eval.num_workers": 0
+      },
+      "produces_metric": "final_linear_probe_top1_accuracy"
+    }
+  ]
+}

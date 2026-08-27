@@ -1,9 +1,9 @@
 # Real-run verification: what the tests guarantee today, and the short-epoch matrix to build
 
-Last updated: 2026-08-24
+Last updated: 2026-08-27
 
 This document records, **fact-based and measured**, the state of the test suite as
-of 2026-08-24 and the design for the next phase: a **short-epoch real-run harness**
+of 2026-08-27 and the design for the next phase: a **short-epoch real-run harness**
 that drives every method across every downstream task on the actual `launch.py`
 chain and checks by machine that every weight and evaluation artifact lands where
 it should. It exists so the analysis and the plan survive across sessions.
@@ -359,45 +359,66 @@ directly to the tiny tower the method's own test exercises on CPU (`resolution=3
 instantiates its BPE tokenizer at import time, so `ftfy` and `regex` are needed even on this
 eval-only path, which is why its spec lists them in `needs`.
 Declaring a spec today (measured
-2026-08-26 on `imagefolder_2class`, each `pretrain -> linear_eval` except the eval-only
-`28_dinov2`, `30_aim`, `36_franca` and `38_clip`, a single `linear_eval` stage each):
+2026-08-27 on `imagefolder_2class`; most are `pretrain -> linear_eval`, the eval-only
+`28_dinov2`, `30_aim`, `36_franca` and `38_clip` are a single `linear_eval` stage each,
+and `01_context_prediction` is a single `pretrain` stage -- its distributed init lives
+only in pretrain and its native AlexNet `linear_eval` is not yet tiny-tested):
 
-- `03_colorization`, `04_context_encoder`, `05_jigsaw_puzzle`,
+- `01_context_prediction`, `03_colorization`, `04_context_encoder`, `05_jigsaw_puzzle`,
   `06_rotation_prediction` (the pilot), `08_split_brain`, `09_jigsaw_puzzle_pp`,
   `10_inst_disc`, `11_cpc`, `12_cmc`, `13_mocov1`, `14_simclrv1`, `15_mocov2`,
-  `16_simclrv2`, `18_sela`, `19_byol`, `22_mocov3`, `23_dino`, `25_mae`, `26_simmim`,
-  `24_beit`, `28_dinov2`, `29_ijepa`, `30_aim`, `31_dinov3`, `32_nepa`, `33_pirl`,
-  `36_franca`, `37_lejepa`, `38_clip`, `var`, `image_gpt` -- thirty-one methods, each
+  `16_simclrv2`, `17_swav`, `18_sela`, `19_byol`, `20_simsiam`, `21_barlow_twins`,
+  `22_mocov3`, `23_dino`, `25_mae`, `26_simmim`,
+  `24_beit`, `27_ibot`, `28_dinov2`, `29_ijepa`, `30_aim`, `31_dinov3`, `32_nepa`, `33_pirl`,
+  `36_franca`, `37_lejepa`, `38_clip`, `var`, `image_gpt` -- thirty-six methods, each
   verified green.
 
 **Every discovered spec runs under every method's `locked` venv, gated on `needs`.**
 The smoke test runs a spec only when its `needs` import in the current venv:
-twenty-five of the thirty-one need the same four (`torch`/`torchvision`/`numpy`/`PIL`)
+twenty-six of the thirty-six need the same four (`torch`/`torchvision`/`numpy`/`PIL`)
 and run everywhere, while `22_mocov3`, `26_simmim` and `37_lejepa` also need `timm`,
-`var` and `30_aim` also need `huggingface_hub`, and `38_clip` also needs `ftfy` and
-`regex` (the pinned OpenAI `clip` package builds its BPE tokenizer at import), so those
-six run only under a venv carrying the extra dep and are skipped -- by the gate, not
-silently -- elsewhere. Thirty of the thirty-one were measured green together under the
-`26_simmim` venv (which carries `timm` and `huggingface_hub` but not `ftfy`/`regex`),
-landing in ~743 s (measured 2026-08-26); `38_clip` was the one gate-skip there (that
-venv lacks `ftfy`/`regex`) and was instead verified green under its own `.venvs/38_clip`
-via `matrix-run -> matrix-audit`. No single venv carries every extra, so the whole
-thirty-one cannot land in one run; together the two venvs cover all of them -- a ported
+`var` and `30_aim` also need `huggingface_hub`, `38_clip` also needs `ftfy` and
+`regex` (the pinned OpenAI `clip` package builds its BPE tokenizer at import), and
+`17_swav`, `20_simsiam`, `21_barlow_twins` and `27_ibot` also need `tensorboard`
+(their trainers write TensorBoard summaries via `torch.utils.tensorboard`), so those
+ten run only under a venv carrying the extra dep and are skipped -- by the gate, not
+silently -- elsewhere. Thirty-one of the thirty-six were measured green together under
+the `26_simmim` venv (which carries `timm` and `huggingface_hub` but not `tensorboard`
+or `ftfy`/`regex`), landing in ~543 s (measured 2026-08-27); the five gate-skips there
+-- `38_clip` (needs `ftfy`/`regex`) and `17_swav`/`20_simsiam`/`21_barlow_twins`/`27_ibot`
+(need `tensorboard`) -- were each verified green under their own `.venvs/<method>` via
+`matrix-run -> matrix-audit`. No single venv carries every extra, so the whole
+thirty-six cannot land in one run; together the venvs cover all of them -- a ported
 method runs under another method's pinned deps, across both architecture families. The
 cost grows with the spec count; if it becomes a burden the gate can be narrowed to the
 owning method, but the cross-method run is itself a compatibility signal and is left on
 for now.
 
-**Not every method fits the hermetic local backend yet.** `launch.py` always sets
+**The single-process trap, and what is left.** `launch.py` always sets
 `LOCAL_RANK=0`/`RANK=0`/`WORLD_SIZE=1` for a single-process local run
-(`bin/launch.py`), and six methods' trainers -- `01_context_prediction`,
-`02_vae`, `17_swav`, `20_simsiam`, `21_barlow_twins`, `27_ibot` -- call
-`dist.init_process_group(backend="nccl")` as soon as `LOCAL_RANK` is present, which
-fails on a CPU host with `MASTER_ADDR expected, but not set`. This is a real
-finding surfaced by the harness (the driver reports it as a failed cell, never a
-silent pass), not a spec bug; giving those methods a local real-run means teaching
-their trainer a single-process path (or the local backend a rendezvous), and is
-tracked as future work rather than worked around with a broken spec.
+(`bin/launch.py`) but no `MASTER_ADDR`, and five methods' trainers --
+`01_context_prediction`, `17_swav`, `20_simsiam`, `21_barlow_twins`, `27_ibot` --
+used to call `dist.init_process_group(backend="nccl")` as soon as `LOCAL_RANK` was
+present, which failed on a CPU host with `MASTER_ADDR expected, but not set`. The
+harness surfaced this as a failed cell (never a silent pass). The fix keys "go
+distributed?" off `WORLD_SIZE > 1` instead of `LOCAL_RANK`'s mere presence, so a
+single-process run skips the process group entirely and resolves to CPU (the device
+invariant, `docs/GPU.md`); every downstream DDP/`SyncBatchNorm`/`DistributedSampler`
+path was already guarded behind `if distributed:`. Each guard is measured with a
+mutation that must kill it (the two predicate shapes -- the shared
+`if WORLD_SIZE<=1: return` and `01`'s `or WORLD_SIZE<=1` clause -- were each mutated
+and confirmed to fail the smoke). `20_simsiam` also stood up a process group in its
+`linear_eval` (`evaluate_linear_official.py`); it is fixed in both sites. The other
+four's `linear_eval` never touched `dist`, so `01`'s smoke is a single pretrain stage
+(the only stage the fix touches).
+
+The one method still outside the hermetic local backend is `02_vae`: its adapter
+already forces `distributed=False` (`methods/02_vae/adapter/__init__.py`), so it was
+never nccl-blocked, but its pretrain reads `torchvision.datasets.MNIST` (a raw MNIST
+directory), and `tests/_real_run.py::build_data` only fabricates the
+`imagefolder_2class` shape. Giving `02_vae` a real-run means adding an `mnist`
+`data_shape` to the harness; that is tracked as future work rather than worked around
+with a broken spec.
 
 Each step follows the repository discipline (CLAUDE.md): RED test first, judge by
 exit status, a measured mutation spec for every new guard, discover-not-list, and

@@ -1,0 +1,42 @@
+{
+  "description": "Short real-run smoke for 17_swav (SwAV, Caron et al. 2020): pretrain -> encoder.pt -> linear_eval, one epoch on tiny real-shaped ImageFolder data. Discovered and driven by tests/test_real_run_smoke.py and bin/matrix-run.py (docs/REAL_RUN_VERIFICATION.md steps 2-3); the spec lives in the method's own directory so no shared file names a method. 17_swav is one of the methods whose trainer previously called dist.init_process_group(backend='nccl') the moment LOCAL_RANK was present, so it could not run on the single-process local backend (bin/launch.py exports WORLD_SIZE=1/RANK=0/LOCAL_RANK=0 but no MASTER_ADDR): the fix gates the distributed setup on WORLD_SIZE>1 in setup_dist() (train_pretrain_resnet.py), matching the repo device invariant (docs/GPU.md) and the single-process shape every other CPU-verified method already uses. Only pretrain stood up a process group; evaluate_linear.py never did. The default ResNet-50 recipe is shrunk to the tiny architecture the method's own test (tests/test_method_17_swav.py) exercises on CPU: multi-crop sizes 224/96 -> 32/16 (the 32px data cannot yield a 224 crop), nmb_crops 2/6 -> 2/2, projector out_dim 128 -> 32, hidden_mlp 2048 -> 64, nmb_prototypes 3000 -> 8, warmup and prototype-freeze steps to 0, one epoch, batch_size 2 (must stay >1: the projector carries BatchNorm1d). linear_eval sets the same encoder dims (out_dim/hidden_mlp/nmb_prototypes) so it rebuilds the encoder encoder.pt holds, at img_size 32. Both stages import torch.utils.tensorboard (SummaryWriter), so needs lists tensorboard; a venv without it gate-skips this spec, which is then verified under the method's own .venvs/17_swav (the 38_clip pattern).",
+  "data_shape": "imagefolder_2class",
+  "needs": ["torch", "torchvision", "numpy", "PIL", "tensorboard"],
+  "stages": [
+    {
+      "name": "pretrain",
+      "config": "configs/pretrain.yaml",
+      "sets": {"DATA_ROOT": "@data"},
+      "overrides": {
+        "train.epochs": 1,
+        "train.batch_size": 2,
+        "train.num_workers": 0,
+        "train.warmup_epochs": 0,
+        "train.freeze_prototypes_steps": 0,
+        "train.size_crops": [32, 16],
+        "train.nmb_crops": [2, 2],
+        "train.out_dim": 32,
+        "train.hidden_mlp": 64,
+        "train.nmb_prototypes": 8,
+        "train.save_freq": 1,
+        "train.print_freq": 1
+      },
+      "produces": ["encoder.pt"]
+    },
+    {
+      "name": "linear_eval",
+      "config": "configs/linear_eval.yaml",
+      "sets": {"DATA_ROOT": "@data", "ENCODER": "@encoder"},
+      "overrides": {
+        "train.epochs": 1,
+        "train.batch_size": 2,
+        "train.num_workers": 0,
+        "train.img_size": 32,
+        "train.out_dim": 32,
+        "train.hidden_mlp": 64,
+        "train.nmb_prototypes": 8
+      },
+      "produces_metric": "final_linear_probe_top1_accuracy"
+    }
+  ]
+}
