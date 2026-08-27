@@ -1,0 +1,35 @@
+{
+  "description": "Short real-run smoke for 20_simsiam (SimSiam, Chen & He 2020): pretrain -> encoder.pt -> linear_eval, one epoch on tiny real-shaped ImageFolder data. Discovered and driven by tests/test_real_run_smoke.py and bin/matrix-run.py (docs/REAL_RUN_VERIFICATION.md steps 2-3); the spec lives in the method's own directory so no shared file names a method. 20_simsiam is one of the methods whose trainer previously called dist.init_process_group(backend='nccl') the moment LOCAL_RANK was present, so it could not run on the single-process local backend (bin/launch.py exports WORLD_SIZE=1/RANK=0/LOCAL_RANK=0 but no MASTER_ADDR): the fix gates the distributed setup on WORLD_SIZE>1 in both setup_dist() sites (train_pretrain_resnet.py and evaluate_linear_official.py -- SimSiam is the one method whose linear_eval stage also stood up a process group), matching the repo device invariant (docs/GPU.md) and the single-process shape every other CPU-verified method already uses. The default ResNet-50 recipe is shrunk to the tiny architecture the method's own test (tests/test_method_20_simsiam.py) exercises on CPU: img_size 32, dim 64, pred_dim 16 (these shape only the projector/predictor heads, not the ResNet-50 backbone), batch_size 2 (must stay >1: the projector/predictor carry BatchNorm1d), one epoch. Every model key is set identically in both stages so linear_eval rebuilds the encoder encoder.pt holds. Both stages import torch.utils.tensorboard (SummaryWriter), so needs lists tensorboard; a venv without it gate-skips this spec, which is then verified under the method's own .venvs/20_simsiam (the 38_clip pattern).",
+  "data_shape": "imagefolder_2class",
+  "needs": ["torch", "torchvision", "numpy", "PIL", "tensorboard"],
+  "stages": [
+    {
+      "name": "pretrain",
+      "config": "configs/pretrain.yaml",
+      "sets": {"DATA_ROOT": "@data"},
+      "overrides": {
+        "train.epochs": 1,
+        "train.batch_size": 2,
+        "train.num_workers": 0,
+        "train.img_size": 32,
+        "train.dim": 64,
+        "train.pred_dim": 16
+      },
+      "produces": ["encoder.pt"]
+    },
+    {
+      "name": "linear_eval",
+      "config": "configs/linear_eval.yaml",
+      "sets": {"DATA_ROOT": "@data", "ENCODER": "@encoder"},
+      "overrides": {
+        "train.epochs": 1,
+        "train.batch_size": 2,
+        "train.num_workers": 0,
+        "train.img_size": 32,
+        "train.dim": 64,
+        "train.pred_dim": 16
+      },
+      "produces_metric": "final_linear_probe_top1_accuracy"
+    }
+  ]
+}

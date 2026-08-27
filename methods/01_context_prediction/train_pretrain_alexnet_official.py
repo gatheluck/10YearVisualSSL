@@ -36,8 +36,12 @@ from models.alexnet_context_official import build_official_context_alexnet
 
 
 def setup_distributed():
+    # Single-process runs (WORLD_SIZE<=1) skip the process group entirely: the
+    # local backend exports WORLD_SIZE=1/RANK=0/LOCAL_RANK=0 but no MASTER_ADDR,
+    # so keying off LOCAL_RANK's mere presence would call init_process_group and
+    # fail. Gate on WORLD_SIZE, matching the CPU device invariant (docs/GPU.md).
     local_rank = int(os.environ.get("LOCAL_RANK", -1))
-    if local_rank == -1:
+    if local_rank == -1 or int(os.environ.get("WORLD_SIZE", "1")) <= 1:
         return 0, 0, 1, False
     dist.init_process_group(backend="nccl")
     torch.cuda.set_device(local_rank)

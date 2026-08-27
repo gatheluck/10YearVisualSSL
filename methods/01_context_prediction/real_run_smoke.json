@@ -1,0 +1,22 @@
+{
+  "description": "Short real-run smoke for 01_context_prediction (Doersch et al. 2015): a step-based pretrain -> encoder.pt on tiny real-shaped ImageFolder data. Discovered and driven by tests/test_real_run_smoke.py and bin/matrix-run.py (docs/REAL_RUN_VERIFICATION.md steps 2-3); the spec lives in the method's own directory so no shared file names a method. 01_context_prediction is one of the methods whose trainer previously called dist.init_process_group(backend='nccl') the moment LOCAL_RANK was present, so it could not run on the single-process local backend (bin/launch.py exports WORLD_SIZE=1/RANK=0/LOCAL_RANK=0 but no MASTER_ADDR): the fix gates the distributed setup on WORLD_SIZE>1 in setup_distributed() (train_pretrain_alexnet_official.py), matching the repo device invariant (docs/GPU.md) and the single-process shape every other CPU-verified method already uses. The distributed init lives only in the AlexNet pretrain path; evaluate_linear.py has none, so this smoke exercises exactly the fixed path -- it is a single pretrain stage (like the pretrain-only shapes elsewhere). The native pretrain is step-based, so following the method's own test (tests/test_method_01_context_prediction.py) the recipe is shrunk to max_steps 2 with save/eval every 2 steps and one eval batch, batch_size 2. The pretext task (predicting which of eight relative positions a patch sits in) reports final_pretext_top1_accuracy, which is a genuine result of the run (not a linear-probe number); a full two-stage 01 smoke waits on a tiny-tested native AlexNet linear_eval.",
+  "data_shape": "imagefolder_2class",
+  "needs": ["torch", "torchvision", "numpy", "PIL"],
+  "stages": [
+    {
+      "name": "pretrain",
+      "config": "configs/pretrain.yaml",
+      "sets": {"DATA_ROOT": "@data"},
+      "overrides": {
+        "train.max_steps": 2,
+        "train.batch_size": 2,
+        "train.num_workers": 0,
+        "train.save_every_steps": 2,
+        "train.eval_every_steps": 2,
+        "train.eval_batches": 1
+      },
+      "produces": ["encoder.pt"],
+      "produces_metric": "final_pretext_top1_accuracy"
+    }
+  ]
+}
