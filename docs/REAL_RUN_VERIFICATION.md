@@ -359,36 +359,38 @@ directly to the tiny tower the method's own test exercises on CPU (`resolution=3
 instantiates its BPE tokenizer at import time, so `ftfy` and `regex` are needed even on this
 eval-only path, which is why its spec lists them in `needs`.
 Declaring a spec today (measured
-2026-08-27 on `imagefolder_2class`; most are `pretrain -> linear_eval`, the eval-only
-`28_dinov2`, `30_aim`, `36_franca` and `38_clip` are a single `linear_eval` stage each,
-and `01_context_prediction` is a single `pretrain` stage -- its distributed init lives
-only in pretrain and its native AlexNet `linear_eval` is not yet tiny-tested):
+2026-08-27, all but one on `imagefolder_2class`; `02_vae` is the exception -- it trains
+on MNIST, so its spec's `data_shape` is `mnist` and `build_data` fabricates a valid
+`MNIST/raw` IDX directory rather than an ImageFolder; most are `pretrain -> linear_eval`,
+the eval-only `28_dinov2`, `30_aim`, `36_franca` and `38_clip` are a single `linear_eval`
+stage each, and `01_context_prediction` is a single `pretrain` stage -- its distributed
+init lives only in pretrain and its native AlexNet `linear_eval` is not yet tiny-tested):
 
-- `01_context_prediction`, `03_colorization`, `04_context_encoder`, `05_jigsaw_puzzle`,
-  `06_rotation_prediction` (the pilot), `08_split_brain`, `09_jigsaw_puzzle_pp`,
-  `10_inst_disc`, `11_cpc`, `12_cmc`, `13_mocov1`, `14_simclrv1`, `15_mocov2`,
-  `16_simclrv2`, `17_swav`, `18_sela`, `19_byol`, `20_simsiam`, `21_barlow_twins`,
-  `22_mocov3`, `23_dino`, `25_mae`, `26_simmim`,
+- `01_context_prediction`, `02_vae`, `03_colorization`, `04_context_encoder`,
+  `05_jigsaw_puzzle`, `06_rotation_prediction` (the pilot), `08_split_brain`,
+  `09_jigsaw_puzzle_pp`, `10_inst_disc`, `11_cpc`, `12_cmc`, `13_mocov1`, `14_simclrv1`,
+  `15_mocov2`, `16_simclrv2`, `17_swav`, `18_sela`, `19_byol`, `20_simsiam`,
+  `21_barlow_twins`, `22_mocov3`, `23_dino`, `25_mae`, `26_simmim`,
   `24_beit`, `27_ibot`, `28_dinov2`, `29_ijepa`, `30_aim`, `31_dinov3`, `32_nepa`, `33_pirl`,
-  `36_franca`, `37_lejepa`, `38_clip`, `var`, `image_gpt` -- thirty-six methods, each
+  `36_franca`, `37_lejepa`, `38_clip`, `var`, `image_gpt` -- thirty-seven methods, each
   verified green.
 
 **Every discovered spec runs under every method's `locked` venv, gated on `needs`.**
 The smoke test runs a spec only when its `needs` import in the current venv:
-twenty-six of the thirty-six need the same four (`torch`/`torchvision`/`numpy`/`PIL`)
+twenty-six of the thirty-seven need the same four (`torch`/`torchvision`/`numpy`/`PIL`)
 and run everywhere, while `22_mocov3`, `26_simmim` and `37_lejepa` also need `timm`,
 `var` and `30_aim` also need `huggingface_hub`, `38_clip` also needs `ftfy` and
 `regex` (the pinned OpenAI `clip` package builds its BPE tokenizer at import), and
-`17_swav`, `20_simsiam`, `21_barlow_twins` and `27_ibot` also need `tensorboard`
-(their trainers write TensorBoard summaries via `torch.utils.tensorboard`), so those
-ten run only under a venv carrying the extra dep and are skipped -- by the gate, not
-silently -- elsewhere. Thirty-one of the thirty-six were measured green together under
-the `26_simmim` venv (which carries `timm` and `huggingface_hub` but not `tensorboard`
-or `ftfy`/`regex`), landing in ~543 s (measured 2026-08-27); the five gate-skips there
--- `38_clip` (needs `ftfy`/`regex`) and `17_swav`/`20_simsiam`/`21_barlow_twins`/`27_ibot`
-(need `tensorboard`) -- were each verified green under their own `.venvs/<method>` via
-`matrix-run -> matrix-audit`. No single venv carries every extra, so the whole
-thirty-six cannot land in one run; together the venvs cover all of them -- a ported
+`02_vae`, `17_swav`, `20_simsiam`, `21_barlow_twins` and `27_ibot` also need
+`tensorboard` (their trainers write TensorBoard summaries via `torch.utils.tensorboard`),
+so those eleven run only under a venv carrying the extra dep and are skipped -- by the
+gate, not silently -- elsewhere. Thirty-one of the thirty-seven were measured green
+together under the `26_simmim` venv (which carries `timm` and `huggingface_hub` but not
+`tensorboard` or `ftfy`/`regex`), landing in ~547 s (measured 2026-08-27); the six
+gate-skips there -- `38_clip` (needs `ftfy`/`regex`) and `02_vae`/`17_swav`/`20_simsiam`/
+`21_barlow_twins`/`27_ibot` (need `tensorboard`) -- were each verified green under their
+own `.venvs/<method>` via `matrix-run -> matrix-audit`. No single venv carries every
+extra, so the whole thirty-seven cannot land in one run; together the venvs cover all of them -- a ported
 method runs under another method's pinned deps, across both architecture families. The
 cost grows with the spec count; if it becomes a burden the gate can be narrowed to the
 owning method, but the cross-method run is itself a compatibility signal and is left on
@@ -412,13 +414,24 @@ and confirmed to fail the smoke). `20_simsiam` also stood up a process group in 
 four's `linear_eval` never touched `dist`, so `01`'s smoke is a single pretrain stage
 (the only stage the fix touches).
 
-The one method still outside the hermetic local backend is `02_vae`: its adapter
-already forces `distributed=False` (`methods/02_vae/adapter/__init__.py`), so it was
-never nccl-blocked, but its pretrain reads `torchvision.datasets.MNIST` (a raw MNIST
-directory), and `tests/_real_run.py::build_data` only fabricates the
-`imagefolder_2class` shape. Giving `02_vae` a real-run means adding an `mnist`
-`data_shape` to the harness; that is tracked as future work rather than worked around
-with a broken spec.
+`02_vae` completes the local backend from a different direction. Its adapter already
+forces `distributed=False` (`methods/02_vae/adapter/__init__.py`), so it was never
+nccl-blocked; it was blocked only because it trains on MNIST, not an ImageFolder, and
+`tests/_real_run.py::build_data` had no `mnist` shape. That shape is now added: it
+fabricates a valid `MNIST/raw` IDX directory (the layout
+`torchvision.datasets.MNIST(download=False)` reads, mirroring the proven `tiny_mnist`
+fixture in `tests/test_method_02_vae.py`, stdlib only, no download), and `02_vae`'s
+spec asks for it. Both stages read the same MNIST (the dataset-agnostic loader,
+`data/vae_dataset.py`, picks MNIST over ImageFolder when a `MNIST/` subdirectory is
+present); the default recipe (latent_dim 20, hidden_dim 500, 100 epochs) is shrunk to
+the tiny architecture the method's own test exercises (latent_dim 4, hidden_dim 8,
+img_size kept at MNIST's native 28, one epoch), set identically in both stages so
+`linear_eval` rebuilds the encoder `encoder.pt` holds. Verified green under
+`.venvs/2_vae` via `matrix-run -> matrix-audit` (2/2 + 2/2); the spec's non-vacuity is
+proven by mutating `produces_metric`, which makes the audit fail. The `mnist` branch
+of `build_data` is load-bearing: before it existed the spec's cell failed with
+`unknown data_shape 'mnist'` (RED), and after it the run trains and lands its
+artifacts (GREEN).
 
 Each step follows the repository discipline (CLAUDE.md): RED test first, judge by
 exit status, a measured mutation spec for every new guard, discover-not-list, and

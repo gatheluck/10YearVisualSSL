@@ -1,0 +1,35 @@
+{
+  "description": "Short real-run smoke for 02_vae (Variational Autoencoder, Kingma & Welling 2013): pretrain -> encoder.pt -> linear_eval, one epoch on a tiny real MNIST directory. Discovered and driven by tests/test_real_run_smoke.py and bin/matrix-run.py (docs/REAL_RUN_VERIFICATION.md steps 2-3); the spec lives in the method's own directory so no shared file names a method. 02_vae is the one method that trains on MNIST rather than an ImageNet-style ImageFolder: its dataset-agnostic loader (data/vae_dataset.py) picks torchvision.datasets.MNIST (download=False) when the data root holds a MNIST/ subdirectory, and both stages read the same MNIST, so the spec's data_shape is 'mnist' (tests/_real_run.py build_data fabricates a valid MNIST/raw IDX directory rather than downloading -- the same shape tests/test_method_02_vae.py's tiny_mnist uses). 02_vae never stood up an nccl process group (its adapter forces distributed=False), so unlike 01/17/20/21/27 it needed no trainer change; it was blocked only because build_data had no mnist shape, which this increment adds. The default recipe (latent_dim 20, hidden_dim 500, 100 epochs) is shrunk to the tiny architecture the method's own test exercises on CPU: latent_dim 4, hidden_dim 8, img_size kept at 28 (MNIST's native resolution), one epoch, small batch. Every model key is set identically in both stages so linear_eval rebuilds the encoder encoder.pt holds; the probe reads the encoder's latent mean mu (VAE_CNN.get_features). Both stages import torch.utils.tensorboard (SummaryWriter, at module level in train_pretrain_cnn.py, which evaluate_linear_vae.py also imports), so needs lists tensorboard; a venv without it gate-skips this spec, which is then verified under the method's own .venvs/2_vae (the 38_clip pattern).",
+  "data_shape": "mnist",
+  "needs": ["torch", "torchvision", "numpy", "PIL", "tensorboard"],
+  "stages": [
+    {
+      "name": "pretrain",
+      "config": "configs/pretrain_mnist.yaml",
+      "sets": {"DATA_ROOT": "@data"},
+      "overrides": {
+        "train.epochs": 1,
+        "train.batch_size": 4,
+        "train.num_workers": 0,
+        "train.latent_dim": 4,
+        "train.hidden_dim": 8,
+        "train.save_freq": 1,
+        "train.print_freq": 1
+      },
+      "produces": ["encoder.pt"]
+    },
+    {
+      "name": "linear_eval",
+      "config": "configs/linear_eval.yaml",
+      "sets": {"DATA_ROOT": "@data", "ENCODER": "@encoder"},
+      "overrides": {
+        "train.epochs": 1,
+        "train.batch_size": 4,
+        "train.num_workers": 0,
+        "train.latent_dim": 4,
+        "train.hidden_dim": 8
+      },
+      "produces_metric": "final_linear_probe_top1_accuracy"
+    }
+  ]
+}

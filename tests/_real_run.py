@@ -18,7 +18,9 @@ Names no method: only a `data_shape` string and generic class folders.
 
 from __future__ import annotations
 
+import gzip
 import importlib.util
+import struct
 import sys
 from pathlib import Path
 
@@ -62,5 +64,31 @@ def build_data(shape: str, root: Path) -> Path:
                     noise = rng.randint(0, 64, (128, 128, 3), dtype="uint8")
                     Image.fromarray((base + noise).astype("uint8")).save(
                         d / f"{i}.png")
+        return root
+    if shape == "mnist":
+        # A valid MNIST/ directory (the layout torchvision.datasets.MNIST reads
+        # with download=False), fabricated rather than downloaded so no test
+        # reaches the network. The IDX format is a short header then raw bytes,
+        # so a real one small enough to train on is cheap to write. This is the
+        # shape 02_vae asks for -- its dataset-agnostic loader picks MNIST over
+        # ImageFolder when a MNIST/ subdirectory is present. Mirrors the proven
+        # tiny_mnist fixture in tests/test_method_02_vae.py; stdlib only.
+        n = 8
+        raw = root / "MNIST" / "raw"
+        raw.mkdir(parents=True, exist_ok=True)
+        images = (bytes(range(256)) * ((n * 28 * 28) // 256 + 1))[:n * 28 * 28]
+        labels = bytes(i % 10 for i in range(n))
+        for name, header, body in (
+                ("train-images-idx3-ubyte",
+                 struct.pack(">IIII", 2051, n, 28, 28), images),
+                ("train-labels-idx1-ubyte",
+                 struct.pack(">II", 2049, n), labels),
+                ("t10k-images-idx3-ubyte",
+                 struct.pack(">IIII", 2051, n, 28, 28), images),
+                ("t10k-labels-idx1-ubyte",
+                 struct.pack(">II", 2049, n), labels)):
+            (raw / name).write_bytes(header + body)
+            with gzip.open(raw / f"{name}.gz", "wb") as f:
+                f.write(header + body)
         return root
     raise ValueError(f"real_run_smoke: unknown data_shape {shape!r}")
