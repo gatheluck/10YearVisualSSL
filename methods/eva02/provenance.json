@@ -1,0 +1,28 @@
+{
+  "captured_at": "2026-08-27",
+  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
+  "captured_note": "EVA-02 appears in the capture's Step-3 Autoreg-SSL evaluation (methods_step3/ARSSL) as an as-is SSL comparison: the official masked-image-modelling pretrained backbone is downloaded and a linear probe is fit on its frozen features, because the from-scratch MIM pretraining (IN-22k, many GPU-days) is not reproduced. This port carries that as-is comparison only. There is NO author submodule: the EVA-02 model class is timm's (a pinned pip dependency, timm==1.0.28), imported not copied, and the weights are a sha256-pinned download.",
+  "paper": {
+    "title": "EVA-02: A Visual Representation for Neon Genesis",
+    "arxiv": "2303.11331",
+    "official_repo": "https://github.com/baaivision/EVA"
+  },
+  "note": "Eval-only port (a single linear_eval stage, no pretraining). The backbone is timm's eva02_base_patch14_224.mim_in22k, built with pretrained=False and the sha256-pinned checkpoint (backbone_artifact below) loaded into it. Because the source is a pip dependency and not a git submodule, this file records NO upstream block and the adapter defines no UPSTREAM (test_port_completeness's both-places rule requires them to agree, and here both are absent).",
+  "linear_eval": "Probes EVA-02's pooled pre-classifier feature (timm model built with num_classes=0), frozen. EVA-02's MIM pretraining is a genuine SSL objective, so the number is comparable (the 'pretrained-backbone reuse' row, analogous to DINOv2 / Franca). A real run needs the official checkpoint (backbone_artifact below, fetched and hash-verified by bin/fetch-weights.py --artifact backbone_artifact, passed as the config's train.ckpt); the hermetic smoke leaves ckpt empty and builds a random tiny EVA-02, so nothing is downloaded and only the pipeline is exercised. See docs/EVAL_DOWNLOAD.md.",
+  "backbone_artifact": {
+    "name": "EVA-02-B/14 MIM-IN22k backbone (timm)",
+    "url": "https://huggingface.co/timm/eva02_base_patch14_224.mim_in22k/resolve/0ecfe3fab2be96198054b55157bd448097ba1828/pytorch_model.bin",
+    "filename": "eva02_base_patch14_224.mim_in22k.pytorch_model.bin",
+    "sha256": "65068e4594e95e55219046a19cfaba46d235eed91a529891a7ec72f6bbd1e2aa",
+    "bytes": 343117429,
+    "license": "MIT",
+    "sha256_source": "read on 2026-08-27 from the HuggingFace LFS metadata (https://huggingface.co/api/models/timm/eva02_base_patch14_224.mim_in22k, siblings[].lfs.sha256 for pytorch_model.bin at revision 0ecfe3fab2be96198054b55157bd448097ba1828); bin/fetch-weights.py re-verifies this value on download"
+  },
+  "rewritten_during_the_port": [
+    "the model class is timm's, not a copied or submoduled author repository; the pretrained weights are a sha256-pinned HuggingFace download (backbone_artifact) rather than a timm pretrained=True auto-download, so CI never fetches and a real run is hash-verified",
+    "the device is resolved (resolve_device) instead of assumed CUDA",
+    "features are extracted in fp32 (no autocast), so the frozen-feature probe runs identically on a CPU or a pre-Ampere GPU",
+    "the probe follows this port's shared frozen-backbone protocol (mean-centre + L2-normalise, a single linear layer with SGD + cosine), returning the four comparable linear-probe accuracies and the epoch count",
+    "the input normalisation is taken from the backbone's own timm data config (EVA-02 uses a CLIP-style mean/std, not ImageNet's); the crop resolution is read from the config so the hermetic smoke can shrink it and build a random tiny EVA-02 (timm.models.eva.Eva) instead of the full ViT-B/14"
+  ]
+}

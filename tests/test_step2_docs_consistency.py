@@ -140,27 +140,55 @@ def readme_table_rows() -> dict:
 # scanned.
 STATUS_DOCS = ("README.md", "docs/PORTING_ROADMAP.md")
 
+# A Methods-table row -- `| `name` | ... |`. The row is ABOUT its first-column
+# method; a mention of another method in the notes ("analogous to `36_franca`") is
+# a cross-reference, not a claim about that other method. So a table row's claim is
+# attributed to its subject alone, never to every method token on the line -- a
+# line-wide attribution is the "substring/scope too wide" mistake this repo keeps
+# re-making (a `36_franca` mention in eva02's eval-only row is not eva02 denying
+# 36_franca's Step 2). `name` may be numbered (`36_franca`) or unnumbered (`eva02`).
+_TABLE_ROW_SUBJECT = re.compile(r"^\|\s*`([a-z0-9_]+)`\s*\|")
+
+
+def _scan_status_lines(lines, names) -> list:
+    """(method, sentence) for every line that denies a Step-2 method's Step 2.
+
+    A Methods-table row is attributed to its subject alone (and flagged only when
+    that subject is itself a Step-2 method); any other prose line is attributed to
+    every Step-2 method it names by its `NN_name` token. Pure over its inputs so
+    the detector can be driven by both a positive and a negative control."""
+    tokens = {name: re.compile(r"`" + re.escape(name) + r"`") for name in names}
+    out = []
+    for line in lines:
+        clean = line.replace("*", "").replace("`", "")
+        hits = stale_step2_claims(clean)
+        if not hits:
+            continue
+        row = _TABLE_ROW_SUBJECT.match(line)
+        if row:
+            subject = row.group(1)
+            if subject in names:
+                out += [(subject, sent) for sent in hits]
+            continue
+        for name in names:
+            if tokens[name].search(line):
+                out += [(name, sent) for sent in hits]
+    return out
+
 
 def status_doc_denials() -> list:
     """(doc, method, sentence) for every status-doc line that references a Step-2
     method and denies its Step 2. Discovery-based: methods are found on disk, never
-    listed, and a line is attributed to a method by its `NN_name` token."""
+    listed."""
     names = [m.name for m in step2_methods()]
-    tokens = {name: re.compile(r"`" + re.escape(name) + r"`") for name in names}
     out = []
     for doc in STATUS_DOCS:
         path = ROOT / doc
         if not path.is_file():
             continue
-        for line in path.read_text(encoding="utf-8").splitlines():
-            clean = line.replace("*", "").replace("`", "")
-            hits = stale_step2_claims(clean)
-            if not hits:
-                continue
-            for name in names:
-                if tokens[name].search(line):
-                    for sent in hits:
-                        out.append((doc, name, sent))
+        lines = path.read_text(encoding="utf-8").splitlines()
+        out += [(doc, name, sent)
+                for name, sent in _scan_status_lines(lines, names)]
     return out
 
 
@@ -273,6 +301,28 @@ class TestStep2DocsDoNotDenyTheStep2(unittest.TestCase):
         self.assertTrue(blanket_no_encoder_claims(
             "This port trains nothing and produces no encoder.pt."))
         self.assertTrue(blanket_no_encoder_claims("There is no encoder.pt."))
+
+    # ---- status-scan attribution controls (positive + negative) ----
+    # Fake method names ("cat"/"dog") keep this shared file from hard-coding a
+    # real method (tests/test_no_hard_coded_methods.py), exactly as that guard's
+    # own controls do.
+    def test_status_scan_flags_a_step2_methods_own_row_denial(self):
+        # positive: a Step-2 method's OWN table row denying its Step 2 is drift.
+        self.assertTrue(_scan_status_lines(
+            ["| `cat` | Cat | linear eval | an eval-only port |"], ["cat"]))
+
+    def test_status_scan_flags_a_prose_denial_by_token(self):
+        # positive: a non-table prose line naming a Step-2 method and denying it.
+        self.assertTrue(_scan_status_lines(
+            ["- `cat`: the ViT step 2 is excluded here."], ["cat"]))
+
+    def test_status_scan_ignores_a_cross_reference_in_another_row(self):
+        # negative: a non-Step-2 method's row that is itself eval-only and merely
+        # cross-references a Step-2 sibling ("cat") is not a denial of that
+        # sibling's Step 2.
+        self.assertEqual(_scan_status_lines(
+            ["| `dog` | Dog | linear eval | a pure eval-only port, "
+             "analogous to `cat` |"], ["cat"]), [])
 
     def test_no_encoder_detector_allows_a_scoped_claim(self):
         # a whole-port claim scoped to the Step-1 as-is/download probe -- not drift

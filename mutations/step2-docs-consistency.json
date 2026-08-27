@@ -1,0 +1,31 @@
+{
+  "_note": "Run: python3 bin/mutate.py --spec mutations/step2-docs-consistency.json (no torch needed; the detector is pure string work). Proves the table-row attribution added for the eva02 port is not vacuous: a cross-reference to a Step-2 sibling in another method's row must NOT be read as that sibling denying its Step 2 (negative control), and a Step-2 method's own row denying its Step 2 must still be caught (positive control).",
+  "targets": [
+    {
+      "label": "a table-row cross-reference is attributed line-wide again",
+      "file": "tests/test_step2_docs_consistency.py",
+      "old": "        row = _TABLE_ROW_SUBJECT.match(line)\n        if row:",
+      "new": "        row = _TABLE_ROW_SUBJECT.match(line)\n        if False:",
+      "tests": [
+        "tests.test_step2_docs_consistency.TestStep2DocsDoNotDenyTheStep2.test_status_scan_ignores_a_cross_reference_in_another_row",
+        "tests.test_step2_docs_consistency.TestStep2DocsDoNotDenyTheStep2.test_status_docs_do_not_deny_a_step2"
+      ]
+    },
+    {
+      "label": "a step-2 method's own row denial is no longer flagged",
+      "file": "tests/test_step2_docs_consistency.py",
+      "old": "            if subject in names:",
+      "new": "            if subject not in names:",
+      "tests": [
+        "tests.test_step2_docs_consistency.TestStep2DocsDoNotDenyTheStep2.test_status_scan_flags_a_step2_methods_own_row_denial"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-08-27",
+    "measured_with": "base python3 (standard library only; the detector is pure string work, no torch)",
+    "killed": 2,
+    "total": 2,
+    "equivalent": []
+  }
+}
