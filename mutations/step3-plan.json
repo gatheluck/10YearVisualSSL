@@ -13,8 +13,8 @@
     {
       "label": "the next pointer skips ahead past an earlier unfinished item",
       "file": "docs/STEP3_PORTING_PLAN.md",
-      "old": "\"next\": \"A1\",",
-      "new": "\"next\": \"A2:data2vec2\",",
+      "old": "\"next\": \"A2:data2vec2\",",
+      "new": "\"next\": \"A2:cae\",",
       "tests": [
         "tests.test_step3_plan.TestTheNextPointerIsAFact.test_next_is_the_earliest_unfinished_item"
       ]
@@ -22,8 +22,8 @@
     {
       "label": "the out-of-order ceiling is quietly widened in the plan",
       "file": "docs/STEP3_PORTING_PLAN.md",
-      "old": "\"grandfathered_ceiling\": 4,",
-      "new": "\"grandfathered_ceiling\": 5,",
+      "old": "\"grandfathered_ceiling\": 1,",
+      "new": "\"grandfathered_ceiling\": 2,",
       "tests": [
         "tests.test_step3_plan.TestNoNewOutOfOrderWork.test_the_ceiling_is_frozen"
       ]
@@ -31,8 +31,8 @@
     {
       "label": "a new method is marked done ahead of its turn, exceeding the ceiling",
       "file": "docs/STEP3_PORTING_PLAN.md",
-      "old": "\"dir\": \"data2vec2\", \"title\": \"data2vec 2.0\", \"status\": \"todo\"",
-      "new": "\"dir\": \"data2vec2\", \"title\": \"data2vec 2.0\", \"status\": \"done\"",
+      "old": "\"dir\": \"cae\", \"title\": \"CAE\", \"status\": \"todo\"",
+      "new": "\"dir\": \"cae\", \"title\": \"CAE\", \"status\": \"done\"",
       "tests": [
         "tests.test_step3_plan.TestNoNewOutOfOrderWork.test_done_items_after_the_next_pointer_stay_within_the_ceiling"
       ]

@@ -144,6 +144,7 @@ shown so the shape is visible before it is built.
 │   └── __init__.py                                                    exists
 ├── downstream/                     cross-method downstream tasks      exists
 │   ├── contract.py                   the downstream contract: write + verify
+│   ├── arssl.py                      ARSSL harness: drive one backbone through them all
 │   ├── spatial_backbones.py          frozen backbone -> [B,C,h,w] + out_channels
 │   ├── ade20k.py                     ADE20K segmentation (the pilot)
 │   ├── coco.py                       COCO detection (Faster R-CNN + mAP)

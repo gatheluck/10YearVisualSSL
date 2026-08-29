@@ -1,0 +1,57 @@
+{
+  "_note": "Run: python3 bin/mutate.py --spec mutations/arssl.json (pure stdlib, base interpreter). Proves the ARSSL harness guards in tests/test_downstream_arssl.py are not vacuous: the discover-not-list triple, the aggregate 'nothing ran is not ok' verdict, the metric-collision guard, the undiscovered-task refusal, and the shared-key-shadow refusal are each caught. The torch-dependent end-to-end smokes are not mutated here (mutate.py runs the base interpreter, where they skip); they are exercised under a timm venv instead.",
+  "targets": [
+    {
+      "label": "discovery drops the run/main leg of the triple (a module with only TASK is wrongly a runner)",
+      "file": "downstream/arssl.py",
+      "old": "    if task_value is not None and {\"run\", \"main\"} <= funcs:",
+      "new": "    if task_value is not None:",
+      "tests": [
+        "tests.test_downstream_arssl.TestTaskRunnersAreDiscoveredNotListed.test_the_triple_is_the_detector_positive_and_negative"
+      ]
+    },
+    {
+      "label": "the aggregate verdict lets an empty battery read as ok (nothing ran = success)",
+      "file": "downstream/arssl.py",
+      "old": "    status = \"ok\" if cells and all(c[\"status\"] == \"ok\" for c in cells) \\",
+      "new": "    status = \"ok\" if all(c[\"status\"] == \"ok\" for c in cells) \\",
+      "tests": [
+        "tests.test_downstream_arssl.TestTheAggregateVerdict.test_an_empty_battery_is_not_ok"
+      ]
+    },
+    {
+      "label": "the metric-collision guard is disabled (a shared metric name silently drops one task's number)",
+      "file": "downstream/arssl.py",
+      "old": "            if name in metrics:",
+      "new": "            if False:",
+      "tests": [
+        "tests.test_downstream_arssl.TestTheAggregateVerdict.test_two_tasks_claiming_one_metric_is_refused"
+      ]
+    },
+    {
+      "label": "an undiscovered task is no longer refused (it would become a silent skip)",
+      "file": "downstream/arssl.py",
+      "old": "        if key not in known:",
+      "new": "        if False:",
+      "tests": [
+        "tests.test_downstream_arssl.TestConfigValidation.test_an_undiscovered_task_is_refused_not_skipped"
+      ]
+    },
+    {
+      "label": "a per-task config may shadow a shared backbone/seed/device key undetected",
+      "file": "downstream/arssl.py",
+      "old": "        clash = set(sub) & shared",
+      "new": "        clash = set()",
+      "tests": [
+        "tests.test_downstream_arssl.TestConfigValidation.test_a_per_task_config_may_not_shadow_a_shared_key"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-08-29",
+    "measured_with": "python3 bin/mutate.py --spec mutations/arssl.json (base interpreter, pure stdlib)",
+    "killed": 5,
+    "total": 5,
+    "equivalent": []
+  }
+}

@@ -25,8 +25,11 @@ compactions the "next method" was reconstructed from impression:
 
 Nothing went red because nothing was watching. This document, plus its test, is
 the mechanism. It does not undo the four ports already merged out of turn
-(EVA-02, AIMv2, BEiT v2, SigLIP): those are recorded as done, and the guard's
-frozen ceiling admits exactly them. What it stops is the **next** silent drift.
+(EVA-02, AIMv2, BEiT v2, SigLIP): those are recorded as done. Once A1 -- the
+item they jumped -- landed, `next` advanced past EVA-02/AIMv2/BEiT v2 (orders
+2-4), so three of the four fell back *into* turn; only SigLIP (a Phase-B item,
+order 13) remains ahead of `next`, and the guard's frozen ceiling tightened
+from 4 to 1 to admit exactly it. What it stops is the **next** silent drift.
 
 ## How it is enforced
 
@@ -60,15 +63,30 @@ existing backbone and this repo's downstream task heads come first; the
 later. Every unit is one PR under the strict-TDD contract (write the failing test
 first): pinned submodule for author code (never copied), an adapter to the
 `launch.py` chain, a smoke spec, machine verification via `contract-test` /
-`matrix-run` / `matrix-audit`. **New task heads required: 0** -- this port
-already carries the six downstream tasks the capture harness evaluates on
-(imagenet100, imagenet1k, coco, ade20k, nyuv2, ssv2), under `downstream/`.
+`matrix-run` / `matrix-audit`. **A1 builds no new task heads** -- it is a driver
+over the downstream task probes this port already carries.
+
+**What "the downstream task probes" are, measured (2026-08-29).** The capture's
+ARSSL harness evaluates six task keys (`in100`, `in1k`, `coco`, `ade20k`,
+`nyuv2`, `ssv2`). This port carries **four** of them as cross-method runners
+under `downstream/` (`ade20k`, `coco`, `nyuv2`, `ssv2`); ImageNet-1k is the
+*per-method* `linear_eval` by deliberate design (docs/DOWNSTREAM.md,
+docs/EVALUATION.md -- not re-homed under `downstream/`), and ImageNet-100 is not
+yet ported. So A1 is a **driver only**: it drives one frozen backbone through the
+downstream probes that exist and aggregates them. The ImageNet columns are wired
+in later items (A3 threads the lineage backbones' ImageNet `linear_eval`;
+ImageNet-100 is a separate future port), not A1.
 
 ### Phase A -- Autoreg SSL (closest to what this port already does)
 
-- **A1** -- port the ARSSL Step-3 eval-harness shape: a frozen backbone driven
-  through the six downstream task probes already in this repo. **This
-  establishes the pattern the rest of Phase A reuses, and is first.**
+- **A1 (done).** `downstream/arssl.py`: a thin, pure-stdlib driver that runs one
+  **frozen backbone** through the downstream task probes already in this repo
+  (discovered, not listed) as subprocesses, checks each with the downstream
+  contract, and aggregates into one `arssl_results.json` whose verdict is `ok`
+  only when every selected task is. It re-uses the existing task runners (one
+  implementation, invoked -- as `bin/matrix-run.py` re-uses `launch.py`), builds
+  **no** new task head, and does not re-home the ImageNet columns. **This
+  establishes the driver/aggregation pattern the rest of Phase A reuses.**
 - **A2** -- new backbones with no lineage here: **BEiT v2, EVA-02, data2vec 2.0,
   AIMv2, CAE** (each a pinned submodule / pinned download + adapter + smoke).
   *EVA-02, AIMv2, BEiT v2 are done (as single-`linear_eval` ports, ahead of A1);
@@ -112,11 +130,11 @@ already carries the six downstream tasks the capture harness evaluates on
 
 ```json
 {
-  "next": "A1",
-  "grandfathered_ceiling": 4,
+  "next": "A2:data2vec2",
+  "grandfathered_ceiling": 1,
   "non_step3_unnumbered": ["_reference", "image_gpt", "mar", "var"],
   "items": [
-    {"id": "A1", "phase": "A", "subphase": "A1", "order": 1, "kind": "task", "title": "ARSSL six-task eval harness", "artifact": "downstream/arssl.py", "status": "todo"},
+    {"id": "A1", "phase": "A", "subphase": "A1", "order": 1, "kind": "task", "title": "ARSSL eval harness (driver over the downstream task probes)", "artifact": "downstream/arssl.py", "status": "done"},
     {"id": "A2:eva02", "phase": "A", "subphase": "A2", "order": 2, "kind": "method", "dir": "eva02", "title": "EVA-02", "status": "done"},
     {"id": "A2:aimv2", "phase": "A", "subphase": "A2", "order": 3, "kind": "method", "dir": "aimv2", "title": "AIMv2", "status": "done"},
     {"id": "A2:beitv2", "phase": "A", "subphase": "A2", "order": 4, "kind": "method", "dir": "beitv2", "title": "BEiT v2", "status": "done"},
