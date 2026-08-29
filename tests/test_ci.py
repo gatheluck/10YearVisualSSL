@@ -245,12 +245,15 @@ class TestWhatItRuns(unittest.TestCase):
 
     @needs_yaml
     def test_the_container_is_built_and_exercised(self):
-        """Built, checked against the lock, and made to run the suite.
+        """The image is built and checked, and the whole suite runs with the
+        dependencies present.
 
-        It used to run a hand-written contract chain that only ever fitted
-        one method. Running the suite inside the image covers the same chain
-        -- each method's smoke tests are that chain -- and covers every
-        method rather than the one the chain was written for.
+        The whole suite runs in `locked` (in a venv), where a changed lock
+        misses the pip cache rather than handing back an unverified
+        environment. The image is built and checked against the lock in
+        `container`; that it runs *this method's* smoke inside the image is the
+        stricter, per-method claim asserted by
+        `test_the_container_job_builds_and_exercises_each_image`.
         """
         for name, doc in parsed().items():
             runs = " ".join(
@@ -359,15 +362,34 @@ class TestEveryMethodIsExercised(unittest.TestCase):
 
     @needs_yaml
     def test_the_container_job_builds_and_exercises_each_image(self):
-        """All three, in the container job specifically."""
+        """Built, checked against the lock, and made to run *this method's*
+        own smoke inside the image.
+
+        It used to run the whole suite (`unittest discover`) inside every
+        image. That re-ran, once per method, the shared and cross-method tests
+        the `locked` job already runs in a venv -- measured at about forty
+        minutes an image, forty-four images to a pull request -- for coverage
+        the venv job already had. The image's own reason to exist is narrower:
+        that *this* method's real deployment image builds, is the locked
+        environment, and *this* method's smoke runs inside it. So the image now
+        runs `tests.test_method_<matrix.method>` and nothing else.
+
+        Bound to the matrix value, never a name written here: every method has
+        exactly one `tests/test_method_<method>.py`, and a method whose smoke
+        module is missing makes the run **error** rather than skip -- the loud
+        failure a hand-maintained list would not give.
+        """
         for name, doc in parsed().items():
             runs = runs_of(doc, "container")
             with self.subTest(file=name):
                 self.assertIn("docker build", runs)
                 self.assertIn("verify-environment.py", runs,
                               "the image is never checked against its lock")
-                self.assertIn("unittest discover", runs,
-                              "the suite never runs inside the image")
+                self.assertIn("unittest", runs,
+                              "the image never runs any test")
+                self.assertRegex(
+                    runs, r"test_method_\$\{\{\s*matrix\.method\s*\}\}",
+                    "the image does not run the matrix method's own smoke")
 
 
 @needs_checkout

@@ -180,10 +180,20 @@ jobs:
             python3 bin/verify-environment.py \
               --lock "methods/${{ matrix.method }}/requirements.lock.txt" \
               --lock requirements-tools.lock.txt
-      # The whole suite, inside the image. That covers the contract chain --
-      # resolve, adapt, contract-test -- as the method's own smoke tests run
-      # it, rather than a hand-written chain that only ever fitted one method.
-      - name: Run the suite inside the image
+      # This method's own smoke, inside the image -- the contract chain
+      # (resolve, adapt, contract-test) as that smoke exercises it. Not the
+      # whole suite: `locked` already runs `unittest discover` in a venv, and
+      # re-running the shared and cross-method tests inside all forty-four
+      # images cost about forty minutes an image (measured) for coverage the
+      # venv job already had. The image's own reason to exist is narrower --
+      # that this method's real deployment image builds, is the locked
+      # environment, and its smoke runs inside it.
+      #
+      # Bound to the matrix value, never a name written here: every method has
+      # exactly one tests/test_method_<method>.py, so a method whose smoke
+      # module is missing makes this step error rather than skip. The image
+      # ships the tree at /work with PYTHONPATH=/work, so the module resolves.
+      - name: Run this method's smoke inside the image
         run: |
           docker run --rm -w /work method-image \
-            python3 -m unittest discover -s tests -v
+            python3 -m unittest -v "tests.test_method_${{ matrix.method }}"
