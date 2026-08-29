@@ -149,23 +149,45 @@ class TestWhenItRuns(unittest.TestCase):
                 self.assertIn("pull_request", keys)
 
     @needs_yaml
-    def test_a_plain_push_runs_the_whole_suite(self):
-        """Not merely "some job runs".
+    def test_a_plain_push_runs_the_base_suite_and_gates_the_dependent_one(self):
+        """On push, the stdlib base suite runs unconditionally; the dependent
+        (torch) suite is gated behind `pull_request`.
 
-        The first version asked only that *a* job be unconditional, which a
-        single leftover job satisfies while the tests themselves have moved
-        behind a pull-request condition. What has to hold is that a direct
-        commit still runs the suite, both ways it is run.
+        **This is a deliberate reduction of what runs on push, not a stricter
+        check, and it is safe only while a direct push to main is impossible.**
+        Branch protection blocks direct pushes, so every change reaches main
+        through a pull request where the dependent matrix already ran. Running
+        that whole matrix again on the merge commit's push cost about 1,631
+        billed minutes a merge (measured on run 33232401482) to re-test a
+        commit a pull request had just tested. The merge commit differs from
+        the tested head only when main advanced meanwhile; "require branches
+        up to date before merging" closes that.
+
+        Two properties still hold, so the saving is bounded, not a hole:
+
+        - the base suite (`run-tests.sh`) runs on **every** push, so main is
+          never wholly unchecked even if a direct push somehow happened;
+        - the dependent suite (`unittest discover`) must still **exist**,
+          gated behind `pull_request` -- never simply deleted.
         """
         for name, doc in parsed().items():
-            on_push = " ".join(
-                str(s.get("run", "")) for spec in doc["jobs"].values()
-                if "if" not in spec for s in spec.get("steps", []))
             with self.subTest(file=name):
+                on_push = " ".join(
+                    str(s.get("run", "")) for spec in doc["jobs"].values()
+                    if "if" not in spec for s in spec.get("steps", []))
                 self.assertIn("tests/run-tests.sh", on_push,
-                              "a plain push does not run the suite")
-                self.assertIn("unittest discover", on_push,
-                              "a plain push never runs the dependent tests")
+                              "a plain push does not run the base suite")
+                dependent = [job for job in doc["jobs"]
+                             if "unittest discover" in runs_of(doc, job)]
+                self.assertTrue(
+                    dependent, "the dependent suite runs in no job at all")
+                for job in dependent:
+                    cond = str(doc["jobs"][job].get("if", ""))
+                    self.assertIn(
+                        "pull_request", cond,
+                        f"{job} runs the dependent suite on push too; gate it "
+                        "on pull_request so the merge commit does not re-run "
+                        "what the pull request already ran")
 
     @needs_yaml
     def test_a_conditional_job_says_what_it_waits_for(self):
@@ -245,12 +267,15 @@ class TestWhatItRuns(unittest.TestCase):
 
     @needs_yaml
     def test_the_container_is_built_and_exercised(self):
-        """Built, checked against the lock, and made to run the suite.
+        """The image is built and checked, and the whole suite runs with the
+        dependencies present.
 
-        It used to run a hand-written contract chain that only ever fitted
-        one method. Running the suite inside the image covers the same chain
-        -- each method's smoke tests are that chain -- and covers every
-        method rather than the one the chain was written for.
+        The whole suite runs in `locked` (in a venv), where a changed lock
+        misses the pip cache rather than handing back an unverified
+        environment. The image is built and checked against the lock in
+        `container`; that it runs *this method's* smoke inside the image is the
+        stricter, per-method claim asserted by
+        `test_the_container_job_builds_and_exercises_each_image`.
         """
         for name, doc in parsed().items():
             runs = " ".join(
@@ -359,15 +384,34 @@ class TestEveryMethodIsExercised(unittest.TestCase):
 
     @needs_yaml
     def test_the_container_job_builds_and_exercises_each_image(self):
-        """All three, in the container job specifically."""
+        """Built, checked against the lock, and made to run *this method's*
+        own smoke inside the image.
+
+        It used to run the whole suite (`unittest discover`) inside every
+        image. That re-ran, once per method, the shared and cross-method tests
+        the `locked` job already runs in a venv -- measured at about forty
+        minutes an image, forty-four images to a pull request -- for coverage
+        the venv job already had. The image's own reason to exist is narrower:
+        that *this* method's real deployment image builds, is the locked
+        environment, and *this* method's smoke runs inside it. So the image now
+        runs `tests.test_method_<matrix.method>` and nothing else.
+
+        Bound to the matrix value, never a name written here: every method has
+        exactly one `tests/test_method_<method>.py`, and a method whose smoke
+        module is missing makes the run **error** rather than skip -- the loud
+        failure a hand-maintained list would not give.
+        """
         for name, doc in parsed().items():
             runs = runs_of(doc, "container")
             with self.subTest(file=name):
                 self.assertIn("docker build", runs)
                 self.assertIn("verify-environment.py", runs,
                               "the image is never checked against its lock")
-                self.assertIn("unittest discover", runs,
-                              "the suite never runs inside the image")
+                self.assertIn("unittest", runs,
+                              "the image never runs any test")
+                self.assertRegex(
+                    runs, r"test_method_\$\{\{\s*matrix\.method\s*\}\}",
+                    "the image does not run the matrix method's own smoke")
 
 
 @needs_checkout

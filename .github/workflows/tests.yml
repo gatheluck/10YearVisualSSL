@@ -80,8 +80,20 @@ jobs:
 
   # Each method's locked environment, on the platform it is deployed to, with
   # that method's own tests actually running rather than skipping.
+  #
+  # Pull-request only, and that is about cost, not scope. A direct push to main
+  # is blocked by branch protection, so every change reaches main through a
+  # pull request where this whole matrix already ran; re-running it on the
+  # merge commit's push cost about 1,631 billed minutes a merge (measured on
+  # run 33232401482) to re-test a commit the pull request had just tested. The
+  # merge commit differs from the tested head only when main advanced
+  # meanwhile, which "require branches up to date before merging" closes. The
+  # base suite (`core`) still runs on every push, so main is never wholly
+  # unchecked. Guarded by test_a_plain_push_runs_the_base_suite_and_gates_the_
+  # dependent_one.
   locked:
     needs: discover
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -180,10 +192,20 @@ jobs:
             python3 bin/verify-environment.py \
               --lock "methods/${{ matrix.method }}/requirements.lock.txt" \
               --lock requirements-tools.lock.txt
-      # The whole suite, inside the image. That covers the contract chain --
-      # resolve, adapt, contract-test -- as the method's own smoke tests run
-      # it, rather than a hand-written chain that only ever fitted one method.
-      - name: Run the suite inside the image
+      # This method's own smoke, inside the image -- the contract chain
+      # (resolve, adapt, contract-test) as that smoke exercises it. Not the
+      # whole suite: `locked` already runs `unittest discover` in a venv, and
+      # re-running the shared and cross-method tests inside all forty-four
+      # images cost about forty minutes an image (measured) for coverage the
+      # venv job already had. The image's own reason to exist is narrower --
+      # that this method's real deployment image builds, is the locked
+      # environment, and its smoke runs inside it.
+      #
+      # Bound to the matrix value, never a name written here: every method has
+      # exactly one tests/test_method_<method>.py, so a method whose smoke
+      # module is missing makes this step error rather than skip. The image
+      # ships the tree at /work with PYTHONPATH=/work, so the module resolves.
+      - name: Run this method's smoke inside the image
         run: |
           docker run --rm -w /work method-image \
-            python3 -m unittest discover -s tests -v
+            python3 -m unittest -v "tests.test_method_${{ matrix.method }}"
