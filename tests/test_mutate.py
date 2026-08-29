@@ -239,5 +239,34 @@ class TestTheCopyLeavesEnvironmentsOut(unittest.TestCase):
         self.assertNotIn("bin", skipped)
 
 
+class TestTheCopySurvivesADanglingSymlink(unittest.TestCase):
+    """The tree copy carries symlinks across as symlinks.
+
+    A vendored submodule can hold a dangling symlink: fairseq's kaldi example
+    under `third_party/unilm` points `st/utils` at a kaldi target that is not
+    checked out. copytree follows symlinks by default and dies on the missing
+    target, and the whole mutation run then prints that OSError as if it were a
+    result. This is the positive control that the copy does not.
+    """
+
+    def _dir(self, prefix: str) -> Path:
+        tmp = Path(tempfile.mkdtemp(prefix=prefix))
+        self.addCleanup(shutil.rmtree, tmp, ignore_errors=True)
+        return tmp
+
+    def test_a_dangling_symlink_does_not_break_the_copy(self):
+        src = self._dir("mutate-sym-src-")
+        (src / "real.py").write_text("x = 1\n", encoding="utf-8")
+        (src / "dangling").symlink_to("does-not-exist-anywhere")
+        self.assertFalse((src / "dangling").exists(),  # the target is missing
+                         "the fixture must be a genuinely dangling symlink")
+        dst = self._dir("mutate-sym-dst-")
+        mutate._copy_tree(src, dst)                     # must not raise
+        self.assertEqual((dst / "real.py").read_text(encoding="utf-8"),
+                         "x = 1\n")
+        self.assertTrue((dst / "dangling").is_symlink(),
+                        "the symlink is carried across as a symlink")
+
+
 if __name__ == "__main__":
     unittest.main()
