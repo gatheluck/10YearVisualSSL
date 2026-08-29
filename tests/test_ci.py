@@ -149,23 +149,45 @@ class TestWhenItRuns(unittest.TestCase):
                 self.assertIn("pull_request", keys)
 
     @needs_yaml
-    def test_a_plain_push_runs_the_whole_suite(self):
-        """Not merely "some job runs".
+    def test_a_plain_push_runs_the_base_suite_and_gates_the_dependent_one(self):
+        """On push, the stdlib base suite runs unconditionally; the dependent
+        (torch) suite is gated behind `pull_request`.
 
-        The first version asked only that *a* job be unconditional, which a
-        single leftover job satisfies while the tests themselves have moved
-        behind a pull-request condition. What has to hold is that a direct
-        commit still runs the suite, both ways it is run.
+        **This is a deliberate reduction of what runs on push, not a stricter
+        check, and it is safe only while a direct push to main is impossible.**
+        Branch protection blocks direct pushes, so every change reaches main
+        through a pull request where the dependent matrix already ran. Running
+        that whole matrix again on the merge commit's push cost about 1,631
+        billed minutes a merge (measured on run 33232401482) to re-test a
+        commit a pull request had just tested. The merge commit differs from
+        the tested head only when main advanced meanwhile; "require branches
+        up to date before merging" closes that.
+
+        Two properties still hold, so the saving is bounded, not a hole:
+
+        - the base suite (`run-tests.sh`) runs on **every** push, so main is
+          never wholly unchecked even if a direct push somehow happened;
+        - the dependent suite (`unittest discover`) must still **exist**,
+          gated behind `pull_request` -- never simply deleted.
         """
         for name, doc in parsed().items():
-            on_push = " ".join(
-                str(s.get("run", "")) for spec in doc["jobs"].values()
-                if "if" not in spec for s in spec.get("steps", []))
             with self.subTest(file=name):
+                on_push = " ".join(
+                    str(s.get("run", "")) for spec in doc["jobs"].values()
+                    if "if" not in spec for s in spec.get("steps", []))
                 self.assertIn("tests/run-tests.sh", on_push,
-                              "a plain push does not run the suite")
-                self.assertIn("unittest discover", on_push,
-                              "a plain push never runs the dependent tests")
+                              "a plain push does not run the base suite")
+                dependent = [job for job in doc["jobs"]
+                             if "unittest discover" in runs_of(doc, job)]
+                self.assertTrue(
+                    dependent, "the dependent suite runs in no job at all")
+                for job in dependent:
+                    cond = str(doc["jobs"][job].get("if", ""))
+                    self.assertIn(
+                        "pull_request", cond,
+                        f"{job} runs the dependent suite on push too; gate it "
+                        "on pull_request so the merge commit does not re-run "
+                        "what the pull request already ran")
 
     @needs_yaml
     def test_a_conditional_job_says_what_it_waits_for(self):
