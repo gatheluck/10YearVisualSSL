@@ -71,6 +71,21 @@ def _ignore(directory, names):
     return skip
 
 
+def _copy_tree(src, dst) -> None:
+    """Copy the tree for a mutation run, carrying symlinks across **as
+    symlinks**.
+
+    A vendored submodule can hold a dangling symlink -- fairseq's kaldi example
+    under `third_party/unilm` points `st/utils` and `st/steps` at kaldi targets
+    that are not checked out. copytree follows symlinks by default, so it tries
+    to read the missing target, and the whole copy then dies with an OSError
+    whose text is printed as if it were a mutation result. Copying symlinks as
+    symlinks (and never following a dangling one) keeps the copy faithful and
+    silent."""
+    shutil.copytree(src, dst, dirs_exist_ok=True, ignore=_ignore,
+                    symlinks=True, ignore_dangling_symlinks=True)
+
+
 class MutationError(Exception):
     """A refusal. Never reported as a test result."""
 
@@ -139,7 +154,7 @@ def run(spec: dict, python: str = sys.executable) -> tuple[int, dict]:
     results = []
     work = Path(tempfile.mkdtemp(prefix="mutate-"))
     try:
-        shutil.copytree(ROOT, work, dirs_exist_ok=True, ignore=_ignore)
+        _copy_tree(ROOT, work)
         every = sorted({t for m in targets for t in m["tests"]})
         check_baseline(work, every, python)
 

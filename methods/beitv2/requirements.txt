@@ -1,0 +1,17 @@
+# What the beitv2 port's own files import, and nothing else. Checked in both
+# directions by tests/test_method_requirements.py. Floors only; the exact hashed
+# closure is in requirements.lock.txt (CPU) and requirements.lock.cu130.txt.
+#
+# A submodule-import port: the BEiT v2 finetune Vision Transformer is the author's
+# beit2/modeling_finetune.py under third_party/unilm, imported through PYTHONPATH and
+# never copied or installed. This port's own files import only torch (the probe, the
+# backbone builder + checkpoint surgery), torchvision (the ImageFolder + transforms),
+# numpy (the seeding + feature handling) and PyYAML (the YAML config on the stand-alone
+# path). The pinned submodule's OWN runtime dep (timm, for timm.models.layers /
+# registry) is needed to import modeling_finetune.py, so it is pinned in the locks --
+# but it is the submodule's import, not this port's, so it is not declared here (the
+# import check reads this port's files, like the openai/CLIP submodule in 38_clip).
+torch>=2.1.0
+torchvision>=0.16.0
+numpy>=1.24.0
+PyYAML>=6.0
