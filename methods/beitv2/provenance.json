@@ -1,0 +1,35 @@
+{
+  "captured_at": "2026-08-29",
+  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
+  "captured_note": "BEiT v2 appears in the capture's Step-3 Autoreg SSL (ARSSL) evaluation as an as-is comparison: the official self-supervised pretrained backbone is downloaded and a linear probe is fit on its frozen pooled patch-token feature, because the from-scratch pretraining (a VQ-KD visual tokenizer + masked image modelling, many GPU-days) is not reproduced. This port carries that as-is comparison only. The backbone class is the author's modeling_finetune.VisionTransformer, imported (never copied) from the pinned microsoft/unilm submodule; the weights are a sha256-pinned download.",
+  "paper": {
+    "title": "BEiT v2: Masked Image Modeling with Vector-Quantized Visual Tokenizers",
+    "arxiv": "2208.06366",
+    "official_repo": "https://github.com/microsoft/unilm/tree/master/beit2"
+  },
+  "upstream": {
+    "repo": "https://github.com/microsoft/unilm",
+    "commit": "ca43e4cd19445a536f133bf2bc25b573b2f0c7c5",
+    "license": "MIT",
+    "note": "The BEiT v2 finetune Vision Transformer (beit2/modeling_finetune.py: VisionTransformer and its beit_base_patch16_224 sizing) is imported from this pinned submodule through PYTHONPATH; never copied or installed. beit2 is a directory of scripts, not a package, so modeling_finetune.py is a top-level module name; the import is lazy and collision-safe (purge modeling_finetune from sys.modules, strip other third_party roots from sys.path, insert third_party/unilm/beit2 first), the same pattern the CLIP/vjepa/msn ports use for their top-level packages. modeling_finetune.py imports only torch and timm.models.layers/registry, so no extra dependency is added over the timm-tower eval-only ports."
+  },
+  "note": "Eval-only port (a single linear_eval stage, no pretraining). The backbone is BEiT v2 base at 224px, built as modeling_finetune.VisionTransformer(num_classes=0, use_rel_pos_bias=True, use_abs_pos_emb=False, use_mean_pooling=True, init_values=0.1) -- the run_class_finetuning.py defaults the released pt1k checkpoint was trained with -- with the sha256-pinned checkpoint (backbone_artifact below) loaded into it via beit2's own rel-pos-bias checkpoint surgery (expand the shared relative_position_bias_table into per-block tables, drop the relative_position_index buffers, load non-strict). At the pretraining resolution (224) the position-bias / position-embedding interpolation branches of that surgery are no-ops and are not reproduced.",
+  "linear_eval": "Probes BEiT v2's pooled pre-classifier feature: with num_classes=0 and use_mean_pooling=True, the model's forward returns fc_norm(patch_tokens.mean(1)) -- the mean over patch tokens (the CLS token at position 0 is excluded), then the finetune LayerNorm. The pt1k checkpoint is a pre-finetune self-supervised checkpoint, so it carries no fc_norm; that layer stays at its identity-affine init (weight 1, bias 0), a deterministic normalisation. BEiT v2's masked-image-modelling pretraining yields a genuine learned SSL representation, so the number is comparable (the 'pretrained-backbone reuse' row, the autoregressive/MIM sibling of eva02 / 36_franca). A real run needs the official checkpoint (backbone_artifact below, fetched and hash-verified by bin/fetch-weights.py --artifact backbone_artifact, passed as the config's train.ckpt); the hermetic smoke leaves ckpt empty and builds a random tiny BEiT-style ViT, so nothing is downloaded and only the pipeline is exercised. See docs/EVAL_DOWNLOAD.md.",
+  "backbone_artifact": {
+    "name": "BEiT v2 base patch16 224 pt1k self-supervised checkpoint",
+    "url": "https://github.com/addf400/files/releases/download/BEiT-v2/beitv2_base_patch16_224_pt1k.pth",
+    "filename": "beitv2_base_patch16_224_pt1k.pth",
+    "sha256": "6d32a5f7626452c5226d4b181f599c85fe5442e5de2222f63e096705aaa6ae8c",
+    "bytes": 424915039,
+    "license": "MIT",
+    "sha256_source": "computed on 2026-08-29 from the file downloaded from the official unilm release host (github.com/addf400/files, the weight host linked from beit2/README.md); bin/fetch-weights.py re-verifies this value on download"
+  },
+  "rewritten_during_the_port": [
+    "the backbone class is imported from the pinned microsoft/unilm submodule (third_party/unilm/beit2, MIT), never copied; the pretrained weights are a sha256-pinned release download (backbone_artifact) rather than a hand-placed local checkpoint path, so CI never fetches and a real run is hash-verified",
+    "the device is resolved (resolve_device) instead of assumed CUDA",
+    "features are extracted in fp32 (no autocast), so the frozen-feature probe runs identically on a CPU or a pre-Ampere GPU",
+    "the probe follows this port's shared frozen-backbone protocol (mean-centre + L2-normalise, a single linear layer with SGD + cosine), returning the four comparable linear-probe accuracies and the epoch count",
+    "the input normalisation is BEiT v2's finetune-eval convention (ImageNet mean/std, a 224/256 resize-crop ratio, bicubic); the crop resolution is read from the config so the hermetic smoke can shrink it and build a random tiny BEiT-style VisionTransformer instead of the full base",
+    "only the resolution-independent part of beit2's --finetune checkpoint surgery is reproduced (rel-pos-bias expansion, relative_position_index drop); the position interpolation branches are no-ops at 224 and are omitted, so scipy is not a dependency"
+  ]
+}

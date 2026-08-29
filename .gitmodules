@@ -25,3 +25,6 @@
 [submodule "third_party/CLIP"]
 	path = third_party/CLIP
 	url = https://github.com/openai/CLIP.git
+[submodule "third_party/unilm"]
+	path = third_party/unilm
+	url = https://github.com/microsoft/unilm.git
