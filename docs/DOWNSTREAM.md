@@ -178,11 +178,28 @@ locally, use any environment that has the task's dependency.
    dropped for the port's thin single-process loop. Hermetic smoke on a random tiny
    ViT + synthetic vp9 `.webm` clips; 5/5 mutation-killed.
 
+5. **ARSSL harness (the driver over them all). DONE.** `downstream/arssl.py`: the
+   Step-3 A1 unit (`docs/STEP3_PORTING_PLAN.md`). A thin, **pure-stdlib** driver
+   that takes one **frozen backbone** and a battery of task keys and runs each task
+   as a subprocess (`python -m downstream.<task> --config … --out …`), checks every
+   cell against the downstream `contract.verify`, and aggregates into one
+   `arssl_results.json` whose verdict is `ok` only when every selected task is. It
+   **discovers** the task runners structurally (a module qualifies iff it carries a
+   module-level `TASK = "<key>"` and top-level `run`/`main`) rather than listing
+   them, mirrors `bin/matrix-run.py` (re-use the runner, don't re-implement it),
+   and builds **no** new task head. It does not re-home the ImageNet columns:
+   ImageNet-1k stays the per-method `linear_eval`, ImageNet-100 is unported. A
+   metric name claimed by two tasks is a hard error (no silent overwrite), an
+   undiscovered task key is refused (no silent skip), and a per-task config may not
+   shadow a shared `seed`/`device`/`backbone`. Hermetic CPU smoke drives a real
+   ade20k cell end-to-end under a timm venv; 5/5 mutation-killed
+   (`mutations/arssl.json`).
+
 **All four downstream tasks are now ported** (ADE20K / COCO / NYUv2 / SSv2), on the
-shared `downstream/` subsystem; the ImageNet-1k column stays the per-method
-`linear_eval`. The remaining piece is the **open infra item** in §4 (a dedicated
-downstream venv + lock + CI job so the `pycocotools`/`h5py`/`av` smokes run in CI,
-not just locally).
+shared `downstream/` subsystem, with `arssl.py` driving one backbone through them;
+the ImageNet-1k column stays the per-method `linear_eval`. The remaining piece is
+the **open infra item** in §4 (a dedicated downstream venv + lock + CI job so the
+`pycocotools`/`h5py`/`av` smokes run in CI, not just locally).
 
 Each step follows the repository's discipline: RED test first, hermetic smoke +
 `contract-test`-style check, a measured mutation spec, `discover-not-list`

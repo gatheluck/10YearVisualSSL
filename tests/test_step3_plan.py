@@ -43,12 +43,16 @@ ROOT = Path(__file__).resolve().parent.parent
 PLAN = ROOT / "docs" / "STEP3_PORTING_PLAN.md"
 METHODS = ROOT / "methods"
 
-# The number of items that were completed *ahead of their place in the order*
-# before this guard existed (the eval-only ports done before the A1 harness).
-# It is a bare integer, not a method name, so it is allowed in a shared file.
-# Raising it is the one way to admit a new out-of-order port, and that must be a
-# deliberate, reviewed edit to this test -- which is exactly the point.
-FROZEN_CEILING = 4
+# The number of `done` items sitting *after* the `next` pointer -- ports
+# completed ahead of their place in the order. It was 4 before A1 landed (the
+# eval-only ports EVA-02/AIMv2/BEiT v2/SigLIP, all done before the A1 harness);
+# once A1 (order 1) completed, `next` advanced past EVA-02/AIMv2/BEiT v2 (orders
+# 2-4), leaving only SigLIP (order 13, a Phase-B item) genuinely out of turn --
+# so the honest ceiling tightened to 1. It is a bare integer, not a method name,
+# so it is allowed in a shared file. Changing it is the one way to admit (or
+# retire) an out-of-order port, and that must be a deliberate, reviewed edit to
+# this test -- which is exactly the point.
+FROZEN_CEILING = 1
 
 
 def _plan() -> dict:
