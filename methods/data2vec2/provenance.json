@@ -1,0 +1,29 @@
+{
+  "captured_at": "2026-08-30",
+  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
+  "captured_note": "data2vec 2.0 appears in the capture's Step-3 Autoreg-SSL evaluation (methods_step3/ARSSL, docs/data2vec.md) as an as-is SSL comparison: the official pretrained vision backbone is downloaded and a linear probe is fit on its frozen CLS token, because the from-scratch self-distillation pretraining (IN-1k, many GPU-days) is not reproduced. The capture doc specifies the HuggingFace checkpoint facebook/data2vec-vision-base with transformers' Data2VecVisionModel and the CLS token. This port carries that as-is comparison only. There is NO author submodule: the model class is transformers' (a pinned pip dependency), imported not copied, and the weights are a sha256-pinned download.",
+  "paper": {
+    "title": "Efficient Self-supervised Learning with Contextualized Target Representations for Vision, Speech and Language (data2vec 2.0)",
+    "arxiv": "2212.07525",
+    "official_repo": "https://github.com/facebookresearch/fairseq/tree/main/examples/data2vec"
+  },
+  "note": "Eval-only port (a single linear_eval stage, no pretraining). The backbone is transformers' Data2VecVisionModel built from the config's architecture keys with the sha256-pinned checkpoint (backbone_artifact below) loaded into it (strict=False). Factual note on the checkpoint: facebook/data2vec-vision-base is Meta AI's released data2vec vision backbone (a BEiT-architecture ViT-B/16, IN-1k linear ~64.5%); its HuggingFace model card cites arXiv:2202.03555 (the original data2vec) and arXiv:2106.08254 (BEiT). The capture's data2vec 2.0 comparison (docs/data2vec.md) names this exact checkpoint, so the port pins it; the paper axis above follows the capture doc (data2vec 2.0). Because the source is a pip dependency and not a git submodule, this file records NO upstream block and the adapter defines no UPSTREAM (test_port_completeness's both-places rule requires them to agree, and here both are absent).",
+  "linear_eval": "Probes data2vec-vision's CLS token (Data2VecVisionModel built with add_pooling_layer=False; the checkpoint is a pretraining model with use_mean_pooling=False and no trained pooler head), frozen. data2vec's self-distillation is a genuine SSL objective, so the number is comparable (the 'pretrained-backbone reuse' row, analogous to eva02 / DINOv2 / Franca). A real run needs the official checkpoint (backbone_artifact below, fetched and hash-verified by bin/fetch-weights.py --artifact backbone_artifact, passed as the config's train.ckpt); the hermetic smoke leaves ckpt empty and builds a random tiny Data2VecVisionModel, so nothing is downloaded and only the pipeline is exercised. See docs/EVAL_DOWNLOAD.md.",
+  "backbone_artifact": {
+    "name": "data2vec-vision-base backbone (transformers Data2VecVisionModel)",
+    "url": "https://huggingface.co/facebook/data2vec-vision-base/resolve/72a7bdadab41d0e9a2c8d6887b9f8a50eebb8e0f/pytorch_model.bin",
+    "filename": "data2vec-vision-base.pytorch_model.bin",
+    "sha256": "e1942d45a5003da3053504a1d9a7e12fcf70c0e90f2ee9a2b9c7553ba643acfd",
+    "bytes": 343037595,
+    "license": "Apache-2.0",
+    "sha256_source": "read on 2026-08-30 from the HuggingFace LFS metadata (https://huggingface.co/api/models/facebook/data2vec-vision-base, siblings[].lfs.sha256 for pytorch_model.bin at revision 72a7bdadab41d0e9a2c8d6887b9f8a50eebb8e0f) and re-verified by downloading the file and hashing it (343037595 bytes); bin/fetch-weights.py re-verifies this value on download"
+  },
+  "rewritten_during_the_port": [
+    "the model class is transformers' Data2VecVisionModel, not a copied or submoduled author repository; the pretrained weights are a sha256-pinned HuggingFace download (backbone_artifact) rather than a transformers from_pretrained auto-download, so CI never fetches and a real run is hash-verified",
+    "the device is resolved (resolve_device) instead of assumed CUDA",
+    "features are extracted in fp32 (no autocast), so the frozen-feature probe runs identically on a CPU or a pre-Ampere GPU",
+    "the probe follows this port's shared frozen-backbone protocol (mean-centre + L2-normalise, a single linear layer with SGD + cosine), returning the four comparable linear-probe accuracies and the epoch count",
+    "the model is built with add_pooling_layer=False and the CLS token of last_hidden_state is probed (the checkpoint is a pretraining model with no trained pooler); the checkpoint loads with strict=False because it carries a derived relative_position_index buffer transformers rebuilds",
+    "the input normalisation follows the backbone's own preprocessor config (symmetric mean/std 0.5, a bicubic square resize, no centre crop), not ImageNet's; the resolution is read from the config so the hermetic smoke can shrink it and build a random tiny Data2VecVisionModel instead of the full ViT-B/16"
+  ]
+}
