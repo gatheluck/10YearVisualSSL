@@ -130,7 +130,7 @@ ImageNet-100 is a separate future port), not A1.
 
 ```json
 {
-  "next": "A2:cae",
+  "next": "A3:mae",
   "grandfathered_ceiling": 1,
   "non_step3_unnumbered": ["_reference", "image_gpt", "mar", "var"],
   "items": [
@@ -139,7 +139,7 @@ ImageNet-100 is a separate future port), not A1.
     {"id": "A2:aimv2", "phase": "A", "subphase": "A2", "order": 3, "kind": "method", "dir": "aimv2", "title": "AIMv2", "status": "done"},
     {"id": "A2:beitv2", "phase": "A", "subphase": "A2", "order": 4, "kind": "method", "dir": "beitv2", "title": "BEiT v2", "status": "done"},
     {"id": "A2:data2vec2", "phase": "A", "subphase": "A2", "order": 5, "kind": "method", "dir": "data2vec2", "title": "data2vec 2.0", "status": "done"},
-    {"id": "A2:cae", "phase": "A", "subphase": "A2", "order": 6, "kind": "method", "dir": "cae", "title": "CAE", "status": "todo"},
+    {"id": "A2:cae", "phase": "A", "subphase": "A2", "order": 6, "kind": "method", "dir": "cae", "title": "CAE", "status": "done"},
     {"id": "A3:mae", "phase": "A", "subphase": "A3", "order": 7, "kind": "task", "title": "wire MAE into the A1 harness", "artifact": null, "status": "todo"},
     {"id": "A3:ijepa", "phase": "A", "subphase": "A3", "order": 8, "kind": "task", "title": "wire I-JEPA into the A1 harness", "artifact": null, "status": "todo"},
     {"id": "A3:lejepa", "phase": "A", "subphase": "A3", "order": 9, "kind": "task", "title": "wire LeJEPA into the A1 harness", "artifact": null, "status": "todo"},

@@ -13,8 +13,8 @@
     {
       "label": "the next pointer skips ahead past an earlier unfinished item",
       "file": "docs/STEP3_PORTING_PLAN.md",
-      "old": "\"next\": \"A2:cae\",",
-      "new": "\"next\": \"A3:mae\",",
+      "old": "\"next\": \"A3:mae\",",
+      "new": "\"next\": \"A3:ijepa\",",
       "tests": [
         "tests.test_step3_plan.TestTheNextPointerIsAFact.test_next_is_the_earliest_unfinished_item"
       ]
@@ -66,7 +66,7 @@
     }
   ],
   "_result": {
-    "measured_on": "2026-08-29",
+    "measured_on": "2026-08-30",
     "measured_with": "python3 bin/mutate.py --spec mutations/step3-plan.json (base interpreter, pure stdlib)",
     "killed": 7,
     "total": 7,
