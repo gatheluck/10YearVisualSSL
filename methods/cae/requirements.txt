@@ -1,0 +1,19 @@
+# What the cae port's own files import, and nothing else. Checked in both
+# directions by tests/test_method_requirements.py. Floors only; the exact hashed
+# closure is in requirements.lock.txt (CPU) and requirements.lock.cu130.txt.
+#
+# There is NO author submodule and NO model-carrying pip dependency: the CAE
+# encoder is a small self-contained BEiT-style ViT in evaluate_linear_cae.py, and
+# the pretrained weights are a sha256-pinned download recorded as backbone_artifact
+# in provenance.json. The OpenMMLab checkpoint pickles mmengine bookkeeping, but it
+# is read with a tolerant unpickler (standard-library pickle), so mmengine/mmcv are
+# NOT dependencies.
+#
+# torch is imported directly (the ViT and the tolerant checkpoint load); numpy backs
+# the seeding and feature handling; torchvision provides the ImageFolder and the
+# transforms the probe reads images with; PyYAML is read to load a YAML config on
+# the stand-alone path.
+torch>=2.1.0
+torchvision>=0.16.0
+numpy>=1.24.0
+PyYAML>=6.0

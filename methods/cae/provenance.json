@@ -1,0 +1,30 @@
+{
+  "captured_at": "2026-08-30",
+  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
+  "captured_note": "CAE (Context Autoencoder) appears in the capture's Step-3 evaluation as an as-is SSL comparison: a pretrained vision backbone is frozen and a linear probe is fit on its CLS token, because the from-scratch context-autoencoder pretraining (IN-1k, many GPU-days) is not reproduced. The capture logged CAE as a deficiency (DEF-02): the checkpoint its own doc names, hujinwen/cae-base, is NOT a valid HuggingFace identifier (the capture's own eval scripts confirm it never resolves), the paper authors' official weights are distributed only via Baidu, so the capture pipeline fell back to a BEiT-v2 proxy and explicitly refused to label that number CAE. This port does NOT ship a proxy. It carries the as-is comparison only, on a real, publicly downloadable CAE ViT-B checkpoint the capture missed.",
+  "paper": {
+    "title": "Context Autoencoder for Self-Supervised Representation Learning (CAE)",
+    "arxiv": "2202.04200",
+    "official_repo": "https://github.com/Atten4Vis/CAE"
+  },
+  "note": "Eval-only port (a single linear_eval stage, no pretraining). Unlike data2vec2 (transformers) or eva02/aimv2 (timm), NEITHER timm NOR transformers carries a CAE model class, and the pinned checkpoint is in OpenMMLab mmselfsup format. So the backbone is a small self-contained BEiT-style ViT built in the method's own evaluate_linear_cae.py from the config's architecture keys, and the checkpoint's backbone.* tensors load into it directly (strict, via load_state_dict then a missing/unexpected-key check). NO mmcv/mmpretrain is a dependency: the mmengine bookkeeping the checkpoint pickles (a HistoryBuffer in meta/message_hub) is read with a standard-library tolerant unpickler that maps any mmengine/mmcv class to a discarded placeholder. HONESTY ON THE CHECKPOINT: this is the OpenMMLab mmselfsup REPRODUCTION of CAE ViT-B, a faithful reproduction rather than the paper authors' released weights (which are Baidu-only; see captured_note, DEF-02). Because the source is neither a git submodule nor a model-carrying pip dependency, this file records NO upstream block and the adapter defines no UPSTREAM (test_port_completeness's both-places rule requires them to agree, and here both are absent).",
+  "linear_eval": "Probes the CAE ViT's CLS token (the final-LayerNorm'd class token of the self-contained BEiT-style encoder), frozen. CAE's context-autoencoder objective (predict masked-region representations in an aligned latent space) is a genuine SSL objective, so the number is comparable (the 'pretrained-backbone reuse' row, analogous to eva02 / aimv2 / data2vec2 / 36_franca). A real run needs the OpenMMLab checkpoint (backbone_artifact below, fetched and hash-verified by bin/fetch-weights.py --artifact backbone_artifact, passed as the config's train.ckpt); the hermetic smoke leaves ckpt empty and builds a random tiny CAE ViT, so nothing is downloaded and only the pipeline is exercised. See docs/EVAL_DOWNLOAD.md.",
+  "backbone_artifact": {
+    "name": "cae_vit-base-p16 backbone (OpenMMLab mmselfsup reproduction of CAE ViT-B)",
+    "url": "https://download.openmmlab.com/mmselfsup/1.x/cae/cae_vit-base-p16_8xb256-amp-coslr-300e_in1k/cae_vit-base-p16_8xb256-amp-coslr-300e_in1k_20221230-808170f3.pth",
+    "filename": "cae_vit-base-p16_8xb256-amp-coslr-300e_in1k_20221230-808170f3.pth",
+    "sha256": "808170f33cb1af4f1545a8085ad9be0f59d3fdd88dcc197bfcedba24b4b2d686",
+    "bytes": 1177860333,
+    "license": "Apache-2.0",
+    "sha256_source": "computed on 2026-08-30 by downloading the file from the URL above (1177860333 bytes) and hashing it with sha256; the leading eight hex digits 808170f3 match the hash tag OpenMMLab embeds in the published filename; bin/fetch-weights.py re-verifies this value on download"
+  },
+  "rewritten_during_the_port": [
+    "the model is a small self-contained BEiT-style ViT in evaluate_linear_cae.py, not a copied or submoduled author repository and not a pip model class (neither timm nor transformers carries CAE); its module names mirror the checkpoint's backbone.* keys so the tensors load with no remapping",
+    "the checkpoint is read WITHOUT mmcv/mmpretrain: a standard-library tolerant unpickler maps any pickled mmengine/mmcv class to a discarded placeholder, so only the tensors are read and no heavy OpenMMLab package enters the fleet",
+    "the checkpoint's backbone.* tensors are loaded and any missing or unexpected key is a hard error (a half-loaded backbone would silently misreport what ran); the empty-ckpt hermetic smoke skips the load and builds a random tiny ViT",
+    "the device is resolved (resolve_device) instead of assumed CUDA",
+    "features are extracted in fp32 (no autocast), so the frozen-feature probe runs identically on a CPU or a pre-Ampere GPU",
+    "the probe follows this port's shared frozen-backbone protocol (mean-centre + L2-normalise, a single linear layer with SGD + cosine), returning the four comparable linear-probe accuracies and the epoch count",
+    "the input normalisation follows the backbone's own preprocessor config (ImageNet mean/std, a bicubic square resize, no centre crop); the resolution is read from the config so the hermetic smoke can shrink it and build a random tiny ViT instead of the full ViT-B/16"
+  ]
+}
