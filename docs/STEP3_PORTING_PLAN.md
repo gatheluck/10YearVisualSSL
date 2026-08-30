@@ -104,7 +104,12 @@ ImageNet-100 is a separate future port), not A1.
   implementation). The MAE module is loaded by file path under a unique name (no
   cross-method `models` collision) and the patch grid is read with a forward hook
   on the encoder norm (MAEEncoder.forward reused verbatim). This establishes the
-  discovered lineage-provider pattern the remaining A3 items reuse: I-JEPA,
+  discovered lineage-provider pattern the remaining A3 items reuse. *I-JEPA is
+  done:* `methods/29_ijepa/downstream_backbone.py` adds an `ijepa_vit` provider
+  the shared layer discovers with no edit -- simpler than MAE because I-JEPA's own
+  `VisionTransformer.forward` returns raster-order patch tokens with no
+  masking/shuffling and no CLS token, its pos-embed ships in `encoder.pt`, and the
+  bare-key checkpoint loads with an exact match (unexpected/missing both refused).
   LeJEPA, iGPT, AIM and VAR each add their own `downstream_backbone.py`. Those
   remain.
 
@@ -143,7 +148,7 @@ ImageNet-100 is a separate future port), not A1.
 
 ```json
 {
-  "next": "A3:ijepa",
+  "next": "A3:lejepa",
   "grandfathered_ceiling": 1,
   "non_step3_unnumbered": ["_reference", "image_gpt", "mar", "var"],
   "items": [
@@ -154,7 +159,7 @@ ImageNet-100 is a separate future port), not A1.
     {"id": "A2:data2vec2", "phase": "A", "subphase": "A2", "order": 5, "kind": "method", "dir": "data2vec2", "title": "data2vec 2.0", "status": "done"},
     {"id": "A2:cae", "phase": "A", "subphase": "A2", "order": 6, "kind": "method", "dir": "cae", "title": "CAE", "status": "done"},
     {"id": "A3:mae", "phase": "A", "subphase": "A3", "order": 7, "kind": "task", "title": "wire MAE into the A1 harness", "artifact": "methods/25_mae/downstream_backbone.py", "status": "done"},
-    {"id": "A3:ijepa", "phase": "A", "subphase": "A3", "order": 8, "kind": "task", "title": "wire I-JEPA into the A1 harness", "artifact": null, "status": "todo"},
+    {"id": "A3:ijepa", "phase": "A", "subphase": "A3", "order": 8, "kind": "task", "title": "wire I-JEPA into the A1 harness", "artifact": "methods/29_ijepa/downstream_backbone.py", "status": "done"},
     {"id": "A3:lejepa", "phase": "A", "subphase": "A3", "order": 9, "kind": "task", "title": "wire LeJEPA into the A1 harness", "artifact": null, "status": "todo"},
     {"id": "A3:igpt", "phase": "A", "subphase": "A3", "order": 10, "kind": "task", "title": "wire iGPT into the A1 harness", "artifact": null, "status": "todo"},
     {"id": "A3:aim", "phase": "A", "subphase": "A3", "order": 11, "kind": "task", "title": "wire AIM into the A1 harness", "artifact": null, "status": "todo"},
