@@ -1,0 +1,75 @@
+{
+  "_note": "Run: python3 bin/mutate.py --spec mutations/step3-plan.json (pure stdlib, no venv needed). Proves the Step-3 plan guards in tests/test_step3_plan.py are not vacuous: a lying checkbox, a mispointed `next`, a bumped ceiling, a new out-of-order port, a dropped/overlapping partition entry, and a duplicate order are each caught. The mutations edit the machine-readable JSON block in docs/STEP3_PORTING_PLAN.md.",
+  "targets": [
+    {
+      "label": "a done method is marked done although its adapter is absent",
+      "file": "docs/STEP3_PORTING_PLAN.md",
+      "old": "\"dir\": \"eva02\", \"title\": \"EVA-02\", \"status\": \"done\"",
+      "new": "\"dir\": \"eva02\", \"title\": \"EVA-02\", \"status\": \"todo\"",
+      "tests": [
+        "tests.test_step3_plan.TestACheckboxCannotLie.test_status_matches_what_is_on_disk"
+      ]
+    },
+    {
+      "label": "the next pointer skips ahead past an earlier unfinished item",
+      "file": "docs/STEP3_PORTING_PLAN.md",
+      "old": "\"next\": \"A1\",",
+      "new": "\"next\": \"A2:data2vec2\",",
+      "tests": [
+        "tests.test_step3_plan.TestTheNextPointerIsAFact.test_next_is_the_earliest_unfinished_item"
+      ]
+    },
+    {
+      "label": "the out-of-order ceiling is quietly widened in the plan",
+      "file": "docs/STEP3_PORTING_PLAN.md",
+      "old": "\"grandfathered_ceiling\": 4,",
+      "new": "\"grandfathered_ceiling\": 5,",
+      "tests": [
+        "tests.test_step3_plan.TestNoNewOutOfOrderWork.test_the_ceiling_is_frozen"
+      ]
+    },
+    {
+      "label": "a new method is marked done ahead of its turn, exceeding the ceiling",
+      "file": "docs/STEP3_PORTING_PLAN.md",
+      "old": "\"dir\": \"data2vec2\", \"title\": \"data2vec 2.0\", \"status\": \"todo\"",
+      "new": "\"dir\": \"data2vec2\", \"title\": \"data2vec 2.0\", \"status\": \"done\"",
+      "tests": [
+        "tests.test_step3_plan.TestNoNewOutOfOrderWork.test_done_items_after_the_next_pointer_stay_within_the_ceiling"
+      ]
+    },
+    {
+      "label": "an unnumbered directory is dropped from the partition",
+      "file": "docs/STEP3_PORTING_PLAN.md",
+      "old": "\"non_step3_unnumbered\": [\"_reference\", \"image_gpt\", \"mar\", \"var\"],",
+      "new": "\"non_step3_unnumbered\": [\"_reference\", \"image_gpt\", \"mar\"],",
+      "tests": [
+        "tests.test_step3_plan.TestEveryPortIsAccountedFor.test_the_unnumbered_namespace_is_partitioned_by_the_plan"
+      ]
+    },
+    {
+      "label": "a directory is listed as both a Step-3 port and a non-Step-3 exception",
+      "file": "docs/STEP3_PORTING_PLAN.md",
+      "old": "\"non_step3_unnumbered\": [\"_reference\", \"image_gpt\", \"mar\", \"var\"],",
+      "new": "\"non_step3_unnumbered\": [\"_reference\", \"image_gpt\", \"mar\", \"var\", \"eva02\"],",
+      "tests": [
+        "tests.test_step3_plan.TestEveryPortIsAccountedFor.test_the_two_sets_do_not_overlap"
+      ]
+    },
+    {
+      "label": "two items share an order (the ascending-order guard)",
+      "file": "docs/STEP3_PORTING_PLAN.md",
+      "old": "\"order\": 2, \"kind\": \"method\", \"dir\": \"eva02\"",
+      "new": "\"order\": 3, \"kind\": \"method\", \"dir\": \"eva02\"",
+      "tests": [
+        "tests.test_step3_plan.TestThePlanIsMachineReadable.test_every_item_is_well_formed"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-08-29",
+    "measured_with": "python3 bin/mutate.py --spec mutations/step3-plan.json (base interpreter, pure stdlib)",
+    "killed": 7,
+    "total": 7,
+    "equivalent": []
+  }
+}
