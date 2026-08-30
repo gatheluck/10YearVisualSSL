@@ -1,0 +1,75 @@
+{
+  "_note": "Run: <torch-venv>/bin/python bin/mutate.py --spec mutations/mae-backbone.json --python <torch-venv>/bin/python (an interpreter with torch, so the backbone builds and loads in-process). This is the A3:mae wiring (docs/STEP3_PORTING_PLAN.md): MAE reused as a frozen spatial-backbone kind for the ARSSL harness. The MAE-specific provider lives in the method's own directory (methods/25_mae/downstream_backbone.py) and the shared layer (downstream/spatial_backbones.py) DISCOVERS it, naming no method. These guards prove the wiring is not vacuous -- a checkpoint that is not this MAE is refused (both directions: alien keys and missing encoder weights), the CLS prefix is dropped so the spatial grid is the patch tokens alone, the backbone stays frozen in eval, the kind is both discovered into KINDS and actually dispatched (not an accept-anything), and the structural provider detector requires a real build (not just a KIND).",
+  "targets": [
+    {
+      "label": "an encoder carrying keys this MAE does not have is half-loaded, not refused",
+      "file": "methods/25_mae/downstream_backbone.py",
+      "old": "        if result.unexpected_keys:",
+      "new": "        if False:",
+      "tests": [
+        "tests.test_downstream_mae_backbone.TestTheStrictLoadRefuses.test_an_encoder_carrying_alien_keys_is_refused"
+      ]
+    },
+    {
+      "label": "an encoder missing the backbone weights is silently accepted",
+      "file": "methods/25_mae/downstream_backbone.py",
+      "old": "        if absent:",
+      "new": "        if False:",
+      "tests": [
+        "tests.test_downstream_mae_backbone.TestTheStrictLoadRefuses.test_an_encoder_missing_the_backbone_weights_is_refused"
+      ]
+    },
+    {
+      "label": "the CLS token leaks into the spatial grid (prefix not dropped)",
+      "file": "methods/25_mae/downstream_backbone.py",
+      "old": "        patches = tokens[:, self.num_prefix_tokens:, :]",
+      "new": "        patches = tokens[:, 0:, :]",
+      "tests": [
+        "tests.test_downstream_mae_backbone.TestBuildingFromAnEncoder.test_it_builds_a_frozen_spatial_map_of_the_expected_shape"
+      ]
+    },
+    {
+      "label": "the backbone leaves eval when train() is called",
+      "file": "methods/25_mae/downstream_backbone.py",
+      "old": "        return super().train(False)",
+      "new": "        return super().train(mode)",
+      "tests": [
+        "tests.test_downstream_mae_backbone.TestBuildingFromAnEncoder.test_the_backbone_is_frozen_and_stays_in_eval"
+      ]
+    },
+    {
+      "label": "mae_vit is discovered but not actually dispatched",
+      "file": "downstream/spatial_backbones.py",
+      "old": "    elif kind in _PROVIDERS:",
+      "new": "    elif kind in (\"__never__\",):",
+      "tests": [
+        "tests.test_downstream_mae_backbone.TestBuildingFromAnEncoder.test_it_builds_a_frozen_spatial_map_of_the_expected_shape"
+      ]
+    },
+    {
+      "label": "discovered providers are dropped from the KINDS the task runners admit",
+      "file": "downstream/spatial_backbones.py",
+      "old": "KINDS = (VIT,) + tuple(sorted(_PROVIDERS))",
+      "new": "KINDS = (VIT,) + tuple(sorted({}))",
+      "tests": [
+        "tests.test_downstream_mae_backbone.TestTheKindIsDiscoveredNotNamed.test_mae_vit_is_a_discovered_ported_backbone_kind"
+      ]
+    },
+    {
+      "label": "the provider detector registers a KIND with no build (accept-anything discovery)",
+      "file": "downstream/spatial_backbones.py",
+      "old": "    if kind is not None and \"build\" in funcs:",
+      "new": "    if kind is not None:",
+      "tests": [
+        "tests.test_downstream_mae_backbone.TestTheProviderDetectorHasControls.test_a_kind_without_build_is_not_a_provider"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-08-30 (re-measured after A3:mae moved to a discovered, method-owned provider)",
+    "measured_with": "an interpreter with torch==2.13.0 (.venvs/05_jigsaw_puzzle), which builds and loads the MAE backbone in-process; the end-to-end ARSSL test is not among the referenced tests, so no timm subprocess is needed to kill these",
+    "killed": 7,
+    "total": 7,
+    "equivalent": []
+  }
+}

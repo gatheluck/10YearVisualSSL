@@ -1,6 +1,6 @@
 # Step 3 porting plan (on `main`, and enforced)
 
-Last updated: 2026-08-29
+Last updated: 2026-08-30
 
 This is the **sequenced, authoritative plan** for porting the "Step 3" methods
 into this repository. It lives on `main`, in the working tree, so it is present
@@ -93,7 +93,20 @@ ImageNet-100 is a separate future port), not A1.
   data2vec 2.0 and CAE remain.*
 - **A3** -- wire the lineage backbones (**MAE, I-JEPA, LeJEPA, iGPT, AIM, VAR**),
   already present as Step-1&2 ports, into the A1 harness so their Step-3 numbers
-  are reproducible here.
+  are reproducible here. *MAE is done:* the method declares a `mae_vit`
+  spatial-backbone provider in its **own** directory
+  (`methods/25_mae/downstream_backbone.py`, a module-level `KIND` + `build`), and
+  the shared layer (`downstream/spatial_backbones.py`) **discovers** it by
+  structure -- the shared machinery names no method
+  (`tests/test_no_hard_coded_methods.py`). The provider **reuses** MAE's own model
+  (MAE's encoder.pt is not timm-loadable and its sincos position embedding is a
+  regenerated, unstored buffer, so a timm remap would be a second, drift-prone
+  implementation). The MAE module is loaded by file path under a unique name (no
+  cross-method `models` collision) and the patch grid is read with a forward hook
+  on the encoder norm (MAEEncoder.forward reused verbatim). This establishes the
+  discovered lineage-provider pattern the remaining A3 items reuse: I-JEPA,
+  LeJEPA, iGPT, AIM and VAR each add their own `downstream_backbone.py`. Those
+  remain.
 
 ### Phase B -- Multimodal / CompEval (reuse frozen backbones)
 
@@ -130,7 +143,7 @@ ImageNet-100 is a separate future port), not A1.
 
 ```json
 {
-  "next": "A3:mae",
+  "next": "A3:ijepa",
   "grandfathered_ceiling": 1,
   "non_step3_unnumbered": ["_reference", "image_gpt", "mar", "var"],
   "items": [
@@ -140,7 +153,7 @@ ImageNet-100 is a separate future port), not A1.
     {"id": "A2:beitv2", "phase": "A", "subphase": "A2", "order": 4, "kind": "method", "dir": "beitv2", "title": "BEiT v2", "status": "done"},
     {"id": "A2:data2vec2", "phase": "A", "subphase": "A2", "order": 5, "kind": "method", "dir": "data2vec2", "title": "data2vec 2.0", "status": "done"},
     {"id": "A2:cae", "phase": "A", "subphase": "A2", "order": 6, "kind": "method", "dir": "cae", "title": "CAE", "status": "done"},
-    {"id": "A3:mae", "phase": "A", "subphase": "A3", "order": 7, "kind": "task", "title": "wire MAE into the A1 harness", "artifact": null, "status": "todo"},
+    {"id": "A3:mae", "phase": "A", "subphase": "A3", "order": 7, "kind": "task", "title": "wire MAE into the A1 harness", "artifact": "methods/25_mae/downstream_backbone.py", "status": "done"},
     {"id": "A3:ijepa", "phase": "A", "subphase": "A3", "order": 8, "kind": "task", "title": "wire I-JEPA into the A1 harness", "artifact": null, "status": "todo"},
     {"id": "A3:lejepa", "phase": "A", "subphase": "A3", "order": 9, "kind": "task", "title": "wire LeJEPA into the A1 harness", "artifact": null, "status": "todo"},
     {"id": "A3:igpt", "phase": "A", "subphase": "A3", "order": 10, "kind": "task", "title": "wire iGPT into the A1 harness", "artifact": null, "status": "todo"},
