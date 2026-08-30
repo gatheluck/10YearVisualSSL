@@ -13,8 +13,8 @@
     {
       "label": "the next pointer skips ahead past an earlier unfinished item",
       "file": "docs/STEP3_PORTING_PLAN.md",
-      "old": "\"next\": \"A2:data2vec2\",",
-      "new": "\"next\": \"A2:cae\",",
+      "old": "\"next\": \"A2:cae\",",
+      "new": "\"next\": \"A3:mae\",",
       "tests": [
         "tests.test_step3_plan.TestTheNextPointerIsAFact.test_next_is_the_earliest_unfinished_item"
       ]
@@ -31,8 +31,8 @@
     {
       "label": "a new method is marked done ahead of its turn, exceeding the ceiling",
       "file": "docs/STEP3_PORTING_PLAN.md",
-      "old": "\"dir\": \"cae\", \"title\": \"CAE\", \"status\": \"todo\"",
-      "new": "\"dir\": \"cae\", \"title\": \"CAE\", \"status\": \"done\"",
+      "old": "\"dir\": \"sam3\", \"title\": \"SAM3\", \"status\": \"todo\"",
+      "new": "\"dir\": \"sam3\", \"title\": \"SAM3\", \"status\": \"done\"",
       "tests": [
         "tests.test_step3_plan.TestNoNewOutOfOrderWork.test_done_items_after_the_next_pointer_stay_within_the_ceiling"
       ]
