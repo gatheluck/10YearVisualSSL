@@ -1,0 +1,10 @@
+{
+  "_doc": "LeJEPA wired into the A1 ARSSL harness (docs/STEP3_PORTING_PLAN.md, item A3:lejepa). LeJEPA trains a standard timm ViT-B/16 backbone; its encoder.pt is the bare backbone (the 'backbone.' prefix stripped at save time), so it loads straight into the shared 'vit' spatial-backbone kind whose default arch is this very vit_base_patch16_224 -- no method-specific provider is needed, unlike MAE and I-JEPA whose hand-written, non-timm encoders each ship their own downstream_backbone.py. This file is the wiring: it names the frozen-backbone spec the ARSSL driver (downstream/arssl.py, JSON-native) runs through the dense-task probes. ENCODER is passed at run time (encoder.pt from a LeJEPA pretrain run); the tasks' data_roots are supplied likewise. img_size matches the LeJEPA linear_eval config; the vit kind sets dynamic_img_size, so the pos-embed interpolates to each dense task's resolution.",
+  "backbone": {
+    "kind": "vit",
+    "arch": "vit_base_patch16_224",
+    "patch_size": 16,
+    "img_size": 224,
+    "encoder": "${ENCODER}"
+  }
+}
