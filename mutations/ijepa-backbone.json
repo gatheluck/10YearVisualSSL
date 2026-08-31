@@ -1,0 +1,39 @@
+{
+  "_note": "Run: <torch-venv>/bin/python bin/mutate.py --spec mutations/ijepa-backbone.json --python <torch-venv>/bin/python (an interpreter with torch, so the backbone builds and loads in-process). This is the A3:ijepa wiring (docs/STEP3_PORTING_PLAN.md): I-JEPA reused as a frozen spatial-backbone kind for the ARSSL harness. The MAE-specific provider lives in the method's own directory (methods/29_ijepa/downstream_backbone.py) and the shared layer (downstream/spatial_backbones.py) DISCOVERS it, naming no method -- so no shared-layer edit was needed and the shared discovery/dispatch/KINDS guards are already proven in mutations/mae-backbone.json. These guards prove the I-JEPA provider itself is not vacuous: a checkpoint that is not this encoder is refused (both directions: alien keys and missing weights) and the backbone stays frozen in eval. I-JEPA has no CLS token (no prefix to drop) and no decoder (a plain, exact match), so it carries fewer provider-side guards than MAE by design.",
+  "targets": [
+    {
+      "label": "an encoder carrying keys this I-JEPA does not have is half-loaded, not refused",
+      "file": "methods/29_ijepa/downstream_backbone.py",
+      "old": "        if result.unexpected_keys:",
+      "new": "        if False:",
+      "tests": [
+        "tests.test_downstream_ijepa_backbone.TestTheStrictLoadRefuses.test_an_encoder_carrying_alien_keys_is_refused"
+      ]
+    },
+    {
+      "label": "an encoder missing the backbone weights is silently accepted",
+      "file": "methods/29_ijepa/downstream_backbone.py",
+      "old": "        if result.missing_keys:",
+      "new": "        if False:",
+      "tests": [
+        "tests.test_downstream_ijepa_backbone.TestTheStrictLoadRefuses.test_an_encoder_missing_the_backbone_weights_is_refused"
+      ]
+    },
+    {
+      "label": "the backbone leaves eval when train() is called",
+      "file": "methods/29_ijepa/downstream_backbone.py",
+      "old": "        return super().train(False)",
+      "new": "        return super().train(mode)",
+      "tests": [
+        "tests.test_downstream_ijepa_backbone.TestBuildingFromAnEncoder.test_the_backbone_is_frozen_and_stays_in_eval"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-08-30",
+    "measured_with": "an interpreter with torch==2.13.0 (.venvs/05_jigsaw_puzzle), which builds and loads the I-JEPA backbone in-process; the end-to-end ARSSL test is not among the referenced tests, so no timm subprocess is needed to kill these",
+    "killed": 3,
+    "total": 3,
+    "equivalent": []
+  }
+}
