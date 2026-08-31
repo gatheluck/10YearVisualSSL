@@ -96,9 +96,13 @@ class IGPT(nn.Module):
         h = self.ln_f(h)
         return self.head(h)
 
-    def extract_features(self, x: torch.Tensor) -> torch.Tensor:
-        """The linear-probe representation: a middle transformer layer, mean-
-        pooled over the sequence. Returns [B, n_embd]."""
+    def extract_token_features(self, x: torch.Tensor) -> torch.Tensor:
+        """The per-position representation: a **middle** transformer layer, one
+        vector per token. Returns [B, T, n_embd].
+
+        The linear probe mean-pools this over the sequence; a dense downstream
+        task instead reshapes the tokens back to their grid. Both read the same
+        layer, so there is one implementation of "the iGPT representation" here."""
         B, T = x.shape
         pos = torch.arange(T, device=x.device).unsqueeze(0)
         h = self.token_embed(x) + self.pos_embed(pos)
@@ -107,4 +111,9 @@ class IGPT(nn.Module):
             h = block(h)
             if i == mid:
                 break
-        return h.mean(dim=1)
+        return h
+
+    def extract_features(self, x: torch.Tensor) -> torch.Tensor:
+        """The linear-probe representation: `extract_token_features`, mean-pooled
+        over the sequence. Returns [B, n_embd]."""
+        return self.extract_token_features(x).mean(dim=1)

@@ -119,10 +119,21 @@ ImageNet-100 is a separate future port), not A1.
   killed mutant is not a guard), so the wiring is
   `methods/37_lejepa/configs/downstream_arssl.json` -- discovered by structure
   (`methods/*/configs/downstream_arssl.json`, naming no method) and run through the
-  dense-task probes by the JSON-native ARSSL driver. iGPT, AIM and VAR remain; each
-  is wired by whichever shape measurement shows it needs -- a `downstream_backbone.py`
-  provider if its encoder is hand-written, or a `configs/downstream_arssl.json`
-  config if it reuses a shared kind.
+  dense-task probes by the JSON-native ARSSL driver. *iGPT is done, and it is the
+  first A3 provider whose input is **not an image tensor**:*
+  `methods/image_gpt/downstream_backbone.py` adds an `igpt` provider (hand-written,
+  non-timm, so a provider, not a config). It does what the method's own probe does
+  before reading features -- resize to the token grid, quantise pixels to colour
+  tokens, read a **middle** transformer layer -- and reshapes the per-position
+  tokens to a `[B, C, h, w]` map (`IGPT.extract_token_features`, which the probe's
+  `extract_features` mean-pools -- one representation, two readers). The chosen
+  shape has the provider **absorb** what the shared ViT schema has no slot for, so
+  the four task runners stay unchanged: the colour vocabulary is inferred from
+  `encoder.pt` (its token-embedding rows) and the colour clusters are read from
+  `clusters.npy` beside it (a missing/mismatched set is refused). AIM and VAR
+  remain; each is wired by whichever shape measurement shows it needs -- a
+  `downstream_backbone.py` provider if its encoder is hand-written, or a
+  `configs/downstream_arssl.json` config if it reuses a shared kind.
 
 ### Phase B -- Multimodal / CompEval (reuse frozen backbones)
 
@@ -159,7 +170,7 @@ ImageNet-100 is a separate future port), not A1.
 
 ```json
 {
-  "next": "A3:igpt",
+  "next": "A3:aim",
   "grandfathered_ceiling": 1,
   "non_step3_unnumbered": ["_reference", "image_gpt", "mar", "var"],
   "items": [
@@ -172,7 +183,7 @@ ImageNet-100 is a separate future port), not A1.
     {"id": "A3:mae", "phase": "A", "subphase": "A3", "order": 7, "kind": "task", "title": "wire MAE into the A1 harness", "artifact": "methods/25_mae/downstream_backbone.py", "status": "done"},
     {"id": "A3:ijepa", "phase": "A", "subphase": "A3", "order": 8, "kind": "task", "title": "wire I-JEPA into the A1 harness", "artifact": "methods/29_ijepa/downstream_backbone.py", "status": "done"},
     {"id": "A3:lejepa", "phase": "A", "subphase": "A3", "order": 9, "kind": "task", "title": "wire LeJEPA into the A1 harness", "artifact": "methods/37_lejepa/configs/downstream_arssl.json", "status": "done"},
-    {"id": "A3:igpt", "phase": "A", "subphase": "A3", "order": 10, "kind": "task", "title": "wire iGPT into the A1 harness", "artifact": null, "status": "todo"},
+    {"id": "A3:igpt", "phase": "A", "subphase": "A3", "order": 10, "kind": "task", "title": "wire iGPT into the A1 harness", "artifact": "methods/image_gpt/downstream_backbone.py", "status": "done"},
     {"id": "A3:aim", "phase": "A", "subphase": "A3", "order": 11, "kind": "task", "title": "wire AIM into the A1 harness", "artifact": null, "status": "todo"},
     {"id": "A3:var", "phase": "A", "subphase": "A3", "order": 12, "kind": "task", "title": "wire VAR into the A1 harness", "artifact": null, "status": "todo"},
     {"id": "B1:siglip", "phase": "B", "subphase": "B1", "order": 13, "kind": "method", "dir": "siglip", "title": "SigLIP", "status": "done"},
