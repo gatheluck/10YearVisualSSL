@@ -1,0 +1,39 @@
+{
+  "_note": "Run: <torch-venv>/bin/python bin/mutate.py --spec mutations/lejepa-backbone.json --python <torch-venv>/bin/python (an interpreter with torch/timm, so the frozen backbone builds and loads in-process). This is the A3:lejepa wiring (docs/STEP3_PORTING_PLAN.md). Unlike MAE and I-JEPA -- whose hand-written, non-timm encoders each ship their own downstream_backbone.py provider -- LeJEPA trains a standard timm ViT-B/16 whose bare-key encoder.pt loads straight into the shared 'vit' spatial-backbone kind, so a dedicated provider would be an empty duplicate (never implement the same rule twice; a guard with no killed mutant is not a guard). The wiring is therefore a config, methods/37_lejepa/configs/downstream_arssl.json, discovered by structure. These mutations prove the wiring is not vacuous: the config must name the shared vit kind and a real, buildable arch, and the bare-key checkpoint load through that kind must refuse an alien checkpoint rather than half-load it. The alien-key refusal lives in the shared downstream/spatial_backbones.py::_build_vit and was NOT previously mutation-proven (the mae/ijepa specs only touch the dispatch/KINDS/discovery lines); this spec proves it via the LeJEPA path.",
+  "targets": [
+    {
+      "label": "the wiring config no longer names the shared vit kind (a wrong or unknown kind is accepted)",
+      "file": "methods/37_lejepa/configs/downstream_arssl.json",
+      "old": "\"kind\": \"vit\",",
+      "new": "\"kind\": \"not_a_kind\",",
+      "tests": [
+        "tests.test_downstream_lejepa_backbone.TestTheWiringConfigsAreDiscovered.test_each_config_declares_a_shared_vit_backbone"
+      ]
+    },
+    {
+      "label": "the config names an arch that is not a real timm model",
+      "file": "methods/37_lejepa/configs/downstream_arssl.json",
+      "old": "\"arch\": \"vit_base_patch16_224\",",
+      "new": "\"arch\": \"not_a_real_timm_model\",",
+      "tests": [
+        "tests.test_downstream_lejepa_backbone.TestABareKeyEncoderLoadsThroughTheSharedKind.test_each_config_builds_a_frozen_spatial_map"
+      ]
+    },
+    {
+      "label": "a checkpoint carrying keys this ViT does not have is half-loaded, not refused",
+      "file": "downstream/spatial_backbones.py",
+      "old": "        if unexpected:\n            raise RuntimeError(\n                f\"encoder.pt carries keys this ViT does not have: {unexpected[:5]}\")",
+      "new": "        if False:\n            raise RuntimeError(\n                f\"encoder.pt carries keys this ViT does not have: {unexpected[:5]}\")",
+      "tests": [
+        "tests.test_downstream_lejepa_backbone.TestABareKeyEncoderLoadsThroughTheSharedKind.test_an_alien_checkpoint_is_refused"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-08-31",
+    "measured_with": "an interpreter with torch==2.13.0 + timm (.venvs/05_jigsaw_puzzle), which builds and loads the timm ViT backbone in-process",
+    "killed": 3,
+    "total": 3,
+    "equivalent": []
+  }
+}

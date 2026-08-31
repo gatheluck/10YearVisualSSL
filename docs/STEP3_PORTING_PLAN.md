@@ -110,8 +110,19 @@ ImageNet-100 is a separate future port), not A1.
   `VisionTransformer.forward` returns raster-order patch tokens with no
   masking/shuffling and no CLS token, its pos-embed ships in `encoder.pt`, and the
   bare-key checkpoint loads with an exact match (unexpected/missing both refused).
-  LeJEPA, iGPT, AIM and VAR each add their own `downstream_backbone.py`. Those
-  remain.
+  *LeJEPA is done, and it is the first A3 item wired by **config, not a provider**:
+  measurement (not the file name) shows LeJEPA trains a standard timm ViT-B/16 and
+  its `encoder.pt` is the bare backbone (the `backbone.` prefix stripped at save),
+  so it loads straight into the shared `vit` spatial-backbone kind whose default
+  arch is that very `vit_base_patch16_224`. A dedicated provider would be an empty
+  duplicate of the `vit` kind (never implement the same rule twice; a guard with no
+  killed mutant is not a guard), so the wiring is
+  `methods/37_lejepa/configs/downstream_arssl.json` -- discovered by structure
+  (`methods/*/configs/downstream_arssl.json`, naming no method) and run through the
+  dense-task probes by the JSON-native ARSSL driver. iGPT, AIM and VAR remain; each
+  is wired by whichever shape measurement shows it needs -- a `downstream_backbone.py`
+  provider if its encoder is hand-written, or a `configs/downstream_arssl.json`
+  config if it reuses a shared kind.
 
 ### Phase B -- Multimodal / CompEval (reuse frozen backbones)
 
@@ -148,7 +159,7 @@ ImageNet-100 is a separate future port), not A1.
 
 ```json
 {
-  "next": "A3:lejepa",
+  "next": "A3:igpt",
   "grandfathered_ceiling": 1,
   "non_step3_unnumbered": ["_reference", "image_gpt", "mar", "var"],
   "items": [
@@ -160,7 +171,7 @@ ImageNet-100 is a separate future port), not A1.
     {"id": "A2:cae", "phase": "A", "subphase": "A2", "order": 6, "kind": "method", "dir": "cae", "title": "CAE", "status": "done"},
     {"id": "A3:mae", "phase": "A", "subphase": "A3", "order": 7, "kind": "task", "title": "wire MAE into the A1 harness", "artifact": "methods/25_mae/downstream_backbone.py", "status": "done"},
     {"id": "A3:ijepa", "phase": "A", "subphase": "A3", "order": 8, "kind": "task", "title": "wire I-JEPA into the A1 harness", "artifact": "methods/29_ijepa/downstream_backbone.py", "status": "done"},
-    {"id": "A3:lejepa", "phase": "A", "subphase": "A3", "order": 9, "kind": "task", "title": "wire LeJEPA into the A1 harness", "artifact": null, "status": "todo"},
+    {"id": "A3:lejepa", "phase": "A", "subphase": "A3", "order": 9, "kind": "task", "title": "wire LeJEPA into the A1 harness", "artifact": "methods/37_lejepa/configs/downstream_arssl.json", "status": "done"},
     {"id": "A3:igpt", "phase": "A", "subphase": "A3", "order": 10, "kind": "task", "title": "wire iGPT into the A1 harness", "artifact": null, "status": "todo"},
     {"id": "A3:aim", "phase": "A", "subphase": "A3", "order": 11, "kind": "task", "title": "wire AIM into the A1 harness", "artifact": null, "status": "todo"},
     {"id": "A3:var", "phase": "A", "subphase": "A3", "order": 12, "kind": "task", "title": "wire VAR into the A1 harness", "artifact": null, "status": "todo"},
