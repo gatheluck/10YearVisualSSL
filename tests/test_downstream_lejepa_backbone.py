@@ -77,8 +77,6 @@ try:
 except ImportError:
     HAVE_TIMM = False
 
-needs_torch = unittest.skipUnless(
-    HAVE_TORCH, "building the frozen backbone needs torch")
 needs_timm = unittest.skipUnless(
     HAVE_TIMM, "the end-to-end ARSSL wiring drives the ADE20K runner (timm)")
 
@@ -127,7 +125,10 @@ class TestTheWiringConfigsAreDiscovered(unittest.TestCase):
                 self.assertIn("img_size", b)
 
 
-@needs_torch
+# Building the backbone goes through the shared `vit` kind, whose `_build_vit`
+# imports timm -- so these need timm, not merely torch. A lock that has torch but
+# not timm (most methods) must skip here, never error.
+@needs_timm
 class TestABareKeyEncoderLoadsThroughTheSharedKind(unittest.TestCase):
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp(prefix="lejepa-bb-"))
