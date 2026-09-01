@@ -47,12 +47,15 @@ METHODS = ROOT / "methods"
 # completed ahead of their place in the order. It was 4 before A1 landed (the
 # eval-only ports EVA-02/AIMv2/BEiT v2/SigLIP, all done before the A1 harness);
 # once A1 (order 1) completed, `next` advanced past EVA-02/AIMv2/BEiT v2 (orders
-# 2-4), leaving only SigLIP (order 13, a Phase-B item) genuinely out of turn --
-# so the honest ceiling tightened to 1. It is a bare integer, not a method name,
-# so it is allowed in a shared file. Changing it is the one way to admit (or
-# retire) an out-of-order port, and that must be a deliberate, reviewed edit to
-# this test -- which is exactly the point.
-FROZEN_CEILING = 1
+# 2-4), leaving only SigLIP (order 13, a Phase-B item) genuinely out of turn, so
+# the honest ceiling tightened to 1. Now that all of Phase A has landed (A3:var,
+# order 12, was the last), `next` is B1:sam3 (order 14) and SigLIP (order 13)
+# sits *before* it -- back in turn -- so nothing done remains ahead of `next` and
+# the ceiling tightens to 0: no out-of-order port stands. It is a bare integer,
+# not a method name, so it is allowed in a shared file. Changing it is the one way
+# to admit (or retire) an out-of-order port, and that must be a deliberate,
+# reviewed edit to this test -- which is exactly the point.
+FROZEN_CEILING = 0
 
 
 def _plan() -> dict:

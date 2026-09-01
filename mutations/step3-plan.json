@@ -13,8 +13,8 @@
     {
       "label": "the next pointer skips ahead past an earlier unfinished item",
       "file": "docs/STEP3_PORTING_PLAN.md",
-      "old": "\"next\": \"A3:var\",",
-      "new": "\"next\": \"B1:sam3\",",
+      "old": "\"next\": \"B1:sam3\",",
+      "new": "\"next\": \"B1:dinov3_7b\",",
       "tests": [
         "tests.test_step3_plan.TestTheNextPointerIsAFact.test_next_is_the_earliest_unfinished_item"
       ]
@@ -22,17 +22,17 @@
     {
       "label": "the out-of-order ceiling is quietly widened in the plan",
       "file": "docs/STEP3_PORTING_PLAN.md",
-      "old": "\"grandfathered_ceiling\": 1,",
-      "new": "\"grandfathered_ceiling\": 2,",
+      "old": "\"grandfathered_ceiling\": 0,",
+      "new": "\"grandfathered_ceiling\": 1,",
       "tests": [
         "tests.test_step3_plan.TestNoNewOutOfOrderWork.test_the_ceiling_is_frozen"
       ]
     },
     {
-      "label": "a new method is marked done ahead of its turn, exceeding the ceiling",
+      "label": "a new method is marked done ahead of its turn, exceeding the (now zero) ceiling",
       "file": "docs/STEP3_PORTING_PLAN.md",
-      "old": "\"dir\": \"sam3\", \"title\": \"SAM3\", \"status\": \"todo\"",
-      "new": "\"dir\": \"sam3\", \"title\": \"SAM3\", \"status\": \"done\"",
+      "old": "\"dir\": \"dinov3_7b\", \"title\": \"DINOv3-7B\", \"status\": \"todo\"",
+      "new": "\"dir\": \"dinov3_7b\", \"title\": \"DINOv3-7B\", \"status\": \"done\"",
       "tests": [
         "tests.test_step3_plan.TestNoNewOutOfOrderWork.test_done_items_after_the_next_pointer_stay_within_the_ceiling"
       ]
@@ -66,7 +66,7 @@
     }
   ],
   "_result": {
-    "measured_on": "2026-09-01 (re-measured after A3:aim landed; next advanced to A3:var)",
+    "measured_on": "2026-09-01 (re-measured after A3:var landed; Phase A complete, next advanced to B1:sam3, ceiling tightened 1->0)",
     "measured_with": "python3 bin/mutate.py --spec mutations/step3-plan.json (base interpreter, pure stdlib)",
     "killed": 7,
     "total": 7,
