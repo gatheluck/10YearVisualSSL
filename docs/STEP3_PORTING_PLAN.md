@@ -30,9 +30,10 @@ item they jumped -- landed, `next` advanced past EVA-02/AIMv2/BEiT v2 (orders
 2-4), so three of the four fell back *into* turn; SigLIP (a Phase-B item,
 order 13) remained the one out-of-turn port, and the frozen ceiling tightened
 from 4 to 1 to admit exactly it. Now that all of Phase A has landed (A3:var,
-order 12, was the last A3 item), `next` is B1:sam3 (order 14) and SigLIP
-(order 13) sits *before* it -- back in turn -- so no out-of-order port stands
-and the ceiling tightens to 0. What it stops is the **next** silent drift.
+order 12, was the last A3 item) and SAM3 (order 14) has landed in turn, `next`
+is B1:dinov3_7b (order 15) and both SigLIP (order 13) and SAM3 sit *before* it --
+in turn -- so no out-of-order port stands and the ceiling stays 0. What it stops
+is the **next** silent drift.
 
 ## How it is enforced
 
@@ -171,7 +172,12 @@ ImageNet-100 is a separate future port), not A1.
 - **B1** -- **SigLIP, SAM3, DINOv3-7B, Cosmos3 Super**: frozen-backbone adapters
   (the `38_clip` / `docs/EVAL_DOWNLOAD.md` pattern). *SigLIP is done (it was
   ported ahead of Phase A; now that Phase A has landed it is back in turn, the
-  first Phase-B item). SAM3 is `next`.*
+  first Phase-B item). SAM3 is done: a pure eval-only `linear_eval` probe on the
+  frozen SAM 3 vision encoder (mean-pooled patch tokens), the transformers-sourced
+  sibling of data2vec2, with a trunk converter (`methods/sam3/sam3_trunk.py`) that
+  maps the official ViTDet-style `sam3.pt` onto `transformers`' `Sam3ViTModel`
+  (unit-tested on synthetic tensors, so the gated-weight path is covered
+  hermetically). DINOv3-7B is `next`.*
 - **B2** -- the CompEval_Extend60 adapter set over backbones ported in other
   phases: **RAE1, RAE2, RAEv2-K7, VDPM, VGGT-Omega, Cosmos 3, V-JEPA 2.1**
   (adapters, not new backbones).
@@ -202,7 +208,7 @@ ImageNet-100 is a separate future port), not A1.
 
 ```json
 {
-  "next": "B1:sam3",
+  "next": "B1:dinov3_7b",
   "grandfathered_ceiling": 0,
   "non_step3_unnumbered": ["_reference", "image_gpt", "mar", "var"],
   "items": [
@@ -219,7 +225,7 @@ ImageNet-100 is a separate future port), not A1.
     {"id": "A3:aim", "phase": "A", "subphase": "A3", "order": 11, "kind": "task", "title": "wire AIM into the A1 harness", "artifact": "methods/30_aim/downstream_backbone.py", "status": "done"},
     {"id": "A3:var", "phase": "A", "subphase": "A3", "order": 12, "kind": "task", "title": "wire VAR into the A1 harness", "artifact": "methods/var/downstream_backbone.py", "status": "done"},
     {"id": "B1:siglip", "phase": "B", "subphase": "B1", "order": 13, "kind": "method", "dir": "siglip", "title": "SigLIP", "status": "done"},
-    {"id": "B1:sam3", "phase": "B", "subphase": "B1", "order": 14, "kind": "method", "dir": "sam3", "title": "SAM3", "status": "todo"},
+    {"id": "B1:sam3", "phase": "B", "subphase": "B1", "order": 14, "kind": "method", "dir": "sam3", "title": "SAM3", "status": "done"},
     {"id": "B1:dinov3_7b", "phase": "B", "subphase": "B1", "order": 15, "kind": "method", "dir": "dinov3_7b", "title": "DINOv3-7B", "status": "todo"},
     {"id": "B1:cosmos3_super", "phase": "B", "subphase": "B1", "order": 16, "kind": "method", "dir": "cosmos3_super", "title": "Cosmos3 Super", "status": "todo"},
     {"id": "B2:rae1", "phase": "B", "subphase": "B2", "order": 17, "kind": "task", "title": "CompEval adapter: RAE1", "artifact": null, "status": "todo"},

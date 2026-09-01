@@ -1,0 +1,30 @@
+{
+  "captured_at": "2026-09-01",
+  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
+  "captured_note": "Meta SAM 3 (facebook/sam3) appears in the capture's Step-3 CompEval evaluation (methods_step3/SegFM/SAM3, methods_compeval/adapters/sam3_adapter.py) as an as-is comparison: the official promptable-segmentation checkpoint is loaded and its vision encoder is frozen, then a linear probe is fit on the mean-pooled patch tokens (no text/box prompts), because SAM 3's from-scratch training is not reproduced. The capture converts the official sam3.pt trunk (detector.backbone.vision_backbone.trunk.*, ViTDet style) onto transformers' Sam3ViTModel. This port carries that as-is comparison only. There is NO author submodule: the model class is transformers' (a pinned pip dependency), imported not copied, and the weights are a sha256-pinned, gated download.",
+  "paper": {
+    "title": "SAM 3: Segment Anything with Concepts (Meta SAM 3)",
+    "url": "https://ai.meta.com/research/sam3/",
+    "official_repo": "https://github.com/facebookresearch/sam3"
+  },
+  "note": "Eval-only port (a single linear_eval stage, no pretraining). The backbone is transformers' Sam3ViTModel; a real run reads the sha256-pinned official checkpoint (backbone_artifact below) and converts its ViTDet-style trunk keys onto Sam3ViTModel (sam3_trunk.load_official_trunk), because the official key names do not match the HF class and a plain load would leave the backbone randomly initialised. The architecture (hidden 1024, depth 32, the non-4x intermediate_size 4736) is inferred from the checkpoint itself. Because the source is a pip dependency and not a git submodule, this file records NO upstream block and the adapter defines no UPSTREAM (test_port_completeness's both-places rule requires them to agree, and here both are absent).",
+  "linear_eval": "Probes SAM 3's vision-encoder patch tokens, mean-pooled over the sequence (SAM 3's ViT has no CLS token), frozen. The representation is a genuine learned feature, so the number is comparable (the multimodal 'pretrained-backbone reuse' row, analogous to data2vec2 / eva02 / DINOv2 / Franca). A real run needs the official checkpoint (backbone_artifact below, hash-verified by bin/fetch-weights.py --artifact backbone_artifact, passed as the config's train.ckpt); the hermetic smoke leaves ckpt empty and builds a random tiny Sam3ViTModel, so nothing is downloaded and only the pipeline is exercised. The probe resolution is 336 (pretrain_image_size), not the native 1008, so it is executable. See docs/EVAL_DOWNLOAD.md.",
+  "backbone_artifact": {
+    "name": "SAM 3 official checkpoint (facebook/sam3, sam3.pt; vision encoder loaded into transformers Sam3ViTModel)",
+    "url": "https://huggingface.co/facebook/sam3/resolve/3c879f39826c281e95690f02c7821c4de09afae7/sam3.pt",
+    "filename": "sam3.pt",
+    "sha256": "9999e2341ceef5e136daa386eecb55cb414446a00ac2b55eb2dfd2f7c3cf8c9e",
+    "license": "Meta SAM License (gated)",
+    "gated": true,
+    "sha256_source": "recorded in the capture's methods_step3/SegFM/SAM3/SOURCE_SNAPSHOT.json (read 2026-09-01 from gatheluck/10YearVisualSSLCapturePrivate origin/snapshots), which hashed the checkpoint at its source at revision 3c879f39826c281e95690f02c7821c4de09afae7; bin/fetch-weights.py re-verifies this value against any copy you supply. The URL is gated (the Meta SAM License): the file is not auto-downloaded here -- you must already be entitled to it and have accepted the licence. The byte count is not recorded because the gated file was not re-downloaded and hashed during the port; the sha256 is the contract that fetch-weights.py checks."
+  },
+  "rewritten_during_the_port": [
+    "the model class is transformers' Sam3ViTModel, not a copied or submoduled author repository; the pretrained weights are a sha256-pinned, gated download (backbone_artifact) rather than an auto-download, so CI never fetches and a real run is hash-verified",
+    "the official sam3.pt trunk (detector.backbone.vision_backbone.trunk.*, fused qkv, a CLS row in pos_embed, a patch-embed bias) is converted onto Sam3ViTModel's split-projection, no-CLS, bias-free layout (sam3_trunk.py); the architecture is inferred from the checkpoint so the released ViT-L (intermediate_size 4736) loads without a size mismatch; RoPE tables are non-persistent buffers transformers rebuilds and are not copied; the converter is unit-tested on synthetic tensors so the real-run path is covered without the gated weights",
+    "the device is resolved (resolve_device) instead of assumed CUDA",
+    "features are extracted in fp32 (no autocast / no bf16), so the frozen-feature probe runs identically on a CPU or a pre-Ampere GPU, rather than the checkpoint's bf16",
+    "the feature is the vision encoder's patch tokens, mean-pooled over the sequence (SAM 3's ViT has no CLS token); feature_dim = hidden_size",
+    "the probe follows this port's shared frozen-backbone protocol (mean-centre + L2-normalise, a single linear layer with SGD + cosine), returning the four comparable linear-probe accuracies and the epoch count",
+    "the input resolution is 336 (pretrain_image_size), not the native 1008, so the probe is executable; the resolution is read from the config so the hermetic smoke can shrink it and build a random tiny Sam3ViTModel; input normalisation is ImageNet's (the capture's SAM3 adapter)"
+  ]
+}
