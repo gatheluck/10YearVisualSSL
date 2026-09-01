@@ -1,0 +1,66 @@
+{
+  "_note": "Run: <torch-venv>/bin/python bin/mutate.py --spec mutations/igpt-backbone.json --python <torch-venv>/bin/python (an interpreter with torch/timm, so the frozen backbone builds and loads in-process; use an absolute path for --python). This is the A3:igpt wiring (docs/STEP3_PORTING_PLAN.md). iGPT is hand-written and non-timm, so -- like MAE and I-JEPA -- it ships its own downstream_backbone.py provider. It is the first provider whose input is not an image tensor: it quantises pixels to colour tokens and reads a middle transformer layer, so its provider absorbs two things the shared ViT schema has no slot for (the chosen A3:igpt shape): the colour vocabulary (inferred from encoder.pt) and the colour clusters (read from clusters.npy beside encoder.pt). These mutations prove the wiring's guards are not vacuous: the vocabulary is really inferred from the checkpoint, missing/mismatched clusters are refused, alien or missing encoder weights are refused, and the middle-layer tokens are reshaped to the grid faithfully (pooling the map reproduces iGPT's own probe feature).",
+  "targets": [
+    {
+      "label": "the colour vocabulary is not inferred from the encoder (the -1 SOS-row correction is dropped)",
+      "file": "methods/image_gpt/downstream_backbone.py",
+      "old": "        vocab_size = int(state[\"token_embed.weight\"].shape[0]) - 1",
+      "new": "        vocab_size = int(state[\"token_embed.weight\"].shape[0]) - 0",
+      "tests": [
+        "tests.test_downstream_igpt_backbone.TestBuildingFromAnEncoder.test_the_vocabulary_is_inferred_from_the_encoder"
+      ]
+    },
+    {
+      "label": "a missing clusters.npy beside the encoder is not refused",
+      "file": "methods/image_gpt/downstream_backbone.py",
+      "old": "    if not path.is_file():\n        raise RuntimeError(\n            f\"no {CLUSTERS_FILE} beside {encoder.name} (looked at {path}); the \"\n            \"probe must quantise with the clusters the model was trained on\")",
+      "new": "    if False:\n        raise RuntimeError(\n            f\"no {CLUSTERS_FILE} beside {encoder.name} (looked at {path}); the \"\n            \"probe must quantise with the clusters the model was trained on\")",
+      "tests": [
+        "tests.test_downstream_igpt_backbone.TestTheStrictLoadRefuses.test_a_missing_clusters_file_beside_the_encoder_is_refused"
+      ]
+    },
+    {
+      "label": "clusters sized for a different vocabulary are accepted, not refused",
+      "file": "methods/image_gpt/downstream_backbone.py",
+      "old": "    if clusters.shape[0] != vocab_size:",
+      "new": "    if False:",
+      "tests": [
+        "tests.test_downstream_igpt_backbone.TestTheStrictLoadRefuses.test_clusters_of_the_wrong_size_are_refused"
+      ]
+    },
+    {
+      "label": "an encoder carrying alien keys is half-loaded, not refused",
+      "file": "methods/image_gpt/downstream_backbone.py",
+      "old": "        if unexpected:\n            raise RuntimeError(\n                \"encoder.pt carries keys this iGPT does not have: \"\n                f\"{unexpected[:5]}\")",
+      "new": "        if False:\n            raise RuntimeError(\n                \"encoder.pt carries keys this iGPT does not have: \"\n                f\"{unexpected[:5]}\")",
+      "tests": [
+        "tests.test_downstream_igpt_backbone.TestTheStrictLoadRefuses.test_an_encoder_carrying_alien_keys_is_refused"
+      ]
+    },
+    {
+      "label": "an encoder missing a representation weight is half-loaded, not refused",
+      "file": "methods/image_gpt/downstream_backbone.py",
+      "old": "        absent = [k for k in missing if not k.startswith(\"head.\")]",
+      "new": "        absent = []",
+      "tests": [
+        "tests.test_downstream_igpt_backbone.TestTheStrictLoadRefuses.test_an_encoder_missing_the_backbone_weights_is_refused"
+      ]
+    },
+    {
+      "label": "the middle-layer tokens are reshaped to the grid without the transpose, scrambling channels and positions",
+      "file": "methods/image_gpt/downstream_backbone.py",
+      "old": "        return h.transpose(1, 2).reshape(b, d, g, g).contiguous()",
+      "new": "        return h.reshape(b, d, g, g).contiguous()",
+      "tests": [
+        "tests.test_downstream_igpt_backbone.TestBuildingFromAnEncoder.test_the_pooled_map_reproduces_igpts_own_probe_feature"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-08-31",
+    "measured_with": "an interpreter with torch + timm (.venvs/05_jigsaw_puzzle), which builds and loads the iGPT backbone in-process",
+    "killed": 6,
+    "total": 6,
+    "equivalent": []
+  }
+}
