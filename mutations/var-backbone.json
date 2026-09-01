@@ -45,13 +45,67 @@
       "tests": [
         "tests.test_downstream_var_backbone.TestBuildingTheBackbone.test_the_backbone_is_frozen_and_stays_in_eval"
       ]
+    },
+    {
+      "label": "the build leaves the submodule root on sys.path, so a later `from models import ...` resolves to VAR's models (the cross-method import bug)",
+      "file": "methods/var/downstream_backbone.py",
+      "old": "        sys.path[:] = path_before",
+      "new": "        sys.path[:] = sys.path",
+      "tests": [
+        "tests.test_downstream_var_backbone.TestTheProviderDoesNotLeakUpstreamImports.test_building_leaves_no_upstream_models_on_the_import_path"
+      ]
+    },
+    {
+      "label": "the build leaves the modules it newly imported (VAR's models) bound under the shared keys, not deleting them",
+      "file": "methods/var/downstream_backbone.py",
+      "old": "                del sys.modules[name]",
+      "new": "                pass",
+      "tests": [
+        "tests.test_downstream_var_backbone.TestTheProviderDoesNotLeakUpstreamImports.test_building_leaves_no_upstream_models_on_the_import_path"
+      ]
+    },
+    {
+      "label": "the build does not put back a shared module it overwrote (a method's own `models` bound before the build stays replaced by VAR's)",
+      "file": "methods/var/downstream_backbone.py",
+      "old": "            sys.modules[name] = module",
+      "new": "            pass",
+      "tests": [
+        "tests.test_downstream_var_backbone.TestTheProviderDoesNotLeakUpstreamImports.test_building_restores_a_shared_module_it_overwrites"
+      ]
+    },
+    {
+      "label": "the build leaves the global torch RNG advanced, so a later unseeded draw is shifted (tipping an RNG-fragile finite assertion into NaN)",
+      "file": "methods/var/downstream_backbone.py",
+      "old": "        torch.set_rng_state(rng_before)",
+      "new": "        pass",
+      "tests": [
+        "tests.test_downstream_var_backbone.TestTheProviderDoesNotLeakUpstreamImports.test_building_does_not_perturb_the_global_rng"
+      ]
+    },
+    {
+      "label": "the build does not put back torch's default init on a class the upstream replaced it on (nn.Linear stays a no-op), so every module a later method builds keeps uninitialised torch.empty memory (NaN)",
+      "file": "methods/var/downstream_backbone.py",
+      "old": "                setattr(cls, \"reset_parameters\", val)",
+      "new": "                pass",
+      "tests": [
+        "tests.test_downstream_var_backbone.TestTheProviderDoesNotLeakUpstreamImports.test_building_restores_torchs_default_parameter_init"
+      ]
+    },
+    {
+      "label": "the build does not remove an override the upstream added to a class that had none of its own (nn.Conv2d keeps the no-op), so a later module built from it is uninitialised",
+      "file": "methods/var/downstream_backbone.py",
+      "old": "                    delattr(cls, \"reset_parameters\")",
+      "new": "                    pass",
+      "tests": [
+        "tests.test_downstream_var_backbone.TestTheProviderDoesNotLeakUpstreamImports.test_building_restores_torchs_default_parameter_init"
+      ]
     }
   ],
   "_result": {
-    "measured_on": "2026-09-01",
+    "measured_on": "2026-09-01 (re-measured after the hermetic-build guards were extended to torch's default parameter init: VAR's upstream build_vae_var setattr's nn.<cls>.reset_parameters to a no-op over eight classes globally and permanently, so every module a later method builds keeps uninitialised torch.empty memory -- the real cause of the 53 cross-method not-finite / not-round-tripping failures in the in-process suite. The provider now snapshots and restores each nn class's own reset_parameters alongside sys.path, sys.modules and the torch RNG, so building the tokeniser leaves no observable global side effect in the shared process)",
     "measured_with": "an interpreter with torch (.venvs/05_jigsaw_puzzle), which builds and loads the VAR VQVAE backbone in-process; the end-to-end ARSSL test is not among the referenced tests, so no timm subprocess is needed to kill these",
-    "killed": 5,
-    "total": 5,
+    "killed": 11,
+    "total": 11,
     "equivalent": []
   }
 }

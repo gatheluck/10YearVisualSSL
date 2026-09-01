@@ -36,6 +36,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import types
 import unittest
 from pathlib import Path
 
@@ -68,6 +69,30 @@ except ImportError:
 needs_torch = unittest.skipUnless(HAVE_TORCH, "var_vqvae backbone needs torch")
 needs_timm = unittest.skipUnless(
     HAVE_TIMM, "the end-to-end ARSSL wiring drives the ADE20K runner (timm)")
+
+# This module's tests draw random inputs (`torch.randn`), which advances the global
+# torch RNG. The whole suite runs in one process in discovery order, and this file
+# (``test_downstream_...``) sorts before every ``test_method_...``; several of those
+# assert a freshly built model's loss/feature is finite *without seeding*, so they
+# depend on the RNG state they inherit. Leaving this module's draws in the global
+# RNG would shift that state and can tip such an assertion into a NaN it would not
+# otherwise hit. So the module snapshots the RNG on entry and restores it on exit:
+# it leaves the global RNG exactly as it found it, with no cross-module footprint.
+# (The underlying fragility is those tests' own unseeded draws; this only keeps A3
+# from being the perturbation that exposes it -- the provider itself is already
+# RNG-hermetic, see TestTheProviderDoesNotLeakUpstreamImports.)
+_RNG_AT_MODULE_ENTRY = None
+
+
+def setUpModule():
+    global _RNG_AT_MODULE_ENTRY
+    if HAVE_TORCH:
+        _RNG_AT_MODULE_ENTRY = torch.get_rng_state()
+
+
+def tearDownModule():
+    if HAVE_TORCH and _RNG_AT_MODULE_ENTRY is not None:
+        torch.set_rng_state(_RNG_AT_MODULE_ENTRY)
 
 # A tiny VQVAE: the VQGAN encoder downsamples by 16, so a 32x32 image yields a
 # 2x2 feature map. ch/Cvae/V are tiny so the smoke builds and runs on a CPU with
@@ -211,6 +236,97 @@ class TestTheStrictLoadRefuses(unittest.TestCase):
             spatial_backbones.build_frozen_backbone(
                 _spec(encoder=str(ckpt)), torch.device("cpu"))
         self.assertIn("encoder.conv_out.weight", str(e.exception))
+
+
+@needs_torch
+class TestTheProviderDoesNotLeakUpstreamImports(unittest.TestCase):
+    """VAR's tokeniser is built through its own ``build_vqvae``, whose collision-
+    safe upstream loader puts ``third_party/var`` first on ``sys.path`` and binds
+    the upstream's ``models`` package under the shared ``models`` key -- correct
+    inside the adapter's own process, but the in-process test suite (and the
+    downstream harness) holds every method at once. Each ViT method imports its
+    *own* ``models`` package (``from models import ...``); if the build leaves
+    ``third_party/var`` on the path or the upstream ``models`` cached, every later
+    ViT method resolves the wrong package and its models come out NaN / not round-
+    tripping. So the provider must build hermetically: whatever global import state
+    the build touches, it restores. Discovered, not asserted for VAR alone -- this
+    is the invariant the shared layer relies on for every provider."""
+
+    # The submodule root -- named generically, so this test hard-codes no method
+    # (tests/test_no_hard_coded_methods.py): any upstream a provider reaches lives
+    # under here, and a leak is a new ``sys.modules`` entry whose file is under it.
+    _THIRD_PARTY = str(ROOT / "third_party")
+
+    def test_building_leaves_no_upstream_models_on_the_import_path(self):
+        path_before = list(sys.path)
+        mods_before = set(sys.modules)
+        spatial_backbones.build_frozen_backbone(_spec(), torch.device("cpu"))
+        # The submodule root must not be left on the path (a later
+        # `from models import ...` would otherwise resolve to the upstream's).
+        self.assertEqual(sys.path, path_before, "sys.path was not restored")
+        # ...nor any upstream module left bound (it would shadow another method's
+        # top-level package of the same name -- the cross-method import bug).
+        leaked = sorted(
+            m for m in set(sys.modules) - mods_before
+            if str(getattr(sys.modules[m], "__file__", "") or "")
+            .startswith(self._THIRD_PARTY))
+        self.assertEqual(leaked, [],
+                         f"the build leaked upstream modules: {leaked}")
+
+    def test_building_restores_a_shared_module_it_overwrites(self):
+        # A leak has two shapes: a *new* key (covered above) and an *overwritten*
+        # one -- a method that imported its own top-level ``models`` package first
+        # would find the upstream's bound in its place. Stand a sentinel in that
+        # shared key and confirm the build leaves that exact object behind, not the
+        # upstream module it binds there while running.
+        key = "models"
+        original = sys.modules.get(key)
+        sentinel = types.ModuleType(key)
+        sys.modules[key] = sentinel
+
+        def _restore():
+            if original is not None:
+                sys.modules[key] = original
+            else:
+                sys.modules.pop(key, None)
+
+        self.addCleanup(_restore)
+        spatial_backbones.build_frozen_backbone(_spec(), torch.device("cpu"))
+        self.assertIs(
+            sys.modules.get(key), sentinel,
+            "the build overwrote a shared module and did not restore it")
+
+    def test_building_does_not_perturb_the_global_rng(self):
+        # The smoke draws seeded-normal weights, which advances the global RNG; a
+        # later test drawing an unseeded input would otherwise see a shifted draw.
+        torch.manual_seed(0)
+        before = torch.get_rng_state()
+        spatial_backbones.build_frozen_backbone(_spec(), torch.device("cpu"))
+        self.assertTrue(torch.equal(torch.get_rng_state(), before),
+                        "the build left the global RNG advanced")
+
+    def test_building_restores_torchs_default_parameter_init(self):
+        # The upstream disables torch's built-in init for its own build speed --
+        # setattr(nn.<cls>, 'reset_parameters', a no-op) over eight nn classes,
+        # globally. Left leaked, every module a later method builds keeps its
+        # uninitialised torch.empty memory (NaN / denormal) and comes out not
+        # finite -- the real cause of the cross-method breakage. Confirm the
+        # provider restores it exactly: a class whose init it replaced is put
+        # back, one it *added* an override to is cleared, and a module built after
+        # is actually initialised.
+        import torch.nn as nn
+        before = {c: c.__dict__.get("reset_parameters")
+                  for c in vars(nn).values()
+                  if isinstance(c, type) and issubclass(c, nn.Module)}
+        spatial_backbones.build_frozen_backbone(_spec(), torch.device("cpu"))
+        changed = sorted(c.__name__ for c in before
+                         if c.__dict__.get("reset_parameters") is not before[c])
+        self.assertEqual(changed, [],
+                         f"the build left torch.nn init patched on: {changed}")
+        weight = nn.Linear(32, 32).weight
+        self.assertTrue(torch.isfinite(weight).all(),
+                        "a module built after the provider is uninitialised")
+        self.assertGreater(float(weight.std()), 0.0)
 
 
 @needs_timm
