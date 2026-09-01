@@ -1,0 +1,66 @@
+{
+  "_note": "Run: <torch-venv>/bin/python bin/mutate.py --spec mutations/aim-backbone.json --python <torch-venv>/bin/python (an interpreter with torch, so the backbone builds and loads in-process; use an absolute path for --python). This is the A3:aim wiring (docs/STEP3_PORTING_PLAN.md): AIM reused as a frozen spatial-backbone kind for the ARSSL harness. AIM is hand-written and non-timm, so -- like MAE and I-JEPA -- it ships its own downstream_backbone.py provider, discovered by the shared layer (the shared discovery/dispatch/KINDS guards are already proven in mutations/mae-backbone.json). AIM's forward returns a training tuple, so features come from AIMViT.forward_features(x, layer_ids) -- the last num_feature_layers blocks averaged, patch-mean-pooled -- reshaped to a [B,C,h,w] map. These mutations prove the provider's guards are not vacuous: the right layers are read and reshaped faithfully (pooling the map reproduces AIM's own probe feature), the prediction head's absence is tolerated while a missing trunk weight or an alien key is refused, and the backbone stays frozen in eval.",
+  "targets": [
+    {
+      "label": "the wrong layers are read (the first N blocks instead of the last N)",
+      "file": "methods/30_aim/downstream_backbone.py",
+      "old": "        layer_ids = list(range(n_blocks - k, n_blocks))",
+      "new": "        layer_ids = list(range(0, k))",
+      "tests": [
+        "tests.test_downstream_aim_backbone.TestBuildingFromAnEncoder.test_the_pooled_map_reproduces_aims_own_probe_feature"
+      ]
+    },
+    {
+      "label": "the middle-layer tokens are reshaped to the grid without the transpose, scrambling channels and positions",
+      "file": "methods/30_aim/downstream_backbone.py",
+      "old": "        return tokens.transpose(1, 2).reshape(b, d, grid_h, grid_w).contiguous()",
+      "new": "        return tokens.reshape(b, d, grid_h, grid_w).contiguous()",
+      "tests": [
+        "tests.test_downstream_aim_backbone.TestBuildingFromAnEncoder.test_the_pooled_map_reproduces_aims_own_probe_feature"
+      ]
+    },
+    {
+      "label": "an encoder carrying keys this AIM does not have is half-loaded, not refused",
+      "file": "methods/30_aim/downstream_backbone.py",
+      "old": "        if result.unexpected_keys:",
+      "new": "        if False:",
+      "tests": [
+        "tests.test_downstream_aim_backbone.TestTheStrictLoadRefuses.test_an_encoder_carrying_alien_keys_is_refused"
+      ]
+    },
+    {
+      "label": "an encoder missing a trunk weight is silently accepted",
+      "file": "methods/30_aim/downstream_backbone.py",
+      "old": "        if absent:",
+      "new": "        if False:",
+      "tests": [
+        "tests.test_downstream_aim_backbone.TestTheStrictLoadRefuses.test_an_encoder_missing_a_trunk_weight_is_refused"
+      ]
+    },
+    {
+      "label": "the prediction head's absence is not tolerated (predictor.* keys are treated as missing trunk weights), so a valid encoder is wrongly refused",
+      "file": "methods/30_aim/downstream_backbone.py",
+      "old": "        absent = [k for k in result.missing_keys\n                  if not k.startswith(_PREDICTOR_PREFIX)]",
+      "new": "        absent = list(result.missing_keys)",
+      "tests": [
+        "tests.test_downstream_aim_backbone.TestBuildingFromAnEncoder.test_it_builds_a_frozen_spatial_map_of_the_expected_shape"
+      ]
+    },
+    {
+      "label": "the backbone leaves eval when train() is called",
+      "file": "methods/30_aim/downstream_backbone.py",
+      "old": "        return super().train(False)",
+      "new": "        return super().train(mode)",
+      "tests": [
+        "tests.test_downstream_aim_backbone.TestBuildingFromAnEncoder.test_the_backbone_is_frozen_and_stays_in_eval"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-09-01",
+    "measured_with": "an interpreter with torch (.venvs/05_jigsaw_puzzle), which builds and loads the AIM backbone in-process; the end-to-end ARSSL test is not among the referenced tests, so no timm subprocess is needed to kill these",
+    "killed": 6,
+    "total": 6,
+    "equivalent": []
+  }
+}
