@@ -1,0 +1,111 @@
+{
+  "_note": "Run: <torch-venv>/bin/python bin/mutate.py --spec mutations/var-backbone.json --python <torch-venv>/bin/python (an interpreter with torch, so the backbone builds and loads in-process; use an absolute path for --python). This is the A3:var wiring (docs/STEP3_PORTING_PLAN.md): VAR reused as a frozen spatial-backbone kind for the ARSSL harness. VAR's probed representation is measured, not named -- the VQVAE tokeniser's encoder output, global-average-pooled (evaluate_linear_var.encode), not the VAR transformer and not encoder.pt. The VQGAN encoder is fully convolutional (stride 16), so the map needs no token reshape; the provider returns vae.encoder(x) directly and infers the tokeniser arch (ch, Cvae, V) from the checkpoint (the iGPT pattern). The shared discovery/dispatch/KINDS guards are already proven in mutations/mae-backbone.json. These mutations prove the provider's own guards are not vacuous: the encoder output (not the quantised map one step further on) is the read (pooling it reproduces VAR's own probe feature), a checkpoint that is not this tokeniser -- an inference weight it infers arch from, a tokeniser weight, or an alien key -- is refused rather than half-loaded, and the backbone stays frozen in eval (its train() override). NOTE: the provider's own `requires_grad = False` loop is deliberately NOT a mutation target -- it is an equivalent mutant. Measured: the shared downstream/spatial_backbones.build_frozen_backbone re-freezes every returned model's parameters (`for p in model.parameters(): p.requires_grad = False`, lines 197-198) after the provider returns, so flipping the provider's own loop to True cannot change the observable frozen state through the only path the tests (and production) reach it. The aim/igpt specs omit it for the same reason; the requires_grad guard belongs to the shared layer, not per provider.",
+  "targets": [
+    {
+      "label": "the quantised map (one conv further on) is read instead of the encoder output, so the feature is not VAR's own probe feature",
+      "file": "methods/var/downstream_backbone.py",
+      "old": "        feat = self.vae.encoder(x)             # [B, Cvae, H/16, W/16]",
+      "new": "        feat = self.vae.quant_conv(self.vae.encoder(x))",
+      "tests": [
+        "tests.test_downstream_var_backbone.TestBuildingTheBackbone.test_the_pooled_map_reproduces_vars_own_probe_feature"
+      ]
+    },
+    {
+      "label": "a checkpoint carrying keys this VQVAE does not have is half-loaded, not refused",
+      "file": "methods/var/downstream_backbone.py",
+      "old": "        if result.unexpected_keys:",
+      "new": "        if False:",
+      "tests": [
+        "tests.test_downstream_var_backbone.TestTheStrictLoadRefuses.test_a_checkpoint_carrying_alien_keys_is_refused"
+      ]
+    },
+    {
+      "label": "a checkpoint missing a tokeniser weight is silently accepted",
+      "file": "methods/var/downstream_backbone.py",
+      "old": "        if result.missing_keys:",
+      "new": "        if False:",
+      "tests": [
+        "tests.test_downstream_var_backbone.TestTheStrictLoadRefuses.test_a_checkpoint_missing_a_tokeniser_weight_is_refused"
+      ]
+    },
+    {
+      "label": "the architecture is inferred from a checkpoint that has no encoder input convolution, so a non-tokeniser is built against a guessed shape instead of being refused",
+      "file": "methods/var/downstream_backbone.py",
+      "old": "        if key not in state:",
+      "new": "        if False:",
+      "tests": [
+        "tests.test_downstream_var_backbone.TestTheStrictLoadRefuses.test_a_checkpoint_that_is_not_a_vqvae_tokeniser_is_refused"
+      ]
+    },
+    {
+      "label": "the backbone leaves eval when train() is called",
+      "file": "methods/var/downstream_backbone.py",
+      "old": "        return super().train(False)",
+      "new": "        return super().train(mode)",
+      "tests": [
+        "tests.test_downstream_var_backbone.TestBuildingTheBackbone.test_the_backbone_is_frozen_and_stays_in_eval"
+      ]
+    },
+    {
+      "label": "the build leaves the submodule root on sys.path, so a later `from models import ...` resolves to VAR's models (the cross-method import bug)",
+      "file": "methods/var/downstream_backbone.py",
+      "old": "        sys.path[:] = path_before",
+      "new": "        sys.path[:] = sys.path",
+      "tests": [
+        "tests.test_downstream_var_backbone.TestTheProviderDoesNotLeakUpstreamImports.test_building_leaves_no_upstream_models_on_the_import_path"
+      ]
+    },
+    {
+      "label": "the build leaves the modules it newly imported (VAR's models) bound under the shared keys, not deleting them",
+      "file": "methods/var/downstream_backbone.py",
+      "old": "                del sys.modules[name]",
+      "new": "                pass",
+      "tests": [
+        "tests.test_downstream_var_backbone.TestTheProviderDoesNotLeakUpstreamImports.test_building_leaves_no_upstream_models_on_the_import_path"
+      ]
+    },
+    {
+      "label": "the build does not put back a shared module it overwrote (a method's own `models` bound before the build stays replaced by VAR's)",
+      "file": "methods/var/downstream_backbone.py",
+      "old": "            sys.modules[name] = module",
+      "new": "            pass",
+      "tests": [
+        "tests.test_downstream_var_backbone.TestTheProviderDoesNotLeakUpstreamImports.test_building_restores_a_shared_module_it_overwrites"
+      ]
+    },
+    {
+      "label": "the build leaves the global torch RNG advanced, so a later unseeded draw is shifted (tipping an RNG-fragile finite assertion into NaN)",
+      "file": "methods/var/downstream_backbone.py",
+      "old": "        torch.set_rng_state(rng_before)",
+      "new": "        pass",
+      "tests": [
+        "tests.test_downstream_var_backbone.TestTheProviderDoesNotLeakUpstreamImports.test_building_does_not_perturb_the_global_rng"
+      ]
+    },
+    {
+      "label": "the build does not put back torch's default init on a class the upstream replaced it on (nn.Linear stays a no-op), so every module a later method builds keeps uninitialised torch.empty memory (NaN)",
+      "file": "methods/var/downstream_backbone.py",
+      "old": "                setattr(cls, \"reset_parameters\", val)",
+      "new": "                pass",
+      "tests": [
+        "tests.test_downstream_var_backbone.TestTheProviderDoesNotLeakUpstreamImports.test_building_restores_torchs_default_parameter_init"
+      ]
+    },
+    {
+      "label": "the build does not remove an override the upstream added to a class that had none of its own (nn.Conv2d keeps the no-op), so a later module built from it is uninitialised",
+      "file": "methods/var/downstream_backbone.py",
+      "old": "                    delattr(cls, \"reset_parameters\")",
+      "new": "                    pass",
+      "tests": [
+        "tests.test_downstream_var_backbone.TestTheProviderDoesNotLeakUpstreamImports.test_building_restores_torchs_default_parameter_init"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-09-01 (re-measured after the hermetic-build guards were extended to torch's default parameter init: VAR's upstream build_vae_var setattr's nn.<cls>.reset_parameters to a no-op over eight classes globally and permanently, so every module a later method builds keeps uninitialised torch.empty memory -- the real cause of the 53 cross-method not-finite / not-round-tripping failures in the in-process suite. The provider now snapshots and restores each nn class's own reset_parameters alongside sys.path, sys.modules and the torch RNG, so building the tokeniser leaves no observable global side effect in the shared process)",
+    "measured_with": "an interpreter with torch (.venvs/05_jigsaw_puzzle), which builds and loads the VAR VQVAE backbone in-process; the end-to-end ARSSL test is not among the referenced tests, so no timm subprocess is needed to kill these",
+    "killed": 11,
+    "total": 11,
+    "equivalent": []
+  }
+}

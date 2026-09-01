@@ -1,6 +1,6 @@
 # Step 3 porting plan (on `main`, and enforced)
 
-Last updated: 2026-08-30
+Last updated: 2026-09-01
 
 This is the **sequenced, authoritative plan** for porting the "Step 3" methods
 into this repository. It lives on `main`, in the working tree, so it is present
@@ -27,9 +27,12 @@ Nothing went red because nothing was watching. This document, plus its test, is
 the mechanism. It does not undo the four ports already merged out of turn
 (EVA-02, AIMv2, BEiT v2, SigLIP): those are recorded as done. Once A1 -- the
 item they jumped -- landed, `next` advanced past EVA-02/AIMv2/BEiT v2 (orders
-2-4), so three of the four fell back *into* turn; only SigLIP (a Phase-B item,
-order 13) remains ahead of `next`, and the guard's frozen ceiling tightened
-from 4 to 1 to admit exactly it. What it stops is the **next** silent drift.
+2-4), so three of the four fell back *into* turn; SigLIP (a Phase-B item,
+order 13) remained the one out-of-turn port, and the frozen ceiling tightened
+from 4 to 1 to admit exactly it. Now that all of Phase A has landed (A3:var,
+order 12, was the last A3 item), `next` is B1:sam3 (order 14) and SigLIP
+(order 13) sits *before* it -- back in turn -- so no out-of-order port stands
+and the ceiling tightens to 0. What it stops is the **next** silent drift.
 
 ## How it is enforced
 
@@ -144,15 +147,31 @@ ImageNet-100 is a separate future port), not A1.
   stay unchanged: `num_feature_layers` is fixed to AIM's protocol value 6 (clamped
   to depth), and the prediction head (`predictor.*`, excluded from `encoder.pt`) is
   built minimally and its absence tolerated, while an alien key or a missing trunk
-  weight is refused. VAR remains; it is wired by whichever shape measurement shows
-  it needs -- a `downstream_backbone.py` provider if its encoder is hand-written, or
-  a `configs/downstream_arssl.json` config if it reuses a shared kind.
+  weight is refused. *VAR is done, the fourth provider*
+  (`methods/var/downstream_backbone.py`, `var_vqvae`) -- and it completes Phase A.
+  Measurement (not the name) shows VAR's probed representation is the **VQVAE
+  tokeniser's encoder** output, global-average-pooled (`evaluate_linear_var.encode`)
+  -- not the VAR transformer step 1 trains, and not `encoder.pt`. `vae.encoder(x)`
+  already returns a `[B, Cvae, H/16, W/16]` map (the VQGAN encoder is fully
+  convolutional, stride 16), so unlike the ViT providers there is no token grid to
+  reshape: the provider returns that map directly, and pooling it reproduces VAR's
+  own probe feature (one representation, two readers). So the backbone spec's
+  `encoder` is the **VQVAE tokeniser checkpoint** (the pinned download
+  `vae_ch160v4096z32.pth`); following iGPT, the VQVAE architecture the shared ViT
+  schema has no slot for (`Cvae`, the vocabulary `V`, the base width `ch`) is
+  **inferred from the checkpoint**, so a config cannot disagree with the trained
+  tokeniser. The tokeniser is built through the method's own
+  `train_pretrain_var.build_vqvae` (one place knows how it is built, loaded by file
+  path under a unique name -- no cross-method `models` collision), and a checkpoint
+  that is not this VQVAE -- an inference weight, a tokeniser weight, or an alien key
+  -- is refused rather than half-loaded.
 
 ### Phase B -- Multimodal / CompEval (reuse frozen backbones)
 
 - **B1** -- **SigLIP, SAM3, DINOv3-7B, Cosmos3 Super**: frozen-backbone adapters
-  (the `38_clip` / `docs/EVAL_DOWNLOAD.md` pattern). *SigLIP is done (ahead of
-  Phase A).*
+  (the `38_clip` / `docs/EVAL_DOWNLOAD.md` pattern). *SigLIP is done (it was
+  ported ahead of Phase A; now that Phase A has landed it is back in turn, the
+  first Phase-B item). SAM3 is `next`.*
 - **B2** -- the CompEval_Extend60 adapter set over backbones ported in other
   phases: **RAE1, RAE2, RAEv2-K7, VDPM, VGGT-Omega, Cosmos 3, V-JEPA 2.1**
   (adapters, not new backbones).
@@ -183,8 +202,8 @@ ImageNet-100 is a separate future port), not A1.
 
 ```json
 {
-  "next": "A3:var",
-  "grandfathered_ceiling": 1,
+  "next": "B1:sam3",
+  "grandfathered_ceiling": 0,
   "non_step3_unnumbered": ["_reference", "image_gpt", "mar", "var"],
   "items": [
     {"id": "A1", "phase": "A", "subphase": "A1", "order": 1, "kind": "task", "title": "ARSSL eval harness (driver over the downstream task probes)", "artifact": "downstream/arssl.py", "status": "done"},
@@ -198,7 +217,7 @@ ImageNet-100 is a separate future port), not A1.
     {"id": "A3:lejepa", "phase": "A", "subphase": "A3", "order": 9, "kind": "task", "title": "wire LeJEPA into the A1 harness", "artifact": "methods/37_lejepa/configs/downstream_arssl.json", "status": "done"},
     {"id": "A3:igpt", "phase": "A", "subphase": "A3", "order": 10, "kind": "task", "title": "wire iGPT into the A1 harness", "artifact": "methods/image_gpt/downstream_backbone.py", "status": "done"},
     {"id": "A3:aim", "phase": "A", "subphase": "A3", "order": 11, "kind": "task", "title": "wire AIM into the A1 harness", "artifact": "methods/30_aim/downstream_backbone.py", "status": "done"},
-    {"id": "A3:var", "phase": "A", "subphase": "A3", "order": 12, "kind": "task", "title": "wire VAR into the A1 harness", "artifact": null, "status": "todo"},
+    {"id": "A3:var", "phase": "A", "subphase": "A3", "order": 12, "kind": "task", "title": "wire VAR into the A1 harness", "artifact": "methods/var/downstream_backbone.py", "status": "done"},
     {"id": "B1:siglip", "phase": "B", "subphase": "B1", "order": 13, "kind": "method", "dir": "siglip", "title": "SigLIP", "status": "done"},
     {"id": "B1:sam3", "phase": "B", "subphase": "B1", "order": 14, "kind": "method", "dir": "sam3", "title": "SAM3", "status": "todo"},
     {"id": "B1:dinov3_7b", "phase": "B", "subphase": "B1", "order": 15, "kind": "method", "dir": "dinov3_7b", "title": "DINOv3-7B", "status": "todo"},
