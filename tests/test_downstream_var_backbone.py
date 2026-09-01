@@ -66,9 +66,26 @@ try:
 except ImportError:
     HAVE_TIMM = False
 
+try:
+    import huggingface_hub                                  # noqa: F401
+    HAVE_HF_HUB = True
+except ImportError:
+    HAVE_HF_HUB = False
+
 needs_torch = unittest.skipUnless(HAVE_TORCH, "var_vqvae backbone needs torch")
 needs_timm = unittest.skipUnless(
     HAVE_TIMM, "the end-to-end ARSSL wiring drives the ADE20K runner (timm)")
+# Building the VQVAE reaches the pinned upstream, which imports huggingface_hub --
+# the method's one PyPI dependency beyond the shared stack, pinned in its own lock
+# (its requirements). So under this method's own lock (and any lock carrying it)
+# these tests build and run in full; under a foreign method's lock that omits it
+# the tokeniser cannot be built, so a build test skips rather than erroring -- the
+# same shape as needs_timm, and the same gate the method's own test uses. Only the
+# tests that actually build are gated on it; discovery/dispatch needs no build and
+# stays on needs_torch.
+needs_upstream = unittest.skipUnless(
+    HAVE_TORCH and HAVE_HF_HUB,
+    "building VAR's VQVAE needs the upstream's huggingface_hub (in var's lock)")
 
 # This module's tests draw random inputs (`torch.randn`), which advances the global
 # torch RNG. The whole suite runs in one process in discovery order, and this file
@@ -146,7 +163,7 @@ class TestTheKindIsDiscoveredNotNamed(unittest.TestCase):
                 {"kind": "not_a_backbone"}, torch.device("cpu"))
 
 
-@needs_torch
+@needs_upstream
 class TestBuildingTheBackbone(unittest.TestCase):
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp(prefix="var-bb-"))
@@ -206,7 +223,7 @@ class TestBuildingTheBackbone(unittest.TestCase):
                         (pooled_map - expected).abs().max().item())
 
 
-@needs_torch
+@needs_upstream
 class TestTheStrictLoadRefuses(unittest.TestCase):
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp(prefix="var-bb-"))
@@ -238,7 +255,7 @@ class TestTheStrictLoadRefuses(unittest.TestCase):
         self.assertIn("encoder.conv_out.weight", str(e.exception))
 
 
-@needs_torch
+@needs_upstream
 class TestTheProviderDoesNotLeakUpstreamImports(unittest.TestCase):
     """VAR's tokeniser is built through its own ``build_vqvae``, whose collision-
     safe upstream loader puts ``third_party/var`` first on ``sys.path`` and binds
