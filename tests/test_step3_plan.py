@@ -48,13 +48,16 @@ METHODS = ROOT / "methods"
 # eval-only ports EVA-02/AIMv2/BEiT v2/SigLIP, all done before the A1 harness);
 # once A1 (order 1) completed, `next` advanced past EVA-02/AIMv2/BEiT v2 (orders
 # 2-4), leaving only SigLIP (order 13, a Phase-B item) genuinely out of turn, so
-# the honest ceiling tightened to 1. Now that all of Phase A has landed (A3:var,
-# order 12, was the last), `next` is B1:sam3 (order 14) and SigLIP (order 13)
-# sits *before* it -- back in turn -- so nothing done remains ahead of `next` and
-# the ceiling tightens to 0: no out-of-order port stands. It is a bare integer,
-# not a method name, so it is allowed in a shared file. Changing it is the one way
-# to admit (or retire) an out-of-order port, and that must be a deliberate,
-# reviewed edit to this test -- which is exactly the point.
+# the honest ceiling tightened to 1. Now that all of Phase A and both of the
+# ungated B1 backbones have landed in turn (SigLIP order 13, SAM3 order 14), the
+# ceiling stays 0: no out-of-order port stands. DINOv3-7B (order 15) is `deferred`
+# -- its weights are HF-gated and no real sha256 is obtainable here (see its
+# `deferred_reason`) -- so `next` steps over it to B1:cosmos3_super (order 16), the
+# earliest `todo`. A deferral moves an item off the critical path but is not an
+# out-of-order completion, so it does not touch this ceiling. The ceiling is a
+# bare integer, not a method name, so it is allowed in a shared file. Changing it
+# is the one way to admit (or retire) an out-of-order port, and that must be a
+# deliberate, reviewed edit to this test -- which is exactly the point.
 FROZEN_CEILING = 0
 
 
@@ -103,7 +106,17 @@ class TestThePlanIsMachineReadable(unittest.TestCase):
             for key in ("id", "phase", "subphase", "order", "kind", "title",
                         "status"):
                 self.assertIn(key, it, f"item {it.get('id')!r} lacks {key}")
-            self.assertIn(it["status"], ("done", "todo"))
+            self.assertIn(it["status"], ("done", "todo", "deferred"))
+            if it["status"] == "deferred":
+                # A deferral removes an item from the critical path (it is not
+                # `todo`, so `next` steps over it), which is exactly how a silent
+                # skip would look. The guard against that is a required, non-empty
+                # reason: an item may only leave the queue on the record. Proven
+                # non-vacuous by mutations/step3-plan.json (strip the reason -> RED).
+                self.assertTrue(
+                    str(it.get("deferred_reason", "")).strip(),
+                    f"item {it['id']!r} is deferred without a deferred_reason; a "
+                    "deferral must be recorded, never a silent skip")
             self.assertIn(it["kind"], ("method", "task"))
             if it["kind"] == "method":
                 self.assertIn("dir", it, f"method {it['id']!r} lacks a dir")
@@ -133,9 +146,18 @@ class TestACheckboxCannotLie(unittest.TestCase):
 
     def test_the_check_is_not_vacuous(self):
         """A positive control: there is at least one done and one todo item, so
-        the accuracy test above is exercising both truth values."""
+        the accuracy test above is exercising both truth values. `deferred` may
+        also appear (a blocked item, off the critical path) but is not required
+        to -- once its blocker clears it becomes `todo`/`done` again, so the
+        control must not demand a deferral always exist."""
         statuses = {it["status"] for it in _plan()["items"]}
-        self.assertEqual(statuses, {"done", "todo"})
+        self.assertTrue(
+            statuses <= {"done", "todo", "deferred"},
+            f"unknown status value(s): {statuses - {'done', 'todo', 'deferred'}}")
+        self.assertTrue(
+            {"done", "todo"} <= statuses,
+            "both `done` and `todo` must be present so the accuracy check "
+            f"exercises both truth values; saw {statuses}")
 
 
 class TestTheNextPointerIsAFact(unittest.TestCase):
