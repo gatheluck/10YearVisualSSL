@@ -13,10 +13,19 @@
     {
       "label": "the next pointer skips ahead past an earlier unfinished item",
       "file": "docs/STEP3_PORTING_PLAN.md",
-      "old": "\"next\": \"B1:dinov3_7b\",",
-      "new": "\"next\": \"B1:cosmos3_super\",",
+      "old": "\"next\": \"B1:cosmos3_super\",",
+      "new": "\"next\": \"B2:rae1\",",
       "tests": [
         "tests.test_step3_plan.TestTheNextPointerIsAFact.test_next_is_the_earliest_unfinished_item"
+      ]
+    },
+    {
+      "label": "a deferred item drops its recorded reason (a silent skip)",
+      "file": "docs/STEP3_PORTING_PLAN.md",
+      "old": "\"status\": \"deferred\", \"deferred_reason\":",
+      "new": "\"status\": \"deferred\", \"_deferred_reason\":",
+      "tests": [
+        "tests.test_step3_plan.TestThePlanIsMachineReadable.test_every_item_is_well_formed"
       ]
     },
     {
@@ -31,8 +40,8 @@
     {
       "label": "a new method is marked done ahead of its turn, exceeding the (now zero) ceiling",
       "file": "docs/STEP3_PORTING_PLAN.md",
-      "old": "\"dir\": \"cosmos3_super\", \"title\": \"Cosmos3 Super\", \"status\": \"todo\"",
-      "new": "\"dir\": \"cosmos3_super\", \"title\": \"Cosmos3 Super\", \"status\": \"done\"",
+      "old": "\"dir\": \"shufflelearn\", \"title\": \"Shuffle & Learn\", \"status\": \"todo\"",
+      "new": "\"dir\": \"shufflelearn\", \"title\": \"Shuffle & Learn\", \"status\": \"done\"",
       "tests": [
         "tests.test_step3_plan.TestNoNewOutOfOrderWork.test_done_items_after_the_next_pointer_stay_within_the_ceiling"
       ]
@@ -66,10 +75,10 @@
     }
   ],
   "_result": {
-    "measured_on": "2026-09-01 (re-measured after B1:sam3 landed; next advanced to B1:dinov3_7b, ceiling stays 0)",
+    "measured_on": "2026-09-02 (re-measured after B1:dinov3_7b was deferred (HF-gated, no obtainable sha256); next advanced to B1:cosmos3_super, ceiling stays 0; added the deferred-reason guard mutant)",
     "measured_with": "python3 bin/mutate.py --spec mutations/step3-plan.json (base interpreter, pure stdlib)",
-    "killed": 7,
-    "total": 7,
+    "killed": 8,
+    "total": 8,
     "equivalent": []
   }
 }
