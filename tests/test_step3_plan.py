@@ -48,13 +48,17 @@ METHODS = ROOT / "methods"
 # eval-only ports EVA-02/AIMv2/BEiT v2/SigLIP, all done before the A1 harness);
 # once A1 (order 1) completed, `next` advanced past EVA-02/AIMv2/BEiT v2 (orders
 # 2-4), leaving only SigLIP (order 13, a Phase-B item) genuinely out of turn, so
-# the honest ceiling tightened to 1. Now that all of Phase A and both of the
-# ungated B1 backbones have landed in turn (SigLIP order 13, SAM3 order 14), the
-# ceiling stays 0: no out-of-order port stands. DINOv3-7B (order 15) is `deferred`
-# -- its weights are HF-gated and no real sha256 is obtainable here (see its
-# `deferred_reason`) -- so `next` steps over it to B1:cosmos3_super (order 16), the
-# earliest `todo`. A deferral moves an item off the critical path but is not an
-# out-of-order completion, so it does not touch this ceiling. The ceiling is a
+# the honest ceiling tightened to 1. Now that all of Phase A and all three ungated
+# B1 backbones have landed in turn (SigLIP order 13, SAM3 order 14, Cosmos3 Super
+# order 16), the ceiling stays 0: no out-of-order port stands. DINOv3-7B (order 15)
+# is `deferred` -- its weights are HF-gated and no real sha256 is obtainable here
+# (see its `deferred_reason`) -- so `next` steps over it. With every ungated B1
+# backbone done, `next` is B2:cosmos3_eval (order 17): the CompEval adapter set was
+# re-ordered so each eval adapter follows the backbone it probes (see
+# TestAnAdapterFollowsItsBackbone), and Cosmos3 Super is the one B2 backbone
+# already on disk, so its adapter is the earliest `todo`. A deferral moves an item
+# off the critical path but is not an out-of-order completion, so it does not touch
+# this ceiling. The ceiling is a
 # bare integer, not a method name, so it is allowed in a shared file. Changing it
 # is the one way to admit (or retire) an out-of-order port, and that must be a
 # deliberate, reviewed edit to this test -- which is exactly the point.
@@ -213,6 +217,45 @@ class TestEveryPortIsAccountedFor(unittest.TestCase):
             planned & set(plan["non_step3_unnumbered"]), set(),
             "a directory is listed both as a Step-3 port and a non-Step-3 "
             "exception")
+
+
+class TestAnAdapterFollowsItsBackbone(unittest.TestCase):
+    """A CompEval eval-adapter is a frozen-backbone probe: it can only run once
+    the backbone it probes exists. The plan once scheduled the whole B2 adapter
+    set (order 17-23) *before* the C/D/E/F phases that produce those backbones,
+    so the adapters sat ahead of their inputs and nothing caught it. The fix is
+    machinery, not care: an adapter task declares `depends_on` (the backbone
+    item's id), and its order must come after that backbone's. Proven
+    non-vacuous by mutations/step3-plan.json (point a `depends_on` at a
+    later-ordered item -> RED)."""
+
+    def test_every_declared_dependency_precedes_its_dependent(self):
+        items = _plan()["items"]
+        order_of = {it["id"]: it["order"] for it in items}
+        offenders = []
+        declared = 0
+        for it in items:
+            dep = it.get("depends_on")
+            if dep is None:
+                continue
+            declared += 1
+            self.assertIn(
+                dep, order_of,
+                f"item {it['id']!r} depends_on {dep!r}, which is not a plan item")
+            if order_of[dep] >= it["order"]:
+                offenders.append((it["id"], dep))
+        self.assertEqual(
+            offenders, [],
+            "these eval adapters are ordered before the backbone they probe "
+            "(depends_on must come earlier in the order): " + ", ".join(
+                f"{a} before {b}" for a, b in offenders))
+        # Positive control: the guard is only meaningful if some item actually
+        # declares a dependency, so a plan that dropped every `depends_on` (and
+        # thus could never fire) is itself a failure.
+        self.assertGreater(
+            declared, 0,
+            "no plan item declares `depends_on`; the dependency guard would be "
+            "vacuous")
 
 
 if __name__ == "__main__":
