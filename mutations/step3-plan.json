@@ -13,8 +13,8 @@
     {
       "label": "the next pointer skips ahead past an earlier unfinished item",
       "file": "docs/STEP3_PORTING_PLAN.md",
-      "old": "\"next\": \"C1:shufflelearn\",",
-      "new": "\"next\": \"C1:video_moco\",",
+      "old": "\"next\": \"C1:videomae\",",
+      "new": "\"next\": \"C2:vjepa2\",",
       "tests": [
         "tests.test_step3_plan.TestTheNextPointerIsAFact.test_next_is_the_earliest_unfinished_item"
       ]
@@ -22,8 +22,8 @@
     {
       "label": "a deferred item drops its recorded reason (a silent skip)",
       "file": "docs/STEP3_PORTING_PLAN.md",
-      "old": "\"status\": \"deferred\", \"deferred_reason\":",
-      "new": "\"status\": \"deferred\", \"_deferred_reason\":",
+      "old": "\"deferred\", \"deferred_reason\": \"The DINOv3",
+      "new": "\"deferred\", \"_deferred_reason\": \"The DINOv3",
       "tests": [
         "tests.test_step3_plan.TestThePlanIsMachineReadable.test_every_item_is_well_formed"
       ]
@@ -40,8 +40,8 @@
     {
       "label": "a new method is marked done ahead of its turn, exceeding the (now zero) ceiling",
       "file": "docs/STEP3_PORTING_PLAN.md",
-      "old": "\"dir\": \"video_moco\", \"title\": \"Video MoCo\", \"status\": \"todo\"",
-      "new": "\"dir\": \"video_moco\", \"title\": \"Video MoCo\", \"status\": \"done\"",
+      "old": "\"dir\": \"vjepa2\", \"title\": \"V-JEPA 2\", \"status\": \"todo\"",
+      "new": "\"dir\": \"vjepa2\", \"title\": \"V-JEPA 2\", \"status\": \"done\"",
       "tests": [
         "tests.test_step3_plan.TestNoNewOutOfOrderWork.test_done_items_after_the_next_pointer_stay_within_the_ceiling"
       ]
@@ -84,7 +84,7 @@
     }
   ],
   "_result": {
-    "measured_on": "2026-09-02 (re-measured after the same-day correction: the CompEval adapter titled 'Cosmos 3' probes Cosmos3-Nano = C3:cosmos3, not the already-ported Cosmos3 Super, so B2:cosmos3_eval's depends_on is C3:cosmos3 and it re-orders to 25; no B2 adapter's backbone is on disk yet, so next is C1:shufflelearn, order 17; ceiling stays 0; B1:dinov3_7b remains deferred so the deferred-reason guard mutant still applies; the next-skip mutant now points next past C1:shufflelearn to C1:video_moco; the out-of-order-done mutant now marks C1:video_moco, order 18 > next, done; the depends_on mutant now points B2:cosmos3_eval's C3:cosmos3 dependency at a later-ordered backbone to prove the adapter-follows-its-backbone guard)",
+    "measured_on": "2026-09-02 (re-measured after deferring the first two Phase-C methods: C1:shufflelearn (order 17) and C1:video_moco (order 18) are first-party capture re-implementations with no released weights and no pretext-training code in the snapshot, so both are deferred and next steps over them to C1:videomae (order 19), the earliest todo, which uses official public HF weights MCG-NJU/videomae-base; ceiling stays 0; three deferred items now carry a deferred_reason, so the deferred-reason guard mutant anchors uniquely on the DINOv3 reason ('The DINOv3'); the next-skip mutant now points next past C1:videomae to C2:vjepa2; the out-of-order-done mutant now marks C2:vjepa2, order 20 > next, done; the depends_on mutant still points B2:cosmos3_eval's C3:cosmos3 dependency at a later-ordered backbone to prove the adapter-follows-its-backbone guard)",
     "measured_with": "python3 bin/mutate.py --spec mutations/step3-plan.json (base interpreter, pure stdlib)",
     "killed": 9,
     "total": 9,
