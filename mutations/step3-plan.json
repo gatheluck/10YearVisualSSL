@@ -13,8 +13,8 @@
     {
       "label": "the next pointer skips ahead past an earlier unfinished item",
       "file": "docs/STEP3_PORTING_PLAN.md",
-      "old": "\"next\": \"B2:cosmos3_eval\",",
-      "new": "\"next\": \"C1:shufflelearn\",",
+      "old": "\"next\": \"C1:shufflelearn\",",
+      "new": "\"next\": \"C1:video_moco\",",
       "tests": [
         "tests.test_step3_plan.TestTheNextPointerIsAFact.test_next_is_the_earliest_unfinished_item"
       ]
@@ -40,8 +40,8 @@
     {
       "label": "a new method is marked done ahead of its turn, exceeding the (now zero) ceiling",
       "file": "docs/STEP3_PORTING_PLAN.md",
-      "old": "\"dir\": \"shufflelearn\", \"title\": \"Shuffle & Learn\", \"status\": \"todo\"",
-      "new": "\"dir\": \"shufflelearn\", \"title\": \"Shuffle & Learn\", \"status\": \"done\"",
+      "old": "\"dir\": \"video_moco\", \"title\": \"Video MoCo\", \"status\": \"todo\"",
+      "new": "\"dir\": \"video_moco\", \"title\": \"Video MoCo\", \"status\": \"done\"",
       "tests": [
         "tests.test_step3_plan.TestNoNewOutOfOrderWork.test_done_items_after_the_next_pointer_stay_within_the_ceiling"
       ]
@@ -76,7 +76,7 @@
     {
       "label": "an eval adapter is pointed at a backbone ordered after it (adapter before its input)",
       "file": "docs/STEP3_PORTING_PLAN.md",
-      "old": "\"depends_on\": \"B1:cosmos3_super\"",
+      "old": "\"depends_on\": \"C3:cosmos3\"",
       "new": "\"depends_on\": \"F2:vdpm\"",
       "tests": [
         "tests.test_step3_plan.TestAnAdapterFollowsItsBackbone.test_every_declared_dependency_precedes_its_dependent"
@@ -84,7 +84,7 @@
     }
   ],
   "_result": {
-    "measured_on": "2026-09-02 (re-measured after the B2 CompEval adapter set was re-ordered so each eval adapter follows the backbone it probes; next advanced to B2:cosmos3_eval, order 17, the one B2 adapter whose backbone is already on disk; ceiling stays 0; B1:dinov3_7b remains deferred so the deferred-reason guard mutant still applies; the next-skip mutant now points next past B2:cosmos3_eval to C1:shufflelearn; a new mutant points B2:cosmos3_eval's depends_on at a later-ordered backbone to prove the adapter-follows-its-backbone guard)",
+    "measured_on": "2026-09-02 (re-measured after the same-day correction: the CompEval adapter titled 'Cosmos 3' probes Cosmos3-Nano = C3:cosmos3, not the already-ported Cosmos3 Super, so B2:cosmos3_eval's depends_on is C3:cosmos3 and it re-orders to 25; no B2 adapter's backbone is on disk yet, so next is C1:shufflelearn, order 17; ceiling stays 0; B1:dinov3_7b remains deferred so the deferred-reason guard mutant still applies; the next-skip mutant now points next past C1:shufflelearn to C1:video_moco; the out-of-order-done mutant now marks C1:video_moco, order 18 > next, done; the depends_on mutant now points B2:cosmos3_eval's C3:cosmos3 dependency at a later-ordered backbone to prove the adapter-follows-its-backbone guard)",
     "measured_with": "python3 bin/mutate.py --spec mutations/step3-plan.json (base interpreter, pure stdlib)",
     "killed": 9,
     "total": 9,
