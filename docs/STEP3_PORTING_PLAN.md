@@ -38,22 +38,40 @@ no full sha256, so a real `backbone_artifact` hash cannot be pinned honestly fro
 this machine (see the item's `deferred_reason`). A deferral is a recorded departure
 from the queue -- the test requires a non-empty reason -- not a silent one; it moves
 the item off the critical path without marking it done, so `next` stepped over it to
-Cosmos3 Super (order 16), which has now landed. With every ungated B1 backbone done,
-`next` is **B2:cosmos3_eval (order 17)**, the earliest `todo`. When the DINOv3-7B
-weights are obtained through authorized access, its status returns to `todo`.
+Cosmos3 Super (order 16), which has now landed. With every ungated B1 backbone done
+and no B2 CompEval adapter yet buildable (see the correction below), `next` is
+**C1:shufflelearn (order 17)**, the earliest `todo`. When the DINOv3-7B weights are
+obtained through authorized access, its status returns to `todo`.
 
 **A second latent drift, found and fixed 2026-09-02:** the B2 CompEval adapters
 are frozen-backbone probes "over backbones ported in other phases", yet the plan
 had listed all of them at orders 17-23 -- *ahead* of the C/D/E/F phases that
-produce those backbones. An adapter cannot run before its input exists, so six of
-the seven were unbuildable in place (only Cosmos3 Super's adapter had its backbone,
-because Cosmos3 Super is an already-ported B1 item). The set was re-ordered so each
-eval adapter now sits immediately after the backbone it probes, and each adapter
-carries a `depends_on` naming that backbone. This is enforced, not merely written:
-`TestAnAdapterFollowsItsBackbone` fails if any `depends_on` points at a
-later-ordered item. So `next` is the one B2 adapter whose backbone is on disk today
-(`B2:cosmos3_eval`); the rest follow their backbones in C2/D1/E2/F2. What this
-document stops is the **next** silent drift.
+produce those backbones. An adapter cannot run before its input exists. The set
+was re-ordered so each eval adapter now sits immediately after the backbone it
+probes, and each adapter carries a `depends_on` naming that backbone. This is
+enforced, not merely written: `TestAnAdapterFollowsItsBackbone` fails if any
+`depends_on` points at a later-ordered item.
+
+**A correction to that fix, same day (2026-09-02):** the re-order first placed
+`B2:cosmos3_eval` at order 17 with `depends_on: B1:cosmos3_super`, on the belief
+that the CompEval adapter titled "Cosmos 3" probed the already-ported Cosmos3
+Super. Measurement of the capture record showed that belief was wrong. The
+capture holds *two* distinct Cosmos CompEval adapters -- `cosmos3_adapter.py`
+("Cosmos 3", loading `checkpoints/cosmos3/Cosmos3-Nano`, a 16B `nvidia/Cosmos3-Nano`
+checkpoint, feature dim ~4096) and `cosmos3_super_adapter.py` ("Cosmos 3 Super",
+the 64B `nvidia/Cosmos3-Super`, feature dim 1152, which is what `methods/cosmos3_super`
+already ported). By its title and by that split, `B2:cosmos3_eval` is the **Nano**
+adapter, whose backbone is **C3:cosmos3** (order 24, `todo`), *not* the ported
+Super. Its `depends_on` is corrected to `C3:cosmos3` and it is re-ordered to 25
+(immediately after C3:cosmos3). The order guard passed throughout because
+Cosmos3 Super (order 16) also precedes order 17 -- the guard checks *ordering*, not
+*which model* an adapter probes; that model-identity fact lives in the capture repo,
+which is not present here or in CI, so it cannot be mechanised from this repo and is
+recorded in prose instead. The consequence: **no B2 CompEval adapter's backbone is
+on disk yet** (each depends on a C/D/E/F backbone not yet ported), so `next` is not
+a B2 item at all but **C1:shufflelearn** (order 17), the earliest `todo`; the B2
+adapters follow their backbones in C2/C3/D1/E2/F2. What this document stops is the
+**next** silent drift.
 
 ## How it is enforced
 
@@ -208,13 +226,16 @@ ImageNet-100 is a separate future port), not A1.
   matches the HF class and a `save_pretrained` -> `from_pretrained` round-trip is
   exact, so the loading path is unit-tested without the ~1.1GB weights; its
   `vision_encoder/model.safetensors` is pinned by a sha256 that the capture and the
-  HF LFS metadata agree on. So `next` is the CompEval adapter for Cosmos 3, the
-  one B2 adapter whose backbone is already on disk.*
+  HF LFS metadata agree on. With every ungated B1 backbone done and no B2 CompEval
+  adapter's backbone yet on disk (the CompEval "Cosmos 3" adapter probes Cosmos3
+  Nano = `C3:cosmos3`, not this Super backbone -- see the correction above), `next`
+  is the first Phase-C method, `C1:shufflelearn`.*
 - **B2** -- the CompEval_Extend60 adapter set over backbones ported in other
   phases: **Cosmos 3, V-JEPA 2.1, RAE1, RAE2, RAEv2-K7, VGGT-Omega, VDPM**
   (adapters, not new backbones). These are frozen-backbone probes, so each one is
   scheduled **after** the backbone it evaluates rather than as a contiguous
-  early block: `B2:cosmos3_eval` follows `B1:cosmos3_super` (done) and is `next`;
+  early block: `B2:cosmos3_eval` follows `C3:cosmos3` (the Cosmos3-Nano backbone
+  it probes -- *not* the ported `B1:cosmos3_super`, see the correction above);
   `B2:vjepa2_1_eval` follows `C2:vjepa2_1`; `B2:rae1`/`B2:rae2` follow `D1:rae`;
   `B2:raev2_k7` follows `D1:raev2`; `B2:vggt_omega_eval` follows `E2:vggt_omega`;
   `B2:vdpm_eval` follows `F2:vdpm`. Each adapter item carries a `depends_on`
@@ -249,7 +270,7 @@ ImageNet-100 is a separate future port), not A1.
 
 ```json
 {
-  "next": "B2:cosmos3_eval",
+  "next": "C1:shufflelearn",
   "grandfathered_ceiling": 0,
   "non_step3_unnumbered": ["_reference", "image_gpt", "mar", "var"],
   "items": [
@@ -269,15 +290,15 @@ ImageNet-100 is a separate future port), not A1.
     {"id": "B1:sam3", "phase": "B", "subphase": "B1", "order": 14, "kind": "method", "dir": "sam3", "title": "SAM3", "status": "done"},
     {"id": "B1:dinov3_7b", "phase": "B", "subphase": "B1", "order": 15, "kind": "method", "dir": "dinov3_7b", "title": "DINOv3-7B", "status": "deferred", "deferred_reason": "The DINOv3 ViT-7B/16 weights (facebook/dinov3-vit7b16-pretrain-lvd1689m) are Hugging Face gated (Meta DINOv3 License) and the capture's SOURCE_SNAPSHOT.json records no full sha256 (only the .pth 8-char suffix a955f4ea and weight_bytes); with no HF token or local snapshot on this machine a real backbone_artifact sha256 cannot be obtained honestly. Deferred (2026-09-02) until the weights are fetched via authorized Hugging Face access, so the backbone can be pinned by a real, verified sha256 like every other eval-only port."},
     {"id": "B1:cosmos3_super", "phase": "B", "subphase": "B1", "order": 16, "kind": "method", "dir": "cosmos3_super", "title": "Cosmos3 Super", "status": "done"},
-    {"id": "B2:cosmos3_eval", "phase": "B", "subphase": "B2", "order": 17, "kind": "task", "title": "CompEval adapter: Cosmos 3", "artifact": null, "depends_on": "B1:cosmos3_super", "status": "todo"},
-    {"id": "C1:shufflelearn", "phase": "C", "subphase": "C1", "order": 18, "kind": "method", "dir": "shufflelearn", "title": "Shuffle & Learn", "status": "todo"},
-    {"id": "C1:video_moco", "phase": "C", "subphase": "C1", "order": 19, "kind": "method", "dir": "video_moco", "title": "Video MoCo", "status": "todo"},
-    {"id": "C1:videomae", "phase": "C", "subphase": "C1", "order": 20, "kind": "method", "dir": "videomae", "title": "Video MAE", "status": "todo"},
-    {"id": "C2:vjepa2", "phase": "C", "subphase": "C2", "order": 21, "kind": "method", "dir": "vjepa2", "title": "V-JEPA 2", "status": "todo"},
-    {"id": "C2:vjepa2_ac", "phase": "C", "subphase": "C2", "order": 22, "kind": "method", "dir": "vjepa2_ac", "title": "V-JEPA 2-AC", "status": "todo"},
-    {"id": "C2:vjepa2_1", "phase": "C", "subphase": "C2", "order": 23, "kind": "method", "dir": "vjepa2_1", "title": "V-JEPA 2.1", "status": "todo"},
-    {"id": "B2:vjepa2_1_eval", "phase": "B", "subphase": "B2", "order": 24, "kind": "task", "title": "CompEval adapter: V-JEPA 2.1", "artifact": null, "depends_on": "C2:vjepa2_1", "status": "todo"},
-    {"id": "C3:cosmos3", "phase": "C", "subphase": "C3", "order": 25, "kind": "method", "dir": "cosmos3", "title": "Cosmos3", "status": "todo"},
+    {"id": "C1:shufflelearn", "phase": "C", "subphase": "C1", "order": 17, "kind": "method", "dir": "shufflelearn", "title": "Shuffle & Learn", "status": "todo"},
+    {"id": "C1:video_moco", "phase": "C", "subphase": "C1", "order": 18, "kind": "method", "dir": "video_moco", "title": "Video MoCo", "status": "todo"},
+    {"id": "C1:videomae", "phase": "C", "subphase": "C1", "order": 19, "kind": "method", "dir": "videomae", "title": "Video MAE", "status": "todo"},
+    {"id": "C2:vjepa2", "phase": "C", "subphase": "C2", "order": 20, "kind": "method", "dir": "vjepa2", "title": "V-JEPA 2", "status": "todo"},
+    {"id": "C2:vjepa2_ac", "phase": "C", "subphase": "C2", "order": 21, "kind": "method", "dir": "vjepa2_ac", "title": "V-JEPA 2-AC", "status": "todo"},
+    {"id": "C2:vjepa2_1", "phase": "C", "subphase": "C2", "order": 22, "kind": "method", "dir": "vjepa2_1", "title": "V-JEPA 2.1", "status": "todo"},
+    {"id": "B2:vjepa2_1_eval", "phase": "B", "subphase": "B2", "order": 23, "kind": "task", "title": "CompEval adapter: V-JEPA 2.1", "artifact": null, "depends_on": "C2:vjepa2_1", "status": "todo"},
+    {"id": "C3:cosmos3", "phase": "C", "subphase": "C3", "order": 24, "kind": "method", "dir": "cosmos3", "title": "Cosmos3", "status": "todo"},
+    {"id": "B2:cosmos3_eval", "phase": "B", "subphase": "B2", "order": 25, "kind": "task", "title": "CompEval adapter: Cosmos 3", "artifact": null, "depends_on": "C3:cosmos3", "status": "todo"},
     {"id": "C3:wan22", "phase": "C", "subphase": "C3", "order": 26, "kind": "method", "dir": "wan22", "title": "WAN2.2", "status": "todo"},
     {"id": "D1:mage", "phase": "D", "subphase": "D1", "order": 27, "kind": "method", "dir": "mage", "title": "MAGE", "status": "todo"},
     {"id": "D1:dit", "phase": "D", "subphase": "D1", "order": 28, "kind": "method", "dir": "dit", "title": "DiT", "status": "todo"},

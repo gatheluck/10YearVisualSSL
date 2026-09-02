@@ -52,11 +52,13 @@ METHODS = ROOT / "methods"
 # B1 backbones have landed in turn (SigLIP order 13, SAM3 order 14, Cosmos3 Super
 # order 16), the ceiling stays 0: no out-of-order port stands. DINOv3-7B (order 15)
 # is `deferred` -- its weights are HF-gated and no real sha256 is obtainable here
-# (see its `deferred_reason`) -- so `next` steps over it. With every ungated B1
-# backbone done, `next` is B2:cosmos3_eval (order 17): the CompEval adapter set was
-# re-ordered so each eval adapter follows the backbone it probes (see
-# TestAnAdapterFollowsItsBackbone), and Cosmos3 Super is the one B2 backbone
-# already on disk, so its adapter is the earliest `todo`. A deferral moves an item
+# (see its `deferred_reason`) -- so `next` steps over it. The B2 CompEval adapters
+# were re-ordered so each follows the backbone it probes (see
+# TestAnAdapterFollowsItsBackbone); a same-day correction then showed the CompEval
+# adapter titled "Cosmos 3" probes Cosmos3-Nano (= C3:cosmos3, not the already-ported
+# Cosmos3 Super), so its `depends_on` is C3:cosmos3 (order 24) and no B2 adapter's
+# backbone is on disk yet. `next` is therefore the first Phase-C method,
+# C1:shufflelearn (order 17), the earliest `todo`. A deferral moves an item
 # off the critical path but is not an out-of-order completion, so it does not touch
 # this ceiling. The ceiling is a
 # bare integer, not a method name, so it is allowed in a shared file. Changing it
