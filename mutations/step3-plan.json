@@ -1,5 +1,5 @@
 {
-  "_note": "Run: python3 bin/mutate.py --spec mutations/step3-plan.json (pure stdlib, no venv needed). Proves the Step-3 plan guards in tests/test_step3_plan.py are not vacuous: a lying checkbox, a mispointed `next`, a bumped ceiling, a new out-of-order port, a dropped/overlapping partition entry, and a duplicate order are each caught. The mutations edit the machine-readable JSON block in docs/STEP3_PORTING_PLAN.md.",
+  "_note": "Run: python3 bin/mutate.py --spec mutations/step3-plan.json (pure stdlib, no venv needed). Proves the Step-3 plan guards in tests/test_step3_plan.py are not vacuous: a lying checkbox, a mispointed `next`, a bumped ceiling, a new out-of-order port, a dropped/overlapping partition entry, a duplicate order, and an eval adapter ordered before the backbone it depends on are each caught. The mutations edit the machine-readable JSON block in docs/STEP3_PORTING_PLAN.md.",
   "targets": [
     {
       "label": "a done method is marked done although its adapter is absent",
@@ -13,8 +13,8 @@
     {
       "label": "the next pointer skips ahead past an earlier unfinished item",
       "file": "docs/STEP3_PORTING_PLAN.md",
-      "old": "\"next\": \"B2:rae1\",",
-      "new": "\"next\": \"B2:rae2\",",
+      "old": "\"next\": \"B2:cosmos3_eval\",",
+      "new": "\"next\": \"C1:shufflelearn\",",
       "tests": [
         "tests.test_step3_plan.TestTheNextPointerIsAFact.test_next_is_the_earliest_unfinished_item"
       ]
@@ -72,13 +72,22 @@
       "tests": [
         "tests.test_step3_plan.TestThePlanIsMachineReadable.test_every_item_is_well_formed"
       ]
+    },
+    {
+      "label": "an eval adapter is pointed at a backbone ordered after it (adapter before its input)",
+      "file": "docs/STEP3_PORTING_PLAN.md",
+      "old": "\"depends_on\": \"B1:cosmos3_super\"",
+      "new": "\"depends_on\": \"F2:vdpm\"",
+      "tests": [
+        "tests.test_step3_plan.TestAnAdapterFollowsItsBackbone.test_every_declared_dependency_precedes_its_dependent"
+      ]
     }
   ],
   "_result": {
-    "measured_on": "2026-09-02 (re-measured after B1:cosmos3_super landed done; next advanced to B2:rae1, ceiling stays 0; B1:dinov3_7b remains deferred so the deferred-reason guard mutant still applies; the next-skip mutant now points next past B2:rae1 to B2:rae2)",
+    "measured_on": "2026-09-02 (re-measured after the B2 CompEval adapter set was re-ordered so each eval adapter follows the backbone it probes; next advanced to B2:cosmos3_eval, order 17, the one B2 adapter whose backbone is already on disk; ceiling stays 0; B1:dinov3_7b remains deferred so the deferred-reason guard mutant still applies; the next-skip mutant now points next past B2:cosmos3_eval to C1:shufflelearn; a new mutant points B2:cosmos3_eval's depends_on at a later-ordered backbone to prove the adapter-follows-its-backbone guard)",
     "measured_with": "python3 bin/mutate.py --spec mutations/step3-plan.json (base interpreter, pure stdlib)",
-    "killed": 8,
-    "total": 8,
+    "killed": 9,
+    "total": 9,
     "equivalent": []
   }
 }

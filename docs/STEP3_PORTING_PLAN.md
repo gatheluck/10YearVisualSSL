@@ -30,7 +30,7 @@ item they jumped -- landed, `next` advanced past EVA-02/AIMv2/BEiT v2 (orders
 2-4), so three of the four fell back *into* turn; SigLIP (a Phase-B item,
 order 13) remained the one out-of-turn port, and the frozen ceiling tightened
 from 4 to 1 to admit exactly it. Now that all of Phase A has landed (A3:var,
-order 12, was the last A3 item) and both ungated B1 backbones have landed in
+order 12, was the last A3 item) and all three ungated B1 backbones have landed in
 turn (SigLIP order 13, SAM3 order 14, Cosmos3 Super order 16), no out-of-order
 port stands and the ceiling stays 0. **DINOv3-7B (order 15) is `deferred`, not
 skipped:** its weights are Hugging Face gated and, unlike SAM3, the capture recorded
@@ -39,8 +39,20 @@ this machine (see the item's `deferred_reason`). A deferral is a recorded depart
 from the queue -- the test requires a non-empty reason -- not a silent one; it moves
 the item off the critical path without marking it done, so `next` stepped over it to
 Cosmos3 Super (order 16), which has now landed. With every ungated B1 backbone done,
-`next` is **B2:rae1 (order 17)**, the earliest `todo`. When the DINOv3-7B weights
-are obtained through authorized access, its status returns to `todo`. What this
+`next` is **B2:cosmos3_eval (order 17)**, the earliest `todo`. When the DINOv3-7B
+weights are obtained through authorized access, its status returns to `todo`.
+
+**A second latent drift, found and fixed 2026-09-02:** the B2 CompEval adapters
+are frozen-backbone probes "over backbones ported in other phases", yet the plan
+had listed all of them at orders 17-23 -- *ahead* of the C/D/E/F phases that
+produce those backbones. An adapter cannot run before its input exists, so six of
+the seven were unbuildable in place (only Cosmos3 Super's adapter had its backbone,
+because Cosmos3 Super is an already-ported B1 item). The set was re-ordered so each
+eval adapter now sits immediately after the backbone it probes, and each adapter
+carries a `depends_on` naming that backbone. This is enforced, not merely written:
+`TestAnAdapterFollowsItsBackbone` fails if any `depends_on` points at a
+later-ordered item. So `next` is the one B2 adapter whose backbone is on disk today
+(`B2:cosmos3_eval`); the rest follow their backbones in C2/D1/E2/F2. What this
 document stops is the **next** silent drift.
 
 ## How it is enforced
@@ -196,10 +208,20 @@ ImageNet-100 is a separate future port), not A1.
   matches the HF class and a `save_pretrained` -> `from_pretrained` round-trip is
   exact, so the loading path is unit-tested without the ~1.1GB weights; its
   `vision_encoder/model.safetensors` is pinned by a sha256 that the capture and the
-  HF LFS metadata agree on. So `next` is Phase B2, the CompEval adapter set.*
+  HF LFS metadata agree on. So `next` is the CompEval adapter for Cosmos 3, the
+  one B2 adapter whose backbone is already on disk.*
 - **B2** -- the CompEval_Extend60 adapter set over backbones ported in other
-  phases: **RAE1, RAE2, RAEv2-K7, VDPM, VGGT-Omega, Cosmos 3, V-JEPA 2.1**
-  (adapters, not new backbones).
+  phases: **Cosmos 3, V-JEPA 2.1, RAE1, RAE2, RAEv2-K7, VGGT-Omega, VDPM**
+  (adapters, not new backbones). These are frozen-backbone probes, so each one is
+  scheduled **after** the backbone it evaluates rather than as a contiguous
+  early block: `B2:cosmos3_eval` follows `B1:cosmos3_super` (done) and is `next`;
+  `B2:vjepa2_1_eval` follows `C2:vjepa2_1`; `B2:rae1`/`B2:rae2` follow `D1:rae`;
+  `B2:raev2_k7` follows `D1:raev2`; `B2:vggt_omega_eval` follows `E2:vggt_omega`;
+  `B2:vdpm_eval` follows `F2:vdpm`. Each adapter item carries a `depends_on`
+  naming its backbone, and `TestAnAdapterFollowsItsBackbone` enforces that the
+  backbone is ordered first. (RAE1/RAE2/RAEv2-K7 additionally have no recorded
+  weight provenance today -- the same class of blocker as DINOv3-7B; that is a
+  separate concern from ordering and is handled when their backbones are ported.)
 
 ### Phase C -- Video SSL & Gen (video data path; the SSv2 head exists)
 
@@ -227,7 +249,7 @@ ImageNet-100 is a separate future port), not A1.
 
 ```json
 {
-  "next": "B2:rae1",
+  "next": "B2:cosmos3_eval",
   "grandfathered_ceiling": 0,
   "non_step3_unnumbered": ["_reference", "image_gpt", "mar", "var"],
   "items": [
@@ -247,38 +269,38 @@ ImageNet-100 is a separate future port), not A1.
     {"id": "B1:sam3", "phase": "B", "subphase": "B1", "order": 14, "kind": "method", "dir": "sam3", "title": "SAM3", "status": "done"},
     {"id": "B1:dinov3_7b", "phase": "B", "subphase": "B1", "order": 15, "kind": "method", "dir": "dinov3_7b", "title": "DINOv3-7B", "status": "deferred", "deferred_reason": "The DINOv3 ViT-7B/16 weights (facebook/dinov3-vit7b16-pretrain-lvd1689m) are Hugging Face gated (Meta DINOv3 License) and the capture's SOURCE_SNAPSHOT.json records no full sha256 (only the .pth 8-char suffix a955f4ea and weight_bytes); with no HF token or local snapshot on this machine a real backbone_artifact sha256 cannot be obtained honestly. Deferred (2026-09-02) until the weights are fetched via authorized Hugging Face access, so the backbone can be pinned by a real, verified sha256 like every other eval-only port."},
     {"id": "B1:cosmos3_super", "phase": "B", "subphase": "B1", "order": 16, "kind": "method", "dir": "cosmos3_super", "title": "Cosmos3 Super", "status": "done"},
-    {"id": "B2:rae1", "phase": "B", "subphase": "B2", "order": 17, "kind": "task", "title": "CompEval adapter: RAE1", "artifact": null, "status": "todo"},
-    {"id": "B2:rae2", "phase": "B", "subphase": "B2", "order": 18, "kind": "task", "title": "CompEval adapter: RAE2", "artifact": null, "status": "todo"},
-    {"id": "B2:raev2_k7", "phase": "B", "subphase": "B2", "order": 19, "kind": "task", "title": "CompEval adapter: RAEv2-K7", "artifact": null, "status": "todo"},
-    {"id": "B2:vdpm_eval", "phase": "B", "subphase": "B2", "order": 20, "kind": "task", "title": "CompEval adapter: VDPM", "artifact": null, "status": "todo"},
-    {"id": "B2:vggt_omega_eval", "phase": "B", "subphase": "B2", "order": 21, "kind": "task", "title": "CompEval adapter: VGGT-Omega", "artifact": null, "status": "todo"},
-    {"id": "B2:cosmos3_eval", "phase": "B", "subphase": "B2", "order": 22, "kind": "task", "title": "CompEval adapter: Cosmos 3", "artifact": null, "status": "todo"},
-    {"id": "B2:vjepa2_1_eval", "phase": "B", "subphase": "B2", "order": 23, "kind": "task", "title": "CompEval adapter: V-JEPA 2.1", "artifact": null, "status": "todo"},
-    {"id": "C1:shufflelearn", "phase": "C", "subphase": "C1", "order": 24, "kind": "method", "dir": "shufflelearn", "title": "Shuffle & Learn", "status": "todo"},
-    {"id": "C1:video_moco", "phase": "C", "subphase": "C1", "order": 25, "kind": "method", "dir": "video_moco", "title": "Video MoCo", "status": "todo"},
-    {"id": "C1:videomae", "phase": "C", "subphase": "C1", "order": 26, "kind": "method", "dir": "videomae", "title": "Video MAE", "status": "todo"},
-    {"id": "C2:vjepa2", "phase": "C", "subphase": "C2", "order": 27, "kind": "method", "dir": "vjepa2", "title": "V-JEPA 2", "status": "todo"},
-    {"id": "C2:vjepa2_ac", "phase": "C", "subphase": "C2", "order": 28, "kind": "method", "dir": "vjepa2_ac", "title": "V-JEPA 2-AC", "status": "todo"},
-    {"id": "C2:vjepa2_1", "phase": "C", "subphase": "C2", "order": 29, "kind": "method", "dir": "vjepa2_1", "title": "V-JEPA 2.1", "status": "todo"},
-    {"id": "C3:cosmos3", "phase": "C", "subphase": "C3", "order": 30, "kind": "method", "dir": "cosmos3", "title": "Cosmos3", "status": "todo"},
-    {"id": "C3:wan22", "phase": "C", "subphase": "C3", "order": 31, "kind": "method", "dir": "wan22", "title": "WAN2.2", "status": "todo"},
-    {"id": "D1:mage", "phase": "D", "subphase": "D1", "order": 32, "kind": "method", "dir": "mage", "title": "MAGE", "status": "todo"},
-    {"id": "D1:dit", "phase": "D", "subphase": "D1", "order": 33, "kind": "method", "dir": "dit", "title": "DiT", "status": "todo"},
-    {"id": "D1:jit", "phase": "D", "subphase": "D1", "order": 34, "kind": "method", "dir": "jit", "title": "JiT", "status": "todo"},
-    {"id": "D1:rae", "phase": "D", "subphase": "D1", "order": 35, "kind": "method", "dir": "rae", "title": "RAE", "status": "todo"},
-    {"id": "D1:raev2", "phase": "D", "subphase": "D1", "order": 36, "kind": "method", "dir": "raev2", "title": "RAEv2", "status": "todo"},
-    {"id": "E1:croco", "phase": "E", "subphase": "E1", "order": 37, "kind": "method", "dir": "croco", "title": "CroCo", "status": "todo"},
-    {"id": "E1:dust3r", "phase": "E", "subphase": "E1", "order": 38, "kind": "method", "dir": "dust3r", "title": "DUSt3R", "status": "todo"},
-    {"id": "E1:mast3r", "phase": "E", "subphase": "E1", "order": 39, "kind": "method", "dir": "mast3r", "title": "MASt3R", "status": "todo"},
-    {"id": "E2:da3", "phase": "E", "subphase": "E2", "order": 40, "kind": "method", "dir": "da3", "title": "DA3", "status": "todo"},
-    {"id": "E2:pi3", "phase": "E", "subphase": "E2", "order": 41, "kind": "method", "dir": "pi3", "title": "Pi^3", "status": "todo"},
-    {"id": "E2:vggt", "phase": "E", "subphase": "E2", "order": 42, "kind": "method", "dir": "vggt", "title": "VGGT", "status": "todo"},
-    {"id": "E2:vggt_omega", "phase": "E", "subphase": "E2", "order": 43, "kind": "method", "dir": "vggt_omega", "title": "VGGT-Omega", "status": "todo"},
-    {"id": "F1:monst3r", "phase": "F", "subphase": "F1", "order": 44, "kind": "method", "dir": "monst3r", "title": "MonST3R", "status": "todo"},
-    {"id": "F1:d2st3r", "phase": "F", "subphase": "F1", "order": 45, "kind": "method", "dir": "d2st3r", "title": "D2ST3R", "status": "todo"},
-    {"id": "F1:streamvggt", "phase": "F", "subphase": "F1", "order": 46, "kind": "method", "dir": "streamvggt", "title": "StreamVGGT", "status": "todo"},
-    {"id": "F2:dvlt", "phase": "F", "subphase": "F2", "order": 47, "kind": "method", "dir": "dvlt", "title": "Deja View (DVLT)", "status": "todo"},
-    {"id": "F2:vdpm", "phase": "F", "subphase": "F2", "order": 48, "kind": "method", "dir": "vdpm", "title": "V-DPM", "status": "todo"}
+    {"id": "B2:cosmos3_eval", "phase": "B", "subphase": "B2", "order": 17, "kind": "task", "title": "CompEval adapter: Cosmos 3", "artifact": null, "depends_on": "B1:cosmos3_super", "status": "todo"},
+    {"id": "C1:shufflelearn", "phase": "C", "subphase": "C1", "order": 18, "kind": "method", "dir": "shufflelearn", "title": "Shuffle & Learn", "status": "todo"},
+    {"id": "C1:video_moco", "phase": "C", "subphase": "C1", "order": 19, "kind": "method", "dir": "video_moco", "title": "Video MoCo", "status": "todo"},
+    {"id": "C1:videomae", "phase": "C", "subphase": "C1", "order": 20, "kind": "method", "dir": "videomae", "title": "Video MAE", "status": "todo"},
+    {"id": "C2:vjepa2", "phase": "C", "subphase": "C2", "order": 21, "kind": "method", "dir": "vjepa2", "title": "V-JEPA 2", "status": "todo"},
+    {"id": "C2:vjepa2_ac", "phase": "C", "subphase": "C2", "order": 22, "kind": "method", "dir": "vjepa2_ac", "title": "V-JEPA 2-AC", "status": "todo"},
+    {"id": "C2:vjepa2_1", "phase": "C", "subphase": "C2", "order": 23, "kind": "method", "dir": "vjepa2_1", "title": "V-JEPA 2.1", "status": "todo"},
+    {"id": "B2:vjepa2_1_eval", "phase": "B", "subphase": "B2", "order": 24, "kind": "task", "title": "CompEval adapter: V-JEPA 2.1", "artifact": null, "depends_on": "C2:vjepa2_1", "status": "todo"},
+    {"id": "C3:cosmos3", "phase": "C", "subphase": "C3", "order": 25, "kind": "method", "dir": "cosmos3", "title": "Cosmos3", "status": "todo"},
+    {"id": "C3:wan22", "phase": "C", "subphase": "C3", "order": 26, "kind": "method", "dir": "wan22", "title": "WAN2.2", "status": "todo"},
+    {"id": "D1:mage", "phase": "D", "subphase": "D1", "order": 27, "kind": "method", "dir": "mage", "title": "MAGE", "status": "todo"},
+    {"id": "D1:dit", "phase": "D", "subphase": "D1", "order": 28, "kind": "method", "dir": "dit", "title": "DiT", "status": "todo"},
+    {"id": "D1:jit", "phase": "D", "subphase": "D1", "order": 29, "kind": "method", "dir": "jit", "title": "JiT", "status": "todo"},
+    {"id": "D1:rae", "phase": "D", "subphase": "D1", "order": 30, "kind": "method", "dir": "rae", "title": "RAE", "status": "todo"},
+    {"id": "B2:rae1", "phase": "B", "subphase": "B2", "order": 31, "kind": "task", "title": "CompEval adapter: RAE1", "artifact": null, "depends_on": "D1:rae", "status": "todo"},
+    {"id": "B2:rae2", "phase": "B", "subphase": "B2", "order": 32, "kind": "task", "title": "CompEval adapter: RAE2", "artifact": null, "depends_on": "D1:rae", "status": "todo"},
+    {"id": "D1:raev2", "phase": "D", "subphase": "D1", "order": 33, "kind": "method", "dir": "raev2", "title": "RAEv2", "status": "todo"},
+    {"id": "B2:raev2_k7", "phase": "B", "subphase": "B2", "order": 34, "kind": "task", "title": "CompEval adapter: RAEv2-K7", "artifact": null, "depends_on": "D1:raev2", "status": "todo"},
+    {"id": "E1:croco", "phase": "E", "subphase": "E1", "order": 35, "kind": "method", "dir": "croco", "title": "CroCo", "status": "todo"},
+    {"id": "E1:dust3r", "phase": "E", "subphase": "E1", "order": 36, "kind": "method", "dir": "dust3r", "title": "DUSt3R", "status": "todo"},
+    {"id": "E1:mast3r", "phase": "E", "subphase": "E1", "order": 37, "kind": "method", "dir": "mast3r", "title": "MASt3R", "status": "todo"},
+    {"id": "E2:da3", "phase": "E", "subphase": "E2", "order": 38, "kind": "method", "dir": "da3", "title": "DA3", "status": "todo"},
+    {"id": "E2:pi3", "phase": "E", "subphase": "E2", "order": 39, "kind": "method", "dir": "pi3", "title": "Pi^3", "status": "todo"},
+    {"id": "E2:vggt", "phase": "E", "subphase": "E2", "order": 40, "kind": "method", "dir": "vggt", "title": "VGGT", "status": "todo"},
+    {"id": "E2:vggt_omega", "phase": "E", "subphase": "E2", "order": 41, "kind": "method", "dir": "vggt_omega", "title": "VGGT-Omega", "status": "todo"},
+    {"id": "B2:vggt_omega_eval", "phase": "B", "subphase": "B2", "order": 42, "kind": "task", "title": "CompEval adapter: VGGT-Omega", "artifact": null, "depends_on": "E2:vggt_omega", "status": "todo"},
+    {"id": "F1:monst3r", "phase": "F", "subphase": "F1", "order": 43, "kind": "method", "dir": "monst3r", "title": "MonST3R", "status": "todo"},
+    {"id": "F1:d2st3r", "phase": "F", "subphase": "F1", "order": 44, "kind": "method", "dir": "d2st3r", "title": "D2ST3R", "status": "todo"},
+    {"id": "F1:streamvggt", "phase": "F", "subphase": "F1", "order": 45, "kind": "method", "dir": "streamvggt", "title": "StreamVGGT", "status": "todo"},
+    {"id": "F2:dvlt", "phase": "F", "subphase": "F2", "order": 46, "kind": "method", "dir": "dvlt", "title": "Deja View (DVLT)", "status": "todo"},
+    {"id": "F2:vdpm", "phase": "F", "subphase": "F2", "order": 47, "kind": "method", "dir": "vdpm", "title": "V-DPM", "status": "todo"},
+    {"id": "B2:vdpm_eval", "phase": "B", "subphase": "B2", "order": 48, "kind": "task", "title": "CompEval adapter: VDPM", "artifact": null, "depends_on": "F2:vdpm", "status": "todo"}
   ]
 }
 ```
