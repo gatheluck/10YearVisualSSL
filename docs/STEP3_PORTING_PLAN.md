@@ -256,7 +256,7 @@ ImageNet-100 is a separate future port), not A1.
   are captured. With neither weights nor the capture's own training code they cannot
   be faithfully ported; each carries a `deferred_reason` and `next` steps over them
   to **Video MAE** (order 19), which uses official public HuggingFace weights
-  (`MCG-NJU/videomae-base`, Apache-2.0) and is portable as an eval-only
+  (`MCG-NJU/videomae-base`, CC-BY-NC-4.0) and is portable as an eval-only
   frozen-backbone probe.
 - **C2** -- **V-JEPA 2, V-JEPA 2-AC, V-JEPA 2.1** (extend the `35_vjepa`
   submodule).
@@ -281,7 +281,7 @@ ImageNet-100 is a separate future port), not A1.
 
 ```json
 {
-  "next": "C1:videomae",
+  "next": "C2:vjepa2",
   "grandfathered_ceiling": 0,
   "non_step3_unnumbered": ["_reference", "image_gpt", "mar", "var"],
   "items": [
@@ -302,8 +302,8 @@ ImageNet-100 is a separate future port), not A1.
     {"id": "B1:dinov3_7b", "phase": "B", "subphase": "B1", "order": 15, "kind": "method", "dir": "dinov3_7b", "title": "DINOv3-7B", "status": "deferred", "deferred_reason": "The DINOv3 ViT-7B/16 weights (facebook/dinov3-vit7b16-pretrain-lvd1689m) are Hugging Face gated (Meta DINOv3 License) and the capture's SOURCE_SNAPSHOT.json records no full sha256 (only the .pth 8-char suffix a955f4ea and weight_bytes); with no HF token or local snapshot on this machine a real backbone_artifact sha256 cannot be obtained honestly. Deferred (2026-09-02) until the weights are fetched via authorized Hugging Face access, so the backbone can be pinned by a real, verified sha256 like every other eval-only port."},
     {"id": "B1:cosmos3_super", "phase": "B", "subphase": "B1", "order": 16, "kind": "method", "dir": "cosmos3_super", "title": "Cosmos3 Super", "status": "done"},
     {"id": "C1:shufflelearn", "phase": "C", "subphase": "C1", "order": 17, "kind": "method", "dir": "shufflelearn", "title": "Shuffle & Learn", "status": "deferred", "deferred_reason": "Shuffle & Learn is a first-party PyTorch re-implementation in the capture (methods_step3/VideoSSL/01_shufflelearn), not an author-code port, and has no released checkpoint: the VideoSSL README's checkpoint column reads 'Requires video data (UCF-101 / Kinetics-400)'. The pretext-training code the same README documents (pretrain/{dataset,model,train}.py, the temporal-order-verification task) is ABSENT from the capture snapshot -- only the ResNet backbone wrapper, the eval stages, and the qsub launchers are captured, and scripts/qsub_pretrain_multinode.sh invokes a pretrain/train.py that does not exist under origin/snapshots. With neither released weights nor the capture's own pretext-training code, the method cannot be faithfully ported. Deferred (2026-09-02) until the capture snapshot includes the pretrain/ code (or a deliberate decision is taken to re-implement the pretext from arXiv:1603.08561, which would be a third implementation and is out of scope for a faithful port)."},
-    {"id": "C1:video_moco", "phase": "C", "subphase": "C1", "order": 18, "kind": "method", "dir": "video_moco", "title": "Video MoCo", "status": "deferred", "deferred_reason": "Video MoCo is a first-party PyTorch re-implementation in the capture (methods_step3/VideoSSL/02_videomoco), not an author-code port, with no released checkpoint (VideoSSL README checkpoint column: 'Requires video data (Kinetics-400)'). As with C1:shufflelearn, the pretext-training code the README documents (pretrain/{dataset,model,train}.py, MoCo-v2 video contrastive training) is ABSENT from the capture snapshot -- only the backbone wrapper, eval stages, and qsub launchers are captured. Deferred (2026-09-02) until the capture snapshot includes the pretrain/ code (or a decision is taken to re-implement from arXiv:2103.05346). C1:videomae (order 19) uses official public HuggingFace weights (MCG-NJU/videomae-base, Apache-2.0) and is portable, so next advances to it."},
-    {"id": "C1:videomae", "phase": "C", "subphase": "C1", "order": 19, "kind": "method", "dir": "videomae", "title": "Video MAE", "status": "todo"},
+    {"id": "C1:video_moco", "phase": "C", "subphase": "C1", "order": 18, "kind": "method", "dir": "video_moco", "title": "Video MoCo", "status": "deferred", "deferred_reason": "Video MoCo is a first-party PyTorch re-implementation in the capture (methods_step3/VideoSSL/02_videomoco), not an author-code port, with no released checkpoint (VideoSSL README checkpoint column: 'Requires video data (Kinetics-400)'). As with C1:shufflelearn, the pretext-training code the README documents (pretrain/{dataset,model,train}.py, MoCo-v2 video contrastive training) is ABSENT from the capture snapshot -- only the backbone wrapper, eval stages, and qsub launchers are captured. Deferred (2026-09-02) until the capture snapshot includes the pretrain/ code (or a decision is taken to re-implement from arXiv:2103.05346). C1:videomae (order 19) uses official public HuggingFace weights (MCG-NJU/videomae-base, CC-BY-NC-4.0) and is portable, so next advances to it."},
+    {"id": "C1:videomae", "phase": "C", "subphase": "C1", "order": 19, "kind": "method", "dir": "videomae", "title": "Video MAE", "status": "done"},
     {"id": "C2:vjepa2", "phase": "C", "subphase": "C2", "order": 20, "kind": "method", "dir": "vjepa2", "title": "V-JEPA 2", "status": "todo"},
     {"id": "C2:vjepa2_ac", "phase": "C", "subphase": "C2", "order": 21, "kind": "method", "dir": "vjepa2_ac", "title": "V-JEPA 2-AC", "status": "todo"},
     {"id": "C2:vjepa2_1", "phase": "C", "subphase": "C2", "order": 22, "kind": "method", "dir": "vjepa2_1", "title": "V-JEPA 2.1", "status": "todo"},
