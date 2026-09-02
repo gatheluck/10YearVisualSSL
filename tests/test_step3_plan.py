@@ -57,10 +57,15 @@ METHODS = ROOT / "methods"
 # TestAnAdapterFollowsItsBackbone); a same-day correction then showed the CompEval
 # adapter titled "Cosmos 3" probes Cosmos3-Nano (= C3:cosmos3, not the already-ported
 # Cosmos3 Super), so its `depends_on` is C3:cosmos3 (order 24) and no B2 adapter's
-# backbone is on disk yet. `next` is therefore the first Phase-C method,
-# C1:shufflelearn (order 17), the earliest `todo`. A deferral moves an item
-# off the critical path but is not an out-of-order completion, so it does not touch
-# this ceiling. The ceiling is a
+# backbone is on disk yet. The first two Phase-C methods are then `deferred`
+# (measured 2026-09-02): C1:shufflelearn (order 17) and C1:video_moco (order 18) are
+# first-party re-implementations whose capture snapshot holds neither released
+# weights nor the pretext-training code their own README documents, so they cannot be
+# faithfully ported (see their `deferred_reason`s). `next` therefore steps over both
+# to C1:videomae (order 19), the earliest `todo` -- Video MAE uses official public
+# HuggingFace weights (MCG-NJU/videomae-base, Apache-2.0) and is portable. A deferral
+# moves an item off the critical path but is not an out-of-order completion, so it
+# does not touch this ceiling. The ceiling is a
 # bare integer, not a method name, so it is allowed in a shared file. Changing it
 # is the one way to admit (or retire) an out-of-order port, and that must be a
 # deliberate, reviewed edit to this test -- which is exactly the point.
