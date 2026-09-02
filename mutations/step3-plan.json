@@ -13,8 +13,8 @@
     {
       "label": "the next pointer skips ahead past an earlier unfinished item",
       "file": "docs/STEP3_PORTING_PLAN.md",
-      "old": "\"next\": \"B1:cosmos3_super\",",
-      "new": "\"next\": \"B2:rae1\",",
+      "old": "\"next\": \"B2:rae1\",",
+      "new": "\"next\": \"B2:rae2\",",
       "tests": [
         "tests.test_step3_plan.TestTheNextPointerIsAFact.test_next_is_the_earliest_unfinished_item"
       ]
@@ -75,7 +75,7 @@
     }
   ],
   "_result": {
-    "measured_on": "2026-09-02 (re-measured after B1:dinov3_7b was deferred (HF-gated, no obtainable sha256); next advanced to B1:cosmos3_super, ceiling stays 0; added the deferred-reason guard mutant)",
+    "measured_on": "2026-09-02 (re-measured after B1:cosmos3_super landed done; next advanced to B2:rae1, ceiling stays 0; B1:dinov3_7b remains deferred so the deferred-reason guard mutant still applies; the next-skip mutant now points next past B2:rae1 to B2:rae2)",
     "measured_with": "python3 bin/mutate.py --spec mutations/step3-plan.json (base interpreter, pure stdlib)",
     "killed": 8,
     "total": 8,
