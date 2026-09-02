@@ -28,3 +28,6 @@
 [submodule "third_party/unilm"]
 	path = third_party/unilm
 	url = https://github.com/microsoft/unilm.git
+[submodule "third_party/vjepa2"]
+	path = third_party/vjepa2
+	url = https://github.com/facebookresearch/vjepa2

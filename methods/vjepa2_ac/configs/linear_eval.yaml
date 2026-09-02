@@ -1,0 +1,48 @@
+# vjepa2_ac linear evaluation: a linear probe on the frozen pretrained backbone.
+#
+# This port is eval-only (see the adapter docstring): V-JEPA 2-AC's as-is
+# comparison freezes the pretrained (action-conditioned) video encoder and probes
+# its mean-pooled patch tokens, and the latent-prediction video pretraining is the
+# excluded step. The probed representation is a genuine SSL feature -- so this
+# number is comparable (the "pretrained-backbone reuse" row, analogous to eva02 /
+# aimv2 / data2vec2 / cae / videomae / vjepa2). See docs/EVAL_DOWNLOAD.md.
+#
+# The V-JEPA 2 ViT is the pinned facebookresearch/vjepa2 submodule
+# (third_party/vjepa2), imported not copied; its real rotary-position attention is
+# used (unlike the self-contained sibling vjepa2, which approximates with plain
+# attention). Check out the submodule with `git submodule update --init
+# third_party/vjepa2`. Two paths are passed at run time, not shipped:
+#   --set DATA_ROOT=<path>       an ImageFolder with train/ and val/ subdirectories
+#   --set VJEPA2_AC_CKPT=<path>  the official vjepa2-ac-vitg.pt checkpoint. Obtain
+#                                it with `python3 bin/fetch-weights.py --provenance
+#                                methods/vjepa2_ac/provenance.json --artifact
+#                                backbone_artifact --out <dir>` (pinned by sha256
+#                                in provenance.json). Required for a meaningful
+#                                number; the hermetic smoke leaves it empty and
+#                                builds a random tiny backbone, so its accuracy is
+#                                meaningless and only the pipeline runs.
+# The output path is fixed at --out.
+stage: linear_eval
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+
+train:
+  # backbone: the official vjepa2-ac-vitg.pt (V-JEPA 2 ViT-g/16, tubelet 2, native
+  # 256px). `arch` is a factory in the submodule's vision_transformer; the
+  # checkpoint's encoder tensors load into it (module./backbone. stripped), and the
+  # predictor / opt / scaler / target_encoder entries are dropped.
+  name: facebook/vjepa2-ac-vitg
+  ckpt: "${VJEPA2_AC_CKPT}"
+  arch: vit_giant_xformers
+  img_size: 256
+  patch_size: 16
+  num_frames: 64
+  tubelet_size: 2
+  # probe: a single linear layer, SGD + cosine.
+  epochs: 100
+  batch_size: 32
+  num_workers: 8
+  lr: 0.1
+  momentum: 0.9
+  weight_decay: 0.0
