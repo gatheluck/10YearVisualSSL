@@ -1,0 +1,93 @@
+{
+  "_note": "Run: <torch-venv>/bin/python bin/mutate.py --spec mutations/sam3-linear-eval.json --python <torch-venv>/bin/python (an interpreter with torch/torchvision/transformers==5.16.1, so the device and converter tests run in-process). sam3 is a pure eval-only port: these guards prove the config refusals are not vacuous, a downstream probe number cannot borrow a pretext name, the absent encoder is declared, the device is resolved rather than assumed, and the trunk converter refuses a checkpoint that is not a SAM3 trunk rather than silently returning random weights.",
+  "targets": [
+    {
+      "label": "a config that fixes the output location is no longer refused",
+      "file": "methods/sam3/adapter/__init__.py",
+      "old": "    for key in (\"output\", \"result_dir\", \"checkpoint_dir\", \"checkpoint\"):\n        if key in config:",
+      "new": "    for key in (\"output\", \"result_dir\", \"checkpoint_dir\", \"checkpoint\"):\n        if False:",
+      "tests": [
+        "tests.test_method_sam3.TestConfigTranslation.test_a_config_that_sets_output_is_refused"
+      ]
+    },
+    {
+      "label": "a missing train setting is silently accepted",
+      "file": "methods/sam3/adapter/__init__.py",
+      "old": "    _named(EVAL_TRAIN_KEYS - set(train), set(train) - EVAL_TRAIN_KEYS,",
+      "new": "    _named(set(), set(train) - EVAL_TRAIN_KEYS,",
+      "tests": [
+        "tests.test_method_sam3.TestConfigTranslation.test_a_missing_setting_is_refused_by_name"
+      ]
+    },
+    {
+      "label": "an unknown train setting is silently accepted",
+      "file": "methods/sam3/adapter/__init__.py",
+      "old": "    _named(EVAL_TRAIN_KEYS - set(train), set(train) - EVAL_TRAIN_KEYS,\n           \"config.train\")",
+      "new": "    _named(EVAL_TRAIN_KEYS - set(train), set(),\n           \"config.train\")",
+      "tests": [
+        "tests.test_method_sam3.TestConfigTranslation.test_an_unknown_setting_is_refused"
+      ]
+    },
+    {
+      "label": "an unknown stage is no longer refused",
+      "file": "methods/sam3/adapter/__init__.py",
+      "old": "    stage = config.get(\"stage\")\n    if stage not in STAGES:",
+      "new": "    stage = config.get(\"stage\")\n    if False:",
+      "tests": [
+        "tests.test_method_sam3.TestConfigTranslation.test_an_unknown_stage_is_refused"
+      ]
+    },
+    {
+      "label": "a downstream probe number is mapped to a pretext name",
+      "file": "methods/sam3/adapter/__init__.py",
+      "old": "    \"final_top1_acc\": \"final_linear_probe_top1_accuracy\",",
+      "new": "    \"final_top1_acc\": \"final_pretext_top1_accuracy\",",
+      "tests": [
+        "tests.test_method_sam3.TestTheMetricsAreComparable"
+      ]
+    },
+    {
+      "label": "the absent encoder is not explained",
+      "file": "methods/sam3/adapter/__init__.py",
+      "old": "    if _stage_of(config_path) != \"linear_eval\":\n        return None\n    return (",
+      "new": "    if True:\n        return None\n    return (",
+      "tests": [
+        "tests.test_method_sam3.TestTheEvalProducesNoEncoder"
+      ]
+    },
+    {
+      "label": "cpu is not honoured -- the requested cpu returns a cuda device",
+      "file": "methods/sam3/evaluate_linear_sam3.py",
+      "old": "    if spec == \"cpu\":\n        return torch.device(\"cpu\")",
+      "new": "    if spec == \"cpu\":\n        return torch.device(\"cuda\")",
+      "tests": [
+        "tests.test_method_sam3.TestTheDeviceIsResolved"
+      ]
+    },
+    {
+      "label": "cuda without a gpu is no longer refused, it falls back silently",
+      "file": "methods/sam3/evaluate_linear_sam3.py",
+      "old": "        if not torch.cuda.is_available():",
+      "new": "        if False:",
+      "tests": [
+        "tests.test_method_sam3.TestTheDeviceIsResolved"
+      ]
+    },
+    {
+      "label": "a checkpoint that is not a SAM3 trunk is silently returned instead of refused",
+      "file": "methods/sam3/sam3_trunk.py",
+      "old": "    raise RuntimeError(f\"No SAM3 trunk keys found. sample={sample}\")",
+      "new": "    return sd",
+      "tests": [
+        "tests.test_method_sam3.TestTheTrunkConverter.test_a_checkpoint_with_no_trunk_keys_is_refused"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-09-01",
+    "measured_with": "the .venvs/sam3 interpreter (torch==2.13.0, torchvision==0.28.0, transformers==5.16.1, safetensors -- the same stack sam3's lock pins), on a host with a CUDA device; the device tests exercise the cuda-refusal path by mocking torch.cuda.is_available, and the converter test loads a synthetic official-format trunk into a Sam3ViTModel",
+    "killed": 9,
+    "total": 9,
+    "equivalent": []
+  }
+}

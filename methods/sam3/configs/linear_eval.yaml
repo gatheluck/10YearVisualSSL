@@ -1,0 +1,51 @@
+# sam3 linear evaluation: a linear probe on the frozen SAM 3 vision encoder.
+#
+# This port is eval-only (see the adapter docstring): Meta SAM 3's as-is
+# comparison freezes the official promptable-segmentation model's vision encoder
+# and probes its mean-pooled patch tokens (no text/box prompts), and the
+# from-scratch pretraining is the excluded step. The probed representation is a
+# genuine learned feature -- so this number is comparable (the multimodal
+# "pretrained-backbone reuse" row, the transformers-sourced sibling of
+# data2vec2). See docs/EVAL_DOWNLOAD.md.
+#
+# The model class is transformers' Sam3ViTModel (a pinned pip dependency,
+# transformers==5.16.1), not a git submodule. Two paths are passed at run time,
+# not shipped:
+#   --set DATA_ROOT=<path>   an ImageFolder with train/ and val/ subdirectories
+#   --set SAM3_CKPT=<path>   the official sam3.pt (gated). The weights are Meta's
+#                            under the Meta SAM License; you must already be
+#                            entitled to them. It is pinned by sha256 in
+#                            provenance.json (backbone_artifact); bin/fetch-weights.py
+#                            verifies the hash of a copy you provide. The official
+#                            ViTDet-style trunk keys are converted onto Sam3ViTModel
+#                            by sam3_trunk (the architecture -- including the
+#                            intermediate_size 4736 -- is read from the checkpoint).
+#                            Required for a meaningful number; the hermetic smoke
+#                            leaves it empty and builds a random tiny Sam3ViTModel,
+#                            so its accuracy is meaningless and only the pipeline
+#                            runs, downloading nothing.
+# The output path is fixed at --out.
+stage: linear_eval
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+
+train:
+  # backbone: the official facebook/sam3 vision encoder (ViT-L, 336px probe
+  # resolution -- pretrain_image_size, not the native 1008, so the probe is
+  # executable). With a checkpoint, the architecture below is inferred from it;
+  # these keys shape the random tiny model the hermetic smoke builds.
+  name: facebook/sam3
+  ckpt: "${SAM3_CKPT}"
+  img_size: 336
+  patch_size: 14
+  embed_dim: 1024
+  depth: 32
+  num_heads: 16
+  # probe: a single linear layer, SGD + cosine.
+  epochs: 100
+  batch_size: 32
+  num_workers: 8
+  lr: 0.1
+  momentum: 0.9
+  weight_decay: 0.0
