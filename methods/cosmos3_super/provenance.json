@@ -1,0 +1,32 @@
+{
+  "captured_at": "2026-09-02",
+  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
+  "captured_note": "NVIDIA Cosmos3-Super (nvidia/Cosmos3-Super) appears in the capture's Step-3 VideoGen evaluation (methods_step3/VideoGen/Cosmos3-Super/adapter.py) as an as-is comparison: only the released model's Qwen3-VL vision encoder is loaded (the 64B MoT / DiT / VAE are never read) and frozen, then a linear probe is fit on its mean-pooled patch tokens, because Cosmos3-Super's from-scratch training is not reproduced. The capture loads the vision tower directly with transformers' Qwen3VLVisionModel.from_pretrained on the vision_encoder/ directory. This port carries that as-is comparison only. There is NO author submodule: the model class is transformers' (a pinned pip dependency), imported not copied, and the weights are a sha256-pinned, public download.",
+  "paper": {
+    "title": "NVIDIA Cosmos3-Super (Cosmos world foundation models)",
+    "url": "https://research.nvidia.com/labs/cosmos-lab/cosmos3/technical-report.pdf",
+    "official_repo": "https://github.com/nvidia/cosmos",
+    "model_card": "https://huggingface.co/nvidia/Cosmos3-Super"
+  },
+  "note": "Eval-only port (a single linear_eval stage, no pretraining). The backbone is transformers' Qwen3VLVisionModel; a real run loads the sha256-pinned released vision_encoder/ directory (config.json + model.safetensors) directly with from_pretrained (local_files_only=True), passed as the config's train.ckpt. Unlike sam3, the checkpoint IS directly loadable by the HF class -- no trunk conversion is needed, and a save_pretrained -> from_pretrained round-trip is exact, so the from_pretrained path is unit-tested without the (public but ~1.1GB) official weights. The hermetic smoke leaves ckpt empty and builds a random tiny Qwen3VLVisionModel, so nothing is downloaded and only the pipeline is exercised. Because the source is a pip dependency and not a git submodule, this file records NO upstream block and the adapter defines no UPSTREAM (test_port_completeness's both-places rule requires them to agree, and here both are absent).",
+  "linear_eval": "Probes Cosmos3-Super's Qwen3-VL vision-encoder patch tokens, mean-pooled over the sequence, frozen. The vision tower consumes flattened patches (each image unfolded into patch_size x patch_size patches, each repeated temporal_patch_size times, with grid_thw = [[1, H_p, W_p]] per image) and returns last_hidden_state at width hidden_size (1152); feature_dim = hidden_size = 1152, the frozen-probe width the capture uses -- NOT the merger's out_hidden_size (5120). The representation is a genuine learned feature, so the number is comparable (the multimodal 'pretrained-backbone reuse' row, analogous to data2vec2 / sam3 / eva02 / DINOv2 / Franca). A real run needs the released vision encoder (backbone_artifact below, hash-verified by bin/fetch-weights.py --artifact backbone_artifact); the hermetic smoke leaves ckpt empty and builds a random tiny Qwen3VLVisionModel, so nothing is downloaded and only the pipeline is exercised. See docs/EVAL_DOWNLOAD.md.",
+  "backbone_artifact": {
+    "name": "Cosmos3-Super released vision encoder (nvidia/Cosmos3-Super, vision_encoder/model.safetensors; loaded into transformers Qwen3VLVisionModel)",
+    "url": "https://huggingface.co/nvidia/Cosmos3-Super/resolve/fe77b66696d645f663b8f27e942b3b43e4629e23/vision_encoder/model.safetensors",
+    "filename": "model.safetensors",
+    "sha256": "3bdba32cec6f4f570a150f0a0e5ec60115fda49ab15873ecc86473a3da824b1e",
+    "size_bytes": 1190568352,
+    "license": "OpenMDW-1.1",
+    "gated": false,
+    "sha256_source": "recorded in the capture's methods_step3/VideoGen/Cosmos3-Super/SOURCE_SNAPSHOT.json (read 2026-09-02 from gatheluck/10YearVisualSSLCapturePrivate origin/snapshots), which hashed vision_encoder/model.safetensors at its source; the same value and byte count (1190568352) are reported by the Hugging Face LFS metadata for nvidia/Cosmos3-Super at revision fe77b66696d645f663b8f27e942b3b43e4629e23. bin/fetch-weights.py re-verifies this sha256 against any copy you supply. The weight is public (OpenMDW-1.1); a real run also needs the sibling config.json in the same vision_encoder/ directory (small metadata, not a weight), which from_pretrained reads to build the tower. The full model.safetensors was NOT re-downloaded and re-hashed during this port; the sha256 is the contract that fetch-weights.py checks."
+  },
+  "rewritten_during_the_port": [
+    "the model class is transformers' Qwen3VLVisionModel, not a copied or submoduled author repository; the released weights are a sha256-pinned, public download (backbone_artifact) rather than an auto-download, so CI never fetches and a real run is hash-verified",
+    "the checkpoint is loaded directly by Qwen3VLVisionModel.from_pretrained on the vision_encoder/ directory (local_files_only=True) with no trunk conversion (unlike sam3): the released layout matches the HF class, so a save_pretrained -> from_pretrained round-trip is exact, and the loading path is unit-tested on a tiny model saved and reloaded so the real-run path is covered without the ~1.1GB weights",
+    "the device is resolved (resolve_device) instead of assumed CUDA",
+    "features are extracted in fp32 (no autocast / no bf16), so the frozen-feature probe runs identically on a CPU or a pre-Ampere GPU, rather than the checkpoint's bf16",
+    "the feature is the vision encoder's patch tokens, mean-pooled over the sequence; feature_dim = hidden_size (1152), the frozen-probe width the capture uses, not the merger's out_hidden_size (5120)",
+    "the probe follows this port's shared frozen-backbone protocol (mean-centre + L2-normalise, a single linear layer with SGD + cosine), returning the four comparable linear-probe accuracies and the epoch count",
+    "the input resolution is read from the config (img_size, the native 448 in the shipped recipe), so the hermetic smoke can shrink it and build a random tiny Qwen3VLVisionModel; input normalisation is ImageNet's (the capture's Cosmos3-Super adapter); the video/dense heads of the capture adapter are not carried (this port is the image linear-probe comparison only)"
+  ]
+}

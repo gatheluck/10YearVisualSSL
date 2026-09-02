@@ -1,0 +1,51 @@
+# cosmos3_super linear evaluation: a linear probe on the frozen Cosmos3-Super
+# vision encoder.
+#
+# This port is eval-only (see the adapter docstring): NVIDIA Cosmos3-Super's
+# as-is comparison freezes the released world-foundation model's Qwen3-VL vision
+# encoder and probes its mean-pooled patch tokens (the 64B MoT / DiT / VAE are
+# never loaded), and the from-scratch pretraining is the excluded step. The probed
+# representation is a genuine learned feature -- so this number is comparable (the
+# multimodal "pretrained-backbone reuse" row, the transformers-sourced sibling of
+# data2vec2 and sam3). See docs/EVAL_DOWNLOAD.md.
+#
+# The model class is transformers' Qwen3VLVisionModel (a pinned pip dependency,
+# transformers==5.16.1), not a git submodule. Two paths are passed at run time,
+# not shipped:
+#   --set DATA_ROOT=<path>       an ImageFolder with train/ and val/ subdirectories
+#   --set COSMOS3_CKPT=<path>    the released vision_encoder/ directory (config.json
+#                                + model.safetensors). The weights are NVIDIA's
+#                                under OpenMDW-1.1 (public, not gated). The
+#                                model.safetensors is pinned by sha256 in
+#                                provenance.json (backbone_artifact);
+#                                bin/fetch-weights.py verifies the hash of a copy
+#                                you provide. Unlike sam3, the checkpoint is loaded
+#                                directly by from_pretrained (no trunk conversion).
+#                                Required for a meaningful number; the hermetic
+#                                smoke leaves it empty and builds a random tiny
+#                                Qwen3VLVisionModel, so its accuracy is meaningless
+#                                and only the pipeline runs, downloading nothing.
+# The output path is fixed at --out.
+stage: linear_eval
+seed: 42
+data_root: "${DATA_ROOT}"
+device: auto
+
+train:
+  # backbone: the official nvidia/Cosmos3-Super vision encoder (Qwen3VL tower,
+  # 448px). With a checkpoint, the architecture below is read from it; these keys
+  # shape the random tiny model the hermetic smoke builds.
+  name: nvidia/Cosmos3-Super
+  ckpt: "${COSMOS3_CKPT}"
+  img_size: 448
+  patch_size: 16
+  embed_dim: 1152
+  depth: 27
+  num_heads: 16
+  # probe: a single linear layer, SGD + cosine.
+  epochs: 100
+  batch_size: 32
+  num_workers: 8
+  lr: 0.1
+  momentum: 0.9
+  weight_decay: 0.0
