@@ -1,0 +1,36 @@
+{
+  "captured_at": "2026-09-02",
+  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
+  "captured_note": "V-JEPA 2 appears in the capture's Step-3 VideoSSL series (methods_step3/VideoSSL/05_vjepa2) as an as-is SSL comparison: the pretrained video encoder is frozen and a linear probe is fit on its features. Like the sibling entry 03_videomae (and unlike 01_shufflelearn / 02_videomoco, first-party re-implementations with no released weights, deferred in the port), V-JEPA 2 uses the authors' official public checkpoints (facebook/vjepa2-vitl-fpc64-256, and the vith/vitg siblings) via a scripts/download_checkpoint.sh. The capture's backbone/__init__.py is a self-contained V-JEPA 2 wrapper that loads the checkpoint directly from safetensors without the transformers library; its ImageNet linear eval (eval_imagenet_linear.py) feeds a still image replicated num_frames times along the temporal axis and mean-pools the tokens (never PyAV / a video dataset).",
+  "paper": {
+    "title": "V-JEPA 2: Self-Supervised Video Models Enable Understanding, Prediction and Planning",
+    "arxiv": "2506.09985",
+    "official_repo": "https://github.com/facebookresearch/vjepa2",
+    "model_card": "https://huggingface.co/facebook/vjepa2-vitl-fpc64-256"
+  },
+  "note": "Eval-only port (a single linear_eval stage, no pretraining). Unlike data2vec2 (transformers) or eva02/aimv2 (timm), NEITHER timm NOR transformers carries this V-JEPA 2 model class here, and the checkpoint is a VJEPA2Model safetensors. So the backbone is a small self-contained Conv3d-patch-embed V-JEPA 2 ViT in the method's own evaluate_linear_vjepa2.py, whose module names mirror the checkpoint's encoder.* key hierarchy, and the checkpoint's encoder.* tensors load into it directly (via safetensors, keep the encoder.* keys, strip the 'encoder.' prefix, then a missing/unexpected-key check). The predictor.* keys (the JEPA predictor) are dropped. The backbone omits position embeddings, exactly as the capture's reimplementation does, and the official checkpoint stores none either (V-JEPA 2 uses rotary position embeddings applied at run time, holding no learned position parameters), so the stripped state loads with no missing or unexpected key. Because the source is neither a git submodule nor a model-carrying pip dependency, this file records NO upstream block and the adapter defines no UPSTREAM (test_port_completeness's both-places rule requires them to agree, and here both are absent). A real run loads the hash-pinned download (passed as ckpt) into that ViT; the hermetic smoke leaves ckpt empty and builds a random tiny V-JEPA 2 ViT from the config's architecture keys, so nothing is downloaded and the pipeline runs on a CPU.",
+  "faithfulness_note": "The capture's backbone wrapper (and therefore this port, which mirrors it) runs the encoder with PLAIN (non-rotary) attention: it loads the pretrained weights and mean-pools the tokens without re-deriving V-JEPA 2's rotary positional mechanism. This reproduces the number the capture's own eval produced; it is an approximation of the full rotary forward, and is stated plainly rather than glossed.",
+  "linear_eval": "Probes the V-JEPA 2 ViT's mean-pooled patch tokens (the final-LayerNorm'd tokens of the self-contained encoder, mean-pooled), frozen. V-JEPA 2's latent-prediction objective over internet-scale video is a genuine SSL objective, so the number is comparable (the 'pretrained-backbone reuse' row, analogous to eva02 / aimv2 / data2vec2 / cae / videomae). A real run needs the official checkpoint (backbone_artifact below, fetched and hash-verified by bin/fetch-weights.py --artifact backbone_artifact, passed as the config's train.ckpt); the hermetic smoke leaves ckpt empty and builds a random tiny V-JEPA 2 ViT, so nothing is downloaded and only the pipeline is exercised. See docs/EVAL_DOWNLOAD.md.",
+  "backbone_artifact": {
+    "name": "facebook/vjepa2-vitl-fpc64-256 (official V-JEPA 2 ViT-L/16 pretraining checkpoint)",
+    "url": "https://huggingface.co/facebook/vjepa2-vitl-fpc64-256/resolve/main/model.safetensors",
+    "filename": "model.safetensors",
+    "sha256": "25466aef85727d16546c6cf8c99f12fcfad9cbca8225d45f23685e2e025b786b",
+    "bytes": 1303947864,
+    "license": "MIT",
+    "gated": false,
+    "sha256_source": "read on 2026-09-02 from the file's git-LFS pointer at https://huggingface.co/facebook/vjepa2-vitl-fpc64-256/raw/main/model.safetensors (git-LFS records the sha256 of the file content as its oid: 'oid sha256:25466aef...', 'size 1303947864'); bin/fetch-weights.py re-verifies this value on download",
+    "license_source": "read on 2026-09-02 from the HuggingFace model-card front-matter at https://huggingface.co/facebook/vjepa2-vitl-fpc64-256/raw/main/README.md ('license: mit'); there is no separate LICENSE file in the repo (404). NOTE: the capture's backbone/__init__.py comment labels V-JEPA 2 as CC-BY-NC-4.0, an error carried over from V-JEPA 1; the HuggingFace release measured here is MIT, and MIT is recorded."
+  },
+  "rewritten_during_the_port": [
+    "the model is a small self-contained Conv3d-patch-embed V-JEPA 2 ViT in evaluate_linear_vjepa2.py, not a copied or submoduled author repository and not a pip model class (neither timm nor transformers carries this V-JEPA 2 model here); its module names mirror the checkpoint's encoder.* keys so the tensors load with no remapping",
+    "the checkpoint is read directly from safetensors (safetensors.torch.load_file); the encoder.* tensors are loaded (the 'encoder.' prefix stripped) and the predictor.* JEPA-predictor keys are dropped; any missing or unexpected encoder key is a hard error (a half-loaded backbone would silently misreport what ran); the empty-ckpt hermetic smoke skips the load and builds a random tiny ViT",
+    "the capture's silent fallback to random weights on a failed download is REMOVED: a ckpt that is not a loadable V-JEPA 2 checkpoint raises rather than quietly probing a random backbone",
+    "the probed representation is the mean-pooled patch tokens: each still image is replicated num_frames times along a new temporal axis to form the clip V-JEPA 2 expects, run through the ViT, and the tokens are mean-pooled -- exactly the capture's ImageNet-linear-eval proxy (no PyAV / video dataset)",
+    "the encoder runs with plain (non-rotary) attention, mirroring the capture's wrapper (see faithfulness_note); it is an approximation of the full rotary forward, stated plainly",
+    "the device is resolved (resolve_device) instead of assumed CUDA",
+    "features are extracted in fp32 (no autocast), so the frozen-feature probe runs identically on a CPU or a pre-Ampere GPU",
+    "the probe follows this port's shared frozen-backbone protocol (mean-centre + L2-normalise, a single linear layer with SGD + cosine), returning the four comparable linear-probe accuracies and the epoch count",
+    "the input normalisation follows ImageNet mean/std with a bicubic square resize; the resolution, frame count and tubelet size are read from the config so the hermetic smoke can shrink them and build a random tiny ViT instead of the full ViT-L/16"
+  ]
+}
