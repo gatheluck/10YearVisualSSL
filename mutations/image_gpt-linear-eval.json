@@ -4,8 +4,8 @@
     {
       "label": "extract_features no longer pools to one vector per image",
       "file": "methods/image_gpt/models/igpt.py",
-      "old": "        return h.mean(dim=1)",
-      "new": "        return h.mean(dim=2)",
+      "old": "        return self.extract_token_features(x).mean(dim=1)",
+      "new": "        return self.extract_token_features(x).mean(dim=2)",
       "tests": [
         "tests.test_method_image_gpt.TestTheModel.test_extract_features_returns_one_vector_per_image"
       ]
@@ -64,6 +64,7 @@
     "measured_with": ".venvs/var (cu130 lock; same torch/torchvision/numpy stack as image_gpt) on an NVIDIA Tesla T4",
     "killed": 6,
     "total": 6,
-    "equivalent": []
+    "equivalent": [],
+    "reanchored": "2026-09-03: target 'extract_features no longer pools to one vector per image' was re-anchored after extract_features was refactored to delegate to extract_token_features; re-measured under .venvs/image_gpt and still killed by TestTheModel.test_extract_features_returns_one_vector_per_image."
   }
 }

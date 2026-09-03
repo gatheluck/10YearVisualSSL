@@ -31,8 +31,8 @@
     {
       "label": "the optional settings go back to being optional",
       "file": "methods/17_swav/adapter/__init__.py",
-      "old": "    _named(TRAIN_KEYS - set(train), set(train) - TRAIN_KEYS, \"config.train\")",
-      "new": "    _named(set(), set(train) - TRAIN_KEYS, \"config.train\")",
+      "old": "    _named(keys - set(rest), set(rest) - keys, \"config.train\")",
+      "new": "    _named(set(), set(rest) - keys, \"config.train\")",
       "tests": [
         "tests.test_method_17_swav"
       ]
@@ -40,8 +40,8 @@
     {
       "label": "the sinkhorn settings are put in the wrong section",
       "file": "methods/17_swav/adapter/__init__.py",
-      "old": "        \"loss\": {\"temperature\": float(train[\"temperature\"]),",
-      "new": "        \"loss\": {\"temperature\": 0.1,",
+      "old": "        # The trainer looks for these under `loss`, not under `training`.\n        \"loss\": {\"temperature\": float(train[\"temperature\"]),",
+      "new": "        # The trainer looks for these under `loss`, not under `training`.\n        \"loss\": {\"temperature\": 0.1,",
       "tests": [
         "tests.test_method_17_swav"
       ]
@@ -105,6 +105,7 @@
     "measured_on": "2026-08-01",
     "killed": 11,
     "total": 11,
-    "note": "'sinkhorn stops normalising' is killed by the captured-file hash guard rather than by a behavioural test. That is not a coverage gap: the captured function validates the setting itself and raises, so the mutant was unreachable by any caller. The refusal is now pinned by a test of its own."
+    "note": "'sinkhorn stops normalising' is killed by the captured-file hash guard rather than by a behavioural test. That is not a coverage gap: the captured function validates the setting itself and raises, so the mutant was unreachable by any caller. The refusal is now pinned by a test of its own.",
+    "reanchored": "2026-09-03: targets 'the optional settings go back to being optional' and 'the sinkhorn settings are put in the wrong section' were re-anchored after config-translation edits shifted their lines; re-measured under .venvs/17_swav and still killed by TestEveryOptionalSettingIsDeclared.test_each_one_must_be_present and TestTheConfigIsTranslated.test_the_sinkhorn_settings_reach_the_loss_section respectively."
   }
 }

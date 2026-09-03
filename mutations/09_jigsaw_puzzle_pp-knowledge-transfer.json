@@ -40,8 +40,8 @@
     {
       "label": "the probe ignores the arch and always reads the VGG tile size",
       "file": "methods/09_jigsaw_puzzle_pp/evaluate_linear_jigsaw_pp.py",
-      "old": "    size = int(train[\"image_size\"]) if arch == \"alexnet_cluster_cls\" \\\n        else int(train[\"tile_size\"])",
-      "new": "    size = int(train[\"tile_size\"])",
+      "old": "        size = int(train[\"image_size\"])",
+      "new": "        size = int(train[\"tile_size\"])",
       "tests": [
         "tests.test_method_09_jigsaw_puzzle_pp.TestAKnowledgeTransferSmoke.test_the_alexnet_probe_reports_comparable_numbers"
       ]
@@ -61,6 +61,7 @@
     "measured_with": ".venvs/09_jigsaw_puzzle_pp (cu130, faiss 1.14.3) on an NVIDIA Tesla T4",
     "killed": 6,
     "total": 6,
-    "equivalent": []
+    "equivalent": [],
+    "reanchored": "2026-09-03: target 'the probe ignores the arch and always reads the VGG tile size' was re-anchored after the probe's image-size read was simplified to a single line; re-measured under .venvs/09_jigsaw_puzzle_pp (faiss + CUDA) and still killed by TestAKnowledgeTransferSmoke.test_the_alexnet_probe_reports_comparable_numbers."
   }
 }
