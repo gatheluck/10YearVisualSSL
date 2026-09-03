@@ -54,10 +54,6 @@ import torch.nn as nn
 
 KIND = "var_vqvae"
 
-# Marker for "this class had no reset_parameters of its own" when snapshotting
-# torch.nn's default init around the upstream build (see _hermetic_build).
-_ABSENT = object()
-
 _METHOD_DIR = Path(__file__).resolve().parent
 _TRAIN_PATH = _METHOD_DIR / "train_pretrain_var.py"
 _UNIQUE_NAME = "_downstream_var_train"
@@ -168,24 +164,12 @@ class FrozenVARSpatialBackbone(nn.Module):
 
 @contextlib.contextmanager
 def _hermetic_build():
-    """Restore the global state the build touches -- imports, the RNG, and (the
-    one that actually corrupts other methods) torch's default parameter init.
+    """Restore the global state building through the provider touches -- the
+    imports and the RNG -- so a backbone provider stays a pure builder.
 
-    Building the tokeniser has three global side effects that would leak into the
-    other methods sharing this process (the downstream harness and the test suite
-    hold every method at once), and a backbone provider must be a pure builder:
-
-    * **Default parameter init.** VAR's upstream ``build_vae_var``
-      (``third_party/var/models/__init__.py``) does, for its own build speed,
-      ``setattr(clz, 'reset_parameters', lambda self: None)`` over eight
-      ``torch.nn`` classes (``Linear``, ``Conv{1,2}d``, ``ConvTranspose{1,2}d``,
-      ``LayerNorm``, ``BatchNorm2d``, ``SyncBatchNorm``) -- **globally and
-      permanently**. Every module built *afterwards* then skips initialisation
-      and keeps its ``torch.empty`` memory (NaN / denormal garbage). In the
-      in-process suite this method's tests run before the ViT methods', so a
-      leaked patch turns every later method's model NaN -- not-finite losses and
-      round-trips that come back changed. This is snapshotted per class (own
-      ``__dict__`` entry or its absence) and restored exactly.
+    Building the tokeniser has global side effects that would leak into the other
+    methods sharing this process (the downstream harness and the test suite hold
+    every method at once):
 
     * **Imports.** ``build_vqvae`` reaches VAR's tokeniser through
       ``train_pretrain_var``'s collision-safe upstream loader, which -- correctly,
@@ -202,21 +186,20 @@ def _hermetic_build():
       unseeded random input would then see a different draw -- enough to tip an
       already RNG-fragile assertion into a NaN it would not otherwise hit.
 
+    The **third** side effect, the upstream's global ``reset_parameters`` no-op,
+    is undone by ``build_vqvae`` itself (``train_pretrain_var.restore_default_init``
+    wraps the one ``build_vae_var`` call), so the provider inherits that undo and
+    does not repeat it here -- one implementation of that rule, shared by the
+    pretraining, linear_eval and downstream paths.
+
     The built VQVAE's forward needs none of this (it is a plain convolutional
-    encoder), so all three are snapshotted and restored here -- even if the strict
-    load raises -- keeping the provider free of observable global side effects."""
+    encoder), so both are snapshotted and restored here -- even if the strict load
+    raises -- keeping the provider free of observable global side effects."""
     path_before = list(sys.path)
     mods_before = dict(sys.modules)
     rng_before = torch.get_rng_state()
     cuda_rng_before = (torch.cuda.get_rng_state_all()
                        if torch.cuda.is_available() else None)
-    # Every torch.nn module class's *own* reset_parameters (or its absence, when
-    # the class inherits it), so the upstream's speed patch can be undone exactly.
-    reset_before = {
-        cls: cls.__dict__.get("reset_parameters", _ABSENT)
-        for cls in vars(nn).values()
-        if isinstance(cls, type) and issubclass(cls, nn.Module)
-    }
     try:
         yield
     finally:
@@ -226,12 +209,6 @@ def _hermetic_build():
                 del sys.modules[name]
         for name, module in mods_before.items():
             sys.modules[name] = module
-        for cls, val in reset_before.items():
-            if val is _ABSENT:
-                if "reset_parameters" in cls.__dict__:
-                    delattr(cls, "reset_parameters")
-            elif cls.__dict__.get("reset_parameters", _ABSENT) is not val:
-                setattr(cls, "reset_parameters", val)
         torch.set_rng_state(rng_before)
         if cuda_rng_before is not None:
             torch.cuda.set_rng_state_all(cuda_rng_before)
