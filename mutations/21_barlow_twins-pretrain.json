@@ -58,8 +58,8 @@
     {
       "label": "an undeclared setting is waved through",
       "file": "methods/21_barlow_twins/adapter/__init__.py",
-      "old": "    _named(TRAIN_KEYS - set(train), set(train) - TRAIN_KEYS, \"config.train\")",
-      "new": "    _named(TRAIN_KEYS - set(train), set(), \"config.train\")",
+      "old": "    _named(keys - set(rest), set(rest) - keys, \"config.train\")",
+      "new": "    _named(keys - set(rest), set(), \"config.train\")",
       "tests": [
         "tests.test_method_21_barlow_twins"
       ]
@@ -87,6 +87,7 @@
     "measured_on": "2026-08-01",
     "killed": 9,
     "total": 9,
-    "equivalent": []
+    "equivalent": [],
+    "reanchored": "2026-09-03: target 'an undeclared setting is waved through' was re-anchored after a config-translation edit shifted the _named line; re-measured under .venvs/21_barlow_twins and still killed by TestTheConfigIsTranslated.test_a_key_the_stage_never_reads_is_refused."
   }
 }

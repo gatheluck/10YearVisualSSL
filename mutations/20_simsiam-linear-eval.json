@@ -13,8 +13,8 @@
     {
       "label": "the second stage accepts step 1's settings",
       "file": "methods/20_simsiam/adapter/__init__.py",
-      "old": "    keys = EVAL_TRAIN_KEYS if stage == \"linear_eval\" else TRAIN_KEYS",
-      "new": "    keys = EVAL_TRAIN_KEYS | TRAIN_KEYS",
+      "old": "        keys = EVAL_VIT_KEYS if arch == \"vit\" else EVAL_TRAIN_KEYS",
+      "new": "        keys = EVAL_VIT_KEYS if arch == \"vit\" else (EVAL_TRAIN_KEYS | TRAIN_KEYS)",
       "tests": [
         "tests.test_method_20_simsiam"
       ]
@@ -49,8 +49,8 @@
     {
       "label": "load_encoder ignores the config and uses defaults",
       "file": "methods/20_simsiam/adapter/__init__.py",
-      "old": "    model = build_simsiam_resnet(dim=int(train[\"dim\"]),\n                                 pred_dim=int(train[\"pred_dim\"]))",
-      "new": "    model = build_simsiam_resnet()",
+      "old": "        model = build_simsiam_resnet(dim=int(train[\"dim\"]),\n                                     pred_dim=int(train[\"pred_dim\"]))",
+      "new": "        model = build_simsiam_resnet()",
       "tests": [
         "tests.test_method_20_simsiam"
       ],
@@ -102,6 +102,7 @@
         "label": "load_encoder ignores the config and uses defaults",
         "why": "Measured, not assumed: build_simsiam_resnet's dim and pred_dim size the projector and predictor only. The backbone is identical under the default and the test settings -- 318 tensors, same keys and shapes -- and the backbone is all encoder.pt holds, so no test can tell the two apart. The config is still passed, because another port's encoder is genuinely shaped by it."
       }
-    ]
+    ],
+    "reanchored": "2026-09-03: both 'the second stage accepts step 1's settings' and 'load_encoder ignores the config and uses defaults' were re-anchored after the ViT arch branch was added (the EVAL_TRAIN_KEYS line moved into an else-branch and build_simsiam_resnet's call was re-indented). Re-measured under .venvs/20_simsiam: the first is still killed by TestTheLinearEvaluationStage.test_step1_settings_are_refused_here; the second still SURVIVES the whole module, re-confirming it as the documented equivalent mutant."
   }
 }

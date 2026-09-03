@@ -126,6 +126,49 @@ def spec_problems(spec_path: Path) -> list[str]:
     return problems
 
 
+def all_specs(mutations_dir: Path = MUTATIONS_DIR) -> list[Path]:
+    """Every mutation spec, discovered -- including the downstream backbone
+    specs (`mae-backbone.json`, `var-backbone.json`, ...) whose names are not a
+    method prefix, so `specs_for` alone would miss them."""
+    return sorted(Path(p) for p in glob.glob(str(mutations_dir / "*.json")))
+
+
+def spec_anchor_problems(spec_path: Path, root: Path = ROOT) -> list[str]:
+    """Targets whose `old` anchor no longer occurs exactly once in its `file`.
+
+    `bin/mutate.py` treats an anchor that is absent or ambiguous as an error, so
+    such a target cannot be reproduced: whatever `_result` records for it is
+    stale the moment a refactor moves or duplicates the line. `spec_problems`
+    checks only the `_result` accounting, which stays satisfied across such a
+    refactor -- this reads the source and catches the drift. Six specs had gone
+    stale this way (their adapters/models were refactored during the ViT and
+    Step-3 ports) while still claiming `killed==total`, which is exactly the
+    "an assertion that could not fail" and "measure before speaking" failure
+    this repository keeps turning into machinery.
+    """
+    d = json.loads(spec_path.read_text(encoding="utf-8"))
+    problems: list[str] = []
+    for i, t in enumerate(d.get("targets") or []):
+        if not isinstance(t, dict):
+            continue
+        f, old = t.get("file"), t.get("old")
+        if f is None or old is None:
+            continue  # a structural gap; spec_problems owns that
+        fp = root / f
+        if not fp.is_file():
+            problems.append(f"target {i}: file {f} does not exist")
+            continue
+        n = fp.read_text(encoding="utf-8").count(old)
+        if n == 0:
+            problems.append(
+                f"target {i}: anchor absent in {f} (mutate.py would error)")
+        elif n > 1:
+            problems.append(
+                f"target {i}: anchor ambiguous in {f} "
+                f"({n} matches; mutate.py would error)")
+    return problems
+
+
 def methods_missing_stage_config(
         methods: list[str], methods_dir: Path = METHODS_DIR
 ) -> list[tuple[str, str]]:
@@ -231,6 +274,22 @@ class TestEveryMethodHasAMeasuredMutationSpec(unittest.TestCase):
         self.assertEqual(bad, {}, f"mutation specs proving nothing: {bad}")
 
 
+class TestEverySpecAnchorStillExists(unittest.TestCase):
+    """A recorded kill proves nothing if the anchor it was measured against is
+    gone. This holds every spec's targets to anchors that still resolve."""
+
+    def test_every_target_anchor_occurs_exactly_once(self):
+        bad = {}
+        for spec in all_specs(MUTATIONS_DIR):
+            probs = spec_anchor_problems(spec)
+            if probs:
+                bad[spec.name] = probs
+        self.assertEqual(
+            bad, {},
+            f"mutation anchors that no longer resolve (their recorded kill "
+            f"cannot be reproduced; re-anchor and re-measure): {bad}")
+
+
 class TestEveryConfigStageIsShipped(unittest.TestCase):
     def test_every_declared_config_stage_ships_a_config(self):
         gaps = methods_missing_stage_config(discover_methods())
@@ -290,6 +349,31 @@ class TestTheDetectorsActuallyFire(unittest.TestCase):
             "_result": {"measured_on": "2026-01-01", "killed": 1, "total": 1,
                         "equivalent": []}}), encoding="utf-8")
         self.assertEqual(spec_problems(good), [])
+
+    def test_anchor_detector_fires_and_stays_quiet(self):
+        import tempfile
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(__import__("shutil").rmtree, tmp, ignore_errors=True)
+        (tmp / "src.py").write_text("def f():\n    return 1\n", encoding="utf-8")
+        # positive: an anchor absent from the source is flagged
+        absent = tmp / "x-absent.json"
+        absent.write_text(json.dumps({"targets": [
+            {"label": "a", "file": "src.py", "old": "return 999",
+             "new": "return 0", "tests": ["t"]}]}), encoding="utf-8")
+        self.assertTrue(spec_anchor_problems(absent, root=tmp))
+        # positive: an ambiguous anchor (mutate.py cannot place it) is flagged
+        (tmp / "dup.py").write_text("x = 1\nx = 1\n", encoding="utf-8")
+        ambig = tmp / "x-ambig.json"
+        ambig.write_text(json.dumps({"targets": [
+            {"label": "a", "file": "dup.py", "old": "x = 1", "new": "x = 2",
+             "tests": ["t"]}]}), encoding="utf-8")
+        self.assertTrue(spec_anchor_problems(ambig, root=tmp))
+        # negative: an anchor present exactly once is silent
+        good = tmp / "x-good.json"
+        good.write_text(json.dumps({"targets": [
+            {"label": "a", "file": "src.py", "old": "return 1", "new": "return 0",
+             "tests": ["t"]}]}), encoding="utf-8")
+        self.assertEqual(spec_anchor_problems(good, root=tmp), [])
 
     def test_config_stage_detector_fires_and_stays_quiet(self):
         import tempfile
