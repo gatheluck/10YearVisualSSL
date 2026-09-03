@@ -32,6 +32,7 @@ Changed during the port, and recorded in `provenance.json`:
 from __future__ import annotations
 
 import argparse
+import contextlib
 import os
 import random
 import sys
@@ -113,6 +114,46 @@ def model_kwargs(train: dict) -> dict:
     }
 
 
+_RESET_ABSENT = object()
+
+
+@contextlib.contextmanager
+def restore_default_init():
+    """Snapshot and restore torch.nn's default parameter init around a build.
+
+    The pinned upstream `build_vae_var` (`third_party/var/models/__init__.py`),
+    for its own build speed, does `setattr(clz, 'reset_parameters', lambda self:
+    None)` over eight `torch.nn` classes -- **globally and permanently**, never
+    putting them back. In the adapter's own process that is harmless (only VAR is
+    built there), but the test suite and the downstream harness hold every method
+    in one process, so a leaked no-op turns every module built *afterwards* (a
+    later method's ViT) into `torch.empty` NaN.
+
+    Every place that calls `build_vae_var` -- this module's `build_vqvae` and the
+    adapter's `load_encoder` -- wraps that call in this, so the no-op cannot escape
+    the build. It is the one implementation of that undo (the downstream provider
+    builds through `build_vqvae`, so it inherits it and keeps only its own
+    import/RNG isolation). Each class's *own* `reset_parameters` (or its absence,
+    when it inherits one) is recorded and put back exactly, even if the build
+    raises.
+    """
+    import torch.nn as nn
+    before = {
+        cls: cls.__dict__.get("reset_parameters", _RESET_ABSENT)
+        for cls in vars(nn).values()
+        if isinstance(cls, type) and issubclass(cls, nn.Module)
+    }
+    try:
+        yield
+    finally:
+        for cls, val in before.items():
+            if val is _RESET_ABSENT:
+                if "reset_parameters" in cls.__dict__:
+                    delattr(cls, "reset_parameters")
+            elif cls.__dict__.get("reset_parameters", _RESET_ABSENT) is not val:
+                setattr(cls, "reset_parameters", val)
+
+
 def build_vqvae(arch: dict, vqvae_ckpt, device):
     """Build the VQVAE tokeniser (and the VAR model it comes paired with) and
     put the VQVAE in eval mode.
@@ -129,10 +170,15 @@ def build_vqvae(arch: dict, vqvae_ckpt, device):
     Seeded normal weights make a hermetic run well-defined; a real run loads a
     pretrained VQVAE and never takes that path. The caller seeds
     (`make_deterministic`) before building, so `normal_` is deterministic.
+
+    The build is wrapped in `restore_default_init` so the upstream's global
+    `reset_parameters` no-op cannot leak to the other methods sharing this process
+    (see that context manager).
     """
     build_vae_var = _load_upstream()
-    vae, var = build_vae_var(device=device, flash_if_available=False,
-                             fused_if_available=False, **model_kwargs(arch))
+    with restore_default_init():
+        vae, var = build_vae_var(device=device, flash_if_available=False,
+                                 fused_if_available=False, **model_kwargs(arch))
     if vqvae_ckpt:
         vae.load_state_dict(torch.load(vqvae_ckpt, map_location="cpu"),
                             strict=True)

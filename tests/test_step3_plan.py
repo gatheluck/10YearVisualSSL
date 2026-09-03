@@ -61,9 +61,12 @@ METHODS = ROOT / "methods"
 # (measured 2026-09-02): C1:shufflelearn (order 17) and C1:video_moco (order 18) are
 # first-party re-implementations whose capture snapshot holds neither released
 # weights nor the pretext-training code their own README documents, so they cannot be
-# faithfully ported (see their `deferred_reason`s). `next` therefore steps over both
-# to C1:videomae (order 19), the earliest `todo` -- Video MAE uses official public
-# HuggingFace weights (MCG-NJU/videomae-base, Apache-2.0) and is portable. A deferral
+# faithfully ported (see their `deferred_reason`s). `next` therefore stepped over both
+# to C1:videomae (order 19) -- Video MAE, which uses official public HuggingFace
+# weights (MCG-NJU/videomae-base, CC-BY-NC-4.0) and is portable as an eval-only
+# frozen-backbone probe. C1:videomae is now `done` (ported 2026-09-02, in turn: order
+# 19 sits before the new `next`), so `next` advances to C2:vjepa2 (order 20), the
+# earliest `todo`, and the ceiling stays 0: no out-of-order port stands. A deferral
 # moves an item off the critical path but is not an out-of-order completion, so it
 # does not touch this ceiling. The ceiling is a
 # bare integer, not a method name, so it is allowed in a shared file. Changing it

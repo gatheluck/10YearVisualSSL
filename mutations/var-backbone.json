@@ -81,31 +81,13 @@
       "tests": [
         "tests.test_downstream_var_backbone.TestTheProviderDoesNotLeakUpstreamImports.test_building_does_not_perturb_the_global_rng"
       ]
-    },
-    {
-      "label": "the build does not put back torch's default init on a class the upstream replaced it on (nn.Linear stays a no-op), so every module a later method builds keeps uninitialised torch.empty memory (NaN)",
-      "file": "methods/var/downstream_backbone.py",
-      "old": "                setattr(cls, \"reset_parameters\", val)",
-      "new": "                pass",
-      "tests": [
-        "tests.test_downstream_var_backbone.TestTheProviderDoesNotLeakUpstreamImports.test_building_restores_torchs_default_parameter_init"
-      ]
-    },
-    {
-      "label": "the build does not remove an override the upstream added to a class that had none of its own (nn.Conv2d keeps the no-op), so a later module built from it is uninitialised",
-      "file": "methods/var/downstream_backbone.py",
-      "old": "                    delattr(cls, \"reset_parameters\")",
-      "new": "                    pass",
-      "tests": [
-        "tests.test_downstream_var_backbone.TestTheProviderDoesNotLeakUpstreamImports.test_building_restores_torchs_default_parameter_init"
-      ]
     }
   ],
   "_result": {
-    "measured_on": "2026-09-01 (re-measured after the hermetic-build guards were extended to torch's default parameter init: VAR's upstream build_vae_var setattr's nn.<cls>.reset_parameters to a no-op over eight classes globally and permanently, so every module a later method builds keeps uninitialised torch.empty memory -- the real cause of the 53 cross-method not-finite / not-round-tripping failures in the in-process suite. The provider now snapshots and restores each nn class's own reset_parameters alongside sys.path, sys.modules and the torch RNG, so building the tokeniser leaves no observable global side effect in the shared process)",
+    "measured_on": "2026-09-02 (re-measured after the reset_parameters undo was moved out of this provider's _hermetic_build into train_pretrain_var.restore_default_init -- the one place the eight-class no-op is undone, now shared by the pretraining, encoder-extraction and downstream paths, which was necessary because the pretrain/eval paths call build_vae_var directly and were still leaking. Those two mutations moved to mutations/var-hermetic-init.json; this spec keeps the provider's own import/RNG isolation guards. The provider inherits the reset_parameters undo by building through build_vqvae, and test_building_restores_torchs_default_parameter_init still holds it end to end)",
     "measured_with": "an interpreter with torch (.venvs/05_jigsaw_puzzle), which builds and loads the VAR VQVAE backbone in-process; the end-to-end ARSSL test is not among the referenced tests, so no timm subprocess is needed to kill these",
-    "killed": 11,
-    "total": 11,
+    "killed": 9,
+    "total": 9,
     "equivalent": []
   }
 }

@@ -1,0 +1,19 @@
+# What the videomae port's own files import, and nothing else. Checked in both
+# directions by tests/test_method_requirements.py. Floors only; the exact hashed
+# closure is in requirements.lock.txt (CPU) and requirements.lock.cu130.txt.
+#
+# There is NO author submodule and NO model-carrying pip dependency: the VideoMAE
+# encoder is a small self-contained Conv3d-patch-embed ViT in
+# evaluate_linear_videomae.py, and the pretrained weights are a sha256-pinned
+# download recorded as backbone_artifact in provenance.json. Neither timm nor
+# transformers is a dependency.
+#
+# torch is imported directly (the ViT and the probe); numpy backs the seeding and
+# feature handling; torchvision provides the ImageFolder and the transforms the
+# probe reads images with; safetensors reads the official checkpoint's videomae.*
+# tensors; PyYAML is read to load a YAML config on the stand-alone path.
+torch>=2.1.0
+torchvision>=0.16.0
+safetensors>=0.4.0
+numpy>=1.24.0
+PyYAML>=6.0

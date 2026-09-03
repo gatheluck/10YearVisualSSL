@@ -1,0 +1,33 @@
+{
+  "captured_at": "2026-09-02",
+  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
+  "captured_note": "VideoMAE appears in the capture's Step-3 VideoSSL series (methods_step3/VideoSSL/03_videomae) as an as-is SSL comparison: the pretrained video encoder is frozen and a linear probe is fit on its features. Unlike the sibling VideoSSL entries 01_shufflelearn and 02_videomoco (first-party re-implementations with no released weights, deferred in the port), VideoMAE uses the authors' official public checkpoints (MCG-NJU/videomae-base). The capture's backbone/__init__.py is a self-contained VideoMAE wrapper that loads the checkpoint directly from safetensors without the transformers library; its ImageNet linear eval (eval_imagenet_linear.py) feeds a still image replicated num_frames times along the temporal axis and mean-pools the tokens (never PyAV / a video dataset).",
+  "paper": {
+    "title": "VideoMAE: Masked Autoencoders are Data-Efficient Learners for Self-Supervised Video Pre-Training",
+    "arxiv": "2203.12602",
+    "official_repo": "https://github.com/MCG-NJU/VideoMAE",
+    "model_card": "https://huggingface.co/MCG-NJU/videomae-base"
+  },
+  "note": "Eval-only port (a single linear_eval stage, no pretraining). Unlike data2vec2 (transformers) or eva02/aimv2 (timm), NEITHER timm NOR transformers carries a VideoMAE model class here, and the checkpoint is a VideoMAEForPreTraining safetensors. So the backbone is a small self-contained Conv3d-patch-embed VideoMAE ViT in the method's own evaluate_linear_videomae.py, whose module names mirror the checkpoint's videomae.* key hierarchy, and the checkpoint's videomae.* encoder tensors load into it directly (via safetensors, strip the 'videomae.' prefix, then a missing/unexpected-key check). The decoder.* keys (the pretext decoder) are dropped. The backbone omits position embeddings, exactly as the capture's reimplementation does, and the official checkpoint stores none either (VideoMAE uses fixed sin-cos embeddings computed at run time, held as a non-persistent buffer), so the stripped state loads with no missing or unexpected key. Because the source is neither a git submodule nor a model-carrying pip dependency, this file records NO upstream block and the adapter defines no UPSTREAM (test_port_completeness's both-places rule requires them to agree, and here both are absent). A real run loads the hash-pinned download (passed as ckpt) into that ViT; the hermetic smoke leaves ckpt empty and builds a random tiny VideoMAE ViT from the config's architecture keys, so nothing is downloaded and the pipeline runs on a CPU.",
+  "linear_eval": "Probes the VideoMAE ViT's temporally-averaged patch tokens (the final-LayerNorm'd tokens of the self-contained encoder, mean-pooled), frozen. VideoMAE's masked-video-autoencoding objective (reconstruct masked spatiotemporal tubes) is a genuine SSL objective, so the number is comparable (the 'pretrained-backbone reuse' row, analogous to eva02 / aimv2 / data2vec2 / cae). A real run needs the official checkpoint (backbone_artifact below, fetched and hash-verified by bin/fetch-weights.py --artifact backbone_artifact, passed as the config's train.ckpt); the hermetic smoke leaves ckpt empty and builds a random tiny VideoMAE ViT, so nothing is downloaded and only the pipeline is exercised. See docs/EVAL_DOWNLOAD.md.",
+  "backbone_artifact": {
+    "name": "MCG-NJU/videomae-base (official VideoMAE ViT-B/16 pretraining checkpoint)",
+    "url": "https://huggingface.co/MCG-NJU/videomae-base/resolve/main/model.safetensors",
+    "filename": "model.safetensors",
+    "sha256": "bc053ca2840a038b1068269a4eec06ca569689e9a1ed9376a5b2b8a111be5290",
+    "bytes": 376873760,
+    "license": "CC-BY-NC-4.0",
+    "gated": false,
+    "sha256_source": "read on 2026-09-02 from the file's git-LFS pointer at https://huggingface.co/MCG-NJU/videomae-base/raw/main/model.safetensors (git-LFS records the sha256 of the file content as its oid: 'oid sha256:bc053ca2...', 'size 376873760'); bin/fetch-weights.py re-verifies this value on download"
+  },
+  "rewritten_during_the_port": [
+    "the model is a small self-contained Conv3d-patch-embed VideoMAE ViT in evaluate_linear_videomae.py, not a copied or submoduled author repository and not a pip model class (neither timm nor transformers carries VideoMAE here); its module names mirror the checkpoint's videomae.* keys so the tensors load with no remapping",
+    "the checkpoint is read directly from safetensors (safetensors.torch.load_file); the videomae.* encoder tensors are loaded (the 'videomae.' prefix stripped) and the decoder.* pretext-decoder keys are dropped; any missing or unexpected encoder key is a hard error (a half-loaded backbone would silently misreport what ran); the empty-ckpt hermetic smoke skips the load and builds a random tiny ViT",
+    "the capture's silent fallback to random weights on a failed download is REMOVED: a ckpt that is not a loadable VideoMAE checkpoint raises rather than quietly probing a random backbone",
+    "the probed representation is the temporally-averaged patch tokens: each still image is replicated num_frames times along a new temporal axis to form the clip VideoMAE expects, run through the ViT, and the tokens are mean-pooled -- exactly the capture's ImageNet-linear-eval proxy (no PyAV / video dataset)",
+    "the device is resolved (resolve_device) instead of assumed CUDA",
+    "features are extracted in fp32 (no autocast), so the frozen-feature probe runs identically on a CPU or a pre-Ampere GPU",
+    "the probe follows this port's shared frozen-backbone protocol (mean-centre + L2-normalise, a single linear layer with SGD + cosine), returning the four comparable linear-probe accuracies and the epoch count",
+    "the input normalisation follows the backbone's own preprocessor config (ImageNet mean/std, a bicubic square resize, no centre crop); the resolution, frame count and tubelet size are read from the config so the hermetic smoke can shrink them and build a random tiny ViT instead of the full ViT-B/16"
+  ]
+}

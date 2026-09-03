@@ -1,0 +1,30 @@
+{
+  "_note": "Run: <torch-venv>/bin/python bin/mutate.py --spec mutations/var-hermetic-init.json --python <torch-venv>/bin/python (an interpreter with torch, so the VQVAE builds in-process; use an absolute path for --python). Proves train_pretrain_var.restore_default_init is not vacuous. VAR's pinned upstream build_vae_var (third_party/var/models/__init__.py), for its own build speed, setattr's a no-op reset_parameters over eight torch.nn classes -- globally and permanently, never putting them back. In the adapter's own process that is harmless (only VAR is built), but the test suite and the downstream harness hold every method in one process, so a leaked no-op turns every module a *later* method builds (a ViT) into torch.empty NaN -- the real cause of the videomae/vjepa2 checkpoint-loads-and-probes going not-finite once they were added right after VAR in discovery order. restore_default_init is the ONE undo of that patch: every place that calls build_vae_var (this module's build_vqvae and the adapter's load_encoder) wraps the call in it, and the downstream provider inherits it by building through build_vqvae. These two mutations break the two halves of the restore -- putting a replaced init back (setattr) and removing one the upstream added to a class that had none of its own (delattr) -- and the guard test rebuilds a fresh nn module afterward and checks it is finite and initialised.",
+  "targets": [
+    {
+      "label": "the restore does not put back torch's default init on a class the upstream replaced it on (nn.Linear stays a no-op), so every module a later method builds keeps uninitialised torch.empty memory (NaN)",
+      "file": "methods/var/train_pretrain_var.py",
+      "old": "                setattr(cls, \"reset_parameters\", val)",
+      "new": "                pass",
+      "tests": [
+        "tests.test_method_var.TestBuildingTheVQVAEDoesNotLeakGlobalInit.test_it_restores_torch_default_init_for_the_next_method"
+      ]
+    },
+    {
+      "label": "the restore does not remove an override the upstream added to a class that had none of its own (nn.Conv2d keeps the no-op), so a later module built from it is uninitialised",
+      "file": "methods/var/train_pretrain_var.py",
+      "old": "                    delattr(cls, \"reset_parameters\")",
+      "new": "                    pass",
+      "tests": [
+        "tests.test_method_var.TestBuildingTheVQVAEDoesNotLeakGlobalInit.test_it_restores_torch_default_init_for_the_next_method"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-09-02 (added when the reset_parameters undo was moved out of the downstream provider's _hermetic_build into train_pretrain_var.restore_default_init, so the pretraining and encoder-extraction paths -- which call build_vae_var directly, not through the provider -- stop leaking too; the videomae/vjepa2 CI failures were those uncovered paths)",
+    "measured_with": ".venvs/05_jigsaw_puzzle (an interpreter with torch), which builds the VAR VQVAE in-process; no GPU or timm subprocess is needed to kill these",
+    "killed": 2,
+    "total": 2,
+    "equivalent": []
+  }
+}

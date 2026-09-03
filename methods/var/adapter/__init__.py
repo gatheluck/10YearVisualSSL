@@ -200,15 +200,23 @@ def load_encoder(state_dict: dict, config: dict):
     to be missing; an absent *encoder* key is an error. The VQVAE that
     `build_vae_var` also constructs is random here and unused: only the VAR
     representation is loaded and compared.
+
+    Like `build_vqvae`, the `build_vae_var` call is wrapped in
+    `restore_default_init` so the upstream's global `reset_parameters` no-op does
+    not leak to the other methods sharing this process (the test suite holds them
+    all at once).
     """
     if str(METHOD_DIR) not in sys.path:
         sys.path.insert(0, str(METHOD_DIR))
-    from train_pretrain_var import _load_upstream, model_kwargs
+    from train_pretrain_var import (_load_upstream, model_kwargs,
+                                    restore_default_init)
     build_vae_var = _load_upstream()
     import torch
-    _vae, model = build_vae_var(device=torch.device("cpu"),
-                                flash_if_available=False, fused_if_available=False,
-                                **model_kwargs(config["train"]))
+    with restore_default_init():
+        _vae, model = build_vae_var(
+            device=torch.device("cpu"),
+            flash_if_available=False, fused_if_available=False,
+            **model_kwargs(config["train"]))
     missing, unexpected = model.load_state_dict(state_dict, strict=False)
     if unexpected:
         raise RuntimeError(

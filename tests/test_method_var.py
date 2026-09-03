@@ -246,6 +246,60 @@ class TestExtractingTheEncoder(unittest.TestCase):
             adapter.extract_encoder({})
 
 
+class TestBuildingTheVQVAEDoesNotLeakGlobalInit(unittest.TestCase):
+    """Building the tokeniser must not corrupt the other methods' models.
+
+    The pinned upstream's `build_vae_var` (`third_party/var/models/__init__.py`),
+    for its own build speed, does `setattr(clz, 'reset_parameters', lambda self:
+    None)` over eight `torch.nn` classes -- globally and permanently. Every module
+    built *afterwards* then skips initialisation and keeps its `torch.empty` memory
+    (NaN / denormal garbage). The whole test suite and the downstream harness hold
+    every method in one process, and VAR sorts before the ViT methods, so a leaked
+    patch turned a later method's freshly built model NaN (`videomae`'s
+    checkpoint-loads-and-probes went not-finite once it was added right after VAR).
+    `build_vqvae` is the one place that calls `build_vae_var`, so it must snapshot
+    and restore that global init exactly -- for every path (pretraining as well as
+    linear_eval), not only the downstream provider that used to wrap it.
+    """
+
+    # The exact eight classes the upstream patches (third_party/var/models
+    # __init__.build_vae_var). Named here so a class it stops restoring is caught.
+    PATCHED = (
+        "Linear", "LayerNorm", "BatchNorm2d", "SyncBatchNorm",
+        "Conv1d", "Conv2d", "ConvTranspose1d", "ConvTranspose2d",
+    )
+
+    @needs_deps
+    def test_it_restores_torch_default_init_for_the_next_method(self):
+        import torch
+        import torch.nn as nn
+
+        trainer = load("var_trainer", METHOD / "train_pretrain_var.py")
+
+        absent = object()
+        before = {name: getattr(nn, name).__dict__.get("reset_parameters", absent)
+                  for name in self.PATCHED}
+
+        vae, _var = trainer.build_vqvae(dict(MODEL), "", torch.device("cpu"))
+
+        # The function object each class carried (or its absence) is put back, so
+        # nothing downstream sees the no-op patch.
+        for name in self.PATCHED:
+            after = getattr(nn, name).__dict__.get("reset_parameters", absent)
+            self.assertIs(
+                after, before[name],
+                f"nn.{name}.reset_parameters was left patched by build_vqvae")
+
+        # The property that actually bit videomae: a module built *after* the
+        # tokeniser is initialised, not left as `torch.empty` garbage. A no-op
+        # reset_parameters leaves the weight uninitialised (NaN / not varying).
+        probe = nn.Linear(64, 64)
+        self.assertTrue(torch.isfinite(probe.weight).all(),
+                        "a Linear built after build_vqvae is not finite")
+        self.assertGreater(float(probe.weight.std()), 0.0,
+                           "a Linear built after build_vqvae was not initialised")
+
+
 class TestTheLossMustHaveBeenMeasured(Base):
     def test_a_run_that_reports_nothing_is_flagged(self):
         m = adapter.run_training(self.config(), self.out,
