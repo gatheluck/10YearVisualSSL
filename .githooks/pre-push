@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+# Refuse to push while the torch, single-process, whole-suite gate is red.
+#
+# **The pre-commit gate cannot see this class of failure.** pre-commit runs
+# tests/run-tests.sh in the base interpreter, which has no torch: every test
+# that builds a real model or backbone SKIPS there (~1155 of them). So does the
+# always-on `core` CI job. Cross-method global contamination -- one method (or
+# its pinned upstream) leaking global state that breaks a *later* method built
+# in the same process -- is invisible to both, because neither ever builds two
+# methods with torch in one interpreter. It surfaces only in the PR-only
+# `locked` matrix, which installs a torch venv and runs the whole tests/ tree in
+# a single process. That gap is why regressions keep reaching CI unnoticed.
+#
+# This hook reproduces the `locked` condition locally, before the push: it finds
+# a venv whose python imports torch and runs the whole suite through it in one
+# process. It is a representative approximation, not the full matrix -- one venv
+# cannot carry every method's dependencies, so method-specific import failures
+# still need `locked` -- but the global-contamination and uninitialised-weight
+# (NaN) class that has bitten repeatedly does surface here.
+#
+# It needs a torch venv. On a clone that has none it cannot run the gate; it
+# **says so and lets the push through** rather than blocking work it cannot
+# check. A skip is announced, never silent (DESIGN 2.4).
+#
+# Escape hatch, announced:  SKIP_TORCH_GATE=1 git push
+# Pick a specific interpreter:  TORCH_GATE_PYTHON=/path/to/python git push
+#
+# Enabled once per clone, together with pre-commit:
+#   git config core.hooksPath .githooks
+set -Eeuo pipefail
+
+# git hands GIT_DIR and friends to hooks. Left in place, the git processes the
+# tests start would operate on this repository instead of their own fixtures.
+# Clear them *before* calling git: reversed, rev-parse itself dies on a broken
+# GIT_DIR.
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX \
+      GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OBJECT_DIRECTORIES \
+      GIT_QUARANTINE_PATH
+cd "$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+
+if [ "${SKIP_TORCH_GATE:-}" = "1" ]; then
+  echo "[pre-push] SKIP_TORCH_GATE=1 -- the torch gate is skipped by request." >&2
+  echo "[pre-push] the locked-CI conditions are NOT reproduced; push allowed." >&2
+  exit 0
+fi
+
+# Find an interpreter that imports torch: the explicit override first, then any
+# .venvs/*/bin/python. Any torch venv reproduces the single-process condition;
+# a richer one (torch+timm) simply skips fewer tests.
+py=""
+if [ -n "${TORCH_GATE_PYTHON:-}" ] && "${TORCH_GATE_PYTHON}" -c 'import torch' 2>/dev/null; then
+  py="${TORCH_GATE_PYTHON}"
+else
+  for cand in .venvs/*/bin/python; do
+    [ -x "$cand" ] || continue
+    if "$cand" -c 'import torch' 2>/dev/null; then
+      py="$cand"
+      break
+    fi
+  done
+fi
+
+if [ -z "$py" ]; then
+  echo "[pre-push] no torch venv found (looked for TORCH_GATE_PYTHON and" >&2
+  echo "[pre-push] .venvs/*/bin/python importing torch)." >&2
+  echo "[pre-push] the locked-CI conditions are NOT reproduced here; push allowed." >&2
+  exit 0
+fi
+
+echo "[pre-push] torch gate: PYTHONPATH=. $py -m unittest discover -s tests"
+echo "[pre-push] (this reproduces the locked CI condition; it takes a while)"
+if ! PYTHONPATH=. "$py" -m unittest discover -s tests > /tmp/pre-push-tests.log 2>&1; then
+  echo "[pre-push] *** the torch suite is failing; the push is aborted ***" >&2
+  tail -25 /tmp/pre-push-tests.log >&2
+  echo "[pre-push] full log: /tmp/pre-push-tests.log" >&2
+  exit 1
+fi
+echo "[pre-push] ok"
