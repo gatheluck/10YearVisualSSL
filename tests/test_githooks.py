@@ -159,26 +159,43 @@ class TestPrePushHookBehaviour(unittest.TestCase):
             "esac\n")
         os.chmod(py, 0o755)
 
-    def run_hook(self, env: dict | None = None) -> subprocess.CompletedProcess:
+    def run_hook(self, overrides: dict | None = None
+                 ) -> subprocess.CompletedProcess:
+        """Run the hook with a hermetic environment.
+
+        The hook honours two ambient variables -- TORCH_GATE_PYTHON and
+        SKIP_TORCH_GATE. If the suite is itself run through the pre-push hook
+        (or anyone exports either), that value would leak in and override the
+        stand-in venv this test installs: the hook would pick a *real*
+        interpreter and run `discover -s tests` in this temp dir, which has no
+        `tests/`, failing with an unrelated ImportError. This test failed
+        exactly that way in-suite before the scrub. Strip both from the base,
+        then apply only what the test asks for.
+        """
+        base = os.environ.copy()
+        base.pop("TORCH_GATE_PYTHON", None)
+        base.pop("SKIP_TORCH_GATE", None)
+        if overrides:
+            base.update(overrides)
         return subprocess.run(["bash", str(self.tmp / "pre-push")],
-                              cwd=self.tmp, env=env or os.environ.copy(),
+                              cwd=self.tmp, env=base,
                               capture_output=True, text=True)
 
     def test_green_suite_allows_the_push(self):
         self.fake_venv()
-        r = self.run_hook({**os.environ, "FAKE_SUITE_EXIT": "0"})
+        r = self.run_hook({"FAKE_SUITE_EXIT": "0"})
         self.assertEqual(r.returncode, 0, r.stderr)
 
     def test_red_suite_blocks_the_push(self):
         self.fake_venv()
-        r = self.run_hook({**os.environ, "FAKE_SUITE_EXIT": "1"})
+        r = self.run_hook({"FAKE_SUITE_EXIT": "1"})
         self.assertNotEqual(r.returncode, 0, "red suite, yet the push passed")
         self.assertIn("aborted", r.stderr)
 
     def test_failure_output_is_shown(self):
         """Hide the reason and people reach for --no-verify."""
         self.fake_venv()
-        r = self.run_hook({**os.environ, "FAKE_SUITE_EXIT": "1"})
+        r = self.run_hook({"FAKE_SUITE_EXIT": "1"})
         self.assertIn("stand-in torch suite", r.stderr)
 
     def test_no_torch_venv_is_announced_not_silent_and_allows(self):
@@ -186,14 +203,13 @@ class TestPrePushHookBehaviour(unittest.TestCase):
         announced (DESIGN 2.4: never a silent skip), and the push allowed rather
         than blocking work the hook cannot check."""
         self.fake_venv()  # present, but its python fails to import torch
-        r = self.run_hook({**os.environ, "FAKE_TORCH_IMPORT": "1"})
+        r = self.run_hook({"FAKE_TORCH_IMPORT": "1"})
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertIn("no torch venv", r.stderr)
 
     def test_skip_env_is_announced_and_allows(self):
         self.fake_venv()
-        r = self.run_hook({**os.environ, "SKIP_TORCH_GATE": "1",
-                           "FAKE_SUITE_EXIT": "1"})
+        r = self.run_hook({"SKIP_TORCH_GATE": "1", "FAKE_SUITE_EXIT": "1"})
         self.assertEqual(r.returncode, 0,
                          "SKIP_TORCH_GATE=1 should let the push through")
         self.assertIn("skip", r.stderr.lower())
@@ -215,9 +231,9 @@ class TestPrePushHookBehaviour(unittest.TestCase):
             "  *) exit 0 ;;\n"
             "esac\n")
         os.chmod(py, 0o755)
-        env = {**os.environ, "GIT_DIR": "/somewhere/.git",
-               "GIT_WORK_TREE": "/somewhere", "GIT_INDEX_FILE": "/tmp/idx"}
-        r = self.run_hook(env)
+        r = self.run_hook({"GIT_DIR": "/somewhere/.git",
+                           "GIT_WORK_TREE": "/somewhere",
+                           "GIT_INDEX_FILE": "/tmp/idx"})
         self.assertEqual(r.returncode, 0,
                          f"git's environment was not cleared: {r.stderr}")
 
