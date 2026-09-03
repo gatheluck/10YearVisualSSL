@@ -39,9 +39,12 @@ this machine (see the item's `deferred_reason`). A deferral is a recorded depart
 from the queue -- the test requires a non-empty reason -- not a silent one; it moves
 the item off the critical path without marking it done, so `next` stepped over it to
 Cosmos3 Super (order 16), which has now landed. With every ungated B1 backbone done
-and no B2 CompEval adapter yet buildable (see the correction below), `next` is
-**C1:shufflelearn (order 17)**, the earliest `todo`. When the DINOv3-7B weights are
-obtained through authorized access, its status returns to `todo`.
+and no B2 CompEval adapter yet buildable (see the correction below), `next` points
+into Phase C rather than at a B2 item -- the exact pointer is the
+`next` field of the machine-readable checklist below, which is the source of truth
+for state; this prose deliberately does not restate it, so it cannot drift as ports
+land. When the DINOv3-7B weights are obtained through authorized access, its status
+returns to `todo`.
 
 **A second latent drift, found and fixed 2026-09-02:** the B2 CompEval adapters
 are frozen-backbone probes "over backbones ported in other phases", yet the plan
@@ -69,8 +72,8 @@ Cosmos3 Super (order 16) also precedes order 17 -- the guard checks *ordering*, 
 which is not present here or in CI, so it cannot be mechanised from this repo and is
 recorded in prose instead. The consequence: **no B2 CompEval adapter's backbone is
 on disk yet** (each depends on a C/D/E/F backbone not yet ported), so `next` is not
-a B2 item at all but **C1:shufflelearn** (order 17), the earliest `todo`; the B2
-adapters follow their backbones in C2/C3/D1/E2/F2. What this document stops is the
+a B2 item at all but a Phase-C method (the machine-readable checklist below carries
+the exact `todo`); the B2 adapters follow their backbones in C2/C3/D1/E2/F2. What this document stops is the
 **next** silent drift.
 
 ## How it is enforced
@@ -229,7 +232,7 @@ ImageNet-100 is a separate future port), not A1.
   HF LFS metadata agree on. With every ungated B1 backbone done and no B2 CompEval
   adapter's backbone yet on disk (the CompEval "Cosmos 3" adapter probes Cosmos3
   Nano = `C3:cosmos3`, not this Super backbone -- see the correction above), `next`
-  is the first Phase-C method, `C1:shufflelearn`.*
+  is a Phase-C method (the machine-readable checklist below carries the exact pointer).*
 - **B2** -- the CompEval_Extend60 adapter set over backbones ported in other
   phases: **Cosmos 3, V-JEPA 2.1, RAE1, RAE2, RAEv2-K7, VGGT-Omega, VDPM**
   (adapters, not new backbones). These are frozen-backbone probes, so each one is
@@ -281,7 +284,7 @@ ImageNet-100 is a separate future port), not A1.
 
 ```json
 {
-  "next": "C2:vjepa2",
+  "next": "C2:vjepa2_ac",
   "grandfathered_ceiling": 0,
   "non_step3_unnumbered": ["_reference", "image_gpt", "mar", "var"],
   "items": [
@@ -304,7 +307,7 @@ ImageNet-100 is a separate future port), not A1.
     {"id": "C1:shufflelearn", "phase": "C", "subphase": "C1", "order": 17, "kind": "method", "dir": "shufflelearn", "title": "Shuffle & Learn", "status": "deferred", "deferred_reason": "Shuffle & Learn is a first-party PyTorch re-implementation in the capture (methods_step3/VideoSSL/01_shufflelearn), not an author-code port, and has no released checkpoint: the VideoSSL README's checkpoint column reads 'Requires video data (UCF-101 / Kinetics-400)'. The pretext-training code the same README documents (pretrain/{dataset,model,train}.py, the temporal-order-verification task) is ABSENT from the capture snapshot -- only the ResNet backbone wrapper, the eval stages, and the qsub launchers are captured, and scripts/qsub_pretrain_multinode.sh invokes a pretrain/train.py that does not exist under origin/snapshots. With neither released weights nor the capture's own pretext-training code, the method cannot be faithfully ported. Deferred (2026-09-02) until the capture snapshot includes the pretrain/ code (or a deliberate decision is taken to re-implement the pretext from arXiv:1603.08561, which would be a third implementation and is out of scope for a faithful port)."},
     {"id": "C1:video_moco", "phase": "C", "subphase": "C1", "order": 18, "kind": "method", "dir": "video_moco", "title": "Video MoCo", "status": "deferred", "deferred_reason": "Video MoCo is a first-party PyTorch re-implementation in the capture (methods_step3/VideoSSL/02_videomoco), not an author-code port, with no released checkpoint (VideoSSL README checkpoint column: 'Requires video data (Kinetics-400)'). As with C1:shufflelearn, the pretext-training code the README documents (pretrain/{dataset,model,train}.py, MoCo-v2 video contrastive training) is ABSENT from the capture snapshot -- only the backbone wrapper, eval stages, and qsub launchers are captured. Deferred (2026-09-02) until the capture snapshot includes the pretrain/ code (or a decision is taken to re-implement from arXiv:2103.05346). C1:videomae (order 19) uses official public HuggingFace weights (MCG-NJU/videomae-base, CC-BY-NC-4.0) and is portable, so next advances to it."},
     {"id": "C1:videomae", "phase": "C", "subphase": "C1", "order": 19, "kind": "method", "dir": "videomae", "title": "Video MAE", "status": "done"},
-    {"id": "C2:vjepa2", "phase": "C", "subphase": "C2", "order": 20, "kind": "method", "dir": "vjepa2", "title": "V-JEPA 2", "status": "todo"},
+    {"id": "C2:vjepa2", "phase": "C", "subphase": "C2", "order": 20, "kind": "method", "dir": "vjepa2", "title": "V-JEPA 2", "status": "done"},
     {"id": "C2:vjepa2_ac", "phase": "C", "subphase": "C2", "order": 21, "kind": "method", "dir": "vjepa2_ac", "title": "V-JEPA 2-AC", "status": "todo"},
     {"id": "C2:vjepa2_1", "phase": "C", "subphase": "C2", "order": 22, "kind": "method", "dir": "vjepa2_1", "title": "V-JEPA 2.1", "status": "todo"},
     {"id": "B2:vjepa2_1_eval", "phase": "B", "subphase": "B2", "order": 23, "kind": "task", "title": "CompEval adapter: V-JEPA 2.1", "artifact": null, "depends_on": "C2:vjepa2_1", "status": "todo"},

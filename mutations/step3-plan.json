@@ -13,8 +13,8 @@
     {
       "label": "the next pointer skips ahead past an earlier unfinished item",
       "file": "docs/STEP3_PORTING_PLAN.md",
-      "old": "\"next\": \"C2:vjepa2\",",
-      "new": "\"next\": \"C2:vjepa2_ac\",",
+      "old": "\"next\": \"C2:vjepa2_ac\",",
+      "new": "\"next\": \"C2:vjepa2_1\",",
       "tests": [
         "tests.test_step3_plan.TestTheNextPointerIsAFact.test_next_is_the_earliest_unfinished_item"
       ]
@@ -40,8 +40,8 @@
     {
       "label": "a new method is marked done ahead of its turn, exceeding the (now zero) ceiling",
       "file": "docs/STEP3_PORTING_PLAN.md",
-      "old": "\"dir\": \"vjepa2_ac\", \"title\": \"V-JEPA 2-AC\", \"status\": \"todo\"",
-      "new": "\"dir\": \"vjepa2_ac\", \"title\": \"V-JEPA 2-AC\", \"status\": \"done\"",
+      "old": "\"dir\": \"vjepa2_1\", \"title\": \"V-JEPA 2.1\", \"status\": \"todo\"",
+      "new": "\"dir\": \"vjepa2_1\", \"title\": \"V-JEPA 2.1\", \"status\": \"done\"",
       "tests": [
         "tests.test_step3_plan.TestNoNewOutOfOrderWork.test_done_items_after_the_next_pointer_stay_within_the_ceiling"
       ]
@@ -84,7 +84,7 @@
     }
   ],
   "_result": {
-    "measured_on": "2026-09-02 (re-measured after porting C1:videomae (order 19), the eval-only VideoMAE frozen-backbone probe: it is marked done and next advances to C2:vjepa2 (order 20), the earliest todo. videomae landed in turn (order 19 < the new next), so the ceiling stays 0. The next-skip mutant now points next past C2:vjepa2 to C2:vjepa2_ac (order 21); the out-of-order-done mutant now marks C2:vjepa2_ac (order 21 > next) done so a genuinely out-of-turn completion trips the zero ceiling; the deferred-reason guard mutant still anchors uniquely on the DINOv3 reason ('The DINOv3'); the depends_on mutant still points B2:cosmos3_eval's C3:cosmos3 dependency at a later-ordered backbone to prove the adapter-follows-its-backbone guard)",
+    "measured_on": "2026-09-02 (re-measured after porting C2:vjepa2 (order 20), the eval-only V-JEPA 2 frozen-backbone probe: it is marked done and next advances to C2:vjepa2_ac (order 21), the earliest todo. vjepa2 landed in turn (order 20 < the new next), so the ceiling stays 0. The next-skip mutant now points next past C2:vjepa2_ac to C2:vjepa2_1 (order 22); the out-of-order-done mutant now marks C2:vjepa2_1 (order 22 > next) done so a genuinely out-of-turn completion trips the zero ceiling; the deferred-reason guard mutant still anchors uniquely on the DINOv3 reason ('The DINOv3'); the depends_on mutant still points B2:cosmos3_eval's C3:cosmos3 dependency at a later-ordered backbone to prove the adapter-follows-its-backbone guard)",
     "measured_with": "python3 bin/mutate.py --spec mutations/step3-plan.json (base interpreter, pure stdlib)",
     "killed": 9,
     "total": 9,

@@ -64,8 +64,10 @@ METHODS = ROOT / "methods"
 # faithfully ported (see their `deferred_reason`s). `next` therefore stepped over both
 # to C1:videomae (order 19) -- Video MAE, which uses official public HuggingFace
 # weights (MCG-NJU/videomae-base, CC-BY-NC-4.0) and is portable as an eval-only
-# frozen-backbone probe. C1:videomae is now `done` (ported 2026-09-02, in turn: order
-# 19 sits before the new `next`), so `next` advances to C2:vjepa2 (order 20), the
+# frozen-backbone probe. C1:videomae is `done`, and C2:vjepa2 (order 20) -- V-JEPA 2,
+# an eval-only frozen-backbone probe over the official public facebook/vjepa2-vitl-fpc64-256
+# weights (MIT) -- is now `done` too (ported 2026-09-02, in turn: order 20 sits before
+# the new `next`), so `next` advances to C2:vjepa2_ac (order 21), the
 # earliest `todo`, and the ceiling stays 0: no out-of-order port stands. A deferral
 # moves an item off the critical path but is not an out-of-order completion, so it
 # does not touch this ceiling. The ceiling is a
