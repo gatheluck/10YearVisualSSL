@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import shutil
 import sys
 import tempfile
@@ -224,6 +225,155 @@ class TestFeatureSaveLayout(unittest.TestCase):
         self.assertEqual(got_l.tolist(), [0, 1, 0, 1])
         self.assertEqual(meta["feat_dim"], 3)
         self.assertEqual(meta["count"], 4)
+
+
+class TestInterpreterSelection(unittest.TestCase):
+    """Each method runs in its own interpreter: its own venv if it has one,
+    else the current one. Discovered from the venvs tree, never listed."""
+
+    def setUp(self) -> None:
+        self.tmp = Path(tempfile.mkdtemp(prefix="featpy-"))
+        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
+
+    def test_it_prefers_the_methods_own_venv(self):
+        venvs = self.tmp / ".venvs"
+        py = venvs / "some_method" / "bin" / "python"
+        py.parent.mkdir(parents=True)
+        py.write_text("#!/bin/sh\n", encoding="utf-8")
+        got = tool().python_for("some_method", venvs)
+        self.assertEqual(Path(got), py)
+
+    def test_it_falls_back_to_the_current_interpreter(self):
+        venvs = self.tmp / ".venvs"        # empty: no per-method venv
+        venvs.mkdir()
+        got = tool().python_for("some_method", venvs)
+        self.assertEqual(got, sys.executable)
+
+
+class TestWorkerCommand(unittest.TestCase):
+    """The argv the driver hands the isolated worker carries every input the
+    provider needs, and marks the process as a worker."""
+
+    def test_it_carries_the_worker_flag_and_all_inputs(self):
+        cmd = tool().worker_command(
+            "/usr/bin/python", provider="/m/feature_provider.py",
+            encoder="/e/encoder.pt", data_root="/data", split="val",
+            out_method_dir="/out/some_method", device="cpu",
+            batch_size=64, num_workers=4)
+        self.assertEqual(cmd[0], "/usr/bin/python")
+        self.assertIn("--worker", cmd)
+        for token in ("/m/feature_provider.py", "/e/encoder.pt", "/data",
+                      "val", "/out/some_method", "cpu", "64", "4"):
+            self.assertIn(token, cmd, f"{token!r} missing from worker command")
+
+
+class TestWorkerResultMapping(unittest.TestCase):
+    """A worker reports back through its exit code and a result.json. A clean
+    exit with an ok result is ok; a crash, or a missing result, is an error
+    that carries the worker's stderr -- never a silent success."""
+
+    def setUp(self) -> None:
+        self.tmp = Path(tempfile.mkdtemp(prefix="featres-"))
+        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
+        self.rec = {"method": "some_method", "status": "ready",
+                    "provider": "/m/feature_provider.py", "encoder": "/e.pt"}
+
+    def test_a_clean_exit_with_an_ok_result_is_ok(self):
+        res = self.tmp / "result.json"
+        res.write_text(json.dumps({"status": "ok", "feat_dim": 3, "count": 2}),
+                       encoding="utf-8")
+        got = tool()._record_from_worker(self.rec, 0, res, "")
+        self.assertEqual(got["status"], "ok")
+        self.assertEqual(got["feat_dim"], 3)
+        self.assertEqual(got["count"], 2)
+
+    def test_a_nonzero_exit_is_an_error_carrying_stderr(self):
+        got = tool()._record_from_worker(
+            self.rec, 1, self.tmp / "missing.json", "Traceback: boom")
+        self.assertEqual(got["status"], "error")
+        self.assertIn("boom", got["reason"])
+
+    def test_a_result_reporting_failure_is_an_error(self):
+        res = self.tmp / "result.json"
+        res.write_text(json.dumps({"status": "error", "reason": "no encoder"}),
+                       encoding="utf-8")
+        got = tool()._record_from_worker(self.rec, 1, res, "")
+        self.assertEqual(got["status"], "error")
+        self.assertIn("no encoder", got["reason"])
+
+
+def _synthetic_provider(body: str) -> str:
+    """A standalone feature_provider.py, importable in a fresh interpreter."""
+    return body
+
+
+class TestIsolatedRunIntegration(unittest.TestCase):
+    """The driver runs each method in a real subprocess and collects the
+    result. Proven with a synthetic provider (no torch, no real method named):
+    it returns tiny numpy features and records its own pid, so the test can
+    assert the provider truly ran in another process."""
+
+    def setUp(self) -> None:
+        try:
+            import numpy  # noqa: F401
+        except ImportError:
+            self.skipTest("numpy absent (announced, not silent)")
+        self.tmp = Path(tempfile.mkdtemp(prefix="featiso-"))
+        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
+        self.methods = self.tmp / "methods"
+        self.methods.mkdir()
+
+    def _method_with(self, name: str, provider_body: str) -> str:
+        d = self.methods / name
+        (d / "adapter").mkdir(parents=True)
+        (d / "feature_provider.py").write_text(provider_body, encoding="utf-8")
+        enc = d / "encoder.pt"
+        enc.write_bytes(b"dummy encoder")
+        return str(enc)
+
+    def test_a_provider_runs_in_a_separate_process_and_is_saved(self):
+        import numpy as np
+        body = (
+            "import os\n"
+            "import numpy as np\n"
+            "def extract_val_features(*, encoder_path, data_root, split,\n"
+            "                         device, batch_size, num_workers):\n"
+            "    feats = np.arange(6, dtype='float32').reshape(2, 3)\n"
+            "    labels = np.array([0, 1])\n"
+            "    meta = {'representation': 'raw', 'feat_dim': 3, 'count': 2,\n"
+            "            'provider_pid': os.getpid()}\n"
+            "    return feats, labels, meta\n")
+        enc = self._method_with("good_method", body)
+        out = self.tmp / "features"
+        manifest = tool().run(
+            self.methods, data_root=str(self.tmp / "data"), split="val",
+            out=out, encoders={"good_method": enc}, encoders_root=None,
+            device="cpu", batch_size=2, num_workers=0, venvs_root=None)
+
+        rec = {r["method"]: r for r in manifest["records"]}["good_method"]
+        self.assertEqual(rec["status"], "ok", rec.get("reason", ""))
+        method_out = out / "good_method"
+        feats = np.load(method_out / "features.npy")
+        self.assertEqual(feats.shape, (2, 3))
+        meta = json.loads((method_out / "meta.json").read_text())
+        self.assertEqual(meta["encoder_sha256"],
+                         tool().sha256_of(Path(enc)))
+        self.assertNotEqual(meta["provider_pid"], os.getpid(),
+                            "the provider ran in this process, not isolated")
+
+    def test_a_crashing_provider_is_recorded_as_error_not_silently_dropped(self):
+        body = (
+            "def extract_val_features(**kw):\n"
+            "    raise RuntimeError('boom in worker')\n")
+        enc = self._method_with("bad_method", body)
+        out = self.tmp / "features"
+        manifest = tool().run(
+            self.methods, data_root=str(self.tmp / "data"), split="val",
+            out=out, encoders={"bad_method": enc}, encoders_root=None,
+            device="cpu", batch_size=2, num_workers=0, venvs_root=None)
+        rec = {r["method"]: r for r in manifest["records"]}["bad_method"]
+        self.assertEqual(rec["status"], "error")
+        self.assertTrue(rec.get("reason"), "an error must carry a reason")
 
 
 if __name__ == "__main__":
