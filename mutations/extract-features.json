@@ -1,0 +1,41 @@
+{
+  "_note": "Run: python3 bin/mutate.py --spec mutations/extract-features.json (the driver's control logic is standard-library only, so no torch venv is needed -- the referenced tests are the pure-logic ones in tests.test_extract_features). This is bin/extract-features.py, the one-run driver that walks every method shipping a feature_provider.py and saves its val features under <out>/<method>/. These mutations prove its guards are not vacuous: discovery matches the provider as a whole filename (a decoy must not count), a method with no checkpoint is skipped with a reason rather than silently dropped, and the exit status is nonzero unless every discovered method actually produced features -- a skip or an error must never read as success in a paper run.",
+  "targets": [
+    {
+      "label": "discovery matches the provider filename as a substring, so a decoy (test_feature_provider.py / feature_provider.py.bak) counts as a provider",
+      "file": "bin/extract-features.py",
+      "old": "        provider = child / PROVIDER_FILE",
+      "new": "        provider = next(iter(child.glob(\"*feature_provider*\")), child / PROVIDER_FILE)",
+      "tests": [
+        "tests.test_extract_features.TestProviderDiscovery.test_a_decoy_filename_does_not_count"
+      ]
+    },
+    {
+      "label": "a method with no checkpoint is marked ready instead of skipped, so a missing method is dropped silently",
+      "file": "bin/extract-features.py",
+      "old": "        if enc is None:",
+      "new": "        if False:",
+      "tests": [
+        "tests.test_extract_features.TestRunPlanning.test_a_method_without_an_encoder_is_skipped_with_a_reason"
+      ]
+    },
+    {
+      "label": "a skip no longer fails the run, so a silently missing method reads as success",
+      "file": "bin/extract-features.py",
+      "old": "        if r[\"status\"] == \"skipped\" and not allow_missing:",
+      "new": "        if False:",
+      "tests": [
+        "tests.test_extract_features.TestManifestAndExitStatus.test_a_skip_makes_the_run_fail_by_default"
+      ]
+    },
+    {
+      "label": "an error no longer fails the run, so a provider that ran and crashed reads as success",
+      "file": "bin/extract-features.py",
+      "old": "        if r[\"status\"] == \"error\":",
+      "new": "        if False:",
+      "tests": [
+        "tests.test_extract_features.TestManifestAndExitStatus.test_an_error_makes_the_run_fail"
+      ]
+    }
+  ]
+}
