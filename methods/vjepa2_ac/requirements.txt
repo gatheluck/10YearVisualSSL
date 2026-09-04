@@ -1,0 +1,16 @@
+# What the vjepa2_ac port's own files import, and nothing else. Checked in both
+# directions by tests/test_method_requirements.py. Floors only; the exact hashed
+# closure is in requirements.lock.txt (CPU) and requirements.lock.cu130.txt.
+#
+# The V-JEPA 2 ViT is the pinned facebookresearch/vjepa2 submodule (third_party/
+# vjepa2), imported not copied -- so this port's own files import only torch (the
+# probe and the checkpoint load via torch.load; the checkpoint is a .pt pickle,
+# not safetensors), numpy (seeding and feature handling), torchvision (ImageFolder
+# and the transforms the probe reads images with) and PyYAML (the stand-alone YAML
+# config path). The submodule's own runtime dependencies -- einops and timm, which
+# its vision_transformer.py imports -- are NOT imported by this port's files, so
+# they are not here; they are pinned in the lock only (a real run installs the lock).
+torch>=2.1.0
+torchvision>=0.16.0
+numpy>=1.24.0
+PyYAML>=6.0

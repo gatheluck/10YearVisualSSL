@@ -27,6 +27,7 @@ import ast
 import re
 import sys
 import unittest
+from functools import lru_cache
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -37,8 +38,19 @@ if str(Path(__file__).resolve().parent) not in sys.path:
 from _repo_files import submodule_paths  # noqa: E402
 
 
+@lru_cache(maxsize=None)
 def local_modules(method: Path) -> set[str]:
     """Modules that come from the repository rather than from an index.
+
+    Memoised: it depends only on the method directory and the (stable, within a
+    run) submodule tree, yet it is invariant of the caller's loop and was being
+    recomputed thousands of times -- once per (submodule directory x method) --
+    in `test_a_pinned_upstream_package_counts_as_local`, each call re-walking
+    every submodule two levels deep. Caching collapses that to one computation
+    per method, so the guard scales as this repository grows toward its own goal
+    of dozens of methods and submodules (the property this file exists to hold).
+    The returned set must not be mutated by callers, since the cache shares it.
+
 
     **Derived, not listed.** A hand-maintained list went stale the moment a
     method gained a second file: `evaluate_linear_official` was reported as an

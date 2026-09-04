@@ -1,0 +1,43 @@
+{
+  "captured_at": "2026-09-02",
+  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
+  "captured_note": "V-JEPA 2-AC appears in the capture's Step-3 VideoSSL series (methods_step3/VideoSSL/07_vjepa2ac) as an as-is SSL comparison: the pretrained (action-conditioned) video encoder is frozen and a linear probe is fit on its features. Like the sibling 05_vjepa2 / 03_videomae, it uses the authors' official public checkpoint (vjepa2-ac-vitg.pt, downloaded via scripts). The capture's backbone/__init__.py builds the ViT from a cached facebookresearch/vjepa2 hub checkout (src/models/vision_transformer.py, vit_giant_xformers, use_rope=True) and loads the checkpoint's 'encoder' sub-dict (module. prefix stripped); its ImageNet linear eval feeds a still image duplicated to a 2-frame clip (tubelet 2 -> one temporal token) and mean-pools the tokens (never PyAV / a video dataset).",
+  "paper": {
+    "title": "V-JEPA 2: Self-Supervised Video Models Enable Understanding, Prediction and Planning",
+    "arxiv": "2506.09985",
+    "official_repo": "https://github.com/facebookresearch/vjepa2",
+    "model_card": "https://github.com/facebookresearch/vjepa2"
+  },
+  "note": "Eval-only port (a single linear_eval stage, no pretraining). UNLIKE the self-contained sibling vjepa2 -- which reimplements a small Conv3d-patch-embed ViT and runs it with PLAIN attention -- this port builds the ViT from the pinned facebookresearch/vjepa2 submodule (third_party/vjepa2, imported not copied) and runs V-JEPA 2's REAL rotary-position attention (use_rope=True), reproducing the capture's number rather than approximating it. The submodule's vision_transformer.py imports einops and timm at import time, so those are pinned in the lock (requirements.lock.txt / .cu130.txt); this port's own files import only torch, torchvision, numpy and PyYAML, so requirements.txt lists exactly those (checked both ways by tests/test_method_requirements.py). Because the ViT is a git submodule, this file records an 'upstream' block and the adapter defines UPSTREAM (test_port_completeness's both-places rule requires them to agree). A real run loads the hash-pinned download (passed as ckpt) into vit_giant_xformers; the hermetic smoke leaves ckpt empty and builds a random tiny vit_tiny (still use_rope=True) from the config's arch, so nothing is downloaded and the pipeline runs on a CPU.",
+  "upstream": {
+    "repo": "https://github.com/facebookresearch/vjepa2",
+    "commit": "204698b45b3712590f06245fbfba32d3be539812",
+    "license": "MIT",
+    "license_source": "read on 2026-09-02 from third_party/vjepa2/LICENSE (the pinned submodule): 'MIT License / Copyright (c) Meta Platforms, Inc. and affiliates.'"
+  },
+  "checkpoint_shape": "The public vjepa2-ac-vitg.pt is a training-state dict with top-level keys ['encoder', 'predictor', 'opt', 'scaler', 'target_encoder', 'epoch', 'loss', 'batch_size', 'world_size', 'lr'] (measured 2026-09-02 by mmap-loading the downloaded file). The 'encoder' sub-dict holds 484 tensors, each key prefixed 'module.'; stripping 'module.'/'backbone.' yields exactly the 484 keys of the submodule's vit_giant_xformers built with img_size=(256,256), num_frames=64, tubelet_size=2, use_rope=True (measured set-equality: model_keys == ckpt_keys, zero missing, zero unexpected). patch_embed.proj.weight has shape (1408, 3, 2, 16, 16) -> embed_dim 1408, tubelet 2, patch 16 = ViT-g. There is no pos_embed and no stored rope buffer (rope is applied at run time). The 'predictor' (action-conditioned JEPA predictor), 'opt', 'scaler', 'target_encoder' and scalar entries are dropped.",
+  "faithfulness_note": "The capture's backbone loads state['encoder'] with load_state_dict(strict=False) and merely prints any missing/unexpected keys; this port tightens that to a hard error, which is safe because the load is measured to be exact (484 == 484). The capture passes use_SiLU=False / wide_SiLU=True (capitalised) to vit_giant_xformers; those names are swallowed by the factory's **kwargs and ignored, so the defaults (use_silu=False, wide_silu=True) apply -- which coincide with the intent. This port passes the correctly-spelled use_silu=False / wide_silu=True explicitly, for the same effective model.",
+  "linear_eval": "Probes the V-JEPA 2 ViT's mean-pooled patch tokens (the final-LayerNorm'd tokens, mean-pooled), frozen. V-JEPA 2's latent-prediction objective over internet-scale (here action-conditioned, robot-manipulation) video is a genuine SSL objective, so the number is comparable (the 'pretrained-backbone reuse' row, analogous to eva02 / aimv2 / data2vec2 / cae / videomae / vjepa2). A real run needs the official checkpoint (backbone_artifact below, fetched and hash-verified by bin/fetch-weights.py --artifact backbone_artifact, passed as the config's train.ckpt); the hermetic smoke leaves ckpt empty and builds a random tiny vit_tiny, so nothing is downloaded and only the pipeline is exercised. See docs/EVAL_DOWNLOAD.md.",
+  "backbone_artifact": {
+    "name": "vjepa2-ac-vitg.pt (official V-JEPA 2-AC ViT-g/16 action-conditioned pretraining checkpoint, 256px)",
+    "url": "https://dl.fbaipublicfiles.com/vjepa2/vjepa2-ac-vitg.pt",
+    "filename": "vjepa2-ac-vitg.pt",
+    "sha256": "0b5e3c4bf77a473cd8c61d32fbd87b28cdbba043fb3b8267f3b8bcfb1d5b9e6b",
+    "bytes": 11760743310,
+    "license": "MIT",
+    "gated": false,
+    "sha256_source": "computed on 2026-09-02 by downloading the file from the url below and running sha256sum (SIZE=11760743310, SHA256=0b5e3c4bf77a473cd8c61d32fbd87b28cdbba043fb3b8267f3b8bcfb1d5b9e6b); the url's HTTP content-length was re-checked the same day and equals 11760743310. There is no HuggingFace mirror and no capture-recorded hash for this artifact, so the hash was measured from the download directly; bin/fetch-weights.py re-verifies it on download.",
+    "license_source": "read on 2026-09-02 from the official facebookresearch/vjepa2 repository LICENSE (MIT), pinned as third_party/vjepa2/LICENSE. NOTE: the capture's backbone/__init__.py comment labels V-JEPA 2-AC as CC-BY-NC-4.0, an error carried over from V-JEPA 1 (the same mislabel the sibling vjepa2 corrects); the measured licence is MIT, and MIT is recorded."
+  },
+  "rewritten_during_the_port": [
+    "the V-JEPA 2 ViT is the pinned facebookresearch/vjepa2 submodule (third_party/vjepa2), imported via src.models.vision_transformer and never copied; the src/app imports are lazy and the path is prepared (src*/app* purged, other third_party roots stripped, third_party/vjepa2 inserted first) so the two submodule ports (this one and 35_vjepa) do not collide in the in-process test suite",
+    "the forward runs V-JEPA 2's real rotary-position attention (use_rope=True), unlike the sibling vjepa2 which approximates with plain attention",
+    "the checkpoint is read with torch.load (a .pt training-state dict, not safetensors); state['encoder'] is loaded (module./backbone. stripped) and the predictor/opt/scaler/target_encoder entries are dropped; any missing or unexpected key is a hard error (a half-loaded backbone would silently misreport what ran); the empty-ckpt hermetic smoke skips the load and builds a random tiny vit_tiny",
+    "the capture's tolerant load_state_dict(strict=False) that merely printed missing/unexpected counts is tightened to a hard error, which is safe because the load is measured exact (484 == 484)",
+    "the probed representation is the mean-pooled patch tokens: each still image is resized to the model's square input and replicated tubelet_size times along a new temporal axis to form the one-temporal-token clip V-JEPA 2 expects, run through the ViT, and the tokens are mean-pooled -- exactly the capture's ImageNet-linear-eval proxy (no PyAV / video dataset)",
+    "the device is resolved (resolve_device) instead of assumed CUDA",
+    "features are extracted in fp32 (no autocast), so the frozen-feature probe runs identically on a CPU or a pre-Ampere GPU",
+    "the probe follows this port's shared frozen-backbone protocol (mean-centre + L2-normalise, a single linear layer with SGD + cosine), returning the four comparable linear-probe accuracies and the epoch count",
+    "the input normalisation follows ImageNet mean/std with a bilinear square resize (matching the capture wrapper's internal bilinear resize to 256); the arch, resolution, frame count and tubelet size are read from the config so the hermetic smoke can shrink them and build a random tiny vit_tiny instead of the full ViT-g/16"
+  ]
+}

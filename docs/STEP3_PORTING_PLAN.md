@@ -284,7 +284,7 @@ ImageNet-100 is a separate future port), not A1.
 
 ```json
 {
-  "next": "C2:vjepa2_ac",
+  "next": "C2:vjepa2_1",
   "grandfathered_ceiling": 0,
   "non_step3_unnumbered": ["_reference", "image_gpt", "mar", "var"],
   "items": [
@@ -308,7 +308,7 @@ ImageNet-100 is a separate future port), not A1.
     {"id": "C1:video_moco", "phase": "C", "subphase": "C1", "order": 18, "kind": "method", "dir": "video_moco", "title": "Video MoCo", "status": "deferred", "deferred_reason": "Video MoCo is a first-party PyTorch re-implementation in the capture (methods_step3/VideoSSL/02_videomoco), not an author-code port, with no released checkpoint (VideoSSL README checkpoint column: 'Requires video data (Kinetics-400)'). As with C1:shufflelearn, the pretext-training code the README documents (pretrain/{dataset,model,train}.py, MoCo-v2 video contrastive training) is ABSENT from the capture snapshot -- only the backbone wrapper, eval stages, and qsub launchers are captured. Deferred (2026-09-02) until the capture snapshot includes the pretrain/ code (or a decision is taken to re-implement from arXiv:2103.05346). C1:videomae (order 19) uses official public HuggingFace weights (MCG-NJU/videomae-base, CC-BY-NC-4.0) and is portable, so next advances to it."},
     {"id": "C1:videomae", "phase": "C", "subphase": "C1", "order": 19, "kind": "method", "dir": "videomae", "title": "Video MAE", "status": "done"},
     {"id": "C2:vjepa2", "phase": "C", "subphase": "C2", "order": 20, "kind": "method", "dir": "vjepa2", "title": "V-JEPA 2", "status": "done"},
-    {"id": "C2:vjepa2_ac", "phase": "C", "subphase": "C2", "order": 21, "kind": "method", "dir": "vjepa2_ac", "title": "V-JEPA 2-AC", "status": "todo"},
+    {"id": "C2:vjepa2_ac", "phase": "C", "subphase": "C2", "order": 21, "kind": "method", "dir": "vjepa2_ac", "title": "V-JEPA 2-AC", "status": "done"},
     {"id": "C2:vjepa2_1", "phase": "C", "subphase": "C2", "order": 22, "kind": "method", "dir": "vjepa2_1", "title": "V-JEPA 2.1", "status": "todo"},
     {"id": "B2:vjepa2_1_eval", "phase": "B", "subphase": "B2", "order": 23, "kind": "task", "title": "CompEval adapter: V-JEPA 2.1", "artifact": null, "depends_on": "C2:vjepa2_1", "status": "todo"},
     {"id": "C3:cosmos3", "phase": "C", "subphase": "C3", "order": 24, "kind": "method", "dir": "cosmos3", "title": "Cosmos3", "status": "todo"},
