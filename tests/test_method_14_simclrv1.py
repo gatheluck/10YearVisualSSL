@@ -761,6 +761,32 @@ class TestFeatureProvider(Base):
         self.assertEqual(meta["encoder_sha256"],
                          hashlib.sha256(encoder_pt.read_bytes()).hexdigest())
 
+    @needs_deps
+    def test_the_isolated_driver_run_extracts_this_method_end_to_end(self):
+        """The whole driver, real subprocess, real provider. Unlike the
+        synthetic-provider driver test in tests/test_extract_features.py, this
+        runs a method whose adapter imports the shared `adapterlib` -- so it
+        catches the class of regression where the isolated worker cannot see a
+        repository-root module the provider needs (the worker puts ROOT on
+        sys.path, as bin/launch.py sets PYTHONPATH=ROOT)."""
+        if not (METHOD / "feature_provider.py").is_file():
+            self.skipTest("14_simclrv1 provider not yet present")
+        import numpy as np
+        driver = load("extract_features_driver", BIN / "extract-features.py")
+        data_root = tiny_split(self.tmp / "data")
+        encoder_pt = self._make_encoder(self._shipped_config())
+        out = self.tmp / "features"
+        manifest = driver.run(
+            METHOD.parent, data_root=str(data_root), split="val", out=out,
+            encoders={METHOD.name: str(encoder_pt)}, encoders_root=None,
+            device="cpu", batch_size=2, num_workers=0,
+            venvs_root=ROOT / ".venvs")
+
+        rec = {r["method"]: r for r in manifest["records"]}[METHOD.name]
+        self.assertEqual(rec["status"], "ok", rec.get("reason", ""))
+        feats = np.load(out / METHOD.name / "features.npy")
+        self.assertEqual(feats.shape, (6, BACKBONE_DIM))
+
 
 if __name__ == "__main__":
     unittest.main()

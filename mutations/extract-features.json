@@ -1,5 +1,5 @@
 {
-  "_note": "Run: python3 bin/mutate.py --spec mutations/extract-features.json (the driver's control logic is standard-library only, so no torch venv is needed -- the referenced tests are the pure-logic ones in tests.test_extract_features). This is bin/extract-features.py, the one-run driver that walks every method shipping a feature_provider.py and saves its val features under <out>/<method>/. These mutations prove its guards are not vacuous: discovery matches the provider as a whole filename (a decoy must not count), a method with no checkpoint is skipped with a reason rather than silently dropped, and the exit status is nonzero unless every discovered method actually produced features -- a skip or an error must never read as success in a paper run.",
+  "_note": "Run: python3 bin/mutate.py --spec mutations/extract-features.json (the driver's control logic is standard-library only, so no torch venv is needed -- the referenced tests are the pure-logic ones in tests.test_extract_features). This is bin/extract-features.py, the one-run driver that walks every method shipping a feature_provider.py and saves its val features under <out>/<method>/. These mutations prove its guards are not vacuous: discovery matches the provider as a whole filename (a decoy must not count); a method with no checkpoint is skipped with a reason rather than silently dropped; the exit status is nonzero unless every discovered method actually produced features (a skip or an error must never read as success in a paper run); each method runs in its own venv (isolation), a worker's ok result is trusted only when it says ok, and a crashed worker's stderr is carried into the error rather than dropped. The real subprocess path on a real method (which imports the shared adapterlib) is covered by tests.test_method_14_simclrv1.TestFeatureProvider.test_the_isolated_driver_run_extracts_this_method_end_to_end.",
   "targets": [
     {
       "label": "discovery matches the provider filename as a substring, so a decoy (test_feature_provider.py / feature_provider.py.bak) counts as a provider",
@@ -35,6 +35,33 @@
       "new": "        if False:",
       "tests": [
         "tests.test_extract_features.TestManifestAndExitStatus.test_an_error_makes_the_run_fail"
+      ]
+    },
+    {
+      "label": "a method's own venv is ignored, so every method runs in the driver's interpreter (defeating isolation)",
+      "file": "bin/extract-features.py",
+      "old": "        if cand.is_file():",
+      "new": "        if False:",
+      "tests": [
+        "tests.test_extract_features.TestInterpreterSelection.test_it_prefers_the_methods_own_venv"
+      ]
+    },
+    {
+      "label": "a worker's ok result is not trusted, so a successful extraction is misreported",
+      "file": "bin/extract-features.py",
+      "old": "        if res.get(\"status\") == \"ok\":",
+      "new": "        if False:",
+      "tests": [
+        "tests.test_extract_features.TestWorkerResultMapping.test_a_clean_exit_with_an_ok_result_is_ok"
+      ]
+    },
+    {
+      "label": "a crashed worker's stderr is dropped from the error, hiding why it failed",
+      "file": "bin/extract-features.py",
+      "old": "            \"reason\": f\"worker exited {returncode}: {stderr_tail}\".strip()}",
+      "new": "            \"reason\": f\"worker exited {returncode}\".strip()}",
+      "tests": [
+        "tests.test_extract_features.TestWorkerResultMapping.test_a_nonzero_exit_is_an_error_carrying_stderr"
       ]
     }
   ]
