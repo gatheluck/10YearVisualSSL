@@ -20,16 +20,17 @@ The val pipeline has no random augmentation (centre crop, no flip) and the
 model runs frozen in eval mode, so extraction is deterministic; there is no RNG
 to seed here, unlike the GAN pretrain.
 
-Imports are bare module names resolved through this method's directory, as the
-adapter itself does. That is safe because the driver runs each method in
-isolation; do not rely on this module and another method's `adapter`/`models`
-coexisting in one interpreter.
+Sibling modules (`adapter`, `evaluate_linear`) are imported through
+`provider_support.import_sibling`, which resolves them against THIS method even
+when another method already imported a module of the same name in one
+interpreter. `evaluate_linear` is defined by four methods, so the test suite and
+the driver's in-process path would otherwise hand this provider another method's
+copy; the isolated worker subprocess only ever holds one method, so it is a
+no-op there.
 """
 
 from __future__ import annotations
 
-import importlib
-import sys
 from pathlib import Path
 
 METHOD_DIR = Path(__file__).resolve().parent
@@ -49,10 +50,9 @@ def extract_val_features(*, encoder_path: str, data_root: str, split: str,
     meta describes the run."""
     import torch
 
-    if str(METHOD_DIR) not in sys.path:
-        sys.path.insert(0, str(METHOD_DIR))
-    adapter = importlib.import_module("adapter")
-    ev = importlib.import_module("evaluate_linear")
+    import provider_support
+    adapter = provider_support.import_sibling(METHOD_DIR, "adapter")
+    ev = provider_support.import_sibling(METHOD_DIR, "evaluate_linear")
 
     cfg = _load_config()
     train = cfg["train"]

@@ -1,0 +1,41 @@
+{
+  "_note": "Run: python3 bin/mutate.py --spec mutations/provider-support.json (standard-library only; no torch venv needed). provider_support.import_sibling is what a feature_provider calls to import its own sibling module (evaluate_linear, adapter, ...) so that a module of the same name already imported by ANOTHER method in the same interpreter does not shadow it -- the collision the locked CI matrix caught on the provider fan-out. These mutations prove its guards are not vacuous: a foreign method's cached module is actually dropped; the method directory is inserted at the FRONT of sys.path (not appended, where another method's dir would win); modules outside methods/ (stdlib, site-packages) are NEVER dropped; and a purged package takes its submodules with it so a relative import re-resolves.",
+  "targets": [
+    {
+      "label": "a foreign method's cached module is not purged, so a sibling leaks in from whichever method ran first",
+      "file": "provider_support.py",
+      "old": "        if origin.startswith(root) and not origin.startswith(mine):",
+      "new": "        if False and origin.startswith(root) and not origin.startswith(mine):",
+      "tests": [
+        "tests.test_provider_support.TestImportSibling.test_a_shared_single_file_name_resolves_to_the_calling_method"
+      ]
+    },
+    {
+      "label": "modules outside methods/ are purged too, so the standard library is torn out from under the import",
+      "file": "provider_support.py",
+      "old": "        if origin.startswith(root) and not origin.startswith(mine):",
+      "new": "        if not origin.startswith(mine):",
+      "tests": [
+        "tests.test_provider_support.TestImportSibling.test_stdlib_modules_are_never_purged"
+      ]
+    },
+    {
+      "label": "the method directory is appended instead of inserted first, so another method's directory earlier on sys.path wins the import",
+      "file": "provider_support.py",
+      "old": "    sys.path.insert(0, p)",
+      "new": "    sys.path.append(p)",
+      "tests": [
+        "tests.test_provider_support.TestImportSibling.test_the_method_directory_is_put_first_on_sys_path"
+      ]
+    },
+    {
+      "label": "a purged package's submodules are left behind, so a relative import in the calling method resolves against the other method's file",
+      "file": "provider_support.py",
+      "old": "            for sub in [k for k in sys.modules if k.startswith(f\"{name}.\")]:",
+      "new": "            for sub in [k for k in sys.modules if k.startswith(f\"{name}.__none__\")]:",
+      "tests": [
+        "tests.test_provider_support.TestImportSibling.test_a_foreign_package_and_its_submodules_are_purged_together"
+      ]
+    }
+  ]
+}
