@@ -444,5 +444,128 @@ class TestALinearEvalSmoke(Base):
         self.assertIn("cuda", r.stdout.lower())
 
 
+class TestFeatureProvider(Base):
+    """`feature_provider.py` is what `bin/extract-features.py` discovers and
+    calls to obtain one raw feature vector per image. vjepa2_ac is eval-only, so
+    it has no `adapter.load_encoder`: the provider reads the arch from the
+    checkpoint's width, sets `train["ckpt"]` to the handed-in checkpoint and lets
+    the eval module's `build_model` load it strict into the submodule ViT
+    (`use_rope=True`), then extracts the mean-pooled token feature (no CLS) --
+    raw, before the probe's normalise -- one embed_dim row per val image, with
+    honest meta. Modules load through `load` (`load_from`); the whole suite runs
+    many methods in one interpreter.
+
+    The checkpoint is the official training-state shape (a `.pt` whose `encoder`
+    sub-dict carries every key `module.`-prefixed, plus a decoy `predictor` that
+    must be dropped) written from a tiny `vit_tiny` (embed_dim 192), exactly the
+    smoke's `_fake_ckpt` fixture. The provider infers `vit_tiny` from that width
+    and builds it at the shipped config's img_size (rope -> no pos_embed -> the
+    state dict is size-independent). Random weights do not affect the
+    shape-and-plumbing this proves.
+    """
+
+    def evaluator(self):
+        return load("vjepa2_ac_eval", METHOD / "evaluate_linear_vjepa2_ac.py")
+
+    def _provider(self):
+        return load("vjepa2_ac_feature_provider", METHOD / "feature_provider.py")
+
+    def _make_encoder(self) -> Path:
+        import torch
+        ev = self.evaluator()
+        ref = ev.build_model(dict(EVAL_TRAIN, ckpt=""), torch.device("cpu"))
+        enc = {f"module.{k}": v.clone().contiguous()
+               for k, v in ref.state_dict().items()}
+        state = {"encoder": enc, "epoch": 1, "loss": 0.0,
+                 "predictor": {"module.predictor_embed.weight":
+                               torch.zeros(4, 4)}}
+        path = self.tmp / "vjepa2_ac.pt"
+        torch.save(state, str(path))
+        return path
+
+    @needs_deps
+    def test_it_returns_raw_features_one_per_val_image(self):
+        if not (METHOD / "feature_provider.py").is_file():
+            self.skipTest("vjepa2_ac provider not yet present")
+        if not _submodule_present():
+            self.skipTest("the vjepa2 submodule is not checked out here")
+        import numpy as np
+        data_root = tiny_split(self.tmp / "data")
+        encoder_pt = self._make_encoder()
+
+        prov = self._provider()
+        feats, labels, meta = prov.extract_val_features(
+            encoder_path=str(encoder_pt), data_root=str(data_root),
+            split="val", device="cpu", batch_size=2, num_workers=0)
+
+        feats = np.asarray(feats)
+        self.assertEqual(feats.ndim, 2)
+        self.assertEqual(feats.shape[0], 6, "6 val images expected")
+        self.assertEqual(feats.shape[1], EMBED_DIM,
+                         "V-JEPA 2 token-mean feature is embed_dim-d")
+        self.assertEqual(np.asarray(labels).shape[0], 6)
+        self.assertEqual(meta["feat_dim"], EMBED_DIM)
+        self.assertEqual(meta["representation"], "raw")
+        self.assertEqual(meta["arch"], "vit_tiny")
+
+    @needs_deps
+    def test_the_driver_saves_it_under_a_per_method_directory(self):
+        """End to end through the driver's save path: the provider's output
+        lands as features.npy / labels.npy / meta.json where a figure reads it,
+        with the encoder's sha256 recorded in meta."""
+        if not (METHOD / "feature_provider.py").is_file():
+            self.skipTest("vjepa2_ac provider not yet present")
+        if not _submodule_present():
+            self.skipTest("the vjepa2 submodule is not checked out here")
+        import hashlib
+        import numpy as np
+        driver = load("extract_features_driver", BIN / "extract-features.py")
+        data_root = tiny_split(self.tmp / "data")
+        encoder_pt = self._make_encoder()
+
+        record = {"method": METHOD.name, "status": "ready",
+                  "provider": str(METHOD / "feature_provider.py"),
+                  "encoder": str(encoder_pt)}
+        out = self.tmp / "features"
+        updated = driver.extract_one(
+            record, data_root=str(data_root), split="val", out=out,
+            device="cpu", batch_size=2, num_workers=0)
+
+        self.assertEqual(updated["status"], "ok", updated.get("reason", ""))
+        method_out = out / METHOD.name
+        feats = np.load(method_out / "features.npy")
+        labels = np.load(method_out / "labels.npy")
+        meta = json.loads((method_out / "meta.json").read_text())
+        self.assertEqual(feats.shape, (6, EMBED_DIM))
+        self.assertEqual(labels.shape[0], 6)
+        self.assertEqual(meta["encoder_sha256"],
+                         hashlib.sha256(encoder_pt.read_bytes()).hexdigest())
+
+    @needs_deps
+    def test_the_isolated_driver_run_extracts_this_method_end_to_end(self):
+        """The whole driver, real subprocess, real provider -- catches the class
+        of regression where the isolated worker cannot see a repository-root
+        module the provider needs (the worker puts ROOT on sys.path)."""
+        if not (METHOD / "feature_provider.py").is_file():
+            self.skipTest("vjepa2_ac provider not yet present")
+        if not _submodule_present():
+            self.skipTest("the vjepa2 submodule is not checked out here")
+        import numpy as np
+        driver = load("extract_features_driver", BIN / "extract-features.py")
+        data_root = tiny_split(self.tmp / "data")
+        encoder_pt = self._make_encoder()
+        out = self.tmp / "features"
+        manifest = driver.run(
+            METHOD.parent, data_root=str(data_root), split="val", out=out,
+            encoders={METHOD.name: str(encoder_pt)}, encoders_root=None,
+            device="cpu", batch_size=2, num_workers=0,
+            venvs_root=ROOT / ".venvs")
+
+        rec = {r["method"]: r for r in manifest["records"]}[METHOD.name]
+        self.assertEqual(rec["status"], "ok", rec.get("reason", ""))
+        feats = np.load(out / METHOD.name / "features.npy")
+        self.assertEqual(feats.shape, (6, EMBED_DIM))
+
+
 if __name__ == "__main__":
     unittest.main()

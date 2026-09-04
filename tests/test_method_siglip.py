@@ -310,5 +310,128 @@ class TestALinearEvalSmoke(Base):
         self.assertIn("cuda", r.stdout.lower())
 
 
+# The shipped linear_eval config's arch: the official ViT-B/16 SigLIP image
+# tower. Its pooled image embedding (the MAP attention-pool head output) is
+# 768-d, measured directly: model(zeros(6,3,224,224)).shape == (6, 768).
+SIGLIP_FEAT_DIM = 768
+
+
+class TestFeatureProvider(Base):
+    """`feature_provider.py` is what `bin/extract-features.py` discovers and
+    calls to obtain one raw feature vector per image. siglip is eval-only, so it
+    has no `adapter.load_encoder`: the provider sets the shipped config's `ckpt`
+    to the handed-in checkpoint and lets the eval module's `build_model` load it
+    into the named timm SigLIP arch, then extracts the pooled image embedding
+    (the MAP attention-pool head output) -- raw, before the probe's normalise --
+    one 768-d row per val image, with honest meta. Modules load through `load`
+    (`load_from`), which isolates each method; the whole suite runs many methods
+    in one interpreter.
+
+    The encoder checkpoint is built with the very call `build_model` uses on the
+    ckpt path (`timm.create_model(name, num_classes=0, img_size=...)`), so its
+    state dict matches the arch build_model constructs exactly; random weights do
+    not affect the shape-and-plumbing this proves. timm registers no tiny SigLIP
+    variant, so this exercises the real ViT-B/16 arch (768-d) on a CPU.
+    """
+
+    def _shipped_config(self) -> dict:
+        import yaml
+        return yaml.safe_load(
+            (METHOD / "configs" / "linear_eval.yaml").read_text())
+
+    def _make_encoder(self, cfg: dict) -> Path:
+        import timm
+        import torch
+        train = cfg["train"]
+        model = timm.create_model(
+            str(train["name"]), pretrained=False, num_classes=0,
+            img_size=int(train["img_size"]))
+        encoder_pt = self.tmp / "encoder.pt"
+        torch.save(model.state_dict(), encoder_pt)
+        return encoder_pt
+
+    def _provider(self):
+        return load("siglip_feature_provider", METHOD / "feature_provider.py")
+
+    @needs_deps
+    def test_it_returns_raw_768d_features_one_per_val_image(self):
+        if not (METHOD / "feature_provider.py").is_file():
+            self.skipTest("siglip provider not yet present")
+        import numpy as np
+        data_root = tiny_split(self.tmp / "data")
+        cfg = self._shipped_config()
+        encoder_pt = self._make_encoder(cfg)
+
+        prov = self._provider()
+        feats, labels, meta = prov.extract_val_features(
+            encoder_path=str(encoder_pt), data_root=str(data_root),
+            split="val", device="cpu", batch_size=2, num_workers=0)
+
+        feats = np.asarray(feats)
+        self.assertEqual(feats.ndim, 2)
+        self.assertEqual(feats.shape[0], 6, "6 val images expected")
+        self.assertEqual(feats.shape[1], SIGLIP_FEAT_DIM,
+                         "SigLIP pooled image embedding is 768-d")
+        self.assertEqual(np.asarray(labels).shape[0], 6)
+        self.assertEqual(meta["feat_dim"], SIGLIP_FEAT_DIM)
+        self.assertEqual(meta["representation"], "raw")
+
+    @needs_deps
+    def test_the_driver_saves_it_under_a_per_method_directory(self):
+        """End to end through the driver's save path: the provider's output
+        lands as features.npy / labels.npy / meta.json where a figure reads it,
+        with the encoder's sha256 recorded in meta."""
+        if not (METHOD / "feature_provider.py").is_file():
+            self.skipTest("siglip provider not yet present")
+        import hashlib
+        import numpy as np
+        driver = load("extract_features_driver", BIN / "extract-features.py")
+        data_root = tiny_split(self.tmp / "data")
+        encoder_pt = self._make_encoder(self._shipped_config())
+
+        record = {"method": METHOD.name, "status": "ready",
+                  "provider": str(METHOD / "feature_provider.py"),
+                  "encoder": str(encoder_pt)}
+        out = self.tmp / "features"
+        updated = driver.extract_one(
+            record, data_root=str(data_root), split="val", out=out,
+            device="cpu", batch_size=2, num_workers=0)
+
+        self.assertEqual(updated["status"], "ok", updated.get("reason", ""))
+        method_out = out / METHOD.name
+        feats = np.load(method_out / "features.npy")
+        labels = np.load(method_out / "labels.npy")
+        meta = json.loads((method_out / "meta.json").read_text())
+        self.assertEqual(feats.shape, (6, SIGLIP_FEAT_DIM))
+        self.assertEqual(labels.shape[0], 6)
+        self.assertEqual(meta["encoder_sha256"],
+                         hashlib.sha256(encoder_pt.read_bytes()).hexdigest())
+
+    @needs_deps
+    def test_the_isolated_driver_run_extracts_this_method_end_to_end(self):
+        """The whole driver, real subprocess, real provider. This runs a method
+        whose provider imports the shared method code in an isolated worker -- so
+        it catches the class of regression where the worker cannot see a
+        repository-root or method module the provider needs (the worker puts
+        ROOT on sys.path, as bin/launch.py sets PYTHONPATH=ROOT)."""
+        if not (METHOD / "feature_provider.py").is_file():
+            self.skipTest("siglip provider not yet present")
+        import numpy as np
+        driver = load("extract_features_driver", BIN / "extract-features.py")
+        data_root = tiny_split(self.tmp / "data")
+        encoder_pt = self._make_encoder(self._shipped_config())
+        out = self.tmp / "features"
+        manifest = driver.run(
+            METHOD.parent, data_root=str(data_root), split="val", out=out,
+            encoders={METHOD.name: str(encoder_pt)}, encoders_root=None,
+            device="cpu", batch_size=2, num_workers=0,
+            venvs_root=ROOT / ".venvs")
+
+        rec = {r["method"]: r for r in manifest["records"]}[METHOD.name]
+        self.assertEqual(rec["status"], "ok", rec.get("reason", ""))
+        feats = np.load(out / METHOD.name / "features.npy")
+        self.assertEqual(feats.shape, (6, SIGLIP_FEAT_DIM))
+
+
 if __name__ == "__main__":
     unittest.main()
