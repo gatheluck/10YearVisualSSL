@@ -1,12 +1,14 @@
 [submodule "third_party/mar"]
 	path = third_party/mar
 	url = https://github.com/gatheluck/mar
+	ignore = untracked
 [submodule "third_party/var"]
 	path = third_party/var
 	url = https://github.com/FoundationVision/VAR
 [submodule "third_party/franca"]
 	path = third_party/franca
 	url = https://github.com/valeoai/Franca
+	ignore = untracked
 [submodule "third_party/dinov2"]
 	path = third_party/dinov2
 	url = https://github.com/facebookresearch/dinov2
