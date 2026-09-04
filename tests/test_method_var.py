@@ -684,5 +684,161 @@ class TestALinearEvalSmoke(Base):
         self.assertIn("final_linear_probe_top1_accuracy", m)
 
 
+class TestFeatureProvider(Base):
+    """`feature_provider.py` is what `bin/extract-features.py` discovers and
+    calls to obtain one raw feature vector per image.
+
+    What VAR's feature is, MEASURED (evaluate_linear_var.encode, and
+    docs/EVAL_DOWNLOAD.md): the probed representation is the **VQVAE tokeniser's
+    encoder** output, global-average-pooled to Cvae dims -- *not* the VAR
+    transformer step 1 trains, and *not* encoder.pt. So the `encoder_path` this
+    provider is handed is the pretrained VQVAE tokeniser checkpoint (the same
+    file linear_eval's `vqvae_ckpt` names), and the feature dimension is Cvae.
+
+    The feature is RAW -- `vae.encoder(x).mean([2,3])` -- before the probe's
+    mean-centre + L2-normalise. The provider reuses this method's own
+    `downstream_backbone.build` (which infers the VQVAE architecture from the
+    checkpoint and builds hermetically) and `evaluate_linear_var`'s loader +
+    `extract_features`, so the provider and the linear probe read the same
+    feature by the same code.
+
+    The checkpoint here is a tiny random VQVAE saved through the method's own
+    smoke build (the same shape as `bin/fetch-weights.py`'s real download would
+    have), so the provider infers its arch and the plumbing is exercised without
+    a download. Its Cvae is read from the built tokeniser, not hard-coded.
+    Modules load through `load` (`load_from`), which purges any other method's
+    shared package first -- the whole suite runs many methods in one interpreter.
+    """
+
+    def _shipped_config(self) -> dict:
+        import yaml
+        return yaml.safe_load(
+            (METHOD / "configs" / "linear_eval.yaml").read_text())
+
+    def _backbone(self):
+        return load("var_downstream_backbone", METHOD / "downstream_backbone.py")
+
+    def _make_encoder(self) -> "tuple[Path, int]":
+        """Build a tiny random VQVAE (the method's own smoke path) and save its
+        tokeniser `state_dict` as the VQVAE checkpoint the provider treats as the
+        pretrained tokeniser. Returns (path, Cvae)."""
+        import torch
+        bb = self._backbone().build({"encoder": ""})
+        encoder_pt = self.tmp / "vqvae.pt"
+        torch.save(bb.vae.state_dict(), encoder_pt)
+        return encoder_pt, int(bb.out_channels)
+
+    def _provider(self):
+        return load("var_feature_provider", METHOD / "feature_provider.py")
+
+    @needs_deps
+    def test_it_returns_raw_cvae_features_one_per_val_image(self):
+        prov_path = METHOD / "feature_provider.py"
+        if not prov_path.is_file():
+            self.skipTest("var provider not yet present")
+        import numpy as np
+        data_root = tiny_split(self.tmp / "data")
+        encoder_pt, cvae = self._make_encoder()
+
+        prov = self._provider()
+        feats, labels, meta = prov.extract_val_features(
+            encoder_path=str(encoder_pt), data_root=str(data_root),
+            split="val", device="cpu", batch_size=2, num_workers=0)
+
+        feats = np.asarray(feats)
+        self.assertEqual(feats.ndim, 2)
+        self.assertEqual(feats.shape[0], 6, "6 val images expected")
+        self.assertEqual(feats.shape[1], cvae,
+                         "the VQVAE-encoder feature is Cvae-dimensional")
+        self.assertEqual(np.asarray(labels).shape[0], 6)
+        self.assertEqual(meta["feat_dim"], cvae)
+        self.assertEqual(meta["representation"], "raw")
+
+    @needs_deps
+    def test_building_it_does_not_leak_torchs_default_init(self):
+        """The provider builds the VQVAE through the upstream, which globally
+        no-ops `reset_parameters` over eight nn classes; if that leaked, every
+        module a later method builds in this shared interpreter would keep its
+        uninitialised memory (the var-reset-parameters contamination). The
+        provider builds hermetically, so nothing is left patched.
+
+        Checked by identity -- the reset_parameters each class carried before is
+        the one it carries after -- because a no-op'd `torch.empty` weight is
+        often finite garbage, so a finiteness check alone would not reliably bite
+        (mirrors test_downstream_var_backbone's proven guard)."""
+        prov_path = METHOD / "feature_provider.py"
+        if not prov_path.is_file():
+            self.skipTest("var provider not yet present")
+        import torch.nn as nn
+        data_root = tiny_split(self.tmp / "data")
+        encoder_pt, _cvae = self._make_encoder()
+
+        before = {c: c.__dict__.get("reset_parameters")
+                  for c in vars(nn).values()
+                  if isinstance(c, type) and issubclass(c, nn.Module)}
+        self._provider().extract_val_features(
+            encoder_path=str(encoder_pt), data_root=str(data_root),
+            split="val", device="cpu", batch_size=2, num_workers=0)
+        changed = sorted(c.__name__ for c in before
+                         if c.__dict__.get("reset_parameters") is not before[c])
+        self.assertEqual(changed, [],
+                         f"the provider left torch.nn init patched on: {changed}")
+
+    @needs_deps
+    def test_the_driver_saves_it_under_a_per_method_directory(self):
+        """End to end through the driver's save path: the provider's output lands
+        as features.npy / labels.npy / meta.json where a figure reads it, with
+        the encoder's sha256 recorded in meta."""
+        prov_path = METHOD / "feature_provider.py"
+        if not prov_path.is_file():
+            self.skipTest("var provider not yet present")
+        import numpy as np
+        driver = load("extract_features_driver", BIN / "extract-features.py")
+        data_root = tiny_split(self.tmp / "data")
+        encoder_pt, cvae = self._make_encoder()
+
+        record = {"method": METHOD.name, "status": "ready",
+                  "provider": str(prov_path), "encoder": str(encoder_pt)}
+        out = self.tmp / "features"
+        updated = driver.extract_one(
+            record, data_root=str(data_root), split="val", out=out,
+            device="cpu", batch_size=2, num_workers=0)
+
+        self.assertEqual(updated["status"], "ok", updated.get("reason", ""))
+        method_out = out / METHOD.name
+        feats = np.load(method_out / "features.npy")
+        labels = np.load(method_out / "labels.npy")
+        meta = json.loads((method_out / "meta.json").read_text())
+        self.assertEqual(feats.shape, (6, cvae))
+        self.assertEqual(labels.shape[0], 6)
+        self.assertEqual(meta["encoder_sha256"],
+                         hashlib.sha256(encoder_pt.read_bytes()).hexdigest())
+
+    @needs_deps
+    def test_the_isolated_driver_run_extracts_this_method_end_to_end(self):
+        """The whole driver, real subprocess, real provider, in var's own venv.
+        This catches the class of regression where the isolated worker cannot
+        build VAR's VQVAE (the upstream import) or cannot see a repository-root
+        module the provider needs."""
+        prov_path = METHOD / "feature_provider.py"
+        if not prov_path.is_file():
+            self.skipTest("var provider not yet present")
+        import numpy as np
+        driver = load("extract_features_driver", BIN / "extract-features.py")
+        data_root = tiny_split(self.tmp / "data")
+        encoder_pt, cvae = self._make_encoder()
+        out = self.tmp / "features"
+        manifest = driver.run(
+            METHOD.parent, data_root=str(data_root), split="val", out=out,
+            encoders={METHOD.name: str(encoder_pt)}, encoders_root=None,
+            device="cpu", batch_size=2, num_workers=0,
+            venvs_root=ROOT / ".venvs")
+
+        rec = {r["method"]: r for r in manifest["records"]}[METHOD.name]
+        self.assertEqual(rec["status"], "ok", rec.get("reason", ""))
+        feats = np.load(out / METHOD.name / "features.npy")
+        self.assertEqual(feats.shape, (6, cvae))
+
+
 if __name__ == "__main__":
     unittest.main()

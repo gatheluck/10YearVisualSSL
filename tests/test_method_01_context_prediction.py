@@ -828,5 +828,158 @@ class TestAVitStep2Smoke(Base):
         self.assertFalse((ev / "encoder.pt").exists())
 
 
+# --- Feature-extraction provider (bin/extract-features.py) ---------------
+
+try:
+    import numpy                                        # noqa: F401
+    import torchvision                                  # noqa: F401
+    HAVE_DEPS = HAVE_TORCH
+except ImportError:
+    HAVE_DEPS = False
+
+needs_deps = unittest.skipUnless(
+    HAVE_DEPS, "the provider needs torch, numpy, torchvision")
+
+# fc6 with an adaptive 2x2 pool for 224x224 ImageNet images, measured on this
+# model's own encoder (not a name read off the config).
+FEATURE_DIM = 4096
+
+
+def tiny_split(root: Path, per: int = 3) -> Path:
+    """Two labelled classes under train/ and val/ -- 6 val images.
+
+    The provider's val loader mirrors evaluate_linear_official.make_loaders,
+    which reads both train/ and val/, so both are populated here.
+    """
+    import numpy as np
+    from PIL import Image
+    rng = np.random.RandomState(0)
+    for split in ("train", "val"):
+        for label, cls in enumerate(("c0", "c1")):
+            d = root / split / cls
+            d.mkdir(parents=True, exist_ok=True)
+            for i in range(per):
+                base = np.full((48, 48, 3), label * 120, dtype="uint8")
+                noise = rng.randint(0, 64, (48, 48, 3), dtype="uint8")
+                Image.fromarray((base + noise).astype("uint8")).save(
+                    d / f"{i}.png")
+    return root
+
+
+class TestFeatureProvider(Base):
+    """`feature_provider.py` is what `bin/extract-features.py` discovers and
+    calls to obtain one raw feature vector per image. It reuses this method's
+    own encoder loader (`adapter.load_encoder`) and eval pipeline
+    (`evaluate_linear_official.make_loaders` + `extract_features`), so the
+    check is that it returns the 4096-d fc6 feature -- raw, before the probe's
+    linear layer -- one row per val image, with honest meta.
+
+    The encoder.pt is built from this model's architecture via the same
+    `extract_encoder` filter the adapter writes with; random weights do not
+    affect the shape-and-plumbing this proves. Modules load through `load`
+    (`load_from`), which purges any other method's `adapter`/`models` first --
+    the whole suite runs many methods in one interpreter.
+    """
+
+    def _shipped_config(self) -> dict:
+        import yaml
+        return yaml.safe_load(
+            (METHOD / "configs" / "linear_eval.yaml").read_text())
+
+    def _make_encoder(self, cfg: dict) -> Path:
+        import torch
+        builder = load("alexnet_context_official",
+                       METHOD / "models" / "alexnet_context_official.py")
+        model = builder.build_official_context_alexnet(num_classes=8)
+        state = adapter.extract_encoder(model.state_dict())
+        encoder_pt = self.tmp / "encoder.pt"
+        torch.save(state, encoder_pt)
+        return encoder_pt
+
+    def _provider(self):
+        return load("ctxpred_feature_provider", METHOD / "feature_provider.py")
+
+    @needs_deps
+    def test_it_returns_raw_4096d_features_one_per_val_image(self):
+        prov_path = METHOD / "feature_provider.py"
+        if not prov_path.is_file():
+            self.skipTest("01_context_prediction provider not yet present")
+        import numpy as np
+        data_root = tiny_split(self.tmp / "data")
+        cfg = self._shipped_config()
+        encoder_pt = self._make_encoder(cfg)
+
+        prov = self._provider()
+        feats, labels, meta = prov.extract_val_features(
+            encoder_path=str(encoder_pt), data_root=str(data_root),
+            split="val", device="cpu", batch_size=2, num_workers=0)
+
+        feats = np.asarray(feats)
+        self.assertEqual(feats.ndim, 2)
+        self.assertEqual(feats.shape[0], 6, "6 val images expected")
+        self.assertEqual(feats.shape[1], FEATURE_DIM,
+                         "fc6 feature is 4096-d")
+        self.assertEqual(np.asarray(labels).shape[0], 6)
+        self.assertEqual(meta["feat_dim"], FEATURE_DIM)
+        self.assertEqual(meta["representation"], "raw")
+
+    @needs_deps
+    def test_the_driver_saves_it_under_a_per_method_directory(self):
+        """End to end through the driver's save path: the provider's output
+        lands as features.npy / labels.npy / meta.json where a figure reads
+        it, with the encoder's sha256 recorded in meta."""
+        prov_path = METHOD / "feature_provider.py"
+        if not prov_path.is_file():
+            self.skipTest("01_context_prediction provider not yet present")
+        import hashlib
+        import numpy as np
+        driver = load("extract_features_driver", BIN / "extract-features.py")
+        data_root = tiny_split(self.tmp / "data")
+        encoder_pt = self._make_encoder(self._shipped_config())
+
+        record = {"method": METHOD.name, "status": "ready",
+                  "provider": str(prov_path), "encoder": str(encoder_pt)}
+        out = self.tmp / "features"
+        updated = driver.extract_one(
+            record, data_root=str(data_root), split="val", out=out,
+            device="cpu", batch_size=2, num_workers=0)
+
+        self.assertEqual(updated["status"], "ok",
+                         updated.get("reason", ""))
+        method_out = out / METHOD.name
+        feats = np.load(method_out / "features.npy")
+        labels = np.load(method_out / "labels.npy")
+        meta = json.loads((method_out / "meta.json").read_text())
+        self.assertEqual(feats.shape, (6, FEATURE_DIM))
+        self.assertEqual(labels.shape[0], 6)
+        self.assertEqual(meta["encoder_sha256"],
+                         hashlib.sha256(encoder_pt.read_bytes()).hexdigest())
+
+    @needs_deps
+    def test_the_isolated_driver_run_extracts_this_method_end_to_end(self):
+        """The whole driver, real subprocess, real provider. This method's
+        adapter imports the shared `adapterlib`, so it catches the class of
+        regression where the isolated worker cannot see a repository-root
+        module the provider needs (the worker puts ROOT on sys.path, as
+        bin/launch.py sets PYTHONPATH=ROOT)."""
+        if not (METHOD / "feature_provider.py").is_file():
+            self.skipTest("01_context_prediction provider not yet present")
+        import numpy as np
+        driver = load("extract_features_driver", BIN / "extract-features.py")
+        data_root = tiny_split(self.tmp / "data")
+        encoder_pt = self._make_encoder(self._shipped_config())
+        out = self.tmp / "features"
+        manifest = driver.run(
+            METHOD.parent, data_root=str(data_root), split="val", out=out,
+            encoders={METHOD.name: str(encoder_pt)}, encoders_root=None,
+            device="cpu", batch_size=2, num_workers=0,
+            venvs_root=ROOT / ".venvs")
+
+        rec = {r["method"]: r for r in manifest["records"]}[METHOD.name]
+        self.assertEqual(rec["status"], "ok", rec.get("reason", ""))
+        feats = np.load(out / METHOD.name / "features.npy")
+        self.assertEqual(feats.shape, (6, FEATURE_DIM))
+
+
 if __name__ == "__main__":
     unittest.main()
