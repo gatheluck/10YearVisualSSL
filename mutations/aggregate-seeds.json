@@ -1,0 +1,69 @@
+{
+  "_note": "Run: python3 bin/mutate.py --spec mutations/aggregate-seeds.json (standard-library-only tests -- no venv needed). These prove tests/test_aggregate_seeds.py's guards are not vacuous. bin/aggregate-seeds.py is the single implementation of BASIC5_FAIR_v1 rule 'seed' (seeds 0,1,2 + mean +/- std): each mutant disables one guard or corrupts the statistic, and a test must catch it. The seed-set and repeat guards each have a test that isolates them (a missing seed for the set guard; a 0,1,2,2 whose set still equals {0,1,2} for the repeat guard), so neither hides behind the other.",
+  "_result": {"measured_on": "2026-09-05", "killed": 7, "total": 7},
+  "targets": [
+    {
+      "label": "the standard deviation uses the population divisor n instead of the sample divisor n-1, understating the reported spread over seeds",
+      "file": "bin/aggregate-seeds.py",
+      "old": "    variance = sum((v - m) ** 2 for v in values) / (n - 1)",
+      "new": "    variance = sum((v - m) ** 2 for v in values) / n",
+      "tests": [
+        "tests.test_aggregate_seeds.TestSampleStddev.test_sample_stddev_of_three"
+      ]
+    },
+    {
+      "label": "the failed-run guard is disabled, so a mean is taken over a run that did not succeed",
+      "file": "bin/aggregate-seeds.py",
+      "old": "    failed = [r for r in runs if r[\"status\"] != \"ok\"]",
+      "new": "    failed = [r for r in runs if False]",
+      "tests": [
+        "tests.test_aggregate_seeds.TestFailedRunGuard.test_a_failed_run_is_refused"
+      ]
+    },
+    {
+      "label": "the single-method guard is disabled, so metrics from different methods are averaged together",
+      "file": "bin/aggregate-seeds.py",
+      "old": "    if len(methods) != 1:",
+      "new": "    if False:",
+      "tests": [
+        "tests.test_aggregate_seeds.TestMixedRunGuard.test_mixed_methods_are_refused"
+      ]
+    },
+    {
+      "label": "the linear_eval-stage guard is disabled, so a pretext-stage number is aggregated as if it were a probe",
+      "file": "bin/aggregate-seeds.py",
+      "old": "    if stages != {REQUIRED_STAGE}:",
+      "new": "    if False:",
+      "tests": [
+        "tests.test_aggregate_seeds.TestMixedRunGuard.test_a_non_linear_eval_stage_is_refused"
+      ]
+    },
+    {
+      "label": "the repeat-seed guard is disabled, so the same run passed twice is averaged as two seeds (0,1,2,2 whose set is still {0,1,2})",
+      "file": "bin/aggregate-seeds.py",
+      "old": "    if len(seed_list) != len(set(seed_list)):",
+      "new": "    if False:",
+      "tests": [
+        "tests.test_aggregate_seeds.TestSeedSetGuard.test_positive_a_repeated_seed_within_the_set_is_refused"
+      ]
+    },
+    {
+      "label": "the seed-set guard is disabled, so a mean is taken over the wrong seed set (e.g. only 0,1)",
+      "file": "bin/aggregate-seeds.py",
+      "old": "    if set(seed_list) != expected_seeds:",
+      "new": "    if False:",
+      "tests": [
+        "tests.test_aggregate_seeds.TestSeedSetGuard.test_positive_a_missing_seed_is_refused"
+      ]
+    },
+    {
+      "label": "the every-metric-in-every-seed guard is disabled, so a metric missing from one seed is silently averaged over the seeds that have it",
+      "file": "bin/aggregate-seeds.py",
+      "old": "    if common != union:",
+      "new": "    if False:",
+      "tests": [
+        "tests.test_aggregate_seeds.TestMissingMetricGuard.test_a_metric_missing_from_one_seed_is_refused"
+      ]
+    }
+  ]
+}

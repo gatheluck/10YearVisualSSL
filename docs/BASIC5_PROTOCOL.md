@@ -65,7 +65,7 @@ recorded reason), **partial** (some methods conform, some do not), **pending**
 | d | feature | Exactly **one canonical final feature layer** -- do not search layers or concatenate features from multiple layers | conformant |
 | e | feature | Use the **published backbone normalisation** (the mean/std the backbone was trained under) | conformant |
 | opt | probe | Optimiser SGD, momentum 0.9, weight decay **0**, base LR **0.1** at effective batch **256** with linear LR scaling, **cosine** decay, **100** epochs | partial |
-| seed | probe | Run **seeds 0, 1, 2** and report **mean ± std** | deviation |
+| seed | probe | Run **seeds 0, 1, 2** and report **mean ± std** | partial |
 | aug | probe | Train-time augmentation is **RandomResizedCrop + HorizontalFlip only** | partial |
 | metric | probe | Report **Top-1 and Top-5** | conformant |
 
@@ -144,9 +144,35 @@ momentum 0.9 + weight decay 0 + cosine decay, and Top-1 **and** Top-5 reporting
 
 Deviations that need reconciliation:
 
-- **Rule `seed` (seeds 0,1,2 + mean±std):** **every** method runs a single seed
-  (42, or 0 for `23_dino`). No seed loop, no mean±std aggregation. This is the
-  single most systematic probe deviation.
+- **Rule `seed` (seeds 0,1,2 + mean±std):** the shared aggregation mechanism is
+  now in place (step 4). Each shipped `linear_eval*.yaml` still carries a single
+  `seed` (42, or 0 for `23_dino`) so one launch is one reproducible run; the
+  three-seed **mean ± std** is produced at eval time by running that same config
+  under each seed and aggregating, in exactly one place:
+
+  ```
+  for s in 0 1 2; do
+    python3 bin/launch.py --config methods/<method>/configs/linear_eval.yaml \
+      --method <method> --override seed=$s --runs-dir runs/<method>
+  done
+  # each launch writes one run dir under runs/<method>/; point --run at the three
+  python3 bin/aggregate-seeds.py \
+    --run runs/<method>/<seed0-run> --run runs/<method>/<seed1-run> \
+    --run runs/<method>/<seed2-run> --out runs/<method>/agg
+  ```
+
+  `bin/resolve-config.py --override seed=N` sets the seed per run (no config
+  templating needed), and `bin/aggregate-seeds.py` reads the per-seed
+  `run_manifest.json` (seed, status, method, stage) and `metrics.json` (the
+  contract metrics) each launch already writes, then emits `aggregate.json` with,
+  per comparable metric, its mean and its **sample** standard deviation (ddof=1)
+  and the per-seed numbers kept verbatim. It refuses a mean over the wrong seed
+  set, a failed run, mixed methods/stages, or a metric missing from a seed
+  (`tests/test_aggregate_seeds.py`; `mutations/aggregate-seeds.json`, 7/7 killed).
+  Status is **partial**, not conformant: the mechanism and recipe exist and are
+  the single implementation of the rule, but the shipped default is still one
+  seed per config -- a full three-seed sweep is GPU work run at evaluation time,
+  not baked into every config.
 - **Rule `aug` (RRC + HFlip only):** the feature-cache family (`14_simclrv1`,
   `13_mocov1`, `23_dino`, `25_mae`, `28_dinov2`, `06_rotation`, `02_vae`,
   `sam3`, `data2vec2`) caches features **once** using the deterministic
@@ -180,8 +206,17 @@ column above when it lands.
    (384-d), consistent with the `23_dino` single-feature policy; 1/1 mutant
    killed. `12_cmc` / `08_split_brain` (two-tower architectural concat) decided
    **conformant by design** and recorded above, not changed.
-4. **`seed` — seeds 0,1,2 + mean±std.** The most systematic probe deviation;
-   add a seed loop and aggregated reporting to `linear_eval`.
+4. **`seed` — seeds 0,1,2 + mean±std.** MECHANISM DONE (branch
+   `feat/extract-features-l2-representation`): `bin/aggregate-seeds.py` is the
+   single shared implementation of the rule -- run any `linear_eval` config under
+   `--override seed=0/1/2` and it aggregates the per-seed run outputs into
+   mean ± std (sample std, ddof=1), refusing a mean over the wrong seed set, a
+   failed run, mixed methods/stages, or a metric missing from a seed
+   (`tests/test_aggregate_seeds.py`; `mutations/aggregate-seeds.json`, 7/7
+   killed). No per-method `evaluate_linear_*.py` was edited -- the rule lives in
+   one place, not fifty. The actual three-seed sweep is GPU work run at
+   evaluation time; the shipped configs stay single-seed for one reproducible
+   run per launch.
 5. **`aug` — RRC + HFlip for the cache family.** Larger change (defeats the
    feature cache); scope carefully.
 6. **`b` — eval preprocessing.** Per-method judgement; native-resolution
@@ -189,7 +224,7 @@ column above when it lands.
    (square resize / no center crop) first.
 7. **`opt` residuals.** Localised LR/epoch/batch/mean-centering differences.
 
-Items 4–7 are not yet started; this section is the plan of record.
+Items 5–7 are not yet started; this section is the plan of record.
 
 ---
 
