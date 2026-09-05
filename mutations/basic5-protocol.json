@@ -1,0 +1,23 @@
+{
+  "_note": "Run: python3 bin/mutate.py --spec mutations/basic5-protocol.json (standard-library-only tests -- no torch/numpy venv needed). These prove tests/test_basic5_protocol.py is not vacuous: the protocol document (docs/BASIC5_PROTOCOL.md) is machinery, not just prose. Mutant 1 flips bin/extract-features.py's default saved representation to 'raw' while the document still declares 'l2', which must break the doc<->code agreement test -- the two cannot drift apart unnoticed. Mutant 2 removes the FAIR rule 'c' row from the document, which must break the 'every canonical rule id is documented' test -- a rule cannot silently drop out of the source of truth. The rule-table parser itself carries its own positive and negative controls (TestRuleParserControls), so a detector that decides what counts as a rule is proven both ways.",
+  "targets": [
+    {
+      "label": "the CLI default saved representation drifts to raw while the protocol document still declares l2, so the feature dump silently stops honouring FAIR rule c",
+      "file": "bin/extract-features.py",
+      "old": "    p.add_argument(\"--representation\", default=\"l2\", choices=[\"l2\", \"raw\"],",
+      "new": "    p.add_argument(\"--representation\", default=\"raw\", choices=[\"l2\", \"raw\"],",
+      "tests": [
+        "tests.test_basic5_protocol.TestDocumentAndCodeAgreeOnDefault.test_the_cli_default_matches_the_document"
+      ]
+    },
+    {
+      "label": "the FAIR rule 'c' (L2-normalised saved feature) row is dropped from the protocol document, so a rule silently vanishes from the source of truth",
+      "file": "docs/BASIC5_PROTOCOL.md",
+      "old": "| c | feature | The saved final **global** feature is **L2-normalised** to unit length | conformant |",
+      "new": "(rule c removed for mutation)",
+      "tests": [
+        "tests.test_basic5_protocol.TestFairRulesAreEnumerated.test_every_canonical_rule_id_is_documented"
+      ]
+    }
+  ]
+}

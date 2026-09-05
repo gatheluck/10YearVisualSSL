@@ -33,6 +33,13 @@ Design, following the repository's rules:
   one process would let one method's `adapter`/`models` -- or a leaked global --
   corrupt the next. The worker reports back through its exit code and a small
   `result.json`, so a crash is recorded as an error, never a silent success.
+- **One saved representation, applied here (`--representation`).** Every
+  provider returns the encoder's raw feature; the driver applies the saved
+  representation in one place rather than restating it across 51 providers.
+  The default `l2` L2-normalizes each per-image global feature to unit length,
+  the BASIC5_FAIR_v1 linear-probe rule; `raw` saves the pre-normalization
+  vector instead. `meta.json["representation"]` and the manifest record which
+  was saved.
 
 The control logic here is standard-library only so it is testable without the
 method stack; numpy is imported lazily, only where features are actually
@@ -108,8 +115,10 @@ def plan(methods_dir: Path, encoders: "dict[str, str]",
 
 # -- manifest and exit status ------------------------------------------------
 
-def build_manifest(records: "list[dict]", data_root: str, split: str) -> dict:
-    return {"data_root": data_root, "split": split, "records": list(records)}
+def build_manifest(records: "list[dict]", data_root: str, split: str,
+                   representation: str = "l2") -> dict:
+    return {"data_root": data_root, "split": split,
+            "representation": representation, "records": list(records)}
 
 
 def exit_status(manifest: dict, allow_missing: bool = False) -> int:
@@ -131,6 +140,34 @@ def sha256_of(path: Path) -> str:
         for chunk in iter(lambda: f.read(1 << 20), b""):
             h.update(chunk)
     return h.hexdigest()
+
+
+def apply_representation(features, representation: str):
+    """Return the features in the saved representation the run asked for.
+
+    - ``"raw"`` hands back the provider's vector untouched -- the
+      pre-normalization dump, useful for inspecting a backbone's native scale.
+    - ``"l2"`` L2-normalizes each row (one per-image global feature) to unit
+      length. This is the BASIC5_FAIR_v1 linear-probe rule ("L2-normalized
+      final global feature") and the default the paper run saves. A zero
+      feature has no direction, so it is left as the zero vector rather than
+      turned into a NaN.
+
+    numpy is imported here (not at module scope) so the tool's control logic
+    stays importable without the method stack. An unknown representation is a
+    loud error, never a silent fall-through to saving the wrong thing.
+    """
+    if representation == "raw":
+        return features
+    if representation != "l2":
+        raise ValueError(f"unknown representation {representation!r}; "
+                         "expected 'l2' or 'raw'")
+    import numpy as np
+    arr = np.asarray(features, dtype="float32")
+    norms = np.linalg.norm(arr, axis=1, keepdims=True)
+    # maximum(norm, eps): a zero row divides by eps -> stays zero, no NaN;
+    # a nonzero row's eps is negligible against its true norm.
+    return arr / np.maximum(norms, 1e-12)
 
 
 def save_features(out_dir: Path, features, labels, meta: dict) -> None:
@@ -157,20 +194,29 @@ def _load_provider(provider_path: Path):
 
 def extract_to_dir(provider_path: str, method: str, encoder: str,
                    data_root: str, split: str, out_dir: Path, device: str,
-                   batch_size: int, num_workers: int) -> dict:
+                   batch_size: int, num_workers: int,
+                   representation: str = "l2") -> dict:
     """Load a provider, extract, and save features.npy/labels.npy/meta.json
     into `out_dir` (the method's own directory). Returns {feat_dim, count}.
 
     The single implementation shared by the in-process `extract_one` and the
-    isolated worker, so the save layout and meta are defined in one place."""
+    isolated worker, so the save layout, the saved representation, and meta are
+    defined in one place. Providers always return the raw encoder feature; the
+    `representation` is applied here (L2-normalized by default, per
+    BASIC5_FAIR_v1) so the rule lives in one place, not restated in 51
+    providers."""
     prov = _load_provider(Path(provider_path))
     features, labels, meta = prov.extract_val_features(
         encoder_path=encoder, data_root=data_root, split=split,
         device=device, batch_size=batch_size, num_workers=num_workers)
+    features = apply_representation(features, representation)
     meta = dict(meta or {})
     meta.setdefault("method", method)
     meta.setdefault("data_root", data_root)
     meta.setdefault("split", split)
+    # Record what was actually saved (the provider reports its own raw feature;
+    # this is the representation on disk after apply_representation).
+    meta["representation"] = representation
     meta["encoder_sha256"] = sha256_of(Path(encoder))
     save_features(Path(out_dir), features, labels, meta)
     return {"feat_dim": int(meta.get("feat_dim", 0)),
@@ -178,7 +224,8 @@ def extract_to_dir(provider_path: str, method: str, encoder: str,
 
 
 def extract_one(record: dict, data_root: str, split: str, out: Path,
-                device: str, batch_size: int, num_workers: int) -> dict:
+                device: str, batch_size: int, num_workers: int,
+                representation: str = "l2") -> dict:
     """Run one method's provider in-process and save its features under
     `out/<method>`. Returns the record with an updated status: `ok`, or `error`
     with a reason. A `skipped` record is passed straight through.
@@ -192,7 +239,7 @@ def extract_one(record: dict, data_root: str, split: str, out: Path,
         info = extract_to_dir(
             record["provider"], record["method"], record["encoder"],
             data_root, split, Path(out) / record["method"], device,
-            batch_size, num_workers)
+            batch_size, num_workers, representation)
         return {**record, "status": "ok", **info}
     except Exception as exc:                       # noqa: BLE001 -- reported
         return {**record, "status": "error",
@@ -214,13 +261,15 @@ def python_for(method: str, venvs_root: "Path | None") -> str:
 
 def worker_command(python: str, provider: str, encoder: str, data_root: str,
                    split: str, out_method_dir: str, device: str,
-                   batch_size: int, num_workers: int) -> "list[str]":
+                   batch_size: int, num_workers: int,
+                   representation: str = "l2") -> "list[str]":
     """The argv that runs one method's extraction as an isolated worker."""
     return [python, str(TOOL), "--worker",
             "--provider", str(provider), "--encoder", str(encoder),
             "--data-root", str(data_root), "--split", str(split),
             "--out", str(out_method_dir), "--device", str(device),
-            "--batch-size", str(batch_size), "--num-workers", str(num_workers)]
+            "--batch-size", str(batch_size), "--num-workers", str(num_workers),
+            "--representation", str(representation)]
 
 
 def _record_from_worker(record: dict, returncode: int, result_path: Path,
@@ -254,7 +303,8 @@ def _record_from_worker(record: dict, returncode: int, result_path: Path,
 
 def run_isolated(record: dict, data_root: str, split: str, out: Path,
                  device: str, batch_size: int, num_workers: int,
-                 venvs_root: "Path | None") -> dict:
+                 venvs_root: "Path | None",
+                 representation: str = "l2") -> dict:
     """Run one ready method in its own subprocess and collect the result."""
     if record["status"] != "ready":
         return record
@@ -264,7 +314,8 @@ def run_isolated(record: dict, data_root: str, split: str, out: Path,
     (method_out / "result.json").unlink(missing_ok=True)   # no stale result
     cmd = worker_command(
         python_for(method, venvs_root), record["provider"], record["encoder"],
-        data_root, split, str(method_out), device, batch_size, num_workers)
+        data_root, split, str(method_out), device, batch_size, num_workers,
+        representation)
     proc = subprocess.run(cmd, capture_output=True, text=True)
     return _record_from_worker(record, proc.returncode,
                                method_out / "result.json", proc.stderr[-2000:])
@@ -273,16 +324,17 @@ def run_isolated(record: dict, data_root: str, split: str, out: Path,
 def run(methods_dir: Path, data_root: str, split: str, out: Path,
         encoders: "dict[str, str]", encoders_root: "Path | None",
         device: str, batch_size: int, num_workers: int,
-        venvs_root: "Path | None" = DEFAULT_VENVS_ROOT) -> dict:
+        venvs_root: "Path | None" = DEFAULT_VENVS_ROOT,
+        representation: str = "l2") -> dict:
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
     records = []
     for rec in plan(methods_dir, encoders, encoders_root):
         if rec["status"] == "ready":
             print(f"[extract] {rec['method']}: extracting {split} features "
-                  f"(isolated)")
+                  f"(isolated, representation={representation})")
             rec = run_isolated(rec, data_root, split, out, device, batch_size,
-                               num_workers, venvs_root)
+                               num_workers, venvs_root, representation)
             if rec["status"] == "ok":
                 print(f"[extract] {rec['method']}: "
                       f"{rec['count']} x {rec['feat_dim']} saved")
@@ -293,7 +345,7 @@ def run(methods_dir: Path, data_root: str, split: str, out: Path,
             print(f"[extract] {rec['method']}: skipped -- {rec['reason']}",
                   file=sys.stderr)
         records.append(rec)
-    manifest = build_manifest(records, data_root, split)
+    manifest = build_manifest(records, data_root, split, representation)
     (out / "manifest.json").write_text(json.dumps(manifest, indent=2),
                                        encoding="utf-8")
     return manifest
@@ -315,6 +367,7 @@ def worker_main(argv: "list[str]") -> int:
     p.add_argument("--device", default="cpu")
     p.add_argument("--batch-size", type=int, default=256)
     p.add_argument("--num-workers", type=int, default=8)
+    p.add_argument("--representation", default="l2", choices=["l2", "raw"])
     a = p.parse_args(argv)
     # The repo root on sys.path, so a method's adapter can import the shared
     # `adapterlib` (bin/launch.py sets PYTHONPATH=ROOT for the same reason).
@@ -327,7 +380,7 @@ def worker_main(argv: "list[str]") -> int:
     try:
         info = extract_to_dir(
             a.provider, out_dir.name, a.encoder, a.data_root, a.split,
-            out_dir, a.device, a.batch_size, a.num_workers)
+            out_dir, a.device, a.batch_size, a.num_workers, a.representation)
         result_path.write_text(
             json.dumps({"status": "ok", **info}), encoding="utf-8")
         return 0
@@ -372,6 +425,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--device", default="cpu", choices=["cpu", "cuda", "auto"])
     p.add_argument("--batch-size", type=int, default=256)
     p.add_argument("--num-workers", type=int, default=8)
+    p.add_argument("--representation", default="l2", choices=["l2", "raw"],
+                   help="the feature to save: 'l2' L2-normalizes each vector "
+                        "to unit length (BASIC5_FAIR_v1 default), 'raw' saves "
+                        "the encoder's pre-normalization output")
     p.add_argument("--allow-missing", action="store_true",
                    help="do not fail the run on a method with no encoder")
     return p
@@ -387,7 +444,8 @@ def main(argv: "list[str] | None" = None) -> int:
         _parse_encoders(args.encoder),
         Path(args.encoders_root) if args.encoders_root else None,
         args.device, args.batch_size, args.num_workers,
-        Path(args.venvs_root) if args.venvs_root else None)
+        Path(args.venvs_root) if args.venvs_root else None,
+        args.representation)
     status = exit_status(manifest, allow_missing=args.allow_missing)
     ok = sum(1 for r in manifest["records"] if r["status"] == "ok")
     print(f"[extract] {ok}/{len(manifest['records'])} methods extracted; "
