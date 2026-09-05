@@ -363,5 +363,129 @@ class TestALinearEvalSmoke(Base):
         self.assertIn("cuda", r.stdout.lower())
 
 
+# The feature-provider smoke builds a random tiny Cosmos3-Super vision tower and
+# persists it in the official layout (a vision_encoder/ directory with config.json
+# + model.safetensors), then hands the provider the model.safetensors file -- the
+# single-file `backbone_artifact` the driver hashes. The provider takes its parent
+# directory and loads it with from_pretrained. The tiny tower's hidden_size is 32,
+# so the mean-pooled patch-token feature is 32-d (the real tower is 1152-d).
+PROVIDER_DIM = EMBED_DIM
+
+
+class TestFeatureProvider(Base):
+    """`feature_provider.py` is what `bin/extract-features.py` discovers and
+    calls to obtain one raw feature vector per image. cosmos3_super is eval-only,
+    so it has no `adapter.load_encoder`: the provider sets the shipped config's
+    `ckpt` to the handed-in checkpoint and lets the eval module's `build_model`
+    load it with `Qwen3VLVisionModel.from_pretrained`, then extracts the
+    mean-pooled patch-token feature -- raw, before the probe's normalise -- one
+    hidden_size-d row per val image, with honest meta.
+
+    The released checkpoint is a `vision_encoder/` directory (config.json +
+    model.safetensors), but the driver hands (and hashes) a single file, and the
+    `backbone_artifact` is exactly the single `model.safetensors`. So the encoder
+    fixture is built by saving a tiny random tower with `save_pretrained` and
+    passing its `model.safetensors` file as `encoder_path`; the provider takes the
+    parent directory for `from_pretrained`. Random weights do not affect the
+    shape-and-plumbing this proves.
+    """
+
+    def evaluator(self):
+        return load("cosmos3_super_eval",
+                    METHOD / "evaluate_linear_cosmos3_super.py")
+
+    def _make_encoder(self) -> Path:
+        """A tiny random tower saved in the official vision_encoder/ layout;
+        returns the model.safetensors file (the driver's single-file encoder)."""
+        import torch
+        ev = self.evaluator()
+        model = ev.build_model(dict(EVAL_TRAIN), torch.device("cpu"))
+        ckpt_dir = self.tmp / "vision_encoder"
+        model.save_pretrained(str(ckpt_dir))
+        safetensors = ckpt_dir / "model.safetensors"
+        self.assertTrue(safetensors.is_file())
+        return safetensors
+
+    def _provider(self):
+        return load("cosmos3_super_feature_provider",
+                    METHOD / "feature_provider.py")
+
+    @needs_deps
+    def test_it_returns_raw_features_one_per_val_image(self):
+        if not (METHOD / "feature_provider.py").is_file():
+            self.skipTest("cosmos3_super provider not yet present")
+        import numpy as np
+        data_root = tiny_split(self.tmp / "data")
+        encoder_pt = self._make_encoder()
+
+        prov = self._provider()
+        feats, labels, meta = prov.extract_val_features(
+            encoder_path=str(encoder_pt), data_root=str(data_root),
+            split="val", device="cpu", batch_size=2, num_workers=0)
+
+        feats = np.asarray(feats)
+        self.assertEqual(feats.ndim, 2)
+        self.assertEqual(feats.shape[0], 6, "6 val images expected")
+        self.assertEqual(feats.shape[1], PROVIDER_DIM,
+                         "Cosmos3-Super patch-token-mean feature is hidden_size-d")
+        self.assertEqual(np.asarray(labels).shape[0], 6)
+        self.assertEqual(meta["feat_dim"], PROVIDER_DIM)
+        self.assertEqual(meta["representation"], "raw")
+
+    @needs_deps
+    def test_the_driver_saves_it_under_a_per_method_directory(self):
+        """End to end through the driver's save path: the provider's output
+        lands as features.npy / labels.npy / meta.json where a figure reads it,
+        with the encoder's sha256 recorded in meta."""
+        if not (METHOD / "feature_provider.py").is_file():
+            self.skipTest("cosmos3_super provider not yet present")
+        import hashlib
+        import numpy as np
+        driver = load("extract_features_driver", BIN / "extract-features.py")
+        data_root = tiny_split(self.tmp / "data")
+        encoder_pt = self._make_encoder()
+
+        record = {"method": METHOD.name, "status": "ready",
+                  "provider": str(METHOD / "feature_provider.py"),
+                  "encoder": str(encoder_pt)}
+        out = self.tmp / "features"
+        updated = driver.extract_one(
+            record, data_root=str(data_root), split="val", out=out,
+            device="cpu", batch_size=2, num_workers=0)
+
+        self.assertEqual(updated["status"], "ok", updated.get("reason", ""))
+        method_out = out / METHOD.name
+        feats = np.load(method_out / "features.npy")
+        labels = np.load(method_out / "labels.npy")
+        meta = json.loads((method_out / "meta.json").read_text())
+        self.assertEqual(feats.shape, (6, PROVIDER_DIM))
+        self.assertEqual(labels.shape[0], 6)
+        self.assertEqual(meta["encoder_sha256"],
+                         hashlib.sha256(encoder_pt.read_bytes()).hexdigest())
+
+    @needs_deps
+    def test_the_isolated_driver_run_extracts_this_method_end_to_end(self):
+        """The whole driver, real subprocess, real provider -- catches the class
+        of regression where the isolated worker cannot see a repository-root
+        module the provider needs (the worker puts ROOT on sys.path)."""
+        if not (METHOD / "feature_provider.py").is_file():
+            self.skipTest("cosmos3_super provider not yet present")
+        import numpy as np
+        driver = load("extract_features_driver", BIN / "extract-features.py")
+        data_root = tiny_split(self.tmp / "data")
+        encoder_pt = self._make_encoder()
+        out = self.tmp / "features"
+        manifest = driver.run(
+            METHOD.parent, data_root=str(data_root), split="val", out=out,
+            encoders={METHOD.name: str(encoder_pt)}, encoders_root=None,
+            device="cpu", batch_size=2, num_workers=0,
+            venvs_root=ROOT / ".venvs")
+
+        rec = {r["method"]: r for r in manifest["records"]}[METHOD.name]
+        self.assertEqual(rec["status"], "ok", rec.get("reason", ""))
+        feats = np.load(out / METHOD.name / "features.npy")
+        self.assertEqual(feats.shape, (6, PROVIDER_DIM))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -77,6 +77,11 @@ EVAL_TRAIN = {"name": "MCG-NJU/videomae-base", "ckpt": "", "img_size": 32,
 
 EMBED_DIM = 32
 
+# The shipped config's embed_dim: the real MCG-NJU/videomae-base is ViT-B (768).
+# The provider builds from the shipped config's architecture, so its raw feature
+# (the mean over VideoMAE's spatio-temporal patch tokens) is 768-d.
+VIDEOMAE_FEAT_DIM = 768
+
 
 def tiny_split(root: Path, per: int = 3) -> Path:
     """A labelled ImageFolder with train/ and val/, two classes each."""
@@ -367,6 +372,130 @@ class TestALinearEvalSmoke(Base):
         cfg, r = self.run_adapter(device="cuda")
         self.assertEqual(r.returncode, 0, r.stdout[-3000:] + r.stderr[-3000:])
         self.assertIn("cuda", r.stdout.lower())
+
+
+class TestFeatureProvider(Base):
+    """`feature_provider.py` is what `bin/extract-features.py` discovers and
+    calls to obtain one raw feature vector per image. videomae is eval-only, so
+    it has no `adapter.load_encoder`: the provider sets the shipped config's
+    `ckpt` to the handed-in checkpoint and lets the eval module's `build_model`
+    load its `videomae.*` tensors, then extracts the pooled feature (the mean
+    over VideoMAE's spatio-temporal patch tokens; the ViT has no CLS) -- raw,
+    before the probe's normalise -- one 768-d row per val image, with honest
+    meta. Modules load through `load` (`load_from`), which purges any other
+    method's modules first; the whole suite runs many methods in one interpreter.
+
+    The encoder checkpoint is built from the *shipped* linear_eval config's
+    architecture (the provider reads that config, so its `build_model` builds the
+    same ViT-B) and saved in the safetensors shape `build_model` reads -- every
+    encoder key prefixed `videomae.`, exactly the construction
+    `TestTheCheckpointLoadsFaithfully._fake_ckpt` uses. Random weights do not
+    affect the shape-and-plumbing this proves.
+    """
+
+    def _shipped_config(self) -> dict:
+        import yaml
+        return yaml.safe_load(
+            (METHOD / "configs" / "linear_eval.yaml").read_text())
+
+    def _evaluator(self):
+        return load("videomae_eval", METHOD / "evaluate_linear_videomae.py")
+
+    def _make_encoder(self, cfg: dict) -> Path:
+        """A loadable VideoMAE checkpoint: build the ViT from the shipped
+        config's architecture and save its own weights as safetensors with every
+        key prefixed `videomae.`, the shape `build_model` strips and loads."""
+        import torch
+        from safetensors.torch import save_file
+        ev = self._evaluator()
+        ref = ev.build_model(dict(cfg["train"], ckpt=""), torch.device("cpu"))
+        sd = {f"videomae.{k}": v.clone().contiguous()
+              for k, v in ref.state_dict().items()}
+        encoder_pt = self.tmp / "model.safetensors"
+        save_file(sd, str(encoder_pt))
+        return encoder_pt
+
+    def _provider(self):
+        return load("videomae_feature_provider", METHOD / "feature_provider.py")
+
+    @needs_deps
+    def test_it_returns_raw_768d_features_one_per_val_image(self):
+        if not (METHOD / "feature_provider.py").is_file():
+            self.skipTest("videomae provider not yet present")
+        import numpy as np
+        data_root = tiny_split(self.tmp / "data")
+        cfg = self._shipped_config()
+        encoder_pt = self._make_encoder(cfg)
+
+        prov = self._provider()
+        feats, labels, meta = prov.extract_val_features(
+            encoder_path=str(encoder_pt), data_root=str(data_root),
+            split="val", device="cpu", batch_size=2, num_workers=0)
+
+        feats = np.asarray(feats)
+        self.assertEqual(feats.ndim, 2)
+        self.assertEqual(feats.shape[0], 6, "6 val images expected")
+        self.assertEqual(feats.shape[1], VIDEOMAE_FEAT_DIM,
+                         "VideoMAE patch-token-mean feature is 768-d")
+        self.assertEqual(np.asarray(labels).shape[0], 6)
+        self.assertEqual(meta["feat_dim"], VIDEOMAE_FEAT_DIM)
+        self.assertEqual(meta["representation"], "raw")
+
+    @needs_deps
+    def test_the_driver_saves_it_under_a_per_method_directory(self):
+        """End to end through the driver's save path: the provider's output
+        lands as features.npy / labels.npy / meta.json where a figure reads it,
+        with the encoder's sha256 recorded in meta."""
+        if not (METHOD / "feature_provider.py").is_file():
+            self.skipTest("videomae provider not yet present")
+        import hashlib
+        import numpy as np
+        driver = load("extract_features_driver", BIN / "extract-features.py")
+        data_root = tiny_split(self.tmp / "data")
+        encoder_pt = self._make_encoder(self._shipped_config())
+
+        record = {"method": METHOD.name, "status": "ready",
+                  "provider": str(METHOD / "feature_provider.py"),
+                  "encoder": str(encoder_pt)}
+        out = self.tmp / "features"
+        updated = driver.extract_one(
+            record, data_root=str(data_root), split="val", out=out,
+            device="cpu", batch_size=2, num_workers=0)
+
+        self.assertEqual(updated["status"], "ok", updated.get("reason", ""))
+        method_out = out / METHOD.name
+        feats = np.load(method_out / "features.npy")
+        labels = np.load(method_out / "labels.npy")
+        meta = json.loads((method_out / "meta.json").read_text())
+        self.assertEqual(feats.shape, (6, VIDEOMAE_FEAT_DIM))
+        self.assertEqual(labels.shape[0], 6)
+        self.assertEqual(meta["encoder_sha256"],
+                         hashlib.sha256(encoder_pt.read_bytes()).hexdigest())
+
+    @needs_deps
+    def test_the_isolated_driver_run_extracts_this_method_end_to_end(self):
+        """The whole driver, real subprocess, real provider. This runs the
+        method's provider in an isolated worker (its own .venvs/videomae) -- so
+        it catches the class of regression where the worker cannot see a
+        repository-root or method module the provider needs (the worker puts
+        ROOT on sys.path, as bin/launch.py sets PYTHONPATH=ROOT)."""
+        if not (METHOD / "feature_provider.py").is_file():
+            self.skipTest("videomae provider not yet present")
+        import numpy as np
+        driver = load("extract_features_driver", BIN / "extract-features.py")
+        data_root = tiny_split(self.tmp / "data")
+        encoder_pt = self._make_encoder(self._shipped_config())
+        out = self.tmp / "features"
+        manifest = driver.run(
+            METHOD.parent, data_root=str(data_root), split="val", out=out,
+            encoders={METHOD.name: str(encoder_pt)}, encoders_root=None,
+            device="cpu", batch_size=2, num_workers=0,
+            venvs_root=ROOT / ".venvs")
+
+        rec = {r["method"]: r for r in manifest["records"]}[METHOD.name]
+        self.assertEqual(rec["status"], "ok", rec.get("reason", ""))
+        feats = np.load(out / METHOD.name / "features.npy")
+        self.assertEqual(feats.shape, (6, VIDEOMAE_FEAT_DIM))
 
 
 if __name__ == "__main__":
