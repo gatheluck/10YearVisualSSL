@@ -62,7 +62,7 @@ recorded reason), **partial** (some methods conform, some do not), **pending**
 |----|-------|-------------|--------|
 | b | feature | Eval preprocessing is Resize (shorter side) 256 + CenterCrop 224 -- one deterministic 224 center crop, no eval-time augmentation | deviation |
 | c | feature | The saved final **global** feature is **L2-normalised** to unit length | conformant |
-| d | feature | Exactly **one canonical final feature layer** -- do not search layers or concatenate features from multiple layers | deviation |
+| d | feature | Exactly **one canonical final feature layer** -- do not search layers or concatenate features from multiple layers | conformant |
 | e | feature | Use the **published backbone normalisation** (the mean/std the backbone was trained under) | conformant |
 | opt | probe | Optimiser SGD, momentum 0.9, weight decay **0**, base LR **0.1** at effective batch **256** with linear LR scaling, **cosine** decay, **100** epochs | partial |
 | seed | probe | Run **seeds 0, 1, 2** and report **mean ± std** | deviation |
@@ -97,19 +97,26 @@ single-layer (`d`) and eval size/crop (`b`) -- plus the normalisation (`e`).
 
 Deviations that need reconciliation:
 
-- **Rule `d` (single canonical layer):**
-  - `27_ibot` concatenates the `[CLS]` token from the **last four blocks**
-    (`n_last_blocks=4, avgpool_patchtokens=0`), giving a 4×-wide vector. This is
-    a genuine multi-layer concatenation and the clearest `d` violation. Note
-    `23_dino` already made the opposite, **deliberate** choice: its config
-    documents that this port uses the single-feature probe instead of DINO's
-    last-4 concatenation -- so the port already has a single-feature policy that
-    `27_ibot` is inconsistent with.
+- **Rule `d` (single canonical layer):** RECONCILED (step 3, branch
+  `feat/extract-features-l2-representation`).
+  - `27_ibot` previously concatenated the `[CLS]` token from the **last four
+    blocks** (`n_last_blocks=4`), giving a 4×-wide 1536-d vector -- a genuine
+    multi-layer concatenation and the clearest `d` violation. It now ships
+    `n_last_blocks=1`, so both the saved feature dump and the trained probe read
+    the **single final-block `[CLS]` token** (384-d for `vit_small`). This is the
+    same **deliberate** single-feature policy `23_dino` already documents (this
+    port uses the single-feature probe instead of the author's last-4
+    concatenation). The deviation from iBOT's published recipe is documented in
+    `methods/27_ibot/configs/linear_eval.yaml`; the assertion that the port does
+    not concatenate is pinned by `tests/test_method_27_ibot.py` and proven
+    non-vacuous by `mutations/27_ibot-single-layer.json` (flipping the config
+    back to `4` makes the feature 1536-d and kills the width assertion).
   - `12_cmc` and `08_split_brain` concatenate the two **colour-channel branch**
-    encoders (L and ab). This is the model's single architectural
-    representation, not a multi-depth cherry-pick; whether it counts against
-    rule `d` is a judgement call recorded here and to be decided before any
-    change.
+    encoders (L and ab). DECISION: **conformant by design.** This is the model's
+    single architectural representation -- the two branches jointly *are* the
+    encoder's one final feature, not a multi-depth cherry-pick across layers of a
+    single tower. Rule `d` forbids searching/concatenating **layers**, which this
+    is not. Recorded, not changed.
 
 - **Rule `b` (Resize 256 + CenterCrop 224):**
   - Final size not 224: `02_vae` (28), `04_context_encoder` (227),
@@ -167,11 +174,12 @@ column above when it lands.
    `feat/extract-features-l2-representation`): the driver applies L2 by default,
    with a `raw` toggle; 13/13 mutants killed.
 2. **Externalise the protocol.** DONE (this document + its enforcing test).
-3. **`d` — single canonical layer for `27_ibot`.** Bring iBOT's saved feature
-   (and its probe) to a single canonical final feature, consistent with the
-   `23_dino` single-feature policy already in the port. Decide `12_cmc` /
-   `08_split_brain` (two-tower architectural concat) explicitly -- likely
-   conformant-by-design, to be recorded not changed.
+3. **`d` — single canonical layer for `27_ibot`.** DONE (branch
+   `feat/extract-features-l2-representation`): iBOT now ships `n_last_blocks=1`,
+   so its saved feature and its probe read the single final-block `[CLS]` token
+   (384-d), consistent with the `23_dino` single-feature policy; 1/1 mutant
+   killed. `12_cmc` / `08_split_brain` (two-tower architectural concat) decided
+   **conformant by design** and recorded above, not changed.
 4. **`seed` — seeds 0,1,2 + mean±std.** The most systematic probe deviation;
    add a seed loop and aggregated reporting to `linear_eval`.
 5. **`aug` — RRC + HFlip for the cache family.** Larger change (defeats the
@@ -181,7 +189,7 @@ column above when it lands.
    (square resize / no center crop) first.
 7. **`opt` residuals.** Localised LR/epoch/batch/mean-centering differences.
 
-Items 3–7 are not yet started; this section is the plan of record.
+Items 4–7 are not yet started; this section is the plan of record.
 
 ---
 
