@@ -376,5 +376,117 @@ class TestALinearEvalSmoke(Base):
         self.assertIn("cuda", r.stdout.lower())
 
 
+# The feature-provider smoke builds a random tiny SAM 3 trunk in the official
+# ViTDet-style format and loads it through the real converter path (unlike the
+# in-process backbone smoke, which leaves `ckpt` empty). H=64 -> one 64-d head
+# (load_official_trunk infers num_heads = hidden // 64), so the feature is 64-d.
+PROVIDER_DIM = 64
+
+
+class TestFeatureProvider(Base):
+    """`feature_provider.py` is what `bin/extract-features.py` discovers and
+    calls to obtain one raw feature vector per image. It reuses this method's
+    own `build_model` (the eval-only checkpoint path -- `train["ckpt"]`, no
+    `adapter.load_encoder`) and eval pipeline, so the check is that it returns
+    the mean-pooled patch-token feature (no CLS) -- raw, before the probe's
+    normalise -- one row per val image, with honest meta.
+
+    The checkpoint is a synthetic official-format trunk (fused qkv, a CLS in
+    pos_embed, the `detector.*` prefix) built by `TestTheTrunkConverter`'s
+    fixture, saved to a file, and passed as `encoder_path`; the provider sets it
+    as `train["ckpt"]`, so `sam3_trunk.load_official_trunk` converts it onto a
+    tiny `Sam3ViTModel`. Random weights do not affect the shape-and-plumbing
+    this proves.
+    """
+
+    def _make_encoder(self) -> Path:
+        import torch
+        raw = TestTheTrunkConverter(
+            "test_a_checkpoint_with_no_trunk_keys_is_refused")._official_trunk(
+            H=PROVIDER_DIM)
+        ckpt = self.tmp / "sam3.pt"
+        torch.save(raw, ckpt)
+        return ckpt
+
+    def _provider(self):
+        return load("sam3_feature_provider", METHOD / "feature_provider.py")
+
+    @needs_deps
+    def test_it_returns_raw_features_one_per_val_image(self):
+        if not (METHOD / "feature_provider.py").is_file():
+            self.skipTest("sam3 provider not yet present")
+        import numpy as np
+        data_root = tiny_split(self.tmp / "data")
+        encoder_pt = self._make_encoder()
+
+        prov = self._provider()
+        feats, labels, meta = prov.extract_val_features(
+            encoder_path=str(encoder_pt), data_root=str(data_root),
+            split="val", device="cpu", batch_size=2, num_workers=0)
+
+        feats = np.asarray(feats)
+        self.assertEqual(feats.ndim, 2)
+        self.assertEqual(feats.shape[0], 6, "6 val images expected")
+        self.assertEqual(feats.shape[1], PROVIDER_DIM,
+                         "SAM 3 patch-token-mean feature is hidden_size-d")
+        self.assertEqual(np.asarray(labels).shape[0], 6)
+        self.assertEqual(meta["feat_dim"], PROVIDER_DIM)
+        self.assertEqual(meta["representation"], "raw")
+
+    @needs_deps
+    def test_the_driver_saves_it_under_a_per_method_directory(self):
+        """End to end through the driver's save path: the provider's output
+        lands as features.npy / labels.npy / meta.json where a figure reads it,
+        with the encoder's sha256 recorded in meta."""
+        if not (METHOD / "feature_provider.py").is_file():
+            self.skipTest("sam3 provider not yet present")
+        import hashlib
+        import numpy as np
+        driver = load("extract_features_driver", BIN / "extract-features.py")
+        data_root = tiny_split(self.tmp / "data")
+        encoder_pt = self._make_encoder()
+
+        record = {"method": METHOD.name, "status": "ready",
+                  "provider": str(METHOD / "feature_provider.py"),
+                  "encoder": str(encoder_pt)}
+        out = self.tmp / "features"
+        updated = driver.extract_one(
+            record, data_root=str(data_root), split="val", out=out,
+            device="cpu", batch_size=2, num_workers=0)
+
+        self.assertEqual(updated["status"], "ok", updated.get("reason", ""))
+        method_out = out / METHOD.name
+        feats = np.load(method_out / "features.npy")
+        labels = np.load(method_out / "labels.npy")
+        meta = json.loads((method_out / "meta.json").read_text())
+        self.assertEqual(feats.shape, (6, PROVIDER_DIM))
+        self.assertEqual(labels.shape[0], 6)
+        self.assertEqual(meta["encoder_sha256"],
+                         hashlib.sha256(encoder_pt.read_bytes()).hexdigest())
+
+    @needs_deps
+    def test_the_isolated_driver_run_extracts_this_method_end_to_end(self):
+        """The whole driver, real subprocess, real provider -- catches the class
+        of regression where the isolated worker cannot see a repository-root
+        module the provider needs (the worker puts ROOT on sys.path)."""
+        if not (METHOD / "feature_provider.py").is_file():
+            self.skipTest("sam3 provider not yet present")
+        import numpy as np
+        driver = load("extract_features_driver", BIN / "extract-features.py")
+        data_root = tiny_split(self.tmp / "data")
+        encoder_pt = self._make_encoder()
+        out = self.tmp / "features"
+        manifest = driver.run(
+            METHOD.parent, data_root=str(data_root), split="val", out=out,
+            encoders={METHOD.name: str(encoder_pt)}, encoders_root=None,
+            device="cpu", batch_size=2, num_workers=0,
+            venvs_root=ROOT / ".venvs")
+
+        rec = {r["method"]: r for r in manifest["records"]}[METHOD.name]
+        self.assertEqual(rec["status"], "ok", rec.get("reason", ""))
+        feats = np.load(out / METHOD.name / "features.npy")
+        self.assertEqual(feats.shape, (6, PROVIDER_DIM))
+
+
 if __name__ == "__main__":
     unittest.main()

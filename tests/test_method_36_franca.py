@@ -19,6 +19,7 @@ builds a **random** ViT-B/14 at a tiny resolution, so nothing is downloaded.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import shutil
@@ -518,6 +519,148 @@ class TestAUnifiedLinearEvalSmoke(Base):
         m = json.loads((self.out / "metrics.json").read_text())["metrics"]
         self.assertIn("final_linear_probe_top1_accuracy", m)
         self.assertFalse((self.out / "encoder.pt").exists())
+
+
+class TestFeatureProvider(Base):
+    """`feature_provider.py` is what `bin/extract-features.py` discovers and
+    calls to obtain one raw feature vector per image.
+
+    What Franca's feature is, MEASURED (evaluate_linear_franca, and this
+    method's real_run_smoke.json / docs/EVAL_DOWNLOAD.md): Franca is the
+    EVAL_DOWNLOAD eval-only shape, so the comparable representation is the
+    **official pretrained Franca ViT-B/14 In21K CLS token**
+    (forward_features -> x_norm_clstoken), frozen -- the CLS vector as is, NOT a
+    mean over patch tokens, and NOT the from-scratch Step-2 encoder. So the
+    `encoder_path` this provider is handed is the pretrained Franca checkpoint
+    (the same file configs/linear_eval.yaml's `ckpt`/${FRANCA_CKPT} names), and
+    the feature dimension is 768 (ViT-B embed_dim).
+
+    The feature is RAW -- extract_features -> extract_cls -- before the probe's
+    mean-centre + L2-normalise. The provider reuses this method's own
+    `evaluate_linear_franca.build_model` (which imports the pinned upstream under
+    third_party/franca and does the checkpoint's own key handling) and that
+    module's loader + `extract_features`, so the provider and the linear probe
+    read the same feature by the same code.
+
+    The checkpoint here is a tiny random Franca ViT-B/14 saved in the upstream's
+    own **teacher-format** (a `teacher` dict of `backbone.`-prefixed, chunked
+    block keys) at the shipped resolution -- the same shape bin/fetch-weights.py's
+    real download would have -- so build_model loads it via `local_state_dict`
+    and the plumbing is exercised without a download. Modules load through `load`
+    (`load_from`), which purges any other method's shared package first -- the
+    whole suite runs many methods in one interpreter.
+    """
+
+    def _shipped_config(self) -> dict:
+        import yaml
+        return yaml.safe_load(
+            (METHOD / "configs" / "linear_eval.yaml").read_text())
+
+    def _make_encoder(self) -> Path:
+        """Build a random Franca ViT-B/14 in the upstream's teacher checkpoint
+        format (before the flattening build_model applies), at the shipped
+        resolution, and save it as the pretrained-backbone checkpoint the
+        provider probes -- the same shape the real download has."""
+        import torch
+        if str(UPSTREAM) not in sys.path:
+            sys.path.insert(0, str(UPSTREAM))
+        from franca.models import build_model as up_build
+        from franca.hub.backbones import FrancaConfig
+        res = int(self._shipped_config()["train"]["resolution"])
+        vcfg = FrancaConfig(arch="vit_base", use_rasa_head=False)
+        tmodel, _ = up_build(vcfg, only_teacher=True, img_size=res)
+        ckpt = {"teacher": {f"backbone.{k}": v
+                            for k, v in tmodel.state_dict().items()}}
+        encoder_pt = self.tmp / "franca_vitb14.pt"
+        torch.save(ckpt, encoder_pt)
+        return encoder_pt
+
+    def _provider(self):
+        return load("franca_feature_provider", METHOD / "feature_provider.py")
+
+    @needs_deps
+    def test_it_returns_raw_768d_features_one_per_val_image(self):
+        prov_path = METHOD / "feature_provider.py"
+        if not prov_path.is_file():
+            self.skipTest("36_franca provider not yet present")
+        if not (UPSTREAM / "franca" / "hub" / "backbones.py").is_file():
+            self.skipTest("the franca submodule is not checked out here")
+        import numpy as np
+        data_root = tiny_split(self.tmp / "data")
+        encoder_pt = self._make_encoder()
+
+        prov = self._provider()
+        feats, labels, meta = prov.extract_val_features(
+            encoder_path=str(encoder_pt), data_root=str(data_root),
+            split="val", device="cpu", batch_size=2, num_workers=0)
+
+        feats = np.asarray(feats)
+        self.assertEqual(feats.ndim, 2)
+        self.assertEqual(feats.shape[0], 6, "6 val images expected")
+        self.assertEqual(feats.shape[1], EMBED_DIM,
+                         "the Franca CLS feature is 768-d")
+        self.assertEqual(np.asarray(labels).shape[0], 6)
+        self.assertEqual(meta["feat_dim"], EMBED_DIM)
+        self.assertEqual(meta["representation"], "raw")
+
+    @needs_deps
+    def test_the_driver_saves_it_under_a_per_method_directory(self):
+        """End to end through the driver's save path: the provider's output lands
+        as features.npy / labels.npy / meta.json where a figure reads it, with
+        the encoder's sha256 recorded in meta."""
+        prov_path = METHOD / "feature_provider.py"
+        if not prov_path.is_file():
+            self.skipTest("36_franca provider not yet present")
+        if not (UPSTREAM / "franca" / "hub" / "backbones.py").is_file():
+            self.skipTest("the franca submodule is not checked out here")
+        import numpy as np
+        driver = load("extract_features_driver", BIN / "extract-features.py")
+        data_root = tiny_split(self.tmp / "data")
+        encoder_pt = self._make_encoder()
+
+        record = {"method": METHOD.name, "status": "ready",
+                  "provider": str(prov_path), "encoder": str(encoder_pt)}
+        out = self.tmp / "features"
+        updated = driver.extract_one(
+            record, data_root=str(data_root), split="val", out=out,
+            device="cpu", batch_size=2, num_workers=0)
+
+        self.assertEqual(updated["status"], "ok", updated.get("reason", ""))
+        method_out = out / METHOD.name
+        feats = np.load(method_out / "features.npy")
+        labels = np.load(method_out / "labels.npy")
+        meta = json.loads((method_out / "meta.json").read_text())
+        self.assertEqual(feats.shape, (6, EMBED_DIM))
+        self.assertEqual(labels.shape[0], 6)
+        self.assertEqual(meta["encoder_sha256"],
+                         hashlib.sha256(encoder_pt.read_bytes()).hexdigest())
+
+    @needs_deps
+    def test_the_isolated_driver_run_extracts_this_method_end_to_end(self):
+        """The whole driver, real subprocess, real provider, in franca's own
+        venv. This catches the class of regression where the isolated worker
+        cannot build the Franca backbone (the upstream import) or cannot see a
+        repository-root module the provider needs."""
+        prov_path = METHOD / "feature_provider.py"
+        if not prov_path.is_file():
+            self.skipTest("36_franca provider not yet present")
+        if not (UPSTREAM / "franca" / "hub" / "backbones.py").is_file():
+            self.skipTest("the franca submodule is not checked out here")
+        import numpy as np
+        driver = load("extract_features_driver", BIN / "extract-features.py")
+        data_root = tiny_split(self.tmp / "data")
+        encoder_pt = self._make_encoder()
+        out = self.tmp / "features"
+        manifest = driver.run(
+            METHOD.parent, data_root=str(data_root), split="val", out=out,
+            encoders={METHOD.name: str(encoder_pt)}, encoders_root=None,
+            device="cpu", batch_size=2, num_workers=0,
+            venvs_root=ROOT / ".venvs")
+
+        rec = {r["method"]: r for r in manifest["records"]}[METHOD.name]
+        self.assertEqual(rec["status"], "ok", rec.get("reason", ""))
+        feats = np.load(out / METHOD.name / "features.npy")
+        self.assertEqual(feats.shape, (6, EMBED_DIM))
 
 
 if __name__ == "__main__":

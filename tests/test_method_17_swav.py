@@ -870,5 +870,120 @@ class TestAVitStep2Smoke(Base):
         self.assertFalse((ev / "encoder.pt").exists())
 
 
+FEAT_DIM = 2048  # measured: ResNet-50 pooled+flattened feature from get_encoder
+
+
+class TestFeatureProvider(Base):
+    """`feature_provider.py` is what `bin/extract-features.py` discovers and
+    calls to obtain one raw feature vector per image. It reuses this method's
+    own encoder loader and eval pipeline, so the check is that it returns the
+    2048-d ResNet-50 backbone feature -- raw, before the probe's linear head --
+    one row per val image, with honest meta.
+
+    The encoder.pt is built from the *shipped* linear_eval config's
+    architecture (the provider reads that config), via the same
+    `extract_encoder` filter the adapter writes with; random weights do not
+    affect the shape-and-plumbing this proves. Modules load through `load`
+    (`load_from`), which purges any other method's `adapter`/`models` first --
+    the whole suite runs many methods in one interpreter.
+    """
+
+    def _shipped_config(self) -> dict:
+        import yaml
+        return yaml.safe_load(
+            (METHOD / "configs" / "linear_eval.yaml").read_text())
+
+    def _make_encoder(self) -> Path:
+        import torch
+        cfg = self._shipped_config()["train"]
+        models = load("swav_models", METHOD / "models" / "__init__.py")
+        model = models.build_resnet_swav(
+            out_dim=int(cfg["out_dim"]), hidden_mlp=int(cfg["hidden_mlp"]),
+            nmb_prototypes=int(cfg["nmb_prototypes"]))
+        state = adapter.extract_encoder(model.state_dict())
+        encoder_pt = self.tmp / "encoder.pt"
+        torch.save(state, encoder_pt)
+        return encoder_pt
+
+    def _provider(self):
+        return load("swav_feature_provider", METHOD / "feature_provider.py")
+
+    @needs_torch
+    def test_it_returns_raw_2048d_features_one_per_val_image(self):
+        prov_path = METHOD / "feature_provider.py"
+        if not prov_path.is_file():
+            self.skipTest("17_swav provider not yet present")
+        import numpy as np
+        data_root = tiny_classified(self.tmp / "data")
+        encoder_pt = self._make_encoder()
+
+        prov = self._provider()
+        feats, labels, meta = prov.extract_val_features(
+            encoder_path=str(encoder_pt), data_root=str(data_root),
+            split="val", device="cpu", batch_size=2, num_workers=0)
+
+        feats = np.asarray(feats)
+        self.assertEqual(feats.ndim, 2)
+        self.assertEqual(feats.shape[0], 4, "4 val images expected")
+        self.assertEqual(feats.shape[1], FEAT_DIM,
+                         "ResNet-50 feature is 2048-d")
+        self.assertEqual(np.asarray(labels).shape[0], 4)
+        self.assertEqual(meta["feat_dim"], FEAT_DIM)
+        self.assertEqual(meta["representation"], "raw")
+
+    @needs_torch
+    def test_the_driver_saves_it_under_a_per_method_directory(self):
+        """End to end through the driver's save path: the provider's output
+        lands as features.npy / labels.npy / meta.json where a figure reads
+        it, with the encoder's sha256 recorded in meta."""
+        prov_path = METHOD / "feature_provider.py"
+        if not prov_path.is_file():
+            self.skipTest("17_swav provider not yet present")
+        import numpy as np
+        driver = load("extract_features_driver", BIN / "extract-features.py")
+        data_root = tiny_classified(self.tmp / "data")
+        encoder_pt = self._make_encoder()
+
+        record = {"method": METHOD.name, "status": "ready",
+                  "provider": str(prov_path), "encoder": str(encoder_pt)}
+        out = self.tmp / "features"
+        updated = driver.extract_one(
+            record, data_root=str(data_root), split="val", out=out,
+            device="cpu", batch_size=2, num_workers=0)
+
+        self.assertEqual(updated["status"], "ok", updated.get("reason", ""))
+        method_out = out / METHOD.name
+        feats = np.load(method_out / "features.npy")
+        labels = np.load(method_out / "labels.npy")
+        meta = json.loads((method_out / "meta.json").read_text())
+        self.assertEqual(feats.shape, (4, FEAT_DIM))
+        self.assertEqual(labels.shape[0], 4)
+        self.assertEqual(meta["encoder_sha256"],
+                         hashlib.sha256(encoder_pt.read_bytes()).hexdigest())
+
+    @needs_torch
+    def test_the_isolated_driver_run_extracts_this_method_end_to_end(self):
+        """The whole driver, real subprocess, real provider -- catches the
+        class of regression where the isolated worker cannot see a
+        repository-root module (adapterlib) the provider needs."""
+        if not (METHOD / "feature_provider.py").is_file():
+            self.skipTest("17_swav provider not yet present")
+        import numpy as np
+        driver = load("extract_features_driver", BIN / "extract-features.py")
+        data_root = tiny_classified(self.tmp / "data")
+        encoder_pt = self._make_encoder()
+        out = self.tmp / "features"
+        manifest = driver.run(
+            METHOD.parent, data_root=str(data_root), split="val", out=out,
+            encoders={METHOD.name: str(encoder_pt)}, encoders_root=None,
+            device="cpu", batch_size=2, num_workers=0,
+            venvs_root=ROOT / ".venvs")
+
+        rec = {r["method"]: r for r in manifest["records"]}[METHOD.name]
+        self.assertEqual(rec["status"], "ok", rec.get("reason", ""))
+        feats = np.load(out / METHOD.name / "features.npy")
+        self.assertEqual(feats.shape, (4, FEAT_DIM))
+
+
 if __name__ == "__main__":
     unittest.main()
