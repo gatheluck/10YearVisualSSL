@@ -11,11 +11,13 @@ turns an image into a vector stays in one place:
   the backbone, and its `forward` returns a `(cls_token, patch_tokens)` tuple,
   so features are read through `get_intermediate_layers`, not by calling it);
 - the feature is exactly the eval main's frozen feature: `extract_features`
-  with the shipped config's `n_last_blocks` and `avgpool_patchtokens`. The
-  official recipe this port ships is `n_last_blocks=4, avgpool_patchtokens=0`,
-  which **concatenates the [CLS] token from each of the last four blocks**
-  (each after the final norm), giving one `embed_dim * n_last_blocks`-d vector
-  per image -- 1536-d for vit_small (measured: embed_dim 384 x 4);
+  with the shipped config's `n_last_blocks` and `avgpool_patchtokens`. This
+  port ships `n_last_blocks=1, avgpool_patchtokens=0`, so the feature is the
+  **[CLS] token of the single final block** (after the final norm), giving one
+  `embed_dim`-d vector per image -- 384-d for vit_small (measured). This is one
+  canonical final layer (BASIC5_FAIR_v1 rule d), the same single-feature policy
+  as 23_dino; iBOT's official last-4-blocks concatenation (which would be
+  1536-d) is a deliberate, documented deviation this port does not take;
 - images go through iBOT's deterministic eval pipeline: bicubic resize to 256,
   centre crop to 224, [0,1], **ImageNet** mean/std normalisation, no
   augmentation. iBOT ships no per-split loader helper (its `get_dataloaders`
@@ -55,9 +57,9 @@ def _load_config() -> dict:
 
 def extract_val_features(*, encoder_path: str, data_root: str, split: str,
                          device: str, batch_size: int, num_workers: int):
-    """Return (features, labels, meta): features is (N, embed_dim*n_last_blocks)
-    raw encoder output (the teacher ViT's last-N-blocks CLS tokens concatenated
-    under the shipped avgpool_patchtokens=0 recipe), labels is (N,) ImageFolder
+    """Return (features, labels, meta): features is (N, embed_dim) raw encoder
+    output (the teacher ViT's single final-block CLS token under the shipped
+    n_last_blocks=1, avgpool_patchtokens=0 recipe), labels is (N,) ImageFolder
     class indices, meta describes the run."""
     import torch
     from torchvision import datasets, transforms
@@ -112,7 +114,7 @@ def extract_val_features(*, encoder_path: str, data_root: str, split: str,
         "avgpool_patchtokens": avgpool_patchtokens,
         "preprocessing": ("iBOT eval: bicubic resize to 256 + centre crop to "
                           "224, [0,1], ImageNet mean/std; feature is the "
-                          "teacher ViT's last-4-blocks CLS tokens concatenated "
-                          "(n_last_blocks=4, avgpool_patchtokens=0)"),
+                          "teacher ViT's single final-block CLS token "
+                          "(n_last_blocks=1, avgpool_patchtokens=0)"),
     }
     return feats, labels, meta

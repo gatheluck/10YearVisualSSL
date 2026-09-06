@@ -6,9 +6,18 @@
 # The encoder to evaluate is `encoder.pt` from a pretrain run: pass it with
 # `--set ENCODER=<path>/encoder.pt`. The data path is `--set DATA_ROOT=<path>`
 # (the evaluation reads `<path>/train` and `<path>/val`). The output path is
-# `--out`. The official ViT-S recipe probes the teacher backbone with the last
-# four CLS tokens concatenated; the teacher and the online protocol are fixed
-# by the adapter, not settings here.
+# `--out`. The teacher and the online protocol are fixed by the adapter, not
+# settings here.
+#
+# iBOT's official ViT-S recipe probes the teacher with the last four blocks'
+# CLS tokens concatenated (a 4x-wide, multi-layer feature). This port uses the
+# single canonical final feature instead -- n_last_blocks=1, so the feature is
+# the last block's CLS token (embed_dim, 384-d for vit_small). This follows
+# BASIC5_FAIR_v1 rule d ("one canonical final feature layer; do not search
+# layers or concatenate features from multiple layers") and matches the
+# single-feature policy already documented for 23_dino. It is a deliberate,
+# documented deviation from iBOT's published recipe, taken for comparability
+# across the ported methods (see docs/BASIC5_PROTOCOL.md).
 stage: linear_eval
 seed: 42
 data_root: "${DATA_ROOT}"
@@ -18,7 +27,7 @@ encoder: "${ENCODER}"
 model:
   arch: vit_small
   patch_size: 16
-  n_last_blocks: 4
+  n_last_blocks: 1
   avgpool_patchtokens: 0
 
 eval:

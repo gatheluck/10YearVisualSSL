@@ -1,5 +1,5 @@
 {
-  "_note": "Run: python3 bin/mutate.py --spec mutations/extract-features.json (the driver's control logic is standard-library only, so no torch venv is needed -- the referenced tests are the pure-logic ones in tests.test_extract_features). This is bin/extract-features.py, the one-run driver that walks every method shipping a feature_provider.py and saves its val features under <out>/<method>/. These mutations prove its guards are not vacuous: discovery matches the provider as a whole filename (a decoy must not count); a method with no checkpoint is skipped with a reason rather than silently dropped; the exit status is nonzero unless every discovered method actually produced features (a skip or an error must never read as success in a paper run); each method runs in its own venv (isolation), a worker's ok result is trusted only when it says ok, and a crashed worker's stderr is carried into the error rather than dropped. The real subprocess path on a real method (which imports the shared adapterlib) is covered by tests.test_method_14_simclrv1.TestFeatureProvider.test_the_isolated_driver_run_extracts_this_method_end_to_end.",
+  "_note": "Run: PYTHONPATH=. .venvs/03_colorization/bin/python bin/mutate.py --spec mutations/extract-features.json -- most of the driver's control logic is standard-library only, BUT the representation mutations (l2/raw normalization) exercise numpy-gated tests (TestFeatureRepresentation, TestRepresentationEndToEnd) that SKIP in the base environment; a skipped test cannot kill a mutant, so these must run under an interpreter that has numpy (any .venvs/<m>) or they falsely survive. This is bin/extract-features.py, the one-run driver that walks every method shipping a feature_provider.py and saves its val features under <out>/<method>/. These mutations prove its guards are not vacuous: discovery matches the provider as a whole filename (a decoy must not count); a method with no checkpoint is skipped with a reason rather than silently dropped; the exit status is nonzero unless every discovered method actually produced features (a skip or an error must never read as success in a paper run); each method runs in its own venv (isolation), a worker's ok result is trusted only when it says ok, and a crashed worker's stderr is carried into the error rather than dropped. The real subprocess path on a real method (which imports the shared adapterlib) is covered by tests.test_method_14_simclrv1.TestFeatureProvider.test_the_isolated_driver_run_extracts_this_method_end_to_end.",
   "targets": [
     {
       "label": "discovery matches the provider filename as a substring, so a decoy (test_feature_provider.py / feature_provider.py.bak) counts as a provider",
@@ -62,6 +62,60 @@
       "new": "            \"reason\": f\"worker exited {returncode}\".strip()}",
       "tests": [
         "tests.test_extract_features.TestWorkerResultMapping.test_a_nonzero_exit_is_an_error_carrying_stderr"
+      ]
+    },
+    {
+      "label": "l2 does not actually normalize (returns the raw features), so the saved feature is not unit-norm as BASIC5_FAIR_v1 requires",
+      "file": "bin/extract-features.py",
+      "old": "    return arr / np.maximum(norms, 1e-12)",
+      "new": "    return arr",
+      "tests": [
+        "tests.test_extract_features.TestFeatureRepresentation.test_l2_normalizes_each_row_to_unit_length"
+      ]
+    },
+    {
+      "label": "the zero-norm guard is dropped (divide by the raw norm), so a zero feature becomes NaN instead of staying zero",
+      "file": "bin/extract-features.py",
+      "old": "    return arr / np.maximum(norms, 1e-12)",
+      "new": "    return arr / norms",
+      "tests": [
+        "tests.test_extract_features.TestFeatureRepresentation.test_l2_leaves_a_zero_vector_zero_without_nan"
+      ]
+    },
+    {
+      "label": "an unknown representation is no longer rejected, so a typo silently saves L2 features while the manifest claims otherwise",
+      "file": "bin/extract-features.py",
+      "old": "    if representation != \"l2\":",
+      "new": "    if False:",
+      "tests": [
+        "tests.test_extract_features.TestFeatureRepresentation.test_an_unknown_representation_is_rejected"
+      ]
+    },
+    {
+      "label": "raw no longer passes the features through, so a raw dump is silently L2-normalized (or errors)",
+      "file": "bin/extract-features.py",
+      "old": "    if representation == \"raw\":",
+      "new": "    if False:",
+      "tests": [
+        "tests.test_extract_features.TestFeatureRepresentation.test_raw_returns_the_features_unchanged"
+      ]
+    },
+    {
+      "label": "extract_to_dir never applies the representation, so the driver saves the provider's raw vector regardless of --representation",
+      "file": "bin/extract-features.py",
+      "old": "    features = apply_representation(features, representation)",
+      "new": "    features = features",
+      "tests": [
+        "tests.test_extract_features.TestRepresentationEndToEnd.test_l2_default_writes_unit_norm_rows_and_records_it"
+      ]
+    },
+    {
+      "label": "the worker command drops --representation, so the parent's choice is silently ignored across the process boundary",
+      "file": "bin/extract-features.py",
+      "old": "            \"--representation\", str(representation)]",
+      "new": "            ]",
+      "tests": [
+        "tests.test_extract_features.TestWorkerCommand.test_it_carries_the_representation"
       ]
     }
   ]

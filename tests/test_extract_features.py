@@ -227,6 +227,80 @@ class TestFeatureSaveLayout(unittest.TestCase):
         self.assertEqual(meta["count"], 4)
 
 
+class TestFeatureRepresentation(unittest.TestCase):
+    """The saved feature representation. 'raw' keeps the provider's vector as
+    is; 'l2' L2-normalizes each per-image global feature to unit length -- the
+    BASIC5_FAIR_v1 linear-probe rule ("L2-normalized final global feature").
+    numpy-backed, so gated on numpy rather than run in the base environment."""
+
+    def setUp(self) -> None:
+        try:
+            import numpy  # noqa: F401
+        except ImportError:
+            self.skipTest("numpy is not installed in this environment "
+                          "(announced, not silent)")
+
+    def test_raw_returns_the_features_unchanged(self):
+        import numpy as np
+        t = tool()
+        feats = np.array([[3.0, 4.0], [5.0, 12.0]], dtype="float32")
+        out = np.asarray(t.apply_representation(feats, "raw"))
+        self.assertTrue(np.array_equal(out, feats),
+                        "raw must not alter the provider's features")
+
+    def test_l2_normalizes_each_row_to_unit_length(self):
+        import numpy as np
+        t = tool()
+        feats = np.array([[3.0, 4.0], [5.0, 12.0]], dtype="float32")
+        out = np.asarray(t.apply_representation(feats, "l2"))
+        norms = np.linalg.norm(out, axis=1)
+        self.assertTrue(np.allclose(norms, 1.0, atol=1e-5),
+                        f"rows are not unit-norm: {norms}")
+        # Direction is preserved: [3, 4] (norm 5) -> [0.6, 0.8].
+        self.assertTrue(np.allclose(out[0], [0.6, 0.8], atol=1e-5),
+                        "L2 changed the feature direction, not just its scale")
+
+    def test_l2_leaves_a_zero_vector_zero_without_nan(self):
+        """A zero feature has no direction; dividing by its norm must not make
+        a NaN. It stays the zero vector."""
+        import numpy as np
+        t = tool()
+        feats = np.array([[0.0, 0.0, 0.0]], dtype="float32")
+        out = np.asarray(t.apply_representation(feats, "l2"))
+        self.assertFalse(np.isnan(out).any(), "a zero vector produced NaN")
+        self.assertTrue(np.array_equal(out, np.zeros((1, 3), dtype="float32")))
+
+    def test_an_unknown_representation_is_rejected(self):
+        """A typo must fail loudly, never fall through to saving raw features
+        while the manifest claims something else."""
+        t = tool()
+        with self.assertRaises(ValueError):
+            t.apply_representation([[1.0, 2.0]], "bogus")
+
+
+class TestRepresentationOption(unittest.TestCase):
+    """The --representation switch: default L2 (the protocol's saved feature),
+    with raw available for the pre-normalization dump. Pure-argparse, so it
+    runs in the base environment."""
+
+    def test_the_default_is_l2(self):
+        args = tool().build_parser().parse_args(
+            ["--data-root", "/d", "--out", "/o"])
+        self.assertEqual(args.representation, "l2",
+                         "the default saved representation must be L2")
+
+    def test_it_can_be_set_to_raw(self):
+        args = tool().build_parser().parse_args(
+            ["--data-root", "/d", "--out", "/o", "--representation", "raw"])
+        self.assertEqual(args.representation, "raw")
+
+    def test_only_l2_and_raw_are_accepted(self):
+        with self.assertRaises(SystemExit):
+            tool().build_parser().parse_args(
+                ["--data-root", "/d", "--out", "/o",
+                 "--representation", "bogus"])
+
+
 class TestInterpreterSelection(unittest.TestCase):
     """Each method runs in its own interpreter: its own venv if it has one,
     else the current one. Discovered from the venvs tree, never listed."""
@@ -265,6 +339,18 @@ class TestWorkerCommand(unittest.TestCase):
         for token in ("/m/feature_provider.py", "/e/encoder.pt", "/data",
                       "val", "/out/some_method", "cpu", "64", "4"):
             self.assertIn(token, cmd, f"{token!r} missing from worker command")
+
+    def test_it_carries_the_representation(self):
+        """The isolated worker must be told which representation to save, or the
+        parent's --representation would be silently ignored across the process
+        boundary."""
+        cmd = tool().worker_command(
+            "/usr/bin/python", provider="/m/feature_provider.py",
+            encoder="/e/encoder.pt", data_root="/data", split="val",
+            out_method_dir="/out/some_method", device="cpu",
+            batch_size=64, num_workers=4, representation="raw")
+        self.assertIn("--representation", cmd)
+        self.assertIn("raw", cmd)
 
 
 class TestWorkerResultMapping(unittest.TestCase):
@@ -374,6 +460,71 @@ class TestIsolatedRunIntegration(unittest.TestCase):
         rec = {r["method"]: r for r in manifest["records"]}["bad_method"]
         self.assertEqual(rec["status"], "error")
         self.assertTrue(rec.get("reason"), "an error must carry a reason")
+
+
+class TestRepresentationEndToEnd(unittest.TestCase):
+    """The saved features honour the requested representation end to end,
+    through the real isolated worker: 'l2' (the default) writes unit-norm rows
+    and records it in meta; 'raw' writes the provider's vector unchanged. Proven
+    with a synthetic provider returning a known non-unit feature (no torch)."""
+
+    _BODY = (
+        "import numpy as np\n"
+        "def extract_val_features(*, encoder_path, data_root, split,\n"
+        "                         device, batch_size, num_workers):\n"
+        "    feats = np.array([[3.0, 4.0], [5.0, 12.0]], dtype='float32')\n"
+        "    labels = np.array([0, 1])\n"
+        "    meta = {'representation': 'raw', 'feat_dim': 2, 'count': 2}\n"
+        "    return feats, labels, meta\n")
+
+    def setUp(self) -> None:
+        try:
+            import numpy  # noqa: F401
+        except ImportError:
+            self.skipTest("numpy absent (announced, not silent)")
+        self.tmp = Path(tempfile.mkdtemp(prefix="featrep-"))
+        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
+        self.methods = self.tmp / "methods"
+        self.methods.mkdir()
+
+    def _method(self, name: str) -> str:
+        d = self.methods / name
+        (d / "adapter").mkdir(parents=True)
+        (d / "feature_provider.py").write_text(self._BODY, encoding="utf-8")
+        enc = d / "encoder.pt"
+        enc.write_bytes(b"dummy encoder")
+        return str(enc)
+
+    def _run(self, representation: str):
+        enc = self._method("some_method")
+        out = self.tmp / "features"
+        tool().run(
+            self.methods, data_root=str(self.tmp / "data"), split="val",
+            out=out, encoders={"some_method": enc}, encoders_root=None,
+            device="cpu", batch_size=2, num_workers=0, venvs_root=None,
+            representation=representation)
+        return out / "some_method"
+
+    def test_l2_default_writes_unit_norm_rows_and_records_it(self):
+        import numpy as np
+        method_out = self._run("l2")
+        feats = np.load(method_out / "features.npy")
+        norms = np.linalg.norm(feats, axis=1)
+        self.assertTrue(np.allclose(norms, 1.0, atol=1e-5),
+                        f"saved rows are not unit-norm: {norms}")
+        meta = json.loads((method_out / "meta.json").read_text())
+        self.assertEqual(meta["representation"], "l2",
+                         "meta must record the representation actually saved")
+
+    def test_raw_writes_the_providers_vector_unchanged(self):
+        import numpy as np
+        method_out = self._run("raw")
+        feats = np.load(method_out / "features.npy")
+        self.assertTrue(
+            np.allclose(feats, [[3.0, 4.0], [5.0, 12.0]], atol=1e-5),
+            "raw must save the provider's exact features")
+        meta = json.loads((method_out / "meta.json").read_text())
+        self.assertEqual(meta["representation"], "raw")
 
 
 if __name__ == "__main__":

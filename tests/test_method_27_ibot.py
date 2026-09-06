@@ -1007,11 +1007,13 @@ class TestFeatureProvider(Base):
     teacher ViT's frozen feature -- raw, before the probe's normalise -- one
     row per val image, with honest meta.
 
-    The shipped linear_eval config is vit_small with n_last_blocks=4,
-    avgpool_patchtokens=0: the feature concatenates the [CLS] token of each of
-    the last four blocks, so feat_dim is embed_dim (384, measured) x 4 = 1536.
-    A single-CLS or patch-mean pooling would give 384, not 1536, so the width
-    assertion is what pins the pooling.
+    The shipped linear_eval config is vit_small with n_last_blocks=1,
+    avgpool_patchtokens=0: the feature is the [CLS] token of the single final
+    block, so feat_dim is embed_dim (384, measured) -- one canonical final
+    layer, per BASIC5_FAIR_v1 rule d (no multi-layer concatenation). This port
+    follows the same single-feature policy as 23_dino; iBOT's official last-4
+    concatenation would be 1536 (384 x 4), so the width assertion pins that the
+    port does NOT concatenate.
 
     The encoder.pt is built from the shipped config's architecture (the
     provider reads that config), via the same `extract_encoder` filter the
@@ -1020,8 +1022,9 @@ class TestFeatureProvider(Base):
     shape-and-plumbing this proves.
     """
 
-    # embed_dim 384 (vit_small, measured) x n_last_blocks 4 (shipped config)
-    FEATURE_DIM = 384 * 4
+    # embed_dim 384 (vit_small, measured) x n_last_blocks 1 (shipped config):
+    # one canonical final-block CLS, not the last-4 concat (which would be 1536)
+    FEATURE_DIM = 384 * 1
 
     def setUp(self) -> None:
         super().setUp()
@@ -1054,7 +1057,7 @@ class TestFeatureProvider(Base):
         return load("ibot_feature_provider", METHOD / "feature_provider.py")
 
     @needs_torch
-    def test_it_returns_raw_1536d_features_one_per_val_image(self):
+    def test_it_returns_raw_384d_features_one_per_val_image(self):
         prov_path = METHOD / "feature_provider.py"
         if not prov_path.is_file():
             self.skipTest("27_ibot provider not yet present")
@@ -1071,7 +1074,8 @@ class TestFeatureProvider(Base):
         self.assertEqual(feats.ndim, 2)
         self.assertEqual(feats.shape[0], 4, "4 val images expected")
         self.assertEqual(feats.shape[1], self.FEATURE_DIM,
-                         "iBOT last-4-blocks CLS concat is 1536-d (384 x 4)")
+                         "iBOT single canonical final-block CLS is 384-d "
+                         "(embed_dim x 1); a last-4 concat would be 1536")
         self.assertEqual(np.asarray(labels).shape[0], 4)
         self.assertEqual(meta["feat_dim"], self.FEATURE_DIM)
         self.assertEqual(meta["representation"], "raw")

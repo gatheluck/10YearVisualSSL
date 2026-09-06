@@ -1,0 +1,15 @@
+{
+  "_note": "Run under the method venv (the tests need torch): .venvs/27_ibot/bin/python bin/mutate.py --spec mutations/27_ibot-single-layer.json. This proves tests/test_method_27_ibot.py's single-canonical-layer assertion is not vacuous. iBOT's official ViT-S recipe probes the teacher with the last four blocks' CLS tokens concatenated (a 4x-wide, 1536-d multi-layer feature); this port ships the single canonical final feature instead (n_last_blocks=1, 384-d) per BASIC5_FAIR_v1 rule d. The provider reads n_last_blocks from the shipped config, so flipping the config back to 4 makes the saved feature 1536-d, which must break the width assertion -- the port cannot silently drift back to iBOT's multi-layer concatenation.",
+  "_result": {"measured_on": "2026-09-05", "killed": 1, "total": 1},
+  "targets": [
+    {
+      "label": "the shipped linear_eval config reverts to iBOT's official last-4-blocks concatenation (n_last_blocks 1 -> 4), so the saved feature becomes a 1536-d multi-layer feature and no longer honours FAIR rule d",
+      "file": "methods/27_ibot/configs/linear_eval.yaml",
+      "old": "  n_last_blocks: 1",
+      "new": "  n_last_blocks: 4",
+      "tests": [
+        "tests.test_method_27_ibot.TestFeatureProvider.test_it_returns_raw_384d_features_one_per_val_image"
+      ]
+    }
+  ]
+}
