@@ -671,6 +671,67 @@ class TestAVitStep2Smoke(Base):
         self.assertFalse((ev / "encoder.pt").exists())
 
 
+class TestTheProbeTrainAugmentation(Base):
+    """BASIC5_FAIR_v1 rule `aug`: the linear probe's train-time augmentation is
+    RandomResizedCrop + HorizontalFlip only. This method caches features, so it
+    historically read the train split with the deterministic eval transform --
+    i.e. no augmentation. The train loader must now apply RRC + HFlip; the val
+    loader (and the provider, which extracts val) must stay deterministic.
+    """
+
+    def evaluator(self):
+        return load("simclr_evaluator", METHOD / "evaluate_linear_simclr.py")
+
+    @needs_deps
+    def test_the_train_loader_applies_rrc_and_hflip(self):
+        tiny_split(self.tmp / "data")
+        ev = self.evaluator()
+        _ds, loader = ev._build_loader(
+            str(self.tmp / "data"), "train", 32, 2, 0, train=True)
+        names = [type(t).__name__ for t in loader.dataset.transform.transforms]
+        self.assertIn("RandomResizedCrop", names,
+                      "the probe's train split must be RandomResizedCrop'd")
+        self.assertIn("RandomHorizontalFlip", names,
+                      "the probe's train split must be horizontally flipped")
+
+    @needs_deps
+    def test_the_val_loader_stays_deterministic(self):
+        tiny_split(self.tmp / "data")
+        ev = self.evaluator()
+        _ds, loader = ev._build_loader(
+            str(self.tmp / "data"), "val", 32, 2, 0)
+        names = [type(t).__name__ for t in loader.dataset.transform.transforms]
+        self.assertNotIn("RandomResizedCrop", names,
+                         "val must not be randomly cropped")
+        self.assertNotIn("RandomHorizontalFlip", names,
+                         "val must not be randomly flipped")
+        self.assertIn("CenterCrop", names,
+                      "val stays the deterministic resize + centre crop")
+
+    @needs_deps
+    def test_run_builds_the_train_loader_with_augmentation(self):
+        # The wiring, not just the helper: run() must pass train=True for the
+        # train split. Proven structurally so it does not need a GPU.
+        import ast
+        src = (METHOD / "evaluate_linear_simclr.py").read_text()
+        run_fn = next(n for n in ast.parse(src).body
+                      if isinstance(n, ast.FunctionDef) and n.name == "run")
+        train_true = False
+        for call in (n for n in ast.walk(run_fn) if isinstance(n, ast.Call)):
+            func = call.func
+            name = getattr(func, "attr", getattr(func, "id", None))
+            if name != "_build_loader":
+                continue
+            for kw in call.keywords:
+                if (kw.arg == "train"
+                        and isinstance(kw.value, ast.Constant)
+                        and kw.value.value is True):
+                    train_true = True
+        self.assertTrue(
+            train_true,
+            "run() must build the train split with _build_loader(..., train=True)")
+
+
 class TestFeatureProvider(Base):
     """`feature_provider.py` is what `bin/extract-features.py` discovers and
     calls to obtain one raw feature vector per image. It reuses this method's
