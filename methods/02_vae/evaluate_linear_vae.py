@@ -20,8 +20,11 @@ capture's stated MNIST->ImageNet cross-domain transfer; the number is comparable
 in name (`*_linear_probe_top1/5_accuracy`) but its scale depends on the dataset,
 as recorded in docs/EVALUATION.md.
 
-Features are extracted once with a deterministic transform (no train-time
-augmentation) and reused across epochs -- the repo's cached-probe convention.
+Features are extracted once and reused across epochs -- the repo's cached-probe
+convention. The probe's *train* split on the ImageFolder (ImageNet) path applies
+BASIC5_FAIR_v1 rule `aug` (RandomResizedCrop + HorizontalFlip, one cached draw
+per image); val stays deterministic, and the MNIST path stays deterministic on
+both splits (randomly cropping or flipping a digit can change its class).
 """
 
 from __future__ import annotations
@@ -69,6 +72,19 @@ def _imagefolder_transform(img_size: int):
     ])
 
 
+def _imagefolder_train_transform(img_size: int):
+    """The linear probe's train transform for the ImageFolder (ImageNet) path.
+
+    BASIC5_FAIR_v1 rule `aug`: RandomResizedCrop + HorizontalFlip only,
+    implemented once in `probe_transforms`. No normalisation -- the VAE keeps
+    inputs in [0, 1] (rule e), so the probe matches. The MNIST branch stays
+    deterministic on purpose: randomly cropping or flipping a digit can change
+    its class, so rule aug applies to the ImageFolder path only.
+    """
+    import probe_transforms
+    return probe_transforms.basic5_train_transform(img_size, normalize=None)
+
+
 def _loaders(data_root: str, img_size: int, batch_size: int, num_workers: int):
     """Train and val loaders, plus the class count, auto-detecting the dataset.
 
@@ -81,9 +97,12 @@ def _loaders(data_root: str, img_size: int, batch_size: int, num_workers: int):
         va = datasets.MNIST(data_root, train=False, download=False, transform=tf)
         num_classes = len(tr.classes)
     else:
-        tf = _imagefolder_transform(img_size)
-        tr = datasets.ImageFolder(os.path.join(data_root, "train"), transform=tf)
-        va = datasets.ImageFolder(os.path.join(data_root, "val"), transform=tf)
+        tr = datasets.ImageFolder(
+            os.path.join(data_root, "train"),
+            transform=_imagefolder_train_transform(img_size))
+        va = datasets.ImageFolder(
+            os.path.join(data_root, "val"),
+            transform=_imagefolder_transform(img_size))
         if tr.classes != va.classes:
             raise RuntimeError(
                 f"train and val hold different classes: {tr.classes} vs "

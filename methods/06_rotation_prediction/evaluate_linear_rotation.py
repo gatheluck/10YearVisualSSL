@@ -30,13 +30,20 @@ from train_pretrain_rotation import make_deterministic, resolve_device   # noqa:
 
 
 def _build_loader(data_root: str, split: str, size: int, batch_size: int,
-                  num_workers: int):
+                  num_workers: int, train: bool = False):
     import torchvision.transforms as T
     from torchvision.datasets import ImageFolder
-    transform = T.Compose([
-        T.Resize((size, size)),
-        T.ToTensor(),
-    ])
+    if train:
+        # BASIC5_FAIR_v1 rule `aug`: RandomResizedCrop + HorizontalFlip only,
+        # implemented once in probe_transforms. No normalisation: this method's
+        # eval pipeline feeds unnormalised [0,1] inputs, so the probe matches.
+        import probe_transforms
+        transform = probe_transforms.basic5_train_transform(size, normalize=None)
+    else:
+        transform = T.Compose([
+            T.Resize((size, size)),
+            T.ToTensor(),
+        ])
     dataset = ImageFolder(str(Path(data_root) / split), transform=transform)
     loader = torch.utils.data.DataLoader(
         dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers,
@@ -105,7 +112,7 @@ def run(args, config: "dict | None" = None, model=None) -> dict:
     size = int(train["image_size"])
     bs = int(train["batch_size"])
     nw = int(train["num_workers"])
-    tr_ds, tr_loader = _build_loader(data_root, "train", size, bs, nw)
+    tr_ds, tr_loader = _build_loader(data_root, "train", size, bs, nw, train=True)
     va_ds, va_loader = _build_loader(data_root, "val", size, bs, nw)
     if tr_ds.classes != va_ds.classes:
         raise RuntimeError(

@@ -179,18 +179,25 @@ Deviations that need reconciliation:
   deterministic Resize+CenterCrop val transform for training too -- so it applied
   **no** RandomResizedCrop and no HorizontalFlip. The end-to-end family
   (`20_simsiam`, `21_barlow_twins`, `27_ibot`) applies RRC+HFlip and conforms.
-  Reconciliation is under way (step 5): the shared implementation of the rule is
-  now `probe_transforms.basic5_train_transform` (RandomResizedCrop + HFlip only,
-  then the method's own ToTensor/Normalize tail), and the train split is read
-  with it while the val split stays deterministic. Following the port's decision
-  (option B, matching `21_barlow_twins`), the augmented pass is still extracted
-  **once and cached** -- one RandomResizedCrop + HorizontalFlip draw per image --
-  so the feature cache is preserved and the backbone is not re-run per epoch.
-  `14_simclrv1` is done (the pilot); the remaining eight are being wired to the
-  same helper. `02_vae` is under review: its probe is a 28-px MNIST-scale head,
-  not the ImageNet-1k probe `BASIC5_FAIR_v1` governs, and RRC/HFlip on MNIST
-  digits is semantically questionable -- its treatment will be recorded, not
-  applied silently.
+  Step 5 fan-out is **DONE for the whole feature-cache family**: the shared
+  implementation of the rule is `probe_transforms.basic5_train_transform`
+  (RandomResizedCrop + HFlip only, then the method's own ToTensor/Normalize
+  tail), and every listed method now reads its train split through it while the
+  val split (which the provider extracts) stays deterministic. Following the
+  port's decision (option B, matching `21_barlow_twins`), the augmented pass is
+  still extracted **once and cached** -- one RandomResizedCrop + HorizontalFlip
+  draw per image -- so the feature cache is preserved and the backbone is not
+  re-run per epoch. Each method carries a `TestTheProbeTrainAugmentation` class
+  (the wiring check lives once in `tests/_probe_aug.py`, imported) and a
+  `<method>-probe-aug.json` mutation spec (2/2 killed each: train falls back to
+  the val transform; `run()` builds train with `train=False`). `02_vae` is a
+  **recorded exception in shape, not spirit**: it is dataset-agnostic, so rule
+  `aug` applies to its ImageFolder (ImageNet) train path only -- the MNIST path
+  stays deterministic on both splits, because randomly cropping or flipping a
+  digit can change its class. The row stays `partial` pending a fleet-wide
+  discover-all `aug` audit (the analogue of the provider audits behind rules
+  b–e): the two families named here conform, but "conformant" should rest on a
+  mechanism that enumerates *every* probe method, not on this list.
 - **Rule `opt` (LR/epochs/batch/scaling):**
   - LR ≠ 0.1: `21_barlow_twins` (0.3), `27_ibot` (1e-3).
   - Linear LR scaling with batch: only `20_simsiam` scales by `batch/256`; the
@@ -229,28 +236,36 @@ column above when it lands.
    one place, not fifty. The actual three-seed sweep is GPU work run at
    evaluation time; the shipped configs stay single-seed for one reproducible
    run per launch.
-5. **`aug` — RRC + HFlip for the cache family.** MECHANISM + PILOT DONE (branch
-   `downstream/basic5-aug-feature-cache`): `probe_transforms.basic5_train_transform`
-   is the single implementation of the rule (RandomResizedCrop + HorizontalFlip
-   only), and `14_simclrv1` reads its train split through it while val stays
-   deterministic. Per the port's decision (**option B**, matching
-   `21_barlow_twins`), the augmented pass is cached once -- the feature cache is
-   kept, the backbone is not re-run per epoch. Proven non-vacuous by
-   `mutations/basic5-aug.json` (3/3: vertical-flip swap, centre-crop-instead-of-RRC,
-   dropped-normalise) and the two new `14_simclrv1` targets in
-   `mutations/14_simclrv1-linear-eval.json` (8/8: train falls back to the val
-   transform; `run()` builds the train split with `train=False`). Remaining
-   fan-out: `13_mocov1`, `23_dino`, `25_mae`, `28_dinov2`, `06_rotation`, `sam3`,
-   `data2vec2` (each wired to the same helper with its own tests + mutants), and a
-   recorded decision on `02_vae` (28-px MNIST-scale probe, likely out of
-   `BASIC5_FAIR_v1`'s ImageNet-1k scope).
+5. **`aug` — RRC + HFlip for the cache family.** DONE across the whole
+   feature-cache family (branch `downstream/basic5-aug-feature-cache`).
+   `probe_transforms.basic5_train_transform` is the single implementation of the
+   rule (RandomResizedCrop + HorizontalFlip only), and every feature-cache method
+   reads its train split through it while val stays deterministic. Per the port's
+   decision (**option B**, matching `21_barlow_twins`), the augmented pass is
+   cached once -- the feature cache is kept, the backbone is not re-run per epoch.
+   Proven non-vacuous by `mutations/basic5-aug.json` (3/3: vertical-flip swap,
+   centre-crop-instead-of-RRC, dropped-normalise) for the shared rule, and by a
+   per-method spec for the wiring: `mutations/14_simclrv1-linear-eval.json` (8/8)
+   for the pilot, plus one `<method>-probe-aug.json` for each of `13_mocov1`,
+   `23_dino`, `25_mae`, `28_dinov2`, `06_rotation_prediction`, `data2vec2`, `sam3`,
+   and `02_vae` (2/2 killed each: train falls back to the val transform; `run()`
+   builds the train split with `train=False`; for `02_vae`, train/val on the
+   ImageFolder path). The wiring check lives once in `tests/_probe_aug.py`,
+   imported by each method's `TestTheProbeTrainAugmentation`. `02_vae` is a
+   recorded exception in shape: dataset-agnostic, so the rule applies to its
+   ImageFolder (ImageNet) train path only -- the MNIST path stays deterministic on
+   both splits (cropping/flipping a digit can change its class). Not yet flipped
+   to `conformant`: that needs a fleet-wide discover-all `aug` audit enumerating
+   every probe method, not this hand-named family list.
 6. **`b` — eval preprocessing.** Per-method judgement; native-resolution
    backbones may legitimately keep their size. Reconcile the wrong-crop cases
    (square resize / no center crop) first.
 7. **`opt` residuals.** Localised LR/epoch/batch/mean-centering differences.
 
-Item 5 is in progress (mechanism + pilot landed; fan-out pending); items 6–7 are
-not yet started. This section is the plan of record.
+Item 5 is done (mechanism + full feature-cache fan-out landed, each method
+proven by mutation); the `aug` row stays `partial` only until a fleet-wide
+discover-all audit. Items 6–7 are not yet started. This section is the plan of
+record.
 
 ---
 

@@ -1,0 +1,30 @@
+{
+  "_note": "Run under the method venv (the train-branch test needs torchvision): /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/data2vec2/bin/python bin/mutate.py --spec mutations/data2vec2-probe-aug.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/data2vec2/bin/python. Proves the BASIC5 rule `aug` wiring in this feature-cache evaluator is not vacuous: the train split must route through probe_transforms (RandomResizedCrop + HorizontalFlip), and run() must build the train split with train=True. The rule itself is proven in mutations/basic5-aug.json; these two targets prove this method wires it.",
+  "targets": [
+    {
+      "label": "the train branch is never taken, so the probe's train split falls back to the deterministic eval transform and BASIC5 rule aug (RandomResizedCrop + HorizontalFlip) is not applied",
+      "file": "methods/data2vec2/evaluate_linear_data2vec2.py",
+      "old": "    if train:",
+      "new": "    if False:",
+      "tests": [
+        "tests.test_method_data2vec2.TestTheProbeTrainAugmentation.test_the_train_loader_applies_rrc_and_hflip"
+      ]
+    },
+    {
+      "label": "run() builds the train split without augmentation (train=False), so the cached features come from the deterministic eval transform",
+      "file": "methods/data2vec2/evaluate_linear_data2vec2.py",
+      "old": "    tr_ds, tr_loader = _build_loader(data_root, \"train\", res, bs, nw, train=True)",
+      "new": "    tr_ds, tr_loader = _build_loader(data_root, \"train\", res, bs, nw, train=False)",
+      "tests": [
+        "tests.test_method_data2vec2.TestTheProbeTrainAugmentation.test_run_builds_the_train_loader_with_augmentation"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-09-06",
+    "measured_with": ".venvs/data2vec2 (cu130) on this host (CPU tests)",
+    "killed": 2,
+    "total": 2,
+    "equivalent": []
+  }
+}

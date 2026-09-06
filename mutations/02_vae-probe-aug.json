@@ -1,0 +1,30 @@
+{
+  "_note": "Run under a torch venv with tensorboard (02_vae's needs_torch gates on torch+torchvision+tensorboard, and the fixture needs PIL); .venvs/2_vae has all four: /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/2_vae/bin/python bin/mutate.py --spec mutations/02_vae-probe-aug.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/2_vae/bin/python. Proves the BASIC5 rule `aug` wiring on 02_vae's ImageFolder (ImageNet) path is not vacuous: the train split must augment (RandomResizedCrop + HorizontalFlip) while val stays deterministic. The MNIST path stays deterministic by design and is pinned by test_the_mnist_path_stays_deterministic. The rule itself is proven in mutations/basic5-aug.json.",
+  "targets": [
+    {
+      "label": "the ImageFolder train split falls back to the deterministic eval transform, so BASIC5 rule aug is not applied on the ImageNet path",
+      "file": "methods/02_vae/evaluate_linear_vae.py",
+      "old": "            transform=_imagefolder_train_transform(img_size))",
+      "new": "            transform=_imagefolder_transform(img_size))",
+      "tests": [
+        "tests.test_method_02_vae.TestTheProbeTrainAugmentation.test_the_imagefolder_train_split_applies_rrc_and_hflip"
+      ]
+    },
+    {
+      "label": "the ImageFolder val split is augmented like train, moving the cached provider features off the deterministic eval transform",
+      "file": "methods/02_vae/evaluate_linear_vae.py",
+      "old": "            transform=_imagefolder_transform(img_size))",
+      "new": "            transform=_imagefolder_train_transform(img_size))",
+      "tests": [
+        "tests.test_method_02_vae.TestTheProbeTrainAugmentation.test_the_imagefolder_val_split_stays_deterministic"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-09-06",
+    "measured_with": ".venvs/2_vae (torch+torchvision+tensorboard+PIL) on this host (CPU tests)",
+    "killed": 2,
+    "total": 2,
+    "equivalent": []
+  }
+}

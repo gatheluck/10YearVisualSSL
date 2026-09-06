@@ -28,6 +28,7 @@ from pathlib import Path
 if str(Path(__file__).parent) not in sys.path:
     sys.path.insert(0, str(Path(__file__).parent))
 from _method_import import load_from        # noqa: E402
+import _probe_aug                            # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 METHOD = ROOT / "methods" / "14_simclrv1"
@@ -685,51 +686,19 @@ class TestTheProbeTrainAugmentation(Base):
     @needs_deps
     def test_the_train_loader_applies_rrc_and_hflip(self):
         tiny_split(self.tmp / "data")
-        ev = self.evaluator()
-        _ds, loader = ev._build_loader(
-            str(self.tmp / "data"), "train", 32, 2, 0, train=True)
-        names = [type(t).__name__ for t in loader.dataset.transform.transforms]
-        self.assertIn("RandomResizedCrop", names,
-                      "the probe's train split must be RandomResizedCrop'd")
-        self.assertIn("RandomHorizontalFlip", names,
-                      "the probe's train split must be horizontally flipped")
+        _probe_aug.assert_train_augments(
+            self, self.evaluator()._build_loader, self.tmp / "data")
 
     @needs_deps
     def test_the_val_loader_stays_deterministic(self):
         tiny_split(self.tmp / "data")
-        ev = self.evaluator()
-        _ds, loader = ev._build_loader(
-            str(self.tmp / "data"), "val", 32, 2, 0)
-        names = [type(t).__name__ for t in loader.dataset.transform.transforms]
-        self.assertNotIn("RandomResizedCrop", names,
-                         "val must not be randomly cropped")
-        self.assertNotIn("RandomHorizontalFlip", names,
-                         "val must not be randomly flipped")
-        self.assertIn("CenterCrop", names,
-                      "val stays the deterministic resize + centre crop")
+        _probe_aug.assert_val_deterministic(
+            self, self.evaluator()._build_loader, self.tmp / "data",
+            must_include="CenterCrop")
 
-    @needs_deps
     def test_run_builds_the_train_loader_with_augmentation(self):
-        # The wiring, not just the helper: run() must pass train=True for the
-        # train split. Proven structurally so it does not need a GPU.
-        import ast
-        src = (METHOD / "evaluate_linear_simclr.py").read_text()
-        run_fn = next(n for n in ast.parse(src).body
-                      if isinstance(n, ast.FunctionDef) and n.name == "run")
-        train_true = False
-        for call in (n for n in ast.walk(run_fn) if isinstance(n, ast.Call)):
-            func = call.func
-            name = getattr(func, "attr", getattr(func, "id", None))
-            if name != "_build_loader":
-                continue
-            for kw in call.keywords:
-                if (kw.arg == "train"
-                        and isinstance(kw.value, ast.Constant)
-                        and kw.value.value is True):
-                    train_true = True
-        self.assertTrue(
-            train_true,
-            "run() must build the train split with _build_loader(..., train=True)")
+        _probe_aug.assert_run_wires_train_split(
+            self, METHOD / "evaluate_linear_simclr.py")
 
 
 class TestFeatureProvider(Base):

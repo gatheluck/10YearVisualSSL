@@ -31,6 +31,7 @@ from pathlib import Path
 if str(Path(__file__).parent) not in sys.path:
     sys.path.insert(0, str(Path(__file__).parent))
 from _method_import import load_from        # noqa: E402
+import _probe_aug                            # noqa: E402
 from _checkout import needs_checkout         # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -674,6 +675,36 @@ class TestFeatureProvider(Base):
         self.assertEqual(rec["status"], "ok", rec.get("reason", ""))
         feats = np.load(out / METHOD.name / "features.npy")
         self.assertEqual(feats.shape, (6, EMBED_DIM))
+
+
+class TestTheProbeTrainAugmentation(Base):
+    """BASIC5_FAIR_v1 rule `aug`: the linear probe's train-time augmentation is
+    RandomResizedCrop + HorizontalFlip only. This method caches features, so it
+    historically read the train split with the deterministic eval transform --
+    no augmentation. The train loader must now apply RRC + HFlip; the val loader
+    (and the provider, which extracts val) must stay deterministic. The rule
+    itself lives in probe_transforms; these checks confirm this method wires it.
+    """
+
+    def evaluator(self):
+        return load("dinov2_eval", METHOD / "evaluate_linear_dinov2.py")
+
+    @needs_deps
+    def test_the_train_loader_applies_rrc_and_hflip(self):
+        tiny_split(self.tmp / "data")
+        _probe_aug.assert_train_augments(
+            self, self.evaluator()._build_loader, self.tmp / "data")
+
+    @needs_deps
+    def test_the_val_loader_stays_deterministic(self):
+        tiny_split(self.tmp / "data")
+        _probe_aug.assert_val_deterministic(
+            self, self.evaluator()._build_loader, self.tmp / "data",
+            must_include="CenterCrop")
+
+    def test_run_builds_the_train_loader_with_augmentation(self):
+        _probe_aug.assert_run_wires_train_split(
+            self, METHOD / "evaluate_linear_dinov2.py")
 
 
 if __name__ == "__main__":
