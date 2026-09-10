@@ -47,9 +47,10 @@ not stored in it; `embed_dim` must be divisible by the config's `num_heads`).
   tokens** (after the final LayerNorm) -- one `embed_dim`-d vector per image
   (1024-d for the real ViT-L);
 - images go through the method's own deterministic eval pipeline
-  (`_build_loader`: bicubic square resize to `img_size`, [0,1], **ImageNet**
-  mean/std normalisation (`VJEPA2_MEAN`/`VJEPA2_STD`), no augmentation), each
-  image then replicated to a `num_frames`-frame clip;
+  (`_build_loader`: BASIC5 rule `b` -- bicubic Resize (shorter side) +
+  CenterCrop at `img_size` (kept native, not 224), aspect-preserving, [0,1],
+  **ImageNet** mean/std normalisation (`VJEPA2_MEAN`/`VJEPA2_STD`), no
+  augmentation), each image then replicated to a `num_frames`-frame clip;
 - features are the raw encoder output (`extract_features`), *before* the probe's
   mean-centre + L2-normalise (`normalize_features`). Raw features are what the
   visualisation asked for.
@@ -161,10 +162,11 @@ def extract_val_features(*, encoder_path: str, data_root: str, split: str,
             "shape read from the checkpoint's encoder.* keys); NOT a trained "
             "encoder.pt -- encoder_path is the pinned V-JEPA 2 download"),
         "preprocessing": (
-            "V-JEPA 2 eval: bicubic square resize to img_size, [0,1], ImageNet "
-            "mean/std; each still image is replicated num_frames times along a "
-            "new temporal axis to form the clip; feature is the mean over all "
-            "patch tokens (the ViT has no CLS), raw, before the probe's "
+            "V-JEPA 2 eval (BASIC5 rule b): bicubic Resize (shorter side) + "
+            "CenterCrop at img_size (native, not 224), aspect-preserving, [0,1], "
+            "ImageNet mean/std; each still image is replicated num_frames times "
+            "along a new temporal axis to form the clip; feature is the mean over "
+            "all patch tokens (the ViT has no CLS), raw, before the probe's "
             "mean-centre + L2-normalise. Plain (non-rotary) attention, "
             "mirroring the capture's forward."),
     }

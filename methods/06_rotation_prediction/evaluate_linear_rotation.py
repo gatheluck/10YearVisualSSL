@@ -40,10 +40,11 @@ def _build_loader(data_root: str, split: str, size: int, batch_size: int,
         import probe_transforms
         transform = probe_transforms.basic5_train_transform(size, normalize=None)
     else:
-        transform = T.Compose([
-            T.Resize((size, size)),
-            T.ToTensor(),
-        ])
+        # BASIC5_FAIR_v1 rule `b`: Resize (shorter side) 256 + CenterCrop 224,
+        # implemented once in probe_transforms. No normalisation: this method's
+        # eval pipeline feeds unnormalised [0,1] inputs.
+        import probe_transforms
+        transform = probe_transforms.basic5_eval_transform(size, normalize=None)
     dataset = ImageFolder(str(Path(data_root) / split), transform=transform)
     loader = torch.utils.data.DataLoader(
         dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers,

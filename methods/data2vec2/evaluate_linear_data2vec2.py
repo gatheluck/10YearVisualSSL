@@ -25,7 +25,9 @@ Changed during the port, and recorded in `provenance.json`:
     `last_hidden_state` is probed (data2vec-vision-base is a pretraining
     checkpoint: `use_mean_pooling=False`, it carries no trained pooler head).
   - the input normalisation follows the backbone's own preprocessor config
-    (mean/std 0.5, bicubic resize to a square, no centre crop), not ImageNet's.
+    (mean/std 0.5, bicubic), not ImageNet's; the crop follows BASIC5 rule `b`
+    (Resize (shorter side) 256 + CenterCrop 224), which the fair protocol applies
+    uniformly rather than the backbone's native square-resize/no-crop default.
 """
 
 from __future__ import annotations
@@ -41,9 +43,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 # The official data2vec-vision preprocessor (BEiTFeatureExtractor config on the
-# HuggingFace model card): symmetric mean/std, a bicubic square resize, no centre
-# crop. Read on 2026-08-30 from facebook/data2vec-vision-base/preprocessor_config
-# (image_mean/std [0.5,0.5,0.5], resample 3 = BICUBIC, do_center_crop false).
+# HuggingFace model card): symmetric mean/std, bicubic resample. Read on
+# 2026-08-30 from facebook/data2vec-vision-base/preprocessor_config
+# (image_mean/std [0.5,0.5,0.5], resample 3 = BICUBIC). Its native
+# square-resize/no-crop is deliberately replaced by BASIC5 rule `b`
+# (Resize (shorter side) 256 + CenterCrop 224) for a fair cross-family probe.
 D2V_MEAN = (0.5, 0.5, 0.5)
 D2V_STD = (0.5, 0.5, 0.5)
 
@@ -156,12 +160,13 @@ def _build_loader(data_root: str, split: str, resolution: int, batch_size: int,
             resolution, normalize=normalize,
             interpolation=T.InterpolationMode.BICUBIC)
     else:
-        transform = T.Compose([
-            T.Resize((resolution, resolution),
-                     interpolation=T.InterpolationMode.BICUBIC),
-            T.ToTensor(),
-            normalize,
-        ])
+        # BASIC5_FAIR_v1 rule `b`: Resize (shorter side) 256 + CenterCrop 224,
+        # implemented once in probe_transforms, with data2vec2's own bicubic
+        # interpolation and rule-e normalisation tail.
+        import probe_transforms
+        transform = probe_transforms.basic5_eval_transform(
+            resolution, normalize=normalize,
+            interpolation=T.InterpolationMode.BICUBIC)
     dataset = ImageFolder(str(Path(data_root) / split), transform=transform)
     loader = torch.utils.data.DataLoader(
         dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers,

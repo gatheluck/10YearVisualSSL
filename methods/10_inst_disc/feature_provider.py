@@ -10,8 +10,9 @@ Discrimination turns an image into a vector stays in one place:
   backbone; the 128-d projection head is discarded, the standard SSL
   convention);
 - images go through the method's own deterministic eval pipeline
-  (`_build_loader`: resize to the training size + [0,1] + **ImageNet**
-  mean/std -- InstDisc's linear probe evaluates on ImageNet-normalised inputs);
+  (`_build_loader`: BASIC5 rule `b` -- Resize (shorter side) 256 + CenterCrop to
+  the training size + [0,1] + **ImageNet** mean/std -- InstDisc's linear probe
+  evaluates on ImageNet-normalised inputs);
 - features are the raw encoder output (`extract_features`), *before* the
   probe's mean-centre + L2-normalise. Raw features are what the visualisation
   asked for.
@@ -73,7 +74,7 @@ def extract_val_features(*, encoder_path: str, data_root: str, split: str,
         "count": int(feats.shape[0]),
         "arch": train.get("arch", "resnet"),
         "image_size": image_size,
-        "preprocessing": ("InstDisc eval: resize + [0,1] + ImageNet "
-                          "mean/std normalisation"),
+        "preprocessing": ("InstDisc eval: Resize (shorter side) 256 + "
+                          "CenterCrop + [0,1] + ImageNet mean/std normalisation"),
     }
     return feats, labels, meta

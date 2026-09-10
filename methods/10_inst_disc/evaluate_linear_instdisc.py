@@ -33,11 +33,12 @@ def _build_loader(data_root: str, split: str, size: int, batch_size: int,
                   num_workers: int):
     import torchvision.transforms as T
     from torchvision.datasets import ImageFolder
-    transform = T.Compose([
-        T.Resize((size, size)),
-        T.ToTensor(),
-        T.Normalize(mean=_MEAN, std=_STD),
-    ])
+    # BASIC5_FAIR_v1 rule `b`: Resize (shorter side) 256 + CenterCrop 224,
+    # implemented once in probe_transforms, with this method's ImageNet
+    # normalisation tail.
+    import probe_transforms
+    normalize = T.Normalize(mean=_MEAN, std=_STD)
+    transform = probe_transforms.basic5_eval_transform(size, normalize=normalize)
     dataset = ImageFolder(str(Path(data_root) / split), transform=transform)
     loader = torch.utils.data.DataLoader(
         dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers,

@@ -35,10 +35,10 @@ and returns one vector per image.
   patch tokens** (after the final LayerNorm). That is one embed_dim (768-d for
   the real MCG-NJU/videomae-base) vector per image;
 - images go through the method's own deterministic eval pipeline
-  (`_build_loader`: bicubic square resize to `img_size` (224), [0,1], the
-  backbone's own ImageNet mean/std normalisation, no centre crop and no
-  augmentation), using the very constants (`VIDEOMAE_MEAN`, `VIDEOMAE_STD`) the
-  eval module defines;
+  (`_build_loader`: BASIC5 rule `b` -- bicubic Resize (shorter side) 256 +
+  CenterCrop to `img_size` (224), [0,1], the backbone's own ImageNet mean/std
+  normalisation, no augmentation), using the very constants (`VIDEOMAE_MEAN`,
+  `VIDEOMAE_STD`) the eval module defines;
 - features are the raw encoder output (`extract_features`), *before* the probe's
   mean-centre + L2-normalise (`normalize_features`). Raw features are what the
   visualisation asked for.
@@ -107,8 +107,8 @@ def extract_val_features(*, encoder_path: str, data_root: str, split: str,
             "encoder tensors load strict); NOT a trained encoder.pt -- "
             "encoder_path is the pinned VideoMAE download"),
         "preprocessing": (
-            "VideoMAE eval: bicubic square resize to img_size, [0,1], the "
-            "backbone's ImageNet mean/std, no centre crop, no augmentation; "
+            "VideoMAE eval: bicubic Resize (shorter side) 256 + CenterCrop "
+            "img_size, [0,1], the backbone's ImageNet mean/std, no augmentation; "
             "each still image is replicated num_frames times along the temporal "
             "axis to form the clip; feature is the mean over all spatio-temporal "
             "patch tokens (no CLS), raw, before the probe's mean-centre + "

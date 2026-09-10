@@ -37,7 +37,9 @@ Changed during the port, and recorded in `provenance.json`:
     silently half-loaded backbone; the capture's silent random-weight fallback on
     a failed download is removed).
   - the input normalisation follows the backbone's own preprocessor config
-    (ImageNet mean/std, a bicubic square resize, no centre crop).
+    (ImageNet mean/std, bicubic); the crop follows BASIC5 rule `b`
+    (Resize (shorter side) 256 + CenterCrop 224), applied uniformly by the fair
+    protocol rather than the backbone's native square-resize/no-crop default.
 """
 
 from __future__ import annotations
@@ -298,12 +300,12 @@ def _build_loader(data_root: str, split: str, resolution: int, batch_size: int,
     import torchvision.transforms as T
     from torchvision.datasets import ImageFolder
     normalize = T.Normalize(mean=VIDEOMAE_MEAN, std=VIDEOMAE_STD)
-    transform = T.Compose([
-        T.Resize((resolution, resolution),
-                 interpolation=T.InterpolationMode.BICUBIC),
-        T.ToTensor(),
-        normalize,
-    ])
+    # BASIC5_FAIR_v1 rule `b`: Resize (shorter side) 256 + CenterCrop 224,
+    # implemented once in probe_transforms, with VideoMAE's bicubic
+    # interpolation and rule-e normalisation tail.
+    import probe_transforms
+    transform = probe_transforms.basic5_eval_transform(
+        resolution, normalize=normalize, interpolation=T.InterpolationMode.BICUBIC)
     dataset = ImageFolder(str(Path(data_root) / split), transform=transform)
     loader = torch.utils.data.DataLoader(
         dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers,

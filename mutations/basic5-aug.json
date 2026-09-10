@@ -23,8 +23,8 @@
     {
       "label": "the normalisation tail is never appended, so a method's rule-e Normalize is silently dropped",
       "file": "probe_transforms.py",
-      "old": "    if normalize is not None:",
-      "new": "    if False:",
+      "old": "        transforms.RandomHorizontalFlip(),\n        transforms.ToTensor(),\n    ]\n    if normalize is not None:\n        steps.append(normalize)",
+      "new": "        transforms.RandomHorizontalFlip(),\n        transforms.ToTensor(),\n    ]\n    if False:\n        steps.append(normalize)",
       "tests": [
         "tests.test_probe_transforms.TestBasic5TrainTransform.test_a_normalize_tail_is_appended_when_given"
       ]

@@ -1,0 +1,41 @@
+{
+  "_note": "Run under a torch venv (the tests need torchvision): .venvs/14_simclrv1/bin/python bin/mutate.py --spec mutations/basic5-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/14_simclrv1/bin/python. probe_transforms.basic5_eval_transform is the single implementation of BASIC5_FAIR_v1 rule `b` (the eval preprocessing is Resize (shorter side) 256 + CenterCrop 224). These mutations prove tests/test_probe_transforms.py is not vacuous: dropping the centre crop, turning the shorter-side resize into a square that distorts aspect ratio, or never appending the rule-e normalisation tail must each be caught.",
+  "targets": [
+    {
+      "label": "the centre crop is dropped, so the eval transform no longer produces a deterministic 224 crop (rule b)",
+      "file": "probe_transforms.py",
+      "old": "        transforms.CenterCrop(image_size),",
+      "new": "        transforms.Resize(image_size),",
+      "tests": [
+        "tests.test_probe_transforms.TestBasic5EvalTransform.test_it_is_resize_then_centercrop_then_totensor",
+        "tests.test_probe_transforms.TestBasic5EvalTransform.test_the_default_resize_is_256_for_a_224_crop"
+      ]
+    },
+    {
+      "label": "the shorter-side resize becomes a square (h, w) resize that distorts aspect ratio and skips the crop, the exact deviation rule b reconciles",
+      "file": "probe_transforms.py",
+      "old": "        transforms.Resize(resize, **resize_kwargs),",
+      "new": "        transforms.Resize((image_size, image_size), **resize_kwargs),",
+      "tests": [
+        "tests.test_probe_transforms.TestBasic5EvalTransform.test_the_resize_is_shorter_side_not_a_square",
+        "tests.test_probe_transforms.TestBasic5EvalTransform.test_the_default_resize_is_256_for_a_224_crop"
+      ]
+    },
+    {
+      "label": "the rule-e normalisation tail is never appended, so a method's Normalize is silently dropped from the eval transform",
+      "file": "probe_transforms.py",
+      "old": "        transforms.CenterCrop(image_size),\n        transforms.ToTensor(),\n    ]\n    if normalize is not None:\n        steps.append(normalize)",
+      "new": "        transforms.CenterCrop(image_size),\n        transforms.ToTensor(),\n    ]\n    if False:\n        steps.append(normalize)",
+      "tests": [
+        "tests.test_probe_transforms.TestBasic5EvalTransform.test_a_normalize_tail_is_appended_when_given"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-09-10",
+    "measured_with": ".venvs/14_simclrv1 (cu130) on this host (CPU tests)",
+    "killed": 3,
+    "total": 3,
+    "equivalent": []
+  }
+}
