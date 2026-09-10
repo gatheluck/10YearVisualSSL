@@ -1,0 +1,21 @@
+{
+  "_note": "Run under the method venv (the test needs torchvision): /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/vjepa2_ac/bin/python bin/mutate.py --spec mutations/vjepa2_ac-probe-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/vjepa2_ac/bin/python. Proves the BASIC5 rule `b` wiring in this evaluator is not vacuous: the val split must route through probe_transforms.basic5_eval_transform (Resize shorter side + CenterCrop). The rule itself is proven in mutations/basic5-eval.json; this target proves this method wires it, by reverting to the historical bilinear square resize with no centre crop.",
+  "targets": [
+    {
+      "label": "the val transform reverts to the historical bilinear square resize with no centre crop, so rule b is violated",
+      "file": "methods/vjepa2_ac/evaluate_linear_vjepa2_ac.py",
+      "old": "    transform = probe_transforms.basic5_eval_transform(\n        resolution, normalize=normalize,\n        interpolation=T.InterpolationMode.BILINEAR)",
+      "new": "    transform = T.Compose([T.Resize((resolution, resolution), interpolation=T.InterpolationMode.BILINEAR), T.ToTensor(), normalize])",
+      "tests": [
+        "tests.test_method_vjepa2_ac.TestTheProbeEvalPreprocessing.test_the_val_loader_is_resize_then_centercrop"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-09-10",
+    "measured_with": ".venvs/vjepa2_ac (cu130) on this host (CPU tests)",
+    "killed": 1,
+    "total": 1,
+    "equivalent": []
+  }
+}

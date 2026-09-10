@@ -27,12 +27,14 @@ from train_pretrain_jigsaw import make_deterministic, resolve_device   # noqa: E
 
 def _build_loader(data_root: str, split: str, size: int, batch_size: int,
                   num_workers: int):
-    import torchvision.transforms as T
     from torchvision.datasets import ImageFolder
-    transform = T.Compose([
-        T.Resize((size, size)),
-        T.ToTensor(),
-    ])
+    # BASIC5_FAIR_v1 rule `b`: Resize (shorter side) + CenterCrop, implemented
+    # once in probe_transforms, at the encoder's native tile size (not 224 --
+    # this is a native-resolution backbone). This port's Jigsaw probe feeds
+    # unnormalised [0,1] inputs (no ImageNet mean/std), so there is no normalise
+    # tail and the resize keeps torchvision's default (bilinear) interpolation.
+    import probe_transforms
+    transform = probe_transforms.basic5_eval_transform(size)
     dataset = ImageFolder(str(Path(data_root) / split), transform=transform)
     loader = torch.utils.data.DataLoader(
         dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers,

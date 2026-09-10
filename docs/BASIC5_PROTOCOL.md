@@ -118,29 +118,60 @@ Deviations that need reconciliation:
     single tower. Rule `d` forbids searching/concatenating **layers**, which this
     is not. Recorded, not changed.
 
-- **Rule `b` (Resize 256 + CenterCrop 224):**
+- **Rule `b` (Resize shorter side + CenterCrop):** the *form* is the checkable
+  core -- an aspect-preserving shorter-side `Resize(int)` then a single
+  `CenterCrop`, no eval-time augmentation. The 256/224 pair is the size at 224;
+  a native-resolution backbone keeps its own size (forcing 224 could be wrong)
+  but must still use the same aspect-preserving crop form. The single
+  implementation of the rule is `probe_transforms.basic5_eval_transform` (Resize
+  by a single int -- the shorter side, aspect-ratio-preserving, default
+  `round(image_size * 256 / 224)` = 256 at 224 -- then `CenterCrop(image_size)`,
+  then the method's own ToTensor/normalise tail). It is pinned once in
+  `tests/test_probe_transforms.py` (`TestBasic5EvalTransform`) and per wired
+  method by `TestTheProbeEvalPreprocessing` (the wiring check lives once in
+  `tests/_probe_eval.py`, imported), proven non-vacuous by
+  `mutations/basic5-eval.json` (3/3: dropped centre crop, square resize, dropped
+  normalise) plus one `<method>-probe-eval.json` per method (1/1 each: the val
+  transform reverts to the historical square resize).
   - Size 224 but wrong crop pipeline (square resize / no center crop): `cae`,
     `data2vec2`, `videomae`, `06_rotation_prediction`, `10_inst_disc`.
-    RECONCILED (step 6, branch `downstream/basic5-b-eval-crop`). The single
-    implementation of the rule is `probe_transforms.basic5_eval_transform`
-    (Resize by a single int -- the shorter side, aspect-ratio-preserving, default
-    `round(image_size * 256 / 224)` = 256 at 224 -- then `CenterCrop(image_size)`,
-    then the method's own ToTensor/normalise tail). Each of the five now reads its
-    val split (which its `feature_provider` extracts) through it. Pinned once in
-    `tests/test_probe_transforms.py` (`TestBasic5EvalTransform`) and per method by
-    `TestTheProbeEvalPreprocessing` (the wiring check lives once in
-    `tests/_probe_eval.py`, imported); proven non-vacuous by
-    `mutations/basic5-eval.json` (3/3: dropped centre crop, square resize,
-    dropped normalise) plus one `<method>-probe-eval.json` per method (1/1 each:
-    the val transform reverts to the historical square resize).
-  - Final size not 224 (still open): `02_vae` (28), `04_context_encoder` (227),
-    `05_jigsaw_puzzle` (255), `09_jigsaw_puzzle_pp` (75), `11_cpc` (256),
-    `26_simmim` (192), `36_franca` (518), `cosmos3_super` (448), `sam3` (336),
-    `vjepa2`/`vjepa2_ac` (256), `image_gpt` (32). Several of these are the
-    backbone's **native input resolution**; forcing 224 could be wrong, so each
-    is a per-method judgement, not a blanket edit. `basic5_eval_transform` keeps
-    the 256/224 ratio at any `image_size`, so it is the shared tool for these too
-    once each size is judged. This is why the row is `partial`, not `conformant`.
+    RECONCILED (step 6, branch `downstream/basic5-b-eval-crop`). Each of the five
+    now reads its val split (which its `feature_provider` extracts) through
+    `basic5_eval_transform`.
+  - Native resolution but wrong crop pipeline (square `Resize((s,s))`, aspect
+    distorted): `05_jigsaw_puzzle` (255), `09_jigsaw_puzzle_pp` (75), `vjepa2`
+    (256), `vjepa2_ac` (256). RECONCILED (step 6, same branch). Each keeps its
+    **native/config eval size** (not forced to 224) and now routes through
+    `basic5_eval_transform` at that size -- so only the crop *form* changed (from
+    a square resize with no centre crop to shorter-side Resize + CenterCrop),
+    preserving each backbone's own interpolation and normalise tail (jigsaw:
+    default bilinear, no normalise; vjepa2: bicubic + ImageNet mean/std;
+    vjepa2_ac: bilinear + ImageNet mean/std). Pinned by `TestTheProbeEvalPreprocessing`
+    in each method's test and proven by `mutations/<method>-probe-eval.json`
+    (1/1 killed each).
+  - Native resolution, **already conformant** (measured, shorter-side
+    `Resize(int)` + CenterCrop -- no change): `04_context_encoder` (227; Resize 256
+    + CenterCrop 227), `26_simmim` (192; `round(192*256/224)` + CenterCrop 192),
+    `36_franca` (518; `round(518/0.875)` + CenterCrop 518), `cosmos3_super`
+    (448), `sam3` (336; val branch), `image_gpt` (32), and `02_vae`'s ImageFolder
+    (ImageNet) path (Resize + CenterCrop at 28). These were verified by reading
+    the code, not assumed from size.
+  - **Deliberate** (recorded, not changed):
+    - `11_cpc` (256): the shipped native path resizes to a fixed **square** 300
+      (`Resize((300, 300))`) then `CenterCrop(256)`. This is architecture-specific
+      -- CPC splits the crop into a fixed grid of overlapping patches, so the
+      source is deliberately a fixed square before the grid split, not an
+      aspect-preserving shorter-side resize. Recorded as deliberate, like the
+      two-tower `d` cases. (Its separate `arch=vit` path already uses shorter-side
+      Resize + CenterCrop, but that is not the shipped native path.)
+    - `02_vae` (28): the native MNIST path passes 28×28 grayscale through with no
+      resize or crop (grayscale→3-channel repeat only). Dataset-specific: a 28×28
+      MNIST digit is neither resized nor cropped; only the ImageFolder/ImageNet
+      path (above) applies rule `b`.
+  - The row stays `partial` (not `conformant`) for the same reason `aug` does:
+    every **known** case above is now reconciled, conformant-at-native, or
+    deliberate, but "conformant" should rest on a fleet-wide *discover-all* `b`
+    audit that enumerates every probe method, not on this hand-verified list.
 
 - **Rule `e` (published normalisation):** mostly conformant -- each provider
   reproduces its own backbone's published normalisation, which is correct even
@@ -271,23 +302,34 @@ column above when it lands.
    both splits (cropping/flipping a digit can change its class). Not yet flipped
    to `conformant`: that needs a fleet-wide discover-all `aug` audit enumerating
    every probe method, not this hand-named family list.
-6. **`b` — eval preprocessing.** WRONG-CROP CASES DONE (branch
-   `downstream/basic5-b-eval-crop`): `cae`, `data2vec2`, `videomae`,
-   `06_rotation_prediction`, `10_inst_disc` -- all size-224 methods that used a
-   square resize with no centre crop -- now route their val split through
-   `probe_transforms.basic5_eval_transform` (Resize shorter-side 256 +
-   CenterCrop 224), the single implementation of the rule and the deterministic
-   sibling of `basic5_train_transform`. 3/3 shared mutants + 1/1 per method
-   killed. Still open, and why the row stays `partial`: the native-resolution
-   backbones (final size not 224, listed above) are a per-method judgement --
-   forcing 224 could be wrong -- so each must be decided individually before the
-   row is `conformant`.
+6. **`b` — eval preprocessing.** DONE for every known case (branch
+   `downstream/basic5-b-eval-crop`), across two waves:
+   - Wrong crop at size 224: `cae`, `data2vec2`, `videomae`,
+     `06_rotation_prediction`, `10_inst_disc` -- square resize with no centre
+     crop -- now route their val split through
+     `probe_transforms.basic5_eval_transform` (Resize shorter-side 256 +
+     CenterCrop 224), the single implementation of the rule and the deterministic
+     sibling of `basic5_train_transform`. 3/3 shared mutants + 1/1 per method.
+   - Wrong crop at native resolution: `05_jigsaw_puzzle` (255),
+     `09_jigsaw_puzzle_pp` (75), `vjepa2` (256), `vjepa2_ac` (256) -- square
+     `Resize((s,s))` -- now route through the same transform **at their native
+     size** (kept, not forced to 224), so only the crop form changed; each
+     backbone's interpolation/normalise tail is preserved. 1/1 mutant per method.
+   - The remaining native-resolution methods were **measured, not assumed**:
+     `04_context_encoder`, `26_simmim`, `36_franca`, `cosmos3_super`, `sam3`,
+     `image_gpt`, and `02_vae`'s ImageFolder path already use shorter-side
+     Resize + CenterCrop (conformant, no change). `11_cpc` (fixed square source
+     for its patch grid) and `02_vae`'s MNIST path (28×28 passthrough) are
+     **deliberate**, recorded above. See the rule `b` conformance bullet.
+   - The row stays `partial` for the same reason as `aug`: all known cases are
+     resolved, but flipping to `conformant` should rest on a fleet-wide
+     discover-all `b` audit enumerating every probe method, not this list.
 7. **`opt` residuals.** Localised LR/epoch/batch/mean-centering differences.
 
-Item 5 is done (mechanism + full feature-cache fan-out landed, each method
-proven by mutation); the `aug` row stays `partial` only until a fleet-wide
-discover-all audit. Item 6's wrong-crop cases are done; its native-resolution
-judgements and item 7 are not yet started. This section is the plan of record.
+Items 5 and 6 are done (mechanism + full fan-out landed, each method proven by
+mutation); both rows stay `partial` only until a fleet-wide discover-all audit
+enumerating every probe method. Item 7 is not yet started. This section is the
+plan of record.
 
 ---
 

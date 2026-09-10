@@ -25,6 +25,7 @@ from pathlib import Path
 if str(Path(__file__).parent) not in sys.path:
     sys.path.insert(0, str(Path(__file__).parent))
 from _method_import import load_from        # noqa: E402
+import _probe_eval                           # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 METHOD = ROOT / "methods" / "05_jigsaw_puzzle"
@@ -713,6 +714,26 @@ class TestFeatureProvider(Base):
         self.assertEqual(rec["status"], "ok", rec.get("reason", ""))
         feats = np.load(out / METHOD.name / "features.npy")
         self.assertEqual(feats.shape, (6, FEATURE_DIM))
+
+
+class TestTheProbeEvalPreprocessing(Base):
+    """BASIC5_FAIR_v1 rule `b`: the eval preprocessing is Resize (shorter side)
+    + CenterCrop -- a deterministic centre crop that preserves aspect ratio, at
+    the encoder's native tile size (this is a native-resolution backbone, so it
+    keeps its own size, not 224). This method historically used a square resize
+    with no centre crop; its val split (which the provider extracts) must now
+    route through probe_transforms.basic5_eval_transform. The rule itself lives
+    there; this confirms the wiring.
+    """
+
+    def evaluator(self):
+        return load("jigsaw_eval", METHOD / "evaluate_linear_jigsaw.py")
+
+    @needs_deps
+    def test_the_val_loader_is_resize_then_centercrop(self):
+        tiny_split(self.tmp / "data")
+        _probe_eval.assert_val_is_resize_centercrop(
+            self, self.evaluator()._build_loader, self.tmp / "data")
 
 
 if __name__ == "__main__":

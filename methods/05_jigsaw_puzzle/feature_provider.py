@@ -9,8 +9,9 @@ turns an image into a vector stays in one place:
   `load_encoder`, then read through `get_encoder()` (the 512-d shared CFN
   encoder -- an AlexNet backbone with 1x1-conv "FC" layers);
 - images go through the method's own deterministic eval pipeline
-  (`_build_loader`: resize to a square, [0,1], **no** ImageNet mean/std --
-  this port's Jigsaw probe feeds unnormalised inputs);
+  (`_build_loader`: BASIC5 rule `b` -- Resize (shorter side) + CenterCrop at the
+  encoder's native tile size, aspect-preserving, [0,1], **no** ImageNet mean/std
+  -- this port's Jigsaw probe feeds unnormalised inputs);
 - features are the raw encoder output (`extract_features`), *before* the
   probe's mean-centre + L2-normalise. Raw features are what the visualisation
   asked for.
@@ -79,7 +80,8 @@ def extract_val_features(*, encoder_path: str, data_root: str, split: str,
         "count": int(feats.shape[0]),
         "arch": train.get("arch", "alexnet"),
         "image_size": image_size,
-        "preprocessing": ("Jigsaw eval: resize to a square, [0,1], "
-                          "no ImageNet normalisation"),
+        "preprocessing": ("Jigsaw eval (BASIC5 rule b): Resize (shorter side) + "
+                          "CenterCrop at the encoder's native tile size, "
+                          "aspect-preserving, [0,1], no ImageNet normalisation"),
     }
     return feats, labels, meta

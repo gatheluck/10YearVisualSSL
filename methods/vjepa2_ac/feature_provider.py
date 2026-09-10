@@ -36,8 +36,10 @@ built at one size loads at the config's size.
   every token is pooled) -- one embed_dim vector per image (1408-d for the real
   vit_giant_xformers, 192-d for a tiny test checkpoint);
 - images go through the method's own deterministic eval pipeline
-  (`_build_loader`: bilinear resize to a square `img_size`, [0,1], **ImageNet**
-  mean/std normalisation, no augmentation), exactly as the eval main does;
+  (`_build_loader`: BASIC5 rule `b` -- bilinear Resize (shorter side) +
+  CenterCrop at `img_size` (kept native, not 224), aspect-preserving, [0,1],
+  **ImageNet** mean/std normalisation, no augmentation), exactly as the eval
+  main does;
 - features are the raw encoder output (`extract_features`), *before* the probe's
   mean-centre + L2-normalise (`normalize_features`). Raw features are what the
   visualisation asked for.
@@ -148,7 +150,8 @@ def extract_val_features(*, encoder_path: str, data_root: str, split: str,
             "checkpoint width); NOT a trained encoder.pt -- encoder_path is the "
             "pinned vjepa2-ac-vitg.pt download"),
         "preprocessing": (
-            "V-JEPA 2 eval: bilinear resize to a square img_size, [0,1], "
+            "V-JEPA 2 eval (BASIC5 rule b): bilinear Resize (shorter side) + "
+            "CenterCrop at img_size (native, not 224), aspect-preserving, [0,1], "
             "ImageNet mean/std; each image is replicated tubelet_size times "
             "along a new temporal axis (one temporal token), run through the "
             "ViT, and the tokens are mean-pooled (no CLS token) -- raw, before "

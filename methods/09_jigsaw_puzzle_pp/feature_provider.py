@@ -10,9 +10,10 @@ turns an image into a vector stays in one place:
   config is `arch=vgg16` (the default), so this is the shared VGG16 pretext
   encoder (a 1024-d feature);
 - images go through the method's own deterministic eval pipeline
-  (`_build_loader`: resize to the encoder's tile size + [0,1], **no** ImageNet
-  mean/std -- the probe uses unnormalised inputs), at the size the probe reads
-  (`tile_size` for `arch=vgg16`);
+  (`_build_loader`: BASIC5 rule `b` -- Resize (shorter side) + CenterCrop at the
+  encoder's native size, aspect-preserving, [0,1], **no** ImageNet mean/std --
+  the probe uses unnormalised inputs), at the size the probe reads (`tile_size`
+  for `arch=vgg16`);
 - features are the raw encoder output (`extract_features`), *before* the
   probe's mean-centre + L2-normalise. Raw features are what the visualisation
   asked for.
@@ -82,7 +83,8 @@ def extract_val_features(*, encoder_path: str, data_root: str, split: str,
         "count": int(feats.shape[0]),
         "arch": arch,
         "image_size": image_size,
-        "preprocessing": ("Jigsaw++ eval: resize to (tile_size, tile_size), "
-                          "[0,1], no ImageNet normalisation"),
+        "preprocessing": ("Jigsaw++ eval (BASIC5 rule b): Resize (shorter side) "
+                          "+ CenterCrop at the encoder's native size, "
+                          "aspect-preserving, [0,1], no ImageNet normalisation"),
     }
     return feats, labels, meta

@@ -37,8 +37,9 @@ Changed during the port, and recorded in `provenance.json`:
     checkpoint's `encoder` tensors load into it and any missing or unexpected key
     means the checkpoint does not match the architecture (a hard error; the
     capture's tolerant strict=False that merely printed the counts is tightened).
-  - the input normalisation follows ImageNet mean/std with a bilinear square resize
-    (the capture resizes to 256 with bilinear interpolation inside the wrapper).
+  - the input normalisation follows ImageNet mean/std; the eval preprocessing is
+    BASIC5 rule `b` -- a bilinear Resize (shorter side) + CenterCrop at `img_size`
+    (kept native, not 224), aspect-preserving.
 """
 
 from __future__ import annotations
@@ -209,12 +210,15 @@ def _build_loader(data_root: str, split: str, resolution: int, batch_size: int,
     import torchvision.transforms as T
     from torchvision.datasets import ImageFolder
     normalize = T.Normalize(mean=VJEPA2_MEAN, std=VJEPA2_STD)
-    transform = T.Compose([
-        T.Resize((resolution, resolution),
-                 interpolation=T.InterpolationMode.BILINEAR),
-        T.ToTensor(),
-        normalize,
-    ])
+    # BASIC5_FAIR_v1 rule `b`: Resize (shorter side) + CenterCrop, implemented
+    # once in probe_transforms, with V-JEPA 2's bilinear interpolation and
+    # ImageNet-normalise tail, at the config's eval size (V-JEPA 2's img_size is
+    # not native-forced -- RoPE at run time -- so the port keeps it and fixes
+    # only the crop shape, replacing the historical square resize/no-crop).
+    import probe_transforms
+    transform = probe_transforms.basic5_eval_transform(
+        resolution, normalize=normalize,
+        interpolation=T.InterpolationMode.BILINEAR)
     dataset = ImageFolder(str(Path(data_root) / split), transform=transform)
     loader = torch.utils.data.DataLoader(
         dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers,

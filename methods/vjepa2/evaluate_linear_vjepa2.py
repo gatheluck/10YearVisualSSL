@@ -44,7 +44,9 @@ Changed during the port, and recorded in `provenance.json`:
     means the checkpoint does not match the architecture (a hard error, not a
     silently half-loaded backbone; the capture's silent random-weight fallback on
     a failed download is removed).
-  - the input normalisation follows ImageNet mean/std with a bicubic square resize.
+  - the input normalisation follows ImageNet mean/std; the eval preprocessing is
+    BASIC5 rule `b` -- a bicubic Resize (shorter side) + CenterCrop at `img_size`
+    (kept native, not 224), aspect-preserving.
 """
 
 from __future__ import annotations
@@ -261,12 +263,15 @@ def _build_loader(data_root: str, split: str, resolution: int, batch_size: int,
     import torchvision.transforms as T
     from torchvision.datasets import ImageFolder
     normalize = T.Normalize(mean=VJEPA2_MEAN, std=VJEPA2_STD)
-    transform = T.Compose([
-        T.Resize((resolution, resolution),
-                 interpolation=T.InterpolationMode.BICUBIC),
-        T.ToTensor(),
-        normalize,
-    ])
+    # BASIC5_FAIR_v1 rule `b`: Resize (shorter side) + CenterCrop, implemented
+    # once in probe_transforms, with V-JEPA 2's bicubic interpolation and
+    # ImageNet-normalise tail, at the config's eval size (V-JEPA 2's img_size is
+    # not native-forced -- rotary at run time -- so the port keeps it and fixes
+    # only the crop shape, replacing the historical square resize/no-crop).
+    import probe_transforms
+    transform = probe_transforms.basic5_eval_transform(
+        resolution, normalize=normalize,
+        interpolation=T.InterpolationMode.BICUBIC)
     dataset = ImageFolder(str(Path(data_root) / split), transform=transform)
     loader = torch.utils.data.DataLoader(
         dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers,
