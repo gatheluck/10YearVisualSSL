@@ -1,7 +1,14 @@
-"""The one place BASIC5_FAIR_v1 rule `aug` is implemented.
+"""The one place BASIC5_FAIR_v1 rules `aug` and `b` are implemented.
 
 **rule aug** (docs/BASIC5_PROTOCOL.md): the linear probe's train-time
 augmentation is **RandomResizedCrop + HorizontalFlip only**.
+
+**rule b** (docs/BASIC5_PROTOCOL.md): the eval preprocessing is **Resize
+(shorter side) 256 + CenterCrop 224** -- one deterministic 224 centre crop that
+preserves aspect ratio. `basic5_eval_transform` is the single implementation of
+that rule, the deterministic sibling of `basic5_train_transform`. Both live here
+so the rules are not implemented once per method (there are ~50, and scanners
+that each reimplemented a rule are the common root of past defects here).
 
 The feature-cache family of methods extracts the frozen backbone's features once
 and trains the linear head on the cache, so the backbone never re-runs per epoch.
@@ -54,6 +61,48 @@ def basic5_train_transform(image_size, normalize=None, interpolation=None):
     steps = [
         transforms.RandomResizedCrop(image_size, **crop_kwargs),
         transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+    ]
+    if normalize is not None:
+        steps.append(normalize)
+    return transforms.Compose(steps)
+
+
+def basic5_eval_transform(image_size, resize=None, normalize=None,
+                          interpolation=None):
+    """The BASIC5 rule-`b` eval transform.
+
+    ``Resize(shorter side)`` then ``CenterCrop(image_size)`` then ``ToTensor``
+    then ``normalize`` if one is given -- and nothing else. The resize is a
+    *single int*, so torchvision scales the shorter side and **preserves aspect
+    ratio**; it is deliberately not a ``(h, w)`` square, which would distort the
+    image and skip the centre crop (the exact shape rule b reconciles).
+
+    Args:
+        image_size: the centre-crop output size (an int). This is the model's
+            eval input size; which size is the caller's business (rule b keeps a
+            native-resolution backbone at its own size), so it is passed in.
+        resize: the shorter-side resize target. ``None`` uses the canonical
+            ``round(image_size * 256 / 224)`` -- 256 at 224, scaled
+            proportionally otherwise -- so the 256/224 ratio holds at any size.
+        normalize: an already-built ``torchvision.transforms.Normalize`` (rule
+            e's business), or ``None`` for a backbone trained on ``[0, 1]``.
+        interpolation: a ``torchvision.transforms.InterpolationMode``, or
+            ``None`` to use torchvision's default.
+
+    Returns:
+        a ``torchvision.transforms.Compose``.
+    """
+    from torchvision import transforms
+
+    if resize is None:
+        resize = round(image_size * 256 / 224)
+    resize_kwargs = {}
+    if interpolation is not None:
+        resize_kwargs["interpolation"] = interpolation
+    steps = [
+        transforms.Resize(resize, **resize_kwargs),
+        transforms.CenterCrop(image_size),
         transforms.ToTensor(),
     ]
     if normalize is not None:

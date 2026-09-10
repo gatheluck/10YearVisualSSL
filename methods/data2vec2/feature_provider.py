@@ -14,8 +14,8 @@ data2vec-vision turns an image into a vector stays in one place:
   `last_hidden_state`** -- one embed_dim (768 for data2vec-vision-base) vector
   per image;
 - images go through the method's own deterministic eval pipeline
-  (`_build_loader` -> bicubic resize to a square `img_size` x `img_size`,
-  `[0,1]`, symmetric mean/std 0.5 normalisation, **no centre crop**), the
+  (`_build_loader` -> BASIC5 rule `b`: bicubic Resize (shorter side) 256 +
+  CenterCrop to `img_size`, `[0,1]`, symmetric mean/std 0.5 normalisation), the
   data2vec-vision preprocessor rather than ImageNet's;
 - features are the raw encoder output (`extract_features`), *before* the probe's
   mean-centre + L2-normalise. Raw features are what the visualisation asked for.
@@ -76,9 +76,9 @@ def extract_val_features(*, encoder_path: str, data_root: str, split: str,
         "count": int(feats.shape[0]),
         "arch": train.get("name", "data2vec-vision"),
         "image_size": image_size,
-        "preprocessing": ("data2vec-vision eval: bicubic resize to a square "
-                          f"{image_size}x{image_size}, [0,1], symmetric "
-                          "mean/std 0.5, no centre crop; feature is the CLS "
+        "preprocessing": ("data2vec-vision eval: bicubic Resize (shorter side) "
+                          f"256 + CenterCrop {image_size}, [0,1], symmetric "
+                          "mean/std 0.5; feature is the CLS "
                           "token of last_hidden_state"),
     }
     return feats, labels, meta

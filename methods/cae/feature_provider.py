@@ -26,9 +26,10 @@ never disagree with the weights it is handed.
   representation CAE's linear probe is fit on. That is one embed_dim vector per
   image (768-d for the real CAE ViT-B/16);
 - images go through the method's own deterministic eval pipeline
-  (`_build_loader`: a bicubic **square resize** to img_size, **no centre crop**,
-  [0,1], ImageNet mean/std -- the constants `CAE_MEAN`/`CAE_STD` the eval main
-  uses -- no augmentation), exactly as the eval main does;
+  (`_build_loader`: BASIC5 rule `b` -- a bicubic Resize (shorter side) 256 +
+  CenterCrop to img_size, [0,1], ImageNet mean/std -- the constants
+  `CAE_MEAN`/`CAE_STD` the eval main uses -- no augmentation), exactly as the
+  eval main does;
 - features are the raw encoder output (`extract_features`), *before* the probe's
   mean-centre + L2-normalise (`normalize_features`). Raw features are what the
   visualisation asked for.
@@ -95,7 +96,7 @@ def extract_val_features(*, encoder_path: str, data_root: str, split: str,
             "tensors loaded strict); NOT a trained encoder.pt -- encoder_path "
             "is the pinned OpenMMLab mmselfsup reproduction download"),
         "preprocessing": (
-            "CAE eval: bicubic square resize to img_size (no centre crop), "
+            "CAE eval: bicubic Resize (shorter side) 256 + CenterCrop img_size, "
             "[0,1], ImageNet mean/std (CAE_MEAN/CAE_STD); feature is the "
             "final-LayerNorm'd CLS token, raw, before the probe's mean-centre "
             "+ L2-normalise"),

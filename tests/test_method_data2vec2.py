@@ -36,6 +36,7 @@ if str(Path(__file__).parent) not in sys.path:
     sys.path.insert(0, str(Path(__file__).parent))
 from _method_import import load_from        # noqa: E402
 import _probe_aug                            # noqa: E402
+import _probe_eval                           # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 METHOD = ROOT / "methods" / "data2vec2"
@@ -440,8 +441,8 @@ class TestTheProbeTrainAugmentation(Base):
     (and the provider, which extracts val) must stay deterministic. The rule
     itself lives in probe_transforms; these checks confirm this method wires it.
 
-    This method's val transform is a plain square resize (no centre crop), so the
-    val control asserts only the absence of the random ops (must_include=None).
+    This method's val transform is Resize (shorter side) + CenterCrop (rule b),
+    so the val control asserts the centre crop is kept (must_include="CenterCrop").
     """
 
     def evaluator(self):
@@ -457,11 +458,31 @@ class TestTheProbeTrainAugmentation(Base):
     def test_the_val_loader_stays_deterministic(self):
         tiny_split(self.tmp / "data")
         _probe_aug.assert_val_deterministic(
-            self, self.evaluator()._build_loader, self.tmp / "data")
+            self, self.evaluator()._build_loader, self.tmp / "data",
+            must_include="CenterCrop")
 
     def test_run_builds_the_train_loader_with_augmentation(self):
         _probe_aug.assert_run_wires_train_split(
             self, METHOD / "evaluate_linear_data2vec2.py")
+
+
+class TestTheProbeEvalPreprocessing(Base):
+    """BASIC5_FAIR_v1 rule `b`: the eval preprocessing is Resize (shorter side)
+    256 + CenterCrop 224 -- a deterministic centre crop that preserves aspect
+    ratio. This method historically used a bicubic *square* resize with no centre
+    crop; its val split (which the provider extracts) must now route through
+    probe_transforms.basic5_eval_transform. The rule itself lives there; this
+    confirms the wiring.
+    """
+
+    def evaluator(self):
+        return load("data2vec2_eval", METHOD / "evaluate_linear_data2vec2.py")
+
+    @needs_deps
+    def test_the_val_loader_is_resize_then_centercrop(self):
+        tiny_split(self.tmp / "data")
+        _probe_eval.assert_val_is_resize_centercrop(
+            self, self.evaluator()._build_loader, self.tmp / "data")
 
 
 if __name__ == "__main__":

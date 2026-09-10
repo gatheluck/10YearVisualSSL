@@ -60,7 +60,7 @@ recorded reason), **partial** (some methods conform, some do not), **pending**
 
 | id | scope | requirement | status |
 |----|-------|-------------|--------|
-| b | feature | Eval preprocessing is Resize (shorter side) 256 + CenterCrop 224 -- one deterministic 224 center crop, no eval-time augmentation | deviation |
+| b | feature | Eval preprocessing is Resize (shorter side) 256 + CenterCrop 224 -- one deterministic 224 center crop, no eval-time augmentation | partial |
 | c | feature | The saved final **global** feature is **L2-normalised** to unit length | conformant |
 | d | feature | Exactly **one canonical final feature layer** -- do not search layers or concatenate features from multiple layers | conformant |
 | e | feature | Use the **published backbone normalisation** (the mean/std the backbone was trained under) | conformant |
@@ -119,14 +119,28 @@ Deviations that need reconciliation:
     is not. Recorded, not changed.
 
 - **Rule `b` (Resize 256 + CenterCrop 224):**
-  - Final size not 224: `02_vae` (28), `04_context_encoder` (227),
+  - Size 224 but wrong crop pipeline (square resize / no center crop): `cae`,
+    `data2vec2`, `videomae`, `06_rotation_prediction`, `10_inst_disc`.
+    RECONCILED (step 6, branch `downstream/basic5-b-eval-crop`). The single
+    implementation of the rule is `probe_transforms.basic5_eval_transform`
+    (Resize by a single int -- the shorter side, aspect-ratio-preserving, default
+    `round(image_size * 256 / 224)` = 256 at 224 -- then `CenterCrop(image_size)`,
+    then the method's own ToTensor/normalise tail). Each of the five now reads its
+    val split (which its `feature_provider` extracts) through it. Pinned once in
+    `tests/test_probe_transforms.py` (`TestBasic5EvalTransform`) and per method by
+    `TestTheProbeEvalPreprocessing` (the wiring check lives once in
+    `tests/_probe_eval.py`, imported); proven non-vacuous by
+    `mutations/basic5-eval.json` (3/3: dropped centre crop, square resize,
+    dropped normalise) plus one `<method>-probe-eval.json` per method (1/1 each:
+    the val transform reverts to the historical square resize).
+  - Final size not 224 (still open): `02_vae` (28), `04_context_encoder` (227),
     `05_jigsaw_puzzle` (255), `09_jigsaw_puzzle_pp` (75), `11_cpc` (256),
     `26_simmim` (192), `36_franca` (518), `cosmos3_super` (448), `sam3` (336),
     `vjepa2`/`vjepa2_ac` (256), `image_gpt` (32). Several of these are the
     backbone's **native input resolution**; forcing 224 could be wrong, so each
-    is a per-method judgement, not a blanket edit.
-  - Size 224 but wrong crop pipeline (square resize / no center crop): `cae`,
-    `data2vec2`, `videomae`, `06_rotation_prediction`, `10_inst_disc`.
+    is a per-method judgement, not a blanket edit. `basic5_eval_transform` keeps
+    the 256/224 ratio at any `image_size`, so it is the shared tool for these too
+    once each size is judged. This is why the row is `partial`, not `conformant`.
 
 - **Rule `e` (published normalisation):** mostly conformant -- each provider
   reproduces its own backbone's published normalisation, which is correct even
@@ -257,15 +271,23 @@ column above when it lands.
    both splits (cropping/flipping a digit can change its class). Not yet flipped
    to `conformant`: that needs a fleet-wide discover-all `aug` audit enumerating
    every probe method, not this hand-named family list.
-6. **`b` — eval preprocessing.** Per-method judgement; native-resolution
-   backbones may legitimately keep their size. Reconcile the wrong-crop cases
-   (square resize / no center crop) first.
+6. **`b` — eval preprocessing.** WRONG-CROP CASES DONE (branch
+   `downstream/basic5-b-eval-crop`): `cae`, `data2vec2`, `videomae`,
+   `06_rotation_prediction`, `10_inst_disc` -- all size-224 methods that used a
+   square resize with no centre crop -- now route their val split through
+   `probe_transforms.basic5_eval_transform` (Resize shorter-side 256 +
+   CenterCrop 224), the single implementation of the rule and the deterministic
+   sibling of `basic5_train_transform`. 3/3 shared mutants + 1/1 per method
+   killed. Still open, and why the row stays `partial`: the native-resolution
+   backbones (final size not 224, listed above) are a per-method judgement --
+   forcing 224 could be wrong -- so each must be decided individually before the
+   row is `conformant`.
 7. **`opt` residuals.** Localised LR/epoch/batch/mean-centering differences.
 
 Item 5 is done (mechanism + full feature-cache fan-out landed, each method
 proven by mutation); the `aug` row stays `partial` only until a fleet-wide
-discover-all audit. Items 6–7 are not yet started. This section is the plan of
-record.
+discover-all audit. Item 6's wrong-crop cases are done; its native-resolution
+judgements and item 7 are not yet started. This section is the plan of record.
 
 ---
 

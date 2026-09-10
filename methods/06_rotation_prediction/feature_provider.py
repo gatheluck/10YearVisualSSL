@@ -9,8 +9,9 @@ turns an image into a vector stays in one place:
   `load_encoder`, then read through `get_encoder()` (the 4096-d AlexNet-BN
   backbone -- measured, not assumed);
 - images go through the method's own deterministic eval pipeline
-  (`_build_loader`: resize to the encoder's training input size + [0,1], **no**
-  ImageNet mean/std -- the port's probe extracts from unnormalised inputs);
+  (`_build_loader`: BASIC5 rule `b` -- Resize (shorter side) 256 + CenterCrop to
+  the encoder's training input size + [0,1], **no** ImageNet mean/std -- the
+  port's probe extracts from unnormalised inputs);
 - features are the raw encoder output (`extract_features`), *before* the
   probe's mean-centre + L2-normalise. Raw features are what the visualisation
   asked for.
@@ -72,7 +73,8 @@ def extract_val_features(*, encoder_path: str, data_root: str, split: str,
         "count": int(feats.shape[0]),
         "arch": train.get("arch", "alexnet"),
         "image_size": image_size,
-        "preprocessing": ("Rotation eval: resize to the encoder's training "
-                          "input size, [0,1], no ImageNet normalisation"),
+        "preprocessing": ("Rotation eval: Resize (shorter side) 256 + CenterCrop "
+                          "to the encoder's training input size, [0,1], no "
+                          "ImageNet normalisation"),
     }
     return feats, labels, meta
