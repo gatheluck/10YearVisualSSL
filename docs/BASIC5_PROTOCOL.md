@@ -243,7 +243,9 @@ Deviations that need reconciliation:
   discover-all `aug` audit (the analogue of the provider audits behind rules
   b–e): the two families named here conform, but "conformant" should rest on a
   mechanism that enumerates *every* probe method, not on this list.
-- **Rule `opt` (LR/epochs/batch/scaling):**
+- **Rule `opt` (LR/epochs/batch/scaling):** the shared mechanism now exists
+  (`probe_optim`; see reconciliation step 7) and `cae` is wired as the pilot; the
+  residual deviations below are the per-method wiring fan-out still to land.
   - LR ≠ 0.1: `21_barlow_twins` (0.3), `27_ibot` (1e-3).
   - Linear LR scaling with batch: only `20_simsiam` scales by `batch/256`; the
     rest use the LR directly.
@@ -324,12 +326,31 @@ column above when it lands.
    - The row stays `partial` for the same reason as `aug`: all known cases are
      resolved, but flipping to `conformant` should rest on a fleet-wide
      discover-all `b` audit enumerating every probe method, not this list.
-7. **`opt` residuals.** Localised LR/epoch/batch/mean-centering differences.
+7. **`opt` — probe optimiser (LR scaling / SGD recipe / cosine / epochs).**
+   MECHANISM + PILOT DONE (branch `downstream/basic5-opt-reconcile`).
+   `probe_optim` is the single implementation of the rule: `basic5_scaled_lr`
+   (pure arithmetic, `lr = base_lr * batch/256`), `basic5_probe_optimizer`
+   (SGD, momentum 0.9, weight decay 0, at the scaled LR), and
+   `basic5_cosine_schedule` (cosine decay over the configured epochs). The rule
+   is pinned once in `tests/test_probe_optim.py` (the scaling clause, the SGD
+   recipe, the schedule, and a negative control that scaling actually happens
+   away from batch 256). Historically each evaluator read the config LR directly,
+   so only a batch-256 probe was correct and the batch-32 / batch-1024 configs
+   trained at the wrong effective LR; this is the universally-missing part of the
+   rule and the reason it leads with the shared mechanism. The per-method wiring
+   check lives once in `tests/_probe_opt.py` (`run()` must build its
+   optimiser/schedule through `probe_optim`), imported by each method's
+   `TestTheProbeOptimizer`. Pilot: `cae` (batch 32, so its head trained at 8x the
+   intended effective LR) now wires the shared builders;
+   `mutations/cae-probe-opt.json` proves it non-vacuous (1/1: revert to the raw
+   `torch.optim.SGD` with the config LR). Remaining: fan out the wiring across the
+   ~50 template/custom evaluators (localised LR/epoch/batch/mean-centering
+   residuals still to reconcile per method).
 
-Items 5 and 6 are done (mechanism + full fan-out landed, each method proven by
-mutation); both rows stay `partial` only until a fleet-wide discover-all audit
-enumerating every probe method. Item 7 is not yet started. This section is the
-plan of record.
+Items 5, 6, and the item-7 mechanism are done (each proven by mutation); those
+rows stay `partial` until a fleet-wide discover-all audit enumerating every probe
+method (for `opt`, until the wiring fan-out completes and every deviation is
+reconciled or recorded). This section is the plan of record.
 
 ---
 
