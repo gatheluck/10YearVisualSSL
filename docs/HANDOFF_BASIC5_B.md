@@ -5,7 +5,9 @@ before acting on it (repo rule: measure before speaking).
 
 ## Where things stand
 
-- **Branch:** `downstream/basic5-b-eval-crop` (commit `91aac2d`), tree clean.
+- **Branch:** `downstream/basic5-b-eval-crop` (commit `9263aee`), tree clean.
+  All known rule `b` cases are now DONE — see "What remains" below (nothing
+  substantive remains except a fleet-wide discover-all audit).
 - **Not pushed, no PR.** Per the working convention the user batches step
   commits and merges explicitly — do not push or open a PR without asking. A
   `git push` here also auto-runs the pre-push torch gate (tens of minutes).
@@ -67,16 +69,35 @@ Provider `preprocessing` meta strings + docstrings updated to the real pipeline
 (these strings land in `meta.json`, so they must be factually accurate).
 `docs/BASIC5_PROTOCOL.md` rule `b` row set to **partial**.
 
+## What was done next (native-resolution cases, commit `9263aee`)
+
+The native-resolution backbones (final feature size != 224) were measured from
+the code (not assumed from names) and resolved. Decision: keep each backbone's
+native/config eval size (forcing 224 could be wrong) and fix only the crop
+*form* where it was a square resize.
+
+- **Wired at native size** (square `Resize((s,s))` → shorter-side Resize +
+  CenterCrop via `basic5_eval_transform`, size kept native): `05_jigsaw_puzzle`
+  (255, default bilinear, no normalize), `09_jigsaw_puzzle_pp` (75, same),
+  `vjepa2` (256, bicubic + ImageNet mean/std), `vjepa2_ac` (256, bilinear +
+  ImageNet mean/std). Note the jigsaw evaluators dropped `import torchvision
+  .transforms as T` (no normalize left), so each mutant's `new` re-adds that
+  import to rebuild the square form. Providers extract via the same loader, so
+  the feature dump + meta strings are fixed too. 1/1 mutant each.
+- **Already conformant, no change** (measured shorter-side Resize + CenterCrop):
+  `04_context_encoder` (227), `26_simmim` (192), `36_franca` (518),
+  `cosmos3_super` (448), `sam3` (336, val branch), `image_gpt` (32), and
+  `02_vae`'s ImageFolder path.
+- **Deliberate, recorded** (in `docs/BASIC5_PROTOCOL.md` rule `b` bullet):
+  `11_cpc` (fixed square `Resize((300,300))` source for its overlapping-patch
+  grid — architecture-specific) and `02_vae`'s MNIST path (28×28 passthrough).
+
 ## What remains for rule `b`
 
-**Native-resolution backbones (final feature size != 224).** For these the
-question is per-method: keep native resolution, or resize to 224? This is NOT
-started and is why the doc row is `partial`, not `deviation`.
-
-Discover the non-224 methods factually before deciding — do not assume from
-names. Suggested starting point: grep the evaluators / configs for the
-resolution each one feeds its backbone, and cross-check each backbone's native
-input size. The five methods handled this step were all verified 224.
+Nothing case-by-case. The row stays `partial` (not `conformant`) only until a
+**fleet-wide discover-all `b` audit** enumerating every probe method — the same
+bar the `aug` row waits on. That is the "discover, never list" mechanism; the
+current coverage is a hand-verified list, strong but not machinery.
 
 ## After rule `b`
 
@@ -87,7 +108,7 @@ mean-centering differences). Not started. See
 ## Fast facts for resuming
 
 - Base suite (no torch, skips deps tests): `./tests/run-tests.sh; echo "EXIT=$?"`
-  — pre-commit gates on it. Was green (EXIT=0) at commit `91aac2d`.
+  — pre-commit gates on it. Was green (EXIT=0, 3215 tests) at commit `9263aee`.
 - Torch tests need a per-method venv `.venvs/<method>/` (cu130, torchvision
   0.28.0+cpu). Note `02_vae` uses `.venvs/2_vae`.
 - `bin/mutate.py --spec <spec.json> --python <abs venv python>; echo "EXIT=$?"`
