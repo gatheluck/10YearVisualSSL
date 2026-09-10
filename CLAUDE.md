@@ -56,6 +56,16 @@ Reports that were actually wrong, in the past:
 - **`.githooks/pre-commit` stops a commit when tests fail.**
   Each clone needs `git config core.hooksPath .githooks` once.
   Writing the rule in three documents did not hold it, so it became machinery
+- **`.githooks/pre-push` stops a push when the torch, single-process,
+  whole-suite gate is red.** `git push` is therefore NOT a quick network
+  operation: the hook runs `PYTHONPATH=. <a torch venv>/bin/python -m unittest
+  discover -s tests` — the whole tree in one interpreter — to reproduce the
+  locked-CI condition that base-env `run-tests.sh` skips (no torch) and that a
+  single method's venv run cannot surface (in-process `models`/`reset_parameters`
+  collisions). Expect it to take a long time (order tens of minutes). Overrides:
+  `SKIP_TORCH_GATE=1 git push` skips it entirely; `TORCH_GATE_PYTHON=<path>`
+  picks the interpreter. Do not reach for a longer command timeout when a push
+  "hangs" — first assume the gate is running; watch its output
 - **Write the test first when adding a tool.**
   `tests/test_tool_coverage.py` catches an untested tool, but that is a way to
   notice after committing, not a reason to skip writing it first

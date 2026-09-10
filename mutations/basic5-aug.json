@@ -1,0 +1,33 @@
+{
+  "_note": "Run under a torch venv (the tests need torchvision): .venvs/14_simclrv1/bin/python bin/mutate.py --spec mutations/basic5-aug.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/14_simclrv1/bin/python. probe_transforms.basic5_train_transform is the single implementation of BASIC5_FAIR_v1 rule `aug` (the linear probe's train-time augmentation is RandomResizedCrop + HorizontalFlip only). These mutations prove tests/test_probe_transforms.py is not vacuous: swapping the horizontal flip for a vertical one, replacing the random crop with a deterministic centre crop, or dropping the normalisation tail must each be caught.",
+  "targets": [
+    {
+      "label": "the horizontal flip is swapped for a vertical flip, which is not part of rule aug",
+      "file": "probe_transforms.py",
+      "old": "        transforms.RandomHorizontalFlip(),",
+      "new": "        transforms.RandomVerticalFlip(),",
+      "tests": [
+        "tests.test_probe_transforms.TestBasic5TrainTransform.test_it_is_random_resized_crop_then_horizontal_flip_then_totensor",
+        "tests.test_probe_transforms.TestBasic5TrainTransform.test_no_other_augmentation_is_present"
+      ]
+    },
+    {
+      "label": "the random resized crop becomes a deterministic centre crop, so the train split gets no crop augmentation",
+      "file": "probe_transforms.py",
+      "old": "        transforms.RandomResizedCrop(image_size, **crop_kwargs),",
+      "new": "        transforms.CenterCrop(image_size),",
+      "tests": [
+        "tests.test_probe_transforms.TestBasic5TrainTransform.test_it_is_random_resized_crop_then_horizontal_flip_then_totensor"
+      ]
+    },
+    {
+      "label": "the normalisation tail is never appended, so a method's rule-e Normalize is silently dropped",
+      "file": "probe_transforms.py",
+      "old": "    if normalize is not None:",
+      "new": "    if False:",
+      "tests": [
+        "tests.test_probe_transforms.TestBasic5TrainTransform.test_a_normalize_tail_is_appended_when_given"
+      ]
+    }
+  ]
+}

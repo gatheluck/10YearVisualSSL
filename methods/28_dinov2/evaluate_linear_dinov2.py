@@ -126,18 +126,27 @@ def extract_cls(model, imgs, train: dict, device) -> "torch.Tensor":
 
 
 def _build_loader(data_root: str, split: str, resolution: int, batch_size: int,
-                  num_workers: int):
+                  num_workers: int, train: bool = False):
     import torchvision.transforms as T
     from torchvision.datasets import ImageFolder
     normalize = T.Normalize(mean=(0.485, 0.456, 0.406),
                             std=(0.229, 0.224, 0.225))
-    resize = int(round(resolution / 0.875))
-    transform = T.Compose([
-        T.Resize(resize, interpolation=T.InterpolationMode.BICUBIC),
-        T.CenterCrop(resolution),
-        T.ToTensor(),
-        normalize,
-    ])
+    if train:
+        # BASIC5_FAIR_v1 rule `aug`: RandomResizedCrop + HorizontalFlip only,
+        # implemented once in probe_transforms, then DINOv2's ImageNet
+        # normalisation tail (bicubic to match this method's eval resize).
+        import probe_transforms
+        transform = probe_transforms.basic5_train_transform(
+            resolution, normalize=normalize,
+            interpolation=T.InterpolationMode.BICUBIC)
+    else:
+        resize = int(round(resolution / 0.875))
+        transform = T.Compose([
+            T.Resize(resize, interpolation=T.InterpolationMode.BICUBIC),
+            T.CenterCrop(resolution),
+            T.ToTensor(),
+            normalize,
+        ])
     dataset = ImageFolder(str(Path(data_root) / split), transform=transform)
     loader = torch.utils.data.DataLoader(
         dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers,
@@ -208,7 +217,7 @@ def run(args, config: "dict | None" = None, model=None,
     res = int(train["resolution"])
     bs = int(train["batch_size"])
     nw = int(train["num_workers"])
-    tr_ds, tr_loader = _build_loader(data_root, "train", res, bs, nw)
+    tr_ds, tr_loader = _build_loader(data_root, "train", res, bs, nw, train=True)
     va_ds, va_loader = _build_loader(data_root, "val", res, bs, nw)
     if tr_ds.classes != va_ds.classes:
         raise RuntimeError(

@@ -57,13 +57,31 @@
         "tests.test_method_14_simclrv1.TestTheEvalProducesNoEncoder",
         "tests.test_method_14_simclrv1.TestALinearEvalSmoke.test_it_produces_no_encoder_and_says_so"
       ]
+    },
+    {
+      "label": "the probe's train split falls back to the deterministic eval transform, so BASIC5 rule aug (RandomResizedCrop + HorizontalFlip) is not applied",
+      "file": "methods/14_simclrv1/evaluate_linear_simclr.py",
+      "old": "    transform = _train_transform(image_size) if train else _val_transform(",
+      "new": "    transform = _val_transform(image_size) if train else _val_transform(",
+      "tests": [
+        "tests.test_method_14_simclrv1.TestTheProbeTrainAugmentation.test_the_train_loader_applies_rrc_and_hflip"
+      ]
+    },
+    {
+      "label": "run() builds the train split without augmentation (train=False), so the cached features come from the deterministic eval transform",
+      "file": "methods/14_simclrv1/evaluate_linear_simclr.py",
+      "old": "    tr_ds, tr_loader = _build_loader(data_root, \"train\", isz, bs, nw, train=True)",
+      "new": "    tr_ds, tr_loader = _build_loader(data_root, \"train\", isz, bs, nw, train=False)",
+      "tests": [
+        "tests.test_method_14_simclrv1.TestTheProbeTrainAugmentation.test_run_builds_the_train_loader_with_augmentation"
+      ]
     }
   ],
   "_result": {
-    "measured_on": "2026-08-09",
-    "measured_with": ".venvs/14_simclrv1 (cu130) on an NVIDIA Tesla T4",
-    "killed": 6,
-    "total": 6,
+    "measured_on": "2026-09-06",
+    "measured_with": ".venvs/14_simclrv1 (cu130) on this host (CPU tests)",
+    "killed": 8,
+    "total": 8,
     "equivalent": []
   }
 }

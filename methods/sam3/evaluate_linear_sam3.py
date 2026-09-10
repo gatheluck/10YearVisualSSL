@@ -142,16 +142,25 @@ def extract_feature(model, imgs, device) -> "torch.Tensor":
 
 
 def _build_loader(data_root: str, split: str, resolution: int, batch_size: int,
-                  num_workers: int):
+                  num_workers: int, train: bool = False):
     import torchvision.transforms as T
     from torchvision.datasets import ImageFolder
     normalize = T.Normalize(mean=SAM3_MEAN, std=SAM3_STD)
-    transform = T.Compose([
-        T.Resize(resolution, interpolation=T.InterpolationMode.BICUBIC),
-        T.CenterCrop(resolution),
-        T.ToTensor(),
-        normalize,
-    ])
+    if train:
+        # BASIC5_FAIR_v1 rule `aug`: RandomResizedCrop + HorizontalFlip only,
+        # implemented once in probe_transforms, then SAM 3's own normalisation
+        # tail (bicubic to match this method's eval resize).
+        import probe_transforms
+        transform = probe_transforms.basic5_train_transform(
+            resolution, normalize=normalize,
+            interpolation=T.InterpolationMode.BICUBIC)
+    else:
+        transform = T.Compose([
+            T.Resize(resolution, interpolation=T.InterpolationMode.BICUBIC),
+            T.CenterCrop(resolution),
+            T.ToTensor(),
+            normalize,
+        ])
     dataset = ImageFolder(str(Path(data_root) / split), transform=transform)
     loader = torch.utils.data.DataLoader(
         dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers,
@@ -215,7 +224,7 @@ def run(args, config: "dict | None" = None, model=None) -> dict:
     res = int(train["img_size"])
     bs = int(train["batch_size"])
     nw = int(train["num_workers"])
-    tr_ds, tr_loader = _build_loader(data_root, "train", res, bs, nw)
+    tr_ds, tr_loader = _build_loader(data_root, "train", res, bs, nw, train=True)
     va_ds, va_loader = _build_loader(data_root, "val", res, bs, nw)
     if tr_ds.classes != va_ds.classes:
         raise RuntimeError(

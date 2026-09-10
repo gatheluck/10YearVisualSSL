@@ -96,6 +96,23 @@ def tiny_mnist(root: Path, n: int = 8) -> Path:
     return root
 
 
+def tiny_imagefolder_split(root: Path, per: int = 2) -> Path:
+    """A labelled ImageFolder with train/ and val/, two classes each.
+
+    The ImageNet (ImageFolder) path of this dataset-agnostic eval; used to check
+    that the probe's train split is augmented (rule aug) while val is not.
+    """
+    from PIL import Image
+    colours = {"a": (10, 20, 30), "b": (200, 180, 160)}
+    for split in ("train", "val"):
+        for cls, colour in colours.items():
+            d = root / split / cls
+            d.mkdir(parents=True, exist_ok=True)
+            for i in range(per):
+                Image.new("RGB", (40, 40), colour).save(d / f"{i}.png")
+    return root
+
+
 class Base(unittest.TestCase):
     def setUp(self) -> None:
         self.tmp = Path(tempfile.mkdtemp(prefix="vae-"))
@@ -827,6 +844,48 @@ class TestFeatureProvider(Base):
         self.assertEqual(rec["status"], "ok", rec.get("reason", ""))
         feats = np.load(out / METHOD.name / "features.npy")
         self.assertEqual(feats.shape, (self.VAL_IMAGES, self.LATENT_DIM))
+
+
+class TestTheProbeTrainAugmentation(Base):
+    """BASIC5_FAIR_v1 rule `aug` on the ImageFolder (ImageNet) path: the linear
+    probe's train split is RandomResizedCrop + HorizontalFlip only; val stays
+    deterministic. The MNIST path stays deterministic on both splits -- randomly
+    cropping or flipping a digit can change its class. The rule itself lives in
+    probe_transforms; these checks confirm this method wires it (rule e keeps the
+    VAE's [0, 1] inputs, so no normalisation is appended).
+    """
+
+    def evaluator(self):
+        return load("vae_eval", METHOD / "evaluate_linear_vae.py")
+
+    @needs_torch
+    def test_the_imagefolder_train_split_applies_rrc_and_hflip(self):
+        data = tiny_imagefolder_split(self.tmp / "data")
+        tr_loader, _va, _nc = self.evaluator()._loaders(str(data), 32, 2, 0)
+        names = [type(t).__name__ for t in tr_loader.dataset.transform.transforms]
+        self.assertIn("RandomResizedCrop", names,
+                      "the ImageNet probe's train split must be RandomResizedCrop'd")
+        self.assertIn("RandomHorizontalFlip", names,
+                      "the ImageNet probe's train split must be horizontally flipped")
+
+    @needs_torch
+    def test_the_imagefolder_val_split_stays_deterministic(self):
+        data = tiny_imagefolder_split(self.tmp / "data")
+        _tr, va_loader, _nc = self.evaluator()._loaders(str(data), 32, 2, 0)
+        names = [type(t).__name__ for t in va_loader.dataset.transform.transforms]
+        self.assertNotIn("RandomResizedCrop", names, "val must not be randomly cropped")
+        self.assertNotIn("RandomHorizontalFlip", names, "val must not be randomly flipped")
+        self.assertIn("CenterCrop", names,
+                      "val stays the deterministic resize + centre crop")
+
+    @needs_torch
+    def test_the_mnist_path_stays_deterministic(self):
+        # The MNIST branch must never gain rule aug: a random crop or flip can
+        # change a digit's class, so the cross-domain transfer number stays valid.
+        names = [type(t).__name__
+                 for t in self.evaluator()._mnist_transform(32).transforms]
+        self.assertNotIn("RandomResizedCrop", names, "MNIST digits are not cropped")
+        self.assertNotIn("RandomHorizontalFlip", names, "MNIST digits are not flipped")
 
 
 if __name__ == "__main__":

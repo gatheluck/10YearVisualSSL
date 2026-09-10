@@ -1,0 +1,30 @@
+{
+  "_note": "Run under the method venv (the train-branch test needs torchvision): /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/23_dino/bin/python bin/mutate.py --spec mutations/23_dino-probe-aug.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/23_dino/bin/python. Proves the BASIC5 rule `aug` wiring in this feature-cache evaluator is not vacuous: the train split must route through probe_transforms (RandomResizedCrop + HorizontalFlip), and run() must build the train split with train=True. The rule itself is proven in mutations/basic5-aug.json; these two targets prove this method wires it.",
+  "targets": [
+    {
+      "label": "the probe's train split falls back to the deterministic eval transform, so BASIC5 rule aug (RandomResizedCrop + HorizontalFlip) is not applied",
+      "file": "methods/23_dino/evaluate_linear_dino.py",
+      "old": "    transform = _train_transform(image_size) if train else _val_transform(",
+      "new": "    transform = _val_transform(image_size) if train else _val_transform(",
+      "tests": [
+        "tests.test_method_23_dino.TestTheProbeTrainAugmentation.test_the_train_loader_applies_rrc_and_hflip"
+      ]
+    },
+    {
+      "label": "run() builds the train split without augmentation (train=False), so the cached features come from the deterministic eval transform",
+      "file": "methods/23_dino/evaluate_linear_dino.py",
+      "old": "    tr_ds, tr_loader = _build_loader(data_root, \"train\", isz, bs, nw, train=True)",
+      "new": "    tr_ds, tr_loader = _build_loader(data_root, \"train\", isz, bs, nw, train=False)",
+      "tests": [
+        "tests.test_method_23_dino.TestTheProbeTrainAugmentation.test_run_builds_the_train_loader_with_augmentation"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-09-06",
+    "measured_with": ".venvs/23_dino (cu130) on this host (CPU tests)",
+    "killed": 2,
+    "total": 2,
+    "equivalent": []
+  }
+}

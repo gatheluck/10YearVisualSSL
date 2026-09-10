@@ -38,10 +38,21 @@ def _val_transform(image_size: int):
     ])
 
 
+def _train_transform(image_size: int):
+    # BASIC5_FAIR_v1 rule `aug`: the probe's train-time augmentation is
+    # RandomResizedCrop + HorizontalFlip only, implemented once in
+    # probe_transforms, then MoCo v1's own ImageNet normalisation tail.
+    import probe_transforms
+    return probe_transforms.basic5_train_transform(
+        image_size, normalize=transforms.Normalize(IMAGENET_MEAN, IMAGENET_STD))
+
+
 def _build_loader(data_root: str, split: str, image_size: int, batch_size: int,
-                  num_workers: int):
+                  num_workers: int, train: bool = False):
+    transform = _train_transform(image_size) if train else _val_transform(
+        image_size)
     dataset = datasets.ImageFolder(str(Path(data_root) / split),
-                                   transform=_val_transform(image_size))
+                                   transform=transform)
     loader = torch.utils.data.DataLoader(
         dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers,
         drop_last=False)
@@ -108,7 +119,7 @@ def run(args, config: "dict | None" = None, model=None) -> dict:
     bs = int(train["batch_size"])
     nw = int(train["num_workers"])
     isz = int(train["img_size"])
-    tr_ds, tr_loader = _build_loader(data_root, "train", isz, bs, nw)
+    tr_ds, tr_loader = _build_loader(data_root, "train", isz, bs, nw, train=True)
     va_ds, va_loader = _build_loader(data_root, "val", isz, bs, nw)
     if tr_ds.classes != va_ds.classes:
         raise RuntimeError(

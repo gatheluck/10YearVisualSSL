@@ -28,6 +28,7 @@ from pathlib import Path
 if str(Path(__file__).parent) not in sys.path:
     sys.path.insert(0, str(Path(__file__).parent))
 from _method_import import load_from        # noqa: E402
+import _probe_aug                            # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 METHOD = ROOT / "methods" / "14_simclrv1"
@@ -669,6 +670,35 @@ class TestAVitStep2Smoke(Base):
         m = json.loads((ev / "metrics.json").read_text())["metrics"]
         self.assertIn("final_linear_probe_top1_accuracy", m)
         self.assertFalse((ev / "encoder.pt").exists())
+
+
+class TestTheProbeTrainAugmentation(Base):
+    """BASIC5_FAIR_v1 rule `aug`: the linear probe's train-time augmentation is
+    RandomResizedCrop + HorizontalFlip only. This method caches features, so it
+    historically read the train split with the deterministic eval transform --
+    i.e. no augmentation. The train loader must now apply RRC + HFlip; the val
+    loader (and the provider, which extracts val) must stay deterministic.
+    """
+
+    def evaluator(self):
+        return load("simclr_evaluator", METHOD / "evaluate_linear_simclr.py")
+
+    @needs_deps
+    def test_the_train_loader_applies_rrc_and_hflip(self):
+        tiny_split(self.tmp / "data")
+        _probe_aug.assert_train_augments(
+            self, self.evaluator()._build_loader, self.tmp / "data")
+
+    @needs_deps
+    def test_the_val_loader_stays_deterministic(self):
+        tiny_split(self.tmp / "data")
+        _probe_aug.assert_val_deterministic(
+            self, self.evaluator()._build_loader, self.tmp / "data",
+            must_include="CenterCrop")
+
+    def test_run_builds_the_train_loader_with_augmentation(self):
+        _probe_aug.assert_run_wires_train_split(
+            self, METHOD / "evaluate_linear_simclr.py")
 
 
 class TestFeatureProvider(Base):
