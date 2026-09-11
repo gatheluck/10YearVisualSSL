@@ -1,0 +1,30 @@
+{
+  "_note": "Pure-AST fleet-wide guard, so it runs in the base environment: python3 bin/mutate.py --spec mutations/provider-contract.json --python $(command -v python3). Proves tests/test_provider_contract.py is not vacuous: it must fail when a real provider drifts off the extract_val_features contract. One real provider (14_simclrv1, the canonical pilot) is broken two distinct ways -- the extractor renamed, and a required parameter dropped -- and each must be caught by the fleet check. The guard names no method; this spec may, because it targets a concrete file (mutation specs are .json, exempt from the discover-never-list rule).",
+  "targets": [
+    {
+      "label": "the extractor is renamed, so this provider no longer exposes extract_val_features and the driver's call site would fail",
+      "file": "methods/14_simclrv1/feature_provider.py",
+      "old": "def extract_val_features(*, encoder_path: str, data_root: str, split: str,",
+      "new": "def extract_val_features_RENAMED(*, encoder_path: str, data_root: str, split: str,",
+      "tests": [
+        "tests.test_provider_contract.TestEveryLinearProbeMethodShipsAConformantProvider.test_every_providers_extractor_matches_the_contract"
+      ]
+    },
+    {
+      "label": "the required `split` parameter is dropped, so the driver's keyword call can no longer bind",
+      "file": "methods/14_simclrv1/feature_provider.py",
+      "old": "def extract_val_features(*, encoder_path: str, data_root: str, split: str,\n                         device: str, batch_size: int, num_workers: int):",
+      "new": "def extract_val_features(*, encoder_path: str, data_root: str,\n                         device: str, batch_size: int, num_workers: int):",
+      "tests": [
+        "tests.test_provider_contract.TestEveryLinearProbeMethodShipsAConformantProvider.test_every_providers_extractor_matches_the_contract"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-09-11",
+    "measured_with": "base env python3 (pure-AST fleet guard, no torch)",
+    "killed": 2,
+    "total": 2,
+    "equivalent": []
+  }
+}
