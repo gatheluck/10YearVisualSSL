@@ -1,0 +1,39 @@
+{
+  "_note": "Proves tests/test_prepare_imagenet_val.py is not vacuous: each guard in bin/prepare-imagenet-val.py, when disabled, must be caught. Two mutations need pyarrow (the parquet reader), so run under the dataprep venv: PYTHONPATH=. .venvs/_dataprep/bin/python bin/mutate.py --spec mutations/prepare-imagenet-val.json --python .venvs/_dataprep/bin/python. The tool names no method; this spec targets a concrete tool file (mutation specs are .json, exempt from discover-never-list).",
+  "targets": [
+    {
+      "label": "the wnid-shape check is disabled, so a non-wnid mapping (e.g. human-readable labels) is accepted as the class map instead of being refused",
+      "file": "bin/prepare-imagenet-val.py",
+      "old": "        if all(WNID_RE.match(k) for k in keys):",
+      "new": "        if all(WNID_RE.match(k) for k in keys) or True:",
+      "tests": [
+        "tests.test_prepare_imagenet_val.TestParseWnidOrder.test_negative_non_wnid_keys_are_an_error"
+      ]
+    },
+    {
+      "label": "the missing-column check is disabled, so a shard with no `label` column no longer fails loudly with SchemaError",
+      "file": "bin/prepare-imagenet-val.py",
+      "old": "        if required not in names:",
+      "new": "        if required not in names and False:",
+      "tests": [
+        "tests.test_prepare_imagenet_val.TestPrepareEndToEnd.test_a_shard_missing_a_required_column_is_a_loud_error"
+      ]
+    },
+    {
+      "label": "the empty-image-bytes check is disabled, so a row carrying no image bytes no longer fails loudly with SchemaError",
+      "file": "bin/prepare-imagenet-val.py",
+      "old": "        if data is None:",
+      "new": "        if data is None and False:",
+      "tests": [
+        "tests.test_prepare_imagenet_val.TestPrepareEndToEnd.test_a_row_with_no_image_bytes_is_a_loud_error"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-09-11",
+    "measured_with": ".venvs/_dataprep/bin/python (pyarrow-backed reader tests active)",
+    "killed": 3,
+    "total": 3,
+    "equivalent": []
+  }
+}

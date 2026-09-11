@@ -148,6 +148,7 @@ shown so the shape is visible before it is built.
 │   ├── fetch-weights.py              download a pinned, hash-checked backbone
 │   ├── contract-test.py              decides by machine that a port is finished
 │   ├── extract-features.py          one run: save every method's val features
+│   ├── prepare-imagenet-val.py      ImageNet-1k val parquet -> val/<wnid>/*.JPEG
 │   └── aggregate-seeds.py           seeds 0,1,2 -> mean +/- std (BASIC5 rule seed)
 ├── adapterlib/                     the one place a run_manifest.json is written
 │   └── __init__.py                                                    exists
