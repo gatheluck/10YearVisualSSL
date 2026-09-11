@@ -1,0 +1,21 @@
+{
+  "_note": "Pure-AST wiring check, so it runs in the base environment: python3 bin/mutate.py --spec mutations/cae-probe-opt.json --python $(command -v python3). Proves the BASIC5 rule `opt` wiring in this evaluator is not vacuous: run() must build its optimiser/schedule through probe_optim (which scales the LR by batch/256). The rule itself is proven in mutations/... via tests/test_probe_optim.py; this target proves this method wires it, by reverting to the historical raw torch.optim.SGD that read the config LR directly (unscaled).",
+  "targets": [
+    {
+      "label": "the optimiser reverts to a raw torch.optim.SGD reading the config LR directly (no batch/256 scaling), so rule opt is violated",
+      "file": "methods/cae/evaluate_linear_cae.py",
+      "old": "    optimizer = probe_optim.basic5_probe_optimizer(\n        classifier.parameters(), base_lr=float(train[\"lr\"]), batch_size=bs,\n        momentum=float(train[\"momentum\"]),\n        weight_decay=float(train[\"weight_decay\"]))\n    scheduler = probe_optim.basic5_cosine_schedule(optimizer, epochs)",
+      "new": "    optimizer = torch.optim.SGD(\n        classifier.parameters(), lr=float(train[\"lr\"]),\n        momentum=float(train[\"momentum\"]),\n        weight_decay=float(train[\"weight_decay\"]))\n    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs)",
+      "tests": [
+        "tests.test_method_cae.TestTheProbeOptimizer.test_run_builds_the_scaled_probe_optimizer"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-09-10",
+    "measured_with": "base env python3 (pure-AST wiring check, no torch)",
+    "killed": 1,
+    "total": 1,
+    "equivalent": []
+  }
+}

@@ -361,13 +361,16 @@ def run(args, config: "dict | None" = None, model=None) -> dict:
     classifier = nn.Linear(in_dim, num_classes).to(device)
     nn.init.normal_(classifier.weight, std=0.01)
     nn.init.zeros_(classifier.bias)
-    optimizer = torch.optim.SGD(
-        classifier.parameters(), lr=float(train["lr"]),
+    # BASIC5_FAIR_v1 rule `opt`: SGD, momentum 0.9, weight decay 0, with the base
+    # LR scaled linearly by batch/256 (this probe trains at batch 32) and a cosine
+    # schedule -- implemented once in probe_optim, not reread from the config here.
+    import probe_optim
+    epochs = int(train["epochs"])
+    optimizer = probe_optim.basic5_probe_optimizer(
+        classifier.parameters(), base_lr=float(train["lr"]), batch_size=bs,
         momentum=float(train["momentum"]),
         weight_decay=float(train["weight_decay"]))
-    epochs = int(train["epochs"])
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer,
-                                                           T_max=epochs)
+    scheduler = probe_optim.basic5_cosine_schedule(optimizer, epochs)
 
     tr = torch.utils.data.TensorDataset(train_feats, train_labels)
     va = torch.utils.data.TensorDataset(val_feats, val_labels)

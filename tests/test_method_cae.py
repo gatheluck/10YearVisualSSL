@@ -44,6 +44,7 @@ if str(Path(__file__).parent) not in sys.path:
     sys.path.insert(0, str(Path(__file__).parent))
 from _method_import import load_from        # noqa: E402
 import _probe_eval                           # noqa: E402
+import _probe_opt                            # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 METHOD = ROOT / "methods" / "cae"
@@ -507,6 +508,20 @@ class TestTheProbeEvalPreprocessing(Base):
         tiny_split(self.tmp / "data")
         _probe_eval.assert_val_is_resize_centercrop(
             self, self.evaluator()._build_loader, self.tmp / "data")
+
+
+class TestTheProbeOptimizer(unittest.TestCase):
+    """BASIC5_FAIR_v1 rule `opt`: the probe LR is the base LR scaled linearly by
+    batch/256. This method probes at batch 32, so reading the config LR directly
+    trained the head at 8x the intended effective LR. run() must build its
+    optimiser/schedule through probe_optim's shared builders (which scale the LR).
+    The rule itself lives in probe_optim; this confirms the wiring. Pure AST, so
+    it runs in the base environment with no torch.
+    """
+
+    def test_run_builds_the_scaled_probe_optimizer(self):
+        _probe_opt.assert_run_scales_probe_lr(
+            self, METHOD / "evaluate_linear_cae.py")
 
 
 if __name__ == "__main__":
