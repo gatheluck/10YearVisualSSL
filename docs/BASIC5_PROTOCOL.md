@@ -85,6 +85,22 @@ pre-normalisation vector for inspection. The value used is recorded in each
 - The head is a single linear layer to the dataset's class count (1000 for
   ImageNet-1k).
 
+### The dump covers every linear-probe method (machine-enforced)
+
+The dump's promise is "one sweep over **every** method". That completeness is
+enforced by `tests/test_provider_contract.py`: it **discovers** the methods that
+must appear (a method that ships a linear-probe evaluator, `evaluate_linear*.py`)
+and asserts each ships a `feature_provider.py` whose `extract_val_features` the
+driver can call with exactly the keywords it passes -- the required keyword set
+is read from the driver's own call site, not restated. The check is pure AST (no
+torch, no GPU, no cross-method import), so a newly ported method is covered the
+moment it lands, and a method that carried an evaluator but no provider -- which
+would silently drop out of the dump -- is a red test. It names no method
+(discover, never list): the `_reference` template and the pretrain-only method
+ship no evaluator, so neither is ever expected to ship a provider. Non-vacuity is
+proven by `mutations/provider-contract.json` (rename a real provider's extractor,
+or drop a required parameter -> the guard fails; 2/2 killed).
+
 ---
 
 ## Conformance status of the feature dump (ImageNet, per method)
