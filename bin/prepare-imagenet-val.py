@@ -79,6 +79,11 @@ def _keys_in_source_order(node):
         if len(node.args) != 1:
             return None
         arg = node.args[0]
+        # OrderedDict({...}) -- a dict literal wrapped in the call. This is the
+        # shape the real ILSVRC/imagenet-1k classes.py uses.
+        if isinstance(arg, ast.Dict):
+            return _keys_in_source_order(arg)
+        # OrderedDict([(k, v), ...]) -- a list/tuple of pairs.
         if not isinstance(arg, (ast.List, ast.Tuple)):
             return None
         keys = []
@@ -255,11 +260,18 @@ def _sample_decode_check(split_root, n):
     return checked
 
 
-def _find_shards(parquet_dir, split):
-    shards = sorted(Path(parquet_dir).glob(f"{split}-*.parquet"))
+def find_shards(parquet_dir, prefix):
+    """The `<prefix>-*.parquet` shards under a directory, or a loud error.
+
+    The source shard prefix is not the output split directory: upstream names
+    the val shards `validation-*.parquet` while ImageFolder wants a `val/`
+    directory, so discovery keys on the prefix, given separately. An empty
+    match is an error, never a silent "nothing to do".
+    """
+    shards = sorted(Path(parquet_dir).glob(f"{prefix}-*.parquet"))
     if not shards:
         raise PrepareError(
-            f"no {split}-*.parquet shards found under {parquet_dir}")
+            f"no {prefix}-*.parquet shards found under {parquet_dir}")
     return shards
 
 
@@ -271,7 +283,12 @@ def main(argv=None):
                     help="path to the dataset's classes.py (label -> wnid)")
     ap.add_argument("--out", required=True,
                     help="dataset root; files go under <out>/<split>/<wnid>/")
-    ap.add_argument("--split", default="val")
+    ap.add_argument("--split", default="val",
+                    help="output directory name under <out> (ImageFolder split)")
+    ap.add_argument("--shard-prefix", default=None,
+                    help="parquet shard prefix to read (default: the split "
+                         "name). Upstream names val shards 'validation-*', so "
+                         "pass --shard-prefix validation with --split val")
     ap.add_argument("--expect-classes", type=int,
                     default=DEFAULT_EXPECT_CLASSES)
     ap.add_argument("--expect-per-class", type=int,
@@ -285,8 +302,9 @@ def main(argv=None):
     print(f"classes.py: {len(wnids)} wnids in label order "
           f"({wnids[0]} .. {wnids[-1]})")
 
-    shards = _find_shards(args.parquet_dir, args.split)
-    print(f"{len(shards)} {args.split} shard(s) under {args.parquet_dir}")
+    prefix = args.shard_prefix or args.split
+    shards = find_shards(args.parquet_dir, prefix)
+    print(f"{len(shards)} {prefix} shard(s) under {args.parquet_dir}")
 
     counts = prepare(shards, wnids, args.out, args.split)
     print(f"wrote {sum(counts.values())} images across {len(counts)} classes "

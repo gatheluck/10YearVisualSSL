@@ -33,16 +33,20 @@ you.
 ## 2. Download the val shards + the class map (user action, ~6.3 GB)
 
 Download only the val parquet shards and `classes.py` (the label -> wnid map),
-into a staging directory on the big disk:
+into a staging directory on the big disk. Upstream names the val shards
+`validation-*.parquet` (14 shards), not `val-*`:
 
-`.venvs/_dataprep/bin/hf download ILSVRC/imagenet-1k --repo-type dataset --include "data/val-*.parquet" "classes.py" --local-dir /data/visual_ssl/staging/imagenet-1k`
+`.venvs/_dataprep/bin/hf download ILSVRC/imagenet-1k --repo-type dataset --include "data/validation-*.parquet" "classes.py" --local-dir /data/visual_ssl/staging/imagenet-1k`
 
 `classes.py` lands at the staging root; the shards land under
 `/data/visual_ssl/staging/imagenet-1k/data/`.
 
 ## 3. Build the ImageFolder (`bin/prepare-imagenet-val.py`)
 
-`PYTHONPATH=. .venvs/_dataprep/bin/python bin/prepare-imagenet-val.py --parquet-dir /data/visual_ssl/staging/imagenet-1k/data --classes-py /data/visual_ssl/staging/imagenet-1k/classes.py --out /data/visual_ssl/datasets/imagenet --split val --decode-check 200`
+`PYTHONPATH=. .venvs/_dataprep/bin/python bin/prepare-imagenet-val.py --parquet-dir /data/visual_ssl/staging/imagenet-1k/data --classes-py /data/visual_ssl/staging/imagenet-1k/classes.py --out /data/visual_ssl/datasets/imagenet --split val --shard-prefix validation --decode-check 200`
+
+`--split val` names the output directory (`val/`, what ImageFolder reads);
+`--shard-prefix validation` names the source shards (`validation-*.parquet`).
 
 What it guarantees (see `tests/test_prepare_imagenet_val.py`):
 

@@ -94,6 +94,18 @@ _CLASSES_ORDEREDDICT = (
     "    ]\n"
     ")\n")
 
+# The shape the real ILSVRC/imagenet-1k classes.py actually uses (measured
+# 2026-09-11): OrderedDict wrapping a dict *literal*, not a list of tuples.
+_CLASSES_ORDEREDDICT_OF_DICT = (
+    "from collections import OrderedDict\n"
+    "IMAGENET2012_CLASSES = OrderedDict(\n"
+    "    {\n"
+    '        "n01440764": "tench, Tinca tinca",\n'
+    '        "n01443537": "goldfish, Carassius auratus",\n'
+    '        "n01484850": "great white shark",\n'
+    "    }\n"
+    ")\n")
+
 
 # -- the wnid order parser (pure) --------------------------------------------
 
@@ -108,6 +120,13 @@ class TestParseWnidOrder(unittest.TestCase):
         t = tool()
         self.assertEqual(
             t.parse_wnid_order(_CLASSES_ORDEREDDICT),
+            ["n01440764", "n01443537", "n01484850"])
+
+    def test_positive_ordereddict_of_dict_literal_is_parsed_in_order(self):
+        # The real upstream shape: OrderedDict({...}).
+        t = tool()
+        self.assertEqual(
+            t.parse_wnid_order(_CLASSES_ORDEREDDICT_OF_DICT),
             ["n01440764", "n01443537", "n01484850"])
 
     def test_negative_no_mapping_is_an_error(self):
@@ -192,6 +211,37 @@ class TestOutputFilename(unittest.TestCase):
         name = t.output_filename(None, "n01440764", 7)
         self.assertTrue(name.endswith(".JPEG"))
         self.assertIn("n01440764", name)
+
+
+# -- shard discovery (pure) --------------------------------------------------
+
+class TestFindShards(unittest.TestCase):
+    """The source shard prefix (`validation`) is not the output split dir
+    (`val`): the real ILSVRC/imagenet-1k names val shards `validation-*.parquet`
+    while ImageFolder wants a `val/` directory. Discovery keys on the prefix."""
+
+    def _touch(self, root, names):
+        for n in names:
+            (Path(root) / n).write_bytes(b"")
+
+    def test_positive_finds_shards_by_prefix(self):
+        t = tool()
+        with tempfile.TemporaryDirectory() as tmp:
+            self._touch(tmp, ["validation-00000-of-00014.parquet",
+                              "validation-00001-of-00014.parquet",
+                              "test-00000-of-00028.parquet"])
+            found = t.find_shards(tmp, "validation")
+            self.assertEqual([p.name for p in found],
+                             ["validation-00000-of-00014.parquet",
+                              "validation-00001-of-00014.parquet"])
+
+    def test_negative_a_prefix_that_matches_nothing_is_a_loud_error(self):
+        t = tool()
+        with tempfile.TemporaryDirectory() as tmp:
+            self._touch(tmp, ["validation-00000-of-00014.parquet"])
+            # `val` must not match `validation-*` -- an empty result is an error.
+            with self.assertRaises(t.PrepareError):
+                t.find_shards(tmp, "val")
 
 
 # -- the parquet reader and the end-to-end prepare (pyarrow-gated) -----------

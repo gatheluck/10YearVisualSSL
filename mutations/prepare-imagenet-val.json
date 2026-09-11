@@ -27,13 +27,22 @@
       "tests": [
         "tests.test_prepare_imagenet_val.TestPrepareEndToEnd.test_a_row_with_no_image_bytes_is_a_loud_error"
       ]
+    },
+    {
+      "label": "the empty-shard-match check is disabled, so a prefix that matches no shard returns [] instead of failing loudly (a silent 'nothing to do')",
+      "file": "bin/prepare-imagenet-val.py",
+      "old": "    if not shards:\n        raise PrepareError(\n            f\"no {prefix}-*.parquet shards found under {parquet_dir}\")",
+      "new": "    if not shards and False:\n        raise PrepareError(\n            f\"no {prefix}-*.parquet shards found under {parquet_dir}\")",
+      "tests": [
+        "tests.test_prepare_imagenet_val.TestFindShards.test_negative_a_prefix_that_matches_nothing_is_a_loud_error"
+      ]
     }
   ],
   "_result": {
     "measured_on": "2026-09-11",
     "measured_with": ".venvs/_dataprep/bin/python (pyarrow-backed reader tests active)",
-    "killed": 3,
-    "total": 3,
+    "killed": 4,
+    "total": 4,
     "equivalent": []
   }
 }
