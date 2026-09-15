@@ -208,3 +208,11 @@ cat CLAUDE.md
 #                         and the pinned-download / frozen-backbone shape (CONTRACT section 7)
 ./tests/run-tests.sh; echo "EXIT=$?"
 ```
+
+## Local cluster execution state
+
+Before remote jobs, read `$HOME/.local/state/10YearVisualSSL/abci/README.md` and `$HOME/.local/state/10YearVisualSSL/abci/execution.json` when present. They preserve the user's private reservation and execution constraints across sessions. These files live outside the repository and must never be force-added, uploaded, or copied into tracked documents or PRs. Use placeholders in tracked instructions. Never fall back from a required reserved queue to a standard queue. If the local configuration is absent, obtain the user's execution constraints before submitting jobs.
+
+## Change delivery
+
+For new changes, create a dedicated branch, implement and test, then commit, push the branch and create a pull request. Do not leave delivery at uncommitted local edits. Keep private execution state outside Git and inspect the staged diff before pushing.
