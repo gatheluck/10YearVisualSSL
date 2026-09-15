@@ -82,6 +82,29 @@ def fetch_windows(text: str) -> list[str]:
             if FETCH in ln]
 
 
+def artifact_name(window: str):
+    window = re.sub(r"(?m)^\s*#\s?", "", window)
+    match = re.search(r"--artifact\s+([^\s`]+)", window)
+    return match.group(1) if match else None
+
+
+class TestArtifactToken(unittest.TestCase):
+    def test_comment_wrapped_argument_is_read_whole(self):
+        self.assertEqual(artifact_name("# command --artifact\n# step1_native_artifact --out d"),
+                         "step1_native_artifact")
+
+    def test_digits_are_part_of_the_complete_artifact_name(self):
+        self.assertEqual(artifact_name("--artifact step1_native_artifact --out d"),
+                         "step1_native_artifact")
+
+    def test_invalid_suffix_is_not_truncated_to_a_valid_name(self):
+        self.assertEqual(artifact_name("--artifact backbone_artifact.invalid --out d"),
+                         "backbone_artifact.invalid")
+
+    def test_an_unrelated_flag_is_not_an_artifact(self):
+        self.assertIsNone(artifact_name("--artifact-backup backbone_artifact"))
+
+
 class TestNoInventedFetchFlag(unittest.TestCase):
     def test_section_is_not_used_because_no_tool_defines_it(self):
         self.assertNotIn(
@@ -101,10 +124,10 @@ class TestDocumentedArtifactNamesExist(unittest.TestCase):
         bad = []
         for f in _text_files():
             for win in fetch_windows(f.read_text(encoding="utf-8")):
-                m_art = re.search(r"--artifact\s+([a-z_]+)", win)
+                name = artifact_name(win)
                 m_prov = re.search(r"methods/([^/ ]+)/provenance\.json", win)
-                if m_art and m_prov:
-                    name, method = m_art.group(1), m_prov.group(1)
+                if name and m_prov:
+                    method = m_prov.group(1)
                     if name not in _provenance_sections(method):
                         bad.append(
                             f"{f.relative_to(ROOT)}: --artifact {name} is not a "
@@ -123,10 +146,10 @@ class TestTheDetectorsFire(unittest.TestCase):
         method, real_section = _a_download_method()   # discovered, not named
         win = (f"bin/fetch-weights.py --provenance methods/{method}/"
                f"provenance.json --artifact not_a_section --out d")
-        m_art = re.search(r"--artifact\s+([a-z_]+)", win)
+        name = artifact_name(win)
         m_prov = re.search(r"methods/([^/ ]+)/provenance\.json", win)
-        self.assertTrue(m_art and m_prov)
-        self.assertNotIn(m_art.group(1),
+        self.assertTrue(name and m_prov)
+        self.assertNotIn(name,
                          _provenance_sections(m_prov.group(1)))
         # and the discovered real section passes
         self.assertIn(real_section, _provenance_sections(method))

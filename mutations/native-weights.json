@@ -1,0 +1,59 @@
+{
+  "targets": [
+    {
+      "label": "prefix collision",
+      "file": "bin/export-native-encoder.py",
+      "old": "        if target in result:",
+      "new": "        if False:",
+      "tests": [
+        "tests.test_export_native_encoder.TestNativeMapping.test_colliding_keys_are_rejected"
+      ]
+    },
+    {
+      "label": "anchored prefix",
+      "file": "bin/export-native-encoder.py",
+      "old": "key.removeprefix(strip_prefix)",
+      "new": "key.replace(strip_prefix, \"\")",
+      "tests": [
+        "tests.test_export_native_encoder.TestNativeMapping.test_prefix_inside_name_is_preserved"
+      ]
+    },
+    {
+      "label": "local hash mismatch",
+      "file": "bin/fetch-weights.py",
+      "old": "        if got != art[\"sha256\"]:",
+      "new": "        if False:",
+      "tests": [
+        "tests.test_fetch_weights.TestLocalWeights.test_local_wrong_bytes_leave_existing_destination_unchanged"
+      ]
+    },
+    {
+      "label": "local source is preserved",
+      "file": "bin/fetch-weights.py",
+      "old": "    if source is not None and Path(source).resolve() == dest.resolve():",
+      "new": "    if False:",
+      "tests": [
+        "tests.test_fetch_weights.TestLocalWeights.test_local_input_cannot_be_its_own_output"
+      ]
+    },
+    {
+      "label": "artifact token is not truncated",
+      "file": "tests/test_fetch_weights_docs.py",
+      "old": "r\"--artifact\\s+([^\\s`]+)\"",
+      "new": "r\"--artifact\\s+([a-z_]+)\"",
+      "tests": [
+        "tests.test_fetch_weights_docs.TestArtifactToken.test_digits_are_part_of_the_complete_artifact_name",
+        "tests.test_fetch_weights_docs.TestArtifactToken.test_invalid_suffix_is_not_truncated_to_a_valid_name"
+      ]
+    },
+    {
+      "label": "comment continuation is parsed",
+      "file": "tests/test_fetch_weights_docs.py",
+      "old": "    window = re.sub(r\"(?m)^\\s*#\\s?\", \"\", window)",
+      "new": "    window = window",
+      "tests": [
+        "tests.test_fetch_weights_docs.TestArtifactToken.test_comment_wrapped_argument_is_read_whole"
+      ]
+    }
+  ]
+}

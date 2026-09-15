@@ -21,5 +21,17 @@
     "the run is seeded through make_deterministic (python, numpy, torch)",
     "the training loop drops the upstream DistributedDataParallel and SyncBatchNorm and TensorBoard so the same step runs on a CPU or a GPU unchanged, single-process fp32; LARS and the cosine-with-warmup schedule are kept",
     "DATA_ROOT is the dataset root; the pretrain stage reads its train/ subdirectory (unified data-root convention via adapterlib.dataset_split_dir)."
-  ]
+  ],
+  "step1_native_artifact": {
+    "filename": "checkpoint_epoch_1000.pth",
+    "sha256": "e945c6bd144640f174e90ef924890fd47280f522a10d20ee01054be234d83b13",
+    "availability": "user_supplied",
+    "instructions": "Request the lab-trained SimCLR v1 Step-1 ResNet-50 checkpoint from run step1_resnet_official_v1_tau01_finalbn, scheduled epoch 1000. No public download URL has been verified. A publisher checkpoint is not an interchangeable substitute.",
+    "bytes": 224148359,
+    "checkpoint_epoch_zero_based": 999,
+    "pretraining_seed": 42,
+    "state_key": "state_dict",
+    "strip_prefix": "module.",
+    "selection_evidence": "The recorded Step-1 linear evaluation at epoch 1000 explicitly references this training checkpoint; its config records ResNet-50, 1000 epochs and seed 42. SHA-256 measured from the original file on 2026-09-16."
+  }
 }

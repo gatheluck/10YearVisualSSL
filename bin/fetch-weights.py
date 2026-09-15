@@ -38,7 +38,7 @@ class FetchError(Exception):
     """A refusal, always naming what was refused."""
 
 
-def _artifact(provenance: Path, section: str) -> dict:
+def _artifact(provenance: Path, section: str, local: bool = False) -> dict:
     try:
         data = json.loads(Path(provenance).read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
@@ -48,7 +48,12 @@ def _artifact(provenance: Path, section: str) -> dict:
         raise FetchError(
             f"{provenance} has no {section!r} mapping; there is no artifact to "
             "fetch. A weight download must be recorded before it can be pinned")
-    missing = [k for k in ("url", "filename", "sha256") if not art.get(k)]
+    if not local and not art.get("url") and art.get("availability") == "user_supplied":
+        raise FetchError(
+            "No public download is recorded. " + art.get("instructions", "Obtain the exact recorded checkpoint.")
+            + " Supply it with --source; its sha256 must match.")
+    required = ("filename", "sha256") if local else ("url", "filename", "sha256")
+    missing = [k for k in required if not art.get(k)]
     if missing:
         raise FetchError(
             f"{section} in {provenance} is missing {', '.join(missing)}; a "
@@ -65,23 +70,25 @@ def _sha256(path: Path) -> str:
 
 
 def fetch(provenance: Path, out: Path, section: str = "tokenizer_artifact",
-          _urlopen=urllib.request.urlopen) -> Path:
+          _urlopen=urllib.request.urlopen, source: Path | None = None) -> Path:
     """Download the artifact into `out`, verify its sha256, and return its path.
 
     The bytes are written to a temporary file first and only moved into place
     once the hash matches, so a rejected download leaves nothing that reads as
     the verified artifact.
     """
-    art = _artifact(provenance, section)
+    art = _artifact(provenance, section, local=source is not None)
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
     dest = out / art["filename"]
+    if source is not None and Path(source).resolve() == dest.resolve():
+        raise FetchError("source and destination must be different; original input is read-only")
 
     tmp_fd, tmp_name = tempfile.mkstemp(dir=out, suffix=".part")
     tmp = Path(tmp_name)
     try:
         with os.fdopen(tmp_fd, "wb") as w:
-            with _urlopen(art["url"]) as r:      # nosec - pinned URL, hashed
+            with (Path(source).open("rb") if source is not None else _urlopen(art["url"])) as r:
                 while True:
                     chunk = r.read(1 << 20)
                     if not chunk:
@@ -109,9 +116,10 @@ def main(argv: "list[str] | None" = None) -> int:
     ap.add_argument("--artifact", default="tokenizer_artifact",
                     help="the artifact section to fetch (default: "
                          "tokenizer_artifact)")
+    ap.add_argument("--source", type=Path, help="copy and verify a local checkpoint instead of downloading")
     a = ap.parse_args(argv)
     try:
-        dest = fetch(Path(a.provenance), Path(a.out), a.artifact)
+        dest = fetch(Path(a.provenance), Path(a.out), a.artifact, source=a.source)
     except FetchError as exc:
         print(f"  *** {exc}", file=sys.stderr)
         return 2

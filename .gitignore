@@ -22,3 +22,6 @@ venv/
 # sha256 in a method's provenance.json, and reproducible from there -- so the
 # bytes are never tracked. The default --out lands here.
 .weights/
+
+# Local account, reservation settings and private execution evidence. Never commit.
+.local/

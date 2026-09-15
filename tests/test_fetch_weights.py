@@ -80,5 +80,51 @@ class TestFetchWeights(Base):
         self.assertNotEqual(r.returncode, 0)
 
 
+
+class TestLocalWeights(Base):
+    def test_local_checkpoint_is_copied_and_verified_without_download(self):
+        prov = self.tmp / 'local.json'
+        prov.write_text(json.dumps({'tokenizer_artifact': {
+            'filename': 'weights.bin', 'sha256': self.sha,
+            'availability': 'user_supplied', 'instructions': 'Obtain the recorded training checkpoint.'}}))
+        out = self.tmp / 'out'
+        r = subprocess.run([sys.executable, str(TOOL), '--provenance', str(prov),
+                            '--out', str(out), '--source', str(self.blob)],
+                           capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual((out / 'weights.bin').read_bytes(), self.blob.read_bytes())
+        self.assertTrue(self.blob.exists())
+
+    def test_local_wrong_bytes_leave_existing_destination_unchanged(self):
+        out = self.tmp / 'out'
+        out.mkdir()
+        dest = out / 'weights.bin'
+        dest.write_bytes(b'existing verified output')
+        r = subprocess.run([sys.executable, str(TOOL), '--provenance',
+                            str(self.provenance('0' * 64)), '--out', str(out),
+                            '--source', str(self.blob)], capture_output=True, text=True)
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn('sha256 mismatch', r.stderr)
+        self.assertEqual(dest.read_bytes(), b'existing verified output')
+
+    def test_missing_local_only_weight_explains_acquisition(self):
+        prov = self.tmp / 'local.json'
+        prov.write_text(json.dumps({'tokenizer_artifact': {
+            'filename': 'weights.bin', 'sha256': self.sha,
+            'availability': 'user_supplied', 'instructions': 'Request checkpoint ID run-123.'}}))
+        r = self.run_tool(prov, self.tmp / 'out')
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn('run-123', r.stderr)
+        self.assertIn('--source', r.stderr)
+
+    def test_local_input_cannot_be_its_own_output(self):
+        r = subprocess.run([sys.executable, str(TOOL), '--provenance',
+                            str(self.provenance(self.sha)), '--out', str(self.tmp),
+                            '--source', str(self.blob)], capture_output=True, text=True)
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn('source', r.stderr)
+        self.assertEqual(self.blob.read_bytes(), b'pretend-weights\n')
+
+
 if __name__ == "__main__":
     unittest.main()
