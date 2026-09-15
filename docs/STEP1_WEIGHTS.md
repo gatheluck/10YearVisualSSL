@@ -39,3 +39,47 @@ Verify 50,000 rows, 2,048 dimensions, float32 finite features, 1,000 classes wit
 Use the locally supplied reserved-node configuration only. Follow the cluster's documented reserved-node submission form with placeholders: `qsub -P <group> -q <reservation> -l select=1 -l walltime=01:00:00 -v RTYPE=rt_HF <script>`.
 
 Concrete account/group/reservation identifiers, original private paths and job logs live in `$HOME/.local/state/10YearVisualSSL/abci/`, outside the repository. Never force-add that directory. All original experiment files and weights must be mounted read-only; only a separate task workspace is writable. There is no fallback to a standard queue.
+
+## Batch preparation
+
+`bin/prepare-native-encoders.py` reads a local JSON object mapping method names
+to native checkpoint paths. It validates every entry before launching any
+worker, reads `step1_native_artifact` in each method's provenance, and invokes
+`export-native-encoder.py` in a separate process per model. Use an environment
+compatible with the selected methods. The method's `configs/linear_eval.yaml`
+is used for both export and extraction; select only checkpoints whose backbone
+settings and evaluation preprocessing have been verified against that config.
+
+Example local sources file (replace the placeholder paths):
+
+```json
+{
+  "10_inst_disc": "/path/to/instdisc/checkpoint_epoch_200.pth",
+  "13_mocov1": "/path/to/mocov1/checkpoint_epoch_200.pth",
+  "15_mocov2": "/path/to/mocov2/checkpoint_epoch_200.pth",
+  "16_simclrv2": "/path/to/simclrv2/checkpoint_epoch_800.pth",
+  "20_simsiam": "/path/to/simsiam/checkpoint_epoch_100.pth"
+}
+```
+
+`python3 bin/prepare-native-encoders.py --sources /path/to/sources.json --out /path/to/new-encoders`
+
+Each successful model produces `<out>/<method>/encoder.pt` and `export.json`.
+The batch exits nonzero on failure, reports per-model exit codes in `batch.json`,
+and retains separate logs. Interrupted batches remain `incomplete`. The output
+root must be new: partial outputs are not silently treated as reusable results.
+To retry failures, supply only those models and choose a new output root.
+Sources files, output metadata and logs may contain private paths; keep them
+outside the repository.
+
+The checkpoints above are lab-trained, selected from the recorded Step-1
+linear evaluations at their configured training endpoints. Their exact hashes
+are pinned in provenance. No public URL for those exact bytes is verified;
+obtain them from the lab and use the checksum-verified local acquisition path.
+Once native/exported feature parity is verified, feed the resulting encoders
+to the existing `extract-features.py` driver. Keep L2 representation and the
+same ImageNet val class ordering as the preceding extraction.
+
+SwAV and SeLa are also pinned and validated by the same batch path; see
+`STEP1_EXTRACTION_PROGRESS.md` and `STEP1_BATCH_RESULTS_20260916.json` for the
+seven-model results.

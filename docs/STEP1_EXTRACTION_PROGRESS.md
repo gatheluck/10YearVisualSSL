@@ -49,3 +49,63 @@ Private execution settings and raw evidence are persisted under `$HOME/.local/st
 - Documentation guard: added failing controls for numeric artifact names, invalid suffix truncation and comment-wrapped arguments; fixed the parser without suppressing missing-section failures. Its 8 tests pass.
 - Native-weight mutation checks now cover 6 faults; all 6 were detected.
 - The pre-commit hook enforces a fresh whole-suite pass before the commit is created. Final gate results are recorded in the PR and private local execution log.
+
+## Seven-model batch completed (2026-09-16)
+
+Child branch: `codex/step1-multi-model-extraction`, based on PR #170 commit
+`3152f9970bb30290c254f5f3d0bb9a79f730893f`. The next PR is deferred until
+#170 merges and the child changes are rebased onto the resulting main branch.
+
+| Model | Selected training endpoint | ImageNet val features |
+|---|---:|---|
+| InstDisc | 200 | 50,000 x 2,048 |
+| MoCo v1 | 200 | 50,000 x 2,048 |
+| MoCo v2 | 200 | 50,000 x 2,048 |
+| SimCLR v2 | 800 | 50,000 x 2,048 |
+| SimSiam | 100 | 50,000 x 2,048 |
+| SwAV | 200 | 50,000 x 2,048 |
+| SeLa | 400 | 50,000 x 2,048 |
+
+The actual Step-1 evaluation records reference each selected checkpoint.
+Checkpoint configuration confirms the scheduled endpoint and backbone shape;
+selection does not rank validation accuracy. All seven exact source hashes are
+now in per-method provenance, with explicit user-supplied acquisition.
+
+For each model, captured reference model/evaluation source files were checked
+against the live original by hash. A strict full-native model load was followed
+by comparison with the actual feature provider on four real val images. Raw
+features matched exactly (maximum absolute error 0.0) for all seven models.
+The providers' own preprocessing was exercised, including SwAV's captured red
+channel standard deviation of 0.228 and SeLa's ResNetV2 backbone.
+
+All seven full-val arrays are finite float32 with shape (50000, 2048), sorted
+labels, 1000 classes of 50 images and unit L2 norms within 1e-6. Label hashes
+match the preceding SimCLR pilot. Source, export and output hashes are recorded
+in `STEP1_BATCH_RESULTS_20260916.json`. Four-image parity does not prove equality
+on every possible input. Execution used the existing torch 2.5.1+cu124 / H200
+runtime; matching the repository's current dependency locks remains unverified.
+Original files were mounted read-only; two reserved-node jobs wrote only to
+separate workspaces. Private IDs, paths and raw records remain outside Git.
+
+TDD: batch tests first failed before implementation; a further failing test
+caught interrupted work being labelled successful. Batch tests now cover
+preflight, hash format, mapping, per-model failure, launch errors, output
+preservation, symlink escape, interruption and CLI refusal. Nine mutation
+controls were all detected. Seven identity tests failed before their provenance
+records were added. Initial whole-suite validation caught incorrect names for
+method-specific test files; those were renamed to the established convention,
+without weakening the guard. Final whole-suite results are kept in the local
+execution log and the eventual PR.
+
+### Remaining compatibility work
+
+- BYOL: the selected native checkpoint is readable and hashed. Its recorded
+  official evaluation uses bicubic interpolation; the current provider uses
+  bilinear. Do not claim equivalent Step-1 extraction without resolving that
+  protocol difference and testing it.
+- Barlow Twins: the evaluated `resnet50.pth` is a bare torchvision backbone,
+  whereas the adapter expects prefixed sequential-backbone keys. It contains
+  no training config/epoch; the result record alone is insufficient to assert
+  its pretraining endpoint. Mapping and endpoint provenance remain pending.
+- The remaining methods require their own selection and compatibility audit;
+  readable checkpoint references are not completed extractions.
