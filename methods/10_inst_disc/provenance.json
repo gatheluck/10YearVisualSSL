@@ -19,5 +19,17 @@
     "the training loop drops the upstream DistributedDataParallel and the TensorBoard logging so the same step runs on a CPU or a GPU unchanged",
     "the capture's unified Step 2 (arch: vit) is also ported additively (models/vit_instdisc.py, train_pretrain_vit_instdisc.py, configs/pretrain_vit.yaml): the same ViT-B/16 backbone every method shares, its CLS token through Linear(768, feature_dim), trained under the same NCE memory-bank objective (AdamW + warmup/cosine, no AMP/clip, milestone checkpoints; the bank rides in each checkpoint). The native ResNet-50 path is byte-for-byte unchanged; timm is a lazy dependency of the ViT path only",
     "DATA_ROOT is the dataset root; the pretrain stage reads its train/ subdirectory (unified data-root convention via adapterlib.dataset_split_dir)."
-  ]
+  ],
+  "step1_native_artifact": {
+    "filename": "checkpoint_epoch_200.pth",
+    "sha256": "902d2622b7ffee75a4d99a00582a09031008ffe82b0881472aecbf07e0d1c7fe",
+    "availability": "user_supplied",
+    "instructions": "Request the lab-trained Step-1 checkpoint from run step1_resnet_official_step_lr. No public download URL for these exact bytes has been verified; publisher weights are not interchangeable.",
+    "bytes": 846495758,
+    "checkpoint_epoch_zero_based": 199,
+    "pretraining_seed": 42,
+    "state_key": "state_dict",
+    "strip_prefix": "",
+    "selection_evidence": "The recorded Step-1 linear evaluation explicitly references this file. Checkpoint config schedules 200 training epochs and records ResNet-50. Selected scheduled endpoint, not best validation accuracy. SHA-256 measured on 2026-09-16."
+  }
 }

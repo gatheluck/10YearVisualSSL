@@ -19,5 +19,17 @@
     "data/__init__.py": "the capture's file re-exported a step-2 loader absent from the capture snapshot; that dangling re-export is removed, since the ported ViT path reuses the native get_swav_dataloader",
     "train_pretrain_resnet.py": "resolve_device() and make_deterministic() added, and the unconditional .cuda(local_rank) on the model and on each crop replaced by .to(device); the captured trainer could not start without a GPU. main() split into build_parser() and run(args, config), which returns the epoch loss and the epoch count; the captured version computed them and discarded them.",
     "data/multi_crop.py": "captured sha256 c-- taken before the change. get_swav_dataloader built a DistributedSampler unconditionally, which needs an initialised process group, so this method could not run on one process at all -- on a GPU or otherwise. The sampler is now conditional, the same way every other ported method's loader already had it, and the trainer passes its own `distributed` flag through. Unlike the change the port before this one made and reverted, this one is for a failure that was observed: the run raised 'Default process group has not been initialized'."
+  },
+  "step1_native_artifact": {
+    "filename": "checkpoint_epoch_200.pth",
+    "sha256": "43f45ef20af9eaf1174c6f18834d8b512138519ce8dd4cb318f003a95faee85f",
+    "availability": "user_supplied",
+    "instructions": "Request the lab-trained Step-1 checkpoint from run step1_resnet_official_larcfix. No public download URL for these exact bytes has been verified; publisher weights are not interchangeable.",
+    "bytes": 227234375,
+    "checkpoint_epoch_zero_based": 199,
+    "pretraining_seed": 42,
+    "state_key": "state_dict",
+    "strip_prefix": "",
+    "selection_evidence": "The recorded Step-1 evaluation explicitly references this checkpoint. Its config schedules 200 epochs and declares resnet50. Selected scheduled endpoint, not best accuracy. SHA-256 measured on 2026-09-16."
   }
 }

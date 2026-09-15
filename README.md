@@ -148,6 +148,7 @@ shown so the shape is visible before it is built.
 │   ├── fetch-weights.py              download a pinned, hash-checked backbone
 │   ├── contract-test.py              decides by machine that a port is finished
 │   ├── export-native-encoder.py    verify and export native weights through an adapter
+│   ├── prepare-native-encoders.py  export a batch using pinned method provenance
 │   ├── extract-features.py          one run: save every method's val features
 │   ├── prepare-imagenet-val.py      ImageNet-1k val parquet -> val/<wnid>/*.JPEG
 │   └── aggregate-seeds.py           seeds 0,1,2 -> mean +/- std (BASIC5 rule seed)
