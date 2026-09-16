@@ -128,3 +128,13 @@ class TestBatch(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("nonempty", result.stderr)
         self.assertFalse(self.out.exists())
+
+    def test_optional_module_map_reaches_export_worker(self):
+        p = self.methods / 'example_a/provenance.json'
+        record = json.loads(p.read_text())
+        record['step1_native_artifact']['module_map'] = {'conv': 'encoder.0'}
+        p.write_text(json.dumps(record))
+        jobs = dict(self.mod.plan(self.sources, self.methods, self.out, 'python'))
+        command = jobs['example_a']
+        self.assertEqual(json.loads(command[command.index('--module-map') + 1]),
+                         {'conv': 'encoder.0'})

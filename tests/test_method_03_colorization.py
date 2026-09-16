@@ -781,3 +781,28 @@ class TestFeatureProvider(Base):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestNativeProbePixels(unittest.TestCase):
+    @needs_deps
+    def test_probe_matches_native_float32_gamma_and_float64_lab(self):
+        import numpy as np
+        import torch
+        from PIL import Image
+        data = load("native_probe_pixels", METHOD / "data" / "__init__.py")
+        rgb = np.random.default_rng(42).integers(0, 256, (32, 32, 3), dtype=np.uint8)
+        x = rgb.astype(np.float32) / 255.0
+        x = np.where(x > .04045, ((x + .055) / 1.055) ** 2.4, x / 12.92)
+        xyz = (x @ np.array([[.4124564, .3575761, .1804375],
+                            [.2126729, .7151522, .0721750],
+                            [.0193339, .1191920, .9503041]]).T) / np.array([.95047, 1., 1.08883])
+        f = np.where(xyz > .008856, xyz ** (1. / 3.), 7.787 * xyz + 16. / 116.)
+        expected = torch.from_numpy(((116. * f[..., 1] - 16.) / 100.).astype(np.float32)).unsqueeze(0)
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp) / "class0"
+            folder.mkdir()
+            Image.fromarray(rgb).save(folder / "image.png")
+            actual, label = data.ColorizationProbeDataset(tmp, image_size=32, crop_size=32)[0]
+        self.assertEqual(label, 0)
+        self.assertFalse(torch.equal(torch.from_numpy(data.rgb_to_lab(Image.fromarray(rgb))[0] / 100.).unsqueeze(0), expected))
+        self.assertTrue(torch.equal(actual, expected))

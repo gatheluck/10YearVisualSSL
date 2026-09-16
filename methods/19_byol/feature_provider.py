@@ -73,7 +73,7 @@ def extract_val_features(*, encoder_path: str, data_root: str, split: str,
         "count": int(feats.shape[0]),
         "arch": train.get("arch", "resnet50"),
         "image_size": image_size,
-        "preprocessing": ("BYOL eval: resize + centre crop, [0,1], "
+        "preprocessing": ("BYOL eval: bicubic resize to ceil(image_size/0.875) + centre crop, [0,1], "
                           "ImageNet normalisation"),
     }
     return feats, labels, meta
