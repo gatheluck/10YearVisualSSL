@@ -24,5 +24,17 @@
     "the run is seeded through make_deterministic (python, numpy, torch)",
     "the training loop drops the upstream DistributedDataParallel, AMP and TensorBoard so the same step runs on a CPU or a GPU unchanged, single-process fp32",
     "DATA_ROOT is the dataset root; step-1 reads its train/ subdirectory (unified data-root convention via adapterlib.dataset_split_dir)."
-  ]
+  ],
+  "step1_native_artifact": {
+    "filename": "checkpoint_epoch_200.pth",
+    "sha256": "4ea97c315875d3d677670e8f1a17fcb310b9189b528ec7ec1a133d4918710f76",
+    "availability": "user_supplied",
+    "instructions": "Request the lab-trained Step-1 file from run step1_visual_cpc2018_paper_target. No public URL for these exact bytes is verified.",
+    "bytes": 1148138472,
+    "checkpoint_epoch_zero_based": 199,
+    "pretraining_seed": 42,
+    "state_key": "state_dict",
+    "strip_prefix": "",
+    "selection_evidence": "The recorded Step-1 evaluation references this checkpoint; stored epoch is 199 and configured training duration is 200 epochs. Source SHA-256 measured directly from the lab checkpoint. The selected representation and preprocessing must pass native/provider parity."
+  }
 }

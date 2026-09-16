@@ -43,8 +43,9 @@ Concrete account/group/reservation identifiers, original private paths and job l
 ## Batch preparation
 
 `bin/prepare-native-encoders.py` reads a local JSON object mapping method names
-to native checkpoint paths. It validates every entry before launching any
-worker, reads `step1_native_artifact` in each method's provenance, and invokes
+to native checkpoint paths. It preflights source existence, recipe fields and
+output paths before launching any worker (tensor and checksum validation run
+in each worker), reads `step1_native_artifact` in each method's provenance, and invokes
 `export-native-encoder.py` in a separate process per model. Use an environment
 compatible with the selected methods. The method's `configs/linear_eval.yaml`
 is used for both export and extraction; select only checkpoints whose backbone
@@ -83,3 +84,27 @@ same ImageNet val class ordering as the preceding extraction.
 SwAV and SeLa are also pinned and validated by the same batch path; see
 `STEP1_EXTRACTION_PROGRESS.md` and `STEP1_BATCH_RESULTS_20260916.json` for the
 seven-model results.
+
+
+## Additional native layouts and evaluation transforms
+
+BYOL, visual CPC 2018 and Colorization now have pinned native checkpoint
+recipes. Their exact lab-trained bytes have no verified public download URL;
+obtain the matching file from the lab and use the existing checksum-verified
+local acquisition and batch preparation commands. A public checkpoint from
+the same model family is not an interchangeable source for these recipes.
+
+An optional `module_map` in a recipe maps exact top-level native module names
+to port module paths. For example, `{"conv1": "encoder.0"}` renames
+`conv1.weight` but preserves `conv1_extra.weight`. Unused names and key
+collisions are rejected. Batch preparation forwards this mapping automatically;
+direct exports accept it as JSON with `--module-map`. The export record saves
+it alongside the wrapper and prefix mapping.
+
+Colorization maps the native named convolution/batch-normalization layers to
+the port's sequential encoder and preserves the native evaluation's float32
+sRGB gamma conversion and float64 Lab arithmetic. Training Lab conversion is
+unchanged. BYOL validation uses bicubic resize to `ceil(image_size / 0.875)`,
+then center crop and ImageNet normalization. Visual CPC 2018 validation resizes
+to a source-size square with bilinear interpolation, center crops, applies
+ImageNet normalization and averages patch-encoder features over the grid.

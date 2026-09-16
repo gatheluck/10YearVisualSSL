@@ -8,7 +8,7 @@ Resolve actual Step-1 checkpoints on ABCI, record immutable weight identities an
 - Private evidence: Capture docs/STEP1_WEIGHT_SURVEY_20260916.md. Candidate references are not final selections.
 - Implement using failing tests first. Reuse fetch-weights for checksum verification; distinguish public download from user-supplied weights.
 - First compatibility pilot: SimCLR v1 ResNet-50. Its original evaluator unwraps state_dict and exports encoder features. No claim of successful real-weight extraction yet.
-- Keep full private filesystem paths and raw original results in the private repository.
+- Keep full private filesystem paths and raw original results outside Git in local execution state.
 - Pending: selected checkpoint hashes, export/load parity, isolated ABCI execution environment and dataset access, batch smoke, full val extraction.
 
 ## Reservation-only execution constraint (2026-09-16)
@@ -109,3 +109,59 @@ execution log and the eventual PR.
   its pretraining endpoint. Mapping and endpoint provenance remain pending.
 - The remaining methods require their own selection and compatibility audit;
   readable checkpoint references are not completed extractions.
+
+
+## Three additional models completed (2026-09-16)
+
+Branch `codex/step1-remaining-models` starts from PR #171 tip `6964d94`.
+This groups three models in one delivery rather than one PR per model.
+
+| Model | Native checkpoint epoch (zero-based) | Full val output |
+|---|---:|---|
+| Colorization | 299 | 50,000 x 512 |
+| Visual CPC 2018 | 199 | 50,000 x 1,024 |
+| BYOL | 999 | 50,000 x 2,048 |
+
+All three native models loaded strictly from the checkpoints referenced by
+the recorded Step-1 evaluations. Each port matched four real validation images
+exactly on an H200 GPU (maximum raw feature error 0.0), after checking reference
+source hashes against the live original. All full arrays are finite float32,
+L2-normalized within 1e-6, with sorted labels and 1,000 classes of 50 samples.
+Their labels.npy hashes match the preceding eight new extractions. Outputs
+remain in separate local cluster workspaces; no weights or arrays are committed.
+Hashes and dimensions are in `STEP1_NEXT_RESULTS_20260916.json`.
+
+The BYOL mismatch noted above is now resolved: bicubic interpolation and ceiling
+resize are tested against the native evaluation. Colorization needed exact
+module-name mapping and native evaluation arithmetic precision. CPC's actual
+preprocessing already matched; its misleading metadata description was corrected.
+These exact checkpoint bytes remain user-supplied, with no verified public URL.
+
+TDD evidence: mapping, checkpoint-identity and native-pixel tests were written
+before implementation and observed failing. Remote tensor/pixel suite: 24 tests,
+no skips, exit 0. Nine new mutation controls and six inherited controls were all
+detected. Full local base suite: 3,308 tests, exit 0, 1,372 dependency-gated skips.
+An earlier full run caught platform vocabulary in provenance and an ambiguous
+inherited mutation anchor; both were fixed without weakening the checks.
+The first GPU job stopped at reference verification because macOS archive metadata
+files were transferred; the corrected transfer used a new workspace and the
+retry completed with exit 0. Original files stayed read-only in both attempts.
+The GPU runtime differs from current dependency locks; four-image parity does
+not prove equality for all possible inputs. PR CI is separate validation.
+
+### Collection count, distinct from native identity audit
+
+The user already holds features for **13** methods: DINOv2, Franca, AIMv2,
+BEiTv2, CAE, Cosmos3 Super, data2vec2, EVA02, SigLIP, VAR, VideoMAE, V-JEPA2 AC
+and V-JEPA2. These count as extracted; missing local checkpoint identity is not
+missing feature data. Together with the preceding eight and these three new
+extractions, the collection is **24 of 51 providers**, leaving **27 uncollected**.
+Do not rerun the user's existing thirteen merely because their native identity
+has not been audited. Cross-checking sample identity against that older external
+collection and creating the consolidated delivery manifest remain separate work.
+
+Rotation Prediction is still blocked by a representation mismatch (native
+conv5 global average: 256 dimensions; current port encoder: 4,096 dimensions).
+Barlow Twins' full checkpoint requires a reviewed safe-loading solution for an
+optimizer callable; its bare backbone's endpoint still needs proof. Neither is
+counted as extracted here.

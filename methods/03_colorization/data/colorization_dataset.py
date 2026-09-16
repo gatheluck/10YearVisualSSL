@@ -27,19 +27,25 @@ _RGB2XYZ = np.array([[0.4124564, 0.3575761, 0.1804375],
 _WHITE_D65 = np.array([0.95047, 1.0, 1.08883], dtype=np.float64)
 
 
-def rgb_to_lab(rgb_image) -> Tuple[np.ndarray, np.ndarray]:
-    """RGB (PIL image or HxWx3 uint8 array) -> (L [H, W] in [0, 100],
-    ab [H, W, 2])."""
+def _lab_components(rgb_image, *, native_eval=False):
+    """Lab components before casting; preserve native eval gamma precision."""
     if not isinstance(rgb_image, np.ndarray):
         rgb_image = np.asarray(rgb_image)  # a PIL image -> H x W x 3 uint8
-    rgb = rgb_image.astype(np.float64) / 255.0
+    rgb = rgb_image.astype(np.float32 if native_eval else np.float64) / 255.0
     lin = np.where(rgb > 0.04045, ((rgb + 0.055) / 1.055) ** 2.4, rgb / 12.92)
     xyz = (lin @ _RGB2XYZ.T) / _WHITE_D65
-    f = np.where(xyz > 0.008856, np.cbrt(xyz), (7.787 * xyz) + (16.0 / 116.0))
+    root = xyz ** (1.0 / 3.0) if native_eval else np.cbrt(xyz)
+    f = np.where(xyz > 0.008856, root, (7.787 * xyz) + (16.0 / 116.0))
     L = 116.0 * f[..., 1] - 16.0
     a = 500.0 * (f[..., 0] - f[..., 1])
     b = 200.0 * (f[..., 1] - f[..., 2])
-    return L.astype(np.float32), np.stack([a, b], axis=-1).astype(np.float32)
+    return L, np.stack([a, b], axis=-1)
+
+
+def rgb_to_lab(rgb_image) -> Tuple[np.ndarray, np.ndarray]:
+    """RGB -> float32 Lab: L in [0, 100], ab in colour units."""
+    L, ab = _lab_components(rgb_image)
+    return L.astype(np.float32), ab.astype(np.float32)
 
 
 def _l_tensor(rgb_pil) -> "tuple[torch.Tensor, np.ndarray]":
@@ -93,7 +99,8 @@ class ColorizationProbeDataset(Dataset):
     def __getitem__(self, index: int) -> Tuple[torch.Tensor, int]:
         rgb_img, label = self.base[index]
         rgb_img = self.base_transform(rgb_img)
-        l_tensor, _ = _l_tensor(rgb_img)
+        L, _ = _lab_components(rgb_img, native_eval=True)
+        l_tensor = torch.from_numpy(L / 100.0).float().unsqueeze(0)
         return l_tensor, label
 
 

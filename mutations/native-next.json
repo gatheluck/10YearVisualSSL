@@ -1,0 +1,85 @@
+{
+  "targets": [
+    {
+      "label": "module collision",
+      "file": "bin/export-native-encoder.py",
+      "old": "if target in result:\n            raise ValueError(f'module mapping causes key collision: {target}')",
+      "new": "if False:\n            raise ValueError(f'module mapping causes key collision: {target}')",
+      "tests": [
+        "tests.test_export_native_encoder.TestNativeModuleMap.test_mapping_cannot_overwrite_a_native_key"
+      ]
+    },
+    {
+      "label": "unused mapping",
+      "file": "bin/export-native-encoder.py",
+      "old": "if set(mapping) != used:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_export_native_encoder.TestNativeModuleMap.test_unused_mapping_is_a_layout_error"
+      ]
+    },
+    {
+      "label": "invalid map",
+      "file": "bin/export-native-encoder.py",
+      "old": "not isinstance(v, str) or not v for k, v in mapping.items()",
+      "new": "False for k, v in mapping.items()",
+      "tests": [
+        "tests.test_export_native_encoder.TestNativeModuleMap.test_invalid_mapping_is_rejected"
+      ]
+    },
+    {
+      "label": "exact module match",
+      "file": "bin/export-native-encoder.py",
+      "old": "mapping.get(module, module) + dot + suffix",
+      "new": "next((v + module[len(k):] for k, v in mapping.items() if module.startswith(k)), module) + dot + suffix",
+      "tests": [
+        "tests.test_export_native_encoder.TestNativeModuleMap.test_exact_module_name_mapping_preserves_other_keys_and_values"
+      ]
+    },
+    {
+      "label": "real worker mapping",
+      "file": "bin/export-native-encoder.py",
+      "old": "args.strip_prefix), args.module_map))",
+      "new": "args.strip_prefix), {}))",
+      "tests": [
+        "tests.test_export_native_encoder.TestNativeExport"
+      ]
+    },
+    {
+      "label": "batch mapping",
+      "file": "bin/prepare-native-encoders.py",
+      "old": "if 'module_map' in artifact:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_prepare_native_encoders.TestBatch.test_optional_module_map_reaches_export_worker"
+      ]
+    },
+    {
+      "label": "native bicubic",
+      "file": "methods/19_byol/data/byol_dataset.py",
+      "old": "transforms.Resize(math.ceil(img_size / 0.875),\n                          interpolation=transforms.InterpolationMode.BICUBIC)",
+      "new": "transforms.Resize(math.ceil(img_size / 0.875),\n                          interpolation=transforms.InterpolationMode.BILINEAR)",
+      "tests": [
+        "tests.test_method_19_byol.TestNativeValPreprocessing"
+      ]
+    },
+    {
+      "label": "native resize ceiling",
+      "file": "methods/19_byol/data/byol_dataset.py",
+      "old": "math.ceil(img_size / 0.875)",
+      "new": "round(img_size / 0.875)",
+      "tests": [
+        "tests.test_method_19_byol.TestNativeValPreprocessing"
+      ]
+    },
+    {
+      "label": "native colour precision",
+      "file": "methods/03_colorization/data/colorization_dataset.py",
+      "old": "_lab_components(rgb_img, native_eval=True)",
+      "new": "_lab_components(rgb_img, native_eval=False)",
+      "tests": [
+        "tests.test_method_03_colorization.TestNativeProbePixels"
+      ]
+    }
+  ]
+}

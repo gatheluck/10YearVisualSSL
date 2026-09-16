@@ -1,0 +1,53 @@
+{
+  "runtime": "Python 3.10.20 / torch 2.5.1+cu124 / NVIDIA H200; not current dependency lock",
+  "representation": "l2",
+  "split": "ImageNet val",
+  "original_access": "read-only mount; reference sources matched live source hashes",
+  "models": [
+    {
+      "method": "11_cpc",
+      "source_sha256": "4ea97c315875d3d677670e8f1a17fcb310b9189b528ec7ec1a133d4918710f76",
+      "encoder_sha256": "d6e146694620b5f19ac38aa780f69d0b30d2328355f19bc0514106de46c893d4",
+      "features_sha256": "783837b1de9bfe882e79f993e20d0b69d99912c4b4e9260d7d5408b9bbcc3f91",
+      "labels_sha256": "186361171a139f8617d3ce725b06a01cbc9ae9eac739098b93dc6261ee7aacbe",
+      "shape": [
+        50000,
+        1024
+      ],
+      "norm_min": 0.9999998211860657,
+      "norm_max": 1.0000001192092896,
+      "parity_images": 4,
+      "parity_max_abs_error": 0.0
+    },
+    {
+      "method": "03_colorization",
+      "source_sha256": "3c4789582471e3a363cf1d5ed3fc05d1a642f15bff381a802a50ae5fe97d5f34",
+      "encoder_sha256": "482013c5a6e2867e17342d5b66a834634de935486a741a3a40614fd5afb3873c",
+      "features_sha256": "72a76daace4c331f5db3679c1da515602e7acf1084cdeeafa21768b9d3e6a06d",
+      "labels_sha256": "186361171a139f8617d3ce725b06a01cbc9ae9eac739098b93dc6261ee7aacbe",
+      "shape": [
+        50000,
+        512
+      ],
+      "norm_min": 0.9999998211860657,
+      "norm_max": 1.0000001192092896,
+      "parity_images": 4,
+      "parity_max_abs_error": 0.0
+    },
+    {
+      "method": "19_byol",
+      "source_sha256": "85c2d6427079fcfd280f09c2fff40bdebe0ec78a03b45a337cbf0d87bc090cd7",
+      "encoder_sha256": "fe095fcd0c3912fbb17abd81add4926b3f7375ccf58c9ad7fa3e985ec7c6b4dd",
+      "features_sha256": "af1caabada4cad1ec1b9c8367f5b5cece0f4ef9859542029c1452044c0381cf4",
+      "labels_sha256": "186361171a139f8617d3ce725b06a01cbc9ae9eac739098b93dc6261ee7aacbe",
+      "shape": [
+        50000,
+        2048
+      ],
+      "norm_min": 0.9999998211860657,
+      "norm_max": 1.0000001192092896,
+      "parity_images": 4,
+      "parity_max_abs_error": 0.0
+    }
+  ]
+}
