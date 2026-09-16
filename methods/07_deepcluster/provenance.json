@@ -10,7 +10,7 @@
   },
   "scope": "The AlexNet-BN path is ported: each epoch, the whole training set's fc7 features are extracted, reduced by PCA + whitening (pca_dim) and clustered by k-means (k clusters); the cluster assignments become pseudo-labels that a reset classification head is trained to predict (cross-entropy). The backbone is an AlexNet-BN with a fixed 2-channel Sobel front-end. The capture's unified ViT-B/16 Step 2 (models/vit_deepcluster.py, arch: vit) is also ported additively: the same ViT-B/16 backbone every method shares with a reset-each-epoch linear head, self-labelled by the same per-epoch faiss k-means (CLS features, PCA-whitening) and trained with cross-entropy, AdamW + warmup/cosine + AMP, milestone checkpoints; because it reuses the faiss clustering it is GPU / x86_64-linux only, the same as the native path, which is byte-for-byte unchanged.",
   "dependency_decision": "The clustering uses faiss -- the paper-target backend the capture and the original DeepCluster repo use. The capture ships faiss as required (require_faiss: true; config comment: 'Paper-target runs must not use the slow sklearn fallback') and documents its sklearn fallback as 'not the official DeepCluster protocol'. This port commits to faiss for faithful reproducibility (user decision) and drops the sklearn fallback, so a missing faiss errors loudly. faiss-gpu==1.14.3 (the capture's pinned version) ships only a linux-x86_64 abi3 wheel, so this is the first ported method that is GPU / x86_64-linux only: faiss-gpu lives in requirements.lock.cu130.txt, and the cross-platform requirements.lock.txt carries the torch + timm parts (it is not, by itself, a runnable pretrain environment, since the clustering needs faiss). Verified: faiss-gpu==1.14.3 installs on py3.12 and coexists with torch 2.13.0+cu130 on an NVIDIA Tesla T4 (both use the GPU in one process). The unified ViT-B/16 Step 2 (arch: vit) reuses this same faiss clustering, so it is GPU / x86_64-linux only too.",
-  "encoder": "encoder.pt is the backbone: the AlexNet-BN backbone (features.* + classifier.*, i.e. conv1-5 + fc6/fc7) on the native path, or the ViT trunk (backbone.*) on arch: vit. The reset-each-epoch top_layer (the k-way pseudo-label head) and the native Sobel front-end are excluded (the Sobel filter is deterministic and rebuilt on load). get_features returns the 4096-d fc7 feature (AlexNet) or the CLS embedding (ViT); extract_encoder keeps the union of the two backbone prefixes, and the archs never share a checkpoint.",
+  "encoder": "encoder.pt preserves the AlexNet-BN features.*, classifier.* and actual frozen sobel_layer.* tensors, or backbone.* for the ViT path. The reset-each-epoch top_layer is excluded. The native model initialization changes the Sobel convolution values, so frozen does not mean reconstructible. Exports lacking Sobel tensors must be regenerated from a full checkpoint; loading refuses missing backbone state.",
   "linear_eval": "Reads the trained encoder.pt and probes the backbone's 4096-d fc7 feature, a genuine learned representation, so the number is comparable. Follows the lab's shared ARSSL probe (mean-centre + L2-normalise, single linear layer, SGD momentum + cosine, top1/top5) rather than the capture's own per-layer probe, so the number is comparable across the ported methods.",
   "rewritten_during_the_port": [
     "the unified ViT-B/16 Step 2 (arch: vit) is ported additively (models/vit_deepcluster.py, train_pretrain_vit_deepcluster.py, configs/pretrain_vit.yaml), port-authored from the capture's train_step2_vit.py + models/vit_deepcluster.py; it is a from-scratch timm ViT-B/16 + a reset-each-epoch head, reuses the port's faiss extract_features_for_clustering + run_kmeans and the DeepClusterDataset, and adds timm as a lazy dependency (the native AlexNet-BN path never imports it)",
@@ -22,5 +22,15 @@
     "the training loop drops the upstream DistributedDataParallel and TensorBoard so the same step runs on a CPU or a GPU unchanged, single-process fp32",
     "faiss clustering is not bit-identical to a different backend (the capture's own faiss and sklearn paths already differ); the shipped config uses the same faiss path, so a full run reproduces the paper-target backend",
     "DATA_ROOT is the dataset root; the pretrain stage reads its train/ subdirectory (unified data-root convention via adapterlib.dataset_split_dir)."
-  ]
+  ],
+  "step1_native_artifact": {
+    "sha256": "985c44c6fc46f0f3bdd38e1fa4cec28a7d528f6e6b60cd38c5de04738f5cbb11",
+    "availability": "user_supplied",
+    "acquisition": "Request the lab-trained Step-1 checkpoint matching this SHA-256 from the authors. No public download URL for these exact bytes is verified. Keep encoder.pt and export.json together.",
+    "checkpoint_epoch_stored": 499,
+    "state_key": "state_dict",
+    "strip_prefix": "",
+    "feature_options": {},
+    "selection_evidence": "The recorded native Step-1 evaluation references this checkpoint. Stored epoch and configuration were inspected with weights_only=True; SHA-256 was measured from the actual file. Feature parity must be verified against the native evaluation before use."
+  }
 }

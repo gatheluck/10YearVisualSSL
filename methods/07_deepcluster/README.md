@@ -45,8 +45,9 @@ this same faiss clustering, so it is GPU / x86_64-linux only too.
 
 `encoder.pt` is the **AlexNet-BN backbone** (`features.*` + `classifier.*`, i.e.
 conv1–5 + fc6/fc7). The reset-each-epoch `top_layer` (the k-way pseudo-label head)
-and the fixed Sobel front-end are excluded (the Sobel filter is deterministic and
-rebuilt on load). The round trip (write it, load it back into a rebuilt model,
+is excluded. Actual frozen Sobel weights are retained: the full model initializer
+changes their values, so rebuilding the layer does not reproduce a checkpoint.
+Old exports missing Sobel tensors must be regenerated from the full checkpoint. The round trip (write it, load it back into a rebuilt model,
 compare the weights) is tested.
 
 `linear_eval` reads this `encoder.pt`: the representation is the model this port

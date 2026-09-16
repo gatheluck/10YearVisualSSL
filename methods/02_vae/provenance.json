@@ -12,5 +12,23 @@
     "data/__init__.py": "same",
     "models/__init__.py": "same",
     "train_pretrain_cnn.py": "main() split into parse_args() and run(args, config); make_deterministic() called; the config may be passed in rather than read from a file, so the adapter can redirect the output path"
+  },
+  "step1_native_artifact": {
+    "sha256": "c3b736c76a6c77a109d7151b03505da34343748a6ae85d56ac3510500d88cd00",
+    "availability": "user_supplied",
+    "acquisition": "Request the lab-trained Step-1 checkpoint matching this SHA-256 from the authors. No public download URL for these exact bytes is verified. Keep encoder.pt and export.json together.",
+    "checkpoint_epoch_stored": 300,
+    "state_key": "model_state_dict",
+    "strip_prefix": "",
+    "feature_options": {
+      "config_overrides": {
+        "train": {
+          "latent_dim": 50,
+          "img_size": 224
+        }
+      },
+      "resize_short_side": 256
+    },
+    "selection_evidence": "The recorded native Step-1 evaluation references this checkpoint. Stored epoch and configuration were inspected with weights_only=True; SHA-256 was measured from the actual file. Feature parity must be verified against the native evaluation before use."
   }
 }

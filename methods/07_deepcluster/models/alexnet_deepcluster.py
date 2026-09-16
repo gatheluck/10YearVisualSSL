@@ -8,9 +8,9 @@ Differences from standard AlexNet (as in the original DeepCluster repo):
     dimension is the number of clusters k).
   - The feature used for clustering / linear eval is fc7 (4096-d).
 
-`encoder.pt` is the backbone (`features.*` + `classifier.*`); the `top_layer`
-(the reset-each-epoch k-way head) and the fixed `sobel_layer` are excluded (the
-Sobel filter is rebuilt deterministically on load).
+`encoder.pt` preserves the backbone and Sobel front-end. Although frozen, the
+front-end is initialized by the full model and cannot be reconstructed from
+its name. Only the reset-each-epoch `top_layer` is excluded.
 """
 
 from __future__ import annotations

@@ -1,0 +1,27 @@
+{
+  "targets": [
+    {
+      "label": "verify profile before imports",
+      "file": "methods/24_beit/feature_provider.py",
+      "old": "    native_options = provider_support.load_native_options(\n        encoder_path, METHOD_NAME, {'config_overrides', 'resize_short_side', 'interpolation'})",
+      "new": "    native_options = {}",
+      "tests": [
+        "tests.test_method_24_beit_native_options.TestNativeProfile.test_rejects_unknown_option_before_loading_model"
+      ]
+    },
+    {
+      "label": "native interpolation applied",
+      "file": "methods/24_beit/feature_provider.py",
+      "old": "provider_support.configure_native_resize(_dataset.transform, native_options)",
+      "new": "pass",
+      "tests": [
+        "tests.test_method_24_beit_native_options.TestNativeProfile.test_profile_reaches_model_inference_and_preserves_defaults"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-09-16, Python 3.10 / torch 2.5.1+cu124; passing baselines and isolated CPU fixtures",
+    "killed": 2,
+    "total": 2
+  }
+}

@@ -72,9 +72,9 @@ WORK = "work"
 # The backbone. Native AlexNet-BN lives under features.* + classifier.*; the ViT
 # Step-2 trunk lives under backbone.*. The two archs never share a checkpoint
 # (their namespaces are disjoint), so the union keeps the right weights for
-# either. The reset-each-epoch top_layer and the native Sobel front-end are
-# excluded from both.
-ENCODER_PREFIXES = ("features.", "classifier.", "backbone.")
+# either. Exclude the reset-each-epoch top_layer, but preserve native Sobel
+# tensors: model initialization changes their values despite frozen gradients.
+ENCODER_PREFIXES = ("features.", "classifier.", "backbone.", "sobel_layer.")
 
 PRETRAIN_METRIC_NAMES = {
     "final_loss": "final_pretext_loss",
@@ -242,7 +242,7 @@ def load_encoder(state_dict: dict, config: dict):
     if absent:
         raise RuntimeError(
             f"encoder.pt is missing backbone weights: {absent[:5]}. The "
-            "top_layer and Sobel front-end are expected to be missing; the "
+            "top_layer is expected to be missing; the Sobel front-end and "
             "backbone is not")
     return model
 

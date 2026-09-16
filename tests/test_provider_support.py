@@ -171,3 +171,24 @@ class TestNativeResize(unittest.TestCase):
             provider_support.configure_native_resize(T.Compose([T.CenterCrop(224)]), {'resize_short_side': 256})
         with self.assertRaises(ValueError):
             provider_support.configure_native_resize(transform, {'resize_short_side': 0})
+
+
+class TestNativeConfig(unittest.TestCase):
+    def test_nested_override_preserves_defaults_and_input(self):
+        import provider_support as ps
+        cfg = {'train': {'width': 20, 'size': 28}, 'model': {'pool': 'avg'}}
+        result = ps.configure_native_config(cfg, {'config_overrides': {'train': {'width': 50}}})
+        self.assertEqual(result, {'train': {'width': 50, 'size': 28}, 'model': {'pool': 'avg'}})
+        self.assertEqual(cfg['train']['width'], 20)
+        result['model']['pool'] = 'cls'
+        self.assertEqual(cfg['model']['pool'], 'avg')
+        self.assertEqual(ps.configure_native_config(cfg, {}), cfg)
+
+    def test_rejects_unknown_decoys_and_incompatible_types(self):
+        import provider_support as ps
+        cfg = {'train': {'width': 20}}
+        for override in ({'train_extra': {}}, {'train': {'width_extra': 50}},
+                         {'train': {'width': True}}, {'train': {'width': '50'}},
+                         {'train': []}, [], None):
+            with self.subTest(override=override), self.assertRaises(ValueError):
+                ps.configure_native_config(cfg, {'config_overrides': override})

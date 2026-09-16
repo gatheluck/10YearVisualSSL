@@ -234,7 +234,8 @@ class TestExtractingTheEncoder(unittest.TestCase):
         got = adapter.extract_encoder({
             "features.0.weight": 1, "classifier.1.weight": 2,
             "top_layer.weight": 3, "sobel_layer.sobel.weight": 4})
-        self.assertEqual(set(got), {"features.0.weight", "classifier.1.weight"})
+        self.assertEqual(got, {"features.0.weight": 1, "classifier.1.weight": 2,
+                               "sobel_layer.sobel.weight": 4})
 
     def test_the_top_layer_is_left_out(self):
         got = adapter.extract_encoder({"features.3.weight": 1,

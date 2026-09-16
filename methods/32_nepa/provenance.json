@@ -19,5 +19,16 @@
     "main() split into build_parser()/run(args, config) returning the pretext loss and epoch count",
     "the run is seeded through make_deterministic (python, numpy, torch); the DataLoader gets a seeded generator",
     "the training loop drops the upstream DistributedDataParallel, the bf16 autocast and TensorBoard/tqdm so the same step runs on a CPU or a GPU unchanged, single-process fp32; the cosine LR schedule with warmup and the batch-linear peak-LR scaling are kept"
-  ]
+  ],
+  "step1_native_artifact": {
+    "sha256": "a7829af8790b6f400fe3f23f1b06e581a34e1521f3829c12ebddc2e0d63eb1d1",
+    "availability": "user_supplied",
+    "acquisition": "Request the lab-trained Step-1 checkpoint matching this SHA-256 from the authors. No public download URL for these exact bytes is verified. Keep encoder.pt and export.json together.",
+    "checkpoint_epoch_stored": 1599,
+    "state_key": "ema_state_dict",
+    "strip_prefix": "",
+    "feature_options": {},
+    "selection_evidence": "The recorded native Step-1 evaluation references this checkpoint. Stored epoch and configuration were inspected with weights_only=True; SHA-256 was measured from the actual file. Feature parity must be verified against the native evaluation before use.",
+    "add_prefix": "ema_model."
+  }
 }

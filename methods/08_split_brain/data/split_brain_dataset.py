@@ -61,12 +61,17 @@ def load_ab_codebook() -> np.ndarray:
     return pts.astype(np.float64)
 
 
-def rgb2lab(img_rgb) -> np.ndarray:
+def rgb2lab(img_rgb, *, native_eval=False) -> np.ndarray:
     """RGB (H x W x 3 uint8, or PIL image) -> CIE Lab (H x W x 3 float32)."""
-    rgb = np.asarray(img_rgb, dtype=np.float64) / 255.0
+    dtype = np.float32 if native_eval else np.float64
+    rgb = np.asarray(img_rgb, dtype=dtype) / 255.0
     lin = np.where(rgb > 0.04045, ((rgb + 0.055) / 1.055) ** 2.4, rgb / 12.92)
-    xyz = (lin @ _RGB2XYZ.T) / _WHITE_D65
-    f = np.where(xyz > 0.008856, np.cbrt(xyz), (7.787 * xyz) + (16.0 / 116.0))
+    xyz = (lin @ _RGB2XYZ.astype(dtype).T) / _WHITE_D65.astype(dtype)
+    if native_eval:
+        f = np.where(xyz > 216.0 / 24389.0, np.cbrt(xyz),
+                     ((24389.0 / 27.0) * xyz + 16.0) / 116.0)
+    else:
+        f = np.where(xyz > 0.008856, np.cbrt(xyz), (7.787 * xyz) + (16.0 / 116.0))
     L = 116.0 * f[..., 1] - 16.0
     a = 500.0 * (f[..., 0] - f[..., 1])
     b = 200.0 * (f[..., 1] - f[..., 2])
@@ -91,8 +96,8 @@ def quantize_ab(ab_channels: np.ndarray) -> np.ndarray:
     return np.argmin(d2, axis=1).reshape(H, W).astype(np.int64)
 
 
-def _to_lab_tensors(rgb_pil):
-    lab = rgb2lab(np.asarray(rgb_pil))
+def _to_lab_tensors(rgb_pil, *, native_eval=False):
+    lab = rgb2lab(np.asarray(rgb_pil), native_eval=native_eval)
     l_channel, ab_channels = lab[..., 0], lab[..., 1:]
     l_input = torch.from_numpy((l_channel - 50.0) / 50.0).float().unsqueeze(0)
     ab_input = torch.from_numpy(ab_channels / 128.0).permute(2, 0, 1).float()
@@ -146,5 +151,6 @@ class SplitBrainProbeDataset(Dataset):
     def __getitem__(self, index: int) -> Tuple:
         rgb_img, label = self.base[index]
         rgb_img = self.transform(rgb_img.convert("RGB"))
-        l_input, ab_input, _, _ = _to_lab_tensors(rgb_img)
+        l_input, ab_input, _, _ = _to_lab_tensors(
+            rgb_img, native_eval=getattr(self, "native_eval", False))
         return l_input, ab_input, label

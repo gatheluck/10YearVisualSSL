@@ -24,6 +24,9 @@ Imports are bare module names resolved through this method's directory, as the
 adapter itself does. That is safe because the driver runs each method in
 isolation; do not rely on this module and another method's `adapter`/`models`
 coexisting in one interpreter.
+Native exports carry a hash-checked feature_options record in export.json.
+Those explicit options override the defaults described above for the selected
+checkpoint; metadata records them. Keep the sidecar with encoder.pt.
 """
 
 from __future__ import annotations
@@ -48,13 +51,16 @@ def extract_val_features(*, encoder_path: str, data_root: str, split: str,
     output (mean of I-JEPA target-ViT patch tokens; no CLS token), labels is
     (N,) ImageFolder class indices, meta describes the run."""
     import torch
+    import provider_support
+    native_options = provider_support.load_native_options(
+        encoder_path, METHOD_NAME, {'config_overrides', 'resize_short_side', 'interpolation'})
 
     if str(METHOD_DIR) not in sys.path:
         sys.path.insert(0, str(METHOD_DIR))
     adapter = importlib.import_module("adapter")
     ev = importlib.import_module("evaluate_linear_ijepa")
 
-    cfg = _load_config()
+    cfg = provider_support.configure_native_config(_load_config(), native_options)
     train = cfg["train"]
     image_size = int(train["img_size"])
 
@@ -67,12 +73,14 @@ def extract_val_features(*, encoder_path: str, data_root: str, split: str,
 
     _dataset, loader = ev._build_loader(
         str(data_root), split, image_size, int(batch_size), int(num_workers))
+    provider_support.configure_native_resize(_dataset.transform, native_options)
     feats, labels = ev.extract_features(backbone, loader, device)
 
     feats = feats.numpy()
     labels = labels.numpy()
     meta = {
         "method": METHOD_NAME,
+        "native_feature_options": native_options,
         "representation": "raw",
         "feat_dim": int(feats.shape[1]),
         "count": int(feats.shape[0]),

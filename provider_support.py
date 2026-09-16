@@ -117,3 +117,27 @@ def configure_native_resize(transform, options: dict) -> None:
     transform.transforms[i] = T.Resize(size if size is not None else old.size,
                                       interpolation=modes[mode] if mode else old.interpolation,
                                       max_size=old.max_size, antialias=old.antialias)
+
+
+def configure_native_config(config: dict, options: dict) -> dict:
+    """Apply explicit, type-preserving overrides to existing configuration keys.
+
+    Export and inference share this resolver; ordinary exports retain defaults.
+    Unknown keys fail closed instead of silently selecting another architecture.
+    """
+    import copy
+    def merge(base, override):
+        if not isinstance(override, dict):
+            raise ValueError('config overrides must be a mapping')
+        result = copy.deepcopy(base)
+        for key, value in override.items():
+            if key not in base:
+                raise ValueError(f'unknown config override: {key}')
+            if isinstance(base[key], dict):
+                result[key] = merge(base[key], value)
+            elif type(value) is not type(base[key]):
+                raise ValueError(f'config override type mismatch: {key}')
+            else:
+                result[key] = copy.deepcopy(value)
+        return result
+    return merge(config, options.get('config_overrides', {}))

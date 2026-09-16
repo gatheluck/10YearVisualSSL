@@ -35,6 +35,9 @@ interpreter. `evaluate_linear` is defined by four methods, so the test suite and
 the driver's in-process path would otherwise hand this provider another method's
 copy; the isolated worker subprocess only ever holds one method, so it is a
 no-op there.
+Native exports carry a hash-checked feature_options record in export.json.
+Those explicit options override the defaults described above for the selected
+checkpoint; metadata records them. Keep the sidecar with encoder.pt.
 """
 
 from __future__ import annotations
@@ -62,13 +65,16 @@ def extract_val_features(*, encoder_path: str, data_root: str, split: str,
     n_last_blocks=1, avgpool_patchtokens=0 recipe), labels is (N,) ImageFolder
     class indices, meta describes the run."""
     import torch
+    import provider_support
+    native_options = provider_support.load_native_options(
+        encoder_path, METHOD_NAME, {'config_overrides', 'resize_short_side', 'interpolation'})
     from torchvision import datasets, transforms
 
     import provider_support
     adapter = provider_support.import_sibling(METHOD_DIR, "adapter")
     ev = provider_support.import_sibling(METHOD_DIR, "evaluate_linear")
 
-    cfg = _load_config()
+    cfg = provider_support.configure_native_config(_load_config(), native_options)
     model = cfg["model"]
     n_last_blocks = int(model["n_last_blocks"])
     avgpool_patchtokens = int(model["avgpool_patchtokens"])
@@ -90,6 +96,7 @@ def extract_val_features(*, encoder_path: str, data_root: str, split: str,
         transforms.ToTensor(),
         transforms.Normalize(ev._IMAGENET_MEAN, ev._IMAGENET_STD),
     ])
+    provider_support.configure_native_resize(val_tf, native_options)
     dataset = datasets.ImageFolder(str(Path(data_root) / split),
                                    transform=val_tf)
     loader = torch.utils.data.DataLoader(
@@ -105,6 +112,7 @@ def extract_val_features(*, encoder_path: str, data_root: str, split: str,
     labels = labels.numpy()
     meta = {
         "method": METHOD_NAME,
+        "native_feature_options": native_options,
         "representation": "raw",
         "feat_dim": int(feats.shape[1]),
         "count": int(feats.shape[0]),
@@ -114,7 +122,7 @@ def extract_val_features(*, encoder_path: str, data_root: str, split: str,
         "avgpool_patchtokens": avgpool_patchtokens,
         "preprocessing": ("iBOT eval: bicubic resize to 256 + centre crop to "
                           "224, [0,1], ImageNet mean/std; feature is the "
-                          "teacher ViT's single final-block CLS token "
-                          "(n_last_blocks=1, avgpool_patchtokens=0)"),
+                          f"teacher ViT CLS tokens from {n_last_blocks} final blocks "
+                          f"(avgpool_patchtokens={avgpool_patchtokens})"),
     }
     return feats, labels, meta

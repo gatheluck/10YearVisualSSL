@@ -1,0 +1,18 @@
+{
+  "targets": [
+    {
+      "label": "verify profile before imports",
+      "file": "methods/29_ijepa/feature_provider.py",
+      "old": "    native_options = provider_support.load_native_options(\n        encoder_path, METHOD_NAME, {'config_overrides', 'resize_short_side', 'interpolation'})",
+      "new": "    native_options = {}",
+      "tests": [
+        "tests.test_method_29_ijepa_native_options.TestNativeProfile.test_rejects_unknown_option_before_loading_model"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-09-16, Python 3.10 / torch 2.5.1+cu124; passing baselines and isolated CPU fixtures",
+    "killed": 1,
+    "total": 1
+  }
+}

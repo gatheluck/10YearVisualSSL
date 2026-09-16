@@ -1,0 +1,45 @@
+{
+  "targets": [
+    {
+      "label": "verify profile before imports",
+      "file": "methods/08_split_brain/feature_provider.py",
+      "old": "    native_options = provider_support.load_native_options(\n        encoder_path, METHOD_NAME, {'config_overrides', 'resize_short_side', 'interpolation', 'lab_mode'})",
+      "new": "    native_options = {}",
+      "tests": [
+        "tests.test_method_08_split_brain_native_options.TestNativeProfile.test_rejects_unknown_option_before_loading_model"
+      ]
+    },
+    {
+      "label": "native Lab wiring",
+      "file": "methods/08_split_brain/feature_provider.py",
+      "old": "_dataset.native_eval = native_options.get('lab_mode') == 'numpy_float32'",
+      "new": "_dataset.native_eval = False",
+      "tests": [
+        "tests.test_method_08_split_brain_native_options.TestNativeProfile.test_profile_reaches_model_inference_and_preserves_defaults"
+      ]
+    },
+    {
+      "label": "native Lab precision",
+      "file": "methods/08_split_brain/data/split_brain_dataset.py",
+      "old": "dtype = np.float32 if native_eval else np.float64",
+      "new": "dtype = np.float64",
+      "tests": [
+        "tests.test_method_08_split_brain_native_options.TestNativeLab"
+      ]
+    },
+    {
+      "label": "Lab mode validation",
+      "file": "methods/08_split_brain/feature_provider.py",
+      "old": "if native_options.get('lab_mode') not in (None, 'numpy_float32'):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_08_split_brain_native_options.TestNativeLab.test_unknown_lab_mode_is_refused_before_model_import"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-09-16, Python 3.10 / torch 2.5.1+cu124; passing baselines and isolated CPU fixtures",
+    "killed": 4,
+    "total": 4
+  }
+}

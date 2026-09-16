@@ -146,3 +146,12 @@ class TestBatch(unittest.TestCase):
         p.write_text(json.dumps(record))
         command = dict(self.mod.plan(self.sources, self.methods, self.out, 'python'))['example_a']
         self.assertEqual(json.loads(command[command.index('--feature-options') + 1]), {'pool': 'cls'})
+
+    def test_added_prefix_reaches_worker_without_affecting_other_methods(self):
+        p = self.methods / 'example_a/provenance.json'
+        record = json.loads(p.read_text())
+        record['step1_native_artifact']['add_prefix'] = 'target.'
+        p.write_text(json.dumps(record))
+        jobs = dict(self.mod.plan(self.sources, self.methods, self.out, 'python'))
+        self.assertEqual(jobs['example_a'][jobs['example_a'].index('--add-prefix') + 1], 'target.')
+        self.assertNotIn('--add-prefix', jobs['example_b'])
