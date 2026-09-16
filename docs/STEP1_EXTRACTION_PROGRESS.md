@@ -165,3 +165,61 @@ conv5 global average: 256 dimensions; current port encoder: 4,096 dimensions).
 Barlow Twins' full checkpoint requires a reviewed safe-loading solution for an
 optimizer callable; its bare backbone's endpoint still needs proof. Neither is
 counted as extracted here.
+
+## Four transformer protocols (next grouped branch)
+
+Branch `codex/step1-next-model-audit` starts at PR #172 tip `3f43397`.
+MoCo v3, DINO, MAE and SimMIM now have checkpoint-specific export profiles;
+see `STEP1_WEIGHTS.md`. Preserve `encoder.pt` together with `export.json`.
+Ordinary encoder files keep their existing provider defaults. Exact checkpoint
+bytes are pinned as user-supplied artifacts; no public download URL is verified.
+
+The shared sidecar/CLI tests were observed RED before implementation, followed
+by GREEN. The resize and DINO concatenation tests also failed before their
+helpers existed, and the four provenance tests failed before records were
+added. The initial provider rejection tests additionally exposed heavy model
+construction/import collisions when the profile was ignored; they were improved
+to require rejection before any model import. Positive tests now exercise the
+actual provider entry points with tiny backbones, including default preservation,
+MAE pool selection and DINO concatenation. Eighteen deliberate mutations were
+all detected with passing baselines; these include provider wiring, CLS token
+selection, resize overrides, sidecar identity and export/batch forwarding.
+The tensor-enabled focused suite passed 48 tests without skips. The first full
+base run found unregistered mutation measurements; the results are now recorded
+in their specifications rather than weakening the completeness check.
+
+GPU parity and full-val extraction are tracked separately from code support.
+The reserved-node job uses a read-only mount for original files and an isolated
+writable output directory. No weights, feature arrays, account identifiers,
+private paths or raw execution logs belong in this repository.
+
+### All four extractions completed (2026-09-16)
+
+| Model | Native checkpoint epoch (zero-based) | Full val output |
+|---|---:|---|
+| MoCo v3 | 299 | 50,000 x 768 |
+| DINO | 99 | 50,000 x 1,536 |
+| MAE | 1,599 | 50,000 x 1,024 |
+| SimMIM | 799 | 50,000 x 1,024 |
+
+All four strictly loaded native checkpoints passed independent four-image H200
+comparisons with maximum raw feature error **0.0**. Captured reference source
+hashes matched the live originals. The reserved job exited 0. Each full output
+is finite float32, L2-normalized within 1e-6, and has sorted labels with exactly
+50 samples per class across 1,000 classes. All label-file hashes match the
+preceding eleven new extractions. Output hashes and parity metadata are in
+`STEP1_VIT_RESULTS_20260916.json`.
+
+Collection progress is now **28/51 complete, 23 uncollected**, including all
+thirteen user-confirmed existing methods. Do not repeat those extractions.
+Data remains in the isolated cluster workspace pending the visualization
+team's destination. The consolidated manifest and alignment with the user's
+older collection still require separate checks. This GPU runtime uses torch
+2.5.1+cu124 and differs from the repository's dependency locks; four-image
+parity does not prove equality for every possible input. Parent PR #172 and
+its CI remain separate from this grouped child branch.
+
+Final base suite after registering mutation evidence: 3,330 tests, exit 0,
+with 1,382 dependency-gated skips. Those skips are not GPU test passes; the
+separate focused tensor suite and the full native/GPU extraction checks above
+provide the validation for these four changes.

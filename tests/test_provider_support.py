@@ -110,3 +110,64 @@ class TestImportSibling(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class TestNativeFeatureOptions(unittest.TestCase):
+    def setUp(self):
+        import hashlib, json
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.encoder = Path(self.tmp.name) / 'encoder.pt'
+        self.encoder.write_bytes(b'encoder fixture')
+        self.record = {'method': 'example', 'encoder_sha256': hashlib.sha256(self.encoder.read_bytes()).hexdigest(),
+                       'feature_options': {'pool': 'cls'}}
+        self.sidecar = self.encoder.with_name('export.json')
+        self.json = json
+
+    def read(self):
+        self.sidecar.write_text(self.json.dumps(self.record))
+        return provider_support.load_native_options(self.encoder, 'example', {'pool'})
+
+    def test_missing_sidecar_keeps_legacy_defaults(self):
+        self.assertEqual(provider_support.load_native_options(self.encoder, 'example', {'pool'}), {})
+
+    def test_verified_options_are_returned(self):
+        self.assertEqual(self.read(), {'pool': 'cls'})
+
+    def test_wrong_encoder_is_rejected(self):
+        self.encoder.write_bytes(b'different encoder')
+        with self.assertRaisesRegex(ValueError, 'hash'): self.read()
+
+    def test_wrong_method_is_rejected(self):
+        self.record['method'] = 'example_extra'
+        with self.assertRaisesRegex(ValueError, 'method'): self.read()
+
+    def test_unknown_options_are_not_silently_ignored(self):
+        self.record['feature_options'] = {'pool_extra': 'cls'}
+        with self.assertRaisesRegex(ValueError, 'unsupported'): self.read()
+
+    def test_non_mapping_options_are_rejected(self):
+        self.record['feature_options'] = []
+        with self.assertRaises(ValueError): self.read()
+
+    def test_older_export_without_options_keeps_defaults(self):
+        del self.record['feature_options']
+        self.assertEqual(self.read(), {})
+
+class TestNativeResize(unittest.TestCase):
+    def test_override_changes_only_resize_and_rejects_unknown_mode(self):
+        try:
+            from torchvision import transforms as T
+        except ImportError:
+            self.skipTest('torchvision unavailable')
+        transform = T.Compose([T.Resize(256, interpolation=T.InterpolationMode.BICUBIC), T.CenterCrop(224), T.ToTensor()])
+        tail = transform.transforms[1:]
+        provider_support.configure_native_resize(transform, {'resize_short_side': 219, 'interpolation': 'bilinear'})
+        self.assertEqual(transform.transforms[0].size, 219)
+        self.assertEqual(transform.transforms[0].interpolation, T.InterpolationMode.BILINEAR)
+        self.assertEqual(transform.transforms[1:], tail)
+        with self.assertRaises(ValueError):
+            provider_support.configure_native_resize(transform, {'interpolation': 'typo'})
+        with self.assertRaises(ValueError):
+            provider_support.configure_native_resize(T.Compose([T.CenterCrop(224)]), {'resize_short_side': 256})
+        with self.assertRaises(ValueError):
+            provider_support.configure_native_resize(transform, {'resize_short_side': 0})

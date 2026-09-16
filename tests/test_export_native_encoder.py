@@ -68,13 +68,15 @@ class TestNativeExport(unittest.TestCase):
             cmd = [sys.executable, str(TOOL), '--source', str(source), '--sha256', sha,
                    '--method-dir', str(method), '--config', str(config), '--out', str(out),
                    '--state-key', 'state_dict', '--strip-prefix', 'module.',
-                   '--module-map', json.dumps({'native': 'weight'})]
+                   '--module-map', json.dumps({'native': 'weight'}),
+                   '--feature-options', json.dumps({'pool': 'cls'})]
             r = subprocess.run(cmd, capture_output=True, text=True)
             self.assertEqual(r.returncode, 0, r.stderr)
             state = torch.load(out / 'encoder.pt', weights_only=True)
             self.assertEqual(set(state), {'weight'})
             self.assertTrue(torch.equal(state['weight'], torch.ones(1, 2)))
             self.assertEqual(json.loads((out / 'export.json').read_text())['source_sha256'], sha)
+            self.assertEqual(json.loads((out / 'export.json').read_text())['feature_options'], {'pool': 'cls'})
             self.assertEqual(hashlib.sha256(source.read_bytes()).hexdigest(), sha)
             # Existing output is immutable; rerunning cannot replace it.
             self.assertNotEqual(subprocess.run(cmd, capture_output=True).returncode, 0)

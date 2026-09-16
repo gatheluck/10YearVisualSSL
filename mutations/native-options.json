@@ -1,0 +1,90 @@
+{
+  "targets": [
+    {
+      "label": "1 if set(options) - supported:",
+      "file": "provider_support.py",
+      "old": "if set(options) - supported:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_provider_support.TestNativeFeatureOptions.test_unknown_options_are_not_silently_ignored"
+      ]
+    },
+    {
+      "label": "2 if record.get('method') != method:",
+      "file": "provider_support.py",
+      "old": "if record.get('method') != method:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_provider_support.TestNativeFeatureOptions.test_wrong_method_is_rejected"
+      ]
+    },
+    {
+      "label": "3 if digest.hexdigest() != record.get('encoder_sha256'):",
+      "file": "provider_support.py",
+      "old": "if digest.hexdigest() != record.get('encoder_sha256'):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_provider_support.TestNativeFeatureOptions.test_wrong_encoder_is_rejected"
+      ]
+    },
+    {
+      "label": "4 if not isinstance(options, dict):",
+      "file": "provider_support.py",
+      "old": "if not isinstance(options, dict):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_provider_support.TestNativeFeatureOptions.test_non_mapping_options_are_rejected"
+      ]
+    },
+    {
+      "label": "5 return options",
+      "file": "provider_support.py",
+      "old": "return options",
+      "new": "return {}",
+      "tests": [
+        "tests.test_provider_support.TestNativeFeatureOptions.test_verified_options_are_returned"
+      ]
+    },
+    {
+      "label": "6 size if size is not None else old.size",
+      "file": "provider_support.py",
+      "old": "size if size is not None else old.size",
+      "new": "old.size",
+      "tests": [
+        "tests.test_provider_support.TestNativeResize"
+      ]
+    },
+    {
+      "label": "7 modes[mode] if mode else old.interpolation",
+      "file": "provider_support.py",
+      "old": "modes[mode] if mode else old.interpolation",
+      "new": "old.interpolation",
+      "tests": [
+        "tests.test_provider_support.TestNativeResize"
+      ]
+    },
+    {
+      "label": "8 'feature_options': args.feature_options,",
+      "file": "bin/export-native-encoder.py",
+      "old": "'feature_options': args.feature_options,",
+      "new": "'feature_options': {},",
+      "tests": [
+        "tests.test_export_native_encoder.TestNativeExport"
+      ]
+    },
+    {
+      "label": "9 if 'feature_options' in artifact:",
+      "file": "bin/prepare-native-encoders.py",
+      "old": "if 'feature_options' in artifact:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_prepare_native_encoders.TestBatch.test_feature_options_reach_the_worker"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-09-16, Python 3.10 / torch 2.5.1+cu124; baseline passed, isolated CPU fixtures",
+    "killed": 9,
+    "total": 9
+  }
+}

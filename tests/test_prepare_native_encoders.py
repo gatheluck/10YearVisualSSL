@@ -138,3 +138,11 @@ class TestBatch(unittest.TestCase):
         command = jobs['example_a']
         self.assertEqual(json.loads(command[command.index('--module-map') + 1]),
                          {'conv': 'encoder.0'})
+
+    def test_feature_options_reach_the_worker(self):
+        p = self.methods / 'example_a/provenance.json'
+        record = json.loads(p.read_text())
+        record['step1_native_artifact']['feature_options'] = {'pool': 'cls'}
+        p.write_text(json.dumps(record))
+        command = dict(self.mod.plan(self.sources, self.methods, self.out, 'python'))['example_a']
+        self.assertEqual(json.loads(command[command.index('--feature-options') + 1]), {'pool': 'cls'})

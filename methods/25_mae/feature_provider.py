@@ -17,6 +17,10 @@ an image into a vector stays in one place:
 - features are the raw encoder output (`extract_features`), *before* the probe's
   mean-centre + L2-normalise. Raw features are what the visualisation asked for.
 
+Native exports may select an explicit protocol in the adjacent export.json.
+The provider verifies its method and encoder hash before applying options;
+ordinary encoder files retain the defaults described above.
+
 Imports are bare module names resolved through this method's directory, as the
 adapter itself does. That is safe because the driver runs each method in
 isolation; do not rely on this module and another method's `adapter`/`models`
@@ -45,6 +49,9 @@ def extract_val_features(*, encoder_path: str, data_root: str, split: str,
     encoder output (mean of MAE patch tokens with CLS excluded, under the shipped
     pool), labels is (N,) ImageFolder class indices, meta describes the run."""
     import torch
+    import provider_support
+    options = provider_support.load_native_options(
+        encoder_path, METHOD_NAME, {'resize_short_side', 'interpolation', 'pool'})
 
     if str(METHOD_DIR) not in sys.path:
         sys.path.insert(0, str(METHOD_DIR))
@@ -54,7 +61,9 @@ def extract_val_features(*, encoder_path: str, data_root: str, split: str,
     cfg = _load_config()
     train = cfg["train"]
     image_size = int(train["img_size"])
-    pool = str(train["pool"])
+    pool = options.get("pool", str(train["pool"]))
+    if pool not in ("cls", "avg"):
+        raise ValueError("unsupported pool")
 
     state = torch.load(encoder_path, map_location="cpu", weights_only=True)
     model = adapter.load_encoder(state, cfg)
@@ -65,12 +74,14 @@ def extract_val_features(*, encoder_path: str, data_root: str, split: str,
 
     _dataset, loader = ev._build_loader(
         str(data_root), split, image_size, int(batch_size), int(num_workers))
+    provider_support.configure_native_resize(_dataset.transform, options)
     feats, labels = ev.extract_features(encoder, loader, device)
 
     feats = feats.numpy()
     labels = labels.numpy()
     meta = {
         "method": METHOD_NAME,
+        "native_feature_options": options,
         "representation": "raw",
         "feat_dim": int(feats.shape[1]),
         "count": int(feats.shape[0]),
@@ -79,7 +90,8 @@ def extract_val_features(*, encoder_path: str, data_root: str, split: str,
         "pool": pool,
         "preprocessing": ("MAE eval: bicubic resize to round(img_size / 0.875) "
                           "+ centre crop to img_size, [0,1], ImageNet mean/std; "
-                          f"feature is get_encoder(pool={pool!r}) -- the mean of "
-                          "the patch tokens with CLS excluded"),
+                          f"feature is get_encoder(pool={pool!r})"),
     }
+    if options:
+        meta["preprocessing"] = str(_dataset.transform) + "; native feature options: " + str(options)
     return feats, labels, meta

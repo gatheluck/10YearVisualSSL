@@ -108,3 +108,32 @@ unchanged. BYOL validation uses bicubic resize to `ceil(image_size / 0.875)`,
 then center crop and ImageNet normalization. Visual CPC 2018 validation resizes
 to a source-size square with bilinear interpolation, center crops, applies
 ImageNet normalization and averages patch-encoder features over the grid.
+
+## Checkpoint-specific extraction protocols
+
+MoCo v3, DINO, MAE and SimMIM have pinned lab-checkpoint recipes. The exact
+files are user-supplied: no public URL for these bytes has been verified.
+The existing acquisition command checks SHA-256 before accepting a local file.
+Batch preparation now forwards the recipe's optional `feature_options` to
+`export-native-encoder.py` and records it in `export.json`:
+
+| Method | Recorded native feature | Validation override |
+|---|---|---|
+| MoCo v3 | Base ViT-B CLS, 768 dimensions | Bilinear Resize(256) |
+| DINO | Teacher last four normalized CLS tokens, concatenated; 1,536 dimensions | Existing bicubic Resize(256) |
+| MAE | ViT-L CLS, 1,024 dimensions | Existing bicubic Resize(256) |
+| SimMIM | Swin-B mean pooled tokens, 1,024 dimensions | Bilinear Resize(219), crop 192 |
+
+**Transfer `encoder.pt` and `export.json` together.** Providers validate the
+method name, encoder SHA-256 and supported option names before applying the
+profile. A mismatched file or unknown option fails explicitly. Without this
+sidecar, or with an older record containing no `feature_options`, the provider
+uses its existing defaults (including final-layer DINO CLS and MAE average
+pooling). Removing the sidecar therefore loses the native protocol selection.
+The sidecar is an auditable configuration record, not a signed certificate.
+
+Images retain deterministic center cropping and ImageNet normalization. The
+provider emits raw backbone features before the linear classifier or its
+train-set standardization; use `--representation l2` in the extraction driver
+for the visualization collection. GPU parity and full-val completion are
+recorded separately in `STEP1_EXTRACTION_PROGRESS.md`.

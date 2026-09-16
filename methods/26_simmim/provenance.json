@@ -24,5 +24,21 @@
     "the capture's unified step 2 (ViT-B/16) is added additively, selected by a recipe: unified key in train (absent == the native Swin-B step-1 path, unchanged). Unlike the other ViT Step-2 ports, SimMIM's native backbone is a Swin, so the unified Step 2 is a different backbone: models/simmim_vit.py is ported (a timm ViT-B/16 with pixel-space masking, a learned per-channel mask token, a Linear(embed_dim -> 3*p*p) head and an L1 loss on masked patches). build_vit_encoder threads the ViT dims through timm.create_model (the capture used the fixed vit_base_patch16_224 name) so a small hermetic CPU smoke can run a tiny ViT; it is the single construction path shared by the SimMIM wrapper and the adapter's load_encoder.",
     "train_pretrain_vit_simmim.py is a single-process port of the capture's train_step2_vit.py: the lr is used directly (the capture baked lr=1.5e-4*1024/256=6e-4 into the config), AdamW with the config betas, a linear warmup then cosine decay to min_lr, gradient-norm clipping, and milestone checkpoints (checkpoint_epoch_{N}.pth at save_at_epochs). It reuses resolve_device/make_deterministic from the native trainer; DDP, AMP and TensorBoard are dropped. The pixel-resolution mask comes from get_simmim_dataloader(return_pixel_mask=True), one mask unit = one ViT patch.",
     "this is the only Step-2 port non-additive to the eval: the native probe mean-pools the Swin tokens, but the ViT's representation is its CLS token (the capture's own choice), so evaluate_linear_simmim.py gains a pool argument (cls for the ViT, mean for the Swin), fixed from the recipe by the adapter (adapter.eval_pool). The adapter also gained a recipe: unified branch (disjoint key sets), a ViT load_encoder branch, and milestone encoder_epoch{N}.pt extraction; configs/pretrain_vit.yaml and configs/linear_eval_vit.yaml are added."
-  ]
+  ],
+  "step1_native_artifact": {
+    "filename": "checkpoint_epoch_800.pth",
+    "sha256": "ab40cb952816b59d56db0cea5ce037568267da1a49238a087d29973b0c7b7548",
+    "bytes": 1078922117,
+    "availability": "user_supplied",
+    "instructions": "Request the lab-trained Step-1 checkpoint matching this SHA-256 from the authors. No public download URL for these exact bytes is verified. Keep encoder.pt and export.json together after export.",
+    "checkpoint_epoch_zero_based": 799,
+    "pretraining_seed": 0,
+    "state_key": "state_dict",
+    "strip_prefix": "",
+    "feature_options": {
+      "interpolation": "bilinear",
+      "resize_short_side": 219
+    },
+    "selection_evidence": "The recorded native Step-1 evaluation references this checkpoint. Stored epoch and configuration were inspected with weights_only=True; SHA-256 was measured from the actual file. The feature options reproduce the recorded evaluation endpoint and validation preprocessing."
+  }
 }

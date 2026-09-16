@@ -65,6 +65,7 @@ def main(argv=None):
     parser.add_argument('--state-key', default='')
     parser.add_argument('--strip-prefix', default='')
     parser.add_argument('--module-map', type=json.loads, default={})
+    parser.add_argument('--feature-options', type=json.loads, default={})
     args = parser.parse_args(argv)
     if args.out.exists():
         raise ValueError('output already exists; choose a new directory')
@@ -95,6 +96,7 @@ def main(argv=None):
               'method': args.method_dir.name, 'state_key': args.state_key,
               'strip_prefix': args.strip_prefix, 'config': config,
               'module_map': args.module_map,
+              'feature_options': args.feature_options,
               'torch_version': str(torch.__version__), 'tensor_count': len(state),
               'validation': 'adapter.load_encoder accepted; feature parity not yet measured'}
     (args.out / 'export.json').write_text(json.dumps(record, indent=2) + '\n')
