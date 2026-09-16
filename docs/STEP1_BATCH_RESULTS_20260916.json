@@ -1,0 +1,113 @@
+{
+  "runtime": "Python 3.10.20 / torch 2.5.1+cu124 / NVIDIA H200; not current dependency lock",
+  "representation": "l2",
+  "split": "ImageNet val",
+  "original_access": "read-only mount; reference sources matched live source hashes",
+  "models": [
+    {
+      "method": "10_inst_disc",
+      "source_sha256": "902d2622b7ffee75a4d99a00582a09031008ffe82b0881472aecbf07e0d1c7fe",
+      "encoder_sha256": "91a1329b2c04ebfdda9d6cb5f6d3018c4bdcc0f833e39d5b91b4ea2916bd79ed",
+      "features_sha256": "d2ba9cde73b3fd8b32819c6a81c8976bf5d9a2aa4ba6563b41ed899680eb9190",
+      "labels_sha256": "186361171a139f8617d3ce725b06a01cbc9ae9eac739098b93dc6261ee7aacbe",
+      "shape": [
+        50000,
+        2048
+      ],
+      "norm_min": 0.9999998211860657,
+      "norm_max": 1.0000001192092896,
+      "parity_images": 4,
+      "parity_max_abs_error": 0.0
+    },
+    {
+      "method": "13_mocov1",
+      "source_sha256": "36ea58a02dd8f522c406c5bf54726f99dc26f8c80be40316a6ac4f0f094c0879",
+      "encoder_sha256": "2d69e3984f85720bb22ae7281339a25ec8a62c571f14ba1880539b98d27782cd",
+      "features_sha256": "772d9969283d410fd87157e07251ba031e69581762ddd1d4736ef0ed0ee6d007",
+      "labels_sha256": "186361171a139f8617d3ce725b06a01cbc9ae9eac739098b93dc6261ee7aacbe",
+      "shape": [
+        50000,
+        2048
+      ],
+      "norm_min": 0.9999998807907104,
+      "norm_max": 1.0000001192092896,
+      "parity_images": 4,
+      "parity_max_abs_error": 0.0
+    },
+    {
+      "method": "15_mocov2",
+      "source_sha256": "d3817c5b66ce5680c9c1667591ab60f5baef1584c492dcc222791c053294de39",
+      "encoder_sha256": "f46f8cdc2935ede7f547470aeab96fe56814949d40abf85d1c15254895c06979",
+      "features_sha256": "376b716985a2c5a68ea2036fc90002f3a02815f85a1e7f6233446502dd0dee8e",
+      "labels_sha256": "186361171a139f8617d3ce725b06a01cbc9ae9eac739098b93dc6261ee7aacbe",
+      "shape": [
+        50000,
+        2048
+      ],
+      "norm_min": 0.9999998211860657,
+      "norm_max": 1.0000001192092896,
+      "parity_images": 4,
+      "parity_max_abs_error": 0.0
+    },
+    {
+      "method": "16_simclrv2",
+      "source_sha256": "7fb5be6598220292b6490b3e2305c3d6195ea14d96c5d6b47f886c4a37891ec9",
+      "encoder_sha256": "43cbca9b59290a6dd1033d20bbe827dfa8ae52e56ddecbf2c571a196635a2d38",
+      "features_sha256": "5cf5b23205d8016e758cc50900125d1c14b30e8f8abb6fb45be350c65d2b26e3",
+      "labels_sha256": "186361171a139f8617d3ce725b06a01cbc9ae9eac739098b93dc6261ee7aacbe",
+      "shape": [
+        50000,
+        2048
+      ],
+      "norm_min": 0.9999998807907104,
+      "norm_max": 1.0000001192092896,
+      "parity_images": 4,
+      "parity_max_abs_error": 0.0
+    },
+    {
+      "method": "20_simsiam",
+      "source_sha256": "c7abfd1a28c3f1b2c51ab60e178b2b82943896834172d0f64668c772dcac1efe",
+      "encoder_sha256": "ef5da4efb8094f4e3e44e8911277e884da295eabc0cb12b09a38c07736847b8d",
+      "features_sha256": "6763c4a96223aff410cae00d294b667b2941e4ed176bc61e0aa6ae45ffeb304d",
+      "labels_sha256": "186361171a139f8617d3ce725b06a01cbc9ae9eac739098b93dc6261ee7aacbe",
+      "shape": [
+        50000,
+        2048
+      ],
+      "norm_min": 0.9999998807907104,
+      "norm_max": 1.0000001192092896,
+      "parity_images": 4,
+      "parity_max_abs_error": 0.0
+    },
+    {
+      "method": "17_swav",
+      "source_sha256": "43f45ef20af9eaf1174c6f18834d8b512138519ce8dd4cb318f003a95faee85f",
+      "encoder_sha256": "3267e3e726bc5cbc3b392dc0c7b2f591c0c58c36f0d6be873e0d62d5022d0d38",
+      "features_sha256": "72e99bab73932259a39c22f60058f1b0555fe38f5a30b34570efb2bb1ac9d548",
+      "labels_sha256": "186361171a139f8617d3ce725b06a01cbc9ae9eac739098b93dc6261ee7aacbe",
+      "shape": [
+        50000,
+        2048
+      ],
+      "norm_min": 0.9999998807907104,
+      "norm_max": 1.0000001192092896,
+      "parity_images": 4,
+      "parity_max_abs_error": 0.0
+    },
+    {
+      "method": "18_sela",
+      "source_sha256": "2f15140b58a1d07b747fc678120fb972cc64accd163dbc87366e86b4f75dfc5e",
+      "encoder_sha256": "5bab9dbb1d923a0b43f333a19a89446bade72ecf1e9c4dc5e53293fd28fca56c",
+      "features_sha256": "5b58c6a0b45b25d8e606ff9dbb62e8f744c2b0c7f52b6b99abb82806f0e5fb8a",
+      "labels_sha256": "186361171a139f8617d3ce725b06a01cbc9ae9eac739098b93dc6261ee7aacbe",
+      "shape": [
+        50000,
+        2048
+      ],
+      "norm_min": 0.9999998211860657,
+      "norm_max": 1.0000001192092896,
+      "parity_images": 4,
+      "parity_max_abs_error": 0.0
+    }
+  ]
+}

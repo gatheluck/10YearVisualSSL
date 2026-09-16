@@ -1,0 +1,85 @@
+{
+  "targets": [
+    {
+      "label": "existing output",
+      "file": "bin/prepare-native-encoders.py",
+      "old": "    if out.exists():",
+      "new": "    if False:",
+      "tests": [
+        "tests.test_prepare_native_encoders.TestBatch.test_existing_output_is_never_reused"
+      ]
+    },
+    {
+      "label": "source exists",
+      "file": "bin/prepare-native-encoders.py",
+      "old": "if not isinstance(source, str) or not Path(source).is_file():",
+      "new": "if False:",
+      "tests": [
+        "tests.test_prepare_native_encoders.TestBatch.test_bad_later_entry_prevents_every_worker"
+      ]
+    },
+    {
+      "label": "hash validation",
+      "file": "bin/prepare-native-encoders.py",
+      "old": "if not isinstance(sha, str) or not re.fullmatch(r'[0-9a-f]{64}', sha):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_prepare_native_encoders.TestBatch.test_path_escape_and_invalid_hash_are_rejected"
+      ]
+    },
+    {
+      "label": "incomplete batch",
+      "file": "bin/prepare-native-encoders.py",
+      "old": "        if len(records) != len(jobs):",
+      "new": "        if False:",
+      "tests": [
+        "tests.test_prepare_native_encoders.TestBatch.test_interrupted_batch_is_not_reported_as_complete"
+      ]
+    },
+    {
+      "label": "failed status",
+      "file": "bin/prepare-native-encoders.py",
+      "old": "'failed' if any(r['returncode'] for r in records) else 'ok'",
+      "new": "'ok'",
+      "tests": [
+        "tests.test_prepare_native_encoders.TestBatch.test_failed_worker_reported_and_other_worker_still_runs"
+      ]
+    },
+    {
+      "label": "explicit mapping",
+      "file": "bin/prepare-native-encoders.py",
+      "old": "'--state-key', artifact['state_key']",
+      "new": "'--state-key', ''",
+      "tests": [
+        "tests.test_prepare_native_encoders.TestBatch.test_commands_keep_per_method_identity_and_explicit_mapping"
+      ]
+    },
+    {
+      "label": "launch failure",
+      "file": "bin/prepare-native-encoders.py",
+      "old": "                code = 127",
+      "new": "                code = 0",
+      "tests": [
+        "tests.test_prepare_native_encoders.TestBatch.test_launch_error_is_failure_and_does_not_stop_later_models"
+      ]
+    },
+    {
+      "label": "method symlink escape",
+      "file": "bin/prepare-native-encoders.py",
+      "old": "        if method.resolve().parent != methods.resolve():",
+      "new": "        if False:",
+      "tests": [
+        "tests.test_prepare_native_encoders.TestBatch.test_symlinked_method_outside_root_is_rejected"
+      ]
+    },
+    {
+      "label": "explicit prefix required",
+      "file": "bin/prepare-native-encoders.py",
+      "old": "            if not isinstance(artifact.get(key), str):",
+      "new": "            if False:",
+      "tests": [
+        "tests.test_prepare_native_encoders.TestBatch.test_mapping_must_be_explicit_even_when_prefix_is_empty"
+      ]
+    }
+  ]
+}
