@@ -607,5 +607,39 @@ class TestThePinnedSubmoduleIsCheckedOut(unittest.TestCase):
         self.assertTrue(found, "no actions/checkout step found to check")
 
 
+@needs_checkout
+class TestNativeProfilePreflight(unittest.TestCase):
+    @needs_yaml
+    def test_profiles_run_before_the_whole_locked_suite(self):
+        steps = parsed()['tests.yml']['jobs']['locked']['steps']
+        runs = [step.get('run', '').strip() for step in steps]
+        preflight = ".venv/bin/python -m unittest discover -s tests -p 'test_method_*native_options.py' -v"
+        whole = '.venv/bin/python -m unittest discover -s tests -v'
+        self.assertIn(preflight, runs)
+        self.assertLess(runs.index(preflight), runs.index(whole))
+
+    @needs_yaml
+    def test_preflight_detector_rejects_missing_late_and_decoy_commands(self):
+        import copy
+        from unittest.mock import patch
+        original = parsed()
+        self.test_profiles_run_before_the_whole_locked_suite()
+        steps = original['tests.yml']['jobs']['locked']['steps']
+        index = next(i for i, s in enumerate(steps) if s.get('name') == 'Check native profiles first')
+        for variant in ('missing', 'late', 'other-job-decoy', 'wrong-interpreter'):
+            changed = copy.deepcopy(original)
+            runs = changed['tests.yml']['jobs']['locked']['steps']
+            step = runs.pop(index)
+            if variant == 'late':
+                runs.append(step)
+            elif variant == 'other-job-decoy':
+                changed['tests.yml']['jobs']['decoy'] = {'steps': [step]}
+            elif variant == 'wrong-interpreter':
+                step['run'] = step['run'].replace('.venv/bin/python', 'python3')
+                runs.insert(index, step)
+            with self.subTest(variant=variant), patch(__name__ + '.parsed', return_value=changed):
+                with self.assertRaises(AssertionError):
+                    self.test_profiles_run_before_the_whole_locked_suite()
+
 if __name__ == "__main__":
     unittest.main()
