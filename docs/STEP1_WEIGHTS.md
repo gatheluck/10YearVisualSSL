@@ -171,3 +171,21 @@ now rejects missing Sobel tensors. The reset classification head remains
 excluded. Split-Brain's native Lab mode is explicit and leaves ordinary
 training/default conversion unchanged; it corresponds to the original
 NumPy fallback, not a scikit-image conversion.
+
+
+### Additional native evaluated variants
+
+Context Prediction, Jigsaw, Rotation, Jigsaw++ and Barlow Twins now have exact
+`step1_native_artifact` records, consumed by the existing verified acquisition
+and batch-export commands. Supply independently obtained original files; no
+unverified download URL is substituted. Context Prediction selects the evaluated
+official-style million-step checkpoint. Barlow's bare backbone uses an explicit
+`backbone.` namespace and has no verified pretraining epoch. Rotation maps exact
+native block names to the port's encoder and rejects unknown or mixed namespaces.
+
+The hash-bound native profiles select normalized ImageNet input and full-image
+CFN pool4 for Jigsaw, pre-pool5 conv5 global averaging for Rotation, and the
+knowledge-transfer AlexNet for Jigsaw++. Their ordinary port paths are unchanged
+when no native profile is supplied. Preserve each export's paired `export.json`.
+The actual five-output hashes and four-image GPU parity results are recorded in
+`STEP1_REMAINING_RESULTS_20260916.json`.

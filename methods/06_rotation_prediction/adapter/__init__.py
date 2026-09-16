@@ -180,6 +180,26 @@ def to_args(config: dict, out: Path) -> Namespace:
 
 
 def extract_encoder(state_dict: dict) -> dict:
+    if any(k.startswith('_feature_blocks.') for k in state_dict):
+        if any(not k.startswith('_feature_blocks.') for k in state_dict):
+            raise ValueError('mixed native and port rotation namespaces')
+        mapped = {}
+        starts = {'0': 0, '2': 4, '4': 8, '5': 11, '6': 14}
+        for key, value in state_dict.items():
+            parts = key.split('.')
+            block = parts[1]
+            if block == '9':
+                continue  # Rotation classification head, excluded from encoder.
+            if block == '8':
+                target = 'encoder.fc_block.' + '.'.join(parts[2:])
+            elif block in starts and len(parts) >= 4 and parts[2] in {'0', '1'}:
+                target = 'encoder.features.' + str(starts[block] + int(parts[2])) + '.' + '.'.join(parts[3:])
+            else:
+                raise ValueError('unknown native rotation block: ' + key)
+            if target in mapped:
+                raise ValueError('rotation mapping collision: ' + target)
+            mapped[target] = value
+        state_dict = mapped
     out = {k: v for k, v in state_dict.items()
            if k.startswith(ENCODER_PREFIXES)}
     if not out:

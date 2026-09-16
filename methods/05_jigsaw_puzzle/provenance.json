@@ -18,5 +18,19 @@
     "the training loop drops the upstream DistributedDataParallel and the TensorBoard logging so the same step runs on a CPU or a GPU unchanged",
     "the capture's Step 2 (unified ViT-B/16 jigsaw, from scratch) IS ported here (Batch 1 of the Step-2 fan-out): models/vit_jigsaw.py (timm ViT-B/16 num_classes=0 backbone under encoder.* + a permutation head), train_pretrain_vit_jigsaw.py (AdamW + warmup/cosine + grad-clip + AMP on CUDA, milestone checkpoints 100/200/300), configs/pretrain_vit.yaml (arch: vit) and data/jigsaw_vit_dataset.py (the 9 permuted tiles reassembled into one 224 image); selected by the config's arch key, so the native CFN pretrain and the contract stages/metrics (ImageNet linear probe) are unchanged, and timm is pulled in only on arch: vit",
     "DATA_ROOT is the dataset root; the pretrain stage reads its train/ subdirectory (unified data-root convention via adapterlib.dataset_split_dir)."
-  ]
+  ],
+  "step1_native_artifact": {
+    "name": "05_jigsaw_puzzle measured native Step-1 evaluation checkpoint",
+    "availability": "user_supplied",
+    "filename": "best_model.pth",
+    "sha256": "3c6e29e415dff98bd6ab03aa31a19176d368aaf671f2e8d3e21f2e9058199e0b",
+    "state_key": "state_dict",
+    "strip_prefix": "",
+    "acquisition": "Obtain this exact checkpoint from its owner, then use bin/fetch-weights.py --artifact step1_native_artifact --source to verify its SHA-256. No public download URL is verified.",
+    "selection_evidence": "Referenced by an actual Step-1 evaluation record; the exact file was safely loaded and hashed. This identifies the evaluated variant, not a ranking by validation accuracy.",
+    "checkpoint_epoch_stored": 275,
+    "feature_options": {
+      "feature_profile": "imagenet_cfn_pool4"
+    }
+  }
 }

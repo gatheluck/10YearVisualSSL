@@ -1,0 +1,207 @@
+{
+  "date": "2026-09-16",
+  "runtime_note": "Python 3.10, torch 2.5.1+cu124 on reserved H200; not the current dependency lock. Exact four-image parity does not establish equality for every input.",
+  "original_read_only": true,
+  "records": [
+    {
+      "method": "01_context_prediction",
+      "status": "ok",
+      "shape": [
+        50000,
+        4096
+      ],
+      "norm_min": 0.9999998807907104,
+      "norm_max": 1.0000001192092896,
+      "hashes": {
+        "features.npy": "29e0ca10f7a77fbe1b93912fdb254af90135ac216a6b71d8c023e6a1e8de7fa2",
+        "labels.npy": "186361171a139f8617d3ce725b06a01cbc9ae9eac739098b93dc6261ee7aacbe"
+      },
+      "parity": {
+        "method": "01_context_prediction",
+        "images_checked": 4,
+        "max_abs_error": 0.0,
+        "native_source_matches_live": true,
+        "provider_meta": {
+          "method": "01_context_prediction",
+          "representation": "raw",
+          "feat_dim": 4096,
+          "count": 4,
+          "arch": "alexnet",
+          "image_size": 224,
+          "preprocessing": "Context Prediction official linear-eval val: resize 256 + centre crop, [0,1], ImageNet normalisation"
+        },
+        "torch": "2.5.1+cu124",
+        "gpu": "NVIDIA H200"
+      },
+      "source_sha256": "251ca703367e782f24da76648bcceaa389db62ba1dd41b3b4378a568a179296c",
+      "encoder_sha256": "962abf1aff2537d3a7897a03d5c4e7efb2d4ca2ed84c2dc03cddd0df872cb7a0",
+      "feature_options": {}
+    },
+    {
+      "method": "05_jigsaw_puzzle",
+      "status": "ok",
+      "shape": [
+        50000,
+        8192
+      ],
+      "norm_min": 0.9999998807907104,
+      "norm_max": 1.0000001192092896,
+      "hashes": {
+        "features.npy": "05270c148abe998139fa84e1f4749f996bfdd0306d2680a5197c66979be231c5",
+        "labels.npy": "186361171a139f8617d3ce725b06a01cbc9ae9eac739098b93dc6261ee7aacbe"
+      },
+      "parity": {
+        "method": "05_jigsaw_puzzle",
+        "images_checked": 4,
+        "max_abs_error": 0.0,
+        "native_source_matches_live": true,
+        "provider_meta": {
+          "method": "05_jigsaw_puzzle",
+          "native_feature_options": {
+            "feature_profile": "imagenet_cfn_pool4"
+          },
+          "representation": "raw",
+          "feat_dim": 8192,
+          "count": 4,
+          "arch": "alexnet",
+          "image_size": 224,
+          "preprocessing": "Native ImageNet val: bilinear resize 256, centre crop 224, ImageNet mean/std",
+          "feature_profile": "imagenet_cfn_pool4"
+        },
+        "torch": "2.5.1+cu124",
+        "gpu": "NVIDIA H200"
+      },
+      "source_sha256": "3c6e29e415dff98bd6ab03aa31a19176d368aaf671f2e8d3e21f2e9058199e0b",
+      "encoder_sha256": "c6273e276bf306712fba0a3085330cd74e2689bcd647ec54d0099d69aec2f0fe",
+      "feature_options": {
+        "feature_profile": "imagenet_cfn_pool4"
+      }
+    },
+    {
+      "method": "06_rotation_prediction",
+      "status": "ok",
+      "shape": [
+        50000,
+        256
+      ],
+      "norm_min": 0.9999998211860657,
+      "norm_max": 1.0000001192092896,
+      "hashes": {
+        "features.npy": "73348270b794922a71389308282c6b364becb01d64ade2be4cbd6f78a5c81a8c",
+        "labels.npy": "186361171a139f8617d3ce725b06a01cbc9ae9eac739098b93dc6261ee7aacbe"
+      },
+      "parity": {
+        "method": "06_rotation_prediction",
+        "images_checked": 4,
+        "max_abs_error": 0.0,
+        "native_source_matches_live": true,
+        "provider_meta": {
+          "method": "06_rotation_prediction",
+          "native_feature_options": {
+            "feature_profile": "imagenet_conv5"
+          },
+          "representation": "raw",
+          "feat_dim": 256,
+          "count": 4,
+          "arch": "alexnet",
+          "image_size": 224,
+          "preprocessing": "Native ImageNet val: bilinear resize 256, centre crop 224, ImageNet mean/std",
+          "feature_profile": "imagenet_conv5"
+        },
+        "torch": "2.5.1+cu124",
+        "gpu": "NVIDIA H200"
+      },
+      "source_sha256": "fb432e898219813abad57859ab13b158a8dc1f593c753d94150271447df6f04b",
+      "encoder_sha256": "a0dd12ad7d4f2ef15253365a03e81a78227aca63f82d07d0e49b30ea8d29ccf7",
+      "feature_options": {
+        "feature_profile": "imagenet_conv5"
+      }
+    },
+    {
+      "method": "09_jigsaw_puzzle_pp",
+      "status": "ok",
+      "shape": [
+        50000,
+        9216
+      ],
+      "norm_min": 0.9999998211860657,
+      "norm_max": 1.0000001192092896,
+      "hashes": {
+        "features.npy": "e19cb3f223dcc5250e8416a510b63c57723dec3f144a60aadbffb54c30568c9d",
+        "labels.npy": "186361171a139f8617d3ce725b06a01cbc9ae9eac739098b93dc6261ee7aacbe"
+      },
+      "parity": {
+        "method": "09_jigsaw_puzzle_pp",
+        "images_checked": 4,
+        "max_abs_error": 0.0,
+        "native_source_matches_live": true,
+        "provider_meta": {
+          "method": "09_jigsaw_puzzle_pp",
+          "native_feature_options": {
+            "feature_profile": "imagenet_cluster_cls",
+            "config_overrides": {
+              "train": {
+                "arch": "alexnet_cluster_cls",
+                "image_size": 224
+              }
+            }
+          },
+          "representation": "raw",
+          "feat_dim": 9216,
+          "count": 4,
+          "arch": "alexnet_cluster_cls",
+          "image_size": 224,
+          "preprocessing": "Native ImageNet val: bilinear resize 256, centre crop 224, ImageNet mean/std",
+          "feature_profile": "imagenet_cluster_cls"
+        },
+        "torch": "2.5.1+cu124",
+        "gpu": "NVIDIA H200"
+      },
+      "source_sha256": "e7c8721f2589e98db2138ec22d07b1e235b5d56dee534c25a951184e3a4b4653",
+      "encoder_sha256": "326a27abf1b6ae4ed5a2952aaf3565d9e2d958c4047499ff6e6d36e09bdfb58c",
+      "feature_options": {
+        "feature_profile": "imagenet_cluster_cls",
+        "config_overrides": {
+          "train": {
+            "arch": "alexnet_cluster_cls",
+            "image_size": 224
+          }
+        }
+      }
+    },
+    {
+      "method": "21_barlow_twins",
+      "status": "ok",
+      "shape": [
+        50000,
+        2048
+      ],
+      "norm_min": 0.9999998807907104,
+      "norm_max": 1.0000001192092896,
+      "hashes": {
+        "features.npy": "c0fc8838f783d7754435483ffdbaf79c58c383046d9dcbe15737020550b71223",
+        "labels.npy": "186361171a139f8617d3ce725b06a01cbc9ae9eac739098b93dc6261ee7aacbe"
+      },
+      "parity": {
+        "method": "21_barlow_twins",
+        "images_checked": 4,
+        "max_abs_error": 0.0,
+        "native_source_matches_live": true,
+        "provider_meta": {
+          "method": "21_barlow_twins",
+          "representation": "raw",
+          "feat_dim": 2048,
+          "count": 4,
+          "arch": "resnet",
+          "image_size": 224,
+          "preprocessing": "Barlow Twins eval: resize 256 + centre crop, [0,1], ImageNet normalisation"
+        },
+        "torch": "2.5.1+cu124",
+        "gpu": "NVIDIA H200"
+      },
+      "source_sha256": "52088398b58999aa03ef6edc71026cdb1d5ccee1d8d08fa0105de3a82fa0069b",
+      "encoder_sha256": "4cab362ac985e3cad20ae733389c6e68edbe321d9c3c7f8f9ea1ab38cd6dcc9c",
+      "feature_options": {}
+    }
+  ]
+}

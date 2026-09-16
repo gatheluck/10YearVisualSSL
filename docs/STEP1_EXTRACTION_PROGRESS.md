@@ -288,3 +288,46 @@ All four files of each new method were hash-checked before/after copying, and
 all previously delivered files retained their hashes. Group read/traverse access
 was checked for every delivered path. The seven-method branch is grouped for one
 PR after #173 merges; private execution logs record operational details.
+
+
+## Five additional evaluated checkpoints (2026-09-16)
+
+Child branch `codex/step1-final-readable-models` starts from PR #174 tip
+`886266b`. A fresh read-only audit found eight readable candidate files among
+16 uncollected methods. All eight safely deserialized; seven contain backbone
+weights. The inspected AIM file contains a probe only, not the backbone.
+Readable tensors alone do not prove that a provider can load them.
+
+Five methods now passed strict native/export loading, source identity checks,
+and exact raw-feature parity on four real validation images on H200. Each then
+completed 50,000-image extraction with finite float32 unit-L2 features and sorted
+int64 labels (1,000 classes of 50 images). All five label hashes match the
+previous outputs. Evidence: `STEP1_REMAINING_RESULTS_20260916.json`.
+
+| Method | Evaluated variant | Dimensions |
+|---|---|---:|
+| Context Prediction | Official-style final checkpoint, global step 1,000,000 | 4096 |
+| Jigsaw | Full-image CFN spatial pool4, stored epoch 275 | 8192 |
+| Rotation | Official conv5 before pool5, global average, stored epoch 49 | 256 |
+| Jigsaw++ | Knowledge-transfer AlexNet, stored epoch 89 | 9216 |
+| Barlow Twins | Evaluated bare ResNet-50, pretraining epoch unverified | 2048 |
+
+Context Prediction uses the recorded official-style evaluation, not the separate
+paper-target epoch-299 checkpoint. Barlow's result directory does not independently
+establish the backbone's pretraining epoch. Neither variant was selected by ranking
+validation accuracy. All five exact files are user-supplied; no public URLs were
+verified. Existing port defaults remain available without the native sidecar.
+
+TDD measured failures first: six profile tests, two state-mapping tests and five
+checkpoint-identity tests. Profile checks exercise actual transformed pixels and
+feature tensors, including rejecting exact-name decoys. Sixteen mutation controls
+were detected with passing unmodified baselines. Whole-suite results are recorded
+in private execution logs and the eventual grouped PR. Runtime locks remain a
+separate CI validation; four-image parity is not a proof for every input.
+
+The collection now has 40/51 extracted methods, including all 13 user-owned older
+outputs. Eleven remain uncollected: Context Encoder and DINOv3 require native
+architecture compatibility; AIM's backbone location still needs resolution;
+CMC, PIRL, MSN, V-JEPA and LeJEPA have inaccessible known checkpoint paths;
+CLIP, ImageGPT and SAM3 still need actual checkpoint/evaluation mapping. These
+are current audit gaps, not assertions that extraction is impossible.

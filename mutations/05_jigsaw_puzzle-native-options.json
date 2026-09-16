@@ -1,0 +1,36 @@
+{
+  "targets": [
+    {
+      "label": "profile identity guard",
+      "file": "methods/05_jigsaw_puzzle/feature_provider.py",
+      "old": "if profile is not None and profile !=",
+      "new": "if False and profile !=",
+      "tests": [
+        "tests.test_method_05_jigsaw_puzzle_native_options.TestNativeProfile"
+      ]
+    },
+    {
+      "label": "native input normalization",
+      "file": "methods/05_jigsaw_puzzle/feature_provider.py",
+      "old": "T.Normalize([.485, .456, .406], [.229, .224, .225]),",
+      "new": "T.Lambda(lambda x: x),",
+      "tests": [
+        "tests.test_method_05_jigsaw_puzzle_native_options.TestNativeProfile"
+      ]
+    },
+    {
+      "label": "native spatial pooling",
+      "file": "methods/05_jigsaw_puzzle/feature_provider.py",
+      "old": "torch.nn.AdaptiveAvgPool2d((4, 4))",
+      "new": "torch.nn.AdaptiveAvgPool2d((1, 1))",
+      "tests": [
+        "tests.test_method_05_jigsaw_puzzle_native_options.TestNativeProfile"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-09-16, Python 3.10 / torch 2.5.1+cu124, passing baselines before mutation",
+    "killed": 3,
+    "total": 3
+  }
+}
