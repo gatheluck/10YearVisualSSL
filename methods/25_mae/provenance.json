@@ -18,5 +18,20 @@
     "the run is seeded through make_deterministic (python, numpy, torch)",
     "the training loop drops the upstream DistributedDataParallel and the TensorBoard logging so the same step runs on a CPU or a GPU unchanged",
     "DATA_ROOT is the dataset root; the pretrain stage reads its train/ subdirectory (unified data-root convention via adapterlib.dataset_split_dir)."
-  ]
+  ],
+  "step1_native_artifact": {
+    "filename": "checkpoint_epoch_1600.pth",
+    "sha256": "531e92c6dbe493bceb591792ba147282e88b55ea8667dbe55c981750904921bd",
+    "bytes": 3951368690,
+    "availability": "user_supplied",
+    "instructions": "Request the lab-trained Step-1 checkpoint matching this SHA-256 from the authors. No public download URL for these exact bytes is verified. Keep encoder.pt and export.json together after export.",
+    "checkpoint_epoch_zero_based": 1599,
+    "pretraining_seed": 42,
+    "state_key": "state_dict",
+    "strip_prefix": "",
+    "feature_options": {
+      "pool": "cls"
+    },
+    "selection_evidence": "The recorded native Step-1 evaluation references this checkpoint. Stored epoch and configuration were inspected with weights_only=True; SHA-256 was measured from the actual file. The feature options reproduce the recorded evaluation endpoint and validation preprocessing."
+  }
 }

@@ -23,6 +23,10 @@ This mirrors the eval main's exact backbone step -- the model is passed
 directly (`backbone = model.to(device)`), unlike methods that read through a
 `get_encoder()`.
 
+Native exports may select an explicit protocol in the adjacent export.json.
+The provider verifies its method and encoder hash before applying options;
+ordinary encoder files retain the defaults described above.
+
 Imports are bare module names resolved through this method's directory, as the
 adapter itself does. That is safe because the driver runs each method in
 isolation; do not rely on this module and another method's `adapter`/`models`
@@ -47,10 +51,13 @@ def _load_config() -> dict:
 
 def extract_val_features(*, encoder_path: str, data_root: str, split: str,
                          device: str, batch_size: int, num_workers: int):
-    """Return (features, labels, meta): features is (N, 384) raw encoder output
-    (the teacher ViT's CLS token after the final norm), labels is (N,)
+    """Return (features, labels, meta): features is (N, D) raw encoder output
+    (teacher CLS, or concatenated normalized CLS tokens for a native profile), labels is (N,)
     ImageFolder class indices, meta describes the run."""
     import torch
+    import provider_support
+    options = provider_support.load_native_options(
+        encoder_path, METHOD_NAME, {'resize_short_side', 'interpolation', 'n_last_blocks'})
 
     if str(METHOD_DIR) not in sys.path:
         sys.path.insert(0, str(METHOD_DIR))
@@ -66,19 +73,21 @@ def extract_val_features(*, encoder_path: str, data_root: str, split: str,
     # The eval main passes the model directly as the backbone -- there is no
     # get_encoder(); the VisionTransformer's forward already returns the CLS
     # feature.
-    backbone = model.to(device)
+    backbone = native_backbone(model, options.get("n_last_blocks")).to(device)
     backbone.eval()
     for p in backbone.parameters():
         p.requires_grad = False
 
     _dataset, loader = ev._build_loader(
         str(data_root), split, image_size, int(batch_size), int(num_workers))
+    provider_support.configure_native_resize(_dataset.transform, options)
     feats, labels = ev.extract_features(backbone, loader, device)
 
     feats = feats.numpy()
     labels = labels.numpy()
     meta = {
         "method": METHOD_NAME,
+        "native_feature_options": options,
         "representation": "raw",
         "feat_dim": int(feats.shape[1]),
         "count": int(feats.shape[0]),
@@ -89,4 +98,23 @@ def extract_val_features(*, encoder_path: str, data_root: str, split: str,
                           "image_size, [0,1], ImageNet mean/std; feature is the "
                           "teacher ViT's CLS token after the final norm"),
     }
+    if options:
+        meta["preprocessing"] = str(_dataset.transform) + "; native feature options: " + str(options)
     return feats, labels, meta
+
+
+def native_backbone(model, n_last_blocks):
+    """Select the explicitly recorded concatenation of normalized CLS tokens."""
+    if n_last_blocks is None:
+        return model
+    if type(n_last_blocks) is not int or not 1 <= n_last_blocks <= len(model.blocks):
+        raise ValueError('invalid n_last_blocks')
+    import torch
+    class LastLayers(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.backbone = model
+        def forward(self, x):
+            return torch.cat([tokens[:, 0] for tokens in
+                              self.backbone.get_intermediate_layers(x, n_last_blocks)], dim=-1)
+    return LastLayers()

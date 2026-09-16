@@ -1,0 +1,152 @@
+{
+  "date": "2026-09-16",
+  "collection_complete": 28,
+  "collection_remaining": 23,
+  "representation": "l2",
+  "dtype": "float32",
+  "source_checkpoint_access": "user_supplied; no verified public URL",
+  "results": [
+    {
+      "method": "22_mocov3",
+      "status": "ok",
+      "shape": [
+        50000,
+        768
+      ],
+      "norm_min": 0.9999997615814209,
+      "norm_max": 1.000000238418579,
+      "hashes": {
+        "features.npy": "8850ea67eb9526403de4b86d20fa17337bb0211af219bbe561128d0023d76b4a",
+        "labels.npy": "186361171a139f8617d3ce725b06a01cbc9ae9eac739098b93dc6261ee7aacbe"
+      }
+    },
+    {
+      "method": "23_dino",
+      "status": "ok",
+      "shape": [
+        50000,
+        1536
+      ],
+      "norm_min": 0.9999998807907104,
+      "norm_max": 1.0000001192092896,
+      "hashes": {
+        "features.npy": "8c180d53274ce4da64cd047545e3bd0340265b6d3604c2f91d6af0a2b490bcbb",
+        "labels.npy": "186361171a139f8617d3ce725b06a01cbc9ae9eac739098b93dc6261ee7aacbe"
+      }
+    },
+    {
+      "method": "25_mae",
+      "status": "ok",
+      "shape": [
+        50000,
+        1024
+      ],
+      "norm_min": 0.9999997019767761,
+      "norm_max": 1.000000238418579,
+      "hashes": {
+        "features.npy": "54146c6a8ac8a194992a1f401cb670ad8a2cd1786d1a8d6fe721ba67889a1f8d",
+        "labels.npy": "186361171a139f8617d3ce725b06a01cbc9ae9eac739098b93dc6261ee7aacbe"
+      }
+    },
+    {
+      "method": "26_simmim",
+      "status": "ok",
+      "shape": [
+        50000,
+        1024
+      ],
+      "norm_min": 0.9999998211860657,
+      "norm_max": 1.0000001192092896,
+      "hashes": {
+        "features.npy": "5bea12577c12089b31ea4ee11a6d18f1046aa398b63a1914fc44198bc1739a5d",
+        "labels.npy": "186361171a139f8617d3ce725b06a01cbc9ae9eac739098b93dc6261ee7aacbe"
+      }
+    }
+  ],
+  "parity": [
+    {
+      "method": "22_mocov3",
+      "images_checked": 4,
+      "max_abs_error": 0.0,
+      "native_source_matches_live": true,
+      "provider_meta": {
+        "method": "22_mocov3",
+        "native_feature_options": {
+          "interpolation": "bilinear",
+          "resize_short_side": 256
+        },
+        "representation": "raw",
+        "feat_dim": 768,
+        "count": 4,
+        "arch": "vit_base",
+        "image_size": 224,
+        "preprocessing": "Compose(\n    Resize(size=256, interpolation=bilinear, max_size=None, antialias=True)\n    CenterCrop(size=(224, 224))\n    ToTensor()\n    Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])\n); native feature options: {'interpolation': 'bilinear', 'resize_short_side': 256}"
+      },
+      "torch": "2.5.1+cu124",
+      "gpu": "NVIDIA H200"
+    },
+    {
+      "method": "23_dino",
+      "images_checked": 4,
+      "max_abs_error": 0.0,
+      "native_source_matches_live": true,
+      "provider_meta": {
+        "method": "23_dino",
+        "native_feature_options": {
+          "n_last_blocks": 4
+        },
+        "representation": "raw",
+        "feat_dim": 1536,
+        "count": 4,
+        "arch": "vit_small",
+        "image_size": 224,
+        "preprocessing": "Compose(\n    Resize(size=256, interpolation=bicubic, max_size=None, antialias=True)\n    CenterCrop(size=(224, 224))\n    ToTensor()\n    Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))\n); native feature options: {'n_last_blocks': 4}"
+      },
+      "torch": "2.5.1+cu124",
+      "gpu": "NVIDIA H200"
+    },
+    {
+      "method": "25_mae",
+      "images_checked": 4,
+      "max_abs_error": 0.0,
+      "native_source_matches_live": true,
+      "provider_meta": {
+        "method": "25_mae",
+        "native_feature_options": {
+          "pool": "cls"
+        },
+        "representation": "raw",
+        "feat_dim": 1024,
+        "count": 4,
+        "arch": "vit_large_patch16",
+        "image_size": 224,
+        "pool": "cls",
+        "preprocessing": "Compose(\n    Resize(size=256, interpolation=bicubic, max_size=None, antialias=True)\n    CenterCrop(size=(224, 224))\n    ToTensor()\n    Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))\n); native feature options: {'pool': 'cls'}"
+      },
+      "torch": "2.5.1+cu124",
+      "gpu": "NVIDIA H200"
+    },
+    {
+      "method": "26_simmim",
+      "images_checked": 4,
+      "max_abs_error": 0.0,
+      "native_source_matches_live": true,
+      "provider_meta": {
+        "method": "26_simmim",
+        "native_feature_options": {
+          "interpolation": "bilinear",
+          "resize_short_side": 219
+        },
+        "representation": "raw",
+        "feat_dim": 1024,
+        "count": 4,
+        "arch": "swin",
+        "image_size": 192,
+        "pooling": "mean",
+        "preprocessing": "Compose(\n    Lambda()\n    Resize(size=219, interpolation=bilinear, max_size=None, antialias=True)\n    CenterCrop(size=(192, 192))\n    ToTensor()\n    Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))\n); native feature options: {'interpolation': 'bilinear', 'resize_short_side': 219}"
+      },
+      "torch": "2.5.1+cu124",
+      "gpu": "NVIDIA H200"
+    }
+  ]
+}

@@ -50,6 +50,8 @@ def plan(sources, methods: Path, out: Path, python: str):
         jobs.append((name, command))
         if 'module_map' in artifact:
             command.extend(['--module-map', json.dumps(artifact['module_map'])])
+        if 'feature_options' in artifact:
+            command.extend(['--feature-options', json.dumps(artifact['feature_options'])])
     return jobs
 
 

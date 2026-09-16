@@ -62,3 +62,58 @@ def import_sibling(method_dir, name: str):
     sys.path.insert(0, p)
     _purge_foreign(method_dir)
     return importlib.import_module(name)
+
+
+def load_native_options(encoder_path, method: str, supported: set) -> dict:
+    """Read explicit extraction options bound to this exported encoder's hash.
+
+    Ordinary encoder files and older exports retain provider defaults. New
+    options fail closed on mismatched identity or unsupported protocol fields.
+    Keep encoder.pt and export.json together when transferring native exports.
+    """
+    import hashlib
+    import json
+    encoder = Path(encoder_path)
+    sidecar = encoder.with_name('export.json')
+    if not sidecar.exists():
+        return {}
+    record = json.loads(sidecar.read_text())
+    if 'feature_options' not in record:
+        return {}
+    options = record['feature_options']
+    if not isinstance(options, dict):
+        raise ValueError('feature options must be a mapping')
+    if set(options) - supported:
+        raise ValueError('unsupported native feature options')
+    if record.get('method') != method:
+        raise ValueError('native export method mismatch')
+    digest = hashlib.sha256()
+    with encoder.open('rb') as stream:
+        for block in iter(lambda: stream.read(8 << 20), b''):
+            digest.update(block)
+    if digest.hexdigest() != record.get('encoder_sha256'):
+        raise ValueError('native export encoder hash mismatch')
+    return options
+
+
+def configure_native_resize(transform, options: dict) -> None:
+    """Override one Resize in an existing val pipeline, preserving its tail."""
+    if not ({'resize_short_side', 'interpolation'} & options.keys()):
+        return
+    from torchvision import transforms as T
+    modes = {'bilinear': T.InterpolationMode.BILINEAR,
+             'bicubic': T.InterpolationMode.BICUBIC}
+    mode = options.get('interpolation')
+    if mode is not None and mode not in modes:
+        raise ValueError('unsupported interpolation')
+    size = options.get('resize_short_side')
+    if size is not None and (type(size) is not int or size <= 0):
+        raise ValueError('resize_short_side must be a positive integer')
+    indices = [i for i, step in enumerate(transform.transforms) if isinstance(step, T.Resize)]
+    if len(indices) != 1:
+        raise ValueError('native resize requires exactly one Resize')
+    i = indices[0]
+    old = transform.transforms[i]
+    transform.transforms[i] = T.Resize(size if size is not None else old.size,
+                                      interpolation=modes[mode] if mode else old.interpolation,
+                                      max_size=old.max_size, antialias=old.antialias)

@@ -1,0 +1,27 @@
+{
+  "targets": [
+    {
+      "label": "1     options = provider_support.load_native_options(",
+      "file": "methods/26_simmim/feature_provider.py",
+      "old": "    options = provider_support.load_native_options(\n        encoder_path, METHOD_NAME, {'resize_short_side', 'interpolation'})",
+      "new": "    options = {}",
+      "tests": [
+        "tests.test_method_26_simmim_native_options.TestOptions.test_provider_rejects_unsupported_options"
+      ]
+    },
+    {
+      "label": "2 provider_support.configure_native_resize(_dataset.transform, options)",
+      "file": "methods/26_simmim/feature_provider.py",
+      "old": "provider_support.configure_native_resize(_dataset.transform, options)",
+      "new": "provider_support.configure_native_resize(_dataset.transform, {})",
+      "tests": [
+        "tests.test_method_26_simmim_native_options.TestOptions.test_options_reach_inference_and_defaults_are_preserved"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-09-16, Python 3.10 / torch 2.5.1+cu124; baseline passed, isolated CPU fixtures",
+    "killed": 2,
+    "total": 2
+  }
+}
