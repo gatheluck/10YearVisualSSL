@@ -3,8 +3,8 @@
     {
       "label": "prefix collision",
       "file": "bin/export-native-encoder.py",
-      "old": "        if target in result:",
-      "new": "        if False:",
+      "old": "if target in result:\n            raise ValueError(f'prefix removal causes key collision: {target}')",
+      "new": "if False:\n            raise ValueError(f'prefix removal causes key collision: {target}')",
       "tests": [
         "tests.test_export_native_encoder.TestNativeMapping.test_colliding_keys_are_rejected"
       ]

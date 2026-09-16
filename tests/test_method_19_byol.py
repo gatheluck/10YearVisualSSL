@@ -859,3 +859,27 @@ class TestFeatureProvider(Base):
 
 if __name__ == "__main__":
     unittest.main()
+
+class TestNativeValPreprocessing(unittest.TestCase):
+    @needs_deps
+    def test_pixels_match_native_bicubic_pipeline_at_both_crop_sizes(self):
+        import math
+        import numpy as np
+        import torch
+        from PIL import Image
+        from torchvision import transforms as T
+        data = load("byol_native_val_data", METHOD / "data" / "__init__.py")
+        # High-frequency, nonsquare image distinguishes bilinear and bicubic.
+        rng = np.random.default_rng(42)
+        image = Image.fromarray(rng.integers(0, 256, (311, 437, 3), dtype=np.uint8))
+        for size in (224, 225):
+            with self.subTest(size=size):
+                tail = [T.CenterCrop(size), T.ToTensor(),
+                        T.Normalize([.485, .456, .406], [.229, .224, .225])]
+                expected = T.Compose([T.Resize(math.ceil(size / .875),
+                    interpolation=T.InterpolationMode.BICUBIC)] + tail)(image)
+                decoy = T.Compose([T.Resize(round(size / .875))] + tail)(image)
+                self.assertFalse(torch.equal(expected, decoy))
+                actual = data.get_linear_eval_transform(size, mode="val")(image)
+                self.assertTrue(torch.equal(actual, expected),
+                                "native Step-1 uses ceil(size/.875) and bicubic")

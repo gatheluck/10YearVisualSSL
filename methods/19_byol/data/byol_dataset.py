@@ -11,6 +11,7 @@ Both end with ToTensor + ImageNet normalisation. The dataset yields
 from __future__ import annotations
 
 import torch
+import math
 from torch.utils.data import DataLoader
 from torchvision import transforms
 from torchvision.datasets import ImageFolder
@@ -78,10 +79,11 @@ class BYOLTwoViewTransform:
 
 
 def get_linear_eval_transform(img_size=224, mode="val"):
-    """Deterministic val transform (resize + centre crop, ImageNet norm)."""
+    """Native official val: bicubic resize, centre crop, ImageNet norm."""
     normalize = transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD)
     return transforms.Compose([
-        transforms.Resize(int(round(img_size * 256 / 224))),
+        transforms.Resize(math.ceil(img_size / 0.875),
+                          interpolation=transforms.InterpolationMode.BICUBIC),
         transforms.CenterCrop(img_size),
         transforms.ToTensor(), normalize])
 

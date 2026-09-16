@@ -48,6 +48,8 @@ def plan(sources, methods: Path, out: Path, python: str):
                    '--out', str(out / name), '--state-key', artifact['state_key'],
                    '--strip-prefix', artifact['strip_prefix']]
         jobs.append((name, command))
+        if 'module_map' in artifact:
+            command.extend(['--module-map', json.dumps(artifact['module_map'])])
     return jobs
 
 

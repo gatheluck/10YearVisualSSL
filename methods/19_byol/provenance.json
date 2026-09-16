@@ -20,5 +20,17 @@
     "the run is seeded through make_deterministic (python, numpy, torch)",
     "the training loop drops the upstream DistributedDataParallel, the AMP autocast/GradScaler and TensorBoard/tqdm so the same step runs on a CPU or a GPU unchanged, single-process fp32; the cosine LR schedule with warmup and the batch-linear LR scaling are kept",
     "DATA_ROOT is the dataset root; the pretrain stage reads its train/ subdirectory (unified data-root convention via adapterlib.dataset_split_dir)."
-  ]
+  ],
+  "step1_native_artifact": {
+    "filename": "checkpoint_epoch_1000.pth",
+    "sha256": "85c2d6427079fcfd280f09c2fff40bdebe0ec78a03b45a337cbf0d87bc090cd7",
+    "availability": "user_supplied",
+    "instructions": "Request the lab-trained Step-1 file from run step1_resnet50_official_syncbn_target_trainmode. No public URL for these exact bytes is verified.",
+    "bytes": 413104687,
+    "checkpoint_epoch_zero_based": 999,
+    "pretraining_seed": 42,
+    "state_key": "state_dict",
+    "strip_prefix": "",
+    "selection_evidence": "The recorded Step-1 evaluation references this checkpoint; stored epoch is 999 and configured training duration is 1000 epochs. Source SHA-256 measured directly from the lab checkpoint. The selected representation and preprocessing must pass native/provider parity."
+  }
 }

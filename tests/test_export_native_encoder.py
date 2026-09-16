@@ -59,7 +59,7 @@ class TestNativeExport(unittest.TestCase):
                 ' m.load_state_dict(state, strict=True)\n'
                 ' return m\n')
             source = root / 'native.pt'
-            torch.save({'state_dict': {'module.weight': torch.ones(1, 2),
+            torch.save({'state_dict': {'module.native': torch.ones(1, 2),
                                        'module.head': torch.zeros(1)}}, source)
             sha = hashlib.sha256(source.read_bytes()).hexdigest()
             config = root / 'config.yaml'
@@ -67,7 +67,8 @@ class TestNativeExport(unittest.TestCase):
             out = root / 'out'
             cmd = [sys.executable, str(TOOL), '--source', str(source), '--sha256', sha,
                    '--method-dir', str(method), '--config', str(config), '--out', str(out),
-                   '--state-key', 'state_dict', '--strip-prefix', 'module.']
+                   '--state-key', 'state_dict', '--strip-prefix', 'module.',
+                   '--module-map', json.dumps({'native': 'weight'})]
             r = subprocess.run(cmd, capture_output=True, text=True)
             self.assertEqual(r.returncode, 0, r.stderr)
             state = torch.load(out / 'encoder.pt', weights_only=True)
@@ -83,3 +84,30 @@ class TestNativeExport(unittest.TestCase):
             self.assertNotEqual(r.returncode, 0)
             self.assertIn('sha256 mismatch', r.stderr)
             self.assertFalse((root / 'bad').exists())
+
+class TestNativeModuleMap(unittest.TestCase):
+    def setUp(self):
+        spec = importlib.util.spec_from_file_location('native_export_map', TOOL)
+        self.mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.mod)
+
+    def test_exact_module_name_mapping_preserves_other_keys_and_values(self):
+        tensor = object()
+        self.assertEqual(self.mod.rename_modules(
+            {'conv.weight': tensor, 'conv_extra.weight': 2, 'head.bias': 3},
+            {'conv': 'encoder.0'}),
+            {'encoder.0.weight': tensor, 'conv_extra.weight': 2, 'head.bias': 3})
+
+    def test_mapping_cannot_overwrite_a_native_key(self):
+        with self.assertRaisesRegex(ValueError, 'collision'):
+            self.mod.rename_modules({'conv.weight': 1, 'encoder.0.weight': 2},
+                                    {'conv': 'encoder.0'})
+
+    def test_unused_mapping_is_a_layout_error(self):
+        with self.assertRaisesRegex(ValueError, 'unused'):
+            self.mod.rename_modules({'conv.weight': 1}, {'missing': 'encoder.0'})
+
+    def test_invalid_mapping_is_rejected(self):
+        for mapping in ([], {'conv': ''}, {'conv.part': 'encoder.0'}, {'conv': 3}):
+            with self.subTest(mapping=mapping), self.assertRaises(ValueError):
+                self.mod.rename_modules({'conv.weight': 1}, mapping)

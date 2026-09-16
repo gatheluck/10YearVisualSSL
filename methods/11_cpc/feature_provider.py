@@ -9,8 +9,8 @@ CPC 2018 turns an image into a vector stays in one place:
   `load_encoder`, then read through `get_encoder()` (the patch encoder,
   grid-averaged to one `avg_z`, `z_dim`-d, per image);
 - images go through the method's own deterministic val pipeline
-  (`_build_loader`: an image is cropped to `source_size`, resized to
-  `img_size`, and cut into an overlapping patch grid with no per-patch
+  (`_build_loader`: an image is bilinearly resized to a `source_size` square,
+  centre cropped to `img_size`, ImageNet-normalised, and cut into an overlapping patch grid with no per-patch
   augmentation), driven by the shipped config's patch-grid keys;
 - features are the raw encoder output (`extract_features`), *before* the
   probe's mean-centre + L2-normalise. Raw features are what the
@@ -80,8 +80,8 @@ def extract_val_features(*, encoder_path: str, data_root: str, split: str,
         "count": int(feats.shape[0]),
         "arch": arch,
         "image_size": image_size,
-        "preprocessing": ("visual CPC 2018 val: centre crop to source_size, "
-                          "resize to img_size, overlapping patch grid, no "
-                          "per-patch augmentation, no ImageNet normalisation"),
+        "preprocessing": ("visual CPC 2018 val: bilinear resize to source_size square, "
+                          "centre crop to img_size, ImageNet normalisation, "
+                          "overlapping patch grid, no per-patch augmentation"),
     }
     return feats, labels, meta
