@@ -1,0 +1,45 @@
+{
+  "targets": [
+    {
+      "label": "detect global string importer patch",
+      "file": "tests/test_native_profile_mock_isolation.py",
+      "old": "node.args[0].value == 'importlib.import_module'",
+      "new": "node.args[0].value == 'importlib.unrelated'",
+      "tests": [
+        "tests.test_native_profile_mock_isolation.TestNativeProfileMockIsolation.test_detector_rejects_both_global_patch_forms"
+      ]
+    },
+    {
+      "label": "detect global object importer patch",
+      "file": "tests/test_native_profile_mock_isolation.py",
+      "old": "node.args[0].id == 'importlib'",
+      "new": "node.args[0].id == 'unrelated'",
+      "tests": [
+        "tests.test_native_profile_mock_isolation.TestNativeProfileMockIsolation.test_detector_rejects_both_global_patch_forms"
+      ]
+    },
+    {
+      "label": "ignore exact patch strings in comments",
+      "file": "tests/test_native_profile_mock_isolation.py",
+      "old": "    return sorted(found)",
+      "new": "    return [1] if \"patch('importlib.import_module')\" in source else sorted(found)",
+      "tests": [
+        "tests.test_native_profile_mock_isolation.TestNativeProfileMockIsolation.test_detector_accepts_provider_local_patch_and_exact_decoys"
+      ]
+    },
+    {
+      "label": "catch reintroduced process-wide importer patch",
+      "file": "tests/test_method_02_vae_native_options.py",
+      "old": "patch.object(provider, 'importlib', SimpleNamespace(import_module=Mock(side_effect=sibling)))",
+      "new": "patch('importlib.import_module', side_effect=sibling)",
+      "tests": [
+        "tests.test_native_profile_mock_isolation.TestNativeProfileMockIsolation.test_native_profile_fixtures_leave_global_importer_untouched"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-09-16, Python 3.12.14, passing baselines",
+    "killed": 4,
+    "total": 4
+  }
+}

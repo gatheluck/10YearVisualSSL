@@ -25,7 +25,7 @@ class TestNativeProfile(unittest.TestCase):
             record = {'method': METHOD.name, 'encoder_sha256': hashlib.sha256(encoder.read_bytes()).hexdigest(),
                       'feature_options': {'config_overrides_extra': {}}}
             encoder.with_name('export.json').write_text(json.dumps(record))
-            with patch('importlib.import_module', side_effect=AssertionError('invalid options reached imports')), patch.object(provider_support, 'import_sibling', side_effect=AssertionError('invalid options reached sibling imports')), self.assertRaisesRegex(ValueError, 'unsupported'):
+            with patch.object(provider_support, 'import_sibling', side_effect=AssertionError('invalid options reached sibling imports')), self.assertRaisesRegex(ValueError, 'unsupported'):
                 provider.extract_val_features(encoder_path=str(encoder), data_root=tmp, split='val', device='cpu', batch_size=1, num_workers=0)
 
     def test_profile_reaches_model_inference_and_preserves_defaults(self):
@@ -55,7 +55,7 @@ class TestNativeProfile(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             encoder = Path(tmp) / 'encoder.pt'; torch.save({}, encoder)
             def run():
-                with patch('importlib.import_module', side_effect=sibling), patch.object(provider_support, 'import_sibling', side_effect=lambda directory, name: sibling(name)), patch('torchvision.datasets.ImageFolder', return_value=dataset), patch('torch.utils.data.DataLoader', return_value=None):
+                with patch.object(provider_support, 'import_sibling', side_effect=lambda directory, name: sibling(name)), patch('torchvision.datasets.ImageFolder', return_value=dataset), patch('torch.utils.data.DataLoader', return_value=None):
                     return provider.extract_val_features(encoder_path=str(encoder), data_root=tmp, split='val', device='cpu', batch_size=1, num_workers=0)
             _, _, meta = run()
             self.assertEqual(configs[-1], original)
