@@ -3,9 +3,10 @@ import hashlib
 import importlib.util
 import json
 from pathlib import Path
+from types import SimpleNamespace
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 try:
     import torch
     from torchvision import transforms as T
@@ -33,12 +34,12 @@ class TestNativeProfile(unittest.TestCase):
             encoder = Path(tmp) / 'encoder.pt'; torch.save({}, encoder)
             for options in [{'feature_profile_extra': PROFILE}, {'feature_profile': PROFILE + '_extra'}]:
                 self.sidecar(encoder, options)
-                with self.subTest(options=options), patch('importlib.import_module', side_effect=AssertionError('premature import')), patch.object(provider_support, 'import_sibling', side_effect=AssertionError('premature import')), self.assertRaises(ValueError):
-                    self.provider().extract_val_features(encoder_path=str(encoder), data_root=tmp, split='val', device='cpu', batch_size=1, num_workers=0)
+                p = self.provider()
+                with self.subTest(options=options), patch.object(p, 'importlib', SimpleNamespace(import_module=Mock(side_effect=AssertionError('premature import')))), patch.object(provider_support, 'import_sibling', side_effect=AssertionError('premature import')), self.assertRaises(ValueError):
+                    p.extract_val_features(encoder_path=str(encoder), data_root=tmp, split='val', device='cpu', batch_size=1, num_workers=0)
 
     def test_profile_changes_actual_pixels_features_and_keeps_default(self):
         import provider_support
-        from types import SimpleNamespace
         import numpy as np
         from PIL import Image
         from torchvision.datasets import ImageFolder
@@ -73,7 +74,7 @@ class TestNativeProfile(unittest.TestCase):
             Image.fromarray(pixels).save(root/'val/n00000001/a.png')
             encoder=root/'encoder.pt';torch.save({},encoder)
             p=self.provider(); original=p._load_config()
-            with patch('importlib.import_module',side_effect=sibling), patch.object(provider_support,'import_sibling',side_effect=lambda directory,name:sibling(name)):
+            with patch.object(p, 'importlib', SimpleNamespace(import_module=Mock(side_effect=sibling))), patch.object(provider_support,'import_sibling',side_effect=lambda directory,name:sibling(name)):
                 default,_,_=p.extract_val_features(encoder_path=str(encoder),data_root=tmp,split='val',device='cpu',batch_size=1,num_workers=0)
                 self.sidecar(encoder, {'feature_profile':PROFILE})
                 actual,labels,meta=p.extract_val_features(encoder_path=str(encoder),data_root=tmp,split='val',device='cpu',batch_size=1,num_workers=0)
