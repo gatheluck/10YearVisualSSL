@@ -1,0 +1,45 @@
+{
+  "targets": [
+    {
+      "label": "profile identity guard",
+      "file": "methods/06_rotation_prediction/feature_provider.py",
+      "old": "if profile is not None and profile !=",
+      "new": "if False and profile !=",
+      "tests": [
+        "tests.test_method_06_rotation_prediction_native_options.TestNativeProfile"
+      ]
+    },
+    {
+      "label": "native input normalization",
+      "file": "methods/06_rotation_prediction/feature_provider.py",
+      "old": "T.Normalize([.485, .456, .406], [.229, .224, .225]),",
+      "new": "T.Lambda(lambda x: x),",
+      "tests": [
+        "tests.test_method_06_rotation_prediction_native_options.TestNativeProfile"
+      ]
+    },
+    {
+      "label": "conv5 before pool5",
+      "file": "methods/06_rotation_prediction/feature_provider.py",
+      "old": "list(encoder.features.children())[:-1]",
+      "new": "list(encoder.features.children())",
+      "tests": [
+        "tests.test_method_06_rotation_prediction_native_options.TestNativeProfile"
+      ]
+    },
+    {
+      "label": "exact native block mapping",
+      "file": "methods/06_rotation_prediction/adapter/__init__.py",
+      "old": "'6': 14",
+      "new": "'6': 15",
+      "tests": [
+        "tests.test_method_06_rotation_prediction_native_options.TestNativeState"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-09-16, Python 3.10 / torch 2.5.1+cu124, passing baselines before mutation",
+    "killed": 4,
+    "total": 4
+  }
+}

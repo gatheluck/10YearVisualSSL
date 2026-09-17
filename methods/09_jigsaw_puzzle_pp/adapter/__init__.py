@@ -247,7 +247,7 @@ def to_args(config: dict, out: Path) -> Namespace:
                      device=config["device"])
 
 
-def extract_encoder(state_dict: dict, prefixes=ENCODER_PREFIXES) -> dict:
+def extract_encoder(state_dict: dict, prefixes=ENCODER_PREFIXES + ALEXNET_ENCODER_PREFIXES) -> dict:
     out = {k: v for k, v in state_dict.items() if k.startswith(prefixes)}
     if not out:
         raise RuntimeError(

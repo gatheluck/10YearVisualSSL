@@ -1,0 +1,54 @@
+{
+  "targets": [
+    {
+      "label": "01_context_prediction exact checkpoint identity",
+      "file": "methods/01_context_prediction/provenance.json",
+      "old": "251ca703367e782f24da76648bcceaa389db62ba1dd41b3b4378a568a179296c",
+      "new": "0000000000000000000000000000000000000000000000000000000000000000",
+      "tests": [
+        "tests.test_method_01_context_prediction_native_options.TestArtifact"
+      ]
+    },
+    {
+      "label": "05_jigsaw_puzzle exact checkpoint identity",
+      "file": "methods/05_jigsaw_puzzle/provenance.json",
+      "old": "3c6e29e415dff98bd6ab03aa31a19176d368aaf671f2e8d3e21f2e9058199e0b",
+      "new": "0000000000000000000000000000000000000000000000000000000000000000",
+      "tests": [
+        "tests.test_method_05_jigsaw_puzzle_native_options.TestArtifact"
+      ]
+    },
+    {
+      "label": "06_rotation_prediction exact checkpoint identity",
+      "file": "methods/06_rotation_prediction/provenance.json",
+      "old": "fb432e898219813abad57859ab13b158a8dc1f593c753d94150271447df6f04b",
+      "new": "0000000000000000000000000000000000000000000000000000000000000000",
+      "tests": [
+        "tests.test_method_06_rotation_prediction_native_options.TestArtifact"
+      ]
+    },
+    {
+      "label": "09_jigsaw_puzzle_pp exact checkpoint identity",
+      "file": "methods/09_jigsaw_puzzle_pp/provenance.json",
+      "old": "e7c8721f2589e98db2138ec22d07b1e235b5d56dee534c25a951184e3a4b4653",
+      "new": "0000000000000000000000000000000000000000000000000000000000000000",
+      "tests": [
+        "tests.test_method_09_jigsaw_puzzle_pp_native_options.TestArtifact"
+      ]
+    },
+    {
+      "label": "21_barlow_twins exact checkpoint identity",
+      "file": "methods/21_barlow_twins/provenance.json",
+      "old": "52088398b58999aa03ef6edc71026cdb1d5ccee1d8d08fa0105de3a82fa0069b",
+      "new": "0000000000000000000000000000000000000000000000000000000000000000",
+      "tests": [
+        "tests.test_method_21_barlow_twins_native_options.TestArtifact"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-09-16, Python 3.10 / torch 2.5.1+cu124, passing baselines before mutation",
+    "killed": 5,
+    "total": 5
+  }
+}

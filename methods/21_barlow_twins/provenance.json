@@ -19,5 +19,16 @@
     "evaluate_linear.py": "captured sha256 fe7a4f4caa7e3808f8b93453ee7d651f37ed75c6aee5a578962938bb5716fad5. Added in the linear-evaluation port. resolve_device()/make_deterministic() imported from the trainer -- one implementation per method -- and the unconditional torch.device('cuda:gpu')/torch.cuda.set_device replaced; the captured evaluation could not start without a GPU. main() split into build_parser() and run(args, encoder, in_dim), which returns its metrics; the captured version wrote results.json and returned nothing. run() accepts an encoder built by the caller, because the contract's artifact is encoder.pt (the backbone alone) while the captured code rebuilds the whole model from a training checkpoint with strict=True. This file is unchanged by the ViT Step-2 port: the adapter builds the ViT encoder itself and passes run(encoder=..., in_dim=embed_dim), so the captured file's internal model_type='vit' loader stays intentionally unused (it still refuses by name, and its top-level import of build_barlow_vit remains removed).",
     "configs/linear_eval.yaml": "new: the linear-evaluation recipe as a contract config; model_type resnet and the online protocol are fixed by the adapter."
   },
-  "a_change_that_was_reverted": "A first version added seed_worker() and gave the captured loader a worker_init_fn, on the belief that torch does not seed Python's random module in a DataLoader worker. **That belief was wrong.** Measured two ways: `random.seed` appears in torch's _worker_loop, and two runs with no worker_init_fn draw identical values. The loader therefore came across untouched and is pinned by hash. Recorded because the mistake was to assert a mechanism without measuring it."
+  "a_change_that_was_reverted": "A first version added seed_worker() and gave the captured loader a worker_init_fn, on the belief that torch does not seed Python's random module in a DataLoader worker. **That belief was wrong.** Measured two ways: `random.seed` appears in torch's _worker_loop, and two runs with no worker_init_fn draw identical values. The loader therefore came across untouched and is pinned by hash. Recorded because the mistake was to assert a mechanism without measuring it.",
+  "step1_native_artifact": {
+    "name": "21_barlow_twins measured native Step-1 evaluation checkpoint",
+    "availability": "user_supplied",
+    "filename": "resnet50.pth",
+    "sha256": "52088398b58999aa03ef6edc71026cdb1d5ccee1d8d08fa0105de3a82fa0069b",
+    "state_key": "",
+    "strip_prefix": "",
+    "acquisition": "Obtain this exact checkpoint from its owner, then use bin/fetch-weights.py --artifact step1_native_artifact --source to verify its SHA-256. No public download URL is verified.",
+    "selection_evidence": "The Step-1 official online linear evaluation references this bare resnet50 backbone. Its filename and result directory do not independently establish the pretraining epoch; endpoint not verified.",
+    "add_prefix": "backbone."
+  }
 }

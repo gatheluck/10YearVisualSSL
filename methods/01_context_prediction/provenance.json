@@ -13,5 +13,16 @@
     "data/__init__.py": "same",
     "models/__init__.py": "same",
     "train_pretrain_alexnet_official.py": "main() split into build_parser() and run(args); the hard-coded cuda device made selectable"
+  },
+  "step1_native_artifact": {
+    "name": "01_context_prediction measured native Step-1 evaluation checkpoint",
+    "availability": "user_supplied",
+    "filename": "final.pth",
+    "sha256": "251ca703367e782f24da76648bcceaa389db62ba1dd41b3b4378a568a179296c",
+    "state_key": "state_dict",
+    "strip_prefix": "",
+    "acquisition": "Obtain this exact checkpoint from its owner, then use bin/fetch-weights.py --artifact step1_native_artifact --source to verify its SHA-256. No public download URL is verified.",
+    "selection_evidence": "The official-style Step-1 linear evaluation references this final checkpoint at global step 1000000. This is the official-style track, distinct from the paper-target epoch-299 track.",
+    "checkpoint_global_step": 1000000
   }
 }

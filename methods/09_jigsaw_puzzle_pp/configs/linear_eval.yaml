@@ -15,6 +15,7 @@ device: auto
 encoder: "${ENCODER}"
 
 train:
+  arch: vgg16
   # model (must match the pretrain run so encoder.pt loads)
   num_permutations: 701
   dropout: 0.5

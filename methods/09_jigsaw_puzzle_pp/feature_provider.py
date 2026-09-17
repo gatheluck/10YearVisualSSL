@@ -1,5 +1,8 @@
 """Feature-extraction provider for 09_jigsaw_puzzle_pp.
 
+The hash-bound imagenet_cluster_cls profile instead uses normalized 224px
+images and the knowledge-transfer AlexNet trunk (9216 dimensions).
+
 `bin/extract-features.py` discovers this file and calls `extract_val_features`
 to obtain one raw feature vector per image over a dataset split. It is a thin
 wrapper that reuses this method's own pieces, so the knowledge of how Jigsaw++
@@ -45,14 +48,22 @@ def extract_val_features(*, encoder_path: str, data_root: str, split: str,
     """Return (features, labels, meta): features is (N, 1024) raw VGG16 encoder
     output, labels is (N,) ImageFolder class indices, meta describes the run."""
     import torch
+    import provider_support
+    native_options = provider_support.load_native_options(
+        encoder_path, METHOD_NAME, {'feature_profile', 'config_overrides'})
+    profile = native_options.get('feature_profile')
+    if profile is not None and profile != 'imagenet_cluster_cls':
+        raise ValueError('unsupported native feature profile')
 
     if str(METHOD_DIR) not in sys.path:
         sys.path.insert(0, str(METHOD_DIR))
     adapter = importlib.import_module("adapter")
     ev = importlib.import_module("evaluate_linear_jigsaw_pp")
 
-    cfg = _load_config()
+    cfg = provider_support.configure_native_config(_load_config(), native_options)
     train = cfg["train"]
+    if profile:
+        train.update(arch='alexnet_cluster_cls', image_size=224)
     arch = train.get("arch", "vgg16")
     # The probe reads images at the encoder's native size: the VGG16 tile size,
     # the AlexNet knowledge-transfer image size, or the ViT puzzle size.
@@ -63,6 +74,8 @@ def extract_val_features(*, encoder_path: str, data_root: str, split: str,
     else:
         image_size = int(train["tile_size"])
 
+    if profile:
+        image_size = 224
     state = torch.load(encoder_path, map_location="cpu", weights_only=True)
     model = adapter.load_encoder(state, cfg)
     encoder = model.get_encoder().to(device)
@@ -72,12 +85,19 @@ def extract_val_features(*, encoder_path: str, data_root: str, split: str,
 
     _dataset, loader = ev._build_loader(
         str(data_root), split, image_size, int(batch_size), int(num_workers))
+    if profile:
+        from torchvision import transforms as T
+        _dataset.transform = T.Compose([
+            T.Resize(256), T.CenterCrop(224), T.ToTensor(),
+            T.Normalize([.485, .456, .406], [.229, .224, .225]),
+        ])
     feats, labels = ev.extract_features(encoder, loader, device)
 
     feats = feats.numpy()
     labels = labels.numpy()
     meta = {
         "method": METHOD_NAME,
+        "native_feature_options": native_options,
         "representation": "raw",
         "feat_dim": int(feats.shape[1]),
         "count": int(feats.shape[0]),
@@ -87,4 +107,7 @@ def extract_val_features(*, encoder_path: str, data_root: str, split: str,
                           "+ CenterCrop at the encoder's native size, "
                           "aspect-preserving, [0,1], no ImageNet normalisation"),
     }
+    if profile:
+        meta['preprocessing'] = 'Native ImageNet val: bilinear resize 256, centre crop 224, ImageNet mean/std'
+        meta['feature_profile'] = profile
     return feats, labels, meta
