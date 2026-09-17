@@ -21,5 +21,16 @@
     "the run is seeded through make_deterministic (python, numpy, torch); the DataLoader gets a seeded generator",
     "the training loop drops the upstream DistributedDataParallel, the bfloat16 AMP autocast, TensorBoard/tqdm, and the online monitoring probe (which reads *detached* features, so it never back-propagates into the backbone and its removal does not change training); the elaborate collapse guards are reduced to a loss finiteness check; the weight-decay split and the AdamW + cosine-with-warmup schedule are kept, single-process fp32",
     "DATA_ROOT is the dataset root; the pretrain stage reads its train/ subdirectory (unified data-root convention via adapterlib.dataset_split_dir)."
-  ]
+  ],
+  "step1_native_artifact": {
+    "availability": "user_supplied",
+    "sha256": "f1ffa4491b5354941cca355151a684fd82434fe6963c12ec9779aff8353eed80",
+    "state_key": "state_dict",
+    "strip_prefix": "",
+    "feature_options": {},
+    "acquisition": "Obtain the exact evaluated checkpoint from its owner and verify SHA-256. A public download matching these bytes has not been independently verified.",
+    "filename": "checkpoint_epoch_100.pth",
+    "bytes": 1120972904,
+    "selection_evidence": "Checkpoint selected by the recorded Step-1 evaluation configuration and result; SHA-256 measured on the readable copy."
+  }
 }

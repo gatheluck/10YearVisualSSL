@@ -41,6 +41,9 @@ class RGB2Lab:
     scaling, since the array is already float.
     """
 
+    def __init__(self, *, native_step1: bool = False):
+        self.native_step1 = native_step1
+
     def __call__(self, img) -> np.ndarray:
         rgb = np.asarray(img, dtype=np.float64) / 255.0
         lin = np.where(rgb > 0.04045, ((rgb + 0.055) / 1.055) ** 2.4,
@@ -48,6 +51,9 @@ class RGB2Lab:
         xyz = (lin @ _RGB2XYZ.T) / _WHITE_D65
         d = 6.0 / 29.0
         f = np.where(xyz > d ** 3, np.cbrt(xyz), xyz / (3 * d * d) + 4.0 / 29.0)
+        if self.native_step1:
+            # Match the rounded Lab constants used by the native rgb2lab.
+            f = np.where(xyz > 0.008856, np.cbrt(xyz), 7.787 * xyz + 16.0 / 116.0)
         L = 116.0 * f[..., 1] - 16.0
         a = 500.0 * (f[..., 0] - f[..., 1])
         b = 200.0 * (f[..., 1] - f[..., 2])

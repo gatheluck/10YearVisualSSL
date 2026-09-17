@@ -59,7 +59,7 @@ class TestNativeExport(unittest.TestCase):
                 ' m.load_state_dict(state, strict=True)\n'
                 ' return m\n')
             source = root / 'native.pt'
-            torch.save({'state_dict': {'module.native': torch.ones(1, 2),
+            torch.save({'torch_version': torch.__version__, 'state_dict': {'module.native': torch.ones(1, 2),
                                        'module.head': torch.zeros(1)}}, source)
             sha = hashlib.sha256(source.read_bytes()).hexdigest()
             config = root / 'config.yaml'
@@ -85,6 +85,14 @@ class TestNativeExport(unittest.TestCase):
             r = subprocess.run(cmd, capture_output=True, text=True)
             self.assertNotEqual(r.returncode, 0)
             self.assertIn('sha256 mismatch', r.stderr)
+            self.assertFalse((root / 'bad').exists())
+            # A known version string must not enable unrelated pickle globals.
+            torch.save({'state_dict': {'module.native': torch.ones(1, 2)},
+                        'untrusted_metadata': Path('unrelated')}, source)
+            cmd[cmd.index('--sha256') + 1] = hashlib.sha256(source.read_bytes()).hexdigest()
+            rejected = subprocess.run(cmd, capture_output=True, text=True)
+            self.assertNotEqual(rejected.returncode, 0)
+            self.assertIn('Weights only load failed', rejected.stderr)
             self.assertFalse((root / 'bad').exists())
 
 class TestNativeModuleMap(unittest.TestCase):

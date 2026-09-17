@@ -211,3 +211,39 @@ commit; the new pin makes this implementation reproducible but does not establis
 which historical source revision produced the original linear-probe score.
 Checkpoints load strictly. The profile and checkpoint must agree, and the paired
 export sidecar's encoder hash is checked before selecting the native path.
+
+
+### Newly readable checkpoints: CMC, PIRL, MSN, V-JEPA, LeJEPA
+
+All five have hash-pinned `step1_native_artifact` acquisition/export recipes.
+CMC, PIRL, MSN and LeJEPA require an independently obtained owner checkpoint;
+no public download for those exact lab-trained files is known. `fetch-weights.py
+--source` verifies their identity before copying. V-JEPA records the official
+URL used in the original evaluation configuration; the downloader rejects any
+bytes that do not match the measured SHA-256. A fresh full download on 2026-09-18
+matched the evaluated checkpoint exactly. Keep `encoder.pt` and its generated
+`export.json` together, and initialize the pinned MSN and JEPA submodules.
+
+| Method | Representation | Dimensions |
+|---|---|---:|
+| CMC | Concatenated layer-5 AlexNet branches, adaptive max-pool6 | 9216 |
+| PIRL | ResNet50 trunk, before the projection head | 2048 |
+| MSN | EMA target encoder, last-block CLS before final norm; bilinear input | 384 |
+| V-JEPA | Official video ViT-H/16, repeat image16 frames, mean tokens | 1280 |
+| LeJEPA | ViT-B/16 backbone, before the projection head | 768 |
+
+CMC's opt-in native path uses the rounded Lab constants of the setup-specified
+scikit-image conversion. It leaves the ordinary port transform unchanged.
+The reference was checked with scikit-image 0.25.2; the historical installation
+version is not recorded. The PIL fallback is a different transform and is not
+silently substituted. MSN selects `target_encoder`, not the online encoder.
+V-JEPA retains the wrapper's `backbone.*` weight namespace and reproduces CUDA
+float16 autocast, token mean, L2 normalization and float16 cache rounding before
+the driver's final float32 L2 output. It is a **video-pretrained caveat row**,
+not an ImageNet-only pretraining result. PIRL and LeJEPA reuse their existing
+feature providers after strict checkpoint conversion.
+
+The native exporter permits only the known `TorchVersion` metadata type in a
+scoped safe-load context. It continues to reject arbitrary pickle objects and
+mismatched checkpoint hashes. Real output and parity evidence is in
+`STEP1_UNLOCKED_RESULTS_20260918.json`.

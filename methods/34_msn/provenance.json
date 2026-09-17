@@ -28,5 +28,19 @@
     "DATA_ROOT is the dataset root; the pretrain stage reads its train/ subdirectory (unified data-root convention via adapterlib.dataset_split_dir).",
     "the capture's unified step 2 (deit_base/16) is added additively, selected by a recipe: unified key in train (absent == the native deit_small step-1 path, unchanged). No separate trainer was needed: train_pretrain_msn.py already implements the recipe -- src.msn_train.init_opt takes the lr directly (the capture baked lr=1.5e-4*1024/256=6e-4 into the config, so nothing is rescaled), the arch is built from the config dims (deit_base = embed_dim 768, num_heads 12), and its cosine weight-decay is constant when weight_decay == final_weight_decay. The only addition is a guarded milestone checkpoint: it writes checkpoint_epoch_{N}.pth at each training.save_at_epochs, a block that is empty for the native config (which never sets that key), so native behaviour is byte-for-byte unchanged. save_at_epochs is the sole unified-only key, refused by name on the native path",
     "the adapter gained a recipe: unified branch and, for the unified recipe, extracts encoder_epoch{N}.pt (the anchor trunk) at each milestone so the 100/200/300 sweep can probe each; configs/pretrain_vit.yaml (recipe: unified, deit_base/16) and configs/linear_eval_vit.yaml (deit_base dims) are added"
-  ]
+  ],
+  "step1_native_artifact": {
+    "availability": "user_supplied",
+    "sha256": "2f9362b906de76cb269d8f6583b9316efab5cab9c3b126611120dabb2f779849",
+    "state_key": "target_encoder",
+    "strip_prefix": "module.",
+    "feature_options": {
+      "feature_profile": "target_block1",
+      "interpolation": "bilinear"
+    },
+    "acquisition": "Obtain the exact evaluated checkpoint from its owner and verify SHA-256. A public download matching these bytes has not been independently verified.",
+    "filename": "step1_msn_vits16-latest.pth.tar",
+    "bytes": 438419095,
+    "selection_evidence": "Checkpoint selected by the recorded Step-1 evaluation configuration and result; SHA-256 measured on the readable copy."
+  }
 }

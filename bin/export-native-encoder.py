@@ -90,7 +90,10 @@ def main(argv=None):
     adapter = provider_support.import_sibling(args.method_dir.resolve(), 'adapter')
     config = provider_support.configure_native_config(
         yaml.safe_load(args.config.read_text()), args.feature_options)
-    native = torch.load(args.source, map_location='cpu', weights_only=True)
+    # Torch checkpoints may record torch.__version__ as a TorchVersion string.
+    # Scope this one known metadata type; never fall back to unrestricted pickle.
+    with torch.serialization.safe_globals([torch.torch_version.TorchVersion]):
+        native = torch.load(args.source, map_location='cpu', weights_only=True)
     mapped = rename_modules(unwrap(native, args.state_key, args.strip_prefix), args.module_map)
     state = adapter.extract_encoder(add_prefix(mapped, args.add_prefix))
     model = adapter.load_encoder(state, config)

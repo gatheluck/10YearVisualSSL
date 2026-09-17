@@ -18,16 +18,13 @@ turns an image into a vector stays in one place:
 - features are the raw encoder output (`extract_features`), *before* the probe's
   mean-centre + L2-normalise. Raw features are what the visualisation asked for.
 
-Imports are bare module names resolved through this method's directory, as the
-adapter itself does. That is safe because the driver runs each method in
-isolation; do not rely on this module and another method's `adapter`/`models`
-coexisting in one interpreter.
+Method imports are scoped through provider_support; the driver also isolates
+each method in a subprocess. Hash-bound export sidecars opt into the recorded
+Step-1 protocol, while ordinary exports retain the default representation.
 """
 
 from __future__ import annotations
 
-import importlib
-import sys
 from pathlib import Path
 
 METHOD_DIR = Path(__file__).resolve().parent
@@ -47,17 +44,22 @@ def extract_val_features(*, encoder_path: str, data_root: str, split: str,
     ImageFolder class indices, meta describes the run."""
     import torch
 
-    if str(METHOD_DIR) not in sys.path:
-        sys.path.insert(0, str(METHOD_DIR))
-    adapter = importlib.import_module("adapter")
-    ev = importlib.import_module("evaluate_linear_vjepa")
-
-    cfg = _load_config()
+    import provider_support
+    options = provider_support.load_native_options(encoder_path, METHOD_NAME,
+                                                  {'feature_profile', 'config_overrides'})
+    profile = options.get('feature_profile')
+    if profile not in (None, 'official_video_meanpool'):
+        raise ValueError('unsupported native feature profile')
+    adapter = provider_support.import_sibling(METHOD_DIR, 'adapter')
+    ev = provider_support.import_sibling(METHOD_DIR, 'evaluate_linear_vjepa')
+    cfg = provider_support.configure_native_config(_load_config(), options)
     train = cfg["train"]
     image_size = int(train["crop_size"])
 
     state = torch.load(encoder_path, map_location="cpu", weights_only=True)
     encoder = adapter.load_encoder(state, cfg).to(device)
+    if profile:
+        encoder = provider_support.import_sibling(METHOD_DIR, 'native_step1').NativeFeatures(encoder)
     encoder.eval()
     for p in encoder.parameters():
         p.requires_grad = False
@@ -80,4 +82,8 @@ def extract_val_features(*, encoder_path: str, data_root: str, split: str,
                           "mean/std; feature is the mean of all the target "
                           "encoder's output tokens (no CLS token)"),
     }
+    meta['native_feature_options'] = options
+    if profile:
+        meta['feature_profile'] = profile
+        meta['preprocessing'] = 'Native V-JEPA: bicubic resize256/crop224, ImageNet normalization, repeat16 frames, mean tokens, CUDA float16 autocast, L2 then float16 cache rounding'
     return feats, labels, meta
