@@ -207,6 +207,10 @@ def extract_encoder(state_dict: dict) -> dict:
 
 
 def load_encoder(state_dict: dict, config: dict):
+    if 'storage_tokens' in state_dict:
+        import provider_support
+        native = provider_support.import_sibling(METHOD_DIR, 'native_step1')
+        return native.load_encoder(state_dict)
     if str(METHOD_DIR) not in sys.path:
         sys.path.insert(0, str(METHOD_DIR))
     from train_pretrain_dinov3 import build_vit, MODEL_ARGS

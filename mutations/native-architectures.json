@@ -1,0 +1,166 @@
+{
+  "targets": [
+    {
+      "label": "BGR order",
+      "file": "methods/04_context_encoder/native_step1.py",
+      "old": "image[[2, 1, 0]]",
+      "new": "image[[0, 1, 2]]",
+      "tests": [
+        "tests.test_method_04_context_encoder_native_options"
+      ]
+    },
+    {
+      "label": "Caffe mean",
+      "file": "methods/04_context_encoder/native_step1.py",
+      "old": "[104., 117., 123.]",
+      "new": "[104., 117., 124.]",
+      "tests": [
+        "tests.test_method_04_context_encoder_native_options"
+      ]
+    },
+    {
+      "label": "LRN alpha",
+      "file": "methods/04_context_encoder/native_step1.py",
+      "old": "alpha=1e-4",
+      "new": "alpha=1e-3",
+      "tests": [
+        "tests.test_method_04_context_encoder_native_options"
+      ]
+    },
+    {
+      "label": "grouped convolution",
+      "file": "methods/04_context_encoder/native_step1.py",
+      "old": "(384, 256, 3, 1, 1, 2, True, False)",
+      "new": "(384, 256, 3, 1, 1, 1, True, False)",
+      "tests": [
+        "tests.test_method_04_context_encoder_native_options"
+      ]
+    },
+    {
+      "label": "strict Caffe state",
+      "file": "methods/04_context_encoder/native_step1.py",
+      "old": "strict=True",
+      "new": "strict=False",
+      "tests": [
+        "tests.test_method_04_context_encoder_native_options"
+      ]
+    },
+    {
+      "label": "preserve official features",
+      "file": "methods/04_context_encoder/adapter/__init__.py",
+      "old": "if any(k.startswith('features.') for k in state_dict):\n        if not all",
+      "new": "if False:\n        if not all",
+      "tests": [
+        "tests.test_method_04_context_encoder_native_options"
+      ]
+    },
+    {
+      "label": "reject mixed namespaces",
+      "file": "methods/04_context_encoder/adapter/__init__.py",
+      "old": "if not all(k.startswith('features.') for k in state_dict):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_04_context_encoder_native_options"
+      ]
+    },
+    {
+      "label": "native Caffe transform",
+      "file": "methods/04_context_encoder/feature_provider.py",
+      "old": "loader.dataset.dataset.transform = native.make_transform()",
+      "new": "pass",
+      "tests": [
+        "tests.test_method_04_context_encoder_native_options"
+      ]
+    },
+    {
+      "label": "DINO resize",
+      "file": "methods/31_dinov3/native_step1.py",
+      "old": "T.Resize(585",
+      "new": "T.Resize(256",
+      "tests": [
+        "tests.test_method_31_dinov3_native_options"
+      ]
+    },
+    {
+      "label": "DINO crop",
+      "file": "methods/31_dinov3/native_step1.py",
+      "old": "T.CenterCrop(512)",
+      "new": "T.CenterCrop(224)",
+      "tests": [
+        "tests.test_method_31_dinov3_native_options"
+      ]
+    },
+    {
+      "label": "offline model",
+      "file": "methods/31_dinov3/native_step1.py",
+      "old": "pretrained=False",
+      "new": "pretrained=True",
+      "tests": [
+        "tests.test_method_31_dinov3_native_options"
+      ]
+    },
+    {
+      "label": "strict DINO state",
+      "file": "methods/31_dinov3/native_step1.py",
+      "old": "strict=True",
+      "new": "strict=False",
+      "tests": [
+        "tests.test_method_31_dinov3_native_options"
+      ]
+    },
+    {
+      "label": "normalized CLS",
+      "file": "methods/31_dinov3/native_step1.py",
+      "old": "['x_norm_clstoken']",
+      "new": "['x_norm_patchtokens']",
+      "tests": [
+        "tests.test_method_31_dinov3_native_options"
+      ]
+    },
+    {
+      "label": "native autocast",
+      "file": "methods/31_dinov3/native_step1.py",
+      "old": "with torch.autocast(device_type='cuda', dtype=torch.float16, enabled=images.is_cuda):",
+      "new": "if True:",
+      "tests": [
+        "tests.test_method_31_dinov3_native_options"
+      ]
+    },
+    {
+      "label": "official DINO architecture",
+      "file": "methods/31_dinov3/adapter/__init__.py",
+      "old": "if 'storage_tokens' in state_dict:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_31_dinov3_native_options"
+      ]
+    },
+    {
+      "label": "native DINO transform",
+      "file": "methods/31_dinov3/feature_provider.py",
+      "old": "dataset.transform = native.make_transform()",
+      "new": "pass",
+      "tests": [
+        "tests.test_method_31_dinov3_native_options"
+      ]
+    },
+    {
+      "label": "04_context_encoder rejects profile decoys",
+      "file": "methods/04_context_encoder/feature_provider.py",
+      "old": "if profile not in (None, 'official_caffe_pool5'):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_04_context_encoder_native_options"
+      ]
+    },
+    {
+      "label": "31_dinov3 rejects profile decoys",
+      "file": "methods/31_dinov3/feature_provider.py",
+      "old": "if profile not in (None, 'official_vitb16_cls512'):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_31_dinov3_native_options"
+      ]
+    }
+  ]
+}

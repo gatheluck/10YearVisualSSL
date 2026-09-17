@@ -189,3 +189,25 @@ knowledge-transfer AlexNet for Jigsaw++. Their ordinary port paths are unchanged
 when no native profile is supplied. Preserve each export's paired `export.json`.
 The actual five-output hashes and four-image GPU parity results are recorded in
 `STEP1_REMAINING_RESULTS_20260916.json`.
+
+
+### Official architectures: Context Encoder and DINOv3
+
+These two evaluated checkpoints require different architectures from the port's
+training defaults. Their `step1_native_artifact` records work with the same
+`fetch-weights.py --source`, `prepare-native-encoders.py` and extraction driver.
+Initialize pinned submodules with `git submodule update --init --recursive`.
+Supply the exact evaluated checkpoints; no public URL has been verified for
+these exact artifacts, so neither tool substitutes a similarly named download.
+
+| Method | Explicit profile | Input and representation |
+|---|---|---|
+| Context Encoder | `official_caffe_pool5` | 227 crop, BGR 0-255 mean subtraction, flattened pool5 (9216) |
+| DINOv3 | `official_vitb16_cls512` | Resize585/crop512 bicubic, ImageNet normalization, normalized CLS (768), CUDA float16 autocast |
+
+DINOv3 imports only the backbone from the pinned official submodule, under its
+upstream DINOv3 License. The original evaluation did not record its upstream
+commit; the new pin makes this implementation reproducible but does not establish
+which historical source revision produced the original linear-probe score.
+Checkpoints load strictly. The profile and checkpoint must agree, and the paired
+export sidecar's encoder hash is checked before selecting the native path.

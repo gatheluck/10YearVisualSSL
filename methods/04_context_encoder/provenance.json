@@ -18,5 +18,17 @@
     "configs/pretrain_vit.yaml": "new: the unified ViT-B/16 Step-2 recipe as a contract config (arch: vit).",
     "configs/linear_eval.yaml": "new: the linear-evaluation recipe as a contract config.",
     "requirements.txt": "rewritten: floors for exactly what the ported files import (torch, torchvision, Pillow, PyYAML, timm). timm supplies the ViT-B/16 encoder for the arch: vit Step-2 path (imported lazily); opencv-python/matplotlib/scikit-learn/tensorboard/tqdm/numpy from the capture are not imported."
-  }
+  },
+  "step1_native_artifact": {
+    "availability": "user_supplied",
+    "sha256": "6b3645908f719331309d3a9b19ba2a9e662112ab0171f6eed2f7e8f86488d31e",
+    "state_key": "model_state_dict",
+    "strip_prefix": "",
+    "feature_options": {
+      "feature_profile": "official_caffe_pool5"
+    },
+    "acquisition": "Obtain the exact evaluated checkpoint from its owner; verify SHA-256. No public URL for this exact artifact has been verified.",
+    "representation": "pool5 flattened, 9216 dimensions"
+  },
+  "native_feature_extension": "The evaluated official Step-1 backbone is supported through an explicit hash-bound profile, separately from training/default evaluation."
 }

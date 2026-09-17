@@ -131,3 +131,15 @@ python3 bin/launch.py --config methods/04_context_encoder/configs/linear_eval.ya
 - **The container definition has never been built** on this machine
 - The numbers in the configs are the recipe, not results; no accuracy from this
   port has been measured against anything
+
+## Official Step-1 feature profile
+
+`official_caffe_pool5` adds the evaluated convolution-only Caffe feature release.
+It uses grouped AlexNet convolutions and LRN, and returns flattened pool5
+(9,216 dimensions), not the training model's fully-connected bottleneck.
+Inputs use bilinear resize 256, centre crop 227, RGB-to-BGR conversion, scaling
+to 0-255 and subtraction of BGR means (104,117,123). The profile and exact
+checkpoint hash are recorded in `provenance.json`; use the verified acquisition
+and batch-export commands in `docs/STEP1_WEIGHTS.md`. The converted checkpoint
+is user-supplied. Preserve `export.json` beside `encoder.pt`. Missing/extra
+weights and a mismatched profile are refused. Existing training defaults remain.

@@ -254,6 +254,10 @@ def extract_encoder(state_dict: dict) -> dict:
     and the bottleneck (`fc.`) are the representation. The decoder head and the
     discriminator are training machinery.
     """
+    if any(k.startswith('features.') for k in state_dict):
+        if not all(k.startswith('features.') for k in state_dict):
+            raise RuntimeError('mixed official and training checkpoint namespaces')
+        return dict(state_dict)
     out = {}
     for key, value in state_dict.items():
         name = key[len(DDP_PREFIX):] if key.startswith(DDP_PREFIX) else key
@@ -275,6 +279,10 @@ def load_encoder(state_dict: dict, config: dict):
     prediction head / mask token / decoder position embedding / mask buffers) is
     expected to be missing, the encoder is not.
     """
+    if any(k.startswith('features.') for k in state_dict):
+        import provider_support
+        native = provider_support.import_sibling(Path(__file__).resolve().parents[1], 'native_step1')
+        return native.load_encoder(state_dict)
     train = config["train"]
     if train.get("arch") == "vit":
         if str(Path(__file__).resolve().parent.parent) not in sys.path:
