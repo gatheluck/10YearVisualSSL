@@ -223,3 +223,68 @@ Final base suite after registering mutation evidence: 3,330 tests, exit 0,
 with 1,382 dependency-gated skips. Those skips are not GPU test passes; the
 separate focused tensor suite and the full native/GPU extraction checks above
 provide the validation for these four changes.
+
+## Seven more native methods completed (2026-09-16)
+
+Child branch `codex/step1-broad-remaining-models` starts from PR #173 tip
+`c7c97e5`. The seven candidates are now implemented and fully extracted.
+
+| Method | Stored checkpoint epoch | Full ImageNet val output |
+|---|---:|---|
+| VAE | 300 | 50,000 x 50 |
+| DeepCluster | 499 | 50,000 x 4,096 |
+| Split-Brain | 99 | 50,000 x 512 |
+| BEiT | 299 | 50,000 x 768 |
+| iBOT | 799 | 50,000 x 1,536 |
+| I-JEPA | 299 | 50,000 x 1,280 |
+| NEPA | 1599 | 50,000 x 768 |
+
+Each checkpoint was safely loaded, hashed, exported and strictly checked by its
+adapter. Captured reference source hashes matched the live original. All seven
+providers matched native raw features exactly on four real val images on H200.
+Every full array passed shape, float32, finite-value, unit-L2 and label checks:
+50,000 samples, sorted labels, 1,000 classes with 50 images each. Label hashes
+match all preceding new extractions. Evidence is in
+`STEP1_BROAD_RESULTS_20260916.json`.
+
+The first GPU comparison caught a real DeepCluster defect: the adapter discarded
+Sobel tensors although native initialization changes those frozen values. Tests
+now require exact preservation and refusal of missing frontend state. Existing
+exports without those tensors must be regenerated. Split-Brain needed explicit
+native float32 Lab arithmetic; its ordinary training conversion remains the same.
+BEiT needed bilinear resizing, VAE needed latent size 50 and image size 224, and
+iBOT needed the last four teacher blocks. I-JEPA and NEPA use explicitly selected
+target/EMA states. The initial VAE verification harness passed an unsupported
+constructor argument; it was corrected. The extraction environment lacked iBOT's
+declared tensorboard dependency; it was added in a separate environment. Only
+the four unsuccessful methods were retried. Their final GPU job exited 0.
+BEiT's initially stale text description was corrected to match its actual
+bilinear override; feature arrays were not changed.
+
+TDD: shared config/prefix, batch forwarding, seven profile/identity, Sobel and
+native-pixel tests were observed failing before the corresponding implementation.
+The tensor-enabled focused suite passed 63 tests without skips, with an additional
+Lab-mode rejection test verified by mutation. DeepCluster/Split-Brain regression:
+96 tests, 12 dependency-gated skips, exit 0. Eight generic mutations and fifteen
+method-profile mutations were detected, including the real export CLI, input
+config immutability, actual Sobel tensors, native pixel precision and provider
+wiring. Nine inherited mapping/pixel and nine prior transformer-profile mutations
+also passed. An initial base-suite run failed solely because new mutation results
+had not yet been recorded; the completeness guard was retained.
+
+Collection: **35 of 51 extracted, 16 still uncollected**, including the user's
+thirteen previously completed methods. The original code, weights and environments
+remained read-only. Only isolated workspaces and the designated delivery directory
+are writable. All jobs used the required reservation; no ordinary queue fallback.
+These lab checkpoint bytes have no verified public download URL. The runtime
+still differs from the repository's current locks, so matching-lock reproduction
+and PR CI remain separate validation. Raw logs and concrete execution identifiers
+remain outside Git. The grouped child PR follows the parent-merge/rebase workflow.
+
+Final local base suite: **3,359 tests, exit 0, 1,400 dependency-gated skips**.
+The shared visualization collection now contains **22** verified methods; its
+51-record manifest preserves 13 extracted elsewhere and 16 not yet extracted.
+All four files of each new method were hash-checked before/after copying, and
+all previously delivered files retained their hashes. Group read/traverse access
+was checked for every delivered path. The seven-method branch is grouped for one
+PR after #173 merges; private execution logs record operational details.

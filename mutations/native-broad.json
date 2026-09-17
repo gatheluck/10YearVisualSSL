@@ -1,0 +1,81 @@
+{
+  "targets": [
+    {
+      "label": "typed overrides",
+      "file": "provider_support.py",
+      "old": "elif type(value) is not type(base[key]):",
+      "new": "elif False:",
+      "tests": [
+        "tests.test_provider_support.TestNativeConfig"
+      ]
+    },
+    {
+      "label": "exact config keys",
+      "file": "provider_support.py",
+      "old": "if key not in base:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_provider_support.TestNativeConfig"
+      ]
+    },
+    {
+      "label": "deep copy",
+      "file": "provider_support.py",
+      "old": "result = copy.deepcopy(base)",
+      "new": "result = base",
+      "tests": [
+        "tests.test_provider_support.TestNativeConfig"
+      ]
+    },
+    {
+      "label": "mapping only",
+      "file": "provider_support.py",
+      "old": "if not isinstance(override, dict):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_provider_support.TestNativeConfig"
+      ]
+    },
+    {
+      "label": "prefix format",
+      "file": "bin/export-native-encoder.py",
+      "old": "if not isinstance(prefix, str) or (prefix and (not prefix.endswith('.') or prefix == '.')):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_export_native_encoder.TestAddedPrefix"
+      ]
+    },
+    {
+      "label": "worker prefix",
+      "file": "bin/export-native-encoder.py",
+      "old": "add_prefix(mapped, args.add_prefix)",
+      "new": "add_prefix(mapped, \"\")",
+      "tests": [
+        "tests.test_export_native_encoder.TestNativeProfileExport"
+      ]
+    },
+    {
+      "label": "worker config",
+      "file": "bin/export-native-encoder.py",
+      "old": "yaml.safe_load(args.config.read_text()), args.feature_options)",
+      "new": "yaml.safe_load(args.config.read_text()), {})",
+      "tests": [
+        "tests.test_export_native_encoder.TestNativeProfileExport"
+      ]
+    },
+    {
+      "label": "batch prefix",
+      "file": "bin/prepare-native-encoders.py",
+      "old": "if 'add_prefix' in artifact:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_prepare_native_encoders.TestBatch.test_added_prefix_reaches_worker_without_affecting_other_methods"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-09-16, Python 3.10 / torch 2.5.1+cu124",
+    "killed": 8,
+    "total": 8
+  }
+}

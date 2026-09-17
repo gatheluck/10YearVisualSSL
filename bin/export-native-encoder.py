@@ -55,6 +55,13 @@ def rename_modules(state: dict, mapping: dict) -> dict:
     return result
 
 
+def add_prefix(state: dict, prefix: str) -> dict:
+    """Place a bare, explicitly selected state under an adapter's namespace."""
+    if not isinstance(prefix, str) or (prefix and (not prefix.endswith('.') or prefix == '.')):
+        raise ValueError('add prefix must be empty or a module prefix ending in a dot')
+    return {prefix + key: value for key, value in state.items()}
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument('--source', type=Path, required=True)
@@ -64,6 +71,7 @@ def main(argv=None):
     parser.add_argument('--out', type=Path, required=True)
     parser.add_argument('--state-key', default='')
     parser.add_argument('--strip-prefix', default='')
+    parser.add_argument('--add-prefix', default='')
     parser.add_argument('--module-map', type=json.loads, default={})
     parser.add_argument('--feature-options', type=json.loads, default={})
     args = parser.parse_args(argv)
@@ -80,10 +88,11 @@ def main(argv=None):
     sys.path.insert(0, str(ROOT))
     import provider_support
     adapter = provider_support.import_sibling(args.method_dir.resolve(), 'adapter')
-    config = yaml.safe_load(args.config.read_text())
+    config = provider_support.configure_native_config(
+        yaml.safe_load(args.config.read_text()), args.feature_options)
     native = torch.load(args.source, map_location='cpu', weights_only=True)
-    state = adapter.extract_encoder(rename_modules(
-        unwrap(native, args.state_key, args.strip_prefix), args.module_map))
+    mapped = rename_modules(unwrap(native, args.state_key, args.strip_prefix), args.module_map)
+    state = adapter.extract_encoder(add_prefix(mapped, args.add_prefix))
     model = adapter.load_encoder(state, config)
     model.eval()
     # Detect a checkpoint changed during the read instead of labelling mixed inputs.
@@ -95,7 +104,7 @@ def main(argv=None):
     record = {'source_sha256': source_sha, 'encoder_sha256': fetch._sha256(dest),
               'method': args.method_dir.name, 'state_key': args.state_key,
               'strip_prefix': args.strip_prefix, 'config': config,
-              'module_map': args.module_map,
+              'module_map': args.module_map, 'add_prefix': args.add_prefix,
               'feature_options': args.feature_options,
               'torch_version': str(torch.__version__), 'tensor_count': len(state),
               'validation': 'adapter.load_encoder accepted; feature parity not yet measured'}

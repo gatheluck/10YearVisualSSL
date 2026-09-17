@@ -127,6 +127,10 @@ jobs:
           .venv/bin/python bin/verify-environment.py \
             --lock "methods/${{ matrix.method }}/requirements.lock.txt" \
             --lock requirements-tools.lock.txt
+      # Cheap native-profile checks fail before the expensive method smokes.
+      # Their discovery includes the fresh-process CPU-dispatch regression.
+      - name: Check native profiles first
+        run: .venv/bin/python -m unittest discover -s tests -p 'test_method_*native_options.py' -v
       - name: Run the whole suite
         run: .venv/bin/python -m unittest discover -s tests -v
 

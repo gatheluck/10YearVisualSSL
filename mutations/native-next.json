@@ -39,8 +39,8 @@
     {
       "label": "real worker mapping",
       "file": "bin/export-native-encoder.py",
-      "old": "args.strip_prefix), args.module_map))",
-      "new": "args.strip_prefix), {}))",
+      "old": "args.strip_prefix), args.module_map)",
+      "new": "args.strip_prefix), {})",
       "tests": [
         "tests.test_export_native_encoder.TestNativeExport"
       ]

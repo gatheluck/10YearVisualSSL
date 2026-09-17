@@ -1,0 +1,118 @@
+{
+  "targets": [
+    {
+      "label": "verify profile before imports",
+      "file": "methods/08_split_brain/feature_provider.py",
+      "old": "    native_options = provider_support.load_native_options(\n        encoder_path, METHOD_NAME, {'config_overrides', 'resize_short_side', 'interpolation', 'lab_mode'})",
+      "new": "    native_options = {}",
+      "tests": [
+        "tests.test_method_08_split_brain_native_options.TestNativeProfile.test_rejects_unknown_option_before_loading_model"
+      ]
+    },
+    {
+      "label": "native Lab wiring",
+      "file": "methods/08_split_brain/feature_provider.py",
+      "old": "_dataset.native_eval = native_options.get('lab_mode') == 'numpy_float32'",
+      "new": "_dataset.native_eval = False",
+      "tests": [
+        "tests.test_method_08_split_brain_native_options.TestNativeProfile.test_profile_reaches_model_inference_and_preserves_defaults"
+      ]
+    },
+    {
+      "label": "native Lab precision",
+      "file": "methods/08_split_brain/data/split_brain_dataset.py",
+      "old": "dtype = np.float32 if native_eval else np.float64",
+      "new": "dtype = np.float64",
+      "tests": [
+        "tests.test_method_08_split_brain_native_options.TestNativeLab"
+      ]
+    },
+    {
+      "label": "Lab mode validation",
+      "file": "methods/08_split_brain/feature_provider.py",
+      "old": "if native_options.get('lab_mode') not in (None, 'numpy_float32'):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_08_split_brain_native_options.TestNativeLab.test_unknown_lab_mode_is_refused_before_model_import"
+      ]
+    },
+    {
+      "label": "native gamma coefficient",
+      "file": "methods/08_split_brain/data/split_brain_dataset.py",
+      "old": "rgb + 0.055",
+      "new": "rgb + 0.056",
+      "tests": [
+        "tests.test_method_08_split_brain_native_options.TestNativeLab"
+      ]
+    },
+    {
+      "label": "native low intensity slope",
+      "file": "methods/08_split_brain/data/split_brain_dataset.py",
+      "old": "24389.0 / 27.0",
+      "new": "24000.0 / 27.0",
+      "tests": [
+        "tests.test_method_08_split_brain_native_options.TestNativeLab"
+      ]
+    },
+    {
+      "label": "native matrix coefficient",
+      "file": "methods/08_split_brain/data/split_brain_dataset.py",
+      "old": "0.4124564",
+      "new": "0.4134564",
+      "tests": [
+        "tests.test_method_08_split_brain_native_options.TestNativeLab"
+      ]
+    },
+    {
+      "label": "native L scaling",
+      "file": "methods/08_split_brain/data/split_brain_dataset.py",
+      "old": "(l_channel - 50.0) / 50.0",
+      "new": "(l_channel - 50.0) / 51.0",
+      "tests": [
+        "tests.test_method_08_split_brain_native_options.TestNativeLab"
+      ]
+    },
+    {
+      "label": "native ab scaling",
+      "file": "methods/08_split_brain/data/split_brain_dataset.py",
+      "old": "ab_channels / 128.0",
+      "new": "ab_channels / 127.0",
+      "tests": [
+        "tests.test_method_08_split_brain_native_options.TestNativeLab"
+      ]
+    },
+    {
+      "label": "native mode forwarding",
+      "file": "methods/08_split_brain/data/split_brain_dataset.py",
+      "old": "lab = rgb2lab(np.asarray(rgb_pil), native_eval=native_eval)",
+      "new": "lab = rgb2lab(np.asarray(rgb_pil), native_eval=False)",
+      "tests": [
+        "tests.test_method_08_split_brain_native_options.TestNativeLab"
+      ]
+    },
+    {
+      "label": "native channel order",
+      "file": "methods/08_split_brain/data/split_brain_dataset.py",
+      "old": "np.stack([L, a, b], axis=-1)",
+      "new": "np.stack([L, b, a], axis=-1)",
+      "tests": [
+        "tests.test_method_08_split_brain_native_options.TestNativeLab"
+      ]
+    },
+    {
+      "label": "native dark branch threshold",
+      "file": "methods/08_split_brain/data/split_brain_dataset.py",
+      "old": "xyz > 216.0 / 24389.0",
+      "new": "xyz > 0.01",
+      "tests": [
+        "tests.test_method_08_split_brain_native_options.TestNativeLab"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-09-16, Python 3.12.13 / NumPy 2.5.1 / torch 2.13.0+cpu; passing baselines, isolated CPU fixtures",
+    "killed": 12,
+    "total": 12,
+    "strictness": "The dark-branch threshold mutant survives the old five-pixel bitwise oracle and is killed by the new scalar-reference fixtures."
+  }
+}

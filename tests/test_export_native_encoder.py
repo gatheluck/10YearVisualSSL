@@ -113,3 +113,59 @@ class TestNativeModuleMap(unittest.TestCase):
         for mapping in ([], {'conv': ''}, {'conv.part': 'encoder.0'}, {'conv': 3}):
             with self.subTest(mapping=mapping), self.assertRaises(ValueError):
                 self.mod.rename_modules({'conv.weight': 1}, mapping)
+
+
+class TestAddedPrefix(unittest.TestCase):
+    def test_prefix_is_explicit_and_preserves_all_tensors(self):
+        spec = importlib.util.spec_from_file_location('prefix_export', TOOL)
+        mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
+        marker = object()
+        state = {'weight': marker, 'weight_extra': 2}
+        self.assertEqual(mod.add_prefix(state, 'target.'), {'target.weight': marker, 'target.weight_extra': 2})
+        self.assertIs(mod.add_prefix(state, 'target.')['target.weight'], marker)
+        self.assertEqual(mod.add_prefix(state, ''), state)
+        for prefix in (None, 2, 'target', '.'):
+            with self.subTest(prefix=prefix), self.assertRaises(ValueError):
+                mod.add_prefix(state, prefix)
+
+class TestNativeProfileExport(unittest.TestCase):
+    def test_cli_prefix_and_resolved_config_reach_adapter(self):
+        import hashlib
+        import json
+        import subprocess
+        import sys
+        import tempfile
+        try:
+            import torch
+            import yaml
+        except ImportError:
+            self.skipTest('torch/PyYAML unavailable')
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            method = root / 'example'; method.mkdir()
+            (method / 'adapter.py').write_text(
+                'import torch\n'
+                'def extract_encoder(state):\n'
+                ' return {k.removeprefix("target."):v for k,v in state.items() if k.startswith("target.")}\n'
+                'def load_encoder(state, config):\n'
+                ' m=torch.nn.Linear(config["train"]["width"], 1, bias=False)\n'
+                ' m.load_state_dict(state, strict=True)\n'
+                ' return m\n')
+            source = root / 'native.pt'
+            torch.save({'teacher': {'weight': torch.tensor([[2., 3., 4.]])}}, source)
+            sha = hashlib.sha256(source.read_bytes()).hexdigest()
+            config = root / 'config.yaml'; config.write_text('train:\n  width: 2\n')
+            options = {'config_overrides': {'train': {'width': 3}}}
+            out = root / 'out'
+            cmd = [sys.executable, str(TOOL), '--source', str(source), '--sha256', sha,
+                   '--method-dir', str(method), '--config', str(config), '--out', str(out),
+                   '--state-key', 'teacher', '--add-prefix', 'target.',
+                   '--feature-options', json.dumps(options)]
+            r = subprocess.run(cmd, capture_output=True, text=True)
+            self.assertEqual(r.returncode, 0, r.stderr)
+            self.assertTrue(torch.equal(torch.load(out / 'encoder.pt', weights_only=True)['weight'],
+                                        torch.tensor([[2., 3., 4.]])))
+            record = json.loads((out / 'export.json').read_text())
+            self.assertEqual(record['config'], {'train': {'width': 3}})
+            self.assertEqual(record['add_prefix'], 'target.')
+            self.assertEqual(record['feature_options'], options)

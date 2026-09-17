@@ -1,0 +1,294 @@
+{
+  "date": "2026-09-16",
+  "runtime_note": "Python 3.10, torch 2.5.1+cu124 on reserved H200; not the repository current dependency lock. Four-image exact parity is not proof for every input.",
+  "original_read_only": true,
+  "records": [
+    {
+      "method": "02_vae",
+      "status": "ok",
+      "shape": [
+        50000,
+        50
+      ],
+      "norm_min": 0.9999998211860657,
+      "norm_max": 1.0000001192092896,
+      "hashes": {
+        "features.npy": "997a3cd2ca9e201f09dea309127f16d84d0e31d905bde01dc28794f5efcba7e0",
+        "labels.npy": "186361171a139f8617d3ce725b06a01cbc9ae9eac739098b93dc6261ee7aacbe"
+      },
+      "source_sha256": "c3b736c76a6c77a109d7151b03505da34343748a6ae85d56ac3510500d88cd00",
+      "encoder_sha256": "fdd9db7b3134de0d39805244fd171f4dde96aade520386f1374915d605aa3baf",
+      "feature_options": {
+        "config_overrides": {
+          "train": {
+            "latent_dim": 50,
+            "img_size": 224
+          }
+        },
+        "resize_short_side": 256
+      },
+      "parity": {
+        "method": "02_vae",
+        "images_checked": 4,
+        "max_abs_error": 0.0,
+        "native_source_matches_live": true,
+        "provider_meta": {
+          "method": "02_vae",
+          "native_feature_options": {
+            "config_overrides": {
+              "train": {
+                "latent_dim": 50,
+                "img_size": 224
+              }
+            },
+            "resize_short_side": 256
+          },
+          "representation": "raw",
+          "feat_dim": 50,
+          "count": 4,
+          "arch": "vae_cnn",
+          "latent_dim": 50,
+          "image_size": 224,
+          "feature": "VAE posterior mean mu (VAE_CNN.get_features: encoder -> fc_mu), before the linear probe",
+          "preprocessing": "VAE eval: resize to 256, centre crop 224, [0,1], no ImageNet normalisation; dataset-agnostic (MNIST or ImageFolder)"
+        },
+        "torch": "2.5.1+cu124",
+        "gpu": "NVIDIA H200"
+      }
+    },
+    {
+      "method": "07_deepcluster",
+      "status": "ok",
+      "shape": [
+        50000,
+        4096
+      ],
+      "norm_min": 0.9999998211860657,
+      "norm_max": 1.0000001192092896,
+      "hashes": {
+        "features.npy": "2b1c321fe8e54d8ee922f3f7a22557cd612b3f35c50a3b6db5425aada61777bc",
+        "labels.npy": "186361171a139f8617d3ce725b06a01cbc9ae9eac739098b93dc6261ee7aacbe"
+      },
+      "source_sha256": "985c44c6fc46f0f3bdd38e1fa4cec28a7d528f6e6b60cd38c5de04738f5cbb11",
+      "encoder_sha256": "caf74fc5908a703e98eb43fc29b9ca670e571f1ad03e113728b6dd53b6ab3fd2",
+      "feature_options": {},
+      "parity": {
+        "method": "07_deepcluster",
+        "images_checked": 4,
+        "max_abs_error": 0.0,
+        "native_source_matches_live": true,
+        "provider_meta": {
+          "method": "07_deepcluster",
+          "native_feature_options": {},
+          "representation": "raw",
+          "feat_dim": 4096,
+          "count": 4,
+          "arch": "alexnet",
+          "image_size": 224,
+          "preprocessing": "DeepCluster eval: resize + centre crop, [0,1], ImageNet normalisation"
+        },
+        "torch": "2.5.1+cu124",
+        "gpu": "NVIDIA H200"
+      }
+    },
+    {
+      "method": "08_split_brain",
+      "status": "ok",
+      "shape": [
+        50000,
+        512
+      ],
+      "norm_min": 0.9999998211860657,
+      "norm_max": 1.0000001192092896,
+      "hashes": {
+        "features.npy": "e79914ff75d66d384b6832ea577364173f0f5862530b88e4eeccaa145dd858f8",
+        "labels.npy": "186361171a139f8617d3ce725b06a01cbc9ae9eac739098b93dc6261ee7aacbe"
+      },
+      "source_sha256": "e3491f8273fa1db79cf612f456c8d26c90226052a6a256eda53d527cdba13e78",
+      "encoder_sha256": "f6f44b25897c8624f3626a4c1b4b10e5f0de2f146de4bf5cbc664c4566e7daa8",
+      "feature_options": {
+        "lab_mode": "numpy_float32"
+      },
+      "parity": {
+        "method": "08_split_brain",
+        "images_checked": 4,
+        "max_abs_error": 0.0,
+        "native_source_matches_live": true,
+        "provider_meta": {
+          "method": "08_split_brain",
+          "native_feature_options": {
+            "lab_mode": "numpy_float32"
+          },
+          "representation": "raw",
+          "feat_dim": 512,
+          "count": 4,
+          "arch": "alexnet",
+          "image_size": 224,
+          "preprocessing": "Split-Brain eval: resize + centre crop, then RGB -> CIE Lab split into L (1ch) and ab (2ch) branch inputs; concatenated branch features, no ImageNet normalisation"
+        },
+        "torch": "2.5.1+cu124",
+        "gpu": "NVIDIA H200"
+      }
+    },
+    {
+      "method": "24_beit",
+      "status": "ok",
+      "shape": [
+        50000,
+        768
+      ],
+      "norm_min": 0.9999998211860657,
+      "norm_max": 1.0000001192092896,
+      "hashes": {
+        "features.npy": "1deaf0fc9c642b3d723399ada6926325999462a05072e3d8a78f471917812939",
+        "labels.npy": "186361171a139f8617d3ce725b06a01cbc9ae9eac739098b93dc6261ee7aacbe"
+      },
+      "source_sha256": "09dccd4c38204204f694eacdcd70459c1d108c1e414c70d02850baa3899bf839",
+      "encoder_sha256": "6ee0d2c047d879bf45e136a5567c5a02e0a9c390469d50d31f2f6cd7815d17c9",
+      "feature_options": {
+        "interpolation": "bilinear"
+      },
+      "parity": {
+        "method": "24_beit",
+        "images_checked": 4,
+        "max_abs_error": 0.0,
+        "native_source_matches_live": true,
+        "provider_meta": {
+          "method": "24_beit",
+          "native_feature_options": {
+            "interpolation": "bilinear"
+          },
+          "representation": "raw",
+          "feat_dim": 768,
+          "count": 4,
+          "arch": "beit",
+          "image_size": 224,
+          "preprocessing": "BEiT eval: bilinear resize to 256 + centre crop to 224, [0,1], ImageNet mean/std; feature is the mean of the patch tokens with CLS excluded"
+        },
+        "torch": "2.5.1+cu124",
+        "gpu": "NVIDIA H200"
+      },
+      "metadata_note": "Description corrected after extraction to match the actual recorded bilinear override; arrays unchanged."
+    },
+    {
+      "method": "27_ibot",
+      "status": "ok",
+      "shape": [
+        50000,
+        1536
+      ],
+      "norm_min": 0.9999998807907104,
+      "norm_max": 1.0000001192092896,
+      "hashes": {
+        "features.npy": "6ad1f09fd54dd6abd12327c56b161dba56d3d23ede34348f9177c011b699eed0",
+        "labels.npy": "186361171a139f8617d3ce725b06a01cbc9ae9eac739098b93dc6261ee7aacbe"
+      },
+      "source_sha256": "3cdd5424ed69f1c66310118a2c096f75c44432b0a6ffa5633d283b2963d10c8b",
+      "encoder_sha256": "1396c440f039532532710b43da0248620489a5f1d7f01fad0c207cc2605d0f52",
+      "feature_options": {
+        "config_overrides": {
+          "model": {
+            "n_last_blocks": 4
+          }
+        }
+      },
+      "parity": {
+        "method": "27_ibot",
+        "images_checked": 4,
+        "max_abs_error": 0.0,
+        "native_source_matches_live": true,
+        "provider_meta": {
+          "method": "27_ibot",
+          "native_feature_options": {
+            "config_overrides": {
+              "model": {
+                "n_last_blocks": 4
+              }
+            }
+          },
+          "representation": "raw",
+          "feat_dim": 1536,
+          "count": 4,
+          "arch": "vit_small",
+          "image_size": 224,
+          "n_last_blocks": 4,
+          "avgpool_patchtokens": 0,
+          "preprocessing": "iBOT eval: bicubic resize to 256 + centre crop to 224, [0,1], ImageNet mean/std; feature is the teacher ViT CLS tokens from 4 final blocks (avgpool_patchtokens=0)"
+        },
+        "torch": "2.5.1+cu124",
+        "gpu": "NVIDIA H200"
+      }
+    },
+    {
+      "method": "29_ijepa",
+      "status": "ok",
+      "shape": [
+        50000,
+        1280
+      ],
+      "norm_min": 0.9999998211860657,
+      "norm_max": 1.0000001192092896,
+      "hashes": {
+        "features.npy": "f9c627801119c003279280ea4560e73b0585ec0e997cea4dbc57d0a8f31ccd2e",
+        "labels.npy": "186361171a139f8617d3ce725b06a01cbc9ae9eac739098b93dc6261ee7aacbe"
+      },
+      "source_sha256": "03784482d8e9f8d7b89b3da2ba750227163aad9e605658046bf00a02cf431ba5",
+      "encoder_sha256": "ce522d5163b4814b6f7957a98595192b0b0e0cdc34708a0d69cbf02470f59396",
+      "feature_options": {},
+      "parity": {
+        "method": "29_ijepa",
+        "images_checked": 4,
+        "max_abs_error": 0.0,
+        "native_source_matches_live": true,
+        "provider_meta": {
+          "method": "29_ijepa",
+          "native_feature_options": {},
+          "representation": "raw",
+          "feat_dim": 1280,
+          "count": 4,
+          "arch": "vit_huge",
+          "image_size": 224,
+          "preprocessing": "I-JEPA eval: bicubic resize to img_size*256/224 + centre crop to img_size, [0,1], ImageNet mean/std; feature is the mean of the patch tokens (no CLS token)"
+        },
+        "torch": "2.5.1+cu124",
+        "gpu": "NVIDIA H200"
+      }
+    },
+    {
+      "method": "32_nepa",
+      "status": "ok",
+      "shape": [
+        50000,
+        768
+      ],
+      "norm_min": 0.9999998211860657,
+      "norm_max": 1.0000001192092896,
+      "hashes": {
+        "features.npy": "89d2cca4e4ab6daedbaf2a790f801c1d0602e4f154f6a3b0db65438de4b15b8d",
+        "labels.npy": "186361171a139f8617d3ce725b06a01cbc9ae9eac739098b93dc6261ee7aacbe"
+      },
+      "source_sha256": "a7829af8790b6f400fe3f23f1b06e581a34e1521f3829c12ebddc2e0d63eb1d1",
+      "encoder_sha256": "24e4475fbb1f77c97c170c2923eee5f1ade7a2bbbf03178367489442348befbb",
+      "feature_options": {},
+      "parity": {
+        "method": "32_nepa",
+        "images_checked": 4,
+        "max_abs_error": 0.0,
+        "native_source_matches_live": true,
+        "provider_meta": {
+          "method": "32_nepa",
+          "native_feature_options": {},
+          "representation": "raw",
+          "feat_dim": 768,
+          "count": 4,
+          "arch": "nepa",
+          "image_size": 224,
+          "pooling": "avg",
+          "preprocessing": "NEPA eval: bicubic resize to img_size*256/224 + centre crop to img_size, [0,1], NEPA mean/std = 0.5 normalisation; feature is the pooled autoregressive predictor output (pool='avg')"
+        },
+        "torch": "2.5.1+cu124",
+        "gpu": "NVIDIA H200"
+      }
+    }
+  ]
+}

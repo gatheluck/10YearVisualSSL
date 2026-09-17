@@ -137,3 +137,37 @@ provider emits raw backbone features before the linear classifier or its
 train-set standardization; use `--representation l2` in the extraction driver
 for the visualization collection. GPU parity and full-val completion are
 recorded separately in `STEP1_EXTRACTION_PROGRESS.md`.
+
+## Additional seven native recipes
+
+VAE, DeepCluster, Split-Brain, BEiT, iBOT, I-JEPA and NEPA now have exact
+checkpoint hashes and native export recipes. These are lab-trained files with
+no verified public download URLs; the user-supplied acquisition flow above
+refuses any other bytes. Checkpoint epoch values are recorded as stored, since
+not every trainer uses zero-based epochs.
+
+| Method | Native representation | Explicit protocol |
+|---|---|---|
+| VAE | Posterior mean, 50 dimensions | Input 224; bilinear resize 256; no ImageNet normalization |
+| DeepCluster | AlexNet fc7, 4,096 dimensions | Preserve actual frozen Sobel weights |
+| Split-Brain | Two averaged branch features, 512 dimensions | Native NumPy float32 Lab conversion |
+| BEiT | Mean of patch tokens, 768 dimensions | Bilinear resize 256 |
+| iBOT | Last four teacher CLS tokens, 1,536 dimensions | Four-block concatenation |
+| I-JEPA | Target encoder mean patch token, 1,280 dimensions | Explicit target_encoder state |
+| NEPA | EMA causal predictor mean, 768 dimensions | Explicit ema_state_dict state |
+
+`feature_options.config_overrides` merges into the shipped evaluation config
+at both export and inference. Only existing keys with matching types are
+accepted; nested defaults are preserved and input configs are not mutated.
+The VAE shape and iBOT layer count therefore agree at both stages.
+An optional recipe `add_prefix` (direct CLI: `--add-prefix`) places explicitly
+selected bare state keys under an adapter namespace after module remapping.
+It does not guess between online and target weights.
+
+DeepCluster's old exports omitted the Sobel front-end even though the native
+model's initializer overwrites its initial filter values. Those exports cannot
+reproduce the original inputs; regenerate from the full checkpoint. The loader
+now rejects missing Sobel tensors. The reset classification head remains
+excluded. Split-Brain's native Lab mode is explicit and leaves ordinary
+training/default conversion unchanged; it corresponds to the original
+NumPy fallback, not a scikit-image conversion.
