@@ -18,10 +18,9 @@ turns an image into a vector stays in one place:
   probe's mean-centre + L2-normalise. Raw features are what the visualisation
   asked for.
 
-Imports are bare module names resolved through this method's directory, as the
-adapter itself does. That is safe because the driver runs each method in
-isolation; do not rely on this module and another method's `adapter`/`models`
-coexisting in one interpreter.
+Sibling imports are scoped to this method through provider_support. An explicit
+native sidecar selects the official 512-pixel Step-1 checkpoint and architecture;
+the default path continues to use the port's trained teacher backbone.
 """
 
 from __future__ import annotations
@@ -42,42 +41,35 @@ def _load_config() -> dict:
 
 def extract_val_features(*, encoder_path: str, data_root: str, split: str,
                          device: str, batch_size: int, num_workers: int):
-    """Return (features, labels, meta): features is (N, 768) raw encoder output
-    (the DINOv3 teacher CLS token), labels is (N,) ImageFolder class indices,
-    meta describes the run."""
+    """Return raw frozen CLS features and the exact input protocol metadata."""
     import torch
-
-    if str(METHOD_DIR) not in sys.path:
-        sys.path.insert(0, str(METHOD_DIR))
-    adapter = importlib.import_module("adapter")
-    ev = importlib.import_module("evaluate_linear_dinov3")
-
+    import provider_support
+    options = provider_support.load_native_options(encoder_path, METHOD_NAME, {'feature_profile'})
+    profile = options.get('feature_profile')
+    if profile not in (None, 'official_vitb16_cls512'):
+        raise ValueError('unsupported native feature profile')
+    adapter = provider_support.import_sibling(METHOD_DIR, 'adapter')
+    ev = provider_support.import_sibling(METHOD_DIR, 'evaluate_linear_dinov3')
     cfg = _load_config()
-    train = cfg["train"]
-    image_size = int(train["img_size"])
-
-    state = torch.load(encoder_path, map_location="cpu", weights_only=True)
-    model = adapter.load_encoder(state, cfg)
-    backbone = model.to(device)
-    backbone.eval()
-    for p in backbone.parameters():
-        p.requires_grad = False
-
-    _dataset, loader = ev._build_loader(
-        str(data_root), split, image_size, int(batch_size), int(num_workers))
+    state = torch.load(encoder_path, map_location='cpu', weights_only=True)
+    if bool(profile) != ('storage_tokens' in state):
+        raise ValueError('official checkpoint and native feature profile must be selected together')
+    image_size = 512 if profile else int(cfg['train']['img_size'])
+    backbone = adapter.load_encoder(state, cfg).to(device).eval()
+    for parameter in backbone.parameters():
+        parameter.requires_grad = False
+    dataset, loader = ev._build_loader(str(data_root), split, image_size, int(batch_size), int(num_workers))
+    if profile:
+        native = provider_support.import_sibling(METHOD_DIR, 'native_step1')
+        dataset.transform = native.make_transform()
     feats, labels = ev.extract_features(backbone, loader, device)
-
-    feats = feats.numpy()
-    labels = labels.numpy()
-    meta = {
-        "method": METHOD_NAME,
-        "representation": "raw",
-        "feat_dim": int(feats.shape[1]),
-        "count": int(feats.shape[0]),
-        "arch": train.get("arch", "dinov3"),
-        "image_size": image_size,
-        "preprocessing": ("DINOv3 eval: bicubic resize to 256 + centre crop to "
-                          "224, [0,1], ImageNet mean/std; feature is the teacher "
-                          "CLS token (is_global=True, released output norm)"),
-    }
+    feats, labels = feats.numpy(), labels.numpy()
+    meta = {'method': METHOD_NAME, 'native_feature_options': options,
+            'representation': 'raw', 'feat_dim': int(feats.shape[1]), 'count': int(feats.shape[0]),
+            'image_size': image_size, 'arch': cfg['train'].get('arch', 'dinov3'),
+            'preprocessing': 'DINOv3 eval: bicubic resize to 256 + centre crop to 224, [0,1], ImageNet mean/std; feature is the teacher CLS token (is_global=True, released output norm)'}
+    if profile:
+        meta.update(arch='official_dinov3_vitb16', feature_profile=profile,
+                    preprocessing='Official DINOv3 ViT-B/16: bicubic resize 585, centre crop 512, ImageNet mean/std, normalized CLS token, CUDA float16 autocast',
+                    inference_precision='cuda_autocast_float16' if str(device).startswith('cuda') else 'float32')
     return feats, labels, meta

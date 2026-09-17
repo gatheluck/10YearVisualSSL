@@ -331,3 +331,47 @@ architecture compatibility; AIM's backbone location still needs resolution;
 CMC, PIRL, MSN, V-JEPA and LeJEPA have inaccessible known checkpoint paths;
 CLIP, ImageGPT and SAM3 still need actual checkpoint/evaluation mapping. These
 are current audit gaps, not assertions that extraction is impossible.
+
+
+## Two native architectures completed (2026-09-17)
+
+Child branch `codex/step1-native-architecture-compat` starts from PR #175 tip
+`89c43d1`. Context Encoder and DINOv3 are now implemented and fully extracted.
+
+| Method | Evaluated representation | Full ImageNet val output |
+|---|---|---:|
+| Context Encoder | Caffe BGR grouped AlexNet pool5 | 50,000 x 9,216 |
+| DINOv3 | Official ViT-B/16 normalized CLS, crop 512 | 50,000 x 768 |
+
+Both checkpoints loaded strictly. Both providers matched the reference evaluation
+on four real images exactly (maximum raw feature error 0.0), then produced finite
+float32 unit-L2 arrays and sorted int64 labels, 1,000 classes of 50 images. Output
+hashes and protocol metadata are in `STEP1_ARCHITECTURE_RESULTS_20260917.json`.
+DINOv3 uses a pinned official submodule and CUDA float16 autocast, as the original
+wrapper does. Its historical upstream revision was not recorded: the comparison
+uses the newly pinned official architecture in both reference wrapper and port.
+This is not evidence of recovery of the historical upstream revision.
+
+TDD began with eight failing tests. GPU integration exposed an incorrectly
+attached Context Encoder transform and an unnecessarily broad DINOv3 hub import.
+Regression tests reproduced both failures before fixes: the real nested dataset
+now receives the transform, and only the official backbone module is imported.
+The native-profile suite passed 62 tests under the matching Python 3.12 / CPU
+lock; all 18 mutation controls were detected. Twelve existing encoder/provider
+regression tests also passed. The local base suite passed 3,389 tests with 1,418
+dependency-gated skips. These skips are not tensor passes. Full CI matrix results
+remain separate; H200 extraction used torch 2.5.1+cu124.
+
+The collection now has **42/51 extracted methods**, including all thirteen
+user-held earlier outputs. Nine remain unresolved: AIM needs its backbone rather
+than the located probe; CMC, PIRL, MSN, V-JEPA and LeJEPA have inaccessible known
+checkpoint paths; CLIP, ImageGPT and SAM3 need checkpoint/evaluation mapping.
+Both exact new checkpoints are user-supplied with SHA-256 verification; no exact
+public download URL was verified. Original source and weights remained read-only,
+all GPU jobs used the designated reservation, and private paths/logs stay outside
+Git. The grouped child follows the existing parent-merge/rebase PR workflow.
+
+Both new methods were delivered to the designated visualization collection.
+The manifest now records 29 delivered, 13 extracted elsewhere, and 9 unresolved
+methods. All new files were checked against source hashes before and after
+copying; all 27 previously delivered methods retained their hashes.

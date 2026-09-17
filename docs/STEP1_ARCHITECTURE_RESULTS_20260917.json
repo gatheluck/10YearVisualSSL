@@ -1,0 +1,94 @@
+{
+  "date": "2026-09-17",
+  "original_read_only": true,
+  "runtime_note": "torch 2.5.1+cu124 / H200; separate from the dependency-lock CPU tests. Four-image parity does not prove equality for every input.",
+  "records": [
+    {
+      "method": "04_context_encoder",
+      "status": "ok",
+      "shape": [
+        50000,
+        9216
+      ],
+      "norm_min": 0.9999998807907104,
+      "norm_max": 1.0000001192092896,
+      "hashes": {
+        "features.npy": "c034009b66c6c06bdf804df8a59ea6e07daa99d441db73cca1138f8150bc545c",
+        "labels.npy": "186361171a139f8617d3ce725b06a01cbc9ae9eac739098b93dc6261ee7aacbe",
+        "meta.json": "e552c19053d58d5f240dd9138c2e5df766faa1488de25285dea44a98e4ffbd1c",
+        "result.json": "3cedaa32dfd15f5b1f587dee5547d018d3e0ba9de897f4ee03a7256da38731cb"
+      },
+      "parity": {
+        "method": "04_context_encoder",
+        "images_checked": 4,
+        "max_abs_error": 0.0,
+        "shape": [
+          4,
+          9216
+        ],
+        "provider_meta": {
+          "method": "04_context_encoder",
+          "representation": "raw",
+          "feat_dim": 9216,
+          "count": 4,
+          "arch": "official_caffe_alexnet",
+          "image_size": 227,
+          "preprocessing": "Official Caffe features: bilinear resize 256, centre crop 227, BGR 0-255 minus (104,117,123), flattened pool5",
+          "native_feature_options": {
+            "feature_profile": "official_caffe_pool5"
+          },
+          "feature_profile": "official_caffe_pool5"
+        },
+        "torch": "2.5.1+cu124",
+        "gpu": "NVIDIA H200"
+      },
+      "encoder_sha256": "b1d7e82efa35eaca7d337a03e6293d935c6ea6dc1ea7c0c155b787ceb83e5047",
+      "source_sha256": "6b3645908f719331309d3a9b19ba2a9e662112ab0171f6eed2f7e8f86488d31e"
+    },
+    {
+      "method": "31_dinov3",
+      "status": "ok",
+      "shape": [
+        50000,
+        768
+      ],
+      "norm_min": 0.9999998211860657,
+      "norm_max": 1.0000001192092896,
+      "hashes": {
+        "features.npy": "f15555c206f4f44b5d92e7992d548d23860ec4f905ed92a1b5de52061b437bad",
+        "labels.npy": "186361171a139f8617d3ce725b06a01cbc9ae9eac739098b93dc6261ee7aacbe",
+        "meta.json": "f5e733ec552fca37054755788a0b7df2ae046532677605941920b31cb082a51f",
+        "result.json": "51af6bf09161dd8ecd3b87e8f0e26e3f782c1e7e9bc4dbec331287ed22f84bd4"
+      },
+      "parity": {
+        "method": "31_dinov3",
+        "images_checked": 4,
+        "max_abs_error": 0.0,
+        "shape": [
+          4,
+          768
+        ],
+        "provider_meta": {
+          "method": "31_dinov3",
+          "native_feature_options": {
+            "feature_profile": "official_vitb16_cls512"
+          },
+          "representation": "raw",
+          "feat_dim": 768,
+          "count": 4,
+          "image_size": 512,
+          "arch": "official_dinov3_vitb16",
+          "preprocessing": "Official DINOv3 ViT-B/16: bicubic resize 585, centre crop 512, ImageNet mean/std, normalized CLS token, CUDA float16 autocast",
+          "feature_profile": "official_vitb16_cls512",
+          "inference_precision": "cuda_autocast_float16"
+        },
+        "torch": "2.5.1+cu124",
+        "gpu": "NVIDIA H200",
+        "official_source_commit": "6876159a11b4df116f30f667f8c9888617df0751",
+        "reference_architecture_note": "DINOv3 reference wrapper uses the pinned official source; the original evaluation did not record an upstream commit."
+      },
+      "encoder_sha256": "47497b54894dc7904b7c527a0351f1992887e1a462fd36c0f27199802d514f3b",
+      "source_sha256": "73cec8be7427c8655ceced13ce62f6e20a1fa90d1b4d4a550df17a1144081a7c"
+    }
+  ]
+}

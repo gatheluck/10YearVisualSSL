@@ -18,7 +18,7 @@ pretext.
 
 The capture's DINOv3 "step 1" **downloads the official pretrained weights** (the
 from-scratch data, LVD-1689M, is not public) — and those weights are **HuggingFace
-login-gated**, so that download is the excluded step. What this port covers is the
+login-gated**. Acquisition of the exact checkpoint is user-supplied. The training path covers the
 capture's **step 2**: the from-scratch **unified SSL comparison** that trains a
 DINOv3 representation on ImageNet-1k. It is **self-contained torch-only** code (the
 ViT, the losses and the multi-crop dataset are the lab's own; no timm/transformers).
@@ -31,13 +31,12 @@ the Gram anchoring stage**, as every port excludes a secondary stage. The
 
 ## Licence
 
-This port is a **self-contained re-implementation** (the lab's own code,
-referencing the paper); it trains **from scratch** and uses **no Meta-released
-DINOv3 code or weights**. The official `facebookresearch/dinov3` code and its
-pretrained weights carry Meta's custom, gated *DINOv3 License*; none of it is
-copied, downloaded, or required here (the capture's gated-weights step 1 is
-excluded). So no third-party licence attaches to this port's files. See
-`provenance.json` (`licence_note`).
+The from-scratch training path is the lab re-implementation. The optional official
+feature profile imports `third_party/dinov3` at commit
+`6876159a11b4df116f30f667f8c9888617df0751` and uses user-supplied official weights.
+That upstream code and those weights are subject to the **DINOv3 License**
+(`third_party/dinov3/LICENSE.md`). Author code is referenced as a pinned submodule,
+not copied into the port. See `provenance.json`.
 
 ## `encoder.pt`, and a linear evaluation that reads it
 
@@ -88,7 +87,7 @@ torch / torchvision / numpy / PyYAML (the same torch-only closure as
 `05_jigsaw_puzzle`). `requirements.lock.txt` (CPU) and
 `requirements.lock.cu130.txt` (CUDA 13.0) are the hashed closures. No timm: the
 ViT is the lab's own; `transformers`/`huggingface_hub` are only for the capture's
-excluded step 1, so they are not dependencies here.
+download path, so they are not dependencies here. The official feature profile imports only the pinned backbone module; it does not import the hub's unrelated task heads.
 
     pip install --require-hashes \
         --index-url https://download.pytorch.org/whl/cpu \
@@ -113,3 +112,16 @@ excluded step 1, so they are not dependencies here.
 Success is exit status 0 and `status: "ok"` in `out/run_manifest.json`. The
 linear_eval stage writes `metrics.json` and **no** `encoder.pt`; the manifest
 carries `encoder_absent_reason`.
+
+## Official Step-1 feature profile
+
+`official_vitb16_cls512` requires the exact checkpoint hash in
+`step1_native_artifact`. Use the existing batch export and extraction commands
+in `docs/STEP1_WEIGHTS.md`, preserving `export.json` next to `encoder.pt`.
+The profile uses bicubic resize 585, centre crop 512, ImageNet normalization,
+and the official normalized CLS token (768 dimensions). GPU inference uses
+float16 autocast, as the evaluated Step-1 extractor did; CPU uses float32.
+The exported arrays are float32. No substitute model or random-weight fallback
+is allowed. The default from-scratch representation remains a separate path.
+The original evaluator did not record its upstream commit; matching checkpoint
+identity and the newly pinned implementation do not recover that historical pin.

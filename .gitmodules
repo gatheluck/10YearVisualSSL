@@ -33,3 +33,6 @@
 [submodule "third_party/vjepa2"]
 	path = third_party/vjepa2
 	url = https://github.com/facebookresearch/vjepa2
+[submodule "third_party/dinov3"]
+	path = third_party/dinov3
+	url = https://github.com/facebookresearch/dinov3.git

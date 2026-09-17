@@ -8,7 +8,7 @@
     "year": 2025,
     "arxiv": "2508.10104"
   },
-  "licence_note": "This port is a self-contained re-implementation of the DINOv3 method (the lab's own code, referencing the paper); it trains from scratch on ImageNet and uses NO Meta-released DINOv3 code or weights. The official facebookresearch/dinov3 code and the pretrained weights carry Meta's custom, gated 'DINOv3 License'; none of it is copied, downloaded, or required here -- the capture's step 1 that would fetch the gated weights is the excluded step. So no third-party licence attaches to this port's files, which carry this repository's licence.",
+  "licence_note": "The from-scratch training path is the lab re-implementation. The optional official Step-1 feature profile imports the pinned Meta DINOv3 submodule and uses user-supplied official weights, subject to the upstream DINOv3 License. Author code is referenced as a submodule, not copied into port files.",
   "scope": "The from-scratch step 2 (the unified SSL comparison) is ported as this port's step 1, DINOv3's CORE objective: a student ViT-B/16 (4 register tokens + axial RoPE) and an EMA teacher see multi-crop views (2 global 224 + 8 local 96); the loss is L_DINO (a cross-view distillation with Sinkhorn-Knopp / SwAV centering of the teacher assignments) + L_iBOT (a masked-patch distillation, block masks on the global crops) + koleo_weight * L_KoLeo (a Kozachenko-Leonenko spread on the CLS batch). AdamW under a cosine LR schedule with warmup; teacher-temperature warmup; EMA momentum cosine. The released Gram anchoring second stage (epochs 251-300, a snapshotted Gram teacher) is EXCLUDED -- the capture exposes it as gram.mode with core_only as a first-class mode, and this port runs core_only, the same way every port excludes a secondary stage. The capture's step 1 (loading the HF-gated official weights) is also excluded.",
   "encoder": "encoder.pt is the EMA teacher's ViT backbone (backbone.* from teacher_state_dict, the prefix stripped so it loads into a plain VisionTransformer): the patch embed, cls/register tokens, RoPE blocks and the final norm, producing the CLS feature (embed_dim; 768 for ViT-B/16). The DINO and iBOT projection heads and the student are training machinery and are excluded; the teacher is the representation DINO-family methods are known for.",
   "linear_eval": "Reads the trained encoder.pt and probes the teacher backbone's CLS token (backbone(x, is_global=True)[0], the released output norm included), a genuine learned representation, so the number is comparable. Images use the deterministic val pipeline (resize + centre crop, ImageNet normalisation). The capture's own DINOv3 eval trains plain linear heads on the frozen backbone; this port follows the lab's shared ARSSL probe (mean-centre + L2-normalise features, single linear layer, SGD momentum + cosine, top1/top5) instead, so the number is comparable across the ported methods.",
@@ -23,5 +23,24 @@
     "encoder.pt is the EMA teacher backbone (backbone.* stripped); the probe follows the lab's shared ARSSL protocol so the number is comparable across the ported methods",
     "DATA_ROOT is the dataset root; the pretrain stage reads its train/ subdirectory (unified data-root convention via adapterlib.dataset_split_dir).",
     "milestone checkpoints for the Step-2 100/200/300 frozen-backbone probe sweep: train.save_at_epochs lists the epochs at which the trainer writes checkpoint_epoch_{N}.pth (in addition to checkpoint_latest.pth), and the adapter extracts each as encoder_epoch{N}.pt (the teacher backbone). This config is already the unified ViT-B/16 Step 2, so there is one recipe and no recipe selector; an empty save_at_epochs writes only the final encoder.pt (the prior behaviour, unchanged)."
-  ]
+  ],
+  "step1_native_artifact": {
+    "availability": "user_supplied",
+    "sha256": "73cec8be7427c8655ceced13ce62f6e20a1fa90d1b4d4a550df17a1144081a7c",
+    "state_key": "",
+    "strip_prefix": "",
+    "feature_options": {
+      "feature_profile": "official_vitb16_cls512"
+    },
+    "acquisition": "Obtain the exact evaluated checkpoint from its owner; verify SHA-256. No public URL for this exact artifact has been verified.",
+    "representation": "normalized CLS, 768 dimensions; evaluated at 512 pixels",
+    "add_prefix": "backbone."
+  },
+  "native_feature_extension": "Official Step-1 ViT-B/16 extraction is supported separately from the training/default evaluation path. The evaluated transform is resize585/crop512 and CUDA float16 autocast. The original evaluation did not record its upstream commit; this port pins the implementation explicitly.",
+  "native_feature_upstream": {
+    "repo": "https://github.com/facebookresearch/dinov3",
+    "commit": "6876159a11b4df116f30f667f8c9888617df0751",
+    "path": "third_party/dinov3",
+    "license": "DINOv3 License, third_party/dinov3/LICENSE.md"
+  }
 }

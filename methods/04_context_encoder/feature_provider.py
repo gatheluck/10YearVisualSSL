@@ -51,6 +51,10 @@ def extract_val_features(*, encoder_path: str, data_root: str, split: str,
     import torch
 
     import provider_support
+    native_options = provider_support.load_native_options(encoder_path, METHOD_NAME, {'feature_profile'})
+    profile = native_options.get('feature_profile')
+    if profile not in (None, 'official_caffe_pool5'):
+        raise ValueError('unsupported native feature profile')
     adapter = provider_support.import_sibling(METHOD_DIR, "adapter")
     ev = provider_support.import_sibling(METHOD_DIR, "evaluate_linear")
 
@@ -61,6 +65,12 @@ def extract_val_features(*, encoder_path: str, data_root: str, split: str,
     image_size = int(train["image_size"] if arch == "vit" else train["img_size"])
 
     state = torch.load(encoder_path, map_location="cpu", weights_only=True)
+    official = any(k.startswith('features.') for k in state)
+    if bool(profile) != official:
+        raise ValueError('official checkpoint and native feature profile must be selected together')
+    if profile:
+        image_size = 227
+        native = provider_support.import_sibling(METHOD_DIR, 'native_step1')
     model = adapter.load_encoder(state, cfg).to(device)
     model.eval()
     for p in model.parameters():
@@ -69,6 +79,8 @@ def extract_val_features(*, encoder_path: str, data_root: str, split: str,
     loader = ev.create_dataloader(
         "linear_probe", str(data_root), split=split, batch_size=int(batch_size),
         num_workers=int(num_workers), img_size=image_size, preprocess="torch")
+    if profile:
+        loader.dataset.dataset.transform = native.make_transform()
     feats, labels = ev.extract_features(model, loader, device, model_type)
 
     feats = feats.numpy()
@@ -83,4 +95,8 @@ def extract_val_features(*, encoder_path: str, data_root: str, split: str,
         "preprocessing": ("Context Encoder linear-probe eval: resize + centre "
                           "crop, [0,1], ImageNet normalisation"),
     }
+    meta['native_feature_options'] = native_options
+    if profile:
+        meta.update(arch='official_caffe_alexnet', feature_profile=profile,
+                    preprocessing='Official Caffe features: bilinear resize 256, centre crop 227, BGR 0-255 minus (104,117,123), flattened pool5')
     return feats, labels, meta
