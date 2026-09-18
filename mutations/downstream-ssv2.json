@@ -18,7 +18,7 @@
     {
       "label": "a subset/smoke run is wrongly stamped recordable",
       "file": "downstream/ssv2.py",
-      "old": "\"record_value\": not subset_mode,",
+      "old": "\"record_value\": not subset_mode and profile != CAPTURE_PROFILE,",
       "new": "\"record_value\": True,",
       "tests": ["tests.test_downstream_ssv2.TestASmoke.test_a_subset_run_is_not_recordable"]
     },

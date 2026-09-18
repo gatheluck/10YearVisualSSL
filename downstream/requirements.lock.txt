@@ -667,3 +667,9 @@ typing-extensions==4.16.0 \
     #   anyio
     #   huggingface-hub
     #   torch
+
+# MATLAB v5 official NYUv2 split reader.
+scipy==1.18.0 \
+    --hash=sha256:1f55797419e16e7f30cf88ffb3113ce0467f00cfe3f70d5c281730b21769bfc2 \
+    --hash=sha256:52a96e21517c7292375c0e27dd796a811f03fcea5fd4d108fdfea8145dcf17ab \
+    --hash=sha256:9ab7b758be6940954a713ee466e2043e9f6e2ed965c1fce5c91039f4be3d90a9

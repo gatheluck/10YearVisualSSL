@@ -485,3 +485,63 @@ Tests in `tests/test_basic5_readers.py` exercise checkpoint round trips,
 gradient and BatchNorm behavior, adapter identity at initialization, shared
 scales, malformed inputs, and CUDA optimizer/save/reload paths. The mutation
 spec `mutations/basic5-readers.json` checks the corresponding safeguards.
+
+## Opt-in captured depth and video components
+
+The existing `downstream.nyuv2` and `downstream.ssv2` entrypoints accept the
+optional top-level configuration field `"profile": "capture_basic5_components"`.
+Omitting it (or selecting `"legacy"`) retains the historical runner behavior.
+An unknown profile is refused. Use the existing runner configuration and CLI;
+all existing required fields remain required, including NYUv2's
+`probe.head_hidden_dim` (unused by the single-convolution head).
+
+This profile closes specific data/head/metric gaps, **not the complete canonical
+training recipe**. It retains the existing frozen backbone and optimizer settings;
+it does not wire AP/FT, batch-scaled learning rates, warmup/cosine, or full result
+eligibility. New-profile results always have `record_value: false` and
+`canonical_eligible: false`, even without subset limits. A successful downstream
+contract verifies execution and artifacts, not paper/protocol conformance.
+
+### NYUv2
+
+- Reads `labeled/splits.mat` alongside `labeled/nyu_depth_v2_labeled.mat`.
+  Supports ordinary MATLAB files through SciPy and HDF5 MATLAB files through
+  h5py, including referenced scalar IDs. The one-based `trainNdxs`/`testNdxs`
+  values select actual samples; order is preserved. Both lists must be nonempty
+  and form a complete, disjoint, in-range integer partition of the labelled
+  file. Missing/malformed files never fall back to a positional split.
+  Tiny synthetic partitions are allowed for tests; this does not certify a
+  supplied split as the official 795/654 dataset. Results hash the split file.
+- Uses the captured square image geometry, joint training horizontal flip,
+  nearest-neighbor depth resize and finite inclusive 0.1--10.0 metre mask.
+  The retained ImageNet normalization is not a universal model-specific policy.
+- Replaces the legacy DPT head with a single 1x1 convolution, initialized with
+  normal standard deviation 0.01 and zero bias. It bilinearly resizes logits
+  with `align_corners=False`, then applies `softplus + 0.001`.
+- Trains with float32 `mean(d^2) - 0.5 * mean(d)^2`, where
+  `d = log(max(pred, 1e-6)) - log(max(target, 1e-6))` on valid pixels.
+  There is no square root, scaling factor or per-image depth alignment.
+  An empty mask returns differentiable zero, matching the captured loss.
+- Emits RMSE (metres), AbsRel (ratio), and delta1/2/3 (percent, strict
+  ratio thresholds `1.25`, `1.25^2`, `1.25^3`). Like the captured evaluator,
+  it averages **per-batch metrics**, including zero metrics for empty masks.
+  Results record `metric_aggregation: "batch_mean"`; this is batch-size
+  dependent and must not be mixed with legacy `global_valid_pixels` metrics.
+  An empty evaluation loader or nonfinite metric is refused.
+
+### SSv2
+
+- Splits decoded frames into rounded equal temporal segments; chooses a random
+  frame inside each training segment and its lower center for evaluation.
+  Short clips repeat valid frames in order. Empty clips and invalid counts
+  are refused. `probe.num_frames` remains explicit (canonical value: 16).
+- Training draws one random resized crop and applies it to all selected frames.
+  Evaluation resizes the shorter side to 256 and center-crops to
+  `probe.image_size` (canonical value: 224). No horizontal flip is introduced.
+- The classifier still averages frozen image-frame features. This is not a
+  native-video provider or attentive/video finetuning implementation.
+
+`tests/test_basic5_depth_temporal.py` tests actual split parsing, numerical
+loss/metric fixtures, geometry, real video decoding, both CLI result contracts,
+and a CUDA depth-head update with an unchanged backbone. Capture reference
+comparisons and their private provenance are kept outside this repository.

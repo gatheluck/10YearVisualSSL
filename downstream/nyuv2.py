@@ -49,6 +49,7 @@ FULL_SIZE = 1449
 TRAIN_SIZE = 795
 
 TOP_KEYS = frozenset({"task", "seed", "device", "data_root", "backbone", "probe"})
+CAPTURE_PROFILE = "capture_basic5_components"
 BACKBONE_REQUIRED = frozenset({"kind", "encoder", "arch", "img_size", "patch_size"})
 BACKBONE_OPTIONAL = frozenset({"embed_dim", "depth", "num_heads"})
 PROBE_KEYS = frozenset({"epochs", "batch_size", "lr", "num_workers", "image_size",
@@ -56,6 +57,8 @@ PROBE_KEYS = frozenset({"epochs", "batch_size", "lr", "num_workers", "image_size
                         "max_steps_per_epoch"})
 DEVICES = ("auto", "cuda", "cpu")
 METRIC_NAMES = {"rmse": "nyuv2_rmse", "abs_rel": "nyuv2_absrel",
+                "delta1": "nyuv2_delta1", "delta2": "nyuv2_delta2",
+                "delta3": "nyuv2_delta3",
                 "valid_pixels": None, "epochs": "epochs_completed",
                 "metrics_unavailable": "metrics_unavailable"}
 
@@ -76,7 +79,9 @@ def validate_config(cfg: dict) -> None:
         if key in cfg:
             raise ConfigError(
                 f"config: {key} is set; the output location is fixed at --out")
-    _named(TOP_KEYS - set(cfg), set(cfg) - TOP_KEYS, "config")
+    _named(TOP_KEYS - set(cfg), set(cfg) - (TOP_KEYS | {"profile"}), "config")
+    if cfg.get("profile", "legacy") not in ("legacy", CAPTURE_PROFILE):
+        raise ConfigError("config.profile: expected legacy or capture_basic5_components")
     if cfg["device"] not in DEVICES:
         raise ConfigError(f"config: device is {cfg['device']!r}; expected "
                           f"{', '.join(DEVICES)}")
@@ -133,11 +138,14 @@ def split_indices(n: int) -> "tuple[list[int], list[int]]":
 
 
 class NYUv2Depth(Dataset):
-    def __init__(self, mat_path: Path, indices: "list[int]", image_size: int):
+    def __init__(self, mat_path: Path, indices: "list[int]", image_size: int,
+                 *, profile: str = "legacy", train: bool = False):
         self.mat_path = str(mat_path)
         self.indices = indices
         self.image_size = image_size
         self._file = None
+        self.captured = profile == CAPTURE_PROFILE
+        self.train = train
 
     @property
     def file(self):
@@ -150,6 +158,20 @@ class NYUv2Depth(Dataset):
 
     def __getitem__(self, idx: int):
         source_idx = self.indices[idx]
+        if self.captured:
+            from PIL import Image
+            from torchvision.transforms import functional as TF, InterpolationMode
+            image = Image.fromarray(self.file["images"][source_idx].transpose(2, 1, 0)
+                                    .astype(np.uint8))
+            depth = torch.from_numpy(self.file["depths"][source_idx].astype("float32")).t().unsqueeze(0)
+            if self.train and torch.rand(1).item() < 0.5:
+                image, depth = TF.hflip(image), depth.flip(-1)
+            image = TF.to_tensor(TF.resize(image, [self.image_size]*2,
+                                          interpolation=InterpolationMode.BILINEAR))
+            depth = F.interpolate(depth.unsqueeze(0), size=(self.image_size, self.image_size),
+                                  mode="nearest").squeeze(0)
+            valid = torch.isfinite(depth) & (depth >= 0.1) & (depth <= 10.0)
+            return (image - IMAGENET_MEAN) / IMAGENET_STD, depth, valid.float()
         image = torch.from_numpy(
             self.file["images"][source_idx].astype("float32") / 255.0)
         depth = torch.from_numpy(self.file["depths"][source_idx].astype("float32"))
@@ -164,6 +186,72 @@ class NYUv2Depth(Dataset):
         image = (image - IMAGENET_MEAN) / IMAGENET_STD
         valid = torch.isfinite(depth) & (depth > 0)
         return image, depth, valid.float()
+
+
+def load_official_splits(path: Path, count: int) -> "tuple[list[int], list[int]]":
+    """Read one-based MATLAB IDs; reject invalid partitions, never infer a split."""
+    if not path.is_file():
+        raise FileNotFoundError(f"NYUv2 official split not found: {path}")
+    if h5py.is_hdf5(path):
+        with h5py.File(path, "r") as handle:
+            data = {}
+            for key in ("trainNdxs", "testNdxs"):
+                value = np.asarray(handle[key]).reshape(-1)
+                if h5py.check_dtype(ref=value.dtype) is not None:
+                    value = np.array([np.asarray(handle[r]).item() for r in value])
+                data[key] = value
+    else:
+        from scipy.io import loadmat
+        data = loadmat(path)
+    result = []
+    for key in ("trainNdxs", "testNdxs"):
+        ids = np.asarray(data[key]).reshape(-1)
+        if (not ids.size or ids.dtype.kind not in "iuf" or
+                not np.isfinite(ids).all() or not (ids == np.floor(ids)).all() or
+                not ((ids >= 1) & (ids <= count)).all()):
+            raise ValueError(f"invalid NYUv2 split IDs: {key}")
+        result.append((ids.astype(np.int64) - 1).tolist())
+    combined = result[0] + result[1]
+    if len(combined) != count or len(set(combined)) != count:
+        raise ValueError("NYUv2 splits must form a disjoint complete partition")
+    return result[0], result[1]
+
+
+class Depth1x1Head(nn.Module):
+    """Captured minimal depth head; resize logits before positive mapping."""
+    def __init__(self, in_channels: int):
+        super().__init__()
+        self.conv = nn.Conv2d(in_channels, 1, 1)
+        nn.init.normal_(self.conv.weight, std=0.01)
+        nn.init.zeros_(self.conv.bias)
+
+    def forward(self, feat, output_size):
+        raw = F.interpolate(self.conv(feat), size=output_size,
+                            mode="bilinear", align_corners=False)
+        return F.softplus(raw) + 1e-3
+
+
+def silog_loss(pred, target, valid):
+    """Captured log-MSE minus half squared log-mean, without root or scaling."""
+    pred, target = pred.float(), target.float()
+    mask = valid.bool()
+    if not mask.any():
+        return pred.sum() * 0.0
+    d = torch.log(pred[mask].clamp(min=1e-6)) - torch.log(target[mask].clamp(min=1e-6))
+    return d.pow(2).mean() - 0.5 * d.mean().pow(2)
+
+
+def depth_metrics(pred, target, valid):
+    """Captured per-batch depth metrics. Delta accuracies are percentages."""
+    mask = valid.bool()
+    if not mask.any():
+        return dict(rmse=0., abs_rel=0., delta1=0., delta2=0., delta3=0.)
+    p, t = pred.float()[mask], target.float()[mask]
+    ratio = torch.maximum(p / t.clamp_min(1e-6), t / p.clamp_min(1e-6))
+    return {"rmse": float((p-t).square().mean().sqrt()),
+            "abs_rel": float(((p-t).abs() / t.clamp_min(1e-6)).mean()),
+            **{f"delta{k}": float((ratio < 1.25**k).float().mean() * 100)
+               for k in (1, 2, 3)}}
 
 
 class DPTRefineBlock(nn.Module):
@@ -207,10 +295,12 @@ class DPTDepthHead(nn.Module):
 
 
 class FrozenDepthModel(nn.Module):
-    def __init__(self, backbone: nn.Module, hidden_dim: int = 256):
+    def __init__(self, backbone: nn.Module, hidden_dim: int = 256,
+                 *, profile: str = "legacy"):
         super().__init__()
         self.backbone = backbone
-        self.head = DPTDepthHead(backbone.out_channels, hidden_dim=hidden_dim)
+        self.head = (Depth1x1Head(backbone.out_channels) if profile == CAPTURE_PROFILE
+                     else DPTDepthHead(backbone.out_channels, hidden_dim=hidden_dim))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         with torch.no_grad():
@@ -226,20 +316,34 @@ def masked_l1(pred, target, valid):
 
 
 @torch.no_grad()
-def evaluate(model, loader, device) -> dict:
+def evaluate(model, loader, device, *, profile="legacy") -> dict:
     model.eval()
     sq_sum = abs_rel_sum = 0.0
     count = 0
+    batch_metrics = []
     for image, depth, valid in loader:
         image, depth = image.to(device), depth.to(device)
         pred = model(image)
         mask = (valid.to(device) > 0) & torch.isfinite(depth) & (depth > 0)
+        if profile == CAPTURE_PROFILE:
+            mask = mask & (depth >= 0.1) & (depth <= 10.0)
+            current = depth_metrics(pred, depth, mask)
+            if not all(np.isfinite(v) for v in current.values()):
+                raise RuntimeError("non-finite NYUv2 depth metrics")
+            batch_metrics.append(current)
+            count += int(mask.sum())
+            continue
         if not mask.any():
             continue
         diff = pred[mask] - depth[mask]
         sq_sum += float((diff ** 2).sum().cpu())
         abs_rel_sum += float((diff.abs() / depth[mask].clamp_min(1e-6)).sum().cpu())
         count += int(mask.sum().cpu())
+    if profile == CAPTURE_PROFILE:
+        if not batch_metrics:
+            raise RuntimeError("empty NYUv2 evaluation loader")
+        return {**{k: sum(m[k] for m in batch_metrics) / len(batch_metrics)
+                   for k in batch_metrics[0]}, "valid_pixels": count}
     return {"rmse": (sq_sum / max(count, 1)) ** 0.5,
             "abs_rel": abs_rel_sum / max(count, 1), "valid_pixels": count}
 
@@ -255,26 +359,31 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
     seed = int(cfg["seed"])
     make_deterministic(seed)
     probe = cfg["probe"]
+    profile = cfg.get("profile", "legacy")
+    captured = profile == CAPTURE_PROFILE
     image_size = int(probe["image_size"])
 
     mat_path = Path(cfg["data_root"]) / "labeled/nyu_depth_v2_labeled.mat"
     if not mat_path.is_file():
         raise FileNotFoundError(f"NYUv2 labelled file not found: {mat_path}")
-    train_idx, val_idx = split_indices(_mat_length(mat_path))
+    split_path = mat_path.parent / "splits.mat"
+    train_idx, val_idx = (load_official_splits(split_path, _mat_length(mat_path))
+                          if captured else split_indices(_mat_length(mat_path)))
     if int(probe["max_train_samples"]):
         train_idx = train_idx[:int(probe["max_train_samples"])]
     if int(probe["max_val_samples"]):
         val_idx = val_idx[:int(probe["max_val_samples"])]
 
     bs, nw = int(probe["batch_size"]), int(probe["num_workers"])
-    train_ds = NYUv2Depth(mat_path, train_idx, image_size)
-    val_ds = NYUv2Depth(mat_path, val_idx, image_size)
+    train_ds = NYUv2Depth(mat_path, train_idx, image_size, profile=profile, train=True)
+    val_ds = NYUv2Depth(mat_path, val_idx, image_size, profile=profile)
     train_loader = DataLoader(train_ds, batch_size=bs, shuffle=True, num_workers=nw,
                               generator=torch.Generator().manual_seed(seed))
     val_loader = DataLoader(val_ds, batch_size=bs, shuffle=False, num_workers=nw)
 
     backbone = build_frozen_backbone(cfg["backbone"], device)
-    model = FrozenDepthModel(backbone, hidden_dim=int(probe["head_hidden_dim"])).to(device)
+    model = FrozenDepthModel(backbone, hidden_dim=int(probe["head_hidden_dim"]),
+                             profile=profile).to(device)
     if any(p.requires_grad for p in model.backbone.parameters()):
         raise RuntimeError("backbone is not frozen")
     optimizer = torch.optim.AdamW(model.head.parameters(), lr=float(probe["lr"]),
@@ -296,25 +405,31 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
             image, depth, valid = (image.to(device), depth.to(device),
                                    valid.to(device))
             pred = model(image)
-            loss = masked_l1(pred, depth, valid)
+            loss = (silog_loss if captured else masked_l1)(pred, depth, valid)
             if not torch.isfinite(loss):
                 raise RuntimeError("non-finite NYUv2 depth loss")
             optimizer.zero_grad(set_to_none=True)
             loss.backward()
             optimizer.step()
-        metrics = evaluate(model, val_loader, device)
+        metrics = evaluate(model, val_loader, device, profile=profile)
         print(f"[{epoch + 1}/{epochs}] rmse={metrics['rmse']:.4f} "
               f"abs_rel={metrics['abs_rel']:.4f}")
 
     raw = {"rmse": float(metrics["rmse"]), "abs_rel": float(metrics["abs_rel"]),
            "valid_pixels": int(metrics["valid_pixels"]), "epochs": epochs}
+    if captured:
+        raw.update({k: float(metrics[k]) for k in ("delta1", "delta2", "delta3")})
     contract.write_metrics(out, raw, METRIC_NAMES)
     (Path(out) / "results.json").write_text(
         json.dumps({"task": TASK, "backbone": cfg["backbone"],
-                    "split": "labelled: first 795 train / remaining val (full); "
-                             "half/half for a smaller hermetic file",
+                    "profile": profile, "canonical_eligible": False,
+                    "split_sha256": contract.sha256_file(split_path) if captured else None,
+                    "metric_aggregation": "batch_mean" if captured else "global_valid_pixels",
+                    "split": ("official splits.mat IDs" if captured else
+                              "labelled: first 795 train / remaining val (full); "
+                              "half/half for a smaller hermetic file"),
                     "epochs": epochs, "final": raw,
-                    "record_value": not subset_mode,
+                    "record_value": not subset_mode and not captured,
                     "subset_or_smoke": subset_mode},
                    indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return raw
