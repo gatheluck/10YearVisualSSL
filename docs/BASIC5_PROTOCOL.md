@@ -545,3 +545,46 @@ contract verifies execution and artifacts, not paper/protocol conformance.
 loss/metric fixtures, geometry, real video decoding, both CLI result contracts,
 and a CUDA depth-head update with an unchanged backbone. Capture reference
 comparisons and their private provenance are kept outside this repository.
+
+## Opt-in captured segmentation and detection components
+
+The same `capture_basic5_components` profile is available in `downstream.ade20k`
+and `downstream.coco`. The default remains `legacy`. These additions preserve
+the frozen encoder and existing optimizer; they do not implement the complete
+canonical recipe or AP/FT. Results always mark `record_value: false` and
+`canonical_eligible: false` in this profile, even on a full dataset.
+
+### ADE20K geometry
+
+Training draws a uniform scale in [0.5, 2.0], rounds the scaled dimensions and
+clamps each to at least `probe.image_size`, then applies a shared random crop
+and 50% horizontal flip to image and mask. Images use bilinear resize; masks
+use nearest neighbor. Evaluation retains deterministic square resize.
+ImageNet normalization and the 0/255 ignore-label mapping remain unchanged.
+Color jitter is not added; this matches the captured zero-jitter configuration.
+
+### COCO geometry, pyramid and metrics
+
+Training flips images and bounding boxes together with probability 0.5;
+evaluation does not flip. A frozen shared `vit` provider with `patch_size: 16`
+feeds four trainable 1x1 projections: bilinear upsampling by four and two
+(`align_corners=False`), the original map, and 2x2 max pooling. ROI pooling
+uses all four maps; padding is to multiples of 32. Other providers and strides
+are refused until their geometry and normalization are verified.
+
+Set `detector.anchor_sizes` to four positive sizes, one per map (captured
+configuration: `[32, 64, 128, 256]`). The shared timm encoder receives the
+existing ImageNet normalization exactly once, through the detector transform.
+The captured model-specific normalization wrapper is not ported by this change.
+
+Metrics include `coco_map`, `coco_map_50`, `coco_map_75`, `coco_map_small`,
+`coco_map_medium`, and `coco_map_large`. Values retain the existing contract's
+ratio units, unlike the captured evaluator's percentages. Undefined area bins
+preserve COCOeval's `-1`; empty predictions emit zero metrics. Results explicitly
+record the units. Evaluation remains restricted to the evaluated image IDs.
+
+`tests/test_basic5_seg_detection.py` covers paired geometry, numerical pyramid
+outputs/gradients, real COCO evaluation, both CLI contracts, incompatible
+configurations, and a CUDA detector update that leaves the encoder unchanged.
+`mutations/basic5-seg-detection.json` verifies detection of broken behavior.
+Private captured-source comparisons and provenance remain outside Git.

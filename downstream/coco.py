@@ -23,11 +23,14 @@ import argparse
 import json
 import random
 import sys
+from collections import OrderedDict
 from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
 from torch.utils.data import DataLoader, Subset
 from torchvision.datasets import CocoDetection
 from torchvision.models.detection import FasterRCNN
@@ -45,6 +48,7 @@ TASK = "coco_detection"
 NUM_CLASSES = 91          # COCO category ids run 1..90; index 0 is background.
 
 TOP_KEYS = frozenset({"task", "seed", "device", "data_root", "backbone", "detector"})
+CAPTURE_PROFILE = "capture_basic5_components"
 BACKBONE_REQUIRED = frozenset({"kind", "encoder", "arch", "img_size", "patch_size"})
 BACKBONE_OPTIONAL = frozenset({"embed_dim", "depth", "num_heads"})
 DETECTOR_KEYS = frozenset({"epochs", "batch_size", "lr", "num_workers", "min_size",
@@ -52,6 +56,8 @@ DETECTOR_KEYS = frozenset({"epochs", "batch_size", "lr", "num_workers", "min_siz
                            "max_val_samples", "max_steps_per_epoch"})
 DEVICES = ("auto", "cuda", "cpu")
 METRIC_NAMES = {"bbox_mAP": "coco_map", "bbox_mAP_50": "coco_map_50",
+                "bbox_mAP_75": "coco_map_75", "bbox_mAP_small": "coco_map_small",
+                "bbox_mAP_medium": "coco_map_medium", "bbox_mAP_large": "coco_map_large",
                 "detections": None, "epochs": "epochs_completed",
                 "metrics_unavailable": "metrics_unavailable"}
 
@@ -72,7 +78,9 @@ def validate_config(cfg: dict) -> None:
         if key in cfg:
             raise ConfigError(
                 f"config: {key} is set; the output location is fixed at --out")
-    _named(TOP_KEYS - set(cfg), set(cfg) - TOP_KEYS, "config")
+    _named(TOP_KEYS - set(cfg), set(cfg) - (TOP_KEYS | {"profile"}), "config")
+    if cfg.get("profile", "legacy") not in ("legacy", CAPTURE_PROFILE):
+        raise ConfigError("config.profile: expected legacy or capture_basic5_components")
     if cfg["device"] not in DEVICES:
         raise ConfigError(f"config: device is {cfg['device']!r}; expected "
                           f"{', '.join(DEVICES)}")
@@ -125,6 +133,10 @@ def collate(batch):
 class CocoDetectionForFRCNN(CocoDetection):
     """COCO in the (image_tensor, target-dict) shape torchvision detection wants."""
 
+    def __init__(self, *args, train: bool = False, profile: str = "legacy", **kwargs):
+        super().__init__(*args, **kwargs)
+        self.augment = train and profile == CAPTURE_PROFILE
+
     def __getitem__(self, index: int):
         image, anns = super().__getitem__(index)
         image_id = self.ids[index]
@@ -141,6 +153,9 @@ class CocoDetectionForFRCNN(CocoDetection):
             iscrowd.append(int(ann.get("iscrowd", 0)))
         box_tensor = (torch.as_tensor(boxes, dtype=torch.float32).reshape(-1, 4)
                       if boxes else torch.zeros((0, 4), dtype=torch.float32))
+        if self.augment and torch.rand(1).item() < 0.5:
+            image = TF.hflip(image)
+            box_tensor[:, [0, 2]] = image.width - box_tensor[:, [2, 0]]
         target = {
             "boxes": box_tensor,
             "labels": torch.as_tensor(labels, dtype=torch.int64),
@@ -157,10 +172,68 @@ def _subset(dataset, maximum: int):
     return dataset
 
 
+class SimpleFeaturePyramid(nn.Module):
+    """Four trainable projections of a verified stride-16 spatial map."""
+
+    def __init__(self, in_channels: int, out_channels: int = 256):
+        super().__init__()
+        self.lateral4 = nn.Conv2d(in_channels, out_channels, 1)
+        self.lateral8 = nn.Conv2d(in_channels, out_channels, 1)
+        self.lateral16 = nn.Conv2d(in_channels, out_channels, 1)
+        self.lateral32 = nn.Conv2d(in_channels, out_channels, 1)
+        self.out_channels = out_channels
+
+    def forward(self, feat):
+        p16 = self.lateral16(feat)
+        p8 = self.lateral8(F.interpolate(feat, scale_factor=2.0, mode="bilinear", align_corners=False))
+        p4 = self.lateral4(F.interpolate(feat, scale_factor=4.0, mode="bilinear", align_corners=False))
+        p32 = self.lateral32(F.max_pool2d(feat, kernel_size=2, stride=2))
+        return OrderedDict([("0", p4), ("1", p8), ("2", p16), ("3", p32)])
+
+
+class FrozenPyramidBackbone(nn.Module):
+    """Register the frozen encoder separately from the trainable detection head."""
+
+    def __init__(self, body):
+        super().__init__()
+        self.body = body
+        self.fpn = SimpleFeaturePyramid(body.out_channels)
+        self.out_channels = self.fpn.out_channels
+
+    def forward(self, images):
+        with torch.no_grad():
+            feat = self.body.forward_features(images)
+        expected = (images.shape[-2] // 16, images.shape[-1] // 16)
+        if feat.ndim != 4 or tuple(feat.shape[-2:]) != expected:
+            raise RuntimeError("pyramid body must produce a stride-16 spatial grid")
+        return self.fpn(feat)
+
+
 def build_frozen_detector(backbone_spec: dict, detector: dict,
-                          device: "torch.device") -> FasterRCNN:
+                          device: "torch.device", *, profile: str = "legacy") -> FasterRCNN:
+    captured = profile == CAPTURE_PROFILE
+    if captured:
+        if backbone_spec["kind"] != "vit":
+            raise NotImplementedError("captured pyramid requires the verified timm vit provider")
+        if int(backbone_spec["patch_size"]) != 16:
+            raise ValueError("captured pyramid requires stride 16")
+        if len(detector["anchor_sizes"]) != 4 or any(int(s) <= 0 for s in detector["anchor_sizes"]):
+            raise ValueError("captured pyramid requires four positive anchor sizes")
     backbone = build_frozen_backbone(backbone_spec, device)
     anchor_sizes = tuple(int(s) for s in detector["anchor_sizes"])
+    if captured:
+        # The existing timm provider expects ImageNet normalization. Keep it in
+        # FasterRCNN's transform, once, rather than transplanting another model's
+        # private normalization into this generic body.
+        model = FasterRCNN(
+            FrozenPyramidBackbone(backbone), num_classes=NUM_CLASSES,
+            rpn_anchor_generator=AnchorGenerator(sizes=tuple((s,) for s in anchor_sizes),
+                                                aspect_ratios=((0.5, 1.0, 2.0),) * 4),
+            box_roi_pool=MultiScaleRoIAlign(featmap_names=["0", "1", "2", "3"],
+                                            output_size=7, sampling_ratio=2),
+            size_divisible=32,
+            min_size=int(detector["min_size"]), max_size=int(detector["max_size"]))
+        return model.to(device)
     anchor_generator = AnchorGenerator(sizes=(anchor_sizes,),
                                        aspect_ratios=((0.5, 1.0, 2.0),))
     roi_pooler = MultiScaleRoIAlign(featmap_names=["0"], output_size=7,
@@ -196,7 +269,7 @@ def _train_one_epoch(model, loader, optimizer, device, max_steps) -> float:
 
 
 @torch.no_grad()
-def evaluate(model, loader, dataset, device) -> dict:
+def evaluate(model, loader, dataset, device, *, profile: str = "legacy") -> dict:
     from pycocotools.cocoeval import COCOeval
     model.eval()
     coco = dataset.dataset.coco if isinstance(dataset, Subset) else dataset.coco
@@ -214,15 +287,18 @@ def evaluate(model, loader, dataset, device) -> dict:
                                 "bbox": [x1, y1, max(0.0, x2 - x1),
                                          max(0.0, y2 - y1)],
                                 "score": float(score)})
+    names = ("bbox_mAP", "bbox_mAP_50")
+    if profile == CAPTURE_PROFILE:
+        names += ("bbox_mAP_75", "bbox_mAP_small", "bbox_mAP_medium", "bbox_mAP_large")
     if not results:
-        return {"bbox_mAP": 0.0, "bbox_mAP_50": 0.0, "detections": 0}
+        return {**{name: 0.0 for name in names}, "detections": 0}
     evaluator = COCOeval(coco, coco.loadRes(results), "bbox")
     evaluator.params.imgIds = sorted(set(image_ids))
     evaluator.evaluate()
     evaluator.accumulate()
     evaluator.summarize()
-    return {"bbox_mAP": float(evaluator.stats[0]),
-            "bbox_mAP_50": float(evaluator.stats[1]), "detections": len(results)}
+    return {**{name: float(evaluator.stats[i]) for i, name in enumerate(names)},
+            "detections": len(results)}
 
 
 def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
@@ -231,15 +307,16 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
     seed = int(cfg["seed"])
     make_deterministic(seed)
     detector = cfg["detector"]
+    profile = cfg.get("profile", "legacy")
 
     root = Path(cfg["data_root"])
     train_ds = _subset(CocoDetectionForFRCNN(
         str(root / "images/train2017"),
-        str(root / "annotations/instances_train2017.json")),
+        str(root / "annotations/instances_train2017.json"), train=True, profile=profile),
         int(detector["max_train_samples"]))
     val_ds = _subset(CocoDetectionForFRCNN(
         str(root / "images/val2017"),
-        str(root / "annotations/instances_val2017.json")),
+        str(root / "annotations/instances_val2017.json"), profile=profile),
         int(detector["max_val_samples"]))
     bs, nw = int(detector["batch_size"]), int(detector["num_workers"])
     train_loader = DataLoader(train_ds, batch_size=bs, shuffle=True, num_workers=nw,
@@ -248,8 +325,9 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
     val_loader = DataLoader(val_ds, batch_size=1, shuffle=False, num_workers=nw,
                             collate_fn=collate)
 
-    model = build_frozen_detector(cfg["backbone"], detector, device)
-    if any(p.requires_grad for p in model.backbone.parameters()):
+    model = build_frozen_detector(cfg["backbone"], detector, device, profile=profile)
+    encoder = model.backbone.body if profile == CAPTURE_PROFILE else model.backbone
+    if any(p.requires_grad for p in encoder.parameters()):
         raise RuntimeError("backbone is not frozen")
     trainable = [p for p in model.parameters() if p.requires_grad]
     optimizer = torch.optim.SGD(trainable, lr=float(detector["lr"]), momentum=0.9,
@@ -265,18 +343,24 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
     metrics = {"bbox_mAP": 0.0, "bbox_mAP_50": 0.0, "detections": 0}
     for epoch in range(epochs):
         loss = _train_one_epoch(model, train_loader, optimizer, device, max_steps)
-        metrics = evaluate(model, val_loader, val_ds, device)
+        metrics = evaluate(model, val_loader, val_ds, device, profile=profile)
         print(f"[{epoch + 1}/{epochs}] loss={loss:.4f} "
               f"mAP={metrics['bbox_mAP']:.4f} mAP50={metrics['bbox_mAP_50']:.4f}")
 
     raw = {"bbox_mAP": float(metrics["bbox_mAP"]),
            "bbox_mAP_50": float(metrics["bbox_mAP_50"]),
            "detections": int(metrics["detections"]), "epochs": epochs}
+    if profile == CAPTURE_PROFILE:
+        for key in ("bbox_mAP_75", "bbox_mAP_small", "bbox_mAP_medium", "bbox_mAP_large"):
+            raw[key] = float(metrics.get(key, 0.0))
     contract.write_metrics(out, raw, METRIC_NAMES)
     (Path(out) / "results.json").write_text(
         json.dumps({"task": TASK, "backbone": cfg["backbone"],
                     "num_classes": NUM_CLASSES, "epochs": epochs, "final": raw,
-                    "record_value": not subset_mode,
+                    "profile": profile,
+                    "canonical_eligible": False,
+                    "metric_units": "ratio; -1 means undefined",
+                    "record_value": not subset_mode and profile == "legacy",
                     "subset_or_smoke": subset_mode},
                    indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return raw

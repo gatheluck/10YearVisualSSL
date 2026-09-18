@@ -1,0 +1,149 @@
+{
+  "_note": "Run with the hash-locked downstream environment. Reference parity evidence is kept outside Git.",
+  "targets": [
+    {
+      "label": "ADE training augmentation is disabled",
+      "file": "downstream/ade20k.py",
+      "old": "self.augment = profile == CAPTURE_PROFILE and split == \"training\"",
+      "new": "self.augment = False",
+      "tests": [
+        "tests.test_basic5_seg_detection.TestSegmentationGeometry.test_paired_scale_crop_flip_and_ignore_labels"
+      ]
+    },
+    {
+      "label": "ADE evaluation incorrectly augments",
+      "file": "downstream/ade20k.py",
+      "old": "self.augment = profile == CAPTURE_PROFILE and split == \"training\"",
+      "new": "self.augment = profile == CAPTURE_PROFILE",
+      "tests": [
+        "tests.test_basic5_seg_detection.TestSegmentationGeometry.test_eval_is_deterministic_and_legacy_is_unchanged"
+      ]
+    },
+    {
+      "label": "ADE mask crop no longer follows image",
+      "file": "downstream/ade20k.py",
+      "old": "image, mask = TF.crop(image, *crop), TF.crop(mask, *crop)",
+      "new": "image, mask = TF.crop(image, *crop), TF.crop(mask, 0, 0, crop[2], crop[3])",
+      "tests": [
+        "tests.test_basic5_seg_detection.TestSegmentationGeometry.test_paired_scale_crop_flip_and_ignore_labels"
+      ]
+    },
+    {
+      "label": "ADE mask flip omitted",
+      "file": "downstream/ade20k.py",
+      "old": "image, mask = TF.hflip(image), TF.hflip(mask)",
+      "new": "image, mask = TF.hflip(image), mask",
+      "tests": [
+        "tests.test_basic5_seg_detection.TestSegmentationGeometry.test_paired_scale_crop_flip_and_ignore_labels"
+      ]
+    },
+    {
+      "label": "ADE incomplete recipe becomes recordable",
+      "file": "downstream/ade20k.py",
+      "old": "\"record_value\": not subset_mode and profile == \"legacy\"",
+      "new": "\"record_value\": not subset_mode",
+      "tests": [
+        "tests.test_basic5_seg_detection.TestSegmentationGeometry.test_real_ade_cli_records_incomplete_profile_without_subset"
+      ]
+    },
+    {
+      "label": "COCO boxes not flipped",
+      "file": "downstream/coco.py",
+      "old": "box_tensor[:, [0, 2]] = image.width - box_tensor[:, [2, 0]]",
+      "new": "box_tensor[:, [0, 2]] = box_tensor[:, [0, 2]]",
+      "tests": [
+        "tests.test_basic5_seg_detection.TestDetectionComponents.test_flip_moves_boxes_with_pixels_and_keeps_other_fields"
+      ]
+    },
+    {
+      "label": "COCO validation flipped",
+      "file": "downstream/coco.py",
+      "old": "self.augment = train and profile == CAPTURE_PROFILE",
+      "new": "self.augment = profile == CAPTURE_PROFILE",
+      "tests": [
+        "tests.test_basic5_seg_detection.TestDetectionComponents.test_flip_moves_boxes_with_pixels_and_keeps_other_fields"
+      ]
+    },
+    {
+      "label": "Pyramid uses average not max downsampling",
+      "file": "downstream/coco.py",
+      "old": "F.max_pool2d(feat, kernel_size=2, stride=2)",
+      "new": "F.avg_pool2d(feat, kernel_size=2, stride=2)",
+      "tests": [
+        "tests.test_basic5_seg_detection.TestDetectionComponents.test_pyramid_values_gradients_and_order"
+      ]
+    },
+    {
+      "label": "Pyramid changes interpolation coordinates",
+      "file": "downstream/coco.py",
+      "old": "scale_factor=4.0, mode=\"bilinear\", align_corners=False",
+      "new": "scale_factor=4.0, mode=\"bilinear\", align_corners=True",
+      "tests": [
+        "tests.test_basic5_seg_detection.TestDetectionComponents.test_pyramid_values_gradients_and_order"
+      ]
+    },
+    {
+      "label": "Pyramid output order changed",
+      "file": "downstream/coco.py",
+      "old": "[(\"0\", p4), (\"1\", p8), (\"2\", p16), (\"3\", p32)]",
+      "new": "[(\"0\", p16), (\"1\", p8), (\"2\", p4), (\"3\", p32)]",
+      "tests": [
+        "tests.test_basic5_seg_detection.TestDetectionComponents.test_pyramid_values_gradients_and_order"
+      ]
+    },
+    {
+      "label": "Detection head is accidentally frozen",
+      "file": "downstream/coco.py",
+      "old": "self.fpn = SimpleFeaturePyramid(body.out_channels)",
+      "new": "self.fpn = SimpleFeaturePyramid(body.out_channels).requires_grad_(False)",
+      "tests": [
+        "tests.test_basic5_seg_detection.TestDetectionComponents.test_detector_registers_frozen_body_and_trainable_pyramid"
+      ]
+    },
+    {
+      "label": "Incompatible input stride accepted",
+      "file": "downstream/coco.py",
+      "old": "if int(backbone_spec[\"patch_size\"]) != 16:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_basic5_seg_detection.TestDetectionComponents.test_invalid_profile_stride_provider_and_anchor_count_refused"
+      ]
+    },
+    {
+      "label": "Wrong ROI map set",
+      "file": "downstream/coco.py",
+      "old": "featmap_names=[\"0\", \"1\", \"2\", \"3\"]",
+      "new": "featmap_names=[\"0\"]",
+      "tests": [
+        "tests.test_basic5_seg_detection.TestDetectionComponents.test_detector_registers_frozen_body_and_trainable_pyramid"
+      ]
+    },
+    {
+      "label": "AP metrics rescaled silently",
+      "file": "downstream/coco.py",
+      "old": "float(evaluator.stats[i])",
+      "new": "float(evaluator.stats[i] * 100)",
+      "tests": [
+        "tests.test_basic5_seg_detection.TestDetectionComponents.test_real_coco_evaluator_six_metrics_and_empty_predictions"
+      ]
+    },
+    {
+      "label": "Undefined AP bin silently clamped",
+      "file": "downstream/coco.py",
+      "old": "float(evaluator.stats[i])",
+      "new": "max(0., float(evaluator.stats[i]))",
+      "tests": [
+        "tests.test_basic5_seg_detection.TestDetectionComponents.test_real_coco_evaluator_six_metrics_and_empty_predictions"
+      ]
+    },
+    {
+      "label": "COCO incomplete recipe becomes recordable",
+      "file": "downstream/coco.py",
+      "old": "\"record_value\": not subset_mode and profile == \"legacy\"",
+      "new": "\"record_value\": not subset_mode",
+      "tests": [
+        "tests.test_basic5_seg_detection.TestDetectionComponents.test_real_detection_cli_records_incomplete_profile"
+      ]
+    }
+  ]
+}
