@@ -36,6 +36,8 @@ from torchvision.transforms import functional as TF
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+from downstream.attention import (SpatialAdapter, frozen_spatial_features,
+                                  validate_adaptation, clip_attentive_gradients)
 from downstream import contract                                    # noqa: E402
 from downstream.spatial_backbones import build_frozen_backbone, KINDS  # noqa: E402
 
@@ -73,7 +75,11 @@ def validate_config(cfg: dict) -> None:
         if key in cfg:
             raise ConfigError(
                 f"config: {key} is set; the output location is fixed at --out")
-    _named(TOP_KEYS - set(cfg), set(cfg) - (TOP_KEYS | {"profile"}), "config")
+    _named(TOP_KEYS - set(cfg), set(cfg) - (TOP_KEYS | {"profile", "adaptation"}), "config")
+    try:
+        validate_adaptation(cfg)
+    except ValueError as exc:
+        raise ConfigError(str(exc)) from exc
     if cfg.get("profile", "legacy") not in ("legacy", CAPTURE_PROFILE):
         raise ConfigError("config.profile: expected legacy or capture_basic5_components")
     if cfg["device"] not in DEVICES:
@@ -172,22 +178,24 @@ def _subset(dataset: Dataset, maximum: int):
 
 
 class FrozenSegModel(nn.Module):
-    def __init__(self, backbone: nn.Module, num_classes: int = NUM_CLASSES):
+    def __init__(self, backbone: nn.Module, num_classes: int = NUM_CLASSES,
+                 *, adaptation: str = "frozen"):
         super().__init__()
         self.backbone = backbone
+        self.adapter = SpatialAdapter(backbone.out_channels) if adaptation == "attentive" else None
         self.head = nn.Conv2d(backbone.out_channels, num_classes, kernel_size=1)
         nn.init.normal_(self.head.weight, std=0.01)
         nn.init.zeros_(self.head.bias)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        with torch.no_grad():
-            feat = self.backbone.forward_features(x)
+        feat = frozen_spatial_features(self.backbone, x, self.adapter)
         logits = self.head(feat)
         return F.interpolate(logits, size=x.shape[-2:], mode="bilinear",
                              align_corners=False)
 
 
-def _train_one_epoch(model, loader, optimizer, device, max_steps) -> float:
+def _train_one_epoch(model, loader, optimizer, device, max_steps,
+                     *, adaptation="frozen") -> float:
     model.train()
     total, steps = 0.0, 0
     for step, (images, targets) in enumerate(loader):
@@ -201,6 +209,7 @@ def _train_one_epoch(model, loader, optimizer, device, max_steps) -> float:
             raise RuntimeError("non-finite ADE20k train loss")
         optimizer.zero_grad(set_to_none=True)
         loss.backward()
+        clip_attentive_gradients(model, adaptation)
         optimizer.step()
         total += float(loss.detach().cpu())
         steps += 1
@@ -242,6 +251,7 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
     probe = cfg["probe"]
     image_size = int(probe["image_size"])
     profile = cfg.get("profile", "legacy")
+    adaptation = validate_adaptation(cfg)
 
     root = Path(cfg["data_root"])
     train_ds = _subset(ADE20kSegmentation(root, "training", image_size, profile=profile),
@@ -255,10 +265,10 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
     val_loader = DataLoader(val_ds, batch_size=bs, shuffle=False, num_workers=nw)
 
     backbone = build_frozen_backbone(cfg["backbone"], device)
-    model = FrozenSegModel(backbone).to(device)
+    model = FrozenSegModel(backbone, adaptation=adaptation).to(device)
     if any(p.requires_grad for p in model.backbone.parameters()):
         raise RuntimeError("backbone is not frozen")
-    optimizer = torch.optim.AdamW(model.head.parameters(), lr=float(probe["lr"]),
+    optimizer = torch.optim.AdamW([p for p in model.parameters() if p.requires_grad], lr=float(probe["lr"]),
                                   weight_decay=0.01)
 
     subset_mode = bool(probe["max_train_samples"] or probe["max_val_samples"]
@@ -270,7 +280,8 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
           f"  epochs={epochs}  out_channels={backbone.out_channels}")
     metrics = {"miou": 0.0, "pacc": 0.0}
     for epoch in range(epochs):
-        loss = _train_one_epoch(model, train_loader, optimizer, device, max_steps)
+        loss = _train_one_epoch(model, train_loader, optimizer, device, max_steps,
+                                adaptation=adaptation)
         metrics = evaluate(model, val_loader, device)
         print(f"[{epoch + 1}/{epochs}] loss={loss:.4f} "
               f"mIoU={metrics['miou']:.3f} pACC={metrics['pacc']:.3f}")
@@ -282,7 +293,7 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
         json.dumps({"task": TASK, "backbone": cfg["backbone"],
                     "num_classes": NUM_CLASSES, "ignore_index": IGNORE_INDEX,
                     "epochs": epochs, "final": raw,
-                    "profile": profile,
+                    "profile": profile, "adaptation": adaptation,
                     "canonical_eligible": False,
                     "record_value": not subset_mode and profile == "legacy",
                     "subset_or_smoke": subset_mode},

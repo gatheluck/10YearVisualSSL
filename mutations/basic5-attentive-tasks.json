@@ -1,0 +1,175 @@
+{
+  "targets": [
+    {
+      "label": "Accept unknown adaptation",
+      "file": "downstream/attention.py",
+      "old": "if adaptation not in (\"frozen\", \"attentive\"):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_basic5_attentive_tasks.TestAttentiveTasks.test_config_requires_explicit_component_profile_and_known_adaptation"
+      ]
+    },
+    {
+      "label": "Allow attentive legacy scores",
+      "file": "downstream/attention.py",
+      "old": "if adaptation == \"attentive\" and cfg.get(\"profile\") != \"capture_basic5_components\":",
+      "new": "if False:",
+      "tests": [
+        "tests.test_basic5_attentive_tasks.TestAttentiveTasks.test_config_requires_explicit_component_profile_and_known_adaptation"
+      ]
+    },
+    {
+      "label": "Detach the trainable spatial adapter",
+      "file": "downstream/attention.py",
+      "old": "return adapter(spatial) if adapter is not None else spatial",
+      "new": "return adapter(spatial).detach() if adapter is not None else spatial",
+      "tests": [
+        "tests.test_basic5_attentive_tasks.TestAttentiveTasks.test_two_steps_update_readers_but_never_encoders"
+      ]
+    },
+    {
+      "label": "Skip attentive clipping",
+      "file": "downstream/attention.py",
+      "old": "if adaptation == \"attentive\":",
+      "new": "if False:",
+      "tests": [
+        "tests.test_basic5_attentive_tasks.TestAttentiveTasks.test_real_clis_update_attention_clip_gradients_and_refuse_table_recording"
+      ]
+    },
+    {
+      "label": "ade20k drops reader from optimizer",
+      "file": "downstream/ade20k.py",
+      "old": "[p for p in model.parameters() if p.requires_grad]",
+      "new": "model.head.parameters()",
+      "tests": [
+        "tests.test_basic5_attentive_tasks.TestAttentiveTasks.test_real_clis_update_attention_clip_gradients_and_refuse_table_recording"
+      ]
+    },
+    {
+      "label": "nyuv2 drops reader from optimizer",
+      "file": "downstream/nyuv2.py",
+      "old": "[p for p in model.parameters() if p.requires_grad]",
+      "new": "model.head.parameters()",
+      "tests": [
+        "tests.test_basic5_attentive_tasks.TestAttentiveTasks.test_real_clis_update_attention_clip_gradients_and_refuse_table_recording"
+      ]
+    },
+    {
+      "label": "ssv2 drops reader from optimizer",
+      "file": "downstream/ssv2.py",
+      "old": "[p for p in model.parameters() if p.requires_grad]",
+      "new": "model.classifier.parameters()",
+      "tests": [
+        "tests.test_basic5_attentive_tasks.TestAttentiveTasks.test_real_clis_update_attention_clip_gradients_and_refuse_table_recording"
+      ]
+    },
+    {
+      "label": "ade20k skips gradient clipping",
+      "file": "downstream/ade20k.py",
+      "old": "clip_attentive_gradients(model, adaptation)",
+      "new": "None",
+      "tests": [
+        "tests.test_basic5_attentive_tasks.TestAttentiveTasks.test_real_clis_update_attention_clip_gradients_and_refuse_table_recording"
+      ]
+    },
+    {
+      "label": "ade20k hides attentive result identity",
+      "file": "downstream/ade20k.py",
+      "old": "\"profile\": profile, \"adaptation\": adaptation,",
+      "new": "\"profile\": profile, \"adaptation\": \"frozen\",",
+      "tests": [
+        "tests.test_basic5_attentive_tasks.TestAttentiveTasks.test_real_clis_update_attention_clip_gradients_and_refuse_table_recording"
+      ]
+    },
+    {
+      "label": "nyuv2 skips gradient clipping",
+      "file": "downstream/nyuv2.py",
+      "old": "clip_attentive_gradients(model, adaptation)",
+      "new": "None",
+      "tests": [
+        "tests.test_basic5_attentive_tasks.TestAttentiveTasks.test_real_clis_update_attention_clip_gradients_and_refuse_table_recording"
+      ]
+    },
+    {
+      "label": "nyuv2 hides attentive result identity",
+      "file": "downstream/nyuv2.py",
+      "old": "\"profile\": profile, \"adaptation\": adaptation,",
+      "new": "\"profile\": profile, \"adaptation\": \"frozen\",",
+      "tests": [
+        "tests.test_basic5_attentive_tasks.TestAttentiveTasks.test_real_clis_update_attention_clip_gradients_and_refuse_table_recording"
+      ]
+    },
+    {
+      "label": "coco skips gradient clipping",
+      "file": "downstream/coco.py",
+      "old": "clip_attentive_gradients(model, adaptation)",
+      "new": "None",
+      "tests": [
+        "tests.test_basic5_attentive_tasks.TestAttentiveTasks.test_real_clis_update_attention_clip_gradients_and_refuse_table_recording"
+      ]
+    },
+    {
+      "label": "coco hides attentive result identity",
+      "file": "downstream/coco.py",
+      "old": "\"profile\": profile, \"adaptation\": adaptation,",
+      "new": "\"profile\": profile, \"adaptation\": \"frozen\",",
+      "tests": [
+        "tests.test_basic5_attentive_tasks.TestAttentiveTasks.test_real_clis_update_attention_clip_gradients_and_refuse_table_recording"
+      ]
+    },
+    {
+      "label": "ssv2 skips gradient clipping",
+      "file": "downstream/ssv2.py",
+      "old": "clip_attentive_gradients(model, adaptation)",
+      "new": "None",
+      "tests": [
+        "tests.test_basic5_attentive_tasks.TestAttentiveTasks.test_real_clis_update_attention_clip_gradients_and_refuse_table_recording"
+      ]
+    },
+    {
+      "label": "ssv2 hides attentive result identity",
+      "file": "downstream/ssv2.py",
+      "old": "\"profile\": profile, \"adaptation\": adaptation,",
+      "new": "\"profile\": profile, \"adaptation\": \"frozen\",",
+      "tests": [
+        "tests.test_basic5_attentive_tasks.TestAttentiveTasks.test_real_clis_update_attention_clip_gradients_and_refuse_table_recording"
+      ]
+    },
+    {
+      "label": "Video loses per-frame context",
+      "file": "downstream/ssv2.py",
+      "old": "self.reader(tokens) if self.reader is not None",
+      "new": "self.reader(tokens.mean(dim=1, keepdim=True)) if self.reader is not None",
+      "tests": [
+        "tests.test_basic5_attentive_tasks.TestAttentiveTasks.test_video_reader_receives_each_frame_without_normalization_or_temporal_pool"
+      ]
+    },
+    {
+      "label": "Video classifier ignores captured initialization",
+      "file": "downstream/ssv2.py",
+      "old": "nn.init.zeros_(self.classifier.weight)",
+      "new": "nn.init.ones_(self.classifier.weight)",
+      "tests": [
+        "tests.test_basic5_attentive_tasks.TestAttentiveTasks.test_video_reader_receives_each_frame_without_normalization_or_temporal_pool"
+      ]
+    },
+    {
+      "label": "Omit task contracts from locked CI",
+      "file": ".github/workflows/tests.yml",
+      "old": "            tests.test_basic5_attentive_tasks\n",
+      "new": "            tests.test_basic5_readers\n",
+      "tests": [
+        "tests.test_basic5_attentive_tasks.TestAttentiveCI"
+      ]
+    },
+    {
+      "label": "Clip only a subset of trainable gradients",
+      "file": "downstream/attention.py",
+      "old": "[p for p in model.parameters() if p.requires_grad], 1.0",
+      "new": "[p for p in model.parameters() if p.requires_grad][:1], 1.0",
+      "tests": [
+        "tests.test_basic5_attentive_tasks.TestAttentiveTasks.test_real_clis_update_attention_clip_gradients_and_refuse_table_recording"
+      ]
+    }
+  ]
+}

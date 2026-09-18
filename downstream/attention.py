@@ -10,6 +10,29 @@ import torch
 from torch import nn
 
 
+def validate_adaptation(cfg):
+    """Keep experimental readers out of legacy/table-producing task recipes."""
+    adaptation = cfg.get("adaptation", "frozen")
+    if adaptation not in ("frozen", "attentive"):
+        raise ValueError("config.adaptation: expected frozen or attentive")
+    if adaptation == "attentive" and cfg.get("profile") != "capture_basic5_components":
+        raise ValueError("attentive adaptation requires capture_basic5_components")
+    return adaptation
+
+
+def frozen_spatial_features(backbone, x, adapter=None):
+    """Stop encoder gradients while preserving the adapter's autograd graph."""
+    with torch.no_grad():
+        spatial = backbone.forward_features(x)
+    return adapter(spatial) if adapter is not None else spatial
+
+
+def clip_attentive_gradients(model, adaptation):
+    """Captured attentive training clips the entire trainable model to one."""
+    if adaptation == "attentive":
+        torch.nn.utils.clip_grad_norm_([p for p in model.parameters() if p.requires_grad], 1.0)
+
+
 class _AttentionBlock(nn.Module):
     """One pre-LN attention/MLP block, eight heads, MLP ratio four, no dropout."""
 
@@ -95,9 +118,7 @@ class AttentiveSpatialBackbone(nn.Module):
         return self
 
     def forward_features(self, x):
-        with torch.no_grad():
-            spatial = self.backbone.forward_features(x)
-        return self.adapter(spatial)
+        return frozen_spatial_features(self.backbone, x, self.adapter)
 
     def forward(self, x):
         return self.forward_features(x)

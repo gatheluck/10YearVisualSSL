@@ -41,6 +41,8 @@ from torchvision.transforms import functional as TF
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+from downstream.attention import (SpatialAdapter, frozen_spatial_features,
+                                  validate_adaptation, clip_attentive_gradients)
 from downstream import contract                                    # noqa: E402
 from downstream.spatial_backbones import build_frozen_backbone, KINDS  # noqa: E402
 
@@ -78,7 +80,11 @@ def validate_config(cfg: dict) -> None:
         if key in cfg:
             raise ConfigError(
                 f"config: {key} is set; the output location is fixed at --out")
-    _named(TOP_KEYS - set(cfg), set(cfg) - (TOP_KEYS | {"profile"}), "config")
+    _named(TOP_KEYS - set(cfg), set(cfg) - (TOP_KEYS | {"profile", "adaptation"}), "config")
+    try:
+        validate_adaptation(cfg)
+    except ValueError as exc:
+        raise ConfigError(str(exc)) from exc
     if cfg.get("profile", "legacy") not in ("legacy", CAPTURE_PROFILE):
         raise ConfigError("config.profile: expected legacy or capture_basic5_components")
     if cfg["device"] not in DEVICES:
@@ -194,15 +200,15 @@ class SimpleFeaturePyramid(nn.Module):
 class FrozenPyramidBackbone(nn.Module):
     """Register the frozen encoder separately from the trainable detection head."""
 
-    def __init__(self, body):
+    def __init__(self, body, *, adaptation: str = "frozen"):
         super().__init__()
         self.body = body
+        self.adapter = SpatialAdapter(body.out_channels) if adaptation == "attentive" else None
         self.fpn = SimpleFeaturePyramid(body.out_channels)
         self.out_channels = self.fpn.out_channels
 
     def forward(self, images):
-        with torch.no_grad():
-            feat = self.body.forward_features(images)
+        feat = frozen_spatial_features(self.body, images, self.adapter)
         expected = (images.shape[-2] // 16, images.shape[-1] // 16)
         if feat.ndim != 4 or tuple(feat.shape[-2:]) != expected:
             raise RuntimeError("pyramid body must produce a stride-16 spatial grid")
@@ -210,7 +216,9 @@ class FrozenPyramidBackbone(nn.Module):
 
 
 def build_frozen_detector(backbone_spec: dict, detector: dict,
-                          device: "torch.device", *, profile: str = "legacy") -> FasterRCNN:
+                          device: "torch.device", *, profile: str = "legacy",
+                          adaptation: str = "frozen") -> FasterRCNN:
+    validate_adaptation({"profile": profile, "adaptation": adaptation})
     captured = profile == CAPTURE_PROFILE
     if captured:
         if backbone_spec["kind"] != "vit":
@@ -226,7 +234,7 @@ def build_frozen_detector(backbone_spec: dict, detector: dict,
         # FasterRCNN's transform, once, rather than transplanting another model's
         # private normalization into this generic body.
         model = FasterRCNN(
-            FrozenPyramidBackbone(backbone), num_classes=NUM_CLASSES,
+            FrozenPyramidBackbone(backbone, adaptation=adaptation), num_classes=NUM_CLASSES,
             rpn_anchor_generator=AnchorGenerator(sizes=tuple((s,) for s in anchor_sizes),
                                                 aspect_ratios=((0.5, 1.0, 2.0),) * 4),
             box_roi_pool=MultiScaleRoIAlign(featmap_names=["0", "1", "2", "3"],
@@ -248,7 +256,8 @@ def build_frozen_detector(backbone_spec: dict, detector: dict,
     return model.to(device)
 
 
-def _train_one_epoch(model, loader, optimizer, device, max_steps) -> float:
+def _train_one_epoch(model, loader, optimizer, device, max_steps,
+                     *, adaptation="frozen") -> float:
     model.train()
     total, steps = 0.0, 0
     for step, (images, targets) in enumerate(loader):
@@ -262,6 +271,7 @@ def _train_one_epoch(model, loader, optimizer, device, max_steps) -> float:
             raise RuntimeError("non-finite COCO detection loss")
         optimizer.zero_grad(set_to_none=True)
         loss.backward()
+        clip_attentive_gradients(model, adaptation)
         optimizer.step()
         total += float(loss.detach().cpu())
         steps += 1
@@ -308,6 +318,7 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
     make_deterministic(seed)
     detector = cfg["detector"]
     profile = cfg.get("profile", "legacy")
+    adaptation = validate_adaptation(cfg)
 
     root = Path(cfg["data_root"])
     train_ds = _subset(CocoDetectionForFRCNN(
@@ -325,7 +336,8 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
     val_loader = DataLoader(val_ds, batch_size=1, shuffle=False, num_workers=nw,
                             collate_fn=collate)
 
-    model = build_frozen_detector(cfg["backbone"], detector, device, profile=profile)
+    model = build_frozen_detector(cfg["backbone"], detector, device, profile=profile,
+                                  adaptation=adaptation)
     encoder = model.backbone.body if profile == CAPTURE_PROFILE else model.backbone
     if any(p.requires_grad for p in encoder.parameters()):
         raise RuntimeError("backbone is not frozen")
@@ -342,7 +354,8 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
           f"  epochs={epochs}")
     metrics = {"bbox_mAP": 0.0, "bbox_mAP_50": 0.0, "detections": 0}
     for epoch in range(epochs):
-        loss = _train_one_epoch(model, train_loader, optimizer, device, max_steps)
+        loss = _train_one_epoch(model, train_loader, optimizer, device, max_steps,
+                                adaptation=adaptation)
         metrics = evaluate(model, val_loader, val_ds, device, profile=profile)
         print(f"[{epoch + 1}/{epochs}] loss={loss:.4f} "
               f"mAP={metrics['bbox_mAP']:.4f} mAP50={metrics['bbox_mAP_50']:.4f}")
@@ -357,7 +370,7 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
     (Path(out) / "results.json").write_text(
         json.dumps({"task": TASK, "backbone": cfg["backbone"],
                     "num_classes": NUM_CLASSES, "epochs": epochs, "final": raw,
-                    "profile": profile,
+                    "profile": profile, "adaptation": adaptation,
                     "canonical_eligible": False,
                     "metric_units": "ratio; -1 means undefined",
                     "record_value": not subset_mode and profile == "legacy",

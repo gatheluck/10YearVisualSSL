@@ -23,8 +23,9 @@ generative or global-only backbone on a dense task) is reported as
 
 This repository's present focus is **`BASIC5_FAIR_v1` on ImageNet-1k** -- the
 linear probe -- because that is what the paper figure and the feature-extraction
-sweep need first. The other tracks and the four dense/video datasets are
-captured below for context but are not yet the subject of conformance work.
+sweep need first. The other tracks and the four dense/video datasets now have
+the opt-in components described below; complete recipe conformance remains
+pending.
 
 ---
 
@@ -464,15 +465,15 @@ parameters and normalization state can update. Other providers are explicitly
 unsupported for FT until their differentiable forward is verified. Toggling
 `requires_grad` alone on a frozen provider is insufficient.
 
-The default `build_frozen_backbone` and existing task entrypoints remain frozen.
+The default `build_frozen_backbone` and default task entrypoints remain frozen.
 The shared timm checkpoint loader now rejects missing encoder weights and
 unknown keys. Only the removed classifier's exact `head.weight` and `head.bias`
 keys may be extra. An empty encoder path still means a random smoke model,
 never a released-weight evaluation.
 
 **Coverage boundary:** these are executable, tested components, not complete
-AP/FT task runners or canonical result eligibility. Existing CLI configurations
-do not gain an AP/FT selector in this increment. The five task recipes,
+AP/FT task recipes or canonical result eligibility. The opt-in attentive task
+integration below composes these components. The five task recipes,
 optimization/scheduling and full-dataset evaluation remain separate work.
 Callers must select the final layer, remove excluded special tokens, preserve
 real grids, and supply the unchanged task head. No global-to-spatial fallback,
@@ -497,7 +498,7 @@ all existing required fields remain required, including NYUv2's
 
 This profile closes specific data/head/metric gaps, **not the complete canonical
 training recipe**. It retains the existing frozen backbone and optimizer settings;
-it does not wire AP/FT, batch-scaled learning rates, warmup/cosine, or full result
+it does not establish AP/FT conformance, batch-scaled learning rates, warmup/cosine, or full result
 eligibility. New-profile results always have `record_value: false` and
 `canonical_eligible: false`, even without subset limits. A successful downstream
 contract verifies execution and artifacts, not paper/protocol conformance.
@@ -538,8 +539,9 @@ contract verifies execution and artifacts, not paper/protocol conformance.
 - Training draws one random resized crop and applies it to all selected frames.
   Evaluation resizes the shorter side to 256 and center-crops to
   `probe.image_size` (canonical value: 224). No horizontal flip is introduced.
-- The classifier still averages frozen image-frame features. This is not a
-  native-video provider or attentive/video finetuning implementation.
+- By default the classifier averages frozen image-frame features. The explicit
+  attentive option below replaces this readout. Native-video providers and
+  video finetuning remain unsupported by this runner.
 
 `tests/test_basic5_depth_temporal.py` tests actual split parsing, numerical
 loss/metric fixtures, geometry, real video decoding, both CLI result contracts,
@@ -551,7 +553,7 @@ comparisons and their private provenance are kept outside this repository.
 The same `capture_basic5_components` profile is available in `downstream.ade20k`
 and `downstream.coco`. The default remains `legacy`. These additions preserve
 the frozen encoder and existing optimizer; they do not implement the complete
-canonical recipe or AP/FT. Results always mark `record_value: false` and
+canonical AP/FT recipe. Results always mark `record_value: false` and
 `canonical_eligible: false` in this profile, even on a full dataset.
 
 ### ADE20K geometry
@@ -588,3 +590,43 @@ outputs/gradients, real COCO evaluation, both CLI contracts, incompatible
 configurations, and a CUDA detector update that leaves the encoder unchanged.
 `mutations/basic5-seg-detection.json` verifies detection of broken behavior.
 Private captured-source comparisons and provenance remain outside Git.
+
+## Opt-in attentive task integration
+
+All four downstream entrypoints accept `"adaptation": "attentive"` together
+with `"profile": "capture_basic5_components"`. Unknown adaptation values and
+attentive/legacy combinations are rejected. Omitted adaptation defaults to
+`"frozen"`, preserving the previous heads, initialization and optimizer path.
+Add these two fields to an otherwise complete existing downstream configuration.
+
+- ADE20K and NYUv2 apply the residual spatial adapter after the frozen encoder
+  and before the unchanged single-convolution head.
+- COCO applies one adapter to the stride-16 map before the existing trainable
+  four-level pyramid. The same verified shared `vit`/stride-16 restriction holds.
+- SSv2 spatially averages each image frame's patch features and passes the
+  resulting `[batch, frames, channels]` tokens to the query reader. There is no
+  L2 normalization or temporal averaging before attention. The classifier has
+  512 input channels and zero-initialized weight and bias, following the captured
+  attentive classifier. No temporal positional encoding is invented; the query
+  reader remains permutation invariant.
+
+The encoder forward alone runs without gradients. The adapter/reader, task head
+and detection pyramid remain trainable, including during the real CLI training
+loop. Optimizers include all trainable parameters and exclude the frozen
+encoder. Attentive training clips their combined gradient norm to 1.0.
+ADE20K/NYUv2/SSv2 retain the runner's AdamW and COCO retains SGD.
+
+**These are partial component runs.** Learning rates remain explicit unscaled
+runner values; existing weight decay and epoch schedules remain unchanged.
+Canonical optimizer recipes, warmup, batch scaling, multi-seed aggregation,
+model-specific readouts and full-dataset score reproduction are not certified.
+Results record `adaptation` and always retain `record_value: false` and
+`canonical_eligible: false` in the component profile. Do not put these scores
+in the canonical AP table.
+
+`tests/test_basic5_attentive_tasks.py` exercises all four actual CLI entrypoints,
+optimizer membership, gradient clipping, unchanged encoders, two-step attention
+updates on CPU/CUDA, frame-token readout, and refusal of legacy/unknown options.
+The CI downstream dependency job invokes it explicitly. Private captured-code
+comparisons cover initialization, outputs, gradients and optimizer updates;
+their source copies and provenance remain outside Git.
