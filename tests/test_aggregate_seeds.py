@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -134,6 +135,126 @@ class TestAggregateHappyPath(unittest.TestCase):
         agg = tool().aggregate(self._runs())
         self.assertAlmostEqual(
             agg["per_seed"]["1"]["final_linear_probe_top1_accuracy"], 72.0)
+
+
+class TestExperimentIdentity(unittest.TestCase):
+    def runs(self):
+        runs = TestAggregateHappyPath()._runs()
+        for run in runs:
+            run["aggregation_identity"] = {
+                "schema_version": 1, "seedless_config_sha256": "a" * 64,
+                "world_size": 1, "upstream": {"commit": "abc"}}
+        return runs
+
+    def test_matching_identity_is_preserved(self):
+        runs = self.runs()
+        result = tool().aggregate(runs)
+        self.assertEqual(result.get("aggregation_identity"), runs[0]["aggregation_identity"])
+        self.assertEqual(result.get("identity_status"), "matched")
+
+    def test_different_recipes_world_sizes_or_upstream_are_rejected(self):
+        for field, value in [("seedless_config_sha256", "b" * 64),
+                             ("world_size", 2), ("upstream", {"commit": "def"})]:
+            with self.subTest(field=field):
+                runs = self.runs()
+                runs[1]["aggregation_identity"][field] = value
+                with self.assertRaisesRegex(ValueError, "identity"):
+                    tool().aggregate(runs)
+
+    def test_partial_or_malformed_identity_is_rejected(self):
+        for value in [None, {}, "abc", {"schema_version": 1}]:
+            with self.subTest(value=value):
+                runs = self.runs()
+                runs[1]["aggregation_identity"] = value
+                with self.assertRaisesRegex(ValueError, "identity"):
+                    tool().aggregate(runs)
+
+    def test_legacy_is_explicitly_unverified(self):
+        result = tool().aggregate(TestAggregateHappyPath()._runs())
+        self.assertEqual(result.get("identity_status"), "unverified_legacy")
+
+    def test_equal_but_invalid_identity_fields_are_rejected(self):
+        for field, value in [("schema_version", True), ("schema_version", 2),
+                             ("seedless_config_sha256", "z" * 64),
+                             ("seedless_config_sha256", "abc"),
+                             ("world_size", True), ("world_size", 0),
+                             ("upstream", "unknown")]:
+            with self.subTest(field=field, value=value):
+                runs = self.runs()
+                for run in runs:
+                    run["aggregation_identity"][field] = value
+                with self.assertRaisesRegex(ValueError, "identity"):
+                    tool().aggregate(runs)
+
+    def test_strict_identity_mode_rejects_legacy(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            argv = ["--out", str(root / "out"), "--require-identity"]
+            for seed in range(3):
+                argv += ["--run", str(_run_dir(root, seed, top1=70, top5=90))]
+            # The public command must recognize the option and fail closed.
+            result = subprocess.run(
+                [sys.executable, str(TOOL), *argv], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 1)
+            self.assertIn("identity", result.stderr)
+            self.assertFalse((root / "out/aggregate.json").exists())
+
+    def test_adapter_generated_results_roundtrip(self):
+        import adapterlib
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            argv = ["--out", str(root / "aggregate"), "--require-identity"]
+            for seed in range(3):
+                config = root / f"config{seed}.json"
+                config.write_text(json.dumps({"seed": seed, "train": {"lr": 0.1}}))
+                out = root / f"run{seed}"
+                def body(ctx):
+                    ctx.write_metrics({"accuracy": 72.0}, names={
+                        "accuracy": "final_linear_probe_top1_accuracy"})
+                rc = adapterlib.run(config=config, out=out, method="example_method",
+                    stage="linear_eval", body=body, env={},
+                    encoder_absent_reason="frozen evaluation fixture")
+                self.assertEqual(rc, 0)
+                argv += ["--run", str(out)]
+            result = subprocess.run(
+                [sys.executable, str(TOOL), *argv], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            doc = json.loads((root / "aggregate/aggregate.json").read_text())
+            self.assertEqual(doc["identity_status"], "matched")
+            self.assertEqual(doc["aggregate"]["final_linear_probe_top1_accuracy"]["mean"], 72)
+
+    def test_empty_or_nonfinite_or_nonnumeric_metrics_are_rejected(self):
+        for metrics in [{}, {"score": float("nan")}, {"score": float("inf")},
+                        {"score": True}, {"score": "72"}]:
+            with self.subTest(metrics=metrics):
+                runs = self.runs()
+                for run in runs:
+                    run["metrics"] = metrics
+                with self.assertRaises(ValueError):
+                    tool().aggregate(runs)
+
+    def test_cli_preserves_identity_and_refuses_mixed_runs(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            argv = ["--out", str(root / "aggregate")]
+            paths = []
+            for seed in range(3):
+                p = _run_dir(root, seed, top1=70 + seed, top5=90)
+                paths.append(p)
+                manifest = json.loads((p / "run_manifest.json").read_text())
+                manifest["aggregation_identity"] = self.runs()[seed]["aggregation_identity"]
+                (p / "run_manifest.json").write_text(json.dumps(manifest))
+                argv += ["--run", str(p)]
+            self.assertEqual(tool().main(argv), 0)
+            result = json.loads((root / "aggregate/aggregate.json").read_text())
+            self.assertEqual(result.get("identity_status"), "matched")
+            path = paths[1] / "run_manifest.json"
+            manifest = json.loads(path.read_text())
+            manifest["aggregation_identity"]["world_size"] = 2
+            path.write_text(json.dumps(manifest))
+            argv[1] = str(root / "rejected")
+            self.assertEqual(tool().main(argv), 1)
+            self.assertFalse((root / "rejected/aggregate.json").exists())
 
 
 class TestSeedSetGuard(unittest.TestCase):

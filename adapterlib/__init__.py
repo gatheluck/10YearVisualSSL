@@ -386,6 +386,17 @@ def run(*, config: Path, out: Path, method: str, stage: str,
 
     cfg, config_sha256 = _read_config(config)
     world_size = _world_size(env)
+    # Compare configurations across seeds without erasing nested sampler seeds.
+    # Snapshot before body(), which may modify its working configuration.
+    seedless = {key: value for key, value in cfg.items() if key != "seed"}
+    aggregation_identity = {
+        "schema_version": 1,
+        "seedless_config_sha256": hashlib.sha256(json.dumps(
+            seedless, sort_keys=True, separators=(",", ":"),
+            allow_nan=False).encode("utf-8")).hexdigest(),
+        "world_size": world_size,
+        "upstream": upstream,
+    }
 
     started_at = _now()
     error: str | None = None
@@ -411,6 +422,7 @@ def run(*, config: Path, out: Path, method: str, stage: str,
         "stage": stage,
         "status": "ok" if error is None else "failed",
         "config_sha256": config_sha256,
+        "aggregation_identity": aggregation_identity,
         "started_at": started_at,
         "finished_at": finished_at,
         "seed": cfg["seed"],

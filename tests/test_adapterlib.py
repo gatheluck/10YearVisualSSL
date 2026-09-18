@@ -72,6 +72,27 @@ class Base(unittest.TestCase):
 
 
 class TestSuccessPath(Base):
+    def test_aggregation_identity_ignores_only_top_level_seed(self):
+        identities = []
+        for seed, train in [(0, {"lr": 0.1, "seed": 9}),
+                            (1, {"seed": 9, "lr": 0.1}),
+                            (2, {"lr": 0.2, "seed": 9}),
+                            (2, {"lr": 0.1, "seed": 10})]:
+            self.config.write_text(json.dumps({"seed": seed, "train": train}))
+            self.run_ok(env={})
+            identities.append(self.manifest().get("aggregation_identity"))
+        self.assertIsNotNone(identities[0])
+        self.assertEqual(identities[0], identities[1])
+        self.assertNotEqual(identities[0], identities[2])
+        self.assertNotEqual(identities[0], identities[3])
+
+    def test_aggregation_identity_records_world_size_and_upstream(self):
+        self.run_ok(env={"WORLD_SIZE": "2"}, upstream={"commit": "abc"})
+        identity = self.manifest().get("aggregation_identity", {})
+        self.assertEqual(identity.get("world_size"), 2)
+        self.assertEqual(identity.get("upstream"), {"commit": "abc"})
+        self.assertEqual(len(identity.get("seedless_config_sha256", "")), 64)
+
     def test_it_writes_a_manifest(self):
         self.run_ok()
         self.assertTrue((self.out / "run_manifest.json").is_file())
