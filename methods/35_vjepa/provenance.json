@@ -1,7 +1,7 @@
 {
   "captured_at": "2026-08-11",
   "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
-  "captured_note": "Ported from the capture's methods/35_vjepa, which wraps the official facebookresearch/jepa repo (it ships no model/loss of its own). The capture has two paths: a pretrain CAVEAT probe of the released V-JEPA VIDEO ViT-H/16 on ImageNet images (explicitly an appendix/caveat row, 'very low accuracy, not a main-table success'), and a step-2 unified-comparison that trains a V-JEPA-objective image ViT-B/16 from scratch on ImageNet at num_frames=1. This port covers the STEP-2 from-scratch path (a genuine comparable row, like 31_dinov3); the pretrain caveat probe is not ported. It pins facebookresearch/jepa as the submodule third_party/jepa and IMPORTS its ViT + predictor (app.vjepa.utils.init_video_model), its 3D mask collator (src.masks.multiblock3d) and apply_masks, running them in a single-process trainer. The port keeps the capture directory numbering (35) per the 2026-08-09 keep-capture-numbering decision (this list's number 33 is V-JEPA -- see docs/PORTING_ROADMAP.md).",
+  "captured_note": "Ported from the capture's methods/35_vjepa, which wraps the official facebookresearch/jepa repo (it ships no model/loss of its own). The capture has two paths: a pretrain CAVEAT probe of the released V-JEPA VIDEO ViT-H/16 on ImageNet images (explicitly an appendix/caveat row, 'very low accuracy, not a main-table success'), and a step-2 unified-comparison that trains a V-JEPA-objective image ViT-B/16 from scratch on ImageNet at num_frames=1. This port covers the STEP-2 from-scratch path (a genuine comparable row, like 31_dinov3); the pretrain caveat probe is not ported. It pins facebookresearch/jepa as the submodule third_party/jepa and IMPORTS its ViT + predictor (app.vjepa.utils.init_video_model), its 3D mask collator (src.masks.multiblock3d) and apply_masks, running them in a single-process trainer. The port keeps the capture directory numbering (35) per the 2026-08-09 keep-capture-numbering decision (this list's number 33 is V-JEPA -- see docs/PORTING_ROADMAP.md). The optional step1_native_artifact recipe now also exposes the recorded video-pretrained caveat features; it does not change the Step-2 training default.",
   "paper": {
     "title": "Revisiting Feature Prediction for Learning Visual Representations from Video (V-JEPA)",
     "authors": "Bardes, Garrido, Ponce, Chen, Rabbat, LeCun, Ballas, Assran",
@@ -15,7 +15,7 @@
     "note": "The V-JEPA ViT + predictor (app.vjepa.utils.init_video_model, src.models.*), the 3D multi-block mask collator (src.masks.multiblock3d) and apply_masks (src.masks.utils) are imported from this pinned submodule through PYTHONPATH; never copied or installed. The imported src/app modules are torch/torchvision-only (measured). The `src`/`app` imports are lazy (inside run/build) so the in-process test suite stays collision-free with other submodule ports that also expose a `src` package."
   },
   "licence_note": "The facebookresearch/jepa code is released under CC BY-NC 4.0 (Attribution-NonCommercial 4.0 International), which permits use for NON-COMMERCIAL research only. This port is used solely for academic research. Nothing under that licence is copied into this repository: the code is referenced as a pinned git submodule (third_party/jepa) and imported. This port's own files (the trainer, the data pipeline, the eval, the adapter, the configs, the tests) are original and carry this repository's licence; they only reference the jepa code.",
-  "scope": "The step-2 image adaptation of V-JEPA is ported: a context encoder and an EMA target encoder (the official video ViT + predictor, run at num_frames=1 / tubelet_size=1 so the backbone is an image ViT-B/16) are trained by latent prediction over 3D multi-block masks -- the target encodes the full image, the context encoder sees only the visible (encoder-mask) tokens, and the predictor predicts the target's layer-normalised representations at the masked (predictor-mask) positions (loss = mean over masks of mean|z_pred - target|^loss_exp / loss_exp, plus an optional variance regulariser). AdamW under a warmup+cosine LR schedule; the target encoder is an EMA of the context encoder. The capture's pretrain caveat probe of the released video model is EXCLUDED, as is (implicitly) the video pretraining on VideoMix2M.",
+  "scope": "The step-2 image adaptation of V-JEPA is ported: a context encoder and an EMA target encoder (the official video ViT + predictor, run at num_frames=1 / tubelet_size=1 so the backbone is an image ViT-B/16) are trained by latent prediction over 3D multi-block masks -- the target encodes the full image, the context encoder sees only the visible (encoder-mask) tokens, and the predictor predicts the target's layer-normalised representations at the masked (predictor-mask) positions (loss = mean over masks of mean|z_pred - target|^loss_exp / loss_exp, plus an optional variance regulariser). AdamW under a warmup+cosine LR schedule; the target encoder is an EMA of the context encoder. The capture's pretrain caveat probe of the released video model is EXCLUDED, as is (implicitly) the video pretraining on VideoMix2M. The opt-in official_video_meanpool feature profile additionally reproduces the recorded Step-1 video-pretrained caveat row, including native cache rounding; it is not a new ImageNet-only training claim.",
   "encoder": "encoder.pt is the EMA target encoder (a bare V-JEPA ViT wrapper, keys backbone.*; there is no separate projection head to exclude). It is the representation V-JEPA evaluation uses; the context encoder and the predictor are training machinery and are not saved. It loads into a rebuilt V-JEPA encoder (build_vjepa_encoder) whose mean-pooled output tokens are the probed feature (embed_dim; 768 for ViT-B).",
   "linear_eval": "Reads the trained encoder.pt and probes the target encoder's mean-pooled tokens (embed_dim), a genuine learned representation, so the number is comparable. Images use the deterministic val pipeline (resize + centre crop, ImageNet normalisation). The capture's own V-JEPA eval sweeps several linear-probe LRs with the official probe; this port follows the lab's shared ARSSL probe (mean-centre + L2-normalise features, single linear layer, SGD momentum + cosine, top1/top5) instead, so the number is comparable across the ported methods.",
   "rewritten_during_the_port": [
@@ -29,5 +29,28 @@
     "encoder.pt is the EMA target encoder; the probe follows the lab's shared ARSSL protocol so the number is comparable across the ported methods",
     "DATA_ROOT is the dataset root; the pretrain stage reads its train/ subdirectory (unified data-root convention via adapterlib.dataset_split_dir).",
     "milestone checkpoints for the Step-2 100/200/300 frozen-backbone probe sweep: train.save_at_epochs lists the epochs at which the trainer writes checkpoint_epoch_{N}.pth (in addition to checkpoint_latest.pth), and the adapter extracts each as encoder_epoch{N}.pt (the target encoder). This config is already the unified ViT-B/16 Step 2, so there is one recipe and no recipe selector; an empty save_at_epochs writes only the final encoder.pt (the prior behaviour, unchanged)."
-  ]
+  ],
+  "step1_native_artifact": {
+    "availability": "public_download",
+    "sha256": "6fa02687973a8337c00d999ee3a17d539a0224c4c89b862150e65cbdb2f67b61",
+    "state_key": "target_encoder",
+    "strip_prefix": "module.",
+    "feature_options": {
+      "feature_profile": "official_video_meanpool",
+      "config_overrides": {
+        "train": {
+          "model_name": "vit_huge",
+          "num_frames": 16,
+          "tubelet_size": 2,
+          "uniform_power": true
+        }
+      }
+    },
+    "acquisition": "Download from the original evaluation configuration URL using fetch-weights.py. Accept only the recorded SHA-256; a different or changed file is rejected.",
+    "filename": "vith16.pth.tar",
+    "bytes": 10393043714,
+    "selection_evidence": "Checkpoint selected by the recorded Step-1 evaluation configuration and result; SHA-256 measured on the readable copy.",
+    "url": "https://dl.fbaipublicfiles.com/jepa/vith16/vith16.pth.tar",
+    "download_verification": "Official URL downloaded in full on 2026-09-18; SHA-256 equals the recorded Step-1 checkpoint."
+  }
 }

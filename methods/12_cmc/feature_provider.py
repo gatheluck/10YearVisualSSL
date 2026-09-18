@@ -18,16 +18,13 @@ an image into a vector stays in one place:
   probe's mean-centre + L2-normalise. Raw features are what the visualisation
   asked for.
 
-Imports are bare module names resolved through this method's directory, as the
-adapter itself does. That is safe because the driver runs each method in
-isolation; do not rely on this module and another method's `adapter`/`models`
-coexisting in one interpreter.
+Method imports are scoped through provider_support; the driver also isolates
+each method in a subprocess. Hash-bound export sidecars opt into the recorded
+Step-1 protocol, while ordinary exports retain the default representation.
 """
 
 from __future__ import annotations
 
-import importlib
-import sys
 from pathlib import Path
 
 METHOD_DIR = Path(__file__).resolve().parent
@@ -46,24 +43,34 @@ def extract_val_features(*, encoder_path: str, data_root: str, split: str,
     output, labels is (N,) ImageFolder class indices, meta describes the run."""
     import torch
 
-    if str(METHOD_DIR) not in sys.path:
-        sys.path.insert(0, str(METHOD_DIR))
-    adapter = importlib.import_module("adapter")
-    ev = importlib.import_module("evaluate_linear_cmc")
-
-    cfg = _load_config()
+    import provider_support
+    options = provider_support.load_native_options(encoder_path, METHOD_NAME,
+                                                  {'feature_profile', 'config_overrides'})
+    profile = options.get('feature_profile')
+    if profile not in (None, 'layer5_pool6'):
+        raise ValueError('unsupported native feature profile')
+    adapter = provider_support.import_sibling(METHOD_DIR, 'adapter')
+    ev = provider_support.import_sibling(METHOD_DIR, 'evaluate_linear_cmc')
+    cfg = provider_support.configure_native_config(_load_config(), options)
     train = cfg["train"]
     image_size = int(train["img_size"])
 
     state = torch.load(encoder_path, map_location="cpu", weights_only=True)
     model = adapter.load_encoder(state, cfg)
-    encoder = model.get_encoder().to(device)
+    encoder = (provider_support.import_sibling(METHOD_DIR, 'native_step1').NativeFeatures(model)
+               if profile else model.get_encoder()).to(device)
     encoder.eval()
     for p in encoder.parameters():
         p.requires_grad = False
 
     _dataset, loader = ev._build_loader(
         str(data_root), split, image_size, int(batch_size), int(num_workers))
+    if profile:
+        data = provider_support.import_sibling(METHOD_DIR, 'data.cmc_dataset')
+        steps = _dataset.base.transform.transforms
+        for i, transform in enumerate(steps):
+            if isinstance(transform, data.RGB2Lab):
+                steps[i] = data.RGB2Lab(native_step1=True)
     feats, labels = ev.extract_features(encoder, loader, device)
 
     feats = feats.numpy()
@@ -81,4 +88,8 @@ def extract_val_features(*, encoder_path: str, data_root: str, split: str,
                           "feature is the concatenated layer-6 (fc6) output of "
                           "the L and ab branches (2 x 2048)"),
     }
+    meta['native_feature_options'] = options
+    if profile:
+        meta['feature_profile'] = profile
+        meta['preprocessing'] = 'Native CMC: resize256/crop224, CIE Lab (scikit-image constants), concatenate layer5 branches, max pool6 and flatten'
     return feats, labels, meta

@@ -375,3 +375,55 @@ Both new methods were delivered to the designated visualization collection.
 The manifest now records 29 delivered, 13 extracted elsewhere, and 9 unresolved
 methods. All new files were checked against source hashes before and after
 copying; all 27 previously delivered methods retained their hashes.
+
+
+## Five newly readable Step-1 checkpoints (2026-09-18)
+
+CMC, PIRL, MSN, V-JEPA and LeJEPA each completed all 50,000 validation images
+on H200 GPUs. Each output is finite float32, unit L2 within 1e-6, with sorted
+int64 labels, 1,000 classes and 50 images per class. All label-file hashes match
+the existing collection. Original source and weights were mounted read-only;
+only the task workspace was writable, using the required reservation.
+
+Each provider matched an independently constructed original evaluation model
+and preprocessing on four real images exactly (maximum absolute error 0.0).
+This is a sampled parity check, not proof for all inputs. CMC's setup requires
+scikit-image: the comparison environment initially lacked it and took the
+original PIL fallback. Installing it exposed a smaller genuine Lab-constant
+difference; a seven-pixel failing regression test preceded the opt-in correction.
+The historical library version is unknown; reference version 0.25.2 is recorded.
+V-JEPA's initial export removed too much of the wrapper namespace; a failing
+mapping test preceded the corrected explicit recipe. No successful arrays were
+reused from those failed attempts.
+
+TDD evidence includes checkpoint-identity RED tests, three tensor-protocol RED
+tests, a real PIRL-style safe metadata export failure, and the Lab conversion
+regression. The final affected-method CPU run passed 56 tests under the CI
+Python 3.12 dependency lock. This is separate from the torch 2.5.1 GPU extraction
+runtime. Full-suite, mutation and delivery results are recorded after their
+completion; no claim of passing the complete CI matrix is made here.
+
+Source, encoder, feature and metadata hashes are recorded in
+`STEP1_UNLOCKED_RESULTS_20260918.json`. Private paths, account identifiers,
+reservation details, raw original code and logs remain outside Git.
+
+
+Delivery completed: all five new method directories contain the four agreed
+files. The existing 29 deliveries retained their hashes. The consolidated
+manifest and README now describe **34 delivered + 13 held by the user = 47/51**;
+AIM, CLIP, ImageGPT and SAM3 remain unextracted. Group traversal/read permissions
+were verified on the newly delivered directories and feature files.
+
+All 22 deliberate mutations were detected, including disabling the native Lab
+conversion and its provider wiring. The local base gate passed 3,404 tests
+(1,428 dependency-gated skips). A fresh full V-JEPA official download matched the
+Step-1 checkpoint SHA-256. Other four files remain user-supplied. The first remote
+whole-suite attempt had Mac transfer metadata (`._*`) mixed into the workspace;
+its Unicode decoding failures are not counted as passing validation. A separate
+clean workspace is used for the broader CPU check.
+
+The broader test workspace also needed all pinned upstream sources, beyond the
+five extraction methods. All twelve top-level submodules were populated from
+the recorded Git commits, excluding unrelated local submodule edits. The final
+affected-method run again passed 56 tests, and invalid native interpolation
+options are refused before model loading.

@@ -1,0 +1,218 @@
+{
+  "date": "2026-09-18",
+  "original_read_only": true,
+  "runtime_note": "torch 2.5.1+cu124 / H200. Four-image parity is not proof for every possible input. CMC reference uses scikit-image 0.25.2; historical version was not recorded.",
+  "records": [
+    {
+      "method": "12_cmc",
+      "status": "ok",
+      "shape": [
+        50000,
+        9216
+      ],
+      "norm_min": 0.9999998211860657,
+      "norm_max": 1.0000001192092896,
+      "hashes": {
+        "features.npy": "26bbcaf083f022d78a30cdd313144961eaedb011293e269b971cf3743941102c",
+        "labels.npy": "186361171a139f8617d3ce725b06a01cbc9ae9eac739098b93dc6261ee7aacbe",
+        "meta.json": "f7c2c1970d35d31dd353ac85b4f5b205c255e309615305ec3639158d7d7af47c",
+        "result.json": "3cedaa32dfd15f5b1f587dee5547d018d3e0ba9de897f4ee03a7256da38731cb"
+      },
+      "parity": {
+        "method": "12_cmc",
+        "images_checked": 4,
+        "max_abs_error": 0.0,
+        "shape": [
+          4,
+          9216
+        ],
+        "provider_meta": {
+          "method": "12_cmc",
+          "representation": "raw",
+          "feat_dim": 9216,
+          "count": 4,
+          "arch": "alexnet",
+          "image_size": 224,
+          "preprocessing": "Native CMC: resize256/crop224, CIE Lab (scikit-image constants), concatenate layer5 branches, max pool6 and flatten",
+          "native_feature_options": {
+            "feature_profile": "layer5_pool6"
+          },
+          "feature_profile": "layer5_pool6"
+        },
+        "torch": "2.5.1+cu124",
+        "gpu": "NVIDIA H200"
+      },
+      "encoder_sha256": "90fe8c2a8414e52e1c93faaddb97498b0ca9c2f503f86aa9c9cff4a542d01bd7",
+      "source_sha256": "8b4d54582aadd12397e068b254534a0745fafab245c77894a846db4399be72be"
+    },
+    {
+      "method": "33_pirl",
+      "status": "ok",
+      "shape": [
+        50000,
+        2048
+      ],
+      "norm_min": 0.9999998211860657,
+      "norm_max": 1.0000001192092896,
+      "hashes": {
+        "features.npy": "d91ec8d7bd9032ed7d9821b717038e665df7ff069ee42cee73247d3c056dd41c",
+        "labels.npy": "186361171a139f8617d3ce725b06a01cbc9ae9eac739098b93dc6261ee7aacbe",
+        "meta.json": "57475c83b6f50bfdd4269b8531de3455a3a4abea12e00830c0d9b8aa4051e4f7",
+        "result.json": "570ec1853b2760dfb9012da3bf9a54197be9ca91ad26126ec9ab1498cc5bb8de"
+      },
+      "parity": {
+        "method": "33_pirl",
+        "images_checked": 4,
+        "max_abs_error": 0.0,
+        "shape": [
+          4,
+          2048
+        ],
+        "provider_meta": {
+          "method": "33_pirl",
+          "representation": "raw",
+          "feat_dim": 2048,
+          "count": 4,
+          "arch": "resnet50",
+          "image_size": 224,
+          "preprocessing": "PIRL eval: bilinear resize + centre crop, ImageNet mean/std normalisation"
+        },
+        "torch": "2.5.1+cu124",
+        "gpu": "NVIDIA H200"
+      },
+      "encoder_sha256": "f247e2dc160ec3d3fd4de597e926f6edb17340092e26ef3d2977fcaae298520f",
+      "source_sha256": "e9d52059d65d23e79566e688ae1a65099d20e7112cf5c1c32c8b57ce483f70a0"
+    },
+    {
+      "method": "34_msn",
+      "status": "ok",
+      "shape": [
+        50000,
+        384
+      ],
+      "norm_min": 0.9999998211860657,
+      "norm_max": 1.0000001192092896,
+      "hashes": {
+        "features.npy": "e08d4fd094d5a6600289a3573c76ab6d0d796d09615b90280ce69a42d4cf767b",
+        "labels.npy": "186361171a139f8617d3ce725b06a01cbc9ae9eac739098b93dc6261ee7aacbe",
+        "meta.json": "80ebf012623a249382304a124ae5fd7a48475316989379d5d9e674c63a0ccc2a",
+        "result.json": "365b6e282aa07721401c7fe7fd9b9fedd224193b7865e55a3f0b807012e84e0f"
+      },
+      "parity": {
+        "method": "34_msn",
+        "images_checked": 4,
+        "max_abs_error": 0.0,
+        "shape": [
+          4,
+          384
+        ],
+        "provider_meta": {
+          "method": "34_msn",
+          "representation": "raw",
+          "feat_dim": 384,
+          "count": 4,
+          "arch": "msn",
+          "image_size": 224,
+          "preprocessing": "Native MSN: bilinear resize256/crop224, ImageNet normalization, target last-block CLS before final norm",
+          "native_feature_options": {
+            "feature_profile": "target_block1",
+            "interpolation": "bilinear"
+          },
+          "feature_profile": "target_block1"
+        },
+        "torch": "2.5.1+cu124",
+        "gpu": "NVIDIA H200"
+      },
+      "encoder_sha256": "c580048b71401214a9a889ac207cf730f9f2e4671e0fd0e1248830e63394efb6",
+      "source_sha256": "2f9362b906de76cb269d8f6583b9316efab5cab9c3b126611120dabb2f779849"
+    },
+    {
+      "method": "35_vjepa",
+      "status": "ok",
+      "shape": [
+        50000,
+        1280
+      ],
+      "norm_min": 0.9999998807907104,
+      "norm_max": 1.0000001192092896,
+      "hashes": {
+        "features.npy": "2084b29d98dd4fd51f4984400f99f5634bdd1210107a1200844b414fb99bd2cc",
+        "labels.npy": "186361171a139f8617d3ce725b06a01cbc9ae9eac739098b93dc6261ee7aacbe",
+        "meta.json": "cad85375d4a1391df0042559632ba91fc02706a29ab3bbf42f6760eee23672ed",
+        "result.json": "05e3b00aa5bd675d70d37dc30c83ede175d410e8f59c418032184a12915a1509"
+      },
+      "parity": {
+        "method": "35_vjepa",
+        "images_checked": 4,
+        "max_abs_error": 0.0,
+        "shape": [
+          4,
+          1280
+        ],
+        "provider_meta": {
+          "method": "35_vjepa",
+          "representation": "raw",
+          "feat_dim": 1280,
+          "count": 4,
+          "arch": "vit_huge",
+          "image_size": 224,
+          "preprocessing": "Native V-JEPA: bicubic resize256/crop224, ImageNet normalization, repeat16 frames, mean tokens, CUDA float16 autocast, L2 then float16 cache rounding",
+          "native_feature_options": {
+            "feature_profile": "official_video_meanpool",
+            "config_overrides": {
+              "train": {
+                "model_name": "vit_huge",
+                "num_frames": 16,
+                "tubelet_size": 2,
+                "uniform_power": true
+              }
+            }
+          },
+          "feature_profile": "official_video_meanpool"
+        },
+        "torch": "2.5.1+cu124",
+        "gpu": "NVIDIA H200"
+      },
+      "encoder_sha256": "3d88d664439469dc022c450f63ba64a9df3103c1c78f3e3dda1db59f83656ae9",
+      "source_sha256": "6fa02687973a8337c00d999ee3a17d539a0224c4c89b862150e65cbdb2f67b61"
+    },
+    {
+      "method": "37_lejepa",
+      "status": "ok",
+      "shape": [
+        50000,
+        768
+      ],
+      "norm_min": 0.9999997615814209,
+      "norm_max": 1.000000238418579,
+      "hashes": {
+        "features.npy": "9c395fcb9fc7b7a5de7d0a584ddd220e3529b8cb155d5a6f8f34478c305caaef",
+        "labels.npy": "186361171a139f8617d3ce725b06a01cbc9ae9eac739098b93dc6261ee7aacbe",
+        "meta.json": "f631f9fd5d2387564b2d244c3a9a636f57b0c25cd830bc6938df8e7267e502f1",
+        "result.json": "51af6bf09161dd8ecd3b87e8f0e26e3f782c1e7e9bc4dbec331287ed22f84bd4"
+      },
+      "parity": {
+        "method": "37_lejepa",
+        "images_checked": 4,
+        "max_abs_error": 0.0,
+        "shape": [
+          4,
+          768
+        ],
+        "provider_meta": {
+          "method": "37_lejepa",
+          "representation": "raw",
+          "feat_dim": 768,
+          "count": 4,
+          "arch": "vit_base_patch16_224",
+          "image_size": 224,
+          "preprocessing": "LeJEPA eval: bicubic resize to round(img_size/0.875) + centre crop to img_size, [0,1], ImageNet mean/std; feature is the ViT's pooled num_features output (the CLS token), raw, before the probe's normalise"
+        },
+        "torch": "2.5.1+cu124",
+        "gpu": "NVIDIA H200"
+      },
+      "encoder_sha256": "c589da12d8dfb5653478cec68b30d96aef7d1a361c6a25104e6455bc15da2772",
+      "source_sha256": "f1ffa4491b5354941cca355151a684fd82434fe6963c12ec9779aff8353eed80"
+    }
+  ]
+}

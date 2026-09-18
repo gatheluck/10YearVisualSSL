@@ -21,16 +21,13 @@ The eval main and the adapter both take the model directly (`backbone =
 model.to(device)`); this provider mirrors that exact line and the same
 `extract_features(backbone, loader, device)` call.
 
-Imports are bare module names resolved through this method's directory, as the
-adapter itself does. That is safe because the driver runs each method in
-isolation; do not rely on this module and another method's `adapter`/`models`
-coexisting in one interpreter.
+Method imports are scoped through provider_support; the driver also isolates
+each method in a subprocess. Hash-bound export sidecars opt into the recorded
+Step-1 protocol, while ordinary exports retain the default representation.
 """
 
 from __future__ import annotations
 
-import importlib
-import sys
 from pathlib import Path
 
 METHOD_DIR = Path(__file__).resolve().parent
@@ -50,24 +47,33 @@ def extract_val_features(*, encoder_path: str, data_root: str, split: str,
     meta describes the run."""
     import torch
 
-    if str(METHOD_DIR) not in sys.path:
-        sys.path.insert(0, str(METHOD_DIR))
-    adapter = importlib.import_module("adapter")
-    ev = importlib.import_module("evaluate_linear_msn")
-
-    cfg = _load_config()
+    import provider_support
+    options = provider_support.load_native_options(encoder_path, METHOD_NAME,
+                                                  {'feature_profile', 'config_overrides', 'interpolation'})
+    profile = options.get('feature_profile')
+    if profile not in (None, 'target_block1'):
+        raise ValueError('unsupported native feature profile')
+    if profile and options.get('interpolation') != 'bilinear':
+        raise ValueError('native MSN requires explicit bilinear interpolation')
+    adapter = provider_support.import_sibling(METHOD_DIR, 'adapter')
+    ev = provider_support.import_sibling(METHOD_DIR, 'evaluate_linear_msn')
+    cfg = provider_support.configure_native_config(_load_config(), options)
     train = cfg["train"]
     image_size = int(train["img_size"])
 
     state = torch.load(encoder_path, map_location="cpu", weights_only=True)
     model = adapter.load_encoder(state, cfg)
     backbone = model.to(device)
+    if profile:
+        backbone = provider_support.import_sibling(METHOD_DIR, 'native_step1').NativeFeatures(backbone)
     backbone.eval()
     for p in backbone.parameters():
         p.requires_grad = False
 
     _dataset, loader = ev._build_loader(
         str(data_root), split, image_size, int(batch_size), int(num_workers))
+    if profile:
+        provider_support.configure_native_resize(_dataset.transform, options)
     feats, labels = ev.extract_features(backbone, loader, device)
 
     feats = feats.numpy()
@@ -83,4 +89,8 @@ def extract_val_features(*, encoder_path: str, data_root: str, split: str,
                           "224, [0,1], ImageNet mean/std; feature is the anchor "
                           "ViT CLS token at embed_dim"),
     }
+    meta['native_feature_options'] = options
+    if profile:
+        meta['feature_profile'] = profile
+        meta['preprocessing'] = 'Native MSN: bilinear resize256/crop224, ImageNet normalization, target last-block CLS before final norm'
     return feats, labels, meta

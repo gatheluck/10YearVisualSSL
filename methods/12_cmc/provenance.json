@@ -21,5 +21,18 @@
     "the run is seeded through make_deterministic (python, numpy, torch)",
     "the training loop drops the upstream DistributedDataParallel, AMP, tqdm and TensorBoard so the same step runs on a CPU or a GPU unchanged, single-process fp32",
     "DATA_ROOT is the dataset root; the pretrain stage reads its train/ subdirectory (unified data-root convention via adapterlib.dataset_split_dir)."
-  ]
+  ],
+  "step1_native_artifact": {
+    "availability": "user_supplied",
+    "sha256": "8b4d54582aadd12397e068b254534a0745fafab245c77894a846db4399be72be",
+    "state_key": "model",
+    "strip_prefix": "",
+    "feature_options": {
+      "feature_profile": "layer5_pool6"
+    },
+    "acquisition": "Obtain the exact evaluated checkpoint from its owner and verify SHA-256. A public download matching these bytes has not been independently verified.",
+    "filename": "checkpoint_epoch_0200.pth",
+    "bytes": 1549544182,
+    "selection_evidence": "Checkpoint selected by the recorded Step-1 evaluation configuration and result; SHA-256 measured on the readable copy."
+  }
 }
