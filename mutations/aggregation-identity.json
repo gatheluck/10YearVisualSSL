@@ -1,0 +1,58 @@
+{
+  "targets": [
+    {
+      "label": "Disable aggregation safeguard 0",
+      "file": "adapterlib/__init__.py",
+      "old": "if key != \"seed\"",
+      "new": "if True",
+      "tests": [
+        "tests.test_adapterlib.TestSuccessPath.test_aggregation_identity_ignores_only_top_level_seed"
+      ]
+    },
+    {
+      "label": "Disable aggregation safeguard 1",
+      "file": "bin/aggregate-seeds.py",
+      "old": "if any(value != identities[0] for value in identities[1:]):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_aggregate_seeds.TestExperimentIdentity.test_different_recipes_world_sizes_or_upstream_are_rejected"
+      ]
+    },
+    {
+      "label": "Disable aggregation safeguard 2",
+      "file": "bin/aggregate-seeds.py",
+      "old": "if any(value is not None for value in identities):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_aggregate_seeds.TestExperimentIdentity.test_partial_or_malformed_identity_is_rejected"
+      ]
+    },
+    {
+      "label": "Disable aggregation safeguard 3",
+      "file": "bin/aggregate-seeds.py",
+      "old": "if args.require_identity and result[\"identity_status\"] != \"matched\":",
+      "new": "if False:",
+      "tests": [
+        "tests.test_aggregate_seeds.TestExperimentIdentity.test_strict_identity_mode_rejects_legacy"
+      ]
+    },
+    {
+      "label": "Disable aggregation safeguard 4",
+      "file": "bin/aggregate-seeds.py",
+      "old": "if not metrics or any(",
+      "new": "if False and any(",
+      "tests": [
+        "tests.test_aggregate_seeds.TestExperimentIdentity.test_empty_or_nonfinite_or_nonnumeric_metrics_are_rejected"
+      ]
+    },
+    {
+      "label": "Ignore malformed but equal identity field values",
+      "file": "bin/aggregate-seeds.py",
+      "old": "                raise ValueError(\"malformed aggregation identity fields\")",
+      "new": "                pass",
+      "tests": [
+        "tests.test_aggregate_seeds.TestExperimentIdentity.test_equal_but_invalid_identity_fields_are_rejected"
+      ]
+    }
+  ]
+}

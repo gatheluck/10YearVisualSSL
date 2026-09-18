@@ -30,6 +30,47 @@ captured below for context but are not yet the subject of conformance work.
 
 ## Two artifacts, one protocol
 
+### Scope of a conformance claim
+
+The canonical supplied v1 protocols use 224-pixel image/video inputs (COCO
+uses 800--1333). Native resolutions are a separate optional track. Historical
+"conformant-at-native" observations below describe crop form only; they do
+not qualify those runs for the canonical table. Native multi-layer readouts
+must likewise remain distinguishable from single-layer FAIR features.
+
+Passing a method contract or saving an L2 feature dump does not certify the
+complete five-task LP/AP/FT protocol. The existing dense/video runners retain
+their historical recipes; the NYUv2 DPT/L1 runner, for example, is not the
+canonical 1x1/log-depth recipe. AP/FT conformance remains pending.
+
+### Safe aggregation of existing probe runs
+
+New `adapterlib` manifests record `aggregation_identity`: a canonical hash of
+the resolved configuration with only its top-level `seed` removed, the actual
+world size, and the recorded upstream identity. Nested sampler seeds, model
+configuration, paths, schedules and other settings remain in the hash. This
+is captured before the adapter body executes. Per-seed config hashes remain
+unchanged and available separately.
+
+`bin/aggregate-seeds.py` refuses different identities or a mixture of new and
+legacy manifests. It also refuses empty, nonnumeric, boolean or nonfinite
+metrics. Matching results carry `identity_status: matched`; legacy-only
+inputs remain readable but carry `identity_status: unverified_legacy`.
+Use `--require-identity` to reject such legacy inputs:
+
+```sh
+python3 bin/aggregate-seeds.py --run runs/seed0/out --run runs/seed1/out --run runs/seed2/out --require-identity --out runs/aggregate
+```
+
+This verifies recorded configuration compatibility, **not full scientific
+provenance or protocol compliance**. A file replaced at the same checkpoint
+or dataset path is not detected by a config hash. Weight content hashes,
+dataset/split identities, software compatibility and the task's canonical
+behavior still need independent verification. No old result is relabeled as
+canonical, and the existing sample-standard-deviation convention is retained.
+The adapter-to-CLI integration, mismatch rejection and mutation tests exercise
+the real result-writing path rather than only a hand-authored manifest.
+
 The word "linear probe" maps onto **two distinct things** in this repository,
 and they must not be conflated:
 

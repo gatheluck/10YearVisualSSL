@@ -37,6 +37,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import sys
 from pathlib import Path
 
@@ -89,6 +90,7 @@ def read_run(run_dir) -> dict:
         "method": manifest["method"],
         "stage": manifest["stage"],
         "config_sha256": manifest.get("config_sha256"),
+        "aggregation_identity": manifest.get("aggregation_identity"),
         "metrics": dict(metrics_doc.get("metrics", {})),
     }
 
@@ -100,6 +102,32 @@ def aggregate(runs, expected_seeds=CANONICAL_SEEDS) -> dict:
     expected_seeds = set(expected_seeds)
     if not runs:
         raise ValueError("no runs to aggregate")
+
+    identities = [r.get("aggregation_identity") for r in runs]
+    identity = None
+    identity_status = "unverified_legacy"
+    if any(value is not None for value in identities):
+        for value in identities:
+            if not isinstance(value, dict) or set(value) != {
+                    "schema_version", "seedless_config_sha256", "world_size", "upstream"}:
+                raise ValueError("missing or malformed aggregation identity")
+            digest = value["seedless_config_sha256"]
+            if (type(value["schema_version"]) is not int or value["schema_version"] != 1
+                    or not isinstance(digest, str) or len(digest) != 64
+                    or any(c not in "0123456789abcdef" for c in digest)
+                    or type(value["world_size"]) is not int or value["world_size"] < 1
+                    or not isinstance(value["upstream"], (dict, type(None)))):
+                raise ValueError("malformed aggregation identity fields")
+        if any(value != identities[0] for value in identities[1:]):
+            raise ValueError("aggregation identity differs across seeds")
+        identity, identity_status = identities[0], "matched"
+
+    for run in runs:
+        metrics = run["metrics"]
+        if not metrics or any(
+                isinstance(value, bool) or not isinstance(value, (int, float))
+                or not math.isfinite(value) for value in metrics.values()):
+            raise ValueError("metrics must be nonempty finite numbers")
 
     # Guard: every run succeeded.
     failed = [r for r in runs if r["status"] != "ok"]
@@ -154,6 +182,8 @@ def aggregate(runs, expected_seeds=CANONICAL_SEEDS) -> dict:
 
     return {
         "schema_version": SCHEMA_VERSION,
+        "aggregation_identity": identity,
+        "identity_status": identity_status,
         "method": next(iter(methods)),
         "stage": REQUIRED_STAGE,
         "seeds": sorted(seed_list),
@@ -175,6 +205,9 @@ def build_parser() -> argparse.ArgumentParser:
                    help="directory to write aggregate.json into")
     p.add_argument("--seeds", type=int, nargs="+", default=sorted(CANONICAL_SEEDS),
                    help="the declared seed set (default: 0 1 2)")
+    p.add_argument("--require-identity", action="store_true",
+                   help="refuse legacy runs without a matching seed-independent "
+                        "configuration, world size and upstream identity")
     return p
 
 
@@ -183,6 +216,8 @@ def main(argv=None) -> int:
     try:
         records = [read_run(d) for d in args.runs]
         result = aggregate(records, expected_seeds=set(args.seeds))
+        if args.require_identity and result["identity_status"] != "matched":
+            raise ValueError("aggregation identity is required; legacy runs are unverified")
     except (ValueError, OSError) as exc:
         print(f"aggregate-seeds: {exc}", file=sys.stderr)
         return 1
