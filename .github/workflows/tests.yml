@@ -174,7 +174,9 @@ jobs:
       - name: Run Basic5 component contracts with downstream dependencies
         run: |
           .venv/bin/python -c 'import torch, torchvision, timm, h5py, scipy, av'
-          PYTHONPATH=. .venv/bin/python -m unittest discover -s tests -p 'test_basic5_*.py' -v
+          PYTHONPATH=. .venv/bin/python -m unittest -v \
+            tests.test_basic5_protocol tests.test_basic5_readers \
+            tests.test_basic5_depth_temporal
 
   # Slower, so it runs before a merge rather than on every push. Built once by
   # hand originally, with nothing re-checking it since.
