@@ -40,6 +40,8 @@ from torchvision.transforms import functional as TF
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+from downstream.attention import (QueryReader,
+                                  validate_adaptation, clip_attentive_gradients)
 from downstream import contract                                    # noqa: E402
 from downstream.spatial_backbones import build_frozen_backbone, KINDS  # noqa: E402
 
@@ -77,7 +79,11 @@ def validate_config(cfg: dict) -> None:
         if key in cfg:
             raise ConfigError(
                 f"config: {key} is set; the output location is fixed at --out")
-    _named(TOP_KEYS - set(cfg), set(cfg) - (TOP_KEYS | {"profile"}), "config")
+    _named(TOP_KEYS - set(cfg), set(cfg) - (TOP_KEYS | {"profile", "adaptation"}), "config")
+    try:
+        validate_adaptation(cfg)
+    except ValueError as exc:
+        raise ConfigError(str(exc)) from exc
     if cfg.get("profile", "legacy") not in ("legacy", CAPTURE_PROFILE):
         raise ConfigError("config.profile: expected legacy or capture_basic5_components")
     if cfg["device"] not in DEVICES:
@@ -235,11 +241,17 @@ def _subset(dataset: Dataset, maximum: int):
 
 
 class FrozenFrameAverageClassifier(nn.Module):
-    def __init__(self, backbone: nn.Module, num_classes: int = NUM_CLASSES):
+    def __init__(self, backbone: nn.Module, num_classes: int = NUM_CLASSES,
+                 *, adaptation: str = "frozen"):
         super().__init__()
         self.backbone = backbone
-        self.classifier = nn.Linear(backbone.out_channels, num_classes)
-        nn.init.normal_(self.classifier.weight, std=0.01)
+        self.reader = QueryReader(backbone.out_channels) if adaptation == "attentive" else None
+        self.classifier = nn.Linear(512 if self.reader is not None else backbone.out_channels,
+                                    num_classes)
+        if self.reader is None:
+            nn.init.normal_(self.classifier.weight, std=0.01)
+        else:
+            nn.init.zeros_(self.classifier.weight)
         nn.init.zeros_(self.classifier.bias)
 
     def forward(self, clips: torch.Tensor) -> torch.Tensor:
@@ -248,7 +260,8 @@ class FrozenFrameAverageClassifier(nn.Module):
         with torch.no_grad():
             feat_map = self.backbone.forward_features(flat)
             feat = F.adaptive_avg_pool2d(feat_map, 1).flatten(1)
-        feat = feat.view(batch, frames, -1).mean(dim=1)
+        tokens = feat.view(batch, frames, -1)
+        feat = self.reader(tokens) if self.reader is not None else tokens.mean(dim=1)
         return self.classifier(feat)
 
 
@@ -290,6 +303,7 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
     make_deterministic(seed)
     probe = cfg["probe"]
     profile = cfg.get("profile", "legacy")
+    adaptation = validate_adaptation(cfg)
     root = Path(cfg["data_root"])
     num_frames, image_size = int(probe["num_frames"]), int(probe["image_size"])
 
@@ -303,10 +317,10 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
     val_loader = DataLoader(val_ds, batch_size=bs, shuffle=False, num_workers=nw)
 
     backbone = build_frozen_backbone(cfg["backbone"], device)
-    model = FrozenFrameAverageClassifier(backbone).to(device)
+    model = FrozenFrameAverageClassifier(backbone, adaptation=adaptation).to(device)
     if any(p.requires_grad for p in model.backbone.parameters()):
         raise RuntimeError("backbone is not frozen")
-    optimizer = torch.optim.AdamW(model.classifier.parameters(),
+    optimizer = torch.optim.AdamW([p for p in model.parameters() if p.requires_grad],
                                   lr=float(probe["lr"]), weight_decay=0.01)
 
     subset_mode = bool(probe["max_train_samples"] or probe["max_val_samples"]
@@ -329,6 +343,7 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
                 raise RuntimeError("non-finite SSv2 loss")
             optimizer.zero_grad(set_to_none=True)
             loss.backward()
+            clip_attentive_gradients(model, adaptation)
             optimizer.step()
         metrics = evaluate(model, val_loader, device)
         print(f"[{epoch + 1}/{epochs}] top1={metrics['top1']:.3f} "
@@ -340,7 +355,7 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
     (Path(out) / "results.json").write_text(
         json.dumps({"task": TASK, "backbone": cfg["backbone"],
                     "num_classes": NUM_CLASSES, "num_frames": num_frames,
-                    "profile": profile, "canonical_eligible": False,
+                    "profile": profile, "adaptation": adaptation, "canonical_eligible": False,
                     "epochs": epochs, "final": raw,
                     "record_value": not subset_mode and profile != CAPTURE_PROFILE,
                     "subset_or_smoke": subset_mode},

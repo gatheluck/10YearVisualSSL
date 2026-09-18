@@ -38,6 +38,8 @@ from torch.utils.data import DataLoader, Dataset
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+from downstream.attention import (SpatialAdapter, frozen_spatial_features,
+                                  validate_adaptation, clip_attentive_gradients)
 from downstream import contract                                    # noqa: E402
 from downstream.spatial_backbones import build_frozen_backbone, KINDS  # noqa: E402
 
@@ -79,7 +81,11 @@ def validate_config(cfg: dict) -> None:
         if key in cfg:
             raise ConfigError(
                 f"config: {key} is set; the output location is fixed at --out")
-    _named(TOP_KEYS - set(cfg), set(cfg) - (TOP_KEYS | {"profile"}), "config")
+    _named(TOP_KEYS - set(cfg), set(cfg) - (TOP_KEYS | {"profile", "adaptation"}), "config")
+    try:
+        validate_adaptation(cfg)
+    except ValueError as exc:
+        raise ConfigError(str(exc)) from exc
     if cfg.get("profile", "legacy") not in ("legacy", CAPTURE_PROFILE):
         raise ConfigError("config.profile: expected legacy or capture_basic5_components")
     if cfg["device"] not in DEVICES:
@@ -296,15 +302,15 @@ class DPTDepthHead(nn.Module):
 
 class FrozenDepthModel(nn.Module):
     def __init__(self, backbone: nn.Module, hidden_dim: int = 256,
-                 *, profile: str = "legacy"):
+                 *, profile: str = "legacy", adaptation: str = "frozen"):
         super().__init__()
         self.backbone = backbone
+        self.adapter = SpatialAdapter(backbone.out_channels) if adaptation == "attentive" else None
         self.head = (Depth1x1Head(backbone.out_channels) if profile == CAPTURE_PROFILE
                      else DPTDepthHead(backbone.out_channels, hidden_dim=hidden_dim))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        with torch.no_grad():
-            feat = self.backbone.forward_features(x)
+        feat = frozen_spatial_features(self.backbone, x, self.adapter)
         return self.head(feat, x.shape[-2:])
 
 
@@ -360,6 +366,7 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
     make_deterministic(seed)
     probe = cfg["probe"]
     profile = cfg.get("profile", "legacy")
+    adaptation = validate_adaptation(cfg)
     captured = profile == CAPTURE_PROFILE
     image_size = int(probe["image_size"])
 
@@ -383,10 +390,10 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
 
     backbone = build_frozen_backbone(cfg["backbone"], device)
     model = FrozenDepthModel(backbone, hidden_dim=int(probe["head_hidden_dim"]),
-                             profile=profile).to(device)
+                             profile=profile, adaptation=adaptation).to(device)
     if any(p.requires_grad for p in model.backbone.parameters()):
         raise RuntimeError("backbone is not frozen")
-    optimizer = torch.optim.AdamW(model.head.parameters(), lr=float(probe["lr"]),
+    optimizer = torch.optim.AdamW([p for p in model.parameters() if p.requires_grad], lr=float(probe["lr"]),
                                   weight_decay=0.01)
 
     subset_mode = bool(probe["max_train_samples"] or probe["max_val_samples"]
@@ -410,6 +417,7 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
                 raise RuntimeError("non-finite NYUv2 depth loss")
             optimizer.zero_grad(set_to_none=True)
             loss.backward()
+            clip_attentive_gradients(model, adaptation)
             optimizer.step()
         metrics = evaluate(model, val_loader, device, profile=profile)
         print(f"[{epoch + 1}/{epochs}] rmse={metrics['rmse']:.4f} "
@@ -422,7 +430,7 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
     contract.write_metrics(out, raw, METRIC_NAMES)
     (Path(out) / "results.json").write_text(
         json.dumps({"task": TASK, "backbone": cfg["backbone"],
-                    "profile": profile, "canonical_eligible": False,
+                    "profile": profile, "adaptation": adaptation, "canonical_eligible": False,
                     "split_sha256": contract.sha256_file(split_path) if captured else None,
                     "metric_aggregation": "batch_mean" if captured else "global_valid_pixels",
                     "split": ("official splits.mat IDs" if captured else

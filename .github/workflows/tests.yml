@@ -176,7 +176,8 @@ jobs:
           .venv/bin/python -c 'import torch, torchvision, timm, h5py, scipy, av, pycocotools'
           PYTHONPATH=. .venv/bin/python -m unittest -v \
             tests.test_basic5_protocol tests.test_basic5_readers \
-            tests.test_basic5_depth_temporal tests.test_basic5_seg_detection
+            tests.test_basic5_depth_temporal tests.test_basic5_seg_detection \
+            tests.test_basic5_attentive_tasks
 
   # Slower, so it runs before a merge rather than on every push. Built once by
   # hand originally, with nothing re-checking it since.
