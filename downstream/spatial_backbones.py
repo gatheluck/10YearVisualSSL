@@ -1,4 +1,4 @@
-"""Frozen spatial backbones for downstream dense tasks.
+"""Spatial backbones for downstream dense tasks, frozen by default.
 
 A downstream task head reads a spatial feature map, so every backbone this package
 builds exposes the same two-symbol interface the capture harness uses:
@@ -6,7 +6,10 @@ builds exposes the same two-symbol interface the capture harness uses:
     backbone.forward_features(x) -> Tensor[B, C, h, w]
     backbone.out_channels: int
 
-The backbone is always frozen (eval, `requires_grad = False`). A real run loads a
+The existing task entrypoints use frozen backbones (eval, no gradients).
+Explicit builders also expose attentive readout and a differentiable timm ViT
+for future task recipes; these builders do not imply canonical FT/AP support.
+A real run loads a
 method's trained `encoder.pt`; the hermetic smoke leaves `encoder` empty and builds
 a random tiny backbone, so CI downloads and trains nothing on the backbone.
 
@@ -27,6 +30,7 @@ method registers a backbone kind with no edit here.
 from __future__ import annotations
 
 import ast
+from contextlib import nullcontext
 import importlib.util
 import sys
 from pathlib import Path
@@ -106,31 +110,32 @@ def _load_provider(path: Path):
     return module
 
 
-class FrozenViTSpatialBackbone(nn.Module):
-    """Wrap a timm ViT so its patch tokens become a spatial [B, C, h, w] map."""
+class ViTSpatialBackbone(nn.Module):
+    """One spatial readout shared by explicit frozen and trainable paths."""
 
     def __init__(self, vit: nn.Module, patch_size: int, num_prefix_tokens: int,
-                 out_channels: int):
+                 out_channels: int, *, trainable: bool = False):
         super().__init__()
+        self.trainable = trainable
         self.vit = vit
         self.patch_size = int(patch_size)
         self.num_prefix_tokens = int(num_prefix_tokens)
         self.out_channels = int(out_channels)
         self.eval()
         for p in self.parameters():
-            p.requires_grad = False
+            p.requires_grad = trainable
 
-    def train(self, mode: bool = True):        # stays frozen; never trains
-        return super().train(False)
+    def train(self, mode: bool = True):
+        return super().train(mode if self.trainable else False)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # torchvision detection/segmentation backbones are called as backbone(x);
         # a bare tensor is wrapped into an OrderedDict({"0": ...}) downstream.
         return self.forward_features(x)
 
-    @torch.no_grad()
     def forward_features(self, x: torch.Tensor) -> torch.Tensor:
-        tokens = self.vit.forward_features(x)          # [B, prefix + h*w, D]
+        with nullcontext() if self.trainable else torch.no_grad():
+            tokens = self.vit.forward_features(x)      # [B, prefix + h*w, D]
         if tokens.ndim != 3:
             raise RuntimeError(
                 f"expected ViT tokens [B, N, D], got {tuple(tokens.shape)}")
@@ -146,7 +151,16 @@ class FrozenViTSpatialBackbone(nn.Module):
         return patches.transpose(1, 2).reshape(b, d, grid_h, grid_w).contiguous()
 
 
-def _build_vit(spec: dict) -> FrozenViTSpatialBackbone:
+class FrozenViTSpatialBackbone(ViTSpatialBackbone):
+    """Backward-compatible frozen wrapper; parent train() cannot unfreeze it."""
+
+    def __init__(self, vit: nn.Module, patch_size: int, num_prefix_tokens: int,
+                 out_channels: int):
+        super().__init__(vit, patch_size, num_prefix_tokens, out_channels,
+                         trainable=False)
+
+
+def _build_vit(spec: dict, *, trainable: bool = False) -> ViTSpatialBackbone:
     import timm
     arch = spec.get("arch", "vit_base_patch16_224")
     patch_size = int(spec.get("patch_size", 16))
@@ -164,16 +178,19 @@ def _build_vit(spec: dict) -> FrozenViTSpatialBackbone:
     if encoder:
         state = torch.load(encoder, map_location="cpu", weights_only=True)
         missing, unexpected = vit.load_state_dict(state, strict=False)
+        if missing:
+            raise RuntimeError(f"encoder.pt is missing encoder weights: {missing[:5]}")
         # The classifier head is dropped (num_classes=0), so head.* is expected to
         # be unexpected; anything else unexpected means the encoder is not this ViT.
-        unexpected = [k for k in unexpected if not k.startswith("head.")]
+        unexpected = [k for k in unexpected if k not in ("head.weight", "head.bias")]
         if unexpected:
             raise RuntimeError(
                 f"encoder.pt carries keys this ViT does not have: {unexpected[:5]}")
-    return FrozenViTSpatialBackbone(
+    wrapper = ViTSpatialBackbone if trainable else FrozenViTSpatialBackbone
+    return wrapper(
         vit, patch_size=patch_size,
         num_prefix_tokens=int(getattr(vit, "num_prefix_tokens", 1)),
-        out_channels=int(vit.embed_dim))
+        out_channels=int(vit.embed_dim), **({"trainable": True} if trainable else {}))
 
 
 def build_frozen_backbone(spec: dict, device: "torch.device") -> nn.Module:
@@ -197,3 +214,22 @@ def build_frozen_backbone(spec: dict, device: "torch.device") -> nn.Module:
     for p in model.parameters():
         p.requires_grad = False
     return model
+
+
+def build_trainable_backbone(spec: dict, device: "torch.device") -> nn.Module:
+    """Explicit differentiable ViT path; frozen-only providers are unsupported.
+
+    This provides FT building blocks, not an FT task recipe. Existing task
+    entrypoints continue calling build_frozen_backbone and retain their behavior.
+    Never toggle requires_grad on a provider that internally disables autograd.
+    """
+    if spec.get("kind") != VIT:
+        raise NotImplementedError(
+            f"trainable spatial provider is not implemented for {spec.get('kind')!r}")
+    return _build_vit(spec, trainable=True).to(device)
+
+
+def build_attentive_backbone(spec: dict, device: "torch.device") -> nn.Module:
+    """Compose a discovered frozen spatial provider and shared AP adapter."""
+    from downstream.attention import AttentiveSpatialBackbone
+    return AttentiveSpatialBackbone(build_frozen_backbone(spec, device)).to(device)

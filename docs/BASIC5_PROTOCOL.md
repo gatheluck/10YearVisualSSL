@@ -429,3 +429,59 @@ layer/shape, per-seed + aggregated metrics).
 Both tracks share BASIC5's cross-cutting requirements: the same five datasets,
 seeds 0/1/2 with mean±std, "final scheduled epoch" scoring, and explicit
 `UNSUPPORTED` rather than a faked dense result.
+
+## AP and FT building blocks
+
+`downstream.attention` provides shared readers from the attentive protocol:
+
+- `QueryReader(C)` accepts caller-selected final tokens `[B, N, C]`, projects
+  to width 512, applies one eight-head pre-LN cross-attention/MLP block to 32
+  learned queries initialized with normal standard deviation `1/sqrt(512)`,
+  and mean-pools them. The task's classifier is external.
+- `SpatialAdapter(C)` operates on real `[B, C, H, W]` maps through width 256,
+  one eight-head pre-LN self-attention/MLP block and a zero-initialized
+  1x1 Conv output projection, added residually. The input projection is also
+  a 1x1 Conv. Reuse the same instance at compatible scales.
+  Global vectors and incompatible channel counts are rejected.
+- Both use MLP ratio four and no dropout. The implementation uses GELU, affine
+  LayerNorm, and residual connections around attention and MLP. Query and
+  context have separate pre-attention norms in the cross-attention reader.
+  These details follow the captured Basic5 reader implementation. They are
+  tested explicitly; they do not resolve missing task definitions in the
+  supplied protocol. Private reference files and their provenance stay in
+  the task's external evidence, not in this repository.
+
+`downstream.spatial_backbones.build_attentive_backbone(spec, device)` composes
+the existing discovered frozen spatial provider with the shared adapter.
+Calling `train()` on the enclosing model trains the adapter but keeps the
+backbone in evaluation mode, with parameters, BatchNorm state and input
+gradients frozen. A task head consumes the resulting spatial map as before.
+
+`build_trainable_backbone(spec, device)` exposes a separate differentiable
+timm `vit` path. It uses the same token-to-grid readout and checkpoint loading
+as the frozen builder. Parent `train()` and `eval()` propagate in this path;
+parameters and normalization state can update. Other providers are explicitly
+unsupported for FT until their differentiable forward is verified. Toggling
+`requires_grad` alone on a frozen provider is insufficient.
+
+The default `build_frozen_backbone` and existing task entrypoints remain frozen.
+The shared timm checkpoint loader now rejects missing encoder weights and
+unknown keys. Only the removed classifier's exact `head.weight` and `head.bias`
+keys may be extra. An empty encoder path still means a random smoke model,
+never a released-weight evaluation.
+
+**Coverage boundary:** these are executable, tested components, not complete
+AP/FT task runners or canonical result eligibility. Existing CLI configurations
+do not gain an AP/FT selector in this increment. The five task recipes,
+optimization/scheduling and full-dataset evaluation remain separate work.
+Callers must select the final layer, remove excluded special tokens, preserve
+real grids, and supply the unchanged task head. No global-to-spatial fallback,
+temporal position policy, FPN geometry or depth-loss variant is invented here.
+In particular, query attention without temporal position information is
+permutation invariant; passing ordered video tokens alone does not establish
+order-sensitive video recognition.
+
+Tests in `tests/test_basic5_readers.py` exercise checkpoint round trips,
+gradient and BatchNorm behavior, adapter identity at initialization, shared
+scales, malformed inputs, and CUDA optimizer/save/reload paths. The mutation
+spec `mutations/basic5-readers.json` checks the corresponding safeguards.
