@@ -6,12 +6,13 @@ builds exposes the same two-symbol interface the capture harness uses:
     backbone.forward_features(x) -> Tensor[B, C, h, w]
     backbone.out_channels: int
 
-The existing task entrypoints use frozen backbones (eval, no gradients).
-Explicit builders also expose attentive readout and a differentiable timm ViT
-for future task recipes; these builders do not imply canonical FT/AP support.
+The task entrypoints default to frozen backbones (eval, no gradients).
+Explicit component adaptations expose attentive readout and differentiable
+timm ViT execution; these do not imply canonical FT/AP recipe support.
 A real run loads a
 method's trained `encoder.pt`; the hermetic smoke leaves `encoder` empty and builds
-a random tiny backbone, so CI downloads and trains nothing on the backbone.
+a random tiny backbone without downloading pretrained weights. Explicit FT
+smokes update this random encoder; default frozen smokes train only the head.
 
 For Step 2 every method's backbone is the unified ViT-B/16, so one ViT adapter
 serves them all (the capture's `_load_step2_vit`); Step-1's diverse backbones and
@@ -219,8 +220,8 @@ def build_frozen_backbone(spec: dict, device: "torch.device") -> nn.Module:
 def build_trainable_backbone(spec: dict, device: "torch.device") -> nn.Module:
     """Explicit differentiable ViT path; frozen-only providers are unsupported.
 
-    This provides FT building blocks, not an FT task recipe. Existing task
-    entrypoints continue calling build_frozen_backbone and retain their behavior.
+    This provides FT building blocks, not an FT task recipe. Task entrypoints
+    select this builder only for explicit finetune component adaptation.
     Never toggle requires_grad on a provider that internally disables autograd.
     """
     if spec.get("kind") != VIT:

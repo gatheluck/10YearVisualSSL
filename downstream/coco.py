@@ -41,10 +41,10 @@ from torchvision.transforms import functional as TF
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
-from downstream.attention import (SpatialAdapter, frozen_spatial_features,
+from downstream.attention import (SpatialAdapter, task_spatial_features,
                                   validate_adaptation, clip_attentive_gradients)
 from downstream import contract                                    # noqa: E402
-from downstream.spatial_backbones import build_frozen_backbone, KINDS  # noqa: E402
+from downstream.spatial_backbones import build_frozen_backbone, build_trainable_backbone, KINDS  # noqa: E402
 
 TASK = "coco_detection"
 NUM_CLASSES = 91          # COCO category ids run 1..90; index 0 is background.
@@ -203,12 +203,13 @@ class FrozenPyramidBackbone(nn.Module):
     def __init__(self, body, *, adaptation: str = "frozen"):
         super().__init__()
         self.body = body
+        self.adaptation = adaptation
         self.adapter = SpatialAdapter(body.out_channels) if adaptation == "attentive" else None
         self.fpn = SimpleFeaturePyramid(body.out_channels)
         self.out_channels = self.fpn.out_channels
 
     def forward(self, images):
-        feat = frozen_spatial_features(self.body, images, self.adapter)
+        feat = task_spatial_features(self.body, images, self.adapter, adaptation=self.adaptation)
         expected = (images.shape[-2] // 16, images.shape[-1] // 16)
         if feat.ndim != 4 or tuple(feat.shape[-2:]) != expected:
             raise RuntimeError("pyramid body must produce a stride-16 spatial grid")
@@ -227,7 +228,8 @@ def build_frozen_detector(backbone_spec: dict, detector: dict,
             raise ValueError("captured pyramid requires stride 16")
         if len(detector["anchor_sizes"]) != 4 or any(int(s) <= 0 for s in detector["anchor_sizes"]):
             raise ValueError("captured pyramid requires four positive anchor sizes")
-    backbone = build_frozen_backbone(backbone_spec, device)
+    builder = build_trainable_backbone if adaptation == "finetune" else build_frozen_backbone
+    backbone = builder(backbone_spec, device)
     anchor_sizes = tuple(int(s) for s in detector["anchor_sizes"])
     if captured:
         # The existing timm provider expects ImageNet normalization. Keep it in
@@ -339,7 +341,7 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
     model = build_frozen_detector(cfg["backbone"], detector, device, profile=profile,
                                   adaptation=adaptation)
     encoder = model.backbone.body if profile == CAPTURE_PROFILE else model.backbone
-    if any(p.requires_grad for p in encoder.parameters()):
+    if adaptation != "finetune" and any(p.requires_grad for p in encoder.parameters()):
         raise RuntimeError("backbone is not frozen")
     trainable = [p for p in model.parameters() if p.requires_grad]
     optimizer = torch.optim.SGD(trainable, lr=float(detector["lr"]), momentum=0.9,

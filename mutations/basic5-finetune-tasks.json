@@ -1,0 +1,175 @@
+{
+  "targets": [
+    {
+      "label": "Detach FT encoder",
+      "file": "downstream/attention.py",
+      "old": "return backbone.forward_features(x)",
+      "new": "return backbone.forward_features(x).detach()",
+      "tests": [
+        "tests.test_basic5_finetune_tasks.TestFinetuneTasks.test_cpu_encoder_and_head_update_without_attention"
+      ]
+    },
+    {
+      "label": "Enable gradients during eval",
+      "file": "downstream/attention.py",
+      "old": "        return backbone.forward_features(x)",
+      "new": "        with torch.enable_grad():\n            return backbone.forward_features(x)",
+      "tests": [
+        "tests.test_basic5_finetune_tasks.TestFinetuneTasks.test_cpu_encoder_and_head_update_without_attention"
+      ]
+    },
+    {
+      "label": "Allow legacy FT",
+      "file": "downstream/attention.py",
+      "old": "if adaptation != \"frozen\" and cfg.get(\"profile\") != \"capture_basic5_components\":",
+      "new": "if adaptation == \"attentive\" and cfg.get(\"profile\") != \"capture_basic5_components\":",
+      "tests": [
+        "tests.test_basic5_finetune_tasks.TestFinetuneTasks.test_configs_accept_explicit_ft_and_refuse_legacy_and_frozen_only_providers"
+      ]
+    },
+    {
+      "label": "Accept frozen-only FT provider",
+      "file": "downstream/attention.py",
+      "old": "if adaptation == \"finetune\" and cfg.get(\"backbone\", {}).get(\"kind\", \"vit\") != \"vit\":",
+      "new": "if False:",
+      "tests": [
+        "tests.test_basic5_finetune_tasks.TestFinetuneTasks.test_configs_accept_explicit_ft_and_refuse_legacy_and_frozen_only_providers"
+      ]
+    },
+    {
+      "label": "Omit FT clipping",
+      "file": "downstream/attention.py",
+      "old": "if adaptation in (\"attentive\", \"finetune\"):",
+      "new": "if adaptation == \"attentive\":",
+      "tests": [
+        "tests.test_basic5_finetune_tasks.TestFinetuneTasks.test_cpu_actual_clis"
+      ]
+    },
+    {
+      "label": "ade20k chooses frozen encoder",
+      "file": "downstream/ade20k.py",
+      "old": "builder = build_trainable_backbone if adaptation == \"finetune\" else build_frozen_backbone",
+      "new": "builder = build_frozen_backbone",
+      "tests": [
+        "tests.test_basic5_finetune_tasks.TestFinetuneTasks.test_cpu_actual_clis"
+      ]
+    },
+    {
+      "label": "ade20k forgets FT autograd",
+      "file": "downstream/ade20k.py",
+      "old": "adaptation=self.adaptation)",
+      "new": "adaptation=\"frozen\")",
+      "tests": [
+        "tests.test_basic5_finetune_tasks.TestFinetuneTasks.test_cpu_encoder_and_head_update_without_attention"
+      ]
+    },
+    {
+      "label": "nyuv2 chooses frozen encoder",
+      "file": "downstream/nyuv2.py",
+      "old": "builder = build_trainable_backbone if adaptation == \"finetune\" else build_frozen_backbone",
+      "new": "builder = build_frozen_backbone",
+      "tests": [
+        "tests.test_basic5_finetune_tasks.TestFinetuneTasks.test_cpu_actual_clis"
+      ]
+    },
+    {
+      "label": "nyuv2 forgets FT autograd",
+      "file": "downstream/nyuv2.py",
+      "old": "adaptation=self.adaptation)",
+      "new": "adaptation=\"frozen\")",
+      "tests": [
+        "tests.test_basic5_finetune_tasks.TestFinetuneTasks.test_cpu_encoder_and_head_update_without_attention"
+      ]
+    },
+    {
+      "label": "coco chooses frozen encoder",
+      "file": "downstream/coco.py",
+      "old": "builder = build_trainable_backbone if adaptation == \"finetune\" else build_frozen_backbone",
+      "new": "builder = build_frozen_backbone",
+      "tests": [
+        "tests.test_basic5_finetune_tasks.TestFinetuneTasks.test_cpu_actual_clis"
+      ]
+    },
+    {
+      "label": "coco forgets FT autograd",
+      "file": "downstream/coco.py",
+      "old": "adaptation=self.adaptation)",
+      "new": "adaptation=\"frozen\")",
+      "tests": [
+        "tests.test_basic5_finetune_tasks.TestFinetuneTasks.test_cpu_encoder_and_head_update_without_attention"
+      ]
+    },
+    {
+      "label": "ssv2 chooses frozen encoder",
+      "file": "downstream/ssv2.py",
+      "old": "builder = build_trainable_backbone if adaptation == \"finetune\" else build_frozen_backbone",
+      "new": "builder = build_frozen_backbone",
+      "tests": [
+        "tests.test_basic5_finetune_tasks.TestFinetuneTasks.test_cpu_actual_clis"
+      ]
+    },
+    {
+      "label": "ssv2 forgets FT autograd",
+      "file": "downstream/ssv2.py",
+      "old": "adaptation=self.adaptation)",
+      "new": "adaptation=\"frozen\")",
+      "tests": [
+        "tests.test_basic5_finetune_tasks.TestFinetuneTasks.test_cpu_encoder_and_head_update_without_attention"
+      ]
+    },
+    {
+      "label": "Drop per-frame normalization",
+      "file": "downstream/ssv2.py",
+      "old": "feat = F.normalize(feat.float(), dim=-1)",
+      "new": "feat = feat.float()",
+      "tests": [
+        "tests.test_basic5_finetune_tasks.TestFinetuneTasks.test_video_uses_per_frame_l2_before_temporal_mean_and_zero_head"
+      ]
+    },
+    {
+      "label": "Use random FT classifier",
+      "file": "downstream/ssv2.py",
+      "old": "if self.reader is None and adaptation != \"finetune\":",
+      "new": "if self.reader is None:",
+      "tests": [
+        "tests.test_basic5_finetune_tasks.TestFinetuneTasks.test_video_uses_per_frame_l2_before_temporal_mean_and_zero_head"
+      ]
+    },
+    {
+      "label": "Omit FT tests from downstream job",
+      "file": ".github/workflows/tests.yml",
+      "old": "            tests.test_basic5_finetune_tasks\n",
+      "new": "            tests.test_basic5_protocol\n",
+      "tests": [
+        "tests.test_basic5_finetune_tasks.TestFinetuneCI.test_downstream_job_executes_finetune_tests"
+      ]
+    },
+    {
+      "label": "CI detector reads comments",
+      "file": "tests/test_basic5_finetune_tasks.py",
+      "old": "shlex.split(line, comments=True)",
+      "new": "shlex.split(line, comments=False)",
+      "tests": [
+        "tests.test_basic5_finetune_tasks.TestFinetuneCI.test_invocation_detector_rejects_exact_name_in_comments_and_echo"
+      ]
+    },
+    {
+      "label": "CI detector accepts echo",
+      "file": "tests/test_basic5_finetune_tasks.py",
+      "old": "words[:3] == [\".venv/bin/python\", \"-m\", \"unittest\"]",
+      "new": "True",
+      "tests": [
+        "tests.test_basic5_finetune_tasks.TestFinetuneCI.test_invocation_detector_rejects_exact_name_in_comments_and_echo"
+      ]
+    },
+    {
+      "label": "CI detector matches name prefix",
+      "file": "tests/test_basic5_finetune_tasks.py",
+      "old": "\"tests.test_basic5_finetune_tasks\" in words[3:]",
+      "new": "any(w.startswith(\"tests.test_basic5_finetune_tasks\") for w in words[3:])",
+      "tests": [
+        "tests.test_basic5_finetune_tasks.TestFinetuneCI.test_invocation_detector_rejects_exact_name_in_comments_and_echo"
+      ]
+    }
+  ]
+}
