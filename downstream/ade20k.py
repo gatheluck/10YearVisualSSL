@@ -46,6 +46,7 @@ IMAGENET_MEAN = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1)
 IMAGENET_STD = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1)
 
 TOP_KEYS = frozenset({"task", "seed", "device", "data_root", "backbone", "probe"})
+CAPTURE_PROFILE = "capture_basic5_components"
 BACKBONE_REQUIRED = frozenset({"kind", "encoder", "arch", "img_size", "patch_size"})
 BACKBONE_OPTIONAL = frozenset({"embed_dim", "depth", "num_heads"})
 PROBE_KEYS = frozenset({"epochs", "batch_size", "lr", "num_workers", "image_size",
@@ -72,7 +73,9 @@ def validate_config(cfg: dict) -> None:
         if key in cfg:
             raise ConfigError(
                 f"config: {key} is set; the output location is fixed at --out")
-    _named(TOP_KEYS - set(cfg), set(cfg) - TOP_KEYS, "config")
+    _named(TOP_KEYS - set(cfg), set(cfg) - (TOP_KEYS | {"profile"}), "config")
+    if cfg.get("profile", "legacy") not in ("legacy", CAPTURE_PROFILE):
+        raise ConfigError("config.profile: expected legacy or capture_basic5_components")
     if cfg["device"] not in DEVICES:
         raise ConfigError(f"config: device is {cfg['device']!r}; expected "
                           f"{', '.join(DEVICES)}")
@@ -118,10 +121,11 @@ def make_deterministic(seed: int) -> None:
 
 
 class ADE20kSegmentation(Dataset):
-    def __init__(self, root: Path, split: str, image_size: int):
+    def __init__(self, root: Path, split: str, image_size: int, *, profile: str = "legacy"):
         if split not in {"training", "validation"}:
             raise ValueError(f"unknown ADE20k split: {split}")
         self.image_size = image_size
+        self.augment = profile == CAPTURE_PROFILE and split == "training"
         image_dir = Path(root) / "images" / split
         mask_dir = Path(root) / "annotations" / split
         self.images = sorted(image_dir.glob("*.jpg"))
@@ -138,9 +142,21 @@ class ADE20kSegmentation(Dataset):
     def __getitem__(self, index: int):
         image = Image.open(self.images[index]).convert("RGB")
         mask = Image.open(self.masks[index])
-        image = TF.resize(image, [self.image_size, self.image_size], antialias=True)
-        mask = TF.resize(mask, [self.image_size, self.image_size],
-                         interpolation=TF.InterpolationMode.NEAREST)
+        if self.augment:
+            from torchvision.transforms import RandomCrop
+            scale = float(torch.empty(1).uniform_(0.5, 2.0))
+            size = [max(self.image_size, round(image.height * scale)),
+                    max(self.image_size, round(image.width * scale))]
+            image = TF.resize(image, size, interpolation=TF.InterpolationMode.BILINEAR)
+            mask = TF.resize(mask, size, interpolation=TF.InterpolationMode.NEAREST)
+            crop = RandomCrop.get_params(image, (self.image_size, self.image_size))
+            image, mask = TF.crop(image, *crop), TF.crop(mask, *crop)
+            if torch.rand(1).item() < 0.5:
+                image, mask = TF.hflip(image), TF.hflip(mask)
+        else:
+            image = TF.resize(image, [self.image_size, self.image_size], antialias=True)
+            mask = TF.resize(mask, [self.image_size, self.image_size],
+                             interpolation=TF.InterpolationMode.NEAREST)
         image_tensor = (TF.to_tensor(image) - IMAGENET_MEAN) / IMAGENET_STD
         target = torch.from_numpy(np.array(mask, dtype=np.int64))
         target[target == 0] = IGNORE_INDEX
@@ -225,11 +241,12 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
     make_deterministic(seed)
     probe = cfg["probe"]
     image_size = int(probe["image_size"])
+    profile = cfg.get("profile", "legacy")
 
     root = Path(cfg["data_root"])
-    train_ds = _subset(ADE20kSegmentation(root, "training", image_size),
+    train_ds = _subset(ADE20kSegmentation(root, "training", image_size, profile=profile),
                        int(probe["max_train_samples"]))
-    val_ds = _subset(ADE20kSegmentation(root, "validation", image_size),
+    val_ds = _subset(ADE20kSegmentation(root, "validation", image_size, profile=profile),
                      int(probe["max_val_samples"]))
     bs, nw = int(probe["batch_size"]), int(probe["num_workers"])
     train_loader = DataLoader(train_ds, batch_size=bs, shuffle=True, num_workers=nw,
@@ -265,7 +282,9 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
         json.dumps({"task": TASK, "backbone": cfg["backbone"],
                     "num_classes": NUM_CLASSES, "ignore_index": IGNORE_INDEX,
                     "epochs": epochs, "final": raw,
-                    "record_value": not subset_mode,
+                    "profile": profile,
+                    "canonical_eligible": False,
+                    "record_value": not subset_mode and profile == "legacy",
                     "subset_or_smoke": subset_mode},
                    indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return raw
