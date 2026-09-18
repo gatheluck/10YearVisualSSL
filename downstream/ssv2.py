@@ -49,6 +49,7 @@ IMAGENET_MEAN = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1)
 IMAGENET_STD = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1)
 
 TOP_KEYS = frozenset({"task", "seed", "device", "data_root", "backbone", "probe"})
+CAPTURE_PROFILE = "capture_basic5_components"
 BACKBONE_REQUIRED = frozenset({"kind", "encoder", "arch", "img_size", "patch_size"})
 BACKBONE_OPTIONAL = frozenset({"embed_dim", "depth", "num_heads"})
 PROBE_KEYS = frozenset({"epochs", "batch_size", "lr", "num_workers", "image_size",
@@ -76,7 +77,9 @@ def validate_config(cfg: dict) -> None:
         if key in cfg:
             raise ConfigError(
                 f"config: {key} is set; the output location is fixed at --out")
-    _named(TOP_KEYS - set(cfg), set(cfg) - TOP_KEYS, "config")
+    _named(TOP_KEYS - set(cfg), set(cfg) - (TOP_KEYS | {"profile"}), "config")
+    if cfg.get("profile", "legacy") not in ("legacy", CAPTURE_PROFILE):
+        raise ConfigError("config.profile: expected legacy or capture_basic5_components")
     if cfg["device"] not in DEVICES:
         raise ConfigError(f"config: device is {cfg['device']!r}; expected "
                           f"{', '.join(DEVICES)}")
@@ -125,7 +128,22 @@ def normalize_template(template: str) -> str:
     return template.replace("[", "").replace("]", "")
 
 
-def decode_video_frames(path: Path, num_frames: int) -> "list[Image.Image]":
+def sample_segment_indices(n_frames: int, num_segments: int, train: bool) -> list[int]:
+    """Captured rounded segments; short clips repeat valid frames in order."""
+    if any(type(x) is not int or x <= 0 for x in (n_frames, num_segments)):
+        raise ValueError("frame and segment counts must be positive integers")
+    bounds = [round(i * n_frames / num_segments) for i in range(num_segments + 1)]
+    indices = []
+    for start, stop in zip(bounds, bounds[1:]):
+        end = min(max(stop, start + 1), n_frames)
+        start = min(start, end - 1)
+        indices.append(int(torch.randint(start, end, (1,)).item()) if train
+                       else (start + end - 1) // 2)
+    return indices
+
+
+def decode_video_frames(path: Path, num_frames: int, *, profile="legacy",
+                        train=False) -> "list[Image.Image]":
     import av
     frames: "list[Image.Image]" = []
     with av.open(str(path)) as container:
@@ -133,6 +151,8 @@ def decode_video_frames(path: Path, num_frames: int) -> "list[Image.Image]":
             frames.append(frame.to_image().convert("RGB"))
     if not frames:
         raise RuntimeError(f"no frames decoded from {path}")
+    if profile == CAPTURE_PROFILE:
+        return [frames[i] for i in sample_segment_indices(len(frames), num_frames, train)]
     if len(frames) > num_frames:
         positions = torch.linspace(0, len(frames) - 1,
                                    steps=num_frames).round().long().tolist()
@@ -143,12 +163,15 @@ def decode_video_frames(path: Path, num_frames: int) -> "list[Image.Image]":
 
 
 class SSV2Clips(Dataset):
-    def __init__(self, root: Path, split: str, num_frames: int, image_size: int):
+    def __init__(self, root: Path, split: str, num_frames: int, image_size: int,
+                 *, profile="legacy"):
         if split not in {"train", "validation"}:
             raise ValueError(f"unknown SSV2 split: {split}")
         self.video_dir = Path(root) / "videos"
         self.num_frames = num_frames
         self.image_size = image_size
+        self.profile = profile
+        self.train = split == "train"
         labels = json.loads((Path(root) / "labels" / "labels.json").read_text())
         self.label_to_id = {name: int(idx) for name, idx in labels.items()}
         entries = json.loads(
@@ -180,6 +203,23 @@ class SSV2Clips(Dataset):
 
     def __getitem__(self, index: int):
         path, label = self.samples[index]
+        if self.profile == CAPTURE_PROFILE:
+            from torchvision.transforms import RandomResizedCrop, InterpolationMode
+            selected = decode_video_frames(path, self.num_frames,
+                                           profile=self.profile, train=self.train)
+            crop = (RandomResizedCrop.get_params(selected[0], scale=(.08, 1.),
+                                                ratio=(.75, 4./3.))
+                    if self.train else None)
+            frames = []
+            for image in selected:
+                if self.train:
+                    image = TF.resized_crop(image, *crop, [self.image_size]*2,
+                                            interpolation=InterpolationMode.BILINEAR)
+                else:
+                    image = TF.resize(image, 256, interpolation=InterpolationMode.BILINEAR)
+                    image = TF.center_crop(image, [self.image_size]*2)
+                frames.append((TF.to_tensor(image) - IMAGENET_MEAN) / IMAGENET_STD)
+            return torch.stack(frames), torch.tensor(label, dtype=torch.long)
         frames = []
         for image in decode_video_frames(path, self.num_frames):
             image = TF.resize(image, [self.image_size, self.image_size],
@@ -249,12 +289,13 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
     seed = int(cfg["seed"])
     make_deterministic(seed)
     probe = cfg["probe"]
+    profile = cfg.get("profile", "legacy")
     root = Path(cfg["data_root"])
     num_frames, image_size = int(probe["num_frames"]), int(probe["image_size"])
 
-    train_ds = _subset(SSV2Clips(root, "train", num_frames, image_size),
+    train_ds = _subset(SSV2Clips(root, "train", num_frames, image_size, profile=profile),
                        int(probe["max_train_samples"]))
-    val_ds = _subset(SSV2Clips(root, "validation", num_frames, image_size),
+    val_ds = _subset(SSV2Clips(root, "validation", num_frames, image_size, profile=profile),
                      int(probe["max_val_samples"]))
     bs, nw = int(probe["batch_size"]), int(probe["num_workers"])
     train_loader = DataLoader(train_ds, batch_size=bs, shuffle=True, num_workers=nw,
@@ -299,8 +340,9 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
     (Path(out) / "results.json").write_text(
         json.dumps({"task": TASK, "backbone": cfg["backbone"],
                     "num_classes": NUM_CLASSES, "num_frames": num_frames,
+                    "profile": profile, "canonical_eligible": False,
                     "epochs": epochs, "final": raw,
-                    "record_value": not subset_mode,
+                    "record_value": not subset_mode and profile != CAPTURE_PROFILE,
                     "subset_or_smoke": subset_mode},
                    indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return raw

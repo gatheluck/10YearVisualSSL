@@ -1,0 +1,157 @@
+{
+  "targets": [
+    {
+      "label": "depth-temporal-00",
+      "file": "downstream/nyuv2.py",
+      "old": "std=0.01",
+      "new": "std=0.02",
+      "tests": [
+        "tests.test_basic5_depth_temporal.TestDepthComponents.test_head_initialization_and_upsampling_before_softplus"
+      ]
+    },
+    {
+      "label": "depth-temporal-01",
+      "file": "downstream/nyuv2.py",
+      "old": "F.softplus(raw) + 1e-3",
+      "new": "F.softplus(raw)",
+      "tests": [
+        "tests.test_basic5_depth_temporal.TestDepthComponents.test_head_initialization_and_upsampling_before_softplus"
+      ]
+    },
+    {
+      "label": "depth-temporal-02",
+      "file": "downstream/nyuv2.py",
+      "old": "0.5 * d.mean().pow(2)",
+      "new": "0.85 * d.mean().pow(2)",
+      "tests": [
+        "tests.test_basic5_depth_temporal.TestDepthComponents.test_silog_formula_mask_and_empty_gradient"
+      ]
+    },
+    {
+      "label": "depth-temporal-03",
+      "file": "downstream/nyuv2.py",
+      "old": "ratio < 1.25**k",
+      "new": "ratio <= 1.25**k",
+      "tests": [
+        "tests.test_basic5_depth_temporal.TestDepthComponents.test_depth_metrics_threshold_units_and_float32"
+      ]
+    },
+    {
+      "label": "depth-temporal-04",
+      "file": "downstream/nyuv2.py",
+      "old": "valid = torch.isfinite(depth) & (depth >= 0.1) & (depth <= 10.0)",
+      "new": "valid = torch.isfinite(depth) & (depth > 0) & (depth <= 10.0)",
+      "tests": [
+        "tests.test_basic5_depth_temporal.TestDepthComponents.test_valid_depth_bounds_and_joint_flip"
+      ]
+    },
+    {
+      "label": "depth-temporal-05",
+      "file": "downstream/nyuv2.py",
+      "old": "ids.astype(np.int64) - 1",
+      "new": "ids.astype(np.int64)",
+      "tests": [
+        "tests.test_basic5_depth_temporal.TestDepthComponents.test_official_split_ids_are_not_positional_and_formats_agree"
+      ]
+    },
+    {
+      "label": "depth-temporal-06",
+      "file": "downstream/nyuv2.py",
+      "old": "len(combined) != count or len(set(combined)) != count",
+      "new": "False",
+      "tests": [
+        "tests.test_basic5_depth_temporal.TestDepthComponents.test_bad_splits_are_refused_without_fallback"
+      ]
+    },
+    {
+      "label": "depth-temporal-07",
+      "file": "downstream/nyuv2.py",
+      "old": "not (ids == np.floor(ids)).all()",
+      "new": "False",
+      "tests": [
+        "tests.test_basic5_depth_temporal.TestDepthComponents.test_bad_splits_are_refused_without_fallback"
+      ]
+    },
+    {
+      "label": "depth-temporal-08",
+      "file": "downstream/nyuv2.py",
+      "old": "(silog_loss if captured else masked_l1)",
+      "new": "masked_l1",
+      "tests": [
+        "tests.test_basic5_depth_temporal.TestDepthComponents.test_depth_runner_uses_components_and_records_incomplete_recipe"
+      ]
+    },
+    {
+      "label": "depth-temporal-09",
+      "file": "downstream/nyuv2.py",
+      "old": "/ len(batch_metrics)",
+      "new": "/ count",
+      "tests": [
+        "tests.test_basic5_depth_temporal.TestDepthComponents.test_captured_evaluation_is_mean_of_batch_metrics"
+      ]
+    },
+    {
+      "label": "depth-temporal-10",
+      "file": "downstream/nyuv2.py",
+      "old": "if not batch_metrics:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_basic5_depth_temporal.TestDepthComponents.test_captured_evaluation_is_mean_of_batch_metrics"
+      ]
+    },
+    {
+      "label": "depth-temporal-11",
+      "file": "downstream/nyuv2.py",
+      "old": "if not all(np.isfinite(v) for v in current.values()):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_basic5_depth_temporal.TestDepthComponents.test_captured_evaluation_is_mean_of_batch_metrics"
+      ]
+    },
+    {
+      "label": "depth-temporal-12",
+      "file": "downstream/nyuv2.py",
+      "old": "not subset_mode and not captured",
+      "new": "not subset_mode",
+      "tests": [
+        "tests.test_basic5_depth_temporal.TestDepthComponents.test_depth_runner_uses_components_and_records_incomplete_recipe"
+      ]
+    },
+    {
+      "label": "depth-temporal-13",
+      "file": "downstream/ssv2.py",
+      "old": "(start + end - 1) // 2",
+      "new": "start",
+      "tests": [
+        "tests.test_basic5_depth_temporal.TestTemporalComponents.test_segment_centers_short_clips_and_invalid_counts"
+      ]
+    },
+    {
+      "label": "depth-temporal-14",
+      "file": "downstream/ssv2.py",
+      "old": "int(torch.randint(start, end, (1,)).item()) if train",
+      "new": "start if train",
+      "tests": [
+        "tests.test_basic5_depth_temporal.TestTemporalComponents.test_random_sampling_is_seeded_and_within_each_segment"
+      ]
+    },
+    {
+      "label": "depth-temporal-15",
+      "file": "downstream/ssv2.py",
+      "old": "if any(type(x) is not int or x <= 0 for x in (n_frames, num_segments)):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_basic5_depth_temporal.TestTemporalComponents.test_segment_centers_short_clips_and_invalid_counts"
+      ]
+    },
+    {
+      "label": "video-canonical-admission",
+      "file": "downstream/ssv2.py",
+      "old": "not subset_mode and profile != CAPTURE_PROFILE",
+      "new": "not subset_mode",
+      "tests": [
+        "tests.test_basic5_depth_temporal.TestTemporalComponents.test_video_runner_profile_is_delivered_and_not_canonical"
+      ]
+    }
+  ]
+}
