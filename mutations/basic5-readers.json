@@ -1,0 +1,148 @@
+{
+  "targets": [
+    {
+      "label": "Accept incomplete weights",
+      "file": "downstream/spatial_backbones.py",
+      "old": "if missing:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_basic5_readers.TestCheckpointAndTrainability.test_missing_checkpoint_weights_are_refused"
+      ]
+    },
+    {
+      "label": "Ignore unrelated classifier keys",
+      "file": "downstream/spatial_backbones.py",
+      "old": "k not in (\"head.weight\", \"head.bias\")",
+      "new": "not k.startswith(\"head.\")",
+      "tests": [
+        "tests.test_basic5_readers.TestCheckpointAndTrainability.test_complete_checkpoint_matches_and_only_classifier_is_ignored"
+      ]
+    },
+    {
+      "label": "Disable FT gradients",
+      "file": "downstream/spatial_backbones.py",
+      "old": "with nullcontext() if self.trainable else torch.no_grad():",
+      "new": "with torch.no_grad():",
+      "tests": [
+        "tests.test_basic5_readers.TestCheckpointAndTrainability.test_explicit_finetune_updates_backbone_and_preserves_spatial_readout"
+      ]
+    },
+    {
+      "label": "Unfreeze normalization in LP",
+      "file": "downstream/spatial_backbones.py",
+      "old": "super().train(mode if self.trainable else False)",
+      "new": "super().train(mode)",
+      "tests": [
+        "tests.test_basic5_readers.TestCheckpointAndTrainability.test_finetune_batchnorm_updates_but_frozen_batchnorm_does_not"
+      ]
+    },
+    {
+      "label": "Disable FT parameter updates",
+      "file": "downstream/spatial_backbones.py",
+      "old": "p.requires_grad = trainable",
+      "new": "p.requires_grad = False",
+      "tests": [
+        "tests.test_basic5_readers.TestCheckpointAndTrainability.test_explicit_finetune_updates_backbone_and_preserves_spatial_readout"
+      ]
+    },
+    {
+      "label": "Invent trainability for unknown providers",
+      "file": "downstream/spatial_backbones.py",
+      "old": "if spec.get(\"kind\") != VIT:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_basic5_readers.TestCheckpointAndTrainability.test_unknown_trainability_is_not_silently_unfrozen"
+      ]
+    },
+    {
+      "label": "Remove AP backbone eval protection",
+      "file": "downstream/attention.py",
+      "old": "        self.backbone.eval()\n        return self",
+      "new": "        return self",
+      "tests": [
+        "tests.test_basic5_readers.TestReaders.test_frozen_backbone_state_survives_parent_train_and_optimizer"
+      ]
+    },
+    {
+      "label": "Remove AP input gradient isolation",
+      "file": "downstream/attention.py",
+      "old": "with torch.no_grad():",
+      "new": "with torch.enable_grad():",
+      "tests": [
+        "tests.test_basic5_readers.TestReaders.test_frozen_backbone_state_survives_parent_train_and_optimizer"
+      ]
+    },
+    {
+      "label": "Remove AP parameter freeze",
+      "file": "downstream/attention.py",
+      "old": "self.backbone.requires_grad_(False)",
+      "new": "self.backbone.requires_grad_(True)",
+      "tests": [
+        "tests.test_basic5_readers.TestReaders.test_frozen_backbone_state_survives_parent_train_and_optimizer"
+      ]
+    },
+    {
+      "label": "Break zero initialization",
+      "file": "downstream/attention.py",
+      "old": "nn.init.zeros_(self.output_projection.weight)",
+      "new": "nn.init.ones_(self.output_projection.weight)",
+      "tests": [
+        "tests.test_basic5_readers.TestReaders.test_spatial_adapter_is_identity_then_learns_with_shared_scales"
+      ]
+    },
+    {
+      "label": "Remove spatial residual",
+      "file": "downstream/attention.py",
+      "old": "return spatial + residual",
+      "new": "return residual",
+      "tests": [
+        "tests.test_basic5_readers.TestReaders.test_spatial_adapter_is_identity_then_learns_with_shared_scales"
+      ]
+    },
+    {
+      "label": "Accept empty query tokens",
+      "file": "downstream/attention.py",
+      "old": "tokens.shape[1] == 0",
+      "new": "False",
+      "tests": [
+        "tests.test_basic5_readers.TestReaders.test_query_reader_rejects_global_and_empty_inputs"
+      ]
+    },
+    {
+      "label": "Accept empty spatial grids",
+      "file": "downstream/attention.py",
+      "old": "min(spatial.shape[2:]) < 1",
+      "new": "False",
+      "tests": [
+        "tests.test_basic5_readers.TestReaders.test_spatial_adapter_refuses_global_or_incompatible_channels"
+      ]
+    },
+    {
+      "label": "Remove pre attention normalization",
+      "file": "downstream/attention.py",
+      "old": "q = self.query_norm(queries)",
+      "new": "q = queries",
+      "tests": [
+        "tests.test_basic5_readers.TestReaders.test_query_reader_matches_explicit_pre_norm_residual_equations"
+      ]
+    },
+    {
+      "label": "Remove MLP residual",
+      "file": "downstream/attention.py",
+      "old": "return x + self.mlp(self.mlp_norm(x))",
+      "new": "return self.mlp(self.mlp_norm(x))",
+      "tests": [
+        "tests.test_basic5_readers.TestReaders.test_query_reader_matches_explicit_pre_norm_residual_equations"
+      ]
+    },
+    {
+      "label": "Change reference query initialization",
+      "file": "downstream/attention.py",
+      "old": "torch.randn(32, 512) / (512 ** .5)",
+      "new": "torch.randn(32, 512) * .02",
+      "tests": [
+        "tests.test_basic5_readers.TestReaders.test_query_initialization_matches_reference_width_scaling"
+      ]
+    }
+  ]
+}

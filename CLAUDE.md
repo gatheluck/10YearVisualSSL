@@ -180,6 +180,33 @@ ordinary environments.**
 - Private at first. After an audit it moves to `cvpaperchallenge` and is made
   public
 
+### Capture-first implementation and behavioral verification
+
+Before implementing or refactoring an experiment, evaluator, model wrapper or
+protocol component, inspect the corresponding implementation and actual run
+configuration in the private Capture repository's snapshots. Its operations
+branch contains capture tooling; inspect the snapshot tree for experiment code.
+Do not substitute a plausible fresh implementation for an available reference.
+
+Record the snapshot revision, relevant source/configuration files, observed
+behavior and intended differences in the task's evidence. Keep private source
+copies, cluster paths and account details outside Git. Neither the original
+team workspace nor the capture snapshots may be modified by this work.
+
+Write behavioral tests before changing code. Where practical, compare outputs,
+initialization, gradients and state updates against the captured implementation
+using identical inputs and weights; a matching shape alone is insufficient.
+Reuse or refactor the established behavior into shared code where appropriate,
+while retaining pinned submodules for third-party author code. Checkpoint key
+selection, preprocessing, feature readout and optimizer details are part of
+that behavior, not incidental implementation choices.
+
+If captured code conflicts with the supplied protocol or paper, record the
+conflict and keep that part pending rather than choosing a source silently.
+If the reference cannot be found or executed, state the exact gap. Mark new
+components as unverified against the reference until a real comparison passes.
+After context loss, recover this evidence before resuming implementation.
+
 ## The adapter contract
 
 **`contract-test` decides "the port is finished" by machine.** Nobody says "it
