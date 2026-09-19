@@ -84,6 +84,18 @@ and captured code support it, using strict TDD; ambiguous interpretations stay
 pending. Workbook scores are not replaced or used as synthetic-test targets.
 Refresh the follow-up PR status before claiming delivery or validation.
 
+CI correction on 2026-09-20: PR #186's initial run exposed an incomplete
+dependency guard in its new schedule tests. All 42 failed method-lock logs
+retrieved at diagnosis had the same six CLI assertion failures. Importing the
+COCO runner did not establish that its runtime `timm`/`pycocotools` dependencies
+were installed. The fix reuses the existing COCO guard for CLI tests only,
+retains numerical tests in partial environments, and adds fresh-process
+regressions for both missing dependencies and actual execution with complete
+dependencies. The dedicated downstream job runs these regressions. Local and
+GPU success of the initial implementation did not certify the method-lock
+matrix; refresh PR checks for the correction's current outcome. Scientific
+schedule behavior is unchanged.
+
 The remaining priorities below still apply, with optimizer construction for
 these eight frozen/AP component paths and opt-in COCO scheduling implemented.
 

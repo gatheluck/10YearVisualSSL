@@ -6,6 +6,7 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest import mock
+from tests.test_downstream_coco import needs_coco
 
 try:
     import torch
@@ -34,6 +35,8 @@ class TestScheduleCI(unittest.TestCase):
                     if s.get("name") == "Run Basic5 component contracts with downstream dependencies"]
         self.assertEqual(len(commands), 1)
         self.assertTrue(_runs_finetune_tests(commands[0], module=module))
+        self.assertTrue(_runs_finetune_tests(
+            commands[0], module="tests.test_coco_schedule_dependencies"))
 
 
 @unittest.skipUnless(HAVE, "COCO dependencies required")
@@ -80,6 +83,7 @@ class TestSchedule(unittest.TestCase):
         with self.assertRaises(ValueError):
             resolve_optimization(other, "ade20k_segmentation")
 
+    @needs_coco
     def test_schedule_horizon_and_step_cap_reporting(self):
         for epochs, cap in ((1, 0), (12, 0), (12, 1)):
             with self.subTest(epochs=epochs, cap=cap), tempfile.TemporaryDirectory() as d:
@@ -103,6 +107,7 @@ class TestSchedule(unittest.TestCase):
                 self.assertFalse(result["canonical_eligible"])
                 self.assertFalse(result["record_value"])
 
+    @needs_coco
     def test_runner_milestones_use_full_loader_despite_step_cap(self):
         class LightweightDetector(torch.nn.Module):
             def __init__(self):
@@ -200,10 +205,12 @@ class TestSchedule(unittest.TestCase):
                                  opt, torch.device("cpu"), None, scheduler=schedule)
         self.assertEqual(schedule.last_epoch, 2)
 
+    @needs_coco
     def test_real_cli_schedule_metadata_and_frozen_state(self):
         self.check_cli("cpu")
 
     @unittest.skipUnless(HAVE and torch.cuda.is_available(), "CUDA required")
+    @needs_coco
     def test_cuda_cli(self):
         self.check_cli("cuda")
 

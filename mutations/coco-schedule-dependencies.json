@@ -1,0 +1,58 @@
+{
+  "targets": [
+    {
+      "label": "Missing CLI dependency guard: test_schedule_horizon_and_step_cap_reporting",
+      "file": "tests/test_coco_schedule.py",
+      "old": "    @needs_coco\n    def test_schedule_horizon_and_step_cap_reporting",
+      "new": "    def test_schedule_horizon_and_step_cap_reporting",
+      "tests": [
+        "tests.test_coco_schedule_dependencies.TestScheduleDependencies.test_partial_locks_keep_numerical_tests_active"
+      ]
+    },
+    {
+      "label": "Missing CLI dependency guard: test_runner_milestones_use_full_loader_despite_step_cap",
+      "file": "tests/test_coco_schedule.py",
+      "old": "    @needs_coco\n    def test_runner_milestones_use_full_loader_despite_step_cap",
+      "new": "    def test_runner_milestones_use_full_loader_despite_step_cap",
+      "tests": [
+        "tests.test_coco_schedule_dependencies.TestScheduleDependencies.test_partial_locks_keep_numerical_tests_active"
+      ]
+    },
+    {
+      "label": "Missing CLI dependency guard: test_real_cli_schedule_metadata_and_frozen_state",
+      "file": "tests/test_coco_schedule.py",
+      "old": "    @needs_coco\n    def test_real_cli_schedule_metadata_and_frozen_state",
+      "new": "    def test_real_cli_schedule_metadata_and_frozen_state",
+      "tests": [
+        "tests.test_coco_schedule_dependencies.TestScheduleDependencies.test_partial_locks_keep_numerical_tests_active"
+      ]
+    },
+    {
+      "label": "Missing CLI dependency guard: test_cuda_cli",
+      "file": "tests/test_coco_schedule.py",
+      "old": "    @needs_coco\n    def test_cuda_cli",
+      "new": "    def test_cuda_cli",
+      "tests": [
+        "tests.test_coco_schedule_dependencies.TestScheduleDependencies.test_partial_locks_keep_numerical_tests_active"
+      ]
+    },
+    {
+      "label": "Silently skip all schedule tests",
+      "file": "tests/test_coco_schedule.py",
+      "old": "@unittest.skipUnless(HAVE, \"COCO dependencies required\")",
+      "new": "@unittest.skipUnless(False, \"COCO dependencies required\")",
+      "tests": [
+        "tests.test_coco_schedule_dependencies"
+      ]
+    },
+    {
+      "label": "Omit dependency regression from downstream CI",
+      "file": ".github/workflows/tests.yml",
+      "old": "            tests.test_coco_schedule_dependencies \\\n",
+      "new": "",
+      "tests": [
+        "tests.test_coco_schedule.TestScheduleCI"
+      ]
+    }
+  ]
+}

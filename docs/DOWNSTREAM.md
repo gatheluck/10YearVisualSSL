@@ -230,6 +230,13 @@ Use `detector.epochs: 12` for the schedule horizon. Integer values 1 through 11
 are explicitly truncated component runs; values above 12 are refused by this
 profile. Omitting `scheduler_profile` retains constant LR and old metadata.
 No new dependency is required; the downstream torch lock supplies LambdaLR.
+COCO CLI tests additionally require the existing `timm` and `pycocotools`
+dependencies. Method locks do not generally contain them. Schedule arithmetic,
+configuration and update-order tests remain active in those partial environments;
+only the CLI tests use the shared COCO dependency guard. The downstream CI job
+executes all CPU schedule contracts and checks that none silently skip. Fresh
+process regressions also exercise missing `timm`, missing `pycocotools`, and
+both missing, including CUDA test selection on CPU hosts.
 
 The first optimizer update uses 0.001 times the batch-scaled LR. Linear warmup
 ends after 500 updates; subsequent LR factors are 1, 0.1 and 0.01 at update
