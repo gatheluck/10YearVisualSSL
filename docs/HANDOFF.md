@@ -71,8 +71,21 @@ question pending. No score, seed-count or feature-identity conflict was resolved
 by this implementation. Delivery and current CI status must be refreshed from
 the task PR; the historical checkpoint above does not certify this change.
 
+PR #185 was verified merged on 2026-09-20 at
+`7ac4756fd4af4792275ae17e818a1315a7293ddd`; all 107 PR CI checks succeeded.
+Its tree matched the tested PR head, and unrelated submodule edits were
+preserved. This is a dated verification, not a claim about future CI.
+
+The 2026-09-20 follow-up adds an explicit COCO frozen/AP schedule component:
+500-update linear warmup and decay at epochs 8 and 11, with update accounting
+and truncated-run reporting. See [scope and unresolved questions](BASIC5_PROTOCOL.md#coco-frozenap-schedule-component-2026-09-20).
+The user reaffirmed implementation only where paper, workbook/protocol context
+and captured code support it, using strict TDD; ambiguous interpretations stay
+pending. Workbook scores are not replaced or used as synthetic-test targets.
+Refresh the follow-up PR status before claiming delivery or validation.
+
 The remaining priorities below still apply, with optimizer construction for
-these eight frozen/AP component paths now implemented.
+these eight frozen/AP component paths and opt-in COCO scheduling implemented.
 
 1. Reconcile the old private audit/implementation plan with the now-merged
    #178--183 components before selecting work. The plan predates them.

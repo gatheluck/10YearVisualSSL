@@ -706,8 +706,8 @@ batch, world size, accumulation steps, `drop_last: true`, and `schedule: none`.
 The manifest hashes this result along with the original config. The existing
 frozen-state behavior and AP gradient clipping remain in force.
 
-**This is not a complete LP/AP recipe.** LR remains constant throughout this
-component run. Warmup/decay schedules, accumulation, native-video paths and
+**This is not a complete LP/AP recipe.** LR remains constant unless the explicit
+COCO schedule described below is selected. Other warmup/decay schedules, accumulation, native-video paths and
 complete model-specific feature validation remain separate work. FT is refused
 for this optimizer profile until parameter groups are verified. Results remain
 `canonical_eligible: false` and `record_value: false`, even on full datasets.
@@ -720,3 +720,24 @@ remains pending; this component does not choose either scheduler interpretation.
 numerical updates, frozen state, explicit refusals, full-batch behavior and
 result integrity. CPU tests and separately marked CUDA tests use synthetic
 fixtures; they are not released-weight benchmarks.
+
+## COCO frozen/AP schedule component (2026-09-20)
+
+The opt-in `scheduler_profile: coco_frozen_1x_v1` extends only the COCO
+`basic5_frozen_v1` optimizer path. The supplied manuscript's unified LP/AP
+appendix, supplied protocol and inspected captured implementation agree on
+500-update warmup and LR decay by 0.1 at epochs 8 and 11 over a 12-epoch
+horizon. The AP specification and captured LP/AP JSON/code fix the linear
+warmup start factor at 0.001. The workbook identifies separate LINEAR,
+ATTENTIVE and FINETUNE results; their scores are not scheduler acceptance
+thresholds. Historical/CTRL recipes remain separate.
+
+See the [executable selection and update semantics](DOWNSTREAM.md#opt-in-coco-component-schedule-2026-09-20).
+The scheduler is initialized before the first update, then advances only after
+successful optimizer updates. The full nonempty training-loader length defines
+epoch milestones even when a smoke run stops each epoch early. Warmup wins if
+a tiny fixture's milestones occur before update 500. Tests check every update
+across the boundaries, actual parameter updates, CLI metadata, frozen state,
+failed updates and the executable documentation selection. No cosine-source
+disagreement, FT grouping, accumulation or paper-score discrepancy is resolved
+by this component. Canonical eligibility remains disabled.
