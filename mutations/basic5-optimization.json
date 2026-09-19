@@ -1,0 +1,274 @@
+{
+  "targets": [
+    {
+      "label": "Unknown optimizer profile",
+      "file": "downstream/optimization.py",
+      "old": "if cfg[\"optimizer_profile\"] != PROFILE:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_basic5_optimization.TestOptimization.test_refuses_unsupported_or_ignored_settings_before_data_access"
+      ]
+    },
+    {
+      "label": "Legacy eligibility bypass",
+      "file": "downstream/optimization.py",
+      "old": "if cfg.get(\"profile\") != \"capture_basic5_components\":",
+      "new": "if False:",
+      "tests": [
+        "tests.test_basic5_optimization.TestOptimization.test_refuses_unsupported_or_ignored_settings_before_data_access"
+      ]
+    },
+    {
+      "label": "Unverified FT groups",
+      "file": "downstream/optimization.py",
+      "old": "if adaptation not in (\"frozen\", \"attentive\"):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_basic5_optimization.TestOptimization.test_refuses_unsupported_or_ignored_settings_before_data_access"
+      ]
+    },
+    {
+      "label": "Wrong task identity",
+      "file": "downstream/optimization.py",
+      "old": "if cfg.get(\"task\") != task or task not in _RECIPES:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_basic5_optimization.TestOptimization.test_refuses_unsupported_or_ignored_settings_before_data_access"
+      ]
+    },
+    {
+      "label": "Distributed environment",
+      "file": "downstream/optimization.py",
+      "old": "if os.environ.get(\"WORLD_SIZE\", \"1\") != \"1\":",
+      "new": "if False:",
+      "tests": [
+        "tests.test_basic5_optimization.TestOptimization.test_refuses_unsupported_or_ignored_settings_before_data_access"
+      ]
+    },
+    {
+      "label": "Distributed process group",
+      "file": "downstream/optimization.py",
+      "old": "if torch.distributed.is_initialized() and torch.distributed.get_world_size() != 1:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_basic5_optimization.TestOptimization.test_refuses_unsupported_or_ignored_settings_before_data_access"
+      ]
+    },
+    {
+      "label": "Invalid batch",
+      "file": "downstream/optimization.py",
+      "old": "if type(batch) is not int or batch <= 0:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_basic5_optimization.TestOptimization.test_refuses_unsupported_or_ignored_settings_before_data_access"
+      ]
+    },
+    {
+      "label": "Empty epoch or invalid step bound",
+      "file": "downstream/optimization.py",
+      "old": "if type(value) is not int or value < minimum:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_basic5_optimization.TestOptimization.test_refuses_unsupported_or_ignored_settings_before_data_access"
+      ]
+    },
+    {
+      "label": "Ignored numeric LR",
+      "file": "downstream/optimization.py",
+      "old": "if settings[\"lr\"] != \"protocol\":",
+      "new": "if False:",
+      "tests": [
+        "tests.test_basic5_optimization.TestOptimization.test_refuses_unsupported_or_ignored_settings_before_data_access"
+      ]
+    },
+    {
+      "label": "Unscaled LR",
+      "file": "downstream/optimization.py",
+      "old": "base_lr * batch / reference_batch",
+      "new": "base_lr",
+      "tests": [
+        "tests.test_basic5_optimization.TestOptimization.test_optimizer_two_updates_match_independent_torch_construction"
+      ]
+    },
+    {
+      "label": "Wrong AP video optimizer",
+      "file": "downstream/optimization.py",
+      "old": "if task == \"ssv2_video\" and adaptation == \"attentive\":",
+      "new": "if False:",
+      "tests": [
+        "tests.test_basic5_optimization.TestOptimization.test_optimizer_two_updates_match_independent_torch_construction"
+      ]
+    },
+    {
+      "label": "Wrong AP decay",
+      "file": "downstream/optimization.py",
+      "old": "weight_decay = .05 if",
+      "new": "weight_decay = .01 if",
+      "tests": [
+        "tests.test_basic5_optimization.TestOptimization.test_optimizer_two_updates_match_independent_torch_construction"
+      ]
+    },
+    {
+      "label": "Wrong momentum",
+      "file": "downstream/optimization.py",
+      "old": "{\"momentum\": .9}",
+      "new": "{\"momentum\": 0.0}",
+      "tests": [
+        "tests.test_basic5_optimization.TestOptimization.test_optimizer_two_updates_match_independent_torch_construction"
+      ]
+    },
+    {
+      "label": "Wrong Adam beta",
+      "file": "downstream/optimization.py",
+      "old": "{\"betas\": [.9, .999]}",
+      "new": "{\"betas\": [.8, .999]}",
+      "tests": [
+        "tests.test_basic5_optimization.TestOptimization.test_optimizer_two_updates_match_independent_torch_construction"
+      ]
+    },
+    {
+      "label": "Include frozen encoder",
+      "file": "downstream/optimization.py",
+      "old": "params = [p for p in model.parameters() if p.requires_grad]",
+      "new": "params = list(model.parameters())",
+      "tests": [
+        "tests.test_basic5_optimization.TestOptimization.test_real_clis_use_scaled_optimizer_and_preserve_frozen_state"
+      ]
+    },
+    {
+      "label": "Silent empty trainable set",
+      "file": "downstream/optimization.py",
+      "old": "if not params:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_basic5_optimization.TestOptimization.test_optimizer_two_updates_match_independent_torch_construction"
+      ]
+    },
+    {
+      "label": "Allow no training updates",
+      "file": "downstream/optimization.py",
+      "old": "if report is not None and len(loader) == 0:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_basic5_optimization.TestOptimization.test_no_full_training_batch_fails_instead_of_reporting_success"
+      ]
+    },
+    {
+      "label": "ade20k ignores optimizer choice",
+      "file": "downstream/ade20k.py",
+      "old": "if optimization is not None:\n        optimizer = build_optimizer",
+      "new": "if False:\n        optimizer = build_optimizer",
+      "tests": [
+        "tests.test_basic5_optimization.TestOptimization.test_real_clis_use_scaled_optimizer_and_preserve_frozen_state"
+      ]
+    },
+    {
+      "label": "ade20k wrong tail batch",
+      "file": "downstream/ade20k.py",
+      "old": "drop_last=optimization is not None,",
+      "new": "drop_last=False,",
+      "tests": [
+        "tests.test_basic5_optimization.TestOptimization.test_real_clis_use_scaled_optimizer_and_preserve_frozen_state"
+      ]
+    },
+    {
+      "label": "ade20k omits realized settings",
+      "file": "downstream/ade20k.py",
+      "old": "**({\"optimization\": optimization} if optimization is not None else {}),",
+      "new": "**{},",
+      "tests": [
+        "tests.test_basic5_optimization.TestOptimization.test_real_clis_use_scaled_optimizer_and_preserve_frozen_state"
+      ]
+    },
+    {
+      "label": "nyuv2 ignores optimizer choice",
+      "file": "downstream/nyuv2.py",
+      "old": "if optimization is not None:\n        optimizer = build_optimizer",
+      "new": "if False:\n        optimizer = build_optimizer",
+      "tests": [
+        "tests.test_basic5_optimization.TestOptimization.test_real_clis_use_scaled_optimizer_and_preserve_frozen_state"
+      ]
+    },
+    {
+      "label": "nyuv2 wrong tail batch",
+      "file": "downstream/nyuv2.py",
+      "old": "drop_last=optimization is not None,",
+      "new": "drop_last=False,",
+      "tests": [
+        "tests.test_basic5_optimization.TestOptimization.test_real_clis_use_scaled_optimizer_and_preserve_frozen_state"
+      ]
+    },
+    {
+      "label": "nyuv2 omits realized settings",
+      "file": "downstream/nyuv2.py",
+      "old": "**({\"optimization\": optimization} if optimization is not None else {}),",
+      "new": "**{},",
+      "tests": [
+        "tests.test_basic5_optimization.TestOptimization.test_real_clis_use_scaled_optimizer_and_preserve_frozen_state"
+      ]
+    },
+    {
+      "label": "coco ignores optimizer choice",
+      "file": "downstream/coco.py",
+      "old": "if optimization is not None:\n        optimizer = build_optimizer",
+      "new": "if False:\n        optimizer = build_optimizer",
+      "tests": [
+        "tests.test_basic5_optimization.TestOptimization.test_real_clis_use_scaled_optimizer_and_preserve_frozen_state"
+      ]
+    },
+    {
+      "label": "coco wrong tail batch",
+      "file": "downstream/coco.py",
+      "old": "drop_last=optimization is not None,",
+      "new": "drop_last=False,",
+      "tests": [
+        "tests.test_basic5_optimization.TestOptimization.test_real_clis_use_scaled_optimizer_and_preserve_frozen_state"
+      ]
+    },
+    {
+      "label": "coco omits realized settings",
+      "file": "downstream/coco.py",
+      "old": "**({\"optimization\": optimization} if optimization is not None else {}),",
+      "new": "**{},",
+      "tests": [
+        "tests.test_basic5_optimization.TestOptimization.test_real_clis_use_scaled_optimizer_and_preserve_frozen_state"
+      ]
+    },
+    {
+      "label": "ssv2 ignores optimizer choice",
+      "file": "downstream/ssv2.py",
+      "old": "if optimization is not None:\n        optimizer = build_optimizer",
+      "new": "if False:\n        optimizer = build_optimizer",
+      "tests": [
+        "tests.test_basic5_optimization.TestOptimization.test_real_clis_use_scaled_optimizer_and_preserve_frozen_state"
+      ]
+    },
+    {
+      "label": "ssv2 wrong tail batch",
+      "file": "downstream/ssv2.py",
+      "old": "drop_last=optimization is not None,",
+      "new": "drop_last=False,",
+      "tests": [
+        "tests.test_basic5_optimization.TestOptimization.test_real_clis_use_scaled_optimizer_and_preserve_frozen_state"
+      ]
+    },
+    {
+      "label": "ssv2 omits realized settings",
+      "file": "downstream/ssv2.py",
+      "old": "**({\"optimization\": optimization} if optimization is not None else {}),",
+      "new": "**{},",
+      "tests": [
+        "tests.test_basic5_optimization.TestOptimization.test_real_clis_use_scaled_optimizer_and_preserve_frozen_state"
+      ]
+    },
+    {
+      "label": "CI omits optimizer tests",
+      "file": ".github/workflows/tests.yml",
+      "old": "            tests.test_basic5_optimization \\\n",
+      "new": "",
+      "tests": [
+        "tests.test_basic5_optimization.TestOptimizationCI"
+      ]
+    }
+  ]
+}

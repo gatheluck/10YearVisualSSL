@@ -57,6 +57,23 @@ The exact private destination and delivery evidence travel outside Git.
 
 ## Remaining work and decision boundaries
 
+### Implementation follow-up (2026-09-19; separate from the checkpoint above)
+
+The frozen/AP optimizer component adds opt-in task-specific SGD/AdamW,
+weight decay and batch-scaled LR across the four existing task CLIs. It
+preserves default legacy and FT execution, records the realized settings, and
+rejects unsupported FT/distributed use. See
+[the optimizer component](BASIC5_PROTOCOL.md#opt-in-frozenap-optimizer-components-2026-09-19).
+This addresses only optimizer construction and full-batch accounting, not
+schedules, accumulation or canonical eligibility. The supplied protocol and
+captured cosine endpoints disagree away from reference batch size; keep that
+question pending. No score, seed-count or feature-identity conflict was resolved
+by this implementation. Delivery and current CI status must be refreshed from
+the task PR; the historical checkpoint above does not certify this change.
+
+The remaining priorities below still apply, with optimizer construction for
+these eight frozen/AP component paths now implemented.
+
 1. Reconcile the old private audit/implementation plan with the now-merged
    #178--183 components before selecting work. The plan predates them.
 2. Full Basic5 LP/AP/FT recipes still need verified optimizer parameter groups,
