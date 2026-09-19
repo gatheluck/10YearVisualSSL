@@ -24,13 +24,13 @@ except ImportError:
 PROFILE = "capture_basic5_components"
 
 
-def _runs_finetune_tests(command):
+def _runs_finetune_tests(command, *, module="tests.test_basic5_finetune_tasks"):
     for line in command.replace("\\\n", " ").splitlines():
         words = shlex.split(line, comments=True)
         if words[:1] == ["PYTHONPATH=."]:
             words = words[1:]
         if (words[:3] == [".venv/bin/python", "-m", "unittest"]
-                and "tests.test_basic5_finetune_tasks" in words[3:]):
+                and module in words[3:]):
             return True
     return False
 

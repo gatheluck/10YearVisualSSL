@@ -165,8 +165,8 @@
     {
       "label": "CI detector matches name prefix",
       "file": "tests/test_basic5_finetune_tasks.py",
-      "old": "\"tests.test_basic5_finetune_tasks\" in words[3:]",
-      "new": "any(w.startswith(\"tests.test_basic5_finetune_tasks\") for w in words[3:])",
+      "old": "module in words[3:]",
+      "new": "any(w.startswith(module) for w in words[3:])",
       "tests": [
         "tests.test_basic5_finetune_tasks.TestFinetuneCI.test_invocation_detector_rejects_exact_name_in_comments_and_echo"
       ]

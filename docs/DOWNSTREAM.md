@@ -1,8 +1,8 @@
 # Downstream tasks beyond ImageNet-1k: detection, segmentation, depth, video
 
-Last updated: 2026-08-20
+Historical design: 2026-08-20. Status reconciled: 2026-09-19.
 
-Until now the port evaluates every method on **one** downstream task: an
+At the start of this work, the port evaluated methods on **one** downstream task: an
 ImageNet-1k linear probe (the `linear_eval` stage). The Capture repo, however,
 evaluates each accepted backbone on a **shared battery of dense and
 recognition tasks** — COCO detection, ADE20K semantic segmentation, NYUv2 depth,
@@ -11,7 +11,13 @@ document records what was **measured** about that harness and the design the por
 adopts to bring those tasks over. It is measurement and best practice, not
 preference; the capture sources are named so the reasoning can be re-checked.
 
-The evidence is the capture's `downstream/` package on the `snapshots` branch
+The four downstream runners and their dedicated dependency CI job are now
+implemented. They also provide opt-in frozen/AP/FT components and a shared
+frozen/AP optimizer profile. See [current Basic5 component boundaries](BASIC5_PROTOCOL.md#opt-in-frozenap-optimizer-components-2026-09-19)
+for selection, validation and remaining recipe gaps. Historical findings below
+describe the initial harness, not complete current Basic5 conformance.
+
+The initial evidence is the capture's `downstream/` package on the `snapshots` branch
 (`origin/snapshots:downstream/`) and `configs/step{1,2}_downstream_registry.yaml`.
 
 ---
@@ -197,9 +203,10 @@ locally, use any environment that has the task's dependency.
 
 **All four downstream tasks are now ported** (ADE20K / COCO / NYUv2 / SSv2), on the
 shared `downstream/` subsystem, with `arssl.py` driving one backbone through them;
-the ImageNet-1k column stays the per-method `linear_eval`. The remaining piece is
-the **open infra item** in §4 (a dedicated downstream venv + lock + CI job so the
-`pycocotools`/`h5py`/`av` smokes run in CI, not just locally).
+the ImageNet-1k column stays the per-method `linear_eval`. The dedicated
+downstream lock and dependency CI job described in §4 were completed on
+2026-08-21. The older statement that this infrastructure was still open is
+superseded; complete Basic5 LP/AP/FT recipes remain unfinished.
 
 Each step follows the repository's discipline: RED test first, hermetic smoke +
 `contract-test`-style check, a measured mutation spec, `discover-not-list`

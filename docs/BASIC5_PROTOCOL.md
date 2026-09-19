@@ -616,7 +616,7 @@ loop. Optimizers include all trainable parameters and exclude the frozen
 encoder. Attentive training clips their combined gradient norm to 1.0.
 ADE20K/NYUv2/SSv2 retain the runner's AdamW and COCO retains SGD.
 
-**These are partial component runs.** Learning rates remain explicit unscaled
+**These are partial component runs.** By default, learning rates remain explicit unscaled
 runner values; existing weight decay and epoch schedules remain unchanged.
 Canonical optimizer recipes, warmup, batch scaling, multi-seed aggregation,
 model-specific readouts and full-dataset score reproduction are not certified.
@@ -654,7 +654,7 @@ the explicit adaptation field keeps the runs distinguishable. The attention
 path still receives unnormalized frame tokens. Native-video FT is unsupported.
 
 **This is full-gradient execution, not a complete `BASIC5_FINETUNE_v1` recipe.**
-The existing unscaled runner LR, optimizer weight decay, schedules and data
+The default unscaled runner LR, optimizer weight decay, schedules and data
 augmentation are retained. Layer decay, zero-decay parameter groups, FT color
 jitter, strong video augmentation and effective-batch accumulation remain
 unimplemented here. The generic timm final-layer grid does not certify a
@@ -669,3 +669,54 @@ The downstream CI dependency job executes it, and
 `mutations/basic5-finetune-tasks.json` tests the guards. Private evidence records
 comparisons with captured task compositions using identical differentiable
 feature providers; it does not assert equivalence of different pretrained models.
+
+## Opt-in frozen/AP optimizer components (2026-09-19)
+
+All four downstream CLIs accept top-level `optimizer_profile: basic5_frozen_v1`
+with `profile: capture_basic5_components` and `adaptation: frozen` or
+`attentive`. Set `probe.lr` (COCO: `detector.lr`) to the JSON string
+`"protocol"`. Numeric LR overrides are refused, so an old requested LR cannot
+silently be ignored. Omitting `optimizer_profile` preserves the old numeric-LR
+optimizer and data-loader behavior, including existing FT component runs.
+
+| Task | Adaptation | Optimizer | Base LR / reference batch | Weight decay |
+|---|---|---|---|---|
+| ADE20K, NYUv2 | frozen | AdamW | 0.001 / 8 | 0.0001 |
+| ADE20K, NYUv2 | attentive | AdamW | 0.001 / 8 | 0.05 |
+| COCO | frozen or attentive | SGD | 0.02 / 16 | 0.0001 |
+| SSv2 | frozen | SGD | 0.1 / 256 | 0.0001 |
+| SSv2 | attentive | AdamW | 0.001 / 256 | 0.05 |
+
+SGD uses momentum 0.9; AdamW uses betas (0.9, 0.999). Every trainable
+head/reader parameter is included; frozen encoder parameters are excluded.
+These values agree with the supplied protocols and the inspected captured
+optimizer/configuration. This is optimizer parity, not score reproduction.
+
+Realized LR is `base_lr * batch_size / reference_batch`. This implementation
+supports one process and one physical batch per update, with no accumulation.
+Both `WORLD_SIZE` and any initialized distributed process group must indicate
+one process. Training drops incomplete final batches, matching the captured
+loader and keeping the realized batch constant. Validation retains every
+sample. A training set smaller than one batch fails rather than producing a
+successful result without updates. Batch size must be a positive JSON integer.
+
+`results.json` records an `optimization` object containing the selected profile,
+optimizer, base/reference/realized LR, weight decay, momentum or betas, effective
+batch, world size, accumulation steps, `drop_last: true`, and `schedule: none`.
+The manifest hashes this result along with the original config. The existing
+frozen-state behavior and AP gradient clipping remain in force.
+
+**This is not a complete LP/AP recipe.** LR remains constant throughout this
+component run. Warmup/decay schedules, accumulation, native-video paths and
+complete model-specific feature validation remain separate work. FT is refused
+for this optimizer profile until parameter groups are verified. Results remain
+`canonical_eligible: false` and `record_value: false`, even on full datasets.
+No main-table eligibility flag is relaxed by this addition.
+
+The captured cosine scheduler scales nominal warmup/floor endpoints with batch
+scaling, while the supplied protocol describes fixed endpoints. That discrepancy
+remains pending; this component does not choose either scheduler interpretation.
+`tests/test_basic5_optimization.py` covers all eight task/adaptation CLI paths,
+numerical updates, frozen state, explicit refusals, full-batch behavior and
+result integrity. CPU tests and separately marked CUDA tests use synthetic
+fixtures; they are not released-weight benchmarks.

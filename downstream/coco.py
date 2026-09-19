@@ -41,6 +41,7 @@ from torchvision.transforms import functional as TF
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+from downstream.optimization import resolve_optimization, build_optimizer, require_training_batches
 from downstream.attention import (SpatialAdapter, task_spatial_features,
                                   validate_adaptation, clip_attentive_gradients)
 from downstream import contract                                    # noqa: E402
@@ -80,7 +81,7 @@ def validate_config(cfg: dict) -> None:
         if key in cfg:
             raise ConfigError(
                 f"config: {key} is set; the output location is fixed at --out")
-    _named(TOP_KEYS - set(cfg), set(cfg) - (TOP_KEYS | {"profile", "adaptation"}), "config")
+    _named(TOP_KEYS - set(cfg), set(cfg) - (TOP_KEYS | {"profile", "adaptation", "optimizer_profile"}), "config")
     try:
         validate_adaptation(cfg)
     except ValueError as exc:
@@ -105,6 +106,10 @@ def validate_config(cfg: dict) -> None:
         raise ConfigError("config: detector is not a mapping")
     _named(DETECTOR_KEYS - set(detector), set(detector) - DETECTOR_KEYS,
            "config.detector")
+    try:
+        resolve_optimization(cfg, TASK)
+    except ValueError as exc:
+        raise ConfigError(str(exc)) from exc
 
 
 def resolve_device(spec: str) -> "torch.device":
@@ -321,6 +326,7 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
     detector = cfg["detector"]
     profile = cfg.get("profile", "legacy")
     adaptation = validate_adaptation(cfg)
+    optimization = resolve_optimization(cfg, TASK)
 
     root = Path(cfg["data_root"])
     train_ds = _subset(CocoDetectionForFRCNN(
@@ -333,19 +339,24 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
         int(detector["max_val_samples"]))
     bs, nw = int(detector["batch_size"]), int(detector["num_workers"])
     train_loader = DataLoader(train_ds, batch_size=bs, shuffle=True, num_workers=nw,
+                              drop_last=optimization is not None,
                               collate_fn=collate,
                               generator=torch.Generator().manual_seed(seed))
     val_loader = DataLoader(val_ds, batch_size=1, shuffle=False, num_workers=nw,
                             collate_fn=collate)
 
+    require_training_batches(train_loader, optimization)
     model = build_frozen_detector(cfg["backbone"], detector, device, profile=profile,
                                   adaptation=adaptation)
     encoder = model.backbone.body if profile == CAPTURE_PROFILE else model.backbone
     if adaptation != "finetune" and any(p.requires_grad for p in encoder.parameters()):
         raise RuntimeError("backbone is not frozen")
     trainable = [p for p in model.parameters() if p.requires_grad]
-    optimizer = torch.optim.SGD(trainable, lr=float(detector["lr"]), momentum=0.9,
-                                weight_decay=0.0005)
+    if optimization is not None:
+        optimizer = build_optimizer(model, optimization)
+    else:
+        optimizer = torch.optim.SGD(trainable, lr=float(detector["lr"]), momentum=0.9,
+                                    weight_decay=0.0005)
 
     subset_mode = bool(detector["max_train_samples"] or detector["max_val_samples"]
                        or detector["max_steps_per_epoch"])
@@ -376,6 +387,7 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
                     "canonical_eligible": False,
                     "metric_units": "ratio; -1 means undefined",
                     "record_value": not subset_mode and profile == "legacy",
+                    **({"optimization": optimization} if optimization is not None else {}),
                     "subset_or_smoke": subset_mode},
                    indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return raw
