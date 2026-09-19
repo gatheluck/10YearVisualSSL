@@ -1,0 +1,31 @@
+{
+  "targets": [
+    {
+      "label": "Missing pinned dependency checkout",
+      "file": "docs/HANDOFF.md",
+      "old": "git clone --recurse-submodules \"$PORT_REMOTE\"",
+      "new": "git clone \"$PORT_REMOTE\"",
+      "tests": [
+        "tests.test_handoff.TestHandoff.test_fresh_clone_restores_pins_hooks_and_preserves_existing_checkout"
+      ]
+    },
+    {
+      "label": "Wrong hook location",
+      "file": "docs/HANDOFF.md",
+      "old": "config core.hooksPath .githooks && git clone",
+      "new": "config core.hooksPath absent-hooks && git clone",
+      "tests": [
+        "tests.test_handoff.TestHandoff.test_fresh_clone_restores_pins_hooks_and_preserves_existing_checkout"
+      ]
+    },
+    {
+      "label": "Broken agent entry point",
+      "file": "AGENTS.md",
+      "old": "(docs/HANDOFF.md)",
+      "new": "(docs/missing-handoff.md)",
+      "tests": [
+        "tests.test_handoff.TestHandoff.test_entrypoint_links_resolve"
+      ]
+    }
+  ]
+}

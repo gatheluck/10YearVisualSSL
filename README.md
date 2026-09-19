@@ -32,6 +32,9 @@ assume it.
 
 ## Status
 
+For cross-machine recovery and the latest dated development checkpoint, start
+with [the project handoff](docs/HANDOFF.md) and [agent instructions](AGENTS.md).
+
 | Component | Status |
 |---|---|
 | `bin/resolve-config.py` | **implemented and tested.** Produces the canonical resolved config and its `config_sha256` |
