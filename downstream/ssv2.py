@@ -40,10 +40,10 @@ from torchvision.transforms import functional as TF
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
-from downstream.attention import (QueryReader,
+from downstream.attention import (task_spatial_features, QueryReader,
                                   validate_adaptation, clip_attentive_gradients)
 from downstream import contract                                    # noqa: E402
-from downstream.spatial_backbones import build_frozen_backbone, KINDS  # noqa: E402
+from downstream.spatial_backbones import build_frozen_backbone, build_trainable_backbone, KINDS  # noqa: E402
 
 TASK = "ssv2_video"
 NUM_CLASSES = 174
@@ -245,10 +245,11 @@ class FrozenFrameAverageClassifier(nn.Module):
                  *, adaptation: str = "frozen"):
         super().__init__()
         self.backbone = backbone
+        self.adaptation = adaptation
         self.reader = QueryReader(backbone.out_channels) if adaptation == "attentive" else None
         self.classifier = nn.Linear(512 if self.reader is not None else backbone.out_channels,
                                     num_classes)
-        if self.reader is None:
+        if self.reader is None and adaptation != "finetune":
             nn.init.normal_(self.classifier.weight, std=0.01)
         else:
             nn.init.zeros_(self.classifier.weight)
@@ -257,9 +258,10 @@ class FrozenFrameAverageClassifier(nn.Module):
     def forward(self, clips: torch.Tensor) -> torch.Tensor:
         batch, frames, channels, height, width = clips.shape
         flat = clips.view(batch * frames, channels, height, width)
-        with torch.no_grad():
-            feat_map = self.backbone.forward_features(flat)
-            feat = F.adaptive_avg_pool2d(feat_map, 1).flatten(1)
+        feat_map = task_spatial_features(self.backbone, flat, adaptation=self.adaptation)
+        feat = F.adaptive_avg_pool2d(feat_map, 1).flatten(1)
+        if self.adaptation == "finetune":
+            feat = F.normalize(feat.float(), dim=-1)
         tokens = feat.view(batch, frames, -1)
         feat = self.reader(tokens) if self.reader is not None else tokens.mean(dim=1)
         return self.classifier(feat)
@@ -316,9 +318,10 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
                               generator=torch.Generator().manual_seed(seed))
     val_loader = DataLoader(val_ds, batch_size=bs, shuffle=False, num_workers=nw)
 
-    backbone = build_frozen_backbone(cfg["backbone"], device)
+    builder = build_trainable_backbone if adaptation == "finetune" else build_frozen_backbone
+    backbone = builder(cfg["backbone"], device)
     model = FrozenFrameAverageClassifier(backbone, adaptation=adaptation).to(device)
-    if any(p.requires_grad for p in model.backbone.parameters()):
+    if adaptation != "finetune" and any(p.requires_grad for p in model.backbone.parameters()):
         raise RuntimeError("backbone is not frozen")
     optimizer = torch.optim.AdamW([p for p in model.parameters() if p.requires_grad],
                                   lr=float(probe["lr"]), weight_decay=0.01)

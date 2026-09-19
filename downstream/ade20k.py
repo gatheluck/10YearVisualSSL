@@ -36,10 +36,10 @@ from torchvision.transforms import functional as TF
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
-from downstream.attention import (SpatialAdapter, frozen_spatial_features,
+from downstream.attention import (SpatialAdapter, task_spatial_features,
                                   validate_adaptation, clip_attentive_gradients)
 from downstream import contract                                    # noqa: E402
-from downstream.spatial_backbones import build_frozen_backbone, KINDS  # noqa: E402
+from downstream.spatial_backbones import build_frozen_backbone, build_trainable_backbone, KINDS  # noqa: E402
 
 TASK = "ade20k_segmentation"
 NUM_CLASSES = 150
@@ -182,13 +182,14 @@ class FrozenSegModel(nn.Module):
                  *, adaptation: str = "frozen"):
         super().__init__()
         self.backbone = backbone
+        self.adaptation = adaptation
         self.adapter = SpatialAdapter(backbone.out_channels) if adaptation == "attentive" else None
         self.head = nn.Conv2d(backbone.out_channels, num_classes, kernel_size=1)
         nn.init.normal_(self.head.weight, std=0.01)
         nn.init.zeros_(self.head.bias)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        feat = frozen_spatial_features(self.backbone, x, self.adapter)
+        feat = task_spatial_features(self.backbone, x, self.adapter, adaptation=self.adaptation)
         logits = self.head(feat)
         return F.interpolate(logits, size=x.shape[-2:], mode="bilinear",
                              align_corners=False)
@@ -264,9 +265,10 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
                               generator=torch.Generator().manual_seed(seed))
     val_loader = DataLoader(val_ds, batch_size=bs, shuffle=False, num_workers=nw)
 
-    backbone = build_frozen_backbone(cfg["backbone"], device)
+    builder = build_trainable_backbone if adaptation == "finetune" else build_frozen_backbone
+    backbone = builder(cfg["backbone"], device)
     model = FrozenSegModel(backbone, adaptation=adaptation).to(device)
-    if any(p.requires_grad for p in model.backbone.parameters()):
+    if adaptation != "finetune" and any(p.requires_grad for p in model.backbone.parameters()):
         raise RuntimeError("backbone is not frozen")
     optimizer = torch.optim.AdamW([p for p in model.parameters() if p.requires_grad], lr=float(probe["lr"]),
                                   weight_decay=0.01)

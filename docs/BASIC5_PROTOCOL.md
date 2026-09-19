@@ -630,3 +630,42 @@ updates on CPU/CUDA, frame-token readout, and refusal of legacy/unknown options.
 The CI downstream dependency job invokes it explicitly. Private captured-code
 comparisons cover initialization, outputs, gradients and optimizer updates;
 their source copies and provenance remain outside Git.
+
+## Opt-in full-gradient task components
+
+The four downstream CLIs also accept `"adaptation": "finetune"` with
+`"profile": "capture_basic5_components"` and `backbone.kind: vit`. This selects
+the existing differentiable timm provider. Unsupported frozen-only providers
+and legacy/finetune configurations are refused. The default remains frozen;
+the attentive path retains its frozen encoder and trainable reader.
+
+For ADE20K and NYUv2, gradients flow through the unchanged spatial readout and
+single-convolution heads to the encoder. COCO trains the encoder, four-level
+pyramid and detector together; its verified stride-16 restriction still applies.
+No attention reader is added. Training/evaluation mode propagates to the encoder,
+and evaluation respects the caller's no-gradient context. Every batch recomputes
+features; no feature cache is used. The optimizer includes the encoder and head,
+and their combined gradient norm is clipped to 1.0.
+
+For SSv2 image backbones, the captured FT composition uses float32 per-frame
+spatial means, L2-normalizes each frame, then averages over time. Its linear head
+starts at zero. This differs from the historical unnormalized frozen readout;
+the explicit adaptation field keeps the runs distinguishable. The attention
+path still receives unnormalized frame tokens. Native-video FT is unsupported.
+
+**This is full-gradient execution, not a complete `BASIC5_FINETUNE_v1` recipe.**
+The existing unscaled runner LR, optimizer weight decay, schedules and data
+augmentation are retained. Layer decay, zero-decay parameter groups, FT color
+jitter, strong video augmentation and effective-batch accumulation remain
+unimplemented here. The generic timm final-layer grid does not certify a
+model-specific multi-layer representation. All component results remain
+noncanonical and nonrecordable, including full-data runs; random tiny-model
+tests are not released-weight benchmarks or paper-score reproduction.
+
+`tests/test_basic5_finetune_tasks.py` covers CPU/CUDA encoder and head updates,
+all four real CLIs, optimizer membership, gradient clipping, video readout,
+checkpoint state round trips, evaluation autograd and rejected configurations.
+The downstream CI dependency job executes it, and
+`mutations/basic5-finetune-tasks.json` tests the guards. Private evidence records
+comparisons with captured task compositions using identical differentiable
+feature providers; it does not assert equivalence of different pretrained models.

@@ -13,10 +13,12 @@ from torch import nn
 def validate_adaptation(cfg):
     """Keep experimental readers out of legacy/table-producing task recipes."""
     adaptation = cfg.get("adaptation", "frozen")
-    if adaptation not in ("frozen", "attentive"):
-        raise ValueError("config.adaptation: expected frozen or attentive")
-    if adaptation == "attentive" and cfg.get("profile") != "capture_basic5_components":
-        raise ValueError("attentive adaptation requires capture_basic5_components")
+    if adaptation not in ("frozen", "attentive", "finetune"):
+        raise ValueError("config.adaptation: expected frozen, attentive or finetune")
+    if adaptation != "frozen" and cfg.get("profile") != "capture_basic5_components":
+        raise ValueError(f"{adaptation} adaptation requires capture_basic5_components")
+    if adaptation == "finetune" and cfg.get("backbone", {}).get("kind", "vit") != "vit":
+        raise ValueError("finetune requires the verified timm vit provider")
     return adaptation
 
 
@@ -27,9 +29,16 @@ def frozen_spatial_features(backbone, x, adapter=None):
     return adapter(spatial) if adapter is not None else spatial
 
 
+def task_spatial_features(backbone, x, adapter=None, *, adaptation="frozen"):
+    """The FT path preserves the caller's autograd context, including eval."""
+    if adaptation == "finetune":
+        return backbone.forward_features(x)
+    return frozen_spatial_features(backbone, x, adapter)
+
+
 def clip_attentive_gradients(model, adaptation):
-    """Captured attentive training clips the entire trainable model to one."""
-    if adaptation == "attentive":
+    """Captured AP and FT clip all trainable parameters, including the encoder."""
+    if adaptation in ("attentive", "finetune"):
         torch.nn.utils.clip_grad_norm_([p for p in model.parameters() if p.requires_grad], 1.0)
 
 

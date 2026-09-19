@@ -3,7 +3,7 @@
     {
       "label": "Accept unknown adaptation",
       "file": "downstream/attention.py",
-      "old": "if adaptation not in (\"frozen\", \"attentive\"):",
+      "old": "if adaptation not in (\"frozen\", \"attentive\", \"finetune\"):",
       "new": "if False:",
       "tests": [
         "tests.test_basic5_attentive_tasks.TestAttentiveTasks.test_config_requires_explicit_component_profile_and_known_adaptation"
@@ -12,7 +12,7 @@
     {
       "label": "Allow attentive legacy scores",
       "file": "downstream/attention.py",
-      "old": "if adaptation == \"attentive\" and cfg.get(\"profile\") != \"capture_basic5_components\":",
+      "old": "if adaptation != \"frozen\" and cfg.get(\"profile\") != \"capture_basic5_components\":",
       "new": "if False:",
       "tests": [
         "tests.test_basic5_attentive_tasks.TestAttentiveTasks.test_config_requires_explicit_component_profile_and_known_adaptation"
@@ -30,7 +30,7 @@
     {
       "label": "Skip attentive clipping",
       "file": "downstream/attention.py",
-      "old": "if adaptation == \"attentive\":",
+      "old": "if adaptation in (\"attentive\", \"finetune\"):",
       "new": "if False:",
       "tests": [
         "tests.test_basic5_attentive_tasks.TestAttentiveTasks.test_real_clis_update_attention_clip_gradients_and_refuse_table_recording"
@@ -156,7 +156,7 @@
     {
       "label": "Omit task contracts from locked CI",
       "file": ".github/workflows/tests.yml",
-      "old": "            tests.test_basic5_attentive_tasks\n",
+      "old": "            tests.test_basic5_attentive_tasks \\\n",
       "new": "            tests.test_basic5_readers\n",
       "tests": [
         "tests.test_basic5_attentive_tasks.TestAttentiveCI"
