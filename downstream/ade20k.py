@@ -37,6 +37,8 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 from downstream.optimization import resolve_optimization, build_optimizer, require_training_batches
+from downstream.optimization import build_dense_ap_scheduler, dense_ap_schedule_report
+from downstream.photometric import captured_color_jitter
 from downstream.attention import (SpatialAdapter, task_spatial_features,
                                   validate_adaptation, clip_attentive_gradients)
 from downstream import contract                                    # noqa: E402
@@ -76,7 +78,7 @@ def validate_config(cfg: dict) -> None:
         if key in cfg:
             raise ConfigError(
                 f"config: {key} is set; the output location is fixed at --out")
-    _named(TOP_KEYS - set(cfg), set(cfg) - (TOP_KEYS | {"profile", "adaptation", "optimizer_profile"}), "config")
+    _named(TOP_KEYS - set(cfg), set(cfg) - (TOP_KEYS | {"profile", "adaptation", "optimizer_profile", "scheduler_profile"}), "config")
     try:
         validate_adaptation(cfg)
     except ValueError as exc:
@@ -132,11 +134,13 @@ def make_deterministic(seed: int) -> None:
 
 
 class ADE20kSegmentation(Dataset):
-    def __init__(self, root: Path, split: str, image_size: int, *, profile: str = "legacy"):
+    def __init__(self, root: Path, split: str, image_size: int, *, profile: str = "legacy",
+                 adaptation: str = "frozen"):
         if split not in {"training", "validation"}:
             raise ValueError(f"unknown ADE20k split: {split}")
         self.image_size = image_size
         self.augment = profile == CAPTURE_PROFILE and split == "training"
+        self.color_jitter = .4 if self.augment and adaptation == "finetune" else 0.
         image_dir = Path(root) / "images" / split
         mask_dir = Path(root) / "annotations" / split
         self.images = sorted(image_dir.glob("*.jpg"))
@@ -164,6 +168,7 @@ class ADE20kSegmentation(Dataset):
             image, mask = TF.crop(image, *crop), TF.crop(mask, *crop)
             if torch.rand(1).item() < 0.5:
                 image, mask = TF.hflip(image), TF.hflip(mask)
+            image = captured_color_jitter(image, self.color_jitter)
         else:
             image = TF.resize(image, [self.image_size, self.image_size], antialias=True)
             mask = TF.resize(mask, [self.image_size, self.image_size],
@@ -201,7 +206,7 @@ class FrozenSegModel(nn.Module):
 
 
 def _train_one_epoch(model, loader, optimizer, device, max_steps,
-                     *, adaptation="frozen") -> float:
+                     *, adaptation="frozen", scheduler=None) -> float:
     model.train()
     total, steps = 0.0, 0
     for step, (images, targets) in enumerate(loader):
@@ -217,6 +222,8 @@ def _train_one_epoch(model, loader, optimizer, device, max_steps,
         loss.backward()
         clip_attentive_gradients(model, adaptation)
         optimizer.step()
+        if scheduler is not None:
+            scheduler.step()
         total += float(loss.detach().cpu())
         steps += 1
     return total / max(steps, 1)
@@ -261,9 +268,9 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
     optimization = resolve_optimization(cfg, TASK)
 
     root = Path(cfg["data_root"])
-    train_ds = _subset(ADE20kSegmentation(root, "training", image_size, profile=profile),
+    train_ds = _subset(ADE20kSegmentation(root, "training", image_size, profile=profile, adaptation=adaptation),
                        int(probe["max_train_samples"]))
-    val_ds = _subset(ADE20kSegmentation(root, "validation", image_size, profile=profile),
+    val_ds = _subset(ADE20kSegmentation(root, "validation", image_size, profile=profile, adaptation=adaptation),
                      int(probe["max_val_samples"]))
     bs, nw = int(probe["batch_size"]), int(probe["num_workers"])
     train_loader = DataLoader(train_ds, batch_size=bs, shuffle=True, num_workers=nw,
@@ -287,25 +294,30 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
                        or probe["max_steps_per_epoch"])
     epochs = int(probe["epochs"])
     max_steps = int(probe["max_steps_per_epoch"]) or None
+    scheduler = (build_dense_ap_scheduler(optimizer, len(train_loader), epochs)
+                 if "scheduler_profile" in cfg else None)
     print(f"ADE20k seg  device={device}  backbone={cfg['backbone']['kind']}"
           f"({'trained' if cfg['backbone'].get('encoder') else 'random (smoke)'})"
           f"  epochs={epochs}  out_channels={backbone.out_channels}")
     metrics = {"miou": 0.0, "pacc": 0.0}
     for epoch in range(epochs):
         loss = _train_one_epoch(model, train_loader, optimizer, device, max_steps,
-                                adaptation=adaptation)
+                                adaptation=adaptation, scheduler=scheduler)
         metrics = evaluate(model, val_loader, device)
         print(f"[{epoch + 1}/{epochs}] loss={loss:.4f} "
               f"mIoU={metrics['miou']:.3f} pACC={metrics['pacc']:.3f}")
 
     raw = {"miou": float(metrics["miou"]), "pacc": float(metrics["pacc"]),
            "epochs": epochs}
+    if scheduler is not None:
+        optimization["schedule"] = dense_ap_schedule_report(scheduler, len(train_loader), epochs, max_steps)
     contract.write_metrics(out, raw, METRIC_NAMES)
     (Path(out) / "results.json").write_text(
         json.dumps({"task": TASK, "backbone": cfg["backbone"],
                     "num_classes": NUM_CLASSES, "ignore_index": IGNORE_INDEX,
                     "epochs": epochs, "final": raw,
                     "profile": profile, "adaptation": adaptation,
+                    "training_color_jitter": getattr(train_ds, "dataset", train_ds).color_jitter,
                     "canonical_eligible": False,
                     "record_value": not subset_mode and profile == "legacy",
                     **({"optimization": optimization} if optimization is not None else {}),

@@ -39,6 +39,8 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 from downstream.optimization import resolve_optimization, build_optimizer, require_training_batches
+from downstream.optimization import build_dense_ap_scheduler, dense_ap_schedule_report
+from downstream.photometric import captured_color_jitter
 from downstream.attention import (SpatialAdapter, task_spatial_features,
                                   validate_adaptation, clip_attentive_gradients)
 from downstream import contract                                    # noqa: E402
@@ -82,7 +84,7 @@ def validate_config(cfg: dict) -> None:
         if key in cfg:
             raise ConfigError(
                 f"config: {key} is set; the output location is fixed at --out")
-    _named(TOP_KEYS - set(cfg), set(cfg) - (TOP_KEYS | {"profile", "adaptation", "optimizer_profile"}), "config")
+    _named(TOP_KEYS - set(cfg), set(cfg) - (TOP_KEYS | {"profile", "adaptation", "optimizer_profile", "scheduler_profile"}), "config")
     try:
         validate_adaptation(cfg)
     except ValueError as exc:
@@ -150,13 +152,14 @@ def split_indices(n: int) -> "tuple[list[int], list[int]]":
 
 class NYUv2Depth(Dataset):
     def __init__(self, mat_path: Path, indices: "list[int]", image_size: int,
-                 *, profile: str = "legacy", train: bool = False):
+                 *, profile: str = "legacy", train: bool = False, adaptation: str = "frozen"):
         self.mat_path = str(mat_path)
         self.indices = indices
         self.image_size = image_size
         self._file = None
         self.captured = profile == CAPTURE_PROFILE
         self.train = train
+        self.color_jitter = .2 if self.captured and train and adaptation == "finetune" else 0.
 
     @property
     def file(self):
@@ -177,6 +180,8 @@ class NYUv2Depth(Dataset):
             depth = torch.from_numpy(self.file["depths"][source_idx].astype("float32")).t().unsqueeze(0)
             if self.train and torch.rand(1).item() < 0.5:
                 image, depth = TF.hflip(image), depth.flip(-1)
+            if self.train:
+                image = captured_color_jitter(image, self.color_jitter)
             image = TF.to_tensor(TF.resize(image, [self.image_size]*2,
                                           interpolation=InterpolationMode.BILINEAR))
             depth = F.interpolate(depth.unsqueeze(0), size=(self.image_size, self.image_size),
@@ -389,8 +394,8 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
         val_idx = val_idx[:int(probe["max_val_samples"])]
 
     bs, nw = int(probe["batch_size"]), int(probe["num_workers"])
-    train_ds = NYUv2Depth(mat_path, train_idx, image_size, profile=profile, train=True)
-    val_ds = NYUv2Depth(mat_path, val_idx, image_size, profile=profile)
+    train_ds = NYUv2Depth(mat_path, train_idx, image_size, profile=profile, train=True, adaptation=adaptation)
+    val_ds = NYUv2Depth(mat_path, val_idx, image_size, profile=profile, adaptation=adaptation)
     train_loader = DataLoader(train_ds, batch_size=bs, shuffle=True, num_workers=nw,
                               drop_last=optimization is not None,
                               generator=torch.Generator().manual_seed(seed))
@@ -413,6 +418,8 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
                        or probe["max_steps_per_epoch"])
     epochs = int(probe["epochs"])
     max_steps = int(probe["max_steps_per_epoch"]) or None
+    scheduler = (build_dense_ap_scheduler(optimizer, len(train_loader), epochs)
+                 if "scheduler_profile" in cfg else None)
     print(f"NYUv2 depth  device={device}  backbone={cfg['backbone']['kind']}"
           f"({'trained' if cfg['backbone'].get('encoder') else 'random (smoke)'})"
           f"  epochs={epochs}  train={len(train_ds)} val={len(val_ds)}")
@@ -432,6 +439,8 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
             loss.backward()
             clip_attentive_gradients(model, adaptation)
             optimizer.step()
+            if scheduler is not None:
+                scheduler.step()
         metrics = evaluate(model, val_loader, device, profile=profile)
         print(f"[{epoch + 1}/{epochs}] rmse={metrics['rmse']:.4f} "
               f"abs_rel={metrics['abs_rel']:.4f}")
@@ -440,10 +449,13 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
            "valid_pixels": int(metrics["valid_pixels"]), "epochs": epochs}
     if captured:
         raw.update({k: float(metrics[k]) for k in ("delta1", "delta2", "delta3")})
+    if scheduler is not None:
+        optimization["schedule"] = dense_ap_schedule_report(scheduler, len(train_loader), epochs, max_steps)
     contract.write_metrics(out, raw, METRIC_NAMES)
     (Path(out) / "results.json").write_text(
         json.dumps({"task": TASK, "backbone": cfg["backbone"],
                     "profile": profile, "adaptation": adaptation, "canonical_eligible": False,
+                    "training_color_jitter": train_ds.color_jitter,
                     "split_sha256": contract.sha256_file(split_path) if captured else None,
                     "metric_aggregation": "batch_mean" if captured else "global_valid_pixels",
                     "split": ("official splits.mat IDs" if captured else

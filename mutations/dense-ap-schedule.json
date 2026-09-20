@@ -1,0 +1,148 @@
+{
+  "targets": [
+    {
+      "label": "Wrong task",
+      "file": "downstream/optimization.py",
+      "old": "task not in DENSE_AP_EPOCHS",
+      "new": "False",
+      "tests": [
+        "tests.test_dense_ap_schedule.TestDenseSchedule.test_selection_refuses_ambiguous_recipes"
+      ]
+    },
+    {
+      "label": "Frozen adaptation",
+      "file": "downstream/optimization.py",
+      "old": "cfg.get(\"adaptation\") != \"attentive\"",
+      "new": "False",
+      "tests": [
+        "tests.test_dense_ap_schedule.TestDenseSchedule.test_selection_refuses_ambiguous_recipes"
+      ]
+    },
+    {
+      "label": "Reference batch",
+      "file": "downstream/optimization.py",
+      "old": "batch != 8",
+      "new": "False",
+      "tests": [
+        "tests.test_dense_ap_schedule.TestDenseSchedule.test_selection_refuses_ambiguous_recipes"
+      ]
+    },
+    {
+      "label": "Reference horizon",
+      "file": "downstream/optimization.py",
+      "old": "settings[\"epochs\"] != DENSE_AP_EPOCHS[task]",
+      "new": "False",
+      "tests": [
+        "tests.test_dense_ap_schedule.TestDenseSchedule.test_selection_refuses_ambiguous_recipes"
+      ]
+    },
+    {
+      "label": "Warmup initial rate",
+      "file": "downstream/optimization.py",
+      "old": ".001 + .999 * update / steps_per_epoch",
+      "new": ".01 + .99 * update / steps_per_epoch",
+      "tests": [
+        "tests.test_dense_ap_schedule.TestDenseSchedule.test_all_rates_outputs_gradients_and_adamw_updates"
+      ]
+    },
+    {
+      "label": "Cosine horizon",
+      "file": "downstream/optimization.py",
+      "old": "((epochs - 1) * steps_per_epoch)",
+      "new": "(epochs * steps_per_epoch)",
+      "tests": [
+        "tests.test_dense_ap_schedule.TestDenseSchedule.test_all_rates_outputs_gradients_and_adamw_updates"
+      ]
+    },
+    {
+      "label": "Floor clamp",
+      "file": "downstream/optimization.py",
+      "old": "min(max((update - steps_per_epoch) / ((epochs - 1) * steps_per_epoch), 0.), 1.)",
+      "new": "(update - steps_per_epoch) / ((epochs - 1) * steps_per_epoch)",
+      "tests": [
+        "tests.test_dense_ap_schedule.TestDenseSchedule.test_all_rates_outputs_gradients_and_adamw_updates"
+      ]
+    },
+    {
+      "label": "Cosine floor",
+      "file": "downstream/optimization.py",
+      "old": ".001 + .999 * .5",
+      "new": "0. + 1. * .5",
+      "tests": [
+        "tests.test_dense_ap_schedule.TestDenseSchedule.test_all_rates_outputs_gradients_and_adamw_updates"
+      ]
+    },
+    {
+      "label": "ade20k advance",
+      "file": "downstream/ade20k.py",
+      "old": "scheduler.step()",
+      "new": "pass",
+      "tests": [
+        "tests.test_dense_ap_schedule.TestDenseScheduleCLI.test_ade_real_cli"
+      ]
+    },
+    {
+      "label": "ade20k full loader",
+      "file": "downstream/ade20k.py",
+      "old": "build_dense_ap_scheduler(optimizer, len(train_loader), epochs)",
+      "new": "build_dense_ap_scheduler(optimizer, max_steps or len(train_loader), epochs)",
+      "tests": [
+        "tests.test_dense_ap_schedule.TestDenseScheduleCLI.test_ade_real_cli"
+      ]
+    },
+    {
+      "label": "nyuv2 advance",
+      "file": "downstream/nyuv2.py",
+      "old": "scheduler.step()",
+      "new": "pass",
+      "tests": [
+        "tests.test_dense_ap_schedule.TestDenseScheduleCLI.test_nyu_real_cli"
+      ]
+    },
+    {
+      "label": "nyuv2 full loader",
+      "file": "downstream/nyuv2.py",
+      "old": "build_dense_ap_scheduler(optimizer, len(train_loader), epochs)",
+      "new": "build_dense_ap_scheduler(optimizer, max_steps or len(train_loader), epochs)",
+      "tests": [
+        "tests.test_dense_ap_schedule.TestDenseScheduleCLI.test_nyu_real_cli"
+      ]
+    },
+    {
+      "label": "Completed updates",
+      "file": "downstream/optimization.py",
+      "old": "\"updates_completed\": scheduler.last_epoch",
+      "new": "\"updates_completed\": scheduler.last_epoch + 1",
+      "tests": [
+        "tests.test_dense_ap_schedule.TestDenseScheduleCLI.test_ade_real_cli"
+      ]
+    },
+    {
+      "label": "Truncation",
+      "file": "downstream/optimization.py",
+      "old": "bool(max_steps and max_steps < steps_per_epoch)",
+      "new": "False",
+      "tests": [
+        "tests.test_dense_ap_schedule.TestDenseScheduleCLI.test_ade_real_cli"
+      ]
+    },
+    {
+      "label": "CI inclusion",
+      "file": ".github/workflows/tests.yml",
+      "old": "            tests.test_dense_ap_schedule \\\n",
+      "new": "",
+      "tests": [
+        "tests.test_dense_ap_schedule.TestDenseScheduleCI.test_downstream_job_executes_module"
+      ]
+    },
+    {
+      "label": "Advance before failed update",
+      "file": "downstream/ade20k.py",
+      "old": "        optimizer.step()\n        if scheduler is not None:\n            scheduler.step()",
+      "new": "        if scheduler is not None:\n            scheduler.step()\n        optimizer.step()",
+      "tests": [
+        "tests.test_dense_ap_schedule.TestDenseScheduleCLI.test_failed_update_does_not_advance_schedule"
+      ]
+    }
+  ]
+}

@@ -96,6 +96,21 @@ GPU success of the initial implementation did not certify the method-lock
 matrix; refresh PR checks for the correction's current outcome. Scientific
 schedule behavior is unchanged.
 
+PR #186 was verified merged on 2026-09-20 at
+`d54d133d97a10e4e01340ce4834a93c46366c9c1`, with an identical tested code tree.
+All 107 PR checks and five post-merge jobs succeeded. The final initial-failure
+audit covered 52 method locks, extending the 42-log diagnosis above; all 52
+had the same six CLI failures. This is a historical checkpoint.
+
+The user requested sequential strict-TDD implementation of unambiguous gaps,
+grouped for fewer reviews, stopping at decisions requiring user input. The
+next bounded component implements ADE20K/NYUv2 attentive scheduling at batch 8
+only; see [the current boundary](BASIC5_PROTOCOL.md#dense-ap-reference-batch-schedule-2026-09-20).
+The same grouped change also adds captured ADE20K/NYUv2 FT color jitter,
+whose strengths and factory selection agree with paper/protocol evidence.
+Other-batch endpoints, accumulation clock semantics and FT parameter mappings
+remain unresolved. Refresh the task PR and evidence for validation status.
+
 The remaining priorities below still apply, with optimizer construction for
 these eight frozen/AP component paths and opt-in COCO scheduling implemented.
 
