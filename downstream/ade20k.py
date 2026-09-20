@@ -37,6 +37,7 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 from downstream.optimization import resolve_optimization, build_optimizer, require_training_batches
+from downstream.optimization import build_dense_ap_scheduler, dense_ap_schedule_report
 from downstream.attention import (SpatialAdapter, task_spatial_features,
                                   validate_adaptation, clip_attentive_gradients)
 from downstream import contract                                    # noqa: E402
@@ -76,7 +77,7 @@ def validate_config(cfg: dict) -> None:
         if key in cfg:
             raise ConfigError(
                 f"config: {key} is set; the output location is fixed at --out")
-    _named(TOP_KEYS - set(cfg), set(cfg) - (TOP_KEYS | {"profile", "adaptation", "optimizer_profile"}), "config")
+    _named(TOP_KEYS - set(cfg), set(cfg) - (TOP_KEYS | {"profile", "adaptation", "optimizer_profile", "scheduler_profile"}), "config")
     try:
         validate_adaptation(cfg)
     except ValueError as exc:
@@ -201,7 +202,7 @@ class FrozenSegModel(nn.Module):
 
 
 def _train_one_epoch(model, loader, optimizer, device, max_steps,
-                     *, adaptation="frozen") -> float:
+                     *, adaptation="frozen", scheduler=None) -> float:
     model.train()
     total, steps = 0.0, 0
     for step, (images, targets) in enumerate(loader):
@@ -217,6 +218,8 @@ def _train_one_epoch(model, loader, optimizer, device, max_steps,
         loss.backward()
         clip_attentive_gradients(model, adaptation)
         optimizer.step()
+        if scheduler is not None:
+            scheduler.step()
         total += float(loss.detach().cpu())
         steps += 1
     return total / max(steps, 1)
@@ -287,19 +290,23 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
                        or probe["max_steps_per_epoch"])
     epochs = int(probe["epochs"])
     max_steps = int(probe["max_steps_per_epoch"]) or None
+    scheduler = (build_dense_ap_scheduler(optimizer, len(train_loader), epochs)
+                 if "scheduler_profile" in cfg else None)
     print(f"ADE20k seg  device={device}  backbone={cfg['backbone']['kind']}"
           f"({'trained' if cfg['backbone'].get('encoder') else 'random (smoke)'})"
           f"  epochs={epochs}  out_channels={backbone.out_channels}")
     metrics = {"miou": 0.0, "pacc": 0.0}
     for epoch in range(epochs):
         loss = _train_one_epoch(model, train_loader, optimizer, device, max_steps,
-                                adaptation=adaptation)
+                                adaptation=adaptation, scheduler=scheduler)
         metrics = evaluate(model, val_loader, device)
         print(f"[{epoch + 1}/{epochs}] loss={loss:.4f} "
               f"mIoU={metrics['miou']:.3f} pACC={metrics['pacc']:.3f}")
 
     raw = {"miou": float(metrics["miou"]), "pacc": float(metrics["pacc"]),
            "epochs": epochs}
+    if scheduler is not None:
+        optimization["schedule"] = dense_ap_schedule_report(scheduler, len(train_loader), epochs, max_steps)
     contract.write_metrics(out, raw, METRIC_NAMES)
     (Path(out) / "results.json").write_text(
         json.dumps({"task": TASK, "backbone": cfg["backbone"],

@@ -264,3 +264,40 @@ The design of record is `docs/CONTRACT.md` / `docs/DESIGN.md` on the Capture sid
 from this repository**; this document is the port-side design, and the CONTRACT
 wording should be carried over on the capture side when the first downstream task
 lands.
+
+## Dense attentive schedule at reference batch (2026-09-20)
+
+ADE20K and NYUv2 accept the following explicit selection:
+
+<!-- dense-ap-schedule-selection -->
+```json
+{
+  "profile": "capture_basic5_components",
+  "adaptation": "attentive",
+  "optimizer_profile": "basic5_frozen_v1",
+  "scheduler_profile": "dense_ap_cosine_v1"
+}
+```
+
+Set `probe.lr` to `"protocol"`, `probe.batch_size` to 8 and `probe.epochs`
+to 20 (ADE20K) or 30 (NYUv2). Other batches, horizons, adaptations and tasks
+are refused before data access. The existing optimizer remains AdamW at
+0.001 with weight decay 0.05. One full loader epoch warms up linearly from
+1e-6, followed by cosine decay to 1e-6. Initialization sets the rate for the
+first update; the scheduler advances only after a successful optimizer update.
+The final reported rate is for the next update, not the last applied update.
+
+`max_steps_per_epoch` may cap smoke execution. The full loader length before
+that cap defines both warmup and the schedule horizon, and the scheduler is
+not restarted each epoch. `optimization.schedule` records the profile,
+steps per epoch, warmup updates/start LR, minimum LR, reference epochs,
+completed updates, next-update LR and whether the cap truncated execution.
+Existing subset indicators and artifact hashes are preserved. Component
+results remain noncanonical and nonrecordable, even without sample caps.
+
+This is a deliberately bounded component: at effective batch 8 the paper's
+fixed 1e-6 endpoints and the captured batch-scaled endpoints agree. Other
+batches, accumulation, resume, FT grouping and disputed source values remain
+pending. Omitting the schedule keeps the existing constant-LR execution.
+Tests exercise actual CPU/CUDA CLIs with synthetic data, numerical AdamW
+updates and frozen state; they do not reproduce released-weight scores.

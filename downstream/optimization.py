@@ -2,11 +2,14 @@
 from __future__ import annotations
 
 import os
+import math
 
 import torch
 
 PROFILE = "basic5_frozen_v1"
 COCO_SCHEDULE = "coco_frozen_1x_v1"
+DENSE_AP_SCHEDULE = "dense_ap_cosine_v1"
+DENSE_AP_EPOCHS = {"ade20k_segmentation": 20, "nyuv2_depth": 30}
 
 # Task-owned runners pass their TASK identity. These are task recipes, not
 # model-specific tuning. Full finetuning needs independently verified groups.
@@ -26,7 +29,10 @@ sentinel avoids silently ignoring a caller's requested rate. This component
 only supports one process and one full physical batch per optimizer update.
 """
     if "scheduler_profile" in cfg:
-        if cfg["scheduler_profile"] != COCO_SCHEDULE or task != "coco_detection":
+        if cfg["scheduler_profile"] == DENSE_AP_SCHEDULE:
+            if task not in DENSE_AP_EPOCHS or cfg.get("adaptation") != "attentive":
+                raise ValueError("dense_ap_cosine_v1 requires ADE20K/NYUv2 attentive adaptation")
+        elif cfg["scheduler_profile"] != COCO_SCHEDULE or task != "coco_detection":
             raise ValueError("scheduler_profile requires coco_frozen_1x_v1 on COCO")
         if cfg.get("optimizer_profile") != PROFILE:
             raise ValueError("scheduler_profile requires basic5_frozen_v1 optimizer")
@@ -53,8 +59,11 @@ only supports one process and one full physical batch per optimizer update.
         value = settings[field]
         if type(value) is not int or value < minimum:
             raise ValueError(f"optimizer_profile requires integer {field} >= {minimum}")
-    if "scheduler_profile" in cfg and settings["epochs"] > 12:
+    if cfg.get("scheduler_profile") == COCO_SCHEDULE and settings["epochs"] > 12:
         raise ValueError("coco_frozen_1x_v1 requires epochs <= 12")
+    if cfg.get("scheduler_profile") == DENSE_AP_SCHEDULE:
+        if batch != 8 or settings["epochs"] != DENSE_AP_EPOCHS[task]:
+            raise ValueError("dense_ap_cosine_v1 requires batch 8 and the task's full reference epochs")
     if settings["lr"] != "protocol":
         raise ValueError("optimizer_profile requires lr: protocol; numeric overrides unsupported")
     algorithm, base_lr, reference_batch = _RECIPES[task]
@@ -106,3 +115,27 @@ def build_coco_scheduler(optimizer, steps_per_epoch: int):
             return .1
         return 1.
     return torch.optim.lr_scheduler.LambdaLR(optimizer, factor)
+
+
+def build_dense_ap_scheduler(optimizer, steps_per_epoch: int, epochs: int):
+    """Reference-batch AP: one epoch warmup, then cosine to 1e-6.
+
+    Runners validate the fixed batch and horizon before calling this builder.
+    The full loader length, before a smoke cap, defines the schedule clock.
+    """
+    def factor(update):
+        if update < steps_per_epoch:
+            return .001 + .999 * update / steps_per_epoch
+        progress = min(max((update - steps_per_epoch) / ((epochs - 1) * steps_per_epoch), 0.), 1.)
+        return .001 + .999 * .5 * (1. + math.cos(math.pi * progress))
+    return torch.optim.lr_scheduler.LambdaLR(optimizer, factor)
+
+
+def dense_ap_schedule_report(scheduler, steps_per_epoch, epochs, max_steps):
+    """Describe realized updates without promoting component runs to records."""
+    return {"profile": DENSE_AP_SCHEDULE, "steps_per_epoch": steps_per_epoch,
+            "warmup_updates": steps_per_epoch, "warmup_start_lr": 1e-6,
+            "minimum_lr": 1e-6, "reference_epochs": epochs,
+            "updates_completed": scheduler.last_epoch,
+            "next_update_lr": scheduler.get_last_lr()[0],
+            "truncated": bool(max_steps and max_steps < steps_per_epoch)}

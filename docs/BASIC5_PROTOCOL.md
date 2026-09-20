@@ -741,3 +741,22 @@ across the boundaries, actual parameter updates, CLI metadata, frozen state,
 failed updates and the executable documentation selection. No cosine-source
 disagreement, FT grouping, accumulation or paper-score discrepancy is resolved
 by this component. Canonical eligibility remains disabled.
+
+
+## Dense AP reference-batch schedule (2026-09-20)
+
+The explicit `dense_ap_cosine_v1` component implements ADE20K/NYUv2 attentive
+warmup and cosine decay only at effective batch 8, without accumulation.
+ADE20K uses 20 epochs and NYUv2 30, with one epoch of linear warmup from
+1e-6 to 0.001 and cosine decay to 1e-6. These bounded settings agree with
+paper appendix C.5 and the inspected captured optimizer/configuration.
+See [selection and reporting](DOWNSTREAM.md#dense-attentive-schedule-at-reference-batch-2026-09-20).
+
+This supersedes the earlier constant-LR limitation only for this explicit
+selection. It does not resolve the disagreement about endpoints at other
+batch sizes, nor certify complete AP recipes or workbook scores. Physical
+batch 8, one process and the full reference epoch count are enforced; shorter
+smokes use an explicit update cap without compressing the schedule horizon.
+The workbook's LP/AP/FT sections remain distinct. Native-video integration,
+ImageNet AP/FT, FT groups/augmentation and disputed feature identities are
+separate work. Results retain `canonical_eligible: false` and `record_value: false`.

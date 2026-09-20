@@ -39,6 +39,7 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 from downstream.optimization import resolve_optimization, build_optimizer, require_training_batches
+from downstream.optimization import build_dense_ap_scheduler, dense_ap_schedule_report
 from downstream.attention import (SpatialAdapter, task_spatial_features,
                                   validate_adaptation, clip_attentive_gradients)
 from downstream import contract                                    # noqa: E402
@@ -82,7 +83,7 @@ def validate_config(cfg: dict) -> None:
         if key in cfg:
             raise ConfigError(
                 f"config: {key} is set; the output location is fixed at --out")
-    _named(TOP_KEYS - set(cfg), set(cfg) - (TOP_KEYS | {"profile", "adaptation", "optimizer_profile"}), "config")
+    _named(TOP_KEYS - set(cfg), set(cfg) - (TOP_KEYS | {"profile", "adaptation", "optimizer_profile", "scheduler_profile"}), "config")
     try:
         validate_adaptation(cfg)
     except ValueError as exc:
@@ -413,6 +414,8 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
                        or probe["max_steps_per_epoch"])
     epochs = int(probe["epochs"])
     max_steps = int(probe["max_steps_per_epoch"]) or None
+    scheduler = (build_dense_ap_scheduler(optimizer, len(train_loader), epochs)
+                 if "scheduler_profile" in cfg else None)
     print(f"NYUv2 depth  device={device}  backbone={cfg['backbone']['kind']}"
           f"({'trained' if cfg['backbone'].get('encoder') else 'random (smoke)'})"
           f"  epochs={epochs}  train={len(train_ds)} val={len(val_ds)}")
@@ -432,6 +435,8 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
             loss.backward()
             clip_attentive_gradients(model, adaptation)
             optimizer.step()
+            if scheduler is not None:
+                scheduler.step()
         metrics = evaluate(model, val_loader, device, profile=profile)
         print(f"[{epoch + 1}/{epochs}] rmse={metrics['rmse']:.4f} "
               f"abs_rel={metrics['abs_rel']:.4f}")
@@ -440,6 +445,8 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
            "valid_pixels": int(metrics["valid_pixels"]), "epochs": epochs}
     if captured:
         raw.update({k: float(metrics[k]) for k in ("delta1", "delta2", "delta3")})
+    if scheduler is not None:
+        optimization["schedule"] = dense_ap_schedule_report(scheduler, len(train_loader), epochs, max_steps)
     contract.write_metrics(out, raw, METRIC_NAMES)
     (Path(out) / "results.json").write_text(
         json.dumps({"task": TASK, "backbone": cfg["backbone"],

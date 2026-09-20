@@ -30,7 +30,7 @@
     {
       "label": "Schedule horizon",
       "file": "downstream/optimization.py",
-      "old": "if \"scheduler_profile\" in cfg and settings[\"epochs\"] > 12:",
+      "old": "if cfg.get(\"scheduler_profile\") == COCO_SCHEDULE and settings[\"epochs\"] > 12:",
       "new": "if False:",
       "tests": [
         "tests.test_coco_schedule.TestSchedule.test_selection_and_invalid_profiles_fail_before_data_access"
