@@ -168,7 +168,7 @@ class TestDenseScheduleCLI(unittest.TestCase):
                 rates, models, snapshots = [], [], []
                 original, step = getattr(module, name), torch.optim.AdamW.step
                 def make(*args, **kwargs):
-                    model = original(*args, **kwargs)
+                    model = original(*args, **kwargs).to(device)
                     models.append(model)
                     snapshots.append({n:p.clone() for n,p in model.state_dict().items()})
                     return model
