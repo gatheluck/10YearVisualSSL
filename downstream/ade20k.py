@@ -38,6 +38,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 from downstream.optimization import resolve_optimization, build_optimizer, require_training_batches
 from downstream.optimization import build_dense_ap_scheduler, dense_ap_schedule_report
+from downstream.photometric import captured_color_jitter
 from downstream.attention import (SpatialAdapter, task_spatial_features,
                                   validate_adaptation, clip_attentive_gradients)
 from downstream import contract                                    # noqa: E402
@@ -133,11 +134,13 @@ def make_deterministic(seed: int) -> None:
 
 
 class ADE20kSegmentation(Dataset):
-    def __init__(self, root: Path, split: str, image_size: int, *, profile: str = "legacy"):
+    def __init__(self, root: Path, split: str, image_size: int, *, profile: str = "legacy",
+                 adaptation: str = "frozen"):
         if split not in {"training", "validation"}:
             raise ValueError(f"unknown ADE20k split: {split}")
         self.image_size = image_size
         self.augment = profile == CAPTURE_PROFILE and split == "training"
+        self.color_jitter = .4 if self.augment and adaptation == "finetune" else 0.
         image_dir = Path(root) / "images" / split
         mask_dir = Path(root) / "annotations" / split
         self.images = sorted(image_dir.glob("*.jpg"))
@@ -165,6 +168,7 @@ class ADE20kSegmentation(Dataset):
             image, mask = TF.crop(image, *crop), TF.crop(mask, *crop)
             if torch.rand(1).item() < 0.5:
                 image, mask = TF.hflip(image), TF.hflip(mask)
+            image = captured_color_jitter(image, self.color_jitter)
         else:
             image = TF.resize(image, [self.image_size, self.image_size], antialias=True)
             mask = TF.resize(mask, [self.image_size, self.image_size],
@@ -264,9 +268,9 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
     optimization = resolve_optimization(cfg, TASK)
 
     root = Path(cfg["data_root"])
-    train_ds = _subset(ADE20kSegmentation(root, "training", image_size, profile=profile),
+    train_ds = _subset(ADE20kSegmentation(root, "training", image_size, profile=profile, adaptation=adaptation),
                        int(probe["max_train_samples"]))
-    val_ds = _subset(ADE20kSegmentation(root, "validation", image_size, profile=profile),
+    val_ds = _subset(ADE20kSegmentation(root, "validation", image_size, profile=profile, adaptation=adaptation),
                      int(probe["max_val_samples"]))
     bs, nw = int(probe["batch_size"]), int(probe["num_workers"])
     train_loader = DataLoader(train_ds, batch_size=bs, shuffle=True, num_workers=nw,
@@ -313,6 +317,7 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
                     "num_classes": NUM_CLASSES, "ignore_index": IGNORE_INDEX,
                     "epochs": epochs, "final": raw,
                     "profile": profile, "adaptation": adaptation,
+                    "training_color_jitter": getattr(train_ds, "dataset", train_ds).color_jitter,
                     "canonical_eligible": False,
                     "record_value": not subset_mode and profile == "legacy",
                     **({"optimization": optimization} if optimization is not None else {}),

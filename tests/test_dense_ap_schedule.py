@@ -51,6 +51,7 @@ class TestDenseScheduleCI(unittest.TestCase):
                     if s.get("name") == "Run Basic5 component contracts with downstream dependencies"]
         self.assertEqual(len(commands), 1)
         self.assertTrue(_runs_finetune_tests(commands[0], module="tests.test_dense_ap_schedule"))
+        self.assertTrue(_runs_finetune_tests(commands[0], module="tests.test_dense_ft_augmentation"))
 
 
 @unittest.skipUnless(torch is not None, "torch required")

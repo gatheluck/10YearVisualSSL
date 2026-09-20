@@ -655,9 +655,9 @@ path still receives unnormalized frame tokens. Native-video FT is unsupported.
 
 **This is full-gradient execution, not a complete `BASIC5_FINETUNE_v1` recipe.**
 The default unscaled runner LR, optimizer weight decay, schedules and data
-augmentation are retained. Layer decay, zero-decay parameter groups, FT color
-jitter, strong video augmentation and effective-batch accumulation remain
-unimplemented here. The generic timm final-layer grid does not certify a
+augmentation are retained. Layer decay, zero-decay parameter groups, strong video augmentation and
+effective-batch accumulation remain unimplemented here. The 2026-09-20 dense
+FT follow-up below adds the captured training color jitter only. The generic timm final-layer grid does not certify a
 model-specific multi-layer representation. All component results remain
 noncanonical and nonrecordable, including full-data runs; random tiny-model
 tests are not released-weight benchmarks or paper-score reproduction.
@@ -760,3 +760,22 @@ smokes use an explicit update cap without compressing the schedule horizon.
 The workbook's LP/AP/FT sections remain distinct. Native-video integration,
 ImageNet AP/FT, FT groups/augmentation and disputed feature identities are
 separate work. Results retain `canonical_eligible: false` and `record_value: false`.
+
+
+## Dense FT photometric component (2026-09-20)
+
+Explicit `capture_basic5_components` + `adaptation: finetune` now adds training
+color jitter 0.4 on ADE20K and 0.2 on NYUv2, agreeing with paper appendix C.6,
+the supplied FT protocol and the captured dataset factory. The captured order
+is brightness, contrast, saturation, each with an independent uniform factor
+in `[1-strength, 1+strength]`. It is not torchvision ColorJitter's randomized
+operation order. ADE20K applies it after paired scale/crop/flip; NYUv2 after
+paired flip and before resize. Only RGB changes; masks/depth and valid ranges
+are unchanged. Evaluation, frozen and attentive paths retain their prior
+photometric behavior, including RNG consumption when jitter is disabled.
+
+Results report `training_color_jitter`. This supersedes only the dated
+color-jitter gap above: it adds no Mixup/CutMix, FT optimizer/layer groups,
+video strong augmentation or canonical eligibility. Private source comparisons
+check complete transformed tensors and RNG state; synthetic training checks
+are separate from paper-score reproduction.

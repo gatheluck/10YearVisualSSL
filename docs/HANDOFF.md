@@ -106,6 +106,8 @@ The user requested sequential strict-TDD implementation of unambiguous gaps,
 grouped for fewer reviews, stopping at decisions requiring user input. The
 next bounded component implements ADE20K/NYUv2 attentive scheduling at batch 8
 only; see [the current boundary](BASIC5_PROTOCOL.md#dense-ap-reference-batch-schedule-2026-09-20).
+The same grouped change also adds captured ADE20K/NYUv2 FT color jitter,
+whose strengths and factory selection agree with paper/protocol evidence.
 Other-batch endpoints, accumulation clock semantics and FT parameter mappings
 remain unresolved. Refresh the task PR and evidence for validation status.
 

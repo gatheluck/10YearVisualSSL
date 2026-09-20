@@ -1,0 +1,121 @@
+{
+  "targets": [
+    {
+      "label": "Order",
+      "file": "downstream/photometric.py",
+      "old": "TF.adjust_brightness, TF.adjust_contrast, TF.adjust_saturation",
+      "new": "TF.adjust_saturation, TF.adjust_contrast, TF.adjust_brightness",
+      "tests": [
+        "tests.test_dense_ft_augmentation.TestDenseFTAugmentation.test_ordered_jitter_matches_pixels_and_rng"
+      ]
+    },
+    {
+      "label": "Amplitude",
+      "file": "downstream/photometric.py",
+      "old": "* strength",
+      "new": "* strength / 2",
+      "tests": [
+        "tests.test_dense_ft_augmentation.TestDenseFTAugmentation.test_ordered_jitter_matches_pixels_and_rng"
+      ]
+    },
+    {
+      "label": "Disabled RNG",
+      "file": "downstream/photometric.py",
+      "old": "if strength > 0:",
+      "new": "if strength >= 0:",
+      "tests": [
+        "tests.test_dense_ft_augmentation.TestDenseFTAugmentation.test_ordered_jitter_matches_pixels_and_rng"
+      ]
+    },
+    {
+      "label": "No transform",
+      "file": "downstream/photometric.py",
+      "old": "image = adjust(image, factor)",
+      "new": "image = image",
+      "tests": [
+        "tests.test_dense_ft_augmentation.TestDenseFTAugmentation.test_ordered_jitter_matches_pixels_and_rng"
+      ]
+    },
+    {
+      "label": "ade20k adaptation",
+      "file": "downstream/ade20k.py",
+      "old": "self.color_jitter = .4 if self.augment and adaptation == \"finetune\" else 0.",
+      "new": "self.color_jitter = .4 if self.augment and adaptation != \"frozen\" else 0.",
+      "tests": [
+        "tests.test_dense_ft_augmentation.TestDenseFTAugmentation.test_ade_only_training_ft_changes_images_not_labels"
+      ]
+    },
+    {
+      "label": "ade20k strength",
+      "file": "downstream/ade20k.py",
+      "old": ".4 if",
+      "new": ".1 if",
+      "tests": [
+        "tests.test_dense_ft_augmentation.TestDenseFTAugmentation.test_cli_reports_actual_training_jitter"
+      ]
+    },
+    {
+      "label": "ade20k application",
+      "file": "downstream/ade20k.py",
+      "old": "image = captured_color_jitter(image, self.color_jitter)",
+      "new": "image = image",
+      "tests": [
+        "tests.test_dense_ft_augmentation.TestDenseFTAugmentation.test_ade_only_training_ft_changes_images_not_labels"
+      ]
+    },
+    {
+      "label": "ade20k runner wiring",
+      "file": "downstream/ade20k.py",
+      "old": "profile=profile, adaptation=adaptation),\n                       int(probe[\"max_train_samples\"])",
+      "new": "profile=profile, adaptation=\"frozen\"),\n                       int(probe[\"max_train_samples\"])",
+      "tests": [
+        "tests.test_dense_ft_augmentation.TestDenseFTAugmentation.test_cli_reports_actual_training_jitter"
+      ]
+    },
+    {
+      "label": "nyuv2 adaptation",
+      "file": "downstream/nyuv2.py",
+      "old": "self.color_jitter = .2 if self.captured and train and adaptation == \"finetune\" else 0.",
+      "new": "self.color_jitter = .2 if self.captured and train and adaptation != \"frozen\" else 0.",
+      "tests": [
+        "tests.test_dense_ft_augmentation.TestDenseFTAugmentation.test_nyu_only_training_ft_changes_images_not_depth_or_mask"
+      ]
+    },
+    {
+      "label": "nyuv2 strength",
+      "file": "downstream/nyuv2.py",
+      "old": ".2 if",
+      "new": ".1 if",
+      "tests": [
+        "tests.test_dense_ft_augmentation.TestDenseFTAugmentation.test_cli_reports_actual_training_jitter"
+      ]
+    },
+    {
+      "label": "nyuv2 application",
+      "file": "downstream/nyuv2.py",
+      "old": "image = captured_color_jitter(image, self.color_jitter)",
+      "new": "image = image",
+      "tests": [
+        "tests.test_dense_ft_augmentation.TestDenseFTAugmentation.test_nyu_only_training_ft_changes_images_not_depth_or_mask"
+      ]
+    },
+    {
+      "label": "nyuv2 runner wiring",
+      "file": "downstream/nyuv2.py",
+      "old": "profile=profile, train=True, adaptation=adaptation)",
+      "new": "profile=profile, train=True, adaptation=\"frozen\")",
+      "tests": [
+        "tests.test_dense_ft_augmentation.TestDenseFTAugmentation.test_cli_reports_actual_training_jitter"
+      ]
+    },
+    {
+      "label": "CI omission",
+      "file": ".github/workflows/tests.yml",
+      "old": "            tests.test_dense_ft_augmentation \\\n",
+      "new": "",
+      "tests": [
+        "tests.test_dense_ap_schedule.TestDenseScheduleCI.test_downstream_job_executes_module"
+      ]
+    }
+  ]
+}

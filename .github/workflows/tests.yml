@@ -180,6 +180,7 @@ jobs:
             tests.test_coco_schedule \
             tests.test_coco_schedule_dependencies \
             tests.test_dense_ap_schedule \
+            tests.test_dense_ft_augmentation \
             tests.test_basic5_optimization \
             tests.test_basic5_attentive_tasks \
             tests.test_basic5_finetune_tasks

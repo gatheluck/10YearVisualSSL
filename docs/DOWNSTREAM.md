@@ -301,3 +301,16 @@ batches, accumulation, resume, FT grouping and disputed source values remain
 pending. Omitting the schedule keeps the existing constant-LR execution.
 Tests exercise actual CPU/CUDA CLIs with synthetic data, numerical AdamW
 updates and frozen state; they do not reproduce released-weight scores.
+
+
+## Dense FT color jitter (2026-09-20)
+
+For ADE20K and NYUv2, existing `profile: capture_basic5_components` with
+`adaptation: finetune` selects the captured training color jitter (0.4 and 0.2,
+respectively). No new tuning field is accepted. The order is brightness,
+contrast, saturation with independent uniform factors. ADE20K applies jitter
+after paired geometry; NYUv2 applies it after flip and before resize. It never
+changes masks or depth, and it is disabled for validation, frozen and attentive
+execution. `results.json` records `training_color_jitter` from the realized
+training dataset. This remains partial FT execution with noncanonical,
+nonrecordable results; other FT recipe gaps are listed in BASIC5_PROTOCOL.md.
