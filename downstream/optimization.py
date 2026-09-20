@@ -6,6 +6,7 @@ import os
 import torch
 
 PROFILE = "basic5_frozen_v1"
+COCO_SCHEDULE = "coco_frozen_1x_v1"
 
 # Task-owned runners pass their TASK identity. These are task recipes, not
 # model-specific tuning. Full finetuning needs independently verified groups.
@@ -24,6 +25,11 @@ The existing numeric lr belongs to the legacy optimizer. Requiring the explicit
 sentinel avoids silently ignoring a caller's requested rate. This component
 only supports one process and one full physical batch per optimizer update.
 """
+    if "scheduler_profile" in cfg:
+        if cfg["scheduler_profile"] != COCO_SCHEDULE or task != "coco_detection":
+            raise ValueError("scheduler_profile requires coco_frozen_1x_v1 on COCO")
+        if cfg.get("optimizer_profile") != PROFILE:
+            raise ValueError("scheduler_profile requires basic5_frozen_v1 optimizer")
     if "optimizer_profile" not in cfg:
         return None
     if cfg["optimizer_profile"] != PROFILE:
@@ -47,6 +53,8 @@ only supports one process and one full physical batch per optimizer update.
         value = settings[field]
         if type(value) is not int or value < minimum:
             raise ValueError(f"optimizer_profile requires integer {field} >= {minimum}")
+    if "scheduler_profile" in cfg and settings["epochs"] > 12:
+        raise ValueError("coco_frozen_1x_v1 requires epochs <= 12")
     if settings["lr"] != "protocol":
         raise ValueError("optimizer_profile requires lr: protocol; numeric overrides unsupported")
     algorithm, base_lr, reference_batch = _RECIPES[task]
@@ -79,3 +87,22 @@ def require_training_batches(loader, report: dict | None) -> None:
     """A dropped, empty training set is a failure, never a completed run."""
     if report is not None and len(loader) == 0:
         raise ValueError("optimizer_profile requires at least one full training batch")
+
+
+def build_coco_scheduler(optimizer, steps_per_epoch: int):
+    """Match captured COCO update indexing, including warmup precedence.
+
+    The caller passes the full nonempty loader length, before a smoke step cap.
+    LambdaLR initializes update zero; call step only after optimizer.step.
+    Accumulation and resume are outside this component's supported interface.
+    """
+    def factor(update):
+        if update < 500:
+            return .001 + .999 * update / 500
+        epoch = update / steps_per_epoch
+        if epoch >= 11:
+            return .01
+        if epoch >= 8:
+            return .1
+        return 1.
+    return torch.optim.lr_scheduler.LambdaLR(optimizer, factor)

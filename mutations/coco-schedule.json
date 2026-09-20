@@ -1,0 +1,202 @@
+{
+  "targets": [
+    {
+      "label": "Unknown schedule",
+      "file": "downstream/optimization.py",
+      "old": "cfg[\"scheduler_profile\"] != COCO_SCHEDULE",
+      "new": "False",
+      "tests": [
+        "tests.test_coco_schedule.TestSchedule.test_selection_and_invalid_profiles_fail_before_data_access"
+      ]
+    },
+    {
+      "label": "Wrong schedule task",
+      "file": "downstream/optimization.py",
+      "old": "task != \"coco_detection\"",
+      "new": "False",
+      "tests": [
+        "tests.test_coco_schedule.TestSchedule.test_selection_and_invalid_profiles_fail_before_data_access"
+      ]
+    },
+    {
+      "label": "Missing compatible optimizer",
+      "file": "downstream/optimization.py",
+      "old": "if cfg.get(\"optimizer_profile\") != PROFILE:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_coco_schedule.TestSchedule.test_selection_and_invalid_profiles_fail_before_data_access"
+      ]
+    },
+    {
+      "label": "Schedule horizon",
+      "file": "downstream/optimization.py",
+      "old": "if \"scheduler_profile\" in cfg and settings[\"epochs\"] > 12:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_coco_schedule.TestSchedule.test_selection_and_invalid_profiles_fail_before_data_access"
+      ]
+    },
+    {
+      "label": "Warmup boundary",
+      "file": "downstream/optimization.py",
+      "old": "if update < 500:",
+      "new": "if update <= 500:",
+      "tests": [
+        "tests.test_coco_schedule.TestSchedule.test_all_update_boundaries_and_parameter_updates"
+      ]
+    },
+    {
+      "label": "Warmup start",
+      "file": "downstream/optimization.py",
+      "old": ".001 + .999 * update / 500",
+      "new": ".01 + .99 * update / 500",
+      "tests": [
+        "tests.test_coco_schedule.TestSchedule.test_all_update_boundaries_and_parameter_updates"
+      ]
+    },
+    {
+      "label": "Warmup duration",
+      "file": "downstream/optimization.py",
+      "old": ".001 + .999 * update / 500",
+      "new": ".001 + .999 * update / 499",
+      "tests": [
+        "tests.test_coco_schedule.TestSchedule.test_all_update_boundaries_and_parameter_updates"
+      ]
+    },
+    {
+      "label": "Second decay boundary",
+      "file": "downstream/optimization.py",
+      "old": "if epoch >= 11:",
+      "new": "if epoch > 11:",
+      "tests": [
+        "tests.test_coco_schedule.TestSchedule.test_all_update_boundaries_and_parameter_updates"
+      ]
+    },
+    {
+      "label": "First decay boundary",
+      "file": "downstream/optimization.py",
+      "old": "if epoch >= 8:",
+      "new": "if epoch > 8:",
+      "tests": [
+        "tests.test_coco_schedule.TestSchedule.test_all_update_boundaries_and_parameter_updates"
+      ]
+    },
+    {
+      "label": "Second decay factor",
+      "file": "downstream/optimization.py",
+      "old": "return .01",
+      "new": "return .1",
+      "tests": [
+        "tests.test_coco_schedule.TestSchedule.test_all_update_boundaries_and_parameter_updates"
+      ]
+    },
+    {
+      "label": "First decay factor",
+      "file": "downstream/optimization.py",
+      "old": "return .1\n",
+      "new": "return 1.\n",
+      "tests": [
+        "tests.test_coco_schedule.TestSchedule.test_all_update_boundaries_and_parameter_updates"
+      ]
+    },
+    {
+      "label": "Plateau factor",
+      "file": "downstream/optimization.py",
+      "old": "return 1.\n",
+      "new": "return .5\n",
+      "tests": [
+        "tests.test_coco_schedule.TestSchedule.test_all_update_boundaries_and_parameter_updates"
+      ]
+    },
+    {
+      "label": "No schedule advancement",
+      "file": "downstream/coco.py",
+      "old": "scheduler.step()",
+      "new": "pass",
+      "tests": [
+        "tests.test_coco_schedule.TestSchedule.test_loop_advances_only_after_successful_optimizer_updates"
+      ]
+    },
+    {
+      "label": "Advancement before optimizer",
+      "file": "downstream/coco.py",
+      "old": "        optimizer.step()\n        if scheduler is not None:\n            scheduler.step()",
+      "new": "        if scheduler is not None:\n            scheduler.step()\n        optimizer.step()",
+      "tests": [
+        "tests.test_coco_schedule.TestSchedule.test_loop_advances_only_after_successful_optimizer_updates"
+      ]
+    },
+    {
+      "label": "Capped milestone denominator",
+      "file": "downstream/coco.py",
+      "old": "build_coco_scheduler(optimizer, len(train_loader))",
+      "new": "build_coco_scheduler(optimizer, min(len(train_loader), max_steps or len(train_loader)))",
+      "tests": [
+        "tests.test_coco_schedule.TestSchedule.test_runner_milestones_use_full_loader_despite_step_cap"
+      ]
+    },
+    {
+      "label": "Scheduler disconnected",
+      "file": "downstream/coco.py",
+      "old": "adaptation=adaptation, scheduler=scheduler)",
+      "new": "adaptation=adaptation, scheduler=None)",
+      "tests": [
+        "tests.test_coco_schedule.TestSchedule.test_real_cli_schedule_metadata_and_frozen_state"
+      ]
+    },
+    {
+      "label": "Short horizon smoke flag",
+      "file": "downstream/coco.py",
+      "old": "if scheduler is not None and epochs < 12:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_coco_schedule.TestSchedule.test_schedule_horizon_and_step_cap_reporting"
+      ]
+    },
+    {
+      "label": "Truncated epochs reporting",
+      "file": "downstream/coco.py",
+      "old": "\"truncated\": epochs < 12 or bool(max_steps and max_steps < len(train_loader)),",
+      "new": "\"truncated\": bool(max_steps and max_steps < len(train_loader)),",
+      "tests": [
+        "tests.test_coco_schedule.TestSchedule.test_schedule_horizon_and_step_cap_reporting"
+      ]
+    },
+    {
+      "label": "Truncated cap reporting",
+      "file": "downstream/coco.py",
+      "old": "\"truncated\": epochs < 12 or bool(max_steps and max_steps < len(train_loader)),",
+      "new": "\"truncated\": epochs < 12,",
+      "tests": [
+        "tests.test_coco_schedule.TestSchedule.test_schedule_horizon_and_step_cap_reporting"
+      ]
+    },
+    {
+      "label": "Completed update count",
+      "file": "downstream/coco.py",
+      "old": "\"updates_completed\": scheduler.last_epoch,",
+      "new": "\"updates_completed\": epochs * len(train_loader),",
+      "tests": [
+        "tests.test_coco_schedule.TestSchedule.test_schedule_horizon_and_step_cap_reporting"
+      ]
+    },
+    {
+      "label": "Next update LR reporting",
+      "file": "downstream/coco.py",
+      "old": "\"next_update_lr\": optimizer.param_groups[0][\"lr\"],",
+      "new": "\"next_update_lr\": optimization[\"lr\"],",
+      "tests": [
+        "tests.test_coco_schedule.TestSchedule.test_real_cli_schedule_metadata_and_frozen_state"
+      ]
+    },
+    {
+      "label": "CI omission",
+      "file": ".github/workflows/tests.yml",
+      "old": "            tests.test_coco_schedule \\\n",
+      "new": "",
+      "tests": [
+        "tests.test_coco_schedule.TestScheduleCI.test_ci_executes_schedule_tests"
+      ]
+    }
+  ]
+}

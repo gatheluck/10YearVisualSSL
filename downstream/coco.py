@@ -42,6 +42,7 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 from downstream.optimization import resolve_optimization, build_optimizer, require_training_batches
+from downstream.optimization import build_coco_scheduler
 from downstream.attention import (SpatialAdapter, task_spatial_features,
                                   validate_adaptation, clip_attentive_gradients)
 from downstream import contract                                    # noqa: E402
@@ -81,7 +82,7 @@ def validate_config(cfg: dict) -> None:
         if key in cfg:
             raise ConfigError(
                 f"config: {key} is set; the output location is fixed at --out")
-    _named(TOP_KEYS - set(cfg), set(cfg) - (TOP_KEYS | {"profile", "adaptation", "optimizer_profile"}), "config")
+    _named(TOP_KEYS - set(cfg), set(cfg) - (TOP_KEYS | {"profile", "adaptation", "optimizer_profile", "scheduler_profile"}), "config")
     try:
         validate_adaptation(cfg)
     except ValueError as exc:
@@ -264,7 +265,7 @@ def build_frozen_detector(backbone_spec: dict, detector: dict,
 
 
 def _train_one_epoch(model, loader, optimizer, device, max_steps,
-                     *, adaptation="frozen") -> float:
+                     *, adaptation="frozen", scheduler=None) -> float:
     model.train()
     total, steps = 0.0, 0
     for step, (images, targets) in enumerate(loader):
@@ -280,6 +281,8 @@ def _train_one_epoch(model, loader, optimizer, device, max_steps,
         loss.backward()
         clip_attentive_gradients(model, adaptation)
         optimizer.step()
+        if scheduler is not None:
+            scheduler.step()
         total += float(loss.detach().cpu())
         steps += 1
     return total / max(steps, 1)
@@ -362,17 +365,31 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
                        or detector["max_steps_per_epoch"])
     epochs = int(detector["epochs"])
     max_steps = int(detector["max_steps_per_epoch"]) or None
+    scheduler = (build_coco_scheduler(optimizer, len(train_loader))
+                 if "scheduler_profile" in cfg else None)
+    if scheduler is not None and epochs < 12:
+        subset_mode = True
     print(f"COCO det  device={device}  backbone={cfg['backbone']['kind']}"
           f"({'trained' if cfg['backbone'].get('encoder') else 'random (smoke)'})"
           f"  epochs={epochs}")
     metrics = {"bbox_mAP": 0.0, "bbox_mAP_50": 0.0, "detections": 0}
     for epoch in range(epochs):
         loss = _train_one_epoch(model, train_loader, optimizer, device, max_steps,
-                                adaptation=adaptation)
+                                adaptation=adaptation, scheduler=scheduler)
         metrics = evaluate(model, val_loader, val_ds, device, profile=profile)
         print(f"[{epoch + 1}/{epochs}] loss={loss:.4f} "
               f"mAP={metrics['bbox_mAP']:.4f} mAP50={metrics['bbox_mAP_50']:.4f}")
 
+    if scheduler is not None:
+        optimization["schedule"] = {
+            "profile": cfg["scheduler_profile"], "warmup_updates": 500,
+            "warmup_start_factor": .001, "milestone_epochs": [8, 11],
+            "decay_factor": .1, "reference_epochs": 12,
+            "steps_per_epoch": len(train_loader),
+            "updates_completed": scheduler.last_epoch,
+            "next_update_lr": optimizer.param_groups[0]["lr"],
+            "truncated": epochs < 12 or bool(max_steps and max_steps < len(train_loader)),
+        }
     raw = {"bbox_mAP": float(metrics["bbox_mAP"]),
            "bbox_mAP_50": float(metrics["bbox_mAP_50"]),
            "detections": int(metrics["detections"]), "epochs": epochs}

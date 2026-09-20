@@ -177,6 +177,8 @@ jobs:
           PYTHONPATH=. .venv/bin/python -m unittest -v \
             tests.test_basic5_protocol tests.test_basic5_readers \
             tests.test_basic5_depth_temporal tests.test_basic5_seg_detection \
+            tests.test_coco_schedule \
+            tests.test_coco_schedule_dependencies \
             tests.test_basic5_optimization \
             tests.test_basic5_attentive_tasks \
             tests.test_basic5_finetune_tasks
