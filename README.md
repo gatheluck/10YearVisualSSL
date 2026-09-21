@@ -166,7 +166,8 @@ shown so the shape is visible before it is built.
 │   ├── ade20k.py                     ADE20K segmentation (the pilot)
 │   ├── coco.py                       COCO detection (Faster R-CNN + mAP)
 │   ├── nyuv2.py                      NYUv2 depth (DPT head + RMSE/AbsRel)
-│   ├── ssv2.py                       SSv2 video (frame-average linear + top-1/5)
+│   ├── ssv2.py                       SSv2 video (frame-average/native tokens + top-1/5)
+│   ├── imagenet.py                   online LP/AP components; explicit provider readout
 │   ├── requirements.txt              the downstream env's direct deps
 │   └── requirements.lock.txt         its pinned, hashed closure (CI runs it)
 ├── methods/                        one directory per method

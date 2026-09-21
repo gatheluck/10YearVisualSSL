@@ -3,7 +3,7 @@
     {
       "label": "Unknown optimizer profile",
       "file": "downstream/optimization.py",
-      "old": "if cfg[\"optimizer_profile\"] != PROFILE:",
+      "old": "if cfg[\"optimizer_profile\"] not in (PROFILE, FT_PROFILE):",
       "new": "if False:",
       "tests": [
         "tests.test_basic5_optimization.TestOptimization.test_refuses_unsupported_or_ignored_settings_before_data_access"
@@ -93,7 +93,7 @@
     {
       "label": "Wrong AP video optimizer",
       "file": "downstream/optimization.py",
-      "old": "if task == \"ssv2_video\" and adaptation == \"attentive\":",
+      "old": "if task in (\"ssv2_video\", \"imagenet_classification\") and adaptation == \"attentive\":",
       "new": "if False:",
       "tests": [
         "tests.test_basic5_optimization.TestOptimization.test_optimizer_two_updates_match_independent_torch_construction"

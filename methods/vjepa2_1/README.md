@@ -44,8 +44,17 @@ and compares image/video outputs, input/parameter gradients and SGD updates.
 Tests using random reduced weights do not reproduce full-checkpoint scores.
 
 This is an encoder/downstream integration, **not a completed method adapter**.
-The Step-3 method and CompEval plan items remain incomplete. ImageNet LP/AP/FT,
-full FT optimizer/layer groups, schedules, video augmentation, distributed
-training, seed aggregation and full-data score comparisons remain separate work.
+The Step-3 method and CompEval plan items remain incomplete. ImageNet FT,
+video augmentation, distributed training, seed aggregation and full-data score
+comparisons remain separate work. The 2026-09-22 additions below supersede the
+earlier missing-components status for ImageNet LP/AP, FT groups and schedules.
 Existing component runs remain ineligible for the paper table. No workbook
 score is fabricated or used as a substitute for executing its experiment.
+
+The provider also declares verified FT layer groups for the four downstream
+component tasks and ImageNet classification readout for online LP/AP. See
+[the execution guide](../../docs/DOWNSTREAM.md#extended-training-components-2026-09-22).
+FT grouping follows this encoder family's captured mapping; it is not a
+universal policy for other providers. ImageNet FT model composition is tested,
+but the CLI refuses its unresolved augmentation recipe. These additions do not
+constitute a complete method adapter or canonical paper-score reproduction.

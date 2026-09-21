@@ -1,0 +1,184 @@
+{
+  "targets": [
+    {
+      "label": "reference batch guard",
+      "file": "downstream/optimization.py",
+      "old": "batch != reference_batch",
+      "new": "False",
+      "tests": [
+        "tests.test_method_vjepa2_1_training.TestFinetuneOptimization.test_reference_schedules_cover_all_four_tasks_and_tracks"
+      ]
+    },
+    {
+      "label": "full horizon guard",
+      "file": "downstream/optimization.py",
+      "old": "settings[\"epochs\"] != epochs",
+      "new": "False",
+      "tests": [
+        "tests.test_method_vjepa2_1_training.TestFinetuneOptimization.test_reference_schedules_cover_all_four_tasks_and_tracks"
+      ]
+    },
+    {
+      "label": "layer decay",
+      "file": "downstream/optimization.py",
+      "old": "scale = report[\"layer_decay\"] ** (output_layer - layer)",
+      "new": "scale = 1.",
+      "tests": [
+        "tests.test_method_vjepa2_1_training.TestFinetuneOptimization.test_groups_cover_encoder_and_head_and_produce_expected_updates"
+      ]
+    },
+    {
+      "label": "zero decay exceptions",
+      "file": "downstream/optimization.py",
+      "old": "weight_decay=0. if no_decay else report[\"weight_decay\"]",
+      "new": "weight_decay=report[\"weight_decay\"]",
+      "tests": [
+        "tests.test_method_vjepa2_1_training.TestFinetuneOptimization.test_groups_cover_encoder_and_head_and_produce_expected_updates"
+      ]
+    },
+    {
+      "label": "policy coverage",
+      "file": "downstream/optimization.py",
+      "old": "if set(policy) != set(owned):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_vjepa2_1_training.TestFinetuneOptimization.test_invalid_parameter_policies_and_schedule_clocks_are_rejected"
+      ]
+    },
+    {
+      "label": "layer range",
+      "file": "downstream/optimization.py",
+      "old": "if type(layer) is not int or not 0 <= layer <= output_layer:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_vjepa2_1_training.TestFinetuneOptimization.test_invalid_parameter_policies_and_schedule_clocks_are_rejected"
+      ]
+    },
+    {
+      "label": "schedule clock",
+      "file": "downstream/optimization.py",
+      "old": "if type(steps_per_epoch) is not int or steps_per_epoch < 1:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_vjepa2_1_training.TestFinetuneOptimization.test_invalid_parameter_policies_and_schedule_clocks_are_rejected"
+      ]
+    },
+    {
+      "label": "video warmup",
+      "file": "downstream/optimization.py",
+      "old": "warmup_epochs = 5 if classification else 1",
+      "new": "warmup_epochs = 1",
+      "tests": [
+        "tests.test_method_vjepa2_1_training.TestFinetuneOptimization.test_reference_schedules_cover_all_four_tasks_and_tracks"
+      ]
+    },
+    {
+      "label": "cosine decay",
+      "file": "downstream/optimization.py",
+      "old": "return floor + (1. - floor) * .5 * (1. + math.cos(math.pi * progress))",
+      "new": "return 1.",
+      "tests": [
+        "tests.test_method_vjepa2_1_training.TestFinetuneOptimization.test_reference_schedules_cover_all_four_tasks_and_tracks"
+      ]
+    },
+    {
+      "label": "FT provider and adaptation guard",
+      "file": "downstream/optimization.py",
+      "old": "if adaptation != \"finetune\" or not supports_finetune_groups(cfg.get(\"backbone\", {}).get(\"kind\")):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_vjepa2_1_training.TestFinetuneOptimization.test_unverified_provider_and_wrong_track_are_refused"
+      ]
+    },
+    {
+      "label": "encoder block mapping",
+      "file": "methods/vjepa2_1/downstream_backbone.py",
+      "old": "layer = index + 1",
+      "new": "layer = index",
+      "tests": [
+        "tests.test_method_vjepa2_1_training.TestFinetuneOptimization.test_groups_cover_encoder_and_head_and_produce_expected_updates"
+      ]
+    },
+    {
+      "label": "class mapping",
+      "file": "downstream/imagenet.py",
+      "old": "if train.class_to_idx != val.class_to_idx:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_basic5_imagenet.TestImageNet.test_refuses_unknown_recipe_provider_and_class_mapping"
+      ]
+    },
+    {
+      "label": "verified image provider",
+      "file": "downstream/imagenet.py",
+      "old": "if not supports_image_classification(cfg[\"backbone\"].get(\"kind\")):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_basic5_imagenet.TestImageNet.test_refuses_unknown_recipe_provider_and_class_mapping"
+      ]
+    },
+    {
+      "label": "finite loss",
+      "file": "downstream/imagenet.py",
+      "old": "if not torch.isfinite(loss):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_basic5_imagenet.TestImageNet.test_nonfinite_training_fails_without_update_and_records_failure"
+      ]
+    },
+    {
+      "label": "global L2",
+      "file": "downstream/imagenet.py",
+      "old": "F.normalize(tokens.mean(1), dim=-1)",
+      "new": "tokens.mean(1)",
+      "tests": [
+        "tests.test_basic5_imagenet.TestImageNet.test_verified_readout_and_gradients_for_all_three_model_components"
+      ]
+    },
+    {
+      "label": "normalization",
+      "file": "downstream/imagenet.py",
+      "old": "[.485, .456, .406], [.229, .224, .225]",
+      "new": "[0., 0., 0.], [1., 1., 1.]",
+      "tests": [
+        "tests.test_basic5_imagenet.TestImageNet.test_dataset_geometry_and_normalization_match_reference_operations"
+      ]
+    },
+    {
+      "label": "ade20k actual scheduler update",
+      "file": "downstream/ade20k.py",
+      "old": "scheduler.step()",
+      "new": "pass",
+      "tests": [
+        "tests.test_method_vjepa2_1_training.TestFinetuneOptimization.test_real_clis_execute_reference_schedules_and_ft_groups"
+      ]
+    },
+    {
+      "label": "nyuv2 actual scheduler update",
+      "file": "downstream/nyuv2.py",
+      "old": "scheduler.step()",
+      "new": "pass",
+      "tests": [
+        "tests.test_method_vjepa2_1_training.TestFinetuneOptimization.test_real_clis_execute_reference_schedules_and_ft_groups"
+      ]
+    },
+    {
+      "label": "ssv2 actual scheduler update",
+      "file": "downstream/ssv2.py",
+      "old": "scheduler.step()",
+      "new": "pass",
+      "tests": [
+        "tests.test_method_vjepa2_1_training.TestFinetuneOptimization.test_real_clis_execute_reference_schedules_and_ft_groups"
+      ]
+    },
+    {
+      "label": "ImageNet actual schedule update",
+      "file": "downstream/imagenet.py",
+      "old": "scheduler.step()",
+      "new": "pass",
+      "tests": [
+        "tests.test_basic5_imagenet.TestImageNet.test_real_cli_reference_schedule_advances_after_updates"
+      ]
+    }
+  ]
+}

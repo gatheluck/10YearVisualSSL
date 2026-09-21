@@ -336,3 +336,86 @@ The [new verified encoder](../methods/vjepa2_1/README.md) opts into these paths.
 All outputs remain component runs, not proof of canonical recipe or score
 reproduction. Method documentation states remaining optimizer, augmentation,
 ImageNet, full-checkpoint and full-dataset verification gaps.
+
+## Extended training components (2026-09-22)
+
+The four existing task CLIs accept `optimizer_profile: basic5_finetune_v1`
+with `adaptation: finetune` and `profile: capture_basic5_components`. Set the
+probe/detector LR to `"protocol"`. The encoder provider must explicitly declare
+verified FT groups; currently the [image/video provider](../methods/vjepa2_1/README.md)
+does so. Other trainable providers still support their existing legacy
+optimizer, but cannot silently inherit this model family's layer mapping.
+All encoder and task-head parameters are grouped once; normalization, bias and
+special embedding exceptions receive zero decay. Realized per-parameter groups
+are recorded in `results.json`.
+
+`basic5_reference_schedule_v1` selects the verified reference-batch schedule
+for frozen, attentive and finetune adaptations. It requires the complete epoch
+horizon: ADE20K 20/batch 8, NYUv2 30/batch 8, COCO 12/batch 16, SSv2 50/batch 256.
+Dense tasks warm up for one epoch; SSv2 for five. Cosine ends at 1e-6, except
+SSv2 LP at zero. COCO retains 500-update warmup and epoch-8/11 decay. Smoke step
+caps do not shorten the clock's full-loader horizon; their truncated accounting
+is recorded. FT group rates retain their relative layer multipliers.
+Other-batch cosine endpoints, accumulation and distributed execution remain
+unresolved. The existing schedule/profile names retain their original behavior.
+
+### Online ImageNet components
+
+`python -m downstream.imagenet --config <config.json> --out <new-output>` runs
+online LP or AP, including training augmentation, a frozen encoder, a zero
+initialized 1000-way classifier, and top-1/top-5 evaluation. Providers opt in only
+when final patch mean/L2 readout, query-reader composition and ImageNet
+normalization have been verified together. The provider linked above is the
+initial implementation. Merely exposing spatial features is insufficient.
+
+The complete selection below is parsed and validated by a test. Replace the
+three placeholder paths with local paths. `train/` and `val/` must contain
+matching sorted class directories. These component runs always have
+`canonical_eligible: false` and `record_value: false`, including full data runs.
+An artifact contract certifies execution, not paper-score reproduction.
+
+<!-- online-imagenet-example -->
+```json
+{
+  "task": "imagenet_classification",
+  "seed": 0,
+  "device": "auto",
+  "data_root": "/path/to/imagenet",
+  "profile": "capture_basic5_components",
+  "adaptation": "frozen",
+  "optimizer_profile": "basic5_frozen_v1",
+  "scheduler_profile": "basic5_reference_schedule_v1",
+  "backbone": {
+    "kind": "vjepa2_1",
+    "arch": "vit_large",
+    "encoder": "/path/to/checkpoint.pt",
+    "img_size": 384,
+    "patch_size": 16
+  },
+  "probe": {
+    "epochs": 100,
+    "batch_size": 256,
+    "lr": "protocol",
+    "num_workers": 4,
+    "image_size": 224,
+    "max_train_samples": 0,
+    "max_val_samples": 0,
+    "max_steps_per_epoch": 0
+  }
+}
+```
+
+Changing `adaptation` to `attentive` selects the verified query reader, AdamW
+and five-epoch warmup. LP uses SGD, zero weight decay, no warmup and cosine to
+zero. AP uses 0.05 weight decay and cosine to 1e-6. Both use 100 epochs and
+reference batch 256; omitting `scheduler_profile` selects a constant-LR
+component. Training uses bilinear random resized crop and horizontal flip;
+evaluation resizes the shorter side to 256 and center-crops. Tiny random models,
+fewer classes and non-224 crops are supported solely for explicit component
+smokes; none become canonical results.
+
+ImageNet FT **execution is refused**: the classifier's differentiable
+composition is tested, but the supplied RandAugment description and captured
+factory do not establish one unambiguous full recipe. No missing augmentation
+is silently omitted from a purported FT reproduction. The separate per-method
+ImageNet probe and Step-3 A1 driver remain unchanged.
