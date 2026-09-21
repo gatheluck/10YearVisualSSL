@@ -102,16 +102,30 @@ require an explicit upstream mapping; they cannot silently get separate readers.
         self.channels = channels
         self.input_projection = nn.Conv2d(channels, 256, kernel_size=1)
         self.block = _AttentionBlock(256)
+        self.block.apply(self._init_dense_block)
         self.output_projection = nn.Conv2d(256, channels, kernel_size=1)
+        nn.init.xavier_uniform_(self.input_projection.weight)
+        nn.init.zeros_(self.input_projection.bias)
         nn.init.zeros_(self.output_projection.weight)
         nn.init.zeros_(self.output_projection.bias)
+
+    @staticmethod
+    def _init_dense_block(module):
+        if isinstance(module, nn.Linear):
+            nn.init.trunc_normal_(module.weight, std=.02)
+            if module.bias is not None:
+                nn.init.zeros_(module.bias)
+        elif isinstance(module, nn.LayerNorm):
+            nn.init.ones_(module.weight)
+            nn.init.zeros_(module.bias)
 
     def forward(self, spatial):
         if (spatial.ndim != 4 or spatial.shape[1] != self.channels
                 or min(spatial.shape[2:]) < 1):
             raise ValueError("adapter requires real nonempty spatial features [B, C, H, W]")
         projected = self.input_projection(spatial)
-        tokens = self.block(projected.flatten(2).transpose(1, 2))
+        tokens = projected.flatten(2).transpose(1, 2)
+        tokens = tokens + self.block(tokens)
         residual = self.output_projection(tokens.transpose(1, 2).reshape_as(projected))
         return spatial + residual
 

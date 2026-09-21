@@ -2,6 +2,13 @@
 
 Historical design: 2026-08-20. Status reconciled: 2026-09-19.
 
+Dense attentive reader update (2026-09-21): the current shared and video-family
+Capture implementations agree on Xavier input initialization, truncated-normal
+block linear initialization and an outer token residual. These are now reflected
+in `SpatialAdapter`; the output projection remains zero initialized. Query-reader
+architectures differ between source families and remain unchanged. This updates
+component behavior, not canonical eligibility or reproduced scores.
+
 At the start of this work, the port evaluated methods on **one** downstream task: an
 ImageNet-1k linear probe (the `linear_eval` stage). The Capture repo, however,
 evaluates each accepted backbone on a **shared battery of dense and

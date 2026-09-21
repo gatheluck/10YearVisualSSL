@@ -174,6 +174,37 @@ class TestReaders(unittest.TestCase):
             self.assertIsInstance(layer, nn.Conv2d)
             self.assertEqual(layer.kernel_size, (1, 1))
 
+    def test_spatial_initialization_matches_current_captured_dense_reader(self):
+        with torch.random.fork_rng(devices=[]):
+            torch.manual_seed(61)
+            model = self.readers().SpatialAdapter(24)
+        projection = model.input_projection
+        self.assertAlmostEqual(float(projection.weight.std().detach()),
+                               (2 / (24 + 256)) ** .5, delta=.004)
+        self.assertEqual(int(torch.count_nonzero(projection.bias)), 0)
+        for layer in (model.block.attention.out_proj, model.block.mlp[0],
+                      model.block.mlp[2]):
+            self.assertAlmostEqual(float(layer.weight.std().detach()), .02, delta=.001)
+            self.assertEqual(int(torch.count_nonzero(layer.bias)), 0)
+        for layer in (model.block.query_norm, model.block.mlp_norm):
+            torch.testing.assert_close(layer.weight, torch.ones_like(layer.weight))
+            torch.testing.assert_close(layer.bias, torch.zeros_like(layer.bias))
+
+    def test_spatial_outer_token_residual_preserves_two_identity_paths(self):
+        model = self.readers().SpatialAdapter(1)
+        with torch.no_grad():
+            for parameter in model.parameters():
+                parameter.zero_()
+            model.input_projection.weight[0, 0, 0, 0] = 1
+            model.output_projection.weight[0, 0, 0, 0] = 1
+        # Zero attention/MLP leaves their internal identity path; the captured
+        # outer token residual contributes a second one, plus the spatial skip.
+        x = torch.tensor([[[[1., -2.], [3., 4.]]]], requires_grad=True)
+        actual = model(x)
+        torch.testing.assert_close(actual, 3 * x, rtol=0, atol=0)
+        actual.sum().backward()
+        torch.testing.assert_close(x.grad, torch.full_like(x, 3), rtol=0, atol=0)
+
     def test_query_reader_rejects_global_and_empty_inputs(self):
         model = self.readers().QueryReader(24)
         for shape in ((2, 24), (2, 0, 24), (2, 3, 25)):

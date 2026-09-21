@@ -299,3 +299,14 @@ this verified opt-in provider. FT parameter grouping needs model-specific
 mapping: captured families use different block/name rules; do not silently
 apply one family's rules to all providers. Captured source and current data
 availability must be refreshed before broadening the next group of ports.
+
+The user explicitly authorized refreshing CapturePrivate. The new append-only
+source snapshot is `c2d7b913077ffe96e8cfb978cf80062cc07db880`; originals and weights
+remain unchanged. It exposed a dense-reader initialization/residual discrepancy,
+now corrected after behavioral RED/GREEN. Independent comparisons with both
+current shared and video-family readers matched initial parameters, outputs,
+input/parameter gradients and three SGD updates exactly on CPU fixtures.
+Query-reader architectures differ across captured families and remain pending;
+distributed synchronization is outside this single-process component update.
+No changed paper or workbook files were found in the snapshot comparison. This
+does not establish that external documents are current or reproduce their scores.

@@ -27,6 +27,14 @@ sweep need first. The other tracks and the four dense/video datasets now have
 the opt-in components described below; complete recipe conformance remains
 pending.
 
+Dense attentive components were reconciled with the refreshed Capture snapshot
+on 2026-09-21: Xavier input projection, truncated-normal attention-block linear
+weights, zero biases, and an outer token residual in addition to the block's
+internal residuals. The output projection still starts at zero. Both current
+shared and video-family dense readers agree on this behavior. Their query
+readers differ, so this update does not unify query-reader architectures or
+establish complete recipe conformance.
+
 ---
 
 ## Two artifacts, one protocol
