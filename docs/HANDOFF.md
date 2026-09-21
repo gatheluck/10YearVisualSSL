@@ -247,3 +247,33 @@ scientific truth of every prose statement. Those are explicit receiver checks.
 Codex's documented worktree handoff moves between local checkouts/worktrees;
 it is not the basis for this cross-machine restoration. See
 [official worktree documentation](https://developers.openai.com/es-419/docs/environments/git-worktrees).
+
+## Figure 2 expansion in progress (2026-09-21)
+
+The user authorized immediate extraction of the additional Figure 2 profiles,
+using up to eight reserved nodes while preventing duplicate jobs. See
+[reference extraction](FEATURE_SWEEP.md#audited-reference-extraction-2026-09-21).
+Refresh private execution state and the real queue/output directories before
+resuming. Completed worker outputs are not equivalent to shared delivery, and
+this expansion must not be added to the historical 47-method count without
+checking distinct profile identities. The task's source mappings and execution
+records remain outside Git. Review the task PR for its current validation state.
+
+Correction to the older transfer inventory: the nine modified V-JEPA 2 YAML
+paths were independently reproduced in a fresh checkout on the new Mac. They
+are uppercase/lowercase path collisions on a case-insensitive filesystem,
+not established intentional user edits. The pinned upstream contains both
+spellings. Do not restore one spelling over the other or commit the checkout
+artifact; the private case audit preserves the evidence. This correction does
+not reclassify unrelated changes in other repositories.
+
+The extraction wrapper has local behavioral and mutation coverage, plus full
+validation-set runs on reserved GPUs. These runs reuse audited original
+functions; they do not certify matching probe scores or full Basic5 conformance.
+A delivery audit caught two duplicate retry outputs. All four file hashes for
+each duplicate matched the already delivered profile; extra workspace copies
+were retained separately. Existing shared artifacts were not overwritten.
+Before any retry, check both active jobs and successful output directories;
+a log observed before another worker finishes is not a stable retry decision.
+The latest per-profile completion, delivery and unresolved-source ledger is in
+private execution state. Refresh it before reporting collection totals.
