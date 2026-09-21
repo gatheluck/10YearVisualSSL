@@ -218,3 +218,57 @@ exactly reproducible.
 
 `encoder_sha256` for each method is recorded in its `meta.json` and matches the
 provenance-pinned artifact hash.
+
+## Audited reference extraction (2026-09-21)
+
+The Figure 2 expansion is a separate collection of profiles. The historical
+47-method accounting above does not establish that these additional profiles
+have been extracted or delivered. A workbook row, a checkpoint candidate, a
+successful worker and a verified shared-directory delivery are distinct states.
+Current profile mappings, job IDs, source/result evidence and delivery hashes
+are held in private execution state outside Git.
+
+`bin/extract-reference.py` supports an audited train-then-validation evaluator
+and the captured shared linear-probe driver. It reuses the reference's model
+construction, checkpoint loader, validation transforms and feature function.
+The wrapper bypasses training features and terminates before probe training;
+a skipped training array is only a shape placeholder for reference logging.
+This is not a new implementation of each model or a reproduction of probe scores.
+Only evaluators whose control flow has been inspected are supported.
+
+A trusted private JSON profile supplies `id`, `source`, `source_sha256`,
+`checkpoint`, `data_root`, `count` and reference `argv`. The optional
+`driver: "shared_probe"` uses the reference's configured AMP precision and
+relocates its ImageNet-1k paths without changing original files. Directly imported
+and module-qualified probe calls are supported, including positional arguments
+bound against the actual reference signature. Device selection follows the
+shared probe, including backbones that lazily initialize their parameters.
+For that driver,
+`distributed: true` permits a launcher-provided rank/world configuration:
+reference extraction gathers features, exact sampler indices restore dataset
+order, and rank zero alone writes. Duplicate or incomplete gathered indices
+are errors; sorting labels is not an acceptable substitute.
+
+Run each profile in its own interpreter and read-only sandbox, with a new output
+directory. The source hash is checked before import. Reference dependencies,
+checkpoint identity, loading diagnostics and scientific agreement still require
+separate inspection; the entry-point hash alone does not certify them.
+For example, using an already prepared private profile:
+
+```sh
+python bin/extract-reference.py --profile "$PRIVATE_PROFILE" --out "$NEW_OUTPUT"
+```
+
+The worker validates count, dimensions, dataset label order, finite values and
+nonzero vectors, then reuses the established L2 normalization and file writer.
+It records checkpoint/source hashes, preprocessing and sample-order provenance.
+A separate delivery check must verify 50,000 float32 unit vectors, 1,000 sorted
+classes with 50 int64 labels each, metadata consistency and copied file hashes.
+Existing profiles must not be overwritten. Reference/profile details are private
+and must not be committed with the public extraction tool.
+
+The user authorized up to eight reservation nodes in total for this expansion.
+Count existing jobs before submitting replacements; preserve unrelated work.
+Reservation-only execution, original read-only inputs, strict testing and PR
+review remain required. Ambiguous checkpoint/readout mappings and references
+that substitute another backbone or incompletely load weights remain pending.
