@@ -224,13 +224,37 @@ def build_trainable_backbone(spec: dict, device: "torch.device") -> nn.Module:
     select this builder only for explicit finetune component adaptation.
     Never toggle requires_grad on a provider that internally disables autograd.
     """
-    if spec.get("kind") != VIT:
-        raise NotImplementedError(
-            f"trainable spatial provider is not implemented for {spec.get('kind')!r}")
-    return _build_vit(spec, trainable=True).to(device)
+    kind = spec.get("kind")
+    if kind == VIT:
+        return _build_vit(spec, trainable=True).to(device)
+    if supports_trainable(kind):
+        return _load_provider(_PROVIDERS[kind]).build_trainable(spec).to(device)
+    raise NotImplementedError(f"trainable spatial provider is not implemented for {kind!r}")
+
+
+def supports_trainable(kind):
+    """Opt-in capability; never unfreeze a provider with a no-grad forward."""
+    if kind == VIT:
+        return True
+    if kind not in _PROVIDERS:
+        return False
+    provider = _load_provider(_PROVIDERS[kind])
+    return getattr(provider, "TRAINABLE", False) is True and callable(getattr(provider, "build_trainable", None))
 
 
 def build_attentive_backbone(spec: dict, device: "torch.device") -> nn.Module:
     """Compose a discovered frozen spatial provider and shared AP adapter."""
     from downstream.attention import AttentiveSpatialBackbone
     return AttentiveSpatialBackbone(build_frozen_backbone(spec, device)).to(device)
+
+
+def supports_capture_pyramid(kind):
+    """Provider explicitly verifies stride-16 grids and ImageNet normalization."""
+    if kind == VIT:
+        return True
+    return kind in _PROVIDERS and getattr(_load_provider(_PROVIDERS[kind]), "CAPTURE_PYRAMID", False) is True
+
+
+def requires_component_profile(kind):
+    """Partial integrations must never inherit a legacy table-producing recipe."""
+    return kind in _PROVIDERS and getattr(_load_provider(_PROVIDERS[kind]), "COMPONENT_ONLY", False) is True

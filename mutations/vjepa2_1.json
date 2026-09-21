@@ -1,0 +1,175 @@
+{
+  "targets": [
+    {
+      "file": "methods/vjepa2_1/downstream_backbone.py",
+      "old": "images.unsqueeze(2)",
+      "new": "images.unsqueeze(2).repeat(1, 1, 2, 1, 1)",
+      "tests": [
+        "tests.test_method_vjepa2_1.TestBackbone.test_image_is_true_single_frame_and_grid_is_padded_without_resize"
+      ],
+      "label": "Use video branch for images"
+    },
+    {
+      "file": "methods/vjepa2_1/downstream_backbone.py",
+      "old": "return tokens.transpose(1, 2).reshape(images.shape[0], self.out_channels, gh, gw)",
+      "new": "return tokens.flip(1).transpose(1, 2).reshape(images.shape[0], self.out_channels, gh, gw)",
+      "tests": [
+        "tests.test_method_vjepa2_1.TestBackbone.test_image_is_true_single_frame_and_grid_is_padded_without_resize"
+      ],
+      "label": "Reverse spatial token order"
+    },
+    {
+      "file": "methods/vjepa2_1/downstream_backbone.py",
+      "old": "nullcontext() if self.trainable else torch.no_grad()",
+      "new": "torch.no_grad()",
+      "tests": [
+        "tests.test_method_vjepa2_1.TestBackbone.test_trainable_image_path_preserves_gradients_and_updates"
+      ],
+      "label": "Detach trainable encoder"
+    },
+    {
+      "file": "methods/vjepa2_1/downstream_backbone.py",
+      "old": "super().train(mode if self.trainable else False)",
+      "new": "super().train(mode)",
+      "tests": [
+        "tests.test_method_vjepa2_1.TestBackbone.test_image_is_true_single_frame_and_grid_is_padded_without_resize"
+      ],
+      "label": "Unfreeze training mode"
+    },
+    {
+      "file": "methods/vjepa2_1/downstream_backbone.py",
+      "old": "strict=True",
+      "new": "strict=False",
+      "tests": [
+        "tests.test_method_vjepa2_1.TestBackbone.test_checkpoint_key_selection_is_strict_and_variant_specific"
+      ],
+      "label": "Allow partial checkpoint"
+    },
+    {
+      "file": "methods/vjepa2_1/downstream_backbone.py",
+      "old": "\"vit_large\": \"ema_encoder\"",
+      "new": "\"vit_large\": \"target_encoder\"",
+      "tests": [
+        "tests.test_method_vjepa2_1.TestBackbone.test_checkpoint_key_selection_is_strict_and_variant_specific"
+      ],
+      "label": "Substitute checkpoint identity"
+    },
+    {
+      "file": "methods/vjepa2_1/downstream_backbone.py",
+      "old": "or clip.shape[1] % 2",
+      "new": "or False",
+      "tests": [
+        "tests.test_method_vjepa2_1.TestBackbone.test_video_tokens_use_native_temporal_encoder_without_frame_averaging"
+      ],
+      "label": "Drop an odd last frame"
+    },
+    {
+      "file": "methods/vjepa2_1/downstream_backbone.py",
+      "old": "tokens.shape[1] != gh * gw",
+      "new": "False",
+      "tests": [
+        "tests.test_method_vjepa2_1.TestBackbone.test_image_shape_and_token_grid_refuse_invalid_inputs"
+      ],
+      "label": "Remove grid validation"
+    },
+    {
+      "file": "downstream/ssv2.py",
+      "old": "tokens = self.backbone.video_tokens(clips).float()",
+      "new": "tokens = self.backbone.video_tokens(clips).float().mean(1, keepdim=True)",
+      "tests": [
+        "tests.test_method_vjepa2_1.TestBackbone.test_ssv2_composition_preserves_native_tokens_and_protocol_readout"
+      ],
+      "label": "Pool before attentive reader"
+    },
+    {
+      "file": "downstream/ssv2.py",
+      "old": "F.normalize(tokens.mean(1), dim=-1) if self.reader is None else None",
+      "new": "tokens.mean(1) if self.reader is None else None",
+      "tests": [
+        "tests.test_method_vjepa2_1.TestBackbone.test_ssv2_composition_preserves_native_tokens_and_protocol_readout"
+      ],
+      "label": "Omit native global normalization"
+    },
+    {
+      "file": "downstream/spatial_backbones.py",
+      "old": "getattr(provider, \"TRAINABLE\", False) is True and callable(getattr(provider, \"build_trainable\", None))",
+      "new": "True",
+      "tests": [
+        "tests.test_method_vjepa2_1.TestBackbone.test_finetune_config_accepts_only_explicit_trainable_providers"
+      ],
+      "label": "Admit frozen-only provider"
+    },
+    {
+      "file": "provider_support.py",
+      "old": "key == name or key.startswith(name + \".\")",
+      "new": "key.startswith(name)",
+      "tests": [
+        "tests.test_method_vjepa2_1.TestInfrastructure.test_author_namespaces_are_isolated_and_decoys_survive"
+      ],
+      "label": "Purge namespace decoy"
+    },
+    {
+      "file": "provider_support.py",
+      "old": "sys.path[:] = [p for p in sys.path if not p.startswith(parent)]",
+      "new": "pass",
+      "tests": [
+        "tests.test_method_vjepa2_1.TestInfrastructure.test_author_namespaces_are_isolated_and_decoys_survive"
+      ],
+      "label": "Keep foreign namespace root"
+    },
+    {
+      "file": ".github/workflows/tests.yml",
+      "old": "tests.test_basic5_finetune_tasks tests.test_method_vjepa2_1",
+      "new": "tests.test_basic5_finetune_tasks",
+      "tests": [
+        "tests.test_method_vjepa2_1.TestInfrastructure.test_ci_explicitly_runs_this_contract_with_author_dependencies"
+      ],
+      "label": "Silently skip new CI contracts"
+    },
+    {
+      "label": "Promote partial provider to a table profile",
+      "file": "methods/vjepa2_1/downstream_backbone.py",
+      "old": "COMPONENT_ONLY = True",
+      "new": "COMPONENT_ONLY = False",
+      "tests": [
+        "tests.test_method_vjepa2_1.TestBackbone.test_new_provider_cannot_enter_a_legacy_table_producing_profile"
+      ]
+    },
+    {
+      "label": "Allow unsupported architecture",
+      "file": "methods/vjepa2_1/downstream_backbone.py",
+      "old": "if arch not in _VARIANTS:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_vjepa2_1.TestBackbone.test_invalid_architecture_geometry_and_fixture_refused"
+      ]
+    },
+    {
+      "label": "Allow incompatible pretrained geometry",
+      "file": "methods/vjepa2_1/downstream_backbone.py",
+      "old": "if int(spec[\"patch_size\"]) != 16 or int(spec[\"img_size\"]) != 384:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_vjepa2_1.TestBackbone.test_invalid_architecture_geometry_and_fixture_refused"
+      ]
+    },
+    {
+      "label": "Allow partial fixture dimensions",
+      "file": "methods/vjepa2_1/downstream_backbone.py",
+      "old": "if set(fixture) != {\"embed_dim\", \"depth\", \"num_heads\"}:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_vjepa2_1.TestBackbone.test_invalid_architecture_geometry_and_fixture_refused"
+      ]
+    },
+    {
+      "label": "Allow malformed image input",
+      "file": "methods/vjepa2_1/downstream_backbone.py",
+      "old": "if images.ndim != 4 or images.shape[1] != 3 or min(images.shape[-2:]) < 1:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_vjepa2_1.TestBackbone.test_image_shape_and_token_grid_refuse_invalid_inputs"
+      ]
+    }
+  ]
+}

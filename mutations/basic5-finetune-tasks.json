@@ -30,7 +30,7 @@
     {
       "label": "Accept frozen-only FT provider",
       "file": "downstream/attention.py",
-      "old": "if adaptation == \"finetune\" and cfg.get(\"backbone\", {}).get(\"kind\", \"vit\") != \"vit\":",
+      "old": "if not supports_trainable(cfg.get(\"backbone\", {}).get(\"kind\", \"vit\")):",
       "new": "if False:",
       "tests": [
         "tests.test_basic5_finetune_tasks.TestFinetuneTasks.test_configs_accept_explicit_ft_and_refuse_legacy_and_frozen_only_providers"
@@ -129,7 +129,7 @@
     {
       "label": "Use random FT classifier",
       "file": "downstream/ssv2.py",
-      "old": "if self.reader is None and adaptation != \"finetune\":",
+      "old": "if self.reader is None and adaptation != \"finetune\" and not callable(getattr(backbone, \"video_tokens\", None)):",
       "new": "if self.reader is None:",
       "tests": [
         "tests.test_basic5_finetune_tasks.TestFinetuneTasks.test_video_uses_per_frame_l2_before_temporal_mean_and_zero_head"
@@ -138,8 +138,8 @@
     {
       "label": "Omit FT tests from downstream job",
       "file": ".github/workflows/tests.yml",
-      "old": "            tests.test_basic5_finetune_tasks\n",
-      "new": "            tests.test_basic5_protocol\n",
+      "old": "            tests.test_basic5_finetune_tasks tests.test_method_vjepa2_1\n",
+      "new": "            tests.test_basic5_protocol tests.test_method_vjepa2_1\n",
       "tests": [
         "tests.test_basic5_finetune_tasks.TestFinetuneCI.test_downstream_job_executes_finetune_tests"
       ]

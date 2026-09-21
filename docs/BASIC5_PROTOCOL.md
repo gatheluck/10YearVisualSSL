@@ -779,3 +779,18 @@ color-jitter gap above: it adds no Mixup/CutMix, FT optimizer/layer groups,
 video strong augmentation or canonical eligibility. Private source comparisons
 check complete transformed tensors and RNG state; synthetic training checks
 are separate from paper-score reproduction.
+
+## Native-video and differentiable encoder integration (2026-09-21)
+
+The [V-JEPA 2.1 provider](../methods/vjepa2_1/README.md) supplies verified image
+patch grids and native video tokens to the four component task runners. It
+explicitly opts into FT and the stride-16/ImageNet-normalized detection pyramid.
+This supersedes the timm-only FT and no-native-video component limitations above
+for this provider, not for arbitrary backbones or full canonical recipes.
+
+For native video, frozen/FT classification normalizes the mean of final tokens;
+AP receives all ordered spatiotemporal tokens. Zero initialization of this
+linear classifier follows the captured native-video model. Image-provider frame
+averaging and legacy paths are unchanged. Existing reports remain noncanonical;
+full FT groups, video regularization, ImageNet integration, accumulation and
+full score reproduction remain outstanding.

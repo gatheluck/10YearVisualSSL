@@ -141,3 +141,18 @@ def configure_native_config(config: dict, options: dict) -> dict:
                 result[key] = copy.deepcopy(value)
         return result
     return merge(config, options.get('config_overrides', {}))
+
+
+def prepare_upstream(root, namespaces):
+    """Isolate pinned author namespaces from other submodule search roots.
+
+    Author packages may be PEP 420 namespaces. Removing cached modules alone
+    does not prevent another submodule directory from joining that namespace.
+    """
+    root = Path(root).resolve()
+    for key in list(sys.modules):
+        if any(key == name or key.startswith(name + ".") for name in namespaces):
+            del sys.modules[key]
+    parent = str(root.parent) + os.sep
+    sys.path[:] = [p for p in sys.path if not p.startswith(parent)]
+    sys.path.insert(0, str(root))

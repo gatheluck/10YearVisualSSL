@@ -48,8 +48,8 @@
     {
       "label": "Invent trainability for unknown providers",
       "file": "downstream/spatial_backbones.py",
-      "old": "if spec.get(\"kind\") != VIT:",
-      "new": "if False:",
+      "old": "if kind == VIT:\n        return _build_vit(spec, trainable=True).to(device)",
+      "new": "if True:\n        return _build_vit(spec, trainable=True).to(device)",
       "tests": [
         "tests.test_basic5_readers.TestCheckpointAndTrainability.test_unknown_trainability_is_not_silently_unfrozen"
       ]

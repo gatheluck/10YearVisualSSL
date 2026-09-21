@@ -72,10 +72,23 @@ class TestCheckpointAndTrainability(unittest.TestCase):
     def test_unknown_trainability_is_not_silently_unfrozen(self):
         builder = getattr(sb, "build_trainable_backbone", None)
         self.assertTrue(callable(builder), "explicit FT builder is required")
-        for kind in sb.discover_providers():
-            with self.subTest(kind=kind), self.assertRaisesRegex(
-                    NotImplementedError, "trainable"):
-                builder({**SPEC, "kind": kind}, torch.device("cpu"))
+        from types import SimpleNamespace
+        from unittest import mock
+        # Capabilities, not the historical assumption that every provider is frozen.
+        for flag, factory in ((False, lambda spec: nn.Linear(2, 2)),
+                              (True, None), (1, lambda spec: nn.Linear(2, 2))):
+            provider = SimpleNamespace(TRAINABLE=flag, build_trainable=factory)
+            with mock.patch.object(sb, "_PROVIDERS", {"fixture": Path("unused")}), \
+                 mock.patch.object(sb, "_load_provider", return_value=provider):
+                with self.assertRaisesRegex(NotImplementedError, "trainable"):
+                    builder({**SPEC, "kind": "fixture"}, torch.device("cpu"))
+        with self.assertRaisesRegex(NotImplementedError, "trainable"):
+            builder({**SPEC, "kind": "not_a_provider"}, torch.device("cpu"))
+        expected = nn.Linear(2, 2)
+        provider = SimpleNamespace(TRAINABLE=True, build_trainable=lambda spec: expected)
+        with mock.patch.object(sb, "_PROVIDERS", {"fixture": Path("unused")}), \
+             mock.patch.object(sb, "_load_provider", return_value=provider):
+            self.assertIs(builder({**SPEC, "kind": "fixture"}, torch.device("cpu")), expected)
 
     def test_finetune_batchnorm_updates_but_frozen_batchnorm_does_not(self):
         cls = getattr(sb, "ViTSpatialBackbone", None)

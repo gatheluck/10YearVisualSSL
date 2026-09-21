@@ -314,3 +314,18 @@ changes masks or depth, and it is disabled for validation, frozen and attentive
 execution. `results.json` records `training_color_jitter` from the realized
 training dataset. This remains partial FT execution with noncanonical,
 nonrecordable results; other FT recipe gaps are listed in BASIC5_PROTOCOL.md.
+
+## Explicit provider capabilities (2026-09-21)
+
+Method-owned providers may opt into a differentiable forward with `TRAINABLE =
+True` and `build_trainable(spec)`. Merely toggling a frozen provider's parameter
+flags is not supported. `CAPTURE_PYRAMID = True` separately certifies that the
+provider's spatial geometry and normalization match the captured stride-16
+pyramid. A `video_tokens(clip)` method selects native-video classification:
+normalized global mean for frozen/FT, complete tokens for AP. Providers without
+this method retain the existing image-frame averaging behavior.
+
+The [new verified encoder](../methods/vjepa2_1/README.md) opts into these paths.
+All outputs remain component runs, not proof of canonical recipe or score
+reproduction. Method documentation states remaining optimizer, augmentation,
+ImageNet, full-checkpoint and full-dataset verification gaps.

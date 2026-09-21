@@ -339,3 +339,13 @@ ImageNet-100 is a separate future port), not A1.
   ]
 }
 ```
+
+### 2026-09-21 checkpoint and integration correction
+
+The earlier DINOv3-7B deferral describes September 2 access, not current access.
+Authorized extraction has since read all six checkpoint shards and recorded
+full hashes privately. A new portable adapter is still required; gated public
+redistribution/download authorization is not inferred from local access.
+V-JEPA 2.1 now has a downstream image/video encoder provider, but no complete
+method adapter or CompEval recipe. Its two plan items intentionally remain
+`todo`. See [provider scope](../methods/vjepa2_1/README.md).
