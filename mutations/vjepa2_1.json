@@ -173,8 +173,8 @@
     },
     {
       "file": "tests/test_method_vjepa2_1.py",
-      "old": "    @needs_checkout\n    def test_ci_explicitly_runs_this_contract_with_author_dependencies(self):",
-      "new": "    def test_ci_explicitly_runs_this_contract_with_author_dependencies(self):",
+      "old": "        if not WORKFLOWS.is_dir():\n            self.skipTest('workflow definitions are not shipped in images')",
+      "new": "        # Missing image workflow guard",
       "tests": [
         "tests.test_method_vjepa2_1.TestInfrastructure.test_method_smoke_runs_without_checkout_or_workflows"
       ],

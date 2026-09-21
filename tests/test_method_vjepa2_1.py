@@ -1,7 +1,7 @@
 """Image-branch and native-video downstream contracts for the pinned encoder."""
 import copy
 import unittest
-from tests._checkout import needs_checkout
+from tests._checkout import needs_git
 
 try:
     import torch
@@ -180,7 +180,7 @@ class TestBackbone(unittest.TestCase):
 
 
 class TestInfrastructure(unittest.TestCase):
-    @needs_checkout
+    @needs_git
     @unittest.skipUnless(HAVE, "author encoder dependencies required")
     def test_method_smoke_runs_without_checkout_or_workflows(self):
         from tests.test_repository_scan import without_git
@@ -218,12 +218,13 @@ class TestInfrastructure(unittest.TestCase):
             self.assertIn(namespace + '_decoy', sys.modules)
             self.assertEqual(sys.path, [str(root), decoy])
 
-    @needs_checkout
     def test_ci_explicitly_runs_this_contract_with_author_dependencies(self):
-        from tests.test_ci import HAVE_YAML, parsed
+        from tests.test_ci import HAVE_YAML, WORKFLOWS, parsed
         from tests.test_basic5_finetune_tasks import _runs_finetune_tests
         if not HAVE_YAML:
             self.skipTest('PyYAML required')
+        if not WORKFLOWS.is_dir():
+            self.skipTest('workflow definitions are not shipped in images')
         steps = parsed()['tests.yml']['jobs']['downstream']['steps']
         commands = [s['run'] for s in steps if s.get('name') == 'Run Basic5 component contracts with downstream dependencies']
         self.assertEqual(len(commands), 1)
