@@ -170,6 +170,15 @@
       "tests": [
         "tests.test_method_vjepa2_1.TestBackbone.test_image_shape_and_token_grid_refuse_invalid_inputs"
       ]
+    },
+    {
+      "file": "tests/test_method_vjepa2_1.py",
+      "old": "    @needs_checkout\n    def test_ci_explicitly_runs_this_contract_with_author_dependencies(self):",
+      "new": "    def test_ci_explicitly_runs_this_contract_with_author_dependencies(self):",
+      "tests": [
+        "tests.test_method_vjepa2_1.TestInfrastructure.test_method_smoke_runs_without_checkout_or_workflows"
+      ],
+      "label": "Run checkout-only CI assertion inside image"
     }
   ]
 }

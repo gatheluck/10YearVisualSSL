@@ -1,6 +1,7 @@
 """Image-branch and native-video downstream contracts for the pinned encoder."""
 import copy
 import unittest
+from tests._checkout import needs_checkout
 
 try:
     import torch
@@ -179,6 +180,23 @@ class TestBackbone(unittest.TestCase):
 
 
 class TestInfrastructure(unittest.TestCase):
+    @needs_checkout
+    @unittest.skipUnless(HAVE, "author encoder dependencies required")
+    def test_method_smoke_runs_without_checkout_or_workflows(self):
+        from tests.test_repository_scan import without_git
+        result = without_git(
+            "import pathlib, tempfile, unittest, shutil\n"
+            "from tests import test_ci\n"
+            "assert shutil.which('git') is None\n"
+            "with tempfile.TemporaryDirectory() as directory:\n"
+            " test_ci.WORKFLOWS = pathlib.Path(directory) / 'absent'\n"
+            " assert not test_ci.WORKFLOWS.exists()\n"
+            " suite = unittest.defaultTestLoader.loadTestsFromName('tests.test_method_vjepa2_1')\n"
+            " result = unittest.TextTestRunner(verbosity=2).run(suite)\n"
+            " assert result.testsRun - len(result.skipped) >= 9\n"
+            " raise SystemExit(0 if result.wasSuccessful() else 1)\n")
+        self.assertEqual(result.returncode, 0, result.stderr[-5000:])
+
     def test_author_namespaces_are_isolated_and_decoys_survive(self):
         import sys
         import types
@@ -200,6 +218,7 @@ class TestInfrastructure(unittest.TestCase):
             self.assertIn(namespace + '_decoy', sys.modules)
             self.assertEqual(sys.path, [str(root), decoy])
 
+    @needs_checkout
     def test_ci_explicitly_runs_this_contract_with_author_dependencies(self):
         from tests.test_ci import HAVE_YAML, parsed
         from tests.test_basic5_finetune_tasks import _runs_finetune_tests

@@ -310,3 +310,11 @@ Query-reader architectures differ across captured families and remain pending;
 distributed synchronization is outside this single-process component update.
 No changed paper or workbook files were found in the snapshot comparison. This
 does not establish that external documents are current or reproduce their scores.
+
+CI follow-up (2026-09-22): the encoder image built and its runtime tests passed,
+but a new workflow assertion failed because `.github` is deliberately excluded
+from images. Gate only that repository assertion with the existing checkout
+predicate. A fresh-process regression removes git from PATH and makes workflows
+absent, runs the method smoke, and requires at least nine executed tests. It
+first reproduced the exact `KeyError`, then passed; skipping model coverage is
+not the fix. The full local gate and image CI must be refreshed after this change.
