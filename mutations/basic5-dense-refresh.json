@@ -1,0 +1,67 @@
+{
+  "targets": [
+    {
+      "file": "downstream/attention.py",
+      "old": "self.block.apply(self._init_dense_block)",
+      "new": "self.block.apply(lambda module: None)",
+      "tests": [
+        "tests.test_basic5_readers.TestReaders.test_spatial_initialization_matches_current_captured_dense_reader"
+      ],
+      "label": "Remove dense block initialization"
+    },
+    {
+      "file": "downstream/attention.py",
+      "old": "nn.init.xavier_uniform_(self.input_projection.weight)",
+      "new": "nn.init.kaiming_uniform_(self.input_projection.weight, a=5 ** .5)",
+      "tests": [
+        "tests.test_basic5_readers.TestReaders.test_spatial_initialization_matches_current_captured_dense_reader"
+      ],
+      "label": "Replace Xavier input initialization"
+    },
+    {
+      "file": "downstream/attention.py",
+      "old": "nn.init.zeros_(self.input_projection.bias)",
+      "new": "nn.init.ones_(self.input_projection.bias)",
+      "tests": [
+        "tests.test_basic5_readers.TestReaders.test_spatial_initialization_matches_current_captured_dense_reader"
+      ],
+      "label": "Retain dense input bias"
+    },
+    {
+      "file": "downstream/attention.py",
+      "old": "nn.init.trunc_normal_(module.weight, std=.02)",
+      "new": "nn.init.trunc_normal_(module.weight, std=.2)",
+      "tests": [
+        "tests.test_basic5_readers.TestReaders.test_spatial_initialization_matches_current_captured_dense_reader"
+      ],
+      "label": "Change dense block weight scale"
+    },
+    {
+      "file": "downstream/attention.py",
+      "old": "if module.bias is not None:\n                nn.init.zeros_(module.bias)",
+      "new": "if module.bias is not None:\n                nn.init.ones_(module.bias)",
+      "tests": [
+        "tests.test_basic5_readers.TestReaders.test_spatial_initialization_matches_current_captured_dense_reader"
+      ],
+      "label": "Retain dense block linear bias"
+    },
+    {
+      "file": "downstream/attention.py",
+      "old": "nn.init.ones_(module.weight)",
+      "new": "nn.init.zeros_(module.weight)",
+      "tests": [
+        "tests.test_basic5_readers.TestReaders.test_spatial_initialization_matches_current_captured_dense_reader"
+      ],
+      "label": "Zero dense layer norm scale"
+    },
+    {
+      "file": "downstream/attention.py",
+      "old": "tokens = tokens + self.block(tokens)",
+      "new": "tokens = self.block(tokens)",
+      "tests": [
+        "tests.test_basic5_readers.TestReaders.test_spatial_outer_token_residual_preserves_two_identity_paths"
+      ],
+      "label": "Drop outer token residual"
+    }
+  ]
+}

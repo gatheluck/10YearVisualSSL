@@ -228,8 +228,9 @@ def build_frozen_detector(backbone_spec: dict, detector: dict,
     validate_adaptation({"profile": profile, "adaptation": adaptation})
     captured = profile == CAPTURE_PROFILE
     if captured:
-        if backbone_spec["kind"] != "vit":
-            raise NotImplementedError("captured pyramid requires the verified timm vit provider")
+        from downstream.spatial_backbones import supports_capture_pyramid
+        if not supports_capture_pyramid(backbone_spec["kind"]):
+            raise NotImplementedError("captured pyramid requires a verified stride-16 provider")
         if int(backbone_spec["patch_size"]) != 16:
             raise ValueError("captured pyramid requires stride 16")
         if len(detector["anchor_sizes"]) != 4 or any(int(s) <= 0 for s in detector["anchor_sizes"]):

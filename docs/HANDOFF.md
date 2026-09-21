@@ -277,3 +277,44 @@ Before any retry, check both active jobs and successful output directories;
 a log observed before another worker finishes is not a stable retry decision.
 The latest per-profile completion, delivery and unresolved-source ledger is in
 private execution state. Refresh it before reporting collection totals.
+
+## Step-3 reproduction expansion (2026-09-21)
+
+The user requires publication-oriented coverage of all unambiguous paper,
+workbook and captured-code differences, especially Step 3 onward. This is a
+requirement, not a declaration that existing feature providers reproduce all
+experiments. Preserve ambiguous source identities and report them separately.
+
+The [new encoder integration](../methods/vjepa2_1/README.md) connects the pinned
+image/video encoder to all four downstream component CLIs and adds explicit
+provider capabilities for differentiable execution and the captured pyramid.
+SSv2 now preserves native video tokens when the provider supplies them. The
+existing image-provider frame averaging remains unchanged. The shared author
+namespace preparation is reused by the older action-conditioned encoder.
+
+The method/CompEval plan items remain incomplete: no complete ImageNet or
+model-specific LP/AP/FT recipe or paper-score reproduction is claimed. The
+older statement that every non-timm provider is frozen-only is superseded for
+this verified opt-in provider. FT parameter grouping needs model-specific
+mapping: captured families use different block/name rules; do not silently
+apply one family's rules to all providers. Captured source and current data
+availability must be refreshed before broadening the next group of ports.
+
+The user explicitly authorized refreshing CapturePrivate. The new append-only
+source snapshot is `c2d7b913077ffe96e8cfb978cf80062cc07db880`; originals and weights
+remain unchanged. It exposed a dense-reader initialization/residual discrepancy,
+now corrected after behavioral RED/GREEN. Independent comparisons with both
+current shared and video-family readers matched initial parameters, outputs,
+input/parameter gradients and three SGD updates exactly on CPU fixtures.
+Query-reader architectures differ across captured families and remain pending;
+distributed synchronization is outside this single-process component update.
+No changed paper or workbook files were found in the snapshot comparison. This
+does not establish that external documents are current or reproduce their scores.
+
+CI follow-up (2026-09-22): the encoder image built and its runtime tests passed,
+but a new workflow assertion failed because `.github` is deliberately excluded
+from images. Gate only that repository assertion on workflow-directory presence.
+A fresh-process regression removes git from PATH and makes workflows
+absent, runs the method smoke, and requires at least nine executed tests. It
+first reproduced the exact `KeyError`, then passed; skipping model coverage is
+not the fix. The full local gate and image CI must be refreshed after this change.

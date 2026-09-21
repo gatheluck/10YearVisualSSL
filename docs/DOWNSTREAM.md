@@ -2,6 +2,13 @@
 
 Historical design: 2026-08-20. Status reconciled: 2026-09-19.
 
+Dense attentive reader update (2026-09-21): the current shared and video-family
+Capture implementations agree on Xavier input initialization, truncated-normal
+block linear initialization and an outer token residual. These are now reflected
+in `SpatialAdapter`; the output projection remains zero initialized. Query-reader
+architectures differ between source families and remain unchanged. This updates
+component behavior, not canonical eligibility or reproduced scores.
+
 At the start of this work, the port evaluated methods on **one** downstream task: an
 ImageNet-1k linear probe (the `linear_eval` stage). The Capture repo, however,
 evaluates each accepted backbone on a **shared battery of dense and
@@ -314,3 +321,18 @@ changes masks or depth, and it is disabled for validation, frozen and attentive
 execution. `results.json` records `training_color_jitter` from the realized
 training dataset. This remains partial FT execution with noncanonical,
 nonrecordable results; other FT recipe gaps are listed in BASIC5_PROTOCOL.md.
+
+## Explicit provider capabilities (2026-09-21)
+
+Method-owned providers may opt into a differentiable forward with `TRAINABLE =
+True` and `build_trainable(spec)`. Merely toggling a frozen provider's parameter
+flags is not supported. `CAPTURE_PYRAMID = True` separately certifies that the
+provider's spatial geometry and normalization match the captured stride-16
+pyramid. A `video_tokens(clip)` method selects native-video classification:
+normalized global mean for frozen/FT, complete tokens for AP. Providers without
+this method retain the existing image-frame averaging behavior.
+
+The [new verified encoder](../methods/vjepa2_1/README.md) opts into these paths.
+All outputs remain component runs, not proof of canonical recipe or score
+reproduction. Method documentation states remaining optimizer, augmentation,
+ImageNet, full-checkpoint and full-dataset verification gaps.

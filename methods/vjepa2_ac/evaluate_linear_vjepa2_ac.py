@@ -78,12 +78,8 @@ def _prepare_vjepa2_path() -> None:
     dirs. So: drop any cached `src*`/`app*`, remove every other third_party root
     from sys.path, and put third_party/vjepa2 first. Purge-before-import keeps this
     re-entrant, so the two submodule ports can build in either order in-process."""
-    for key in [k for k in sys.modules
-                if k in ("src", "app") or k.startswith(("src.", "app."))]:
-        del sys.modules[key]
-    tp = str(_VJEPA2_SUBMODULE.parent) + os.sep       # <repo>/third_party/
-    sys.path[:] = [q for q in sys.path if not q.startswith(tp)]
-    sys.path.insert(0, str(_VJEPA2_SUBMODULE))
+    from provider_support import prepare_upstream
+    prepare_upstream(_VJEPA2_SUBMODULE, ("src", "app"))
 
 
 def _vision_transformer():

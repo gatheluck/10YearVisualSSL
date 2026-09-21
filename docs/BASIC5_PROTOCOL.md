@@ -27,6 +27,14 @@ sweep need first. The other tracks and the four dense/video datasets now have
 the opt-in components described below; complete recipe conformance remains
 pending.
 
+Dense attentive components were reconciled with the refreshed Capture snapshot
+on 2026-09-21: Xavier input projection, truncated-normal attention-block linear
+weights, zero biases, and an outer token residual in addition to the block's
+internal residuals. The output projection still starts at zero. Both current
+shared and video-family dense readers agree on this behavior. Their query
+readers differ, so this update does not unify query-reader architectures or
+establish complete recipe conformance.
+
 ---
 
 ## Two artifacts, one protocol
@@ -779,3 +787,18 @@ color-jitter gap above: it adds no Mixup/CutMix, FT optimizer/layer groups,
 video strong augmentation or canonical eligibility. Private source comparisons
 check complete transformed tensors and RNG state; synthetic training checks
 are separate from paper-score reproduction.
+
+## Native-video and differentiable encoder integration (2026-09-21)
+
+The [V-JEPA 2.1 provider](../methods/vjepa2_1/README.md) supplies verified image
+patch grids and native video tokens to the four component task runners. It
+explicitly opts into FT and the stride-16/ImageNet-normalized detection pyramid.
+This supersedes the timm-only FT and no-native-video component limitations above
+for this provider, not for arbitrary backbones or full canonical recipes.
+
+For native video, frozen/FT classification normalizes the mean of final tokens;
+AP receives all ordered spatiotemporal tokens. Zero initialization of this
+linear classifier follows the captured native-video model. Image-provider frame
+averaging and legacy paths are unchanged. Existing reports remain noncanonical;
+full FT groups, video regularization, ImageNet integration, accumulation and
+full score reproduction remain outstanding.

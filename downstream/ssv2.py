@@ -22,6 +22,7 @@ loop -- features are recomputed each epoch from the frozen backbone.
 from __future__ import annotations
 
 import argparse
+from contextlib import nullcontext
 import hashlib
 import json
 import random
@@ -254,13 +255,20 @@ class FrozenFrameAverageClassifier(nn.Module):
         self.reader = QueryReader(backbone.out_channels) if adaptation == "attentive" else None
         self.classifier = nn.Linear(512 if self.reader is not None else backbone.out_channels,
                                     num_classes)
-        if self.reader is None and adaptation != "finetune":
+        if self.reader is None and adaptation != "finetune" and not callable(getattr(backbone, "video_tokens", None)):
             nn.init.normal_(self.classifier.weight, std=0.01)
         else:
             nn.init.zeros_(self.classifier.weight)
         nn.init.zeros_(self.classifier.bias)
 
     def forward(self, clips: torch.Tensor) -> torch.Tensor:
+        if callable(getattr(self.backbone, "video_tokens", None)):
+            with nullcontext() if self.adaptation == "finetune" else torch.no_grad():
+                tokens = self.backbone.video_tokens(clips).float()
+                feat = F.normalize(tokens.mean(1), dim=-1) if self.reader is None else None
+            if self.reader is not None:
+                feat = self.reader(tokens)
+            return self.classifier(feat)
         batch, frames, channels, height, width = clips.shape
         flat = clips.view(batch * frames, channels, height, width)
         feat_map = task_spatial_features(self.backbone, flat, adaptation=self.adaptation)

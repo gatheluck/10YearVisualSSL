@@ -72,10 +72,23 @@ class TestCheckpointAndTrainability(unittest.TestCase):
     def test_unknown_trainability_is_not_silently_unfrozen(self):
         builder = getattr(sb, "build_trainable_backbone", None)
         self.assertTrue(callable(builder), "explicit FT builder is required")
-        for kind in sb.discover_providers():
-            with self.subTest(kind=kind), self.assertRaisesRegex(
-                    NotImplementedError, "trainable"):
-                builder({**SPEC, "kind": kind}, torch.device("cpu"))
+        from types import SimpleNamespace
+        from unittest import mock
+        # Capabilities, not the historical assumption that every provider is frozen.
+        for flag, factory in ((False, lambda spec: nn.Linear(2, 2)),
+                              (True, None), (1, lambda spec: nn.Linear(2, 2))):
+            provider = SimpleNamespace(TRAINABLE=flag, build_trainable=factory)
+            with mock.patch.object(sb, "_PROVIDERS", {"fixture": Path("unused")}), \
+                 mock.patch.object(sb, "_load_provider", return_value=provider):
+                with self.assertRaisesRegex(NotImplementedError, "trainable"):
+                    builder({**SPEC, "kind": "fixture"}, torch.device("cpu"))
+        with self.assertRaisesRegex(NotImplementedError, "trainable"):
+            builder({**SPEC, "kind": "not_a_provider"}, torch.device("cpu"))
+        expected = nn.Linear(2, 2)
+        provider = SimpleNamespace(TRAINABLE=True, build_trainable=lambda spec: expected)
+        with mock.patch.object(sb, "_PROVIDERS", {"fixture": Path("unused")}), \
+             mock.patch.object(sb, "_load_provider", return_value=provider):
+            self.assertIs(builder({**SPEC, "kind": "fixture"}, torch.device("cpu")), expected)
 
     def test_finetune_batchnorm_updates_but_frozen_batchnorm_does_not(self):
         cls = getattr(sb, "ViTSpatialBackbone", None)
@@ -160,6 +173,37 @@ class TestReaders(unittest.TestCase):
         for layer in (model.input_projection, model.output_projection):
             self.assertIsInstance(layer, nn.Conv2d)
             self.assertEqual(layer.kernel_size, (1, 1))
+
+    def test_spatial_initialization_matches_current_captured_dense_reader(self):
+        with torch.random.fork_rng(devices=[]):
+            torch.manual_seed(61)
+            model = self.readers().SpatialAdapter(24)
+        projection = model.input_projection
+        self.assertAlmostEqual(float(projection.weight.std().detach()),
+                               (2 / (24 + 256)) ** .5, delta=.004)
+        self.assertEqual(int(torch.count_nonzero(projection.bias)), 0)
+        for layer in (model.block.attention.out_proj, model.block.mlp[0],
+                      model.block.mlp[2]):
+            self.assertAlmostEqual(float(layer.weight.std().detach()), .02, delta=.001)
+            self.assertEqual(int(torch.count_nonzero(layer.bias)), 0)
+        for layer in (model.block.query_norm, model.block.mlp_norm):
+            torch.testing.assert_close(layer.weight, torch.ones_like(layer.weight))
+            torch.testing.assert_close(layer.bias, torch.zeros_like(layer.bias))
+
+    def test_spatial_outer_token_residual_preserves_two_identity_paths(self):
+        model = self.readers().SpatialAdapter(1)
+        with torch.no_grad():
+            for parameter in model.parameters():
+                parameter.zero_()
+            model.input_projection.weight[0, 0, 0, 0] = 1
+            model.output_projection.weight[0, 0, 0, 0] = 1
+        # Zero attention/MLP leaves their internal identity path; the captured
+        # outer token residual contributes a second one, plus the spatial skip.
+        x = torch.tensor([[[[1., -2.], [3., 4.]]]], requires_grad=True)
+        actual = model(x)
+        torch.testing.assert_close(actual, 3 * x, rtol=0, atol=0)
+        actual.sum().backward()
+        torch.testing.assert_close(x.grad, torch.full_like(x, 3), rtol=0, atol=0)
 
     def test_query_reader_rejects_global_and_empty_inputs(self):
         model = self.readers().QueryReader(24)
