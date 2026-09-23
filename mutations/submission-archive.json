@@ -350,6 +350,42 @@
       "tests": [
         "tests.test_submission_archive.TestSubmissionArchive.test_builtin_sensitive_content_and_external_links"
       ]
+    },
+    {
+      "label": "test_basic5_attentive_tasks workflow guard removed",
+      "file": "tests/test_basic5_attentive_tasks.py",
+      "old": "    @needs_checkout\n    def test_downstream_lock_runs_attentive_task_contracts",
+      "new": "    def test_downstream_lock_runs_attentive_task_contracts",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_repository_only_workflow_assertions_require_a_checkout"
+      ]
+    },
+    {
+      "label": "test_basic5_finetune_tasks workflow guard removed",
+      "file": "tests/test_basic5_finetune_tasks.py",
+      "old": "    @needs_checkout\n    def test_downstream_job_executes_finetune_tests",
+      "new": "    def test_downstream_job_executes_finetune_tests",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_repository_only_workflow_assertions_require_a_checkout"
+      ]
+    },
+    {
+      "label": "test_basic5_optimization workflow guard removed",
+      "file": "tests/test_basic5_optimization.py",
+      "old": "    @needs_checkout\n    def test_downstream_job_runs_optimization_with_real_dependencies",
+      "new": "    def test_downstream_job_runs_optimization_with_real_dependencies",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_repository_only_workflow_assertions_require_a_checkout"
+      ]
+    },
+    {
+      "label": "README notice duplicates license again",
+      "file": "README.md",
+      "old": "in [LICENSE](LICENSE).",
+      "new": "in [LICENSE](LICENSE).\nCopyright (c) 2026 Example holder",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_root_readme_can_reference_license_without_duplicating_notice"
+      ]
     }
   ]
 }

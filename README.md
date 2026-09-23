@@ -662,8 +662,8 @@ The separation is **held by machinery** —
 
 ## License
 
-**The code in this repository is MIT** (`LICENSE`,
-Copyright (c) 2026 LIMIT.Lab).
+**The code in this repository is MIT**; see the rights-holder notice and terms
+in [LICENSE](LICENSE).
 
 MIT covers **only the code we wrote**.
 

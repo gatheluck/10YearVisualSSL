@@ -392,3 +392,41 @@ class TestSubmissionArchive(unittest.TestCase):
             self.write('main.py', '# '+value+'\n'); self.commit()
             self.assertFalse(self.run_build())
             self.assertFalse(self.out.exists())
+
+    def test_root_readme_can_reference_license_without_duplicating_notice(self):
+        source = (TOOL.parents[1]/'README.md').read_text()
+        self.write('README.md', source); self.commit()
+        self.policy['include'].append('README.md')
+        self.policy['replacements']['README.md'] = {
+            'sha256': hashlib.sha256(source.encode()).hexdigest(),
+            'text': '# Anonymous source\n\nSee [LICENSE](LICENSE).\n',
+            'reason': 'Replace first-party introduction while preserving LICENSE.'}
+        self.assertTrue(self.run_build())
+        with zipfile.ZipFile(self.out) as z:
+            self.assertEqual(z.read('code/LICENSE'), (self.repo/'LICENSE').read_bytes())
+            self.assertIn('code/LICENSE', z.namelist())
+
+    def test_repository_only_workflow_assertions_require_a_checkout(self):
+        root = TOOL.parents[1]
+        stage = self.base/'export'; (stage/'tests').mkdir(parents=True)
+        (stage/'tests/__init__.py').write_text('')
+        modules = ('test_basic5_attentive_tasks', 'test_basic5_finetune_tasks', 'test_basic5_optimization')
+        for name in (*modules, '_checkout'):
+            shutil.copyfile(root/'tests'/f'{name}.py', stage/'tests'/f'{name}.py')
+        # Isolate the workflow reader from optional PyYAML: an absent workflow is
+        # always an error inside a checkout, never a dependency-based skip.
+        (stage/'tests/test_ci.py').write_text('HAVE_YAML = True\ndef parsed(): return {}\n')
+        names = ('TestAttentiveCI.test_downstream_lock_runs_attentive_task_contracts',
+                 'TestFinetuneCI.test_downstream_job_executes_finetune_tests',
+                 'TestOptimizationCI.test_downstream_job_runs_optimization_with_real_dependencies')
+        args = [sys.executable, '-m', 'unittest', '-v',
+                *(f'tests.{m}.{n}' for m,n in zip(modules,names))]
+        result = subprocess.run(args, cwd=stage, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stdout+result.stderr)
+        self.assertIn('Ran 3 tests', result.stderr)
+        self.assertIn('skipped=3', result.stderr)
+        self.git('init', '-q', cwd=stage)
+        result = subprocess.run(args, cwd=stage, capture_output=True, text=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(result.stderr.count("KeyError: 'tests.yml'"), 3, result.stderr)
+        self.assertIn('Ran 3 tests', result.stderr)

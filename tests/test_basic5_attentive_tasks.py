@@ -6,6 +6,8 @@ import tempfile
 import unittest
 from unittest import mock
 
+from tests._checkout import needs_checkout
+
 try:
     import torch
     from torch import nn
@@ -25,6 +27,7 @@ PROFILE = "capture_basic5_components"
 
 
 class TestAttentiveCI(unittest.TestCase):
+    @needs_checkout
     def test_downstream_lock_runs_attentive_task_contracts(self):
         from tests.test_ci import HAVE_YAML, parsed
         if not HAVE_YAML:

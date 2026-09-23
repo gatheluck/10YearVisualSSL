@@ -390,3 +390,10 @@ hashes and validation evidence stay outside Git. Consult current task evidence
 for the real ZIP status; neither a fixture pass nor a broad source audit proves
 submission readiness or paper-score reproduction. The dirty submodule checkout
 remains unrelated and must be preserved.
+
+The trial also found duplicated first-party attribution in the root README;
+it now links to the authoritative LICENSE instead. Three Basic5 workflow-only
+assertions attempted to read missing CI files in a Git-free export. They now
+use the established checkout guard on those methods only; scientific tests and
+invocation-parser controls remain active. A subprocess regression verifies both
+Git-free skipping and failure for a checkout with missing workflow definitions.
