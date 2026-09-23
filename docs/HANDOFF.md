@@ -343,3 +343,30 @@ be consulted for its final status. Remaining work includes ImageNet FT recipe
 ambiguity, family-specific query readers, accumulation/distributed semantics,
 additional model adapters, Extend and Step-4 experiments and real score/seed
 reproduction. Do not mark these complete because component execution succeeds.
+
+### Anonymous supplementary archive (2026-09-23)
+
+The user requested an early, repeatable, test-driven submission ZIP workflow.
+[The archive tool and guide](SUBMISSION_ARCHIVE.md) export committed sources and
+parent-pinned submodule contents with a private allowlist, disclosure checks,
+hash-bound replacements/approvals and deterministic ZIP output. Git metadata is
+omitted; copyright notices are retained and cannot be silently anonymized.
+Private identifying terms and audit reports belong outside Git. The example
+policy is deliberately minimal and must not be mistaken for a complete export.
+
+Fixture tests cover packaging and blocking behavior, including execution from an
+unpacked archive. They do not establish that a real project submission is ready.
+Before final delivery, review the full file selection, all identity terms,
+license conflicts, approved binary/link contents and unpacked experiment runs.
+Unknown identifiers and indirectly identifying prose still need human review.
+This packaging task does not change scientific implementations or ABCI inputs.
+
+Initial local validation: 29 archive tests passed; 29/29 archive mutants were
+detected after adding a separate original-size test (a small replacement must
+not bypass the input-size budget). The focused archive/repository guard set
+passed 59 tests before two final test refinements. The base suite passed 3,572
+tests (1,545 dependency/environment skips) before the malformed-policy refinement.
+Final full-suite and CI results must be read from the task/PR evidence;
+these counts do not certify a later commit or a real submission ZIP.
+The repository argument must be the verified checkout root; allowing a nested
+directory was shown to weaken output containment and is now rejected.
