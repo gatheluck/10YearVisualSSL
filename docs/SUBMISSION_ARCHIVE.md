@@ -4,6 +4,8 @@
 deterministic ZIP only when the audit passes. It does not modify the checkout,
 fetch dependencies, upload anything, or establish scientific reproducibility.
 Python's standard library and Git are required.
+Run from the checkout root, or specify that root with `--repo`. A subdirectory
+is rejected so it cannot weaken the private-output boundary.
 
 The policy, report and ZIP must be kept outside the checkout. The report contains
 private paths and commit identifiers: **never attach it to a submission**.

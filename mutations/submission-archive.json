@@ -251,6 +251,15 @@
       "tests": [
         "tests.test_submission_archive.TestSubmissionArchive.test_documented_policy_and_cli_example_produce_working_zip"
       ]
+    },
+    {
+      "label": "subdirectory weakens output boundary",
+      "file": "bin/submission-archive.py",
+      "old": "if actual_root != root:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_subdirectory_cannot_bypass_private_output_boundary"
+      ]
     }
   ]
 }

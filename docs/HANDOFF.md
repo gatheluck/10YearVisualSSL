@@ -361,10 +361,12 @@ license conflicts, approved binary/link contents and unpacked experiment runs.
 Unknown identifiers and indirectly identifying prose still need human review.
 This packaging task does not change scientific implementations or ABCI inputs.
 
-Initial local validation: 28 archive tests passed; 28/28 archive mutants were
+Initial local validation: 29 archive tests passed; 29/29 archive mutants were
 detected after adding a separate original-size test (a small replacement must
 not bypass the input-size budget). The focused archive/repository guard set
 passed 59 tests before two final test refinements. The base suite passed 3,572
 tests (1,545 dependency/environment skips) before the malformed-policy refinement.
 Final full-suite and CI results must be read from the task/PR evidence;
 these counts do not certify a later commit or a real submission ZIP.
+The repository argument must be the verified checkout root; allowing a nested
+directory was shown to weaken output containment and is now rejected.

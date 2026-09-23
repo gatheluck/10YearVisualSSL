@@ -271,3 +271,11 @@ class TestSubmissionArchive(unittest.TestCase):
         self.assertEqual(r.returncode,2)
         self.assertNotIn('Traceback',r.stderr)
         self.assertFalse(self.out.exists())
+
+    def test_subdirectory_cannot_bypass_private_output_boundary(self):
+        nested=self.repo/'nested';nested.mkdir()
+        private_report=self.repo/'private-report.json'
+        with self.assertRaises(ValueError):
+            self.module().build(nested,self.policy,private_report,self.out)
+        self.assertFalse(private_report.exists())
+        self.assertFalse(self.out.exists())

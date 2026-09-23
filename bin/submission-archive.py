@@ -213,6 +213,9 @@ def atomic_report(path, report):
 def build(repo, policy, report_path, output=None, ref='HEAD'):
     policy_check(policy)
     root = Path(repo).resolve()
+    actual_root = Path(git(root, 'rev-parse', '--show-toplevel').decode().strip()).resolve()
+    if actual_root != root:
+        raise ValueError('repo must name the checkout root, not a subdirectory')
     report_path = Path(report_path).resolve()
     output = Path(output).absolute() if output is not None else None
     for p in (report_path, output):
