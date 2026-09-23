@@ -279,3 +279,116 @@ class TestSubmissionArchive(unittest.TestCase):
             self.module().build(nested,self.policy,private_report,self.out)
         self.assertFalse(private_report.exists())
         self.assertFalse(self.out.exists())
+
+    def authorize_root_notice(self):
+        original = 'MIT License\n\nCopyright (c) 2026 private-owner\n\nPermission and warranty terms remain intact.\n'
+        self.write('LICENSE', original)
+        self.commit()
+        self.policy['first_party_license'] = {
+            'sha256': hashlib.sha256(original.encode()).hexdigest(),
+            'copyright_line': 'Copyright (c) 2026 private-owner',
+            'authorized': True,
+            'reason': 'Rights holder requests an anonymous review copy.',
+        }
+        return original
+
+    def test_authorized_root_notice_preserves_terms_and_source(self):
+        original = self.authorize_root_notice()
+        self.write('vendor/LICENSE', 'Copyright Third Party\nKeep these terms.\n')
+        self.commit()
+        self.assertTrue(self.run_build())
+        with zipfile.ZipFile(self.out) as z:
+            self.assertEqual(z.read('code/LICENSE').decode(), original.replace(
+                'Copyright (c) 2026 private-owner', 'Copyright (c) 2026 Anonymous authors'))
+            self.assertEqual(z.read('code/vendor/LICENSE'), b'Copyright Third Party\nKeep these terms.\n')
+        self.assertEqual((self.repo/'LICENSE').read_text(), original)
+        report = json.loads(self.report.read_text())
+        record = next(x for x in report['files'] if x['path'] == 'LICENSE')
+        self.assertTrue(record['replaced'])
+        self.assertNotEqual(record['source_sha256'], record['archive_sha256'])
+
+    def test_authorized_root_notice_still_scans_remaining_contents(self):
+        self.authorize_root_notice()
+        original = (self.repo/'LICENSE').read_text() + 'Sensitive Person\n'
+        self.write('LICENSE', original); self.commit()
+        self.policy['first_party_license']['sha256'] = hashlib.sha256(original.encode()).hexdigest()
+        self.assert_blocked('identifier')
+
+    def test_root_notice_authorization_is_hash_and_line_bound(self):
+        self.authorize_root_notice()
+        self.policy['first_party_license']['sha256'] = '0'*64
+        self.assert_blocked('stale-license-authorization')
+        self.policy['first_party_license']['sha256'] = hashlib.sha256((self.repo/'LICENSE').read_bytes()).hexdigest()
+        self.policy['first_party_license']['copyright_line'] = 'Copyright (c) 2026 wrong-holder'
+        self.assert_blocked('license-authorization-line')
+
+    def test_root_notice_authorization_cannot_target_other_files(self):
+        self.authorize_root_notice()
+        self.policy['first_party_license']['path'] = 'vendor/LICENSE'
+        with self.assertRaises(ValueError): self.run_build()
+        del self.policy['first_party_license']['path']
+        self.write('vendor/LICENSE', 'Copyright (c) 2026 private-owner\n'); self.commit()
+        self.assert_blocked('identifier')
+
+    def test_root_notice_requires_explicit_valid_authorization(self):
+        self.authorize_root_notice()
+        for value in (False, 1, 'yes', None):
+            self.policy['first_party_license']['authorized'] = value
+            with self.assertRaises(ValueError): self.run_build()
+        self.policy['first_party_license']['authorized'] = True
+        for line in ('', 'Permission notice', 'Copyright (c) 2026 owner\nextra'):
+            self.policy['first_party_license']['copyright_line'] = line
+            with self.assertRaises(ValueError): self.run_build()
+
+    def test_root_notice_authorization_is_not_a_general_replacement(self):
+        self.authorize_root_notice()
+        self.policy['replacements']['LICENSE'] = {
+            'sha256': hashlib.sha256((self.repo/'LICENSE').read_bytes()).hexdigest(),
+            'text': 'Terms removed', 'reason': 'Invalid blanket change'}
+        self.assert_blocked('license-replacement')
+
+    def test_absent_or_repeated_root_notice_is_rejected(self):
+        self.authorize_root_notice()
+        original = (self.repo/'LICENSE').read_text()
+        self.write('LICENSE', original + 'Copyright (c) 2026 private-owner\n'); self.commit()
+        self.policy['first_party_license']['sha256'] = hashlib.sha256((self.repo/'LICENSE').read_bytes()).hexdigest()
+        self.assert_blocked('license-authorization-line')
+        (self.repo/'LICENSE').unlink(); self.commit()
+        self.assert_blocked('unused-license-authorization')
+
+    def test_readme_config_examples_create_resolvable_files(self):
+        readme = (TOOL.parents[1]/'README.md').read_text()
+        commands = [line for line in readme.splitlines()
+                    if line.startswith('mkdir -p configs && printf') or line.startswith('printf ')]
+        self.assertEqual(len(commands), 2)
+        for command in commands:
+            result = subprocess.run(command, shell=True, cwd=self.base, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue((self.base/'configs/base.json').is_file())
+        self.assertTrue((self.base/'configs/example.json').is_file())
+        resolved = self.base/'resolved.json'
+        result = subprocess.run([sys.executable, str(TOOL.with_name('resolve-config.py')),
+                                 '--config', str(self.base/'configs/example.json'),
+                                 '--set', 'DATA_ROOT=/data', '--out', str(resolved)],
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        data = json.loads(resolved.read_text())
+        self.assertEqual(data['seed'], 0)
+        self.assertEqual(data['optimizer']['lr'], 0.03)
+        self.assertEqual(data['data_root'], '/data')
+
+    def test_scheduler_job_templates_are_not_account_paths(self):
+        for value in ('/scratch/slurm_tmpdir/{job_id}/',
+                      "/scratch/slurm_tmpdir/{os.environ['SLURM_JOB_ID']}"):
+            self.write('main.py', '# '+value+'\n'); self.commit()
+            self.assertTrue(self.run_build())
+            self.out.unlink()
+        for value in ('/scratch/slurm_tmpdir/alice/',
+                      '/scratch/slurm_tmpdir/{job_id}/alice',
+                      '/scratch/slurm_tmpdir/{unknown}/',
+                      '/scratch/alice/{job_id}/',
+                      '/scratch/slurm_tmpdir/{job_id}/ /home/alice/project',
+                      '/scratch/slurm_tmpdir/{job_id}/ private-owner'):
+            self.write('main.py', '# '+value+'\n'); self.commit()
+            self.assertFalse(self.run_build())
+            self.assertFalse(self.out.exists())

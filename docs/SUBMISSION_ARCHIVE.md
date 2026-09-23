@@ -77,7 +77,9 @@ from the unpacked copy before attaching **only the ZIP** to the submission.
 The detector scans file names and text for the forbidden terms, case-insensitively
 with Unicode, percent/entity and invisible-format normalization. It also detects
 email addresses, local account/cluster paths, common private-key/token markers,
-web/Git links and embedded base64 media. These conservative rules can flag public
+web/Git links and embedded base64 media. Complete scheduler scratch templates using only a
+job ID are recognized as generic infrastructure paths; concrete account paths,
+unknown expressions and trailing private directories remain blocked. These conservative rules can flag public
 upstream references. They are not exhaustive secret or identity detection.
 
 For a reviewed text-only submission variant, add a full-file replacement:
@@ -93,9 +95,23 @@ This is suitable for an anonymous README, not blanket string deletion from code.
 License/notice files are retained in each visited repository even when omitted
 from `include`. Explicitly excluding them blocks generation. License files and
 source files with recognized copyright/SPDX headers cannot be replaced through
-this tool. If identifying rights notices conflict with anonymity, obtain an
-appropriate rights-holder/conference resolution separately. Do not remove
-required attribution or treat an audit override as licensing permission.
+this tool. A narrowly scoped exception is available for the project's own root `LICENSE`,
+when the rights holder authorizes an anonymous review copy. Add the optional
+`first_party_license` policy field:
+
+```json
+{"sha256": "<original root LICENSE SHA256>", "copyright_line": "Copyright (c) 2026 <rights holder>", "authorized": true, "reason": "<record of the rights-holder instruction>"}
+```
+
+The tool requires exactly one matching complete copyright line and the original
+file hash. It changes only that line's holder to `Anonymous authors`, preserving
+the year, all other bytes and the original checkout. No path selector is accepted:
+this cannot authorize edits to vendor licenses or source copyright headers.
+All remaining content is scanned normally; the private report records the
+original and packaged hashes. General license replacement/exclusion stays blocked.
+The authorization is the caller's attestation, not a legal determination by the
+tool. Do not use it for rights owned by third parties or treat a passed audit as
+licensing permission.
 
 A manually inspected public reference or binary can receive a narrowly scoped
 approval in `approvals`:
