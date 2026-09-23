@@ -243,7 +243,10 @@ class TestSubmissionArchive(unittest.TestCase):
         self.write('README.md','Run main.py for the fixture.\n');self.commit()
         # Use the example without private identifiers or edits.
         self.policy=policy
-        self.assertTrue(self.run_build())
+        private_policy=self.base/'policy.json';private_policy.write_text(json.dumps(policy))
+        result=subprocess.run([sys.executable,str(TOOL),'--repo',str(self.repo),'--ref','HEAD','--policy',str(private_policy),'--report',str(self.report),'--out',str(self.out)],capture_output=True,text=True)
+        self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+        self.assertTrue(self.out.is_file(),'documented CLI did not create the archive')
         with zipfile.ZipFile(self.out) as z:
             self.assertIn('code/README.md',z.namelist())
             self.assertIn('code/LICENSE',z.namelist())
@@ -260,3 +263,11 @@ class TestSubmissionArchive(unittest.TestCase):
         self.policy['version']=True
         with self.assertRaises(ValueError):
             self.run_build()
+
+    def test_malformed_approval_is_a_clean_cli_validation_error(self):
+        self.policy['approvals']['main.py']={'sha256':'0'*64,'rules':[{}],'reason':'fixture'}
+        policy=self.base/'policy.json';policy.write_text(json.dumps(self.policy))
+        r=subprocess.run([sys.executable,str(TOOL),'--repo',str(self.repo),'--policy',str(policy),'--report',str(self.report),'--out',str(self.out)],capture_output=True,text=True)
+        self.assertEqual(r.returncode,2)
+        self.assertNotIn('Traceback',r.stderr)
+        self.assertFalse(self.out.exists())

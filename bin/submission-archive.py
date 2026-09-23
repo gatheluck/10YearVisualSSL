@@ -82,7 +82,7 @@ def policy_check(policy):
             if section == 'replacements' and not isinstance(entry['text'], str):
                 raise ValueError('replacement must be text')
             if section == 'approvals' and (not isinstance(entry['rules'], list) or not entry['rules'] or
-                    any(x not in APPROVABLE for x in entry['rules'])):
+                    any(not isinstance(x, str) or x not in APPROVABLE for x in entry['rules'])):
                 raise ValueError('invalid approval rule; identifiers cannot be waived')
 
 

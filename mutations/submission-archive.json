@@ -233,6 +233,24 @@
       "tests": [
         "tests.test_submission_archive.TestSubmissionArchive.test_committed_export_is_deterministic_and_runs_without_checkout"
       ]
+    },
+    {
+      "label": "malformed approval causes traceback",
+      "file": "bin/submission-archive.py",
+      "old": "not isinstance(x, str) or x not in APPROVABLE",
+      "new": "x not in APPROVABLE",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_malformed_approval_is_a_clean_cli_validation_error"
+      ]
+    },
+    {
+      "label": "CLI ignores archive output",
+      "file": "bin/submission-archive.py",
+      "old": "args.report, args.out, args.ref",
+      "new": "args.report, None, args.ref",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_documented_policy_and_cli_example_produce_working_zip"
+      ]
     }
   ]
 }
