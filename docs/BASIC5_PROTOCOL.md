@@ -802,3 +802,34 @@ linear classifier follows the captured native-video model. Image-provider frame
 averaging and legacy paths are unchanged. Existing reports remain noncanonical;
 full FT groups, video regularization, ImageNet integration, accumulation and
 full score reproduction remain outstanding.
+
+## Broader training components (2026-09-22)
+
+This update supersedes the older blanket statement that all FT parameter groups
+and all ImageNet integration are missing. It does not supersede the outstanding
+canonical-recipe and score-reproduction requirements.
+
+- Four downstream tasks now have explicit, provider-owned FT parameter groups:
+  dense AdamW 1e-4/reference batch 8, weight decay .05, layer decay .8; COCO SGD
+  .02/reference batch 16, momentum .9, weight decay .0001, layer decay 1; SSv2
+  AdamW .0005/reference batch 256, weight decay .05, layer decay .75. Encoder
+  stem is layer 0, blocks are 1..depth, final block norms are depth, and task
+  heads are depth+1. Layer LR scale is decay raised to depth+1 minus layer.
+  Mapping is enabled only by a verified provider, not guessed from model names.
+- Reference-batch schedules cover all twelve task/adaptation combinations.
+  Full physical batch and one process remain mandatory. All other-batch cosine
+  interpretations and accumulation clocks stay pending.
+- Online ImageNet LP/AP includes dataset geometry, explicit provider readout,
+  training, scheduling and evaluation. ImageNet FT composition is differentiable
+  and tested, but its CLI recipe remains refused because augmentation evidence
+  is not unambiguous. This does not fill the separate method-adapter checklist.
+
+See [interfaces and full configuration](DOWNSTREAM.md#extended-training-components-2026-09-22).
+Captured-family CPU comparisons cover fourteen schedules at two loader lengths,
+all FT parameter assignments for four task optimizers, and three classification
+compositions through three updates. They use small identical encoder copies,
+not independently loaded released-weight benchmarks. Source provenance stays
+in private evidence. Full dataset scores, seed aggregates, GPU validation of
+this update, model-family generalization, distributed execution and broader
+Step-4 tasks are not established by these component tests. Workbook numbers
+remain reference evidence, never fabricated test outputs.

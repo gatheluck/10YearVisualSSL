@@ -39,6 +39,7 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 from downstream.optimization import resolve_optimization, build_optimizer, require_training_batches
+from downstream.optimization import REFERENCE_SCHEDULE, build_task_scheduler, task_schedule_report
 from downstream.optimization import build_dense_ap_scheduler, dense_ap_schedule_report
 from downstream.photometric import captured_color_jitter
 from downstream.attention import (SpatialAdapter, task_spatial_features,
@@ -418,7 +419,9 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
                        or probe["max_steps_per_epoch"])
     epochs = int(probe["epochs"])
     max_steps = int(probe["max_steps_per_epoch"]) or None
-    scheduler = (build_dense_ap_scheduler(optimizer, len(train_loader), epochs)
+    scheduler = (build_task_scheduler(optimizer, optimization, len(train_loader))
+                 if cfg.get("scheduler_profile") == REFERENCE_SCHEDULE else
+                 build_dense_ap_scheduler(optimizer, len(train_loader), epochs)
                  if "scheduler_profile" in cfg else None)
     print(f"NYUv2 depth  device={device}  backbone={cfg['backbone']['kind']}"
           f"({'trained' if cfg['backbone'].get('encoder') else 'random (smoke)'})"
@@ -450,7 +453,9 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
     if captured:
         raw.update({k: float(metrics[k]) for k in ("delta1", "delta2", "delta3")})
     if scheduler is not None:
-        optimization["schedule"] = dense_ap_schedule_report(scheduler, len(train_loader), epochs, max_steps)
+        optimization["schedule"] = (task_schedule_report(scheduler, optimization, len(train_loader), max_steps)
+                                    if cfg.get("scheduler_profile") == REFERENCE_SCHEDULE else
+                                    dense_ap_schedule_report(scheduler, len(train_loader), epochs, max_steps))
     contract.write_metrics(out, raw, METRIC_NAMES)
     (Path(out) / "results.json").write_text(
         json.dumps({"task": TASK, "backbone": cfg["backbone"],

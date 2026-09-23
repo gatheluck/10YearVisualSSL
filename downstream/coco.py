@@ -42,6 +42,7 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 from downstream.optimization import resolve_optimization, build_optimizer, require_training_batches
+from downstream.optimization import REFERENCE_SCHEDULE, task_schedule_report
 from downstream.optimization import build_coco_scheduler
 from downstream.attention import (SpatialAdapter, task_spatial_features,
                                   validate_adaptation, clip_attentive_gradients)
@@ -381,7 +382,9 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
         print(f"[{epoch + 1}/{epochs}] loss={loss:.4f} "
               f"mAP={metrics['bbox_mAP']:.4f} mAP50={metrics['bbox_mAP_50']:.4f}")
 
-    if scheduler is not None:
+    if cfg.get("scheduler_profile") == REFERENCE_SCHEDULE:
+        optimization["schedule"] = task_schedule_report(scheduler, optimization, len(train_loader), max_steps)
+    elif scheduler is not None:
         optimization["schedule"] = {
             "profile": cfg["scheduler_profile"], "warmup_updates": 500,
             "warmup_start_factor": .001, "milestone_epochs": [8, 11],

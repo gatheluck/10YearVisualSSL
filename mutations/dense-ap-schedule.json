@@ -120,8 +120,8 @@
     {
       "label": "Truncation",
       "file": "downstream/optimization.py",
-      "old": "bool(max_steps and max_steps < steps_per_epoch)",
-      "new": "False",
+      "old": "\"truncated\": bool(max_steps and max_steps < steps_per_epoch)",
+      "new": "\"truncated\": False",
       "tests": [
         "tests.test_dense_ap_schedule.TestDenseScheduleCLI.test_ade_real_cli"
       ]

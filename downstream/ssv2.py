@@ -42,6 +42,7 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 from downstream.optimization import resolve_optimization, build_optimizer, require_training_batches
+from downstream.optimization import build_task_scheduler, task_schedule_report
 from downstream.attention import (task_spatial_features, QueryReader,
                                   validate_adaptation, clip_attentive_gradients)
 from downstream import contract                                    # noqa: E402
@@ -81,7 +82,7 @@ def validate_config(cfg: dict) -> None:
         if key in cfg:
             raise ConfigError(
                 f"config: {key} is set; the output location is fixed at --out")
-    _named(TOP_KEYS - set(cfg), set(cfg) - (TOP_KEYS | {"profile", "adaptation", "optimizer_profile"}), "config")
+    _named(TOP_KEYS - set(cfg), set(cfg) - (TOP_KEYS | {"profile", "adaptation", "optimizer_profile", "scheduler_profile"}), "config")
     try:
         validate_adaptation(cfg)
     except ValueError as exc:
@@ -349,6 +350,7 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
                        or probe["max_steps_per_epoch"])
     epochs = int(probe["epochs"])
     max_steps = int(probe["max_steps_per_epoch"]) or None
+    scheduler = build_task_scheduler(optimizer, optimization, len(train_loader))
     print(f"SSv2 video  device={device}  backbone={cfg['backbone']['kind']}"
           f"({'trained' if cfg['backbone'].get('encoder') else 'random (smoke)'})"
           f"  epochs={epochs}  frames={num_frames}")
@@ -367,9 +369,14 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
             loss.backward()
             clip_attentive_gradients(model, adaptation)
             optimizer.step()
+            if scheduler is not None:
+                scheduler.step()
         metrics = evaluate(model, val_loader, device)
         print(f"[{epoch + 1}/{epochs}] top1={metrics['top1']:.3f} "
               f"top5={metrics['top5']:.3f}")
+
+    if scheduler is not None:
+        optimization["schedule"] = task_schedule_report(scheduler, optimization, len(train_loader), max_steps)
 
     raw = {"top1": float(metrics["top1"]), "top5": float(metrics["top5"]),
            "videos": int(metrics["videos"]), "epochs": epochs}

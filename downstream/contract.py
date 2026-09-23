@@ -33,6 +33,8 @@ PER_TASK = "per-task"
 # counters are per-task bookkeeping. A task runner may write only these names.
 # Add a name together with the runner that writes it, never ahead of one.
 DOWNSTREAM_METRICS = {
+    "imagenet_top1": COMPARABLE,
+    "imagenet_top5": COMPARABLE,
     "ade20k_miou": COMPARABLE,
     "ade20k_pixel_accuracy": COMPARABLE,
     "coco_map": COMPARABLE,

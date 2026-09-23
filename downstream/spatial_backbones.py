@@ -258,3 +258,13 @@ def supports_capture_pyramid(kind):
 def requires_component_profile(kind):
     """Partial integrations must never inherit a legacy table-producing recipe."""
     return kind in _PROVIDERS and getattr(_load_provider(_PROVIDERS[kind]), "COMPONENT_ONLY", False) is True
+
+
+def supports_finetune_groups(kind):
+    """A differentiable encoder alone does not define its layer-decay mapping."""
+    return kind in _PROVIDERS and getattr(_load_provider(_PROVIDERS[kind]), "FINETUNE_GROUPS", False) is True
+
+
+def supports_image_classification(kind):
+    """Explicit mean/L2 global readout, query reader and ImageNet normalization."""
+    return kind in _PROVIDERS and getattr(_load_provider(_PROVIDERS[kind]), "IMAGE_CLASSIFICATION", False) is True

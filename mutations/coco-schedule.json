@@ -21,7 +21,7 @@
     {
       "label": "Missing compatible optimizer",
       "file": "downstream/optimization.py",
-      "old": "if cfg.get(\"optimizer_profile\") != PROFILE:",
+      "old": "if cfg[\"scheduler_profile\"] != REFERENCE_SCHEDULE and cfg.get(\"optimizer_profile\") != PROFILE:",
       "new": "if False:",
       "tests": [
         "tests.test_coco_schedule.TestSchedule.test_selection_and_invalid_profiles_fail_before_data_access"

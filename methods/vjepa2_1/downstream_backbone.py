@@ -7,6 +7,7 @@ profile and does not establish complete protocol or score reproduction.
 """
 from contextlib import nullcontext
 from pathlib import Path
+import re
 
 import torch
 from torch import nn
@@ -19,6 +20,8 @@ UPSTREAM = "https://github.com/facebookresearch/vjepa2"
 TRAINABLE = True
 CAPTURE_PYRAMID = True
 COMPONENT_ONLY = True
+FINETUNE_GROUPS = True
+IMAGE_CLASSIFICATION = True
 _VARIANTS = {"vit_large": "ema_encoder", "vit_giant_xformers": "target_encoder"}
 
 
@@ -95,6 +98,29 @@ class Backbone(nn.Module):
 
     def forward(self, images):
         return self.forward_features(images)
+
+    def finetune_group_policy(self):
+        """Captured encoder-relative layer IDs; task heads are owned by callers."""
+        depth = len(self.encoder.blocks)
+        entries = {}
+        blocks = set()
+        for name, param in self.named_parameters():
+            if not param.requires_grad:
+                continue
+            match = re.search(r"(?:^|\.)blocks\.(\d+)\.", name)
+            layer = 0
+            if match:
+                index = int(match[1])
+                blocks.add(index)
+                layer = index + 1
+            elif "norms_block" in name:
+                layer = depth
+            no_decay = any(part in name.lower() for part in (
+                "bias", "norm", "img_mod_embed", "video_mod_embed", "cls_token", "pos_embed"))
+            entries[name] = (layer, no_decay)
+        if blocks != set(range(depth)):
+            raise ValueError("finetune policy requires every encoder block exactly in range")
+        return depth + 1, entries
 
 
 def build(spec):

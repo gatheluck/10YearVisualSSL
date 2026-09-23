@@ -318,3 +318,28 @@ A fresh-process regression removes git from PATH and makes workflows
 absent, runs the method smoke, and requires at least nine executed tests. It
 first reproduced the exact `KeyError`, then passed; skipping model coverage is
 not the fix. The full local gate and image CI must be refreshed after this change.
+
+## Grouped training coverage (2026-09-22, in progress)
+
+PR #189 was verified merged at `4e6b92d6dd4618291ee3665497f5bc0194edfade`;
+its tree matched the tested head and all 109 PR checks succeeded. Refresh later
+CI and branch state before resuming. Preserve the unrelated case-colliding
+submodule checkout described above.
+
+The user requested a large grouped expansion under deadline, retaining strict
+TDD, private reference evidence and review before merge. The follow-up branch
+adds provider-owned FT groups across four tasks, twelve reference-batch
+schedules, and online ImageNet LP/AP. The ImageNet FT model composition is
+available for comparison but its full execution recipe is deliberately refused
+until augmentation evidence is reconciled. See the
+[current boundaries](BASIC5_PROTOCOL.md#broader-training-components-2026-09-22)
+and [execution interface](DOWNSTREAM.md#extended-training-components-2026-09-22).
+
+Capture snapshot `d8e82adc094ca68624d0f98bd6425c9ec976966f` supplied current
+optimizer, schedule and classification references. Numerical source comparisons
+passed on small CPU fixtures; no full-score, all-model or new GPU validation is
+implied. The task's RED/GREEN, source hashes, mutation and delivery evidence must
+be consulted for its final status. Remaining work includes ImageNet FT recipe
+ambiguity, family-specific query readers, accumulation/distributed semantics,
+additional model adapters, Extend and Step-4 experiments and real score/seed
+reproduction. Do not mark these complete because component execution succeeds.
