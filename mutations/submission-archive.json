@@ -1,0 +1,238 @@
+{
+  "targets": [
+    {
+      "label": "identifier scan disabled",
+      "file": "bin/submission-archive.py",
+      "old": "finding(path, 'identifier')",
+      "new": "pass",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_identifiers_in_content_and_paths_are_blocked"
+      ]
+    },
+    {
+      "label": "normalization removed",
+      "file": "bin/submission-archive.py",
+      "old": "text = html.unescape(unquote(text))",
+      "new": "text = text",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_encoded_and_unicode_identifiers_are_blocked"
+      ]
+    },
+    {
+      "label": "builtin checks disabled",
+      "file": "bin/submission-archive.py",
+      "old": "if re.search(pattern, scan) and rule not in approved:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_builtin_sensitive_content_and_external_links"
+      ]
+    },
+    {
+      "label": "replacement hash ignored",
+      "file": "bin/submission-archive.py",
+      "old": "elif digest(original) != replacement['sha256']:",
+      "new": "elif False:",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_replacement_is_hash_bound_and_original_unchanged"
+      ]
+    },
+    {
+      "label": "replacement not scanned",
+      "file": "bin/submission-archive.py",
+      "old": "text = data.decode('utf-8', errors='replace')",
+      "new": "text = original.decode('utf-8', errors='replace')",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_replacement_output_is_scanned"
+      ]
+    },
+    {
+      "label": "license exclusion ignored",
+      "file": "bin/submission-archive.py",
+      "old": "finding(path, 'license-exclusion')",
+      "new": "pass",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_license_cannot_be_silently_excluded_or_replaced"
+      ]
+    },
+    {
+      "label": "license replacement ignored",
+      "file": "bin/submission-archive.py",
+      "old": "finding(path, 'license-replacement')",
+      "new": "pass",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_license_cannot_be_silently_excluded_or_replaced"
+      ]
+    },
+    {
+      "label": "license retention removed",
+      "file": "bin/submission-archive.py",
+      "old": "notice = license_file(path)",
+      "new": "notice = False",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_committed_export_is_deterministic_and_runs_without_checkout"
+      ]
+    },
+    {
+      "label": "approval hash ignored",
+      "file": "bin/submission-archive.py",
+      "old": "if digest(data) != approval['sha256']:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_approved_link_does_not_approve_identifiers_or_changed_files"
+      ]
+    },
+    {
+      "label": "binary guard removed",
+      "file": "bin/submission-archive.py",
+      "old": "if binary and 'binary' not in approved:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_binary_requires_hash_bound_manual_review"
+      ]
+    },
+    {
+      "label": "symlink guard removed",
+      "file": "bin/submission-archive.py",
+      "old": "finding(path, 'symlink')",
+      "new": "pass",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_symlink_lfs_and_git_metadata_are_not_shipped"
+      ]
+    },
+    {
+      "label": "LFS guard removed",
+      "file": "bin/submission-archive.py",
+      "old": "finding(path, 'lfs-pointer')",
+      "new": "pass",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_symlink_lfs_and_git_metadata_are_not_shipped"
+      ]
+    },
+    {
+      "label": "metadata included",
+      "file": "bin/submission-archive.py",
+      "old": "if any(part.casefold() in METADATA for part in PurePosixPath(path).parts):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_symlink_lfs_and_git_metadata_are_not_shipped"
+      ]
+    },
+    {
+      "label": "missing selection ignored",
+      "file": "bin/submission-archive.py",
+      "old": "finding(path, 'missing-selection')",
+      "new": "pass",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_missing_selection_and_unused_rules_fail_closed"
+      ]
+    },
+    {
+      "label": "unused policy ignored",
+      "file": "bin/submission-archive.py",
+      "old": "finding(path, 'unused-policy')",
+      "new": "pass",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_missing_selection_and_unused_rules_fail_closed"
+      ]
+    },
+    {
+      "label": "path collision ignored",
+      "file": "bin/submission-archive.py",
+      "old": "finding(path, 'path-collision')",
+      "new": "pass",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_case_colliding_archive_paths_are_rejected"
+      ]
+    },
+    {
+      "label": "input size ignored",
+      "file": "bin/submission-archive.py",
+      "old": "if total > policy['max_bytes']:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_original_size_limit_applies_before_small_replacement"
+      ]
+    },
+    {
+      "label": "output size ignored",
+      "file": "bin/submission-archive.py",
+      "old": "if sum(len(data) for _, data in packed.values()) > policy['max_bytes']:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_replacement_size_and_report_privacy"
+      ]
+    },
+    {
+      "label": "submodule absence ignored",
+      "file": "bin/submission-archive.py",
+      "old": "finding(path, 'missing-submodule')",
+      "new": "pass",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_submodule_materializes_pin_not_dirty_checkout"
+      ]
+    },
+    {
+      "label": "filename identity ignored",
+      "file": "bin/submission-archive.py",
+      "old": "finding('(archive filename)', 'identifier')",
+      "new": "pass",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_archive_filename_cannot_reveal_identity"
+      ]
+    },
+    {
+      "label": "copyright source protection removed",
+      "file": "bin/submission-archive.py",
+      "old": "if license_file(path) or re.search(",
+      "new": "if license_file(path) and re.search(",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_copyright_headers_cannot_be_removed_by_replacement"
+      ]
+    },
+    {
+      "label": "portable names unchecked",
+      "file": "bin/submission-archive.py",
+      "old": "finding(path, 'unsafe-archive-path')",
+      "new": "pass",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_windows_reserved_paths_fail_closed"
+      ]
+    },
+    {
+      "label": "notebooks implicitly approved",
+      "file": "bin/submission-archive.py",
+      "old": "if path.casefold().endswith('.ipynb') and 'opaque' not in approved:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_notebook_and_embedded_image_require_manual_review"
+      ]
+    },
+    {
+      "label": "private policy inside Git allowed",
+      "file": "bin/submission-archive.py",
+      "old": "if args.policy.resolve().is_relative_to(args.repo.resolve()):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_private_policy_inside_checkout_is_rejected"
+      ]
+    },
+    {
+      "label": "boolean version allowed",
+      "file": "bin/submission-archive.py",
+      "old": "type(policy['version']) is not int or ",
+      "new": "",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_boolean_policy_version_is_not_an_integer_version"
+      ]
+    },
+    {
+      "label": "working tree copied",
+      "file": "bin/submission-archive.py",
+      "old": "data = original\n        replacement",
+      "new": "data = (root / path).read_bytes()\n        replacement",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_committed_export_is_deterministic_and_runs_without_checkout"
+      ]
+    }
+  ]
+}

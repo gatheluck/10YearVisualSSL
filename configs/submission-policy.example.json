@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "include": ["README.md"],
+  "exclude": [],
+  "forbidden": ["replace-with-author-name", "replace-with-account-name"],
+  "replacements": {},
+  "approvals": {},
+  "max_bytes": 50000000
+}

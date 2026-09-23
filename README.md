@@ -21,6 +21,11 @@ Ten years of visual-domain self-supervised learning (SSL) methods, ported to
 Support for ABCI is separated into a loosely coupled module; the core does not
 assume it.
 
+For an anonymous supplementary source ZIP, follow the
+[submission archive guide](docs/SUBMISSION_ARCHIVE.md). The tool audits a fixed
+commit using a private policy and blocks unresolved disclosures; it does not
+certify anonymity or experiment completeness.
+
 ## What this optimises for
 
 1. **Reproducibility.** A result that cannot be reproduced is not a result.
@@ -148,6 +153,7 @@ shown so the shape is visible before it is built.
 │   ├── verify-environment.py         is this the locked environment?
 │   ├── run-ci-locally.py            run the workflow here, by reading it
 │   ├── mutate.py                     break the code, check the tests notice
+│   ├── submission-archive.py        audit and package an anonymous source ZIP
 │   ├── build-lock.py                 render a resolved set into a CPU lock
 │   ├── fetch-weights.py              download a pinned, hash-checked backbone
 │   ├── contract-test.py              decides by machine that a port is finished
@@ -208,7 +214,8 @@ shown so the shape is visible before it is built.
 │   ├── local/backend.py              this machine. The default, self-contained
 │   └── abci/backend.py               optional
 
-├── configs/                        shared bases that methods include  planned
+├── configs/                        submission policy example; shared bases planned
+│   └── submission-policy.example.json  private-policy schema example
 ├── runs/                           run outputs. Not tracked           exists
 │   └── <method>-<config sha>/        named after the config, not the clock
 │       ├── launch.json               what was asked, and how it turned out
@@ -222,6 +229,7 @@ shown so the shape is visible before it is built.
 │   ├── EVAL_DOWNLOAD.md              generative-method probes + weights
 │   ├── EVALUATION.md                 the 5-task eval axis, and coverage
 │   ├── DOWNSTREAM.md                 the cross-method downstream tasks
+│   ├── SUBMISSION_ARCHIVE.md         anonymous supplementary ZIP workflow
 │   ├── PORTING_ROADMAP.md            the 38 Step 1&2 methods, order, status
 │   └── GPU.md                        GPU env + the device invariant   exists
 ├── tests/                          one file per unit, plus the chain  exists
