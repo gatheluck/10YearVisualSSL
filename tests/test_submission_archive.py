@@ -430,3 +430,82 @@ class TestSubmissionArchive(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(result.stderr.count("KeyError: 'tests.yml'"), 3, result.stderr)
         self.assertIn('Ran 3 tests', result.stderr)
+
+    def add_bundled_vendor(self):
+        upstream = self.base/'upstream'
+        upstream.mkdir()
+        self.git('init', '-q', cwd=upstream)
+        self.git('config', 'user.name', 'Upstream', cwd=upstream)
+        self.git('config', 'user.email', 'upstream@example.invalid', cwd=upstream)
+        (upstream/'nativepkg').mkdir()
+        (upstream/'nativepkg/__init__.py').write_text('VALUE = 7\n')
+        self.git('add', '.', cwd=upstream); self.git('commit', '-qm', 'fixture', cwd=upstream)
+        self.git('-c', 'protocol.file.allow=always', 'submodule', 'add', str(upstream), 'vendor/dep')
+        self.commit(); self.policy['include'].append('vendor')
+
+    def test_bundle_index_keeps_dependencies_local_without_git_metadata(self):
+        from tests import _repo_files, test_method_requirements as requirements
+        from unittest import mock
+        self.add_bundled_vendor()
+        self.write('methods/probe/main.py', 'import nativepkg\nimport undeclared_external\n')
+        self.commit(); self.policy['include'].append('methods')
+        self.assertTrue(self.run_build())
+        stage = self.base/'unpacked'
+        with zipfile.ZipFile(self.out) as z:
+            self.assertIn('code/upstream_sources.json', z.namelist())
+            self.assertEqual(json.loads(z.read('code/upstream_sources.json')),
+                             {'version': 1, 'paths': ['vendor/dep']})
+            self.assertNotIn('code/.gitmodules', z.namelist())
+            z.extractall(stage)
+        stage = stage/'code'
+        self.assertEqual(_repo_files.submodule_paths(stage), {'vendor/dep'})
+        with mock.patch.object(requirements, 'ROOT', stage):
+            requirements.local_modules.cache_clear()
+            try:
+                self.assertEqual(requirements.imported_modules(stage/'methods/probe'),
+                                 {'undeclared_external'})
+            finally:
+                requirements.local_modules.cache_clear()
+        record = next(x for x in json.loads(self.report.read_text())['files']
+                      if x['path'] == 'upstream_sources.json')
+        self.assertIsNone(record['source_sha256'])
+        self.assertTrue(record['generated'])
+
+    def test_bundle_index_cannot_be_shadowed_or_replaced(self):
+        self.add_bundled_vendor()
+        self.write('upstream_sources.json', '{}'); self.commit()
+        self.policy['include'].append('upstream_sources.json')
+        self.assert_blocked('reserved-archive-path')
+        self.policy['include'].remove('upstream_sources.json')
+        self.assertTrue(self.run_build())
+        with zipfile.ZipFile(self.out) as z:
+            generated = z.read('code/upstream_sources.json')
+        self.out.unlink()
+        self.policy['replacements']['upstream_sources.json'] = {
+            'sha256': hashlib.sha256(generated).hexdigest(), 'text': '{}',
+            'reason': 'Invalid metadata override'}
+        self.assert_blocked('generated-policy')
+
+    def test_bundle_index_reader_rejects_invalid_roots_and_schema(self):
+        from tests import _repo_files
+        root = self.base/'export'; root.mkdir()
+        (root/'vendor/dep').mkdir(parents=True)
+        index = root/'upstream_sources.json'
+        valid = {'version': 1, 'paths': ['vendor/dep']}
+        index.write_text(json.dumps(valid))
+        self.assertEqual(_repo_files.submodule_paths(root), {'vendor/dep'})
+        for data in ({'version': True, 'paths': ['vendor/dep']},
+                     {'version': 1, 'paths': ['../upstream']},
+                     {'version': 1, 'paths': ['/outside']},
+                     {'version': 1, 'paths': ['missing']},
+                     {'version': 1, 'paths': ['vendor/dep', 'vendor/dep']},
+                     {'version': 1, 'paths': 'vendor/dep'},
+                     {**valid, 'remote': 'unused'}):
+            index.write_text(json.dumps(data))
+            with self.assertRaises(ValueError): _repo_files.submodule_paths(root)
+        (root/'link').symlink_to(root/'vendor/dep', target_is_directory=True)
+        index.write_text(json.dumps({'version': 1, 'paths': ['link']}))
+        with self.assertRaises(ValueError): _repo_files.submodule_paths(root)
+        # A checkout's existing declaration remains authoritative.
+        (root/'.gitmodules').write_text('[submodule "declared"]\npath = vendor/declared\n')
+        self.assertEqual(_repo_files.submodule_paths(root), {'vendor/declared'})

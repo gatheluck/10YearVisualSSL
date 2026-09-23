@@ -44,6 +44,16 @@ be initialized and have the parent-recorded commit locally available. Their
 pinned source contents are materialized recursively; their remote URL and Git
 metadata are not packaged. The tool never downloads missing objects.
 
+When upstream source is bundled, the ZIP also contains the generated
+`upstream_sources.json`: only a schema version and relative directories that
+actually contain bundled files. It contains no account, URL or Git revision.
+This reserved file cannot be supplied or edited by a policy. It lets the shared
+file/dependency scanner recognize bundled packages without `.gitmodules`;
+unknown external imports are still rejected. The reader validates the schema,
+existing directories, duplicates and unsafe/symlink paths. Existing `.gitmodules`
+remains authoritative in a checkout. The private report marks generated content
+explicitly, with no fictitious source-blob hash.
+
 ## Audit, resolve findings, then build
 
 Run without `--out` to audit without creating an archive:

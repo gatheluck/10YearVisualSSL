@@ -386,6 +386,78 @@
       "tests": [
         "tests.test_submission_archive.TestSubmissionArchive.test_root_readme_can_reference_license_without_duplicating_notice"
       ]
+    },
+    {
+      "label": "bundled dependency index omitted",
+      "file": "bin/submission-archive.py",
+      "old": "    if pins:\n",
+      "new": "    if False:\n",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_bundle_index_keeps_dependencies_local_without_git_metadata"
+      ]
+    },
+    {
+      "label": "generated index can be replaced",
+      "file": "bin/submission-archive.py",
+      "old": "finding(name, 'generated-policy')",
+      "new": "pass",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_bundle_index_cannot_be_shadowed_or_replaced"
+      ]
+    },
+    {
+      "label": "generated index collision ignored",
+      "file": "bin/submission-archive.py",
+      "old": "finding(name, 'reserved-archive-path')",
+      "new": "pass",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_bundle_index_cannot_be_shadowed_or_replaced"
+      ]
+    },
+    {
+      "label": "generated blob has fictitious source hash",
+      "file": "bin/submission-archive.py",
+      "old": "None if path in generated else digest(original)",
+      "new": "digest(original)",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_bundle_index_keeps_dependencies_local_without_git_metadata"
+      ]
+    },
+    {
+      "label": "bundle index reader disabled",
+      "file": "tests/_repo_files.py",
+      "old": "if not index.is_file():",
+      "new": "if True:",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_bundle_index_keeps_dependencies_local_without_git_metadata"
+      ]
+    },
+    {
+      "label": "bundle index version accepts bool",
+      "file": "tests/_repo_files.py",
+      "old": "type(data[\"version\"]) is not int or ",
+      "new": "",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_bundle_index_reader_rejects_invalid_roots_and_schema"
+      ]
+    },
+    {
+      "label": "bundle index ignores unsafe roots",
+      "file": "tests/_repo_files.py",
+      "old": "raise ValueError(\"bundled upstream directory is absent or unsafe\")",
+      "new": "pass",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_bundle_index_reader_rejects_invalid_roots_and_schema"
+      ]
+    },
+    {
+      "label": "bundle index ignores traversal and duplicates",
+      "file": "tests/_repo_files.py",
+      "old": "raise ValueError(\"unsafe or duplicate bundled upstream path\")",
+      "new": "pass",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_bundle_index_reader_rejects_invalid_roots_and_schema"
+      ]
     }
   ]
 }

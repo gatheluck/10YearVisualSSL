@@ -248,6 +248,20 @@ def build(repo, policy, report_path, output=None, ref='HEAD'):
         if any(canonical(term) in canonical(output.name) for term in policy['forbidden']):
             finding('(archive filename)', 'identifier')
     files = collect(root, revision, policy, finding, excluded, pins)
+    generated = set()
+    if pins:
+        name = 'upstream_sources.json'
+        for section in ('replacements', 'approvals'):
+            if name in policy[section]:
+                finding(name, 'generated-policy')
+        if name in files:
+            finding(name, 'reserved-archive-path')
+        else:
+            paths = sorted({pin['path'] for pin in pins
+                            if any(p.startswith(pin['path'] + '/') for p in files)})
+            data = (json.dumps({'version': 1, 'paths': paths}, indent=2) + '\n').encode()
+            files[name] = ('100644', data)
+            generated.add(name)
     license_authorization = policy.get('first_party_license')
     if license_authorization and 'LICENSE' not in files:
         finding('LICENSE', 'unused-license-authorization')
@@ -327,7 +341,8 @@ def build(repo, policy, report_path, output=None, ref='HEAD'):
         if path.casefold().endswith('.ipynb') and 'opaque' not in approved:
             finding(path, 'opaque')
         packed[path] = (mode, data)
-        records.append({'path': path, 'source_sha256': digest(original), 'archive_sha256': digest(data),
+        records.append({'path': path, 'source_sha256': None if path in generated else digest(original),
+                        'generated': path in generated, 'archive_sha256': digest(data),
                         'replaced': bool(replacement) or notice_changed, 'approved_rules': sorted(approved)})
     if not packed:
         finding('', 'empty-archive')

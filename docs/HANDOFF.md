@@ -397,3 +397,11 @@ assertions attempted to read missing CI files in a Git-free export. They now
 use the established checkout guard on those methods only; scientific tests and
 invocation-parser controls remain active. A subprocess regression verifies both
 Git-free skipping and failure for a checkout with missing workflow definitions.
+
+The broad exported-suite trial also exposed dependency-check failures because
+`.gitmodules` was absent: bundled upstream packages were classified as undeclared
+index dependencies. The archive now generates a paths-only `upstream_sources.json`
+and the existing shared scanner consumes it, preserving checks for genuinely
+undeclared external imports. This is not a relaxed assertion or a new duplicate
+file scanner. The index has no account URLs or revision IDs; invalid declarations
+fail. Refresh artifact hashes and private delivery evidence after this fix.
