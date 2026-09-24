@@ -21,7 +21,7 @@
     {
       "label": "builtin checks disabled",
       "file": "bin/submission-archive.py",
-      "old": "if re.search(pattern, scan) and rule not in approved:",
+      "old": "if re.search(pattern, rule_scan) and rule not in approved:",
       "new": "if False:",
       "tests": [
         "tests.test_submission_archive.TestSubmissionArchive.test_builtin_sensitive_content_and_external_links"
@@ -259,6 +259,204 @@
       "new": "if False:",
       "tests": [
         "tests.test_submission_archive.TestSubmissionArchive.test_subdirectory_cannot_bypass_private_output_boundary"
+      ]
+    },
+    {
+      "label": "root license authorization missing",
+      "file": "bin/submission-archive.py",
+      "old": "entry['authorized'] is not True or",
+      "new": "",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_root_notice_requires_explicit_valid_authorization"
+      ]
+    },
+    {
+      "label": "root license hash ignored",
+      "file": "bin/submission-archive.py",
+      "old": "if digest(original) != entry['sha256']:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_root_notice_authorization_is_hash_and_line_bound"
+      ]
+    },
+    {
+      "label": "root license line multiplicity ignored",
+      "file": "bin/submission-archive.py",
+      "old": "elif sum(line.rstrip(b'\\r\\n') == old for line in lines) != 1:",
+      "new": "elif False:",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_absent_or_repeated_root_notice_is_rejected"
+      ]
+    },
+    {
+      "label": "root license authorization affects vendors",
+      "file": "bin/submission-archive.py",
+      "old": "if path == 'LICENSE' and license_authorization:",
+      "new": "if license_authorization:",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_authorized_root_notice_preserves_terms_and_source"
+      ]
+    },
+    {
+      "label": "absent authorized root license ignored",
+      "file": "bin/submission-archive.py",
+      "old": "finding('LICENSE', 'unused-license-authorization')",
+      "new": "pass",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_absent_or_repeated_root_notice_is_rejected"
+      ]
+    },
+    {
+      "label": "root license edit omitted from report",
+      "file": "bin/submission-archive.py",
+      "old": "'replaced': bool(replacement) or notice_changed",
+      "new": "'replaced': bool(replacement)",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_authorized_root_notice_preserves_terms_and_source"
+      ]
+    },
+    {
+      "label": "root license terms replaced",
+      "file": "bin/submission-archive.py",
+      "old": "data = b''.join(anonymous + line[len(old):]",
+      "new": "data = b''.join(anonymous + b''",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_authorized_root_notice_preserves_terms_and_source"
+      ]
+    },
+    {
+      "label": "README example writes stdout instead of file",
+      "file": "README.md",
+      "old": "> configs/base.json",
+      "new": "--out configs/base.json",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_readme_config_examples_create_resolvable_files"
+      ]
+    },
+    {
+      "label": "scheduler exemption disabled",
+      "file": "bin/submission-archive.py",
+      "old": "if rule == 'local-path':",
+      "new": "if False:",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_scheduler_job_templates_are_not_account_paths"
+      ]
+    },
+    {
+      "label": "local account path check removed",
+      "file": "bin/submission-archive.py",
+      "old": "'local-path': r'/(?:users|home|groups|scratch)/",
+      "new": "'local-path': r'/(?:never)/",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_builtin_sensitive_content_and_external_links"
+      ]
+    },
+    {
+      "label": "test_basic5_attentive_tasks workflow guard removed",
+      "file": "tests/test_basic5_attentive_tasks.py",
+      "old": "    @needs_checkout\n    def test_downstream_lock_runs_attentive_task_contracts",
+      "new": "    def test_downstream_lock_runs_attentive_task_contracts",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_repository_only_workflow_assertions_require_a_checkout"
+      ]
+    },
+    {
+      "label": "test_basic5_finetune_tasks workflow guard removed",
+      "file": "tests/test_basic5_finetune_tasks.py",
+      "old": "    @needs_checkout\n    def test_downstream_job_executes_finetune_tests",
+      "new": "    def test_downstream_job_executes_finetune_tests",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_repository_only_workflow_assertions_require_a_checkout"
+      ]
+    },
+    {
+      "label": "test_basic5_optimization workflow guard removed",
+      "file": "tests/test_basic5_optimization.py",
+      "old": "    @needs_checkout\n    def test_downstream_job_runs_optimization_with_real_dependencies",
+      "new": "    def test_downstream_job_runs_optimization_with_real_dependencies",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_repository_only_workflow_assertions_require_a_checkout"
+      ]
+    },
+    {
+      "label": "README notice duplicates license again",
+      "file": "README.md",
+      "old": "in [LICENSE](LICENSE).",
+      "new": "in [LICENSE](LICENSE).\nCopyright (c) 2026 Example holder",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_root_readme_can_reference_license_without_duplicating_notice"
+      ]
+    },
+    {
+      "label": "bundled dependency index omitted",
+      "file": "bin/submission-archive.py",
+      "old": "    if pins:\n",
+      "new": "    if False:\n",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_bundle_index_keeps_dependencies_local_without_git_metadata"
+      ]
+    },
+    {
+      "label": "generated index can be replaced",
+      "file": "bin/submission-archive.py",
+      "old": "finding(name, 'generated-policy')",
+      "new": "pass",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_bundle_index_cannot_be_shadowed_or_replaced"
+      ]
+    },
+    {
+      "label": "generated index collision ignored",
+      "file": "bin/submission-archive.py",
+      "old": "finding(name, 'reserved-archive-path')",
+      "new": "pass",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_bundle_index_cannot_be_shadowed_or_replaced"
+      ]
+    },
+    {
+      "label": "generated blob has fictitious source hash",
+      "file": "bin/submission-archive.py",
+      "old": "None if path in generated else digest(original)",
+      "new": "digest(original)",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_bundle_index_keeps_dependencies_local_without_git_metadata"
+      ]
+    },
+    {
+      "label": "bundle index reader disabled",
+      "file": "tests/_repo_files.py",
+      "old": "if not index.is_file():",
+      "new": "if True:",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_bundle_index_keeps_dependencies_local_without_git_metadata"
+      ]
+    },
+    {
+      "label": "bundle index version accepts bool",
+      "file": "tests/_repo_files.py",
+      "old": "type(data[\"version\"]) is not int or ",
+      "new": "",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_bundle_index_reader_rejects_invalid_roots_and_schema"
+      ]
+    },
+    {
+      "label": "bundle index ignores unsafe roots",
+      "file": "tests/_repo_files.py",
+      "old": "raise ValueError(\"bundled upstream directory is absent or unsafe\")",
+      "new": "pass",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_bundle_index_reader_rejects_invalid_roots_and_schema"
+      ]
+    },
+    {
+      "label": "bundle index ignores traversal and duplicates",
+      "file": "tests/_repo_files.py",
+      "old": "raise ValueError(\"unsafe or duplicate bundled upstream path\")",
+      "new": "pass",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_bundle_index_reader_rejects_invalid_roots_and_schema"
       ]
     }
   ]

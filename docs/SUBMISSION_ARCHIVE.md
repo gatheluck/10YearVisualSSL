@@ -44,6 +44,16 @@ be initialized and have the parent-recorded commit locally available. Their
 pinned source contents are materialized recursively; their remote URL and Git
 metadata are not packaged. The tool never downloads missing objects.
 
+When upstream source is bundled, the ZIP also contains the generated
+`upstream_sources.json`: only a schema version and relative directories that
+actually contain bundled files. It contains no account, URL or Git revision.
+This reserved file cannot be supplied or edited by a policy. It lets the shared
+file/dependency scanner recognize bundled packages without `.gitmodules`;
+unknown external imports are still rejected. The reader validates the schema,
+existing directories, duplicates and unsafe/symlink paths. Existing `.gitmodules`
+remains authoritative in a checkout. The private report marks generated content
+explicitly, with no fictitious source-blob hash.
+
 ## Audit, resolve findings, then build
 
 Run without `--out` to audit without creating an archive:
@@ -77,7 +87,9 @@ from the unpacked copy before attaching **only the ZIP** to the submission.
 The detector scans file names and text for the forbidden terms, case-insensitively
 with Unicode, percent/entity and invisible-format normalization. It also detects
 email addresses, local account/cluster paths, common private-key/token markers,
-web/Git links and embedded base64 media. These conservative rules can flag public
+web/Git links and embedded base64 media. Complete scheduler scratch templates using only a
+job ID are recognized as generic infrastructure paths; concrete account paths,
+unknown expressions and trailing private directories remain blocked. These conservative rules can flag public
 upstream references. They are not exhaustive secret or identity detection.
 
 For a reviewed text-only submission variant, add a full-file replacement:
@@ -93,9 +105,23 @@ This is suitable for an anonymous README, not blanket string deletion from code.
 License/notice files are retained in each visited repository even when omitted
 from `include`. Explicitly excluding them blocks generation. License files and
 source files with recognized copyright/SPDX headers cannot be replaced through
-this tool. If identifying rights notices conflict with anonymity, obtain an
-appropriate rights-holder/conference resolution separately. Do not remove
-required attribution or treat an audit override as licensing permission.
+this tool. A narrowly scoped exception is available for the project's own root `LICENSE`,
+when the rights holder authorizes an anonymous review copy. Add the optional
+`first_party_license` policy field:
+
+```json
+{"sha256": "<original root LICENSE SHA256>", "copyright_line": "Copyright (c) 2026 <rights holder>", "authorized": true, "reason": "<record of the rights-holder instruction>"}
+```
+
+The tool requires exactly one matching complete copyright line and the original
+file hash. It changes only that line's holder to `Anonymous authors`, preserving
+the year, all other bytes and the original checkout. No path selector is accepted:
+this cannot authorize edits to vendor licenses or source copyright headers.
+All remaining content is scanned normally; the private report records the
+original and packaged hashes. General license replacement/exclusion stays blocked.
+The authorization is the caller's attestation, not a legal determination by the
+tool. Do not use it for rights owned by third parties or treat a passed audit as
+licensing permission.
 
 A manually inspected public reference or binary can receive a narrowly scoped
 approval in `approvals`:

@@ -7,6 +7,8 @@ import tempfile
 import unittest
 from unittest import mock
 
+from tests._checkout import needs_checkout
+
 try:
     import torch
     from scipy.io import savemat
@@ -23,6 +25,7 @@ PROFILE = "basic5_frozen_v1"
 
 
 class TestOptimizationCI(unittest.TestCase):
+    @needs_checkout
     def test_downstream_job_runs_optimization_with_real_dependencies(self):
         from tests.test_ci import HAVE_YAML, parsed
         from tests.test_basic5_finetune_tasks import _runs_finetune_tests

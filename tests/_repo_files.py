@@ -33,6 +33,7 @@ marker PEP 405 requires of an installed environment. It cannot read
 
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 from pathlib import Path
@@ -71,10 +72,34 @@ def submodule_paths(root: Path) -> set[str]:
     language guard). `.gitmodules` is a tracked file, present even in the
     container image with no git, so the fallback can exclude the same paths git
     does -- keeping the two answers to "which files are ours" identical.
+    Anonymous exports use a validated, generated `upstream_sources.json` instead;
+    it contains directory paths only, with no source repository identifiers.
     """
     gm = root / ".gitmodules"
     if not gm.is_file():
-        return set()
+        # Anonymous source exports deliberately omit Git metadata. Their generated
+        # index declares bundled roots without repository URLs or revision IDs.
+        index = root / "upstream_sources.json"
+        if not index.is_file():
+            return set()
+        data = json.loads(index.read_text(encoding="utf-8"))
+        if (not isinstance(data, dict) or set(data) != {"version", "paths"} or
+                type(data["version"]) is not int or data["version"] != 1 or
+                not isinstance(data["paths"], list)):
+            raise ValueError("invalid bundled upstream index")
+        paths = set()
+        for value in data["paths"]:
+            if (not isinstance(value, str) or not value or "\\" in value or
+                    Path(value).is_absolute() or
+                    any(p in ("", ".", "..") for p in value.split("/")) or value in paths):
+                raise ValueError("unsafe or duplicate bundled upstream path")
+            parts = value.split("/")
+            if (not (root / value).is_dir() or
+                    any(root.joinpath(*parts[:n]).is_symlink() for n in range(1, len(parts) + 1)) or
+                    not (root / value).resolve().is_relative_to(root.resolve())):
+                raise ValueError("bundled upstream directory is absent or unsafe")
+            paths.add(value)
+        return paths
     paths = set()
     for line in gm.read_text(encoding="utf-8", errors="replace").splitlines():
         stripped = line.strip()

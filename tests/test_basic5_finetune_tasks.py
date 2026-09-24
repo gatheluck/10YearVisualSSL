@@ -6,6 +6,8 @@ import tempfile
 import unittest
 from unittest import mock
 
+from tests._checkout import needs_checkout
+
 try:
     import torch
     from torch import nn
@@ -46,6 +48,7 @@ class TestFinetuneCI(unittest.TestCase):
             with self.subTest(decoy=decoy):
                 self.assertFalse(_runs_finetune_tests(decoy))
 
+    @needs_checkout
     def test_downstream_job_executes_finetune_tests(self):
         from tests.test_ci import HAVE_YAML, parsed
         if not HAVE_YAML:

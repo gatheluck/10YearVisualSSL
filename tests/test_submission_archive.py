@@ -279,3 +279,233 @@ class TestSubmissionArchive(unittest.TestCase):
             self.module().build(nested,self.policy,private_report,self.out)
         self.assertFalse(private_report.exists())
         self.assertFalse(self.out.exists())
+
+    def authorize_root_notice(self):
+        original = 'MIT License\n\nCopyright (c) 2026 private-owner\n\nPermission and warranty terms remain intact.\n'
+        self.write('LICENSE', original)
+        self.commit()
+        self.policy['first_party_license'] = {
+            'sha256': hashlib.sha256(original.encode()).hexdigest(),
+            'copyright_line': 'Copyright (c) 2026 private-owner',
+            'authorized': True,
+            'reason': 'Rights holder requests an anonymous review copy.',
+        }
+        return original
+
+    def test_authorized_root_notice_preserves_terms_and_source(self):
+        original = self.authorize_root_notice()
+        self.write('vendor/LICENSE', 'Copyright Third Party\nKeep these terms.\n')
+        self.commit()
+        self.assertTrue(self.run_build())
+        with zipfile.ZipFile(self.out) as z:
+            self.assertEqual(z.read('code/LICENSE').decode(), original.replace(
+                'Copyright (c) 2026 private-owner', 'Copyright (c) 2026 Anonymous authors'))
+            self.assertEqual(z.read('code/vendor/LICENSE'), b'Copyright Third Party\nKeep these terms.\n')
+        self.assertEqual((self.repo/'LICENSE').read_text(), original)
+        report = json.loads(self.report.read_text())
+        record = next(x for x in report['files'] if x['path'] == 'LICENSE')
+        self.assertTrue(record['replaced'])
+        self.assertNotEqual(record['source_sha256'], record['archive_sha256'])
+
+    def test_authorized_root_notice_still_scans_remaining_contents(self):
+        self.authorize_root_notice()
+        original = (self.repo/'LICENSE').read_text() + 'Sensitive Person\n'
+        self.write('LICENSE', original); self.commit()
+        self.policy['first_party_license']['sha256'] = hashlib.sha256(original.encode()).hexdigest()
+        self.assert_blocked('identifier')
+
+    def test_root_notice_authorization_is_hash_and_line_bound(self):
+        self.authorize_root_notice()
+        self.policy['first_party_license']['sha256'] = '0'*64
+        self.assert_blocked('stale-license-authorization')
+        self.policy['first_party_license']['sha256'] = hashlib.sha256((self.repo/'LICENSE').read_bytes()).hexdigest()
+        self.policy['first_party_license']['copyright_line'] = 'Copyright (c) 2026 wrong-holder'
+        self.assert_blocked('license-authorization-line')
+
+    def test_root_notice_authorization_cannot_target_other_files(self):
+        self.authorize_root_notice()
+        self.policy['first_party_license']['path'] = 'vendor/LICENSE'
+        with self.assertRaises(ValueError): self.run_build()
+        del self.policy['first_party_license']['path']
+        self.write('vendor/LICENSE', 'Copyright (c) 2026 private-owner\n'); self.commit()
+        self.assert_blocked('identifier')
+
+    def test_root_notice_requires_explicit_valid_authorization(self):
+        self.authorize_root_notice()
+        for value in (False, 1, 'yes', None):
+            self.policy['first_party_license']['authorized'] = value
+            with self.assertRaises(ValueError): self.run_build()
+        self.policy['first_party_license']['authorized'] = True
+        for line in ('', 'Permission notice', 'Copyright (c) 2026 owner\nextra'):
+            self.policy['first_party_license']['copyright_line'] = line
+            with self.assertRaises(ValueError): self.run_build()
+
+    def test_root_notice_authorization_is_not_a_general_replacement(self):
+        self.authorize_root_notice()
+        self.policy['replacements']['LICENSE'] = {
+            'sha256': hashlib.sha256((self.repo/'LICENSE').read_bytes()).hexdigest(),
+            'text': 'Terms removed', 'reason': 'Invalid blanket change'}
+        self.assert_blocked('license-replacement')
+
+    def test_absent_or_repeated_root_notice_is_rejected(self):
+        self.authorize_root_notice()
+        original = (self.repo/'LICENSE').read_text()
+        self.write('LICENSE', original + 'Copyright (c) 2026 private-owner\n'); self.commit()
+        self.policy['first_party_license']['sha256'] = hashlib.sha256((self.repo/'LICENSE').read_bytes()).hexdigest()
+        self.assert_blocked('license-authorization-line')
+        (self.repo/'LICENSE').unlink(); self.commit()
+        self.assert_blocked('unused-license-authorization')
+
+    def test_readme_config_examples_create_resolvable_files(self):
+        readme = (TOOL.parents[1]/'README.md').read_text()
+        commands = [line for line in readme.splitlines()
+                    if line.startswith('mkdir -p configs && printf') or line.startswith('printf ')]
+        self.assertEqual(len(commands), 2)
+        for command in commands:
+            result = subprocess.run(command, shell=True, cwd=self.base, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue((self.base/'configs/base.json').is_file())
+        self.assertTrue((self.base/'configs/example.json').is_file())
+        resolved = self.base/'resolved.json'
+        result = subprocess.run([sys.executable, str(TOOL.with_name('resolve-config.py')),
+                                 '--config', str(self.base/'configs/example.json'),
+                                 '--set', 'DATA_ROOT=/data', '--out', str(resolved)],
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        data = json.loads(resolved.read_text())
+        self.assertEqual(data['seed'], 0)
+        self.assertEqual(data['optimizer']['lr'], 0.03)
+        self.assertEqual(data['data_root'], '/data')
+
+    def test_scheduler_job_templates_are_not_account_paths(self):
+        for value in ('/scratch/slurm_tmpdir/{job_id}/',
+                      "/scratch/slurm_tmpdir/{os.environ['SLURM_JOB_ID']}"):
+            self.write('main.py', '# '+value+'\n'); self.commit()
+            self.assertTrue(self.run_build())
+            self.out.unlink()
+        for value in ('/scratch/slurm_tmpdir/alice/',
+                      '/scratch/slurm_tmpdir/{job_id}/alice',
+                      '/scratch/slurm_tmpdir/{unknown}/',
+                      '/scratch/alice/{job_id}/',
+                      '/scratch/slurm_tmpdir/{job_id}/ /home/alice/project',
+                      '/scratch/slurm_tmpdir/{job_id}/ private-owner'):
+            self.write('main.py', '# '+value+'\n'); self.commit()
+            self.assertFalse(self.run_build())
+            self.assertFalse(self.out.exists())
+
+    def test_root_readme_can_reference_license_without_duplicating_notice(self):
+        source = (TOOL.parents[1]/'README.md').read_text()
+        self.write('README.md', source); self.commit()
+        self.policy['include'].append('README.md')
+        self.policy['replacements']['README.md'] = {
+            'sha256': hashlib.sha256(source.encode()).hexdigest(),
+            'text': '# Anonymous source\n\nSee [LICENSE](LICENSE).\n',
+            'reason': 'Replace first-party introduction while preserving LICENSE.'}
+        self.assertTrue(self.run_build())
+        with zipfile.ZipFile(self.out) as z:
+            self.assertEqual(z.read('code/LICENSE'), (self.repo/'LICENSE').read_bytes())
+            self.assertIn('code/LICENSE', z.namelist())
+
+    def test_repository_only_workflow_assertions_require_a_checkout(self):
+        root = TOOL.parents[1]
+        stage = self.base/'export'; (stage/'tests').mkdir(parents=True)
+        (stage/'tests/__init__.py').write_text('')
+        modules = ('test_basic5_attentive_tasks', 'test_basic5_finetune_tasks', 'test_basic5_optimization')
+        for name in (*modules, '_checkout'):
+            shutil.copyfile(root/'tests'/f'{name}.py', stage/'tests'/f'{name}.py')
+        # Isolate the workflow reader from optional PyYAML: an absent workflow is
+        # always an error inside a checkout, never a dependency-based skip.
+        (stage/'tests/test_ci.py').write_text('HAVE_YAML = True\ndef parsed(): return {}\n')
+        names = ('TestAttentiveCI.test_downstream_lock_runs_attentive_task_contracts',
+                 'TestFinetuneCI.test_downstream_job_executes_finetune_tests',
+                 'TestOptimizationCI.test_downstream_job_runs_optimization_with_real_dependencies')
+        args = [sys.executable, '-m', 'unittest', '-v',
+                *(f'tests.{m}.{n}' for m,n in zip(modules,names))]
+        result = subprocess.run(args, cwd=stage, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stdout+result.stderr)
+        self.assertIn('Ran 3 tests', result.stderr)
+        self.assertIn('skipped=3', result.stderr)
+        self.git('init', '-q', cwd=stage)
+        result = subprocess.run(args, cwd=stage, capture_output=True, text=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(result.stderr.count("KeyError: 'tests.yml'"), 3, result.stderr)
+        self.assertIn('Ran 3 tests', result.stderr)
+
+    def add_bundled_vendor(self):
+        upstream = self.base/'upstream'
+        upstream.mkdir()
+        self.git('init', '-q', cwd=upstream)
+        self.git('config', 'user.name', 'Upstream', cwd=upstream)
+        self.git('config', 'user.email', 'upstream@example.invalid', cwd=upstream)
+        (upstream/'nativepkg').mkdir()
+        (upstream/'nativepkg/__init__.py').write_text('VALUE = 7\n')
+        self.git('add', '.', cwd=upstream); self.git('commit', '-qm', 'fixture', cwd=upstream)
+        self.git('-c', 'protocol.file.allow=always', 'submodule', 'add', str(upstream), 'vendor/dep')
+        self.commit(); self.policy['include'].append('vendor')
+
+    def test_bundle_index_keeps_dependencies_local_without_git_metadata(self):
+        from tests import _repo_files, test_method_requirements as requirements
+        from unittest import mock
+        self.add_bundled_vendor()
+        self.write('methods/probe/main.py', 'import nativepkg\nimport undeclared_external\n')
+        self.commit(); self.policy['include'].append('methods')
+        self.assertTrue(self.run_build())
+        stage = self.base/'unpacked'
+        with zipfile.ZipFile(self.out) as z:
+            self.assertIn('code/upstream_sources.json', z.namelist())
+            self.assertEqual(json.loads(z.read('code/upstream_sources.json')),
+                             {'version': 1, 'paths': ['vendor/dep']})
+            self.assertNotIn('code/.gitmodules', z.namelist())
+            z.extractall(stage)
+        stage = stage/'code'
+        self.assertEqual(_repo_files.submodule_paths(stage), {'vendor/dep'})
+        with mock.patch.object(requirements, 'ROOT', stage):
+            requirements.local_modules.cache_clear()
+            try:
+                self.assertEqual(requirements.imported_modules(stage/'methods/probe'),
+                                 {'undeclared_external'})
+            finally:
+                requirements.local_modules.cache_clear()
+        record = next(x for x in json.loads(self.report.read_text())['files']
+                      if x['path'] == 'upstream_sources.json')
+        self.assertIsNone(record['source_sha256'])
+        self.assertTrue(record['generated'])
+
+    def test_bundle_index_cannot_be_shadowed_or_replaced(self):
+        self.add_bundled_vendor()
+        self.write('upstream_sources.json', '{}'); self.commit()
+        self.policy['include'].append('upstream_sources.json')
+        self.assert_blocked('reserved-archive-path')
+        self.policy['include'].remove('upstream_sources.json')
+        self.assertTrue(self.run_build())
+        with zipfile.ZipFile(self.out) as z:
+            generated = z.read('code/upstream_sources.json')
+        self.out.unlink()
+        self.policy['replacements']['upstream_sources.json'] = {
+            'sha256': hashlib.sha256(generated).hexdigest(), 'text': '{}',
+            'reason': 'Invalid metadata override'}
+        self.assert_blocked('generated-policy')
+
+    def test_bundle_index_reader_rejects_invalid_roots_and_schema(self):
+        from tests import _repo_files
+        root = self.base/'export'; root.mkdir()
+        (root/'vendor/dep').mkdir(parents=True)
+        index = root/'upstream_sources.json'
+        valid = {'version': 1, 'paths': ['vendor/dep']}
+        index.write_text(json.dumps(valid))
+        self.assertEqual(_repo_files.submodule_paths(root), {'vendor/dep'})
+        for data in ({'version': True, 'paths': ['vendor/dep']},
+                     {'version': 1, 'paths': ['../upstream']},
+                     {'version': 1, 'paths': ['/outside']},
+                     {'version': 1, 'paths': ['missing']},
+                     {'version': 1, 'paths': ['vendor/dep', 'vendor/dep']},
+                     {'version': 1, 'paths': 'vendor/dep'},
+                     {**valid, 'remote': 'unused'}):
+            index.write_text(json.dumps(data))
+            with self.assertRaises(ValueError): _repo_files.submodule_paths(root)
+        (root/'link').symlink_to(root/'vendor/dep', target_is_directory=True)
+        index.write_text(json.dumps({'version': 1, 'paths': ['link']}))
+        with self.assertRaises(ValueError): _repo_files.submodule_paths(root)
+        # A checkout's existing declaration remains authoritative.
+        (root/'.gitmodules').write_text('[submodule "declared"]\npath = vendor/declared\n')
+        self.assertEqual(_repo_files.submodule_paths(root), {'vendor/declared'})

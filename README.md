@@ -333,8 +333,8 @@ Write the authoring configs — `include` lets a method reuse a shared base.
 `methods/01_context_prediction/configs/pretrain.yaml` is a real one:
 
 ```bash
-mkdir -p configs && printf '{"seed":0,"optimizer":{"name":"sgd","lr":0.1,"momentum":0.9}}\n' --out configs/base.json
-printf '{"include":["base.json"],"optimizer":{"lr":0.03},"data_root":"${DATA_ROOT}"}\n' --out configs/example.json
+mkdir -p configs && printf '{"seed":0,"optimizer":{"name":"sgd","lr":0.1,"momentum":0.9}}\n' > configs/base.json
+printf '{"include":["base.json"],"optimizer":{"lr":0.03},"data_root":"${DATA_ROOT}"}\n' > configs/example.json
 ```
 
 Resolve. Values come from `--set`, never from the environment:
@@ -662,8 +662,8 @@ The separation is **held by machinery** —
 
 ## License
 
-**The code in this repository is MIT** (`LICENSE`,
-Copyright (c) 2026 LIMIT.Lab).
+**The code in this repository is MIT**; see the rights-holder notice and terms
+in [LICENSE](LICENSE).
 
 MIT covers **only the code we wrote**.
 

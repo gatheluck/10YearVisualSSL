@@ -52,9 +52,22 @@ def safe_path(value):
 
 def policy_check(policy):
     required = {'version', 'include', 'exclude', 'forbidden', 'replacements', 'approvals', 'max_bytes'}
-    if (not isinstance(policy, dict) or set(policy) != required or
+    if (not isinstance(policy, dict) or not required <= set(policy) or
+            set(policy) - required - {'first_party_license'} or
             type(policy['version']) is not int or policy['version'] != 1):
         raise ValueError('unknown or missing policy fields/version')
+    if 'first_party_license' in policy:
+        entry = policy['first_party_license']
+        if (not isinstance(entry, dict) or set(entry) != {
+                'sha256', 'copyright_line', 'authorized', 'reason'} or
+                entry['authorized'] is not True or
+                not isinstance(entry['reason'], str) or not entry['reason'].strip() or
+                not isinstance(entry['sha256'], str) or
+                not re.fullmatch('[0-9a-f]{64}', entry['sha256']) or
+                not isinstance(entry['copyright_line'], str) or
+                not re.fullmatch(r'Copyright \(c\) [0-9]{4}(?:-[0-9]{4})? [^\r\n]+',
+                                 entry['copyright_line'])):
+            raise ValueError('invalid first-party root license authorization')
     for key in ('include', 'exclude'):
         if not isinstance(policy[key], list) or (key == 'include' and not policy[key]):
             raise ValueError('include/exclude must be lists; include cannot be empty')
@@ -235,6 +248,23 @@ def build(repo, policy, report_path, output=None, ref='HEAD'):
         if any(canonical(term) in canonical(output.name) for term in policy['forbidden']):
             finding('(archive filename)', 'identifier')
     files = collect(root, revision, policy, finding, excluded, pins)
+    generated = set()
+    if pins:
+        name = 'upstream_sources.json'
+        for section in ('replacements', 'approvals'):
+            if name in policy[section]:
+                finding(name, 'generated-policy')
+        if name in files:
+            finding(name, 'reserved-archive-path')
+        else:
+            paths = sorted({pin['path'] for pin in pins
+                            if any(p.startswith(pin['path'] + '/') for p in files)})
+            data = (json.dumps({'version': 1, 'paths': paths}, indent=2) + '\n').encode()
+            files[name] = ('100644', data)
+            generated.add(name)
+    license_authorization = policy.get('first_party_license')
+    if license_authorization and 'LICENSE' not in files:
+        finding('LICENSE', 'unused-license-authorization')
     for section in ('replacements', 'approvals'):
         for path in policy[section]:
             if path not in files:
@@ -260,6 +290,23 @@ def build(repo, policy, report_path, output=None, ref='HEAD'):
                 finding(path, 'stale-replacement')
             else:
                 data = replacement['text'].encode('utf-8')
+        notice_changed = False
+        if path == 'LICENSE' and license_authorization:
+            entry = license_authorization
+            old = entry['copyright_line'].encode('utf-8')
+            lines = original.splitlines(keepends=True)
+            if digest(original) != entry['sha256']:
+                finding(path, 'stale-license-authorization')
+            elif sum(line.rstrip(b'\r\n') == old for line in lines) != 1:
+                finding(path, 'license-authorization-line')
+            else:
+                # Only the root holder label changes, with all terms and third-party
+                # notices retained. Authorization is a private caller attestation.
+                year = entry['copyright_line'].split(' ')[2]
+                anonymous = ('Copyright (c) ' + year + ' Anonymous authors').encode()
+                data = b''.join(anonymous + line[len(old):]
+                                if line.rstrip(b'\r\n') == old else line for line in lines)
+                notice_changed = True
         approved = set()
         approval = policy['approvals'].get(path)
         if approval:
@@ -273,7 +320,14 @@ def build(repo, policy, report_path, output=None, ref='HEAD'):
         if any(canonical(term) in scan for term in policy['forbidden']):
             finding(path, 'identifier')
         for rule, pattern in RULES.items():
-            if re.search(pattern, scan) and rule not in approved:
+            # These complete symbolic scheduler paths contain no account name.
+            # Literal accounts, unknown expressions and trailing paths still block.
+            rule_scan = scan
+            if rule == 'local-path':
+                rule_scan = re.sub(
+                    r"/scratch/slurm_tmpdir/\{(?:job_id|os\.environ\[['\"]slurm_job_id['\"]\])\}/?(?=['\"\s)\]}]|$)",
+                    '<job-scratch>', scan)
+            if re.search(pattern, rule_scan) and rule not in approved:
                 finding(path, rule)
         if data.startswith(b'version https://git-lfs.github.com/spec/v1'):
             finding(path, 'lfs-pointer')
@@ -287,8 +341,9 @@ def build(repo, policy, report_path, output=None, ref='HEAD'):
         if path.casefold().endswith('.ipynb') and 'opaque' not in approved:
             finding(path, 'opaque')
         packed[path] = (mode, data)
-        records.append({'path': path, 'source_sha256': digest(original), 'archive_sha256': digest(data),
-                        'replaced': bool(replacement), 'approved_rules': sorted(approved)})
+        records.append({'path': path, 'source_sha256': None if path in generated else digest(original),
+                        'generated': path in generated, 'archive_sha256': digest(data),
+                        'replaced': bool(replacement) or notice_changed, 'approved_rules': sorted(approved)})
     if not packed:
         finding('', 'empty-archive')
     if sum(len(data) for _, data in packed.values()) > policy['max_bytes']:

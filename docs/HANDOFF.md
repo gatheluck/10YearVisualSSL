@@ -370,3 +370,38 @@ Final full-suite and CI results must be read from the task/PR evidence;
 these counts do not certify a later commit or a real submission ZIP.
 The repository argument must be the verified checkout root; allowing a nested
 directory was shown to weaken output containment and is now rejected.
+
+
+### Real submission trial follow-up (2026-09-24)
+
+PR #191 was verified merged at `eb4ccbd34b7e7fefd34c5eaf71711787ff0a2f10`,
+with all 109 PR checks successful. Its full-tree trial was blocked before ZIP
+creation; it was never a reviewed submission artifact. The user requested an
+actual anonymized archive, including an anonymous first-party holder label while
+preserving third-party notices. The optional hash-bound root-license authorization
+in [the archive guide](SUBMISSION_ARCHIVE.md) supports that narrow review variant.
+This supersedes the earlier blanket statement that no notice can be anonymized:
+general replacements and third-party changes remain prohibited.
+
+The public README configuration examples also failed to create their advertised
+JSON files; executable tests now cover file creation and configuration resolution.
+Private archive selection, identifying terms, replacements, approvals, artifact
+hashes and validation evidence stay outside Git. Consult current task evidence
+for the real ZIP status; neither a fixture pass nor a broad source audit proves
+submission readiness or paper-score reproduction. The dirty submodule checkout
+remains unrelated and must be preserved.
+
+The trial also found duplicated first-party attribution in the root README;
+it now links to the authoritative LICENSE instead. Three Basic5 workflow-only
+assertions attempted to read missing CI files in a Git-free export. They now
+use the established checkout guard on those methods only; scientific tests and
+invocation-parser controls remain active. A subprocess regression verifies both
+Git-free skipping and failure for a checkout with missing workflow definitions.
+
+The broad exported-suite trial also exposed dependency-check failures because
+`.gitmodules` was absent: bundled upstream packages were classified as undeclared
+index dependencies. The archive now generates a paths-only `upstream_sources.json`
+and the existing shared scanner consumes it, preserving checks for genuinely
+undeclared external imports. This is not a relaxed assertion or a new duplicate
+file scanner. The index has no account URLs or revision IDs; invalid declarations
+fail. Refresh artifact hashes and private delivery evidence after this fix.
