@@ -424,3 +424,17 @@ and the existing shared scanner consumes it, preserving checks for genuinely
 undeclared external imports. This is not a relaxed assertion or a new duplicate
 file scanner. The index has no account URLs or revision IDs; invalid declarations
 fail. Refresh artifact hashes and private delivery evidence after this fix.
+
+### 2026-09-24: PR 193 method-environment CI correction
+
+The new HF task-integration test initially ran when Transformers was present
+but full downstream dependencies were absent. The `sam3` and `cosmos3_super`
+locked jobs failed importing partially initialized task fixtures. The test now
+checks both downstream fixture dependency flags before importing their helpers;
+model-level tests remain enabled. A fresh-process regression with SciPy blocked
+reproduces the original failure and verifies the explicit integration-only skip.
+The full downstream environment must continue to execute all 23 integration
+paths without skips. A separate `aimv2` container failure occurred fetching the
+Docker Hub authentication token (connection reset), before the image build or
+tests. This does not establish a model defect. See the PR for rerun outcomes;
+local success alone does not establish the full CI matrix result.

@@ -1,6 +1,15 @@
 {
   "targets": [
     {
+      "label": "task integration requires downstream dependencies",
+      "file": "tests/test_method_hf_basic5.py",
+      "old": "if not (test_basic5_optimization.HAVE and test_basic5_imagenet.HAVE):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_hf_basic5.TestEnvironment.test_without_scipy_only_task_integration_is_skipped"
+      ]
+    },
+    {
       "label": "projection from full config",
       "file": "downstream/hf_vision.py",
       "old": "config.projection_dim = outer.projection_dim",

@@ -23,6 +23,30 @@ KINDS = ("clip_hf", "siglip2_g", "dinov3_hf")
 
 
 class TestEnvironment(unittest.TestCase):
+    @unittest.skipUnless(HAVE, "torch and transformers required")
+    def test_without_scipy_only_task_integration_is_skipped(self):
+        import subprocess
+        import sys
+        script = '''
+import sys
+import unittest
+sys.modules['scipy'] = None
+from tests import test_method_hf_basic5 as module
+assert module.HAVE, 'model dependencies must actually be available'
+suite = unittest.TestSuite(module.TestVisionFamilies(name) for name in (
+    'test_real_task_entrypoints_write_verified_noncanonical_results',
+    'test_detection_rejects_unreconciled_stride_or_padding_normalization'))
+result = unittest.TestResult()
+suite.run(result)
+assert result.testsRun == 2, result.testsRun
+assert not result.errors and not result.failures, (result.errors, result.failures)
+assert len(result.skipped) == 1, result.skipped
+assert 'downstream' in result.skipped[0][1].lower(), result.skipped
+'''
+        result = subprocess.run([sys.executable, "-c", script], cwd=Path(__file__).resolve().parents[1],
+                                capture_output=True, text=True, timeout=120)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     @needs_checkout
     def test_ci_executes_family_tests_with_required_imports(self):
         from tests.test_basic5_finetune_tasks import _runs_finetune_tests
@@ -296,6 +320,9 @@ class TestVisionFamilies(unittest.TestCase):
         self.assertTrue(supports_capture_pyramid('dinov3_hf'))
 
     def test_real_task_entrypoints_write_verified_noncanonical_results(self):
+        from tests import test_basic5_optimization, test_basic5_imagenet
+        if not (test_basic5_optimization.HAVE and test_basic5_imagenet.HAVE):
+            self.skipTest("Full downstream dependencies required for task integration")
         from tests.test_basic5_optimization import TestOptimization, nyuv2, coco
         from tests.test_basic5_imagenet import TestImageNet
         from downstream import imagenet, contract

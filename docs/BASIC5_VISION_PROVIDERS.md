@@ -16,6 +16,12 @@ frozen/FT components. These are **23 task/model/adaptation execution paths**,
 tested with reduced local models and synthetic data. They do not establish
 complete family-specific recipes, released-weight scores or GPU feasibility.
 
+The downstream CI environment runs all 23 integration paths with its complete
+dependencies. Method-specific environments still run available model tests, but
+skip this task-integration test explicitly when downstream dependencies are
+absent. A subprocess regression removes SciPy and verifies that only integration
+is skipped while a provider capability test continues to run.
+
 The following are alternative `backbone` objects for the
 [complete ImageNet example](DOWNSTREAM.md#extended-training-components-2026-09-22).
 Replace the placeholder directory with a complete local HF snapshot containing
