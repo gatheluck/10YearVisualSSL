@@ -21,6 +21,9 @@ def validate_adaptation(cfg):
         raise ValueError("config.adaptation: expected frozen, attentive or finetune")
     if adaptation != "frozen" and cfg.get("profile") != "capture_basic5_components":
         raise ValueError(f"{adaptation} adaptation requires capture_basic5_components")
+    from downstream.spatial_backbones import supports_adaptation
+    if not supports_adaptation(cfg.get("backbone", {}).get("kind"), adaptation):
+        raise ValueError("attentive reader recipe is unresolved for this provider")
     if adaptation == "finetune":
         from downstream.spatial_backbones import supports_trainable
         if not supports_trainable(cfg.get("backbone", {}).get("kind", "vit")):

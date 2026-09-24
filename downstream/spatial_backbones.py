@@ -244,6 +244,8 @@ def supports_trainable(kind):
 
 def build_attentive_backbone(spec: dict, device: "torch.device") -> nn.Module:
     """Compose a discovered frozen spatial provider and shared AP adapter."""
+    if not supports_adaptation(spec["kind"], "attentive"):
+        raise ValueError("attentive reader recipe is unresolved for this provider")
     from downstream.attention import AttentiveSpatialBackbone
     return AttentiveSpatialBackbone(build_frozen_backbone(spec, device)).to(device)
 
@@ -266,5 +268,13 @@ def supports_finetune_groups(kind):
 
 
 def supports_image_classification(kind):
-    """Explicit mean/L2 global readout, query reader and ImageNet normalization."""
+    """Explicit classification readout; reader support is a separate capability."""
     return kind in _PROVIDERS and getattr(_load_provider(_PROVIDERS[kind]), "IMAGE_CLASSIFICATION", False) is True
+
+
+def supports_adaptation(kind, adaptation):
+    """An explicit provider restriction takes precedence over generic readers."""
+    if kind not in _PROVIDERS:
+        return True
+    allowed = getattr(_load_provider(_PROVIDERS[kind]), "SUPPORTED_ADAPTATIONS", None)
+    return allowed is None or adaptation in allowed

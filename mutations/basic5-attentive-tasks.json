@@ -147,8 +147,8 @@
     {
       "label": "Video classifier ignores captured initialization",
       "file": "downstream/ssv2.py",
-      "old": "nn.init.zeros_(self.classifier.weight)",
-      "new": "nn.init.ones_(self.classifier.weight)",
+      "old": "else:\n            nn.init.zeros_(self.classifier.weight)\n        nn.init.zeros_(self.classifier.bias)",
+      "new": "else:\n            nn.init.ones_(self.classifier.weight)\n        nn.init.zeros_(self.classifier.bias)",
       "tests": [
         "tests.test_basic5_attentive_tasks.TestAttentiveTasks.test_video_reader_receives_each_frame_without_normalization_or_temporal_pool"
       ]

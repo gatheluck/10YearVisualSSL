@@ -73,6 +73,11 @@ cross-method `downstream/` subsystem evaluates a frozen backbone on four further
 tasks (ADE20K segmentation, COCO detection, NYUv2 depth, SSv2 video) — see
 [docs/DOWNSTREAM.md](docs/DOWNSTREAM.md).
 
+Explicit Basic5 components also support provider-owned FT and online ImageNet
+probing. The [vision-provider matrix](docs/BASIC5_VISION_PROVIDERS.md) lists the
+additional local vision models, task coverage and unresolved recipe boundaries;
+these integrations do not certify full-scale paper or workbook scores.
+
 | Directory | Method | Stages | Notes |
 |---|---|---|---|
 | `01_context_prediction` | Context Prediction — Doersch, Gupta & Efros, ICCV 2015 | step 1 + linear eval | the first pilot; verified on a CPU end to end |

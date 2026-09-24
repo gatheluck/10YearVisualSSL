@@ -254,15 +254,25 @@ class FrozenFrameAverageClassifier(nn.Module):
         self.backbone = backbone
         self.adaptation = adaptation
         self.reader = QueryReader(backbone.out_channels) if adaptation == "attentive" else None
-        self.classifier = nn.Linear(512 if self.reader is not None else backbone.out_channels,
+        self.classifier = nn.Linear(512 if self.reader is not None else getattr(backbone, "global_channels", backbone.out_channels),
                                     num_classes)
-        if self.reader is None and adaptation != "finetune" and not callable(getattr(backbone, "video_tokens", None)):
+        if hasattr(backbone, "classifier_init_std"):
+            std = backbone.classifier_init_std
+            if std:
+                nn.init.normal_(self.classifier.weight, std=std)
+            else:
+                nn.init.zeros_(self.classifier.weight)
+        elif self.reader is None and adaptation != "finetune" and not callable(getattr(backbone, "video_tokens", None)):
             nn.init.normal_(self.classifier.weight, std=0.01)
         else:
             nn.init.zeros_(self.classifier.weight)
         nn.init.zeros_(self.classifier.bias)
 
     def forward(self, clips: torch.Tensor) -> torch.Tensor:
+        if callable(getattr(self.backbone, "classification_features", None)):
+            with nullcontext() if self.adaptation == "finetune" else torch.no_grad():
+                feat = self.backbone.classification_features(clips, adaptation=self.adaptation, video=True)
+            return self.classifier(feat)
         if callable(getattr(self.backbone, "video_tokens", None)):
             with nullcontext() if self.adaptation == "finetune" else torch.no_grad():
                 tokens = self.backbone.video_tokens(clips).float()

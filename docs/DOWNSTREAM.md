@@ -419,3 +419,13 @@ composition is tested, but the supplied RandAugment description and captured
 factory do not establish one unambiguous full recipe. No missing augmentation
 is silently omitted from a purported FT reproduction. The separate per-method
 ImageNet probe and Step-3 A1 driver remain unchanged.
+
+### Additional local vision providers (2026-09-24)
+
+[Three additional vision providers](BASIC5_VISION_PROVIDERS.md) connect released
+CLIP, SigLIP2-G and DINOv3 families to frozen/FT components. Their explicit global
+readouts supersede the patch-mean-only description above for these providers.
+Head initialization, input normalization and FT endpoints are family-specific.
+They reject AP; detection support also has explicit boundaries. Consult the
+linked matrix and examples before selecting a provider. Full-recipe and score
+reproduction remain outstanding.
