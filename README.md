@@ -166,6 +166,7 @@ shown so the shape is visible before it is built.
 │   ├── prepare-native-encoders.py  export a batch using pinned method provenance
 │   ├── extract-features.py          one run: save every method's val features
 │   ├── extract-reference.py         extract validation through an audited reference evaluator
+│   ├── import-reference-cache.py    validate pinned caches and restore sample order
 │   ├── prepare-imagenet-val.py      ImageNet-1k val parquet -> val/<wnid>/*.JPEG
 │   └── aggregate-seeds.py           seeds 0,1,2 -> mean +/- std (BASIC5 rule seed)
 ├── adapterlib/                     the one place a run_manifest.json is written
