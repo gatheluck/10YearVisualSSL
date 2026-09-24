@@ -20,7 +20,7 @@ from torchvision.transforms import RandomResizedCrop, InterpolationMode
 from torchvision.transforms import functional as TF
 
 from downstream import contract
-from downstream.attention import QueryReader, task_spatial_features, clip_attentive_gradients
+from downstream.attention import QueryReader, task_spatial_features, clip_attentive_gradients, validate_adaptation
 from downstream.spatial_backbones import build_frozen_backbone, supports_image_classification
 from downstream.optimization import (resolve_optimization, build_optimizer,
     require_training_batches, build_task_scheduler, task_schedule_report, REFERENCE_SCHEDULE)
@@ -41,6 +41,7 @@ def validate_config(cfg):
         raise ValueError("ImageNet supports frozen/attentive components; FT augmentation is unresolved")
     if not supports_image_classification(cfg["backbone"].get("kind")):
         raise ValueError("ImageNet requires an explicitly verified classification provider")
+    validate_adaptation(cfg)
     if cfg["device"] not in ("auto", "cpu", "cuda"):
         raise ValueError("device must be auto, cpu or cuda")
     settings = cfg["probe"]
@@ -86,11 +87,20 @@ class ImageClassifier(nn.Module):
             raise ValueError("invalid classification adaptation")
         self.backbone, self.adaptation = backbone, adaptation
         self.reader = QueryReader(backbone.out_channels) if adaptation == "attentive" else None
-        self.classifier = nn.Linear(512 if self.reader is not None else backbone.out_channels, NUM_CLASSES)
-        nn.init.zeros_(self.classifier.weight)
+        self.classifier = nn.Linear(512 if self.reader is not None else getattr(backbone, "global_channels", backbone.out_channels), NUM_CLASSES)
+        std = getattr(backbone, "classifier_init_std", 0.)
+        if std:
+            nn.init.normal_(self.classifier.weight, std=std)
+        else:
+            nn.init.zeros_(self.classifier.weight)
         nn.init.zeros_(self.classifier.bias)
 
     def forward(self, images):
+        if callable(getattr(self.backbone, "classification_features", None)):
+            from contextlib import nullcontext
+            with nullcontext() if self.adaptation == "finetune" else torch.no_grad():
+                features = self.backbone.classification_features(images, adaptation=self.adaptation)
+            return self.classifier(features)
         tokens = task_spatial_features(self.backbone, images, adaptation=self.adaptation).float().flatten(2).transpose(1, 2)
         features = self.reader(tokens) if self.reader is not None else F.normalize(tokens.mean(1), dim=-1)
         return self.classifier(features)

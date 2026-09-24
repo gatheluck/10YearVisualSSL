@@ -833,3 +833,13 @@ in private evidence. Full dataset scores, seed aggregates, GPU validation of
 this update, model-family generalization, distributed execution and broader
 Step-4 tasks are not established by these component tests. Workbook numbers
 remain reference evidence, never fabricated test outputs.
+
+## Additional vision families (2026-09-24)
+
+[The provider integration](BASIC5_VISION_PROVIDERS.md) adds three model families
+to the existing component runners. This supersedes the single-provider ImageNet
+and FT-group limitation above. The depth+1 endpoint described above applies to
+the prior provider and the new register-token family; the projected-CLS and MAP
+families use the captured depth endpoint instead. Classification features and
+normalization are now provider-owned. No AP ambiguity, distributed requirement,
+Step-4 gap or workbook-score requirement is resolved merely by this integration.

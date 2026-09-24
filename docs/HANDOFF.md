@@ -391,6 +391,25 @@ for the real ZIP status; neither a fixture pass nor a broad source audit proves
 submission readiness or paper-score reproduction. The dirty submodule checkout
 remains unrelated and must be preserved.
 
+### Broader vision-provider integration (2026-09-24)
+
+Starting baseline: PR #192 merged, main `efebbd1a424e8f8ac1b6ee53ff72e2615aed6be7`.
+The user requested the largest evidence-supported implementation gaps first,
+strict TDD and grouped review. The follow-up integrates three local vision
+families with explicit global/spatial features and FT policies; see the
+[support matrix and limitations](BASIC5_VISION_PROVIDERS.md). It does not change
+the anonymous ZIP workflow or certify previously built archives against new code.
+
+Capture snapshot `d8e82adc094ca68624d0f98bd6425c9ec976966f` supplied the family
+wrappers and optimizer policies. Reduced CPU comparisons covered outputs,
+input gradients, three updates and all 129 fixture parameter policies. CLI
+tests exercise 23 supported model/task/adaptation paths and enforce noncanonical
+results. Consult current PR evidence for final suite, mutation and CI outcomes;
+these observations do not establish released-weight/GPU or score reproduction.
+No cluster jobs or original weights were changed. AP differences, two detection
+boundaries, ImageNet FT augmentation, distributed execution, Extend and broader
+Step-4 remain outstanding. Preserve the unrelated dirty video submodule.
+
 The trial also found duplicated first-party attribution in the root README;
 it now links to the authoritative LICENSE instead. Three Basic5 workflow-only
 assertions attempted to read missing CI files in a Git-free export. They now

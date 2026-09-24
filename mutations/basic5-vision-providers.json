@@ -1,0 +1,220 @@
+{
+  "targets": [
+    {
+      "label": "projection from full config",
+      "file": "downstream/hf_vision.py",
+      "old": "config.projection_dim = outer.projection_dim",
+      "new": "pass",
+      "tests": [
+        "tests.test_method_hf_basic5.TestVisionFamilies.test_full_multimodal_snapshot_preserves_projection_without_loading_text"
+      ]
+    },
+    {
+      "label": "released shape guard",
+      "file": "downstream/hf_vision.py",
+      "old": "if spec[\"arch\"] == \"released\" and any",
+      "new": "if False and any",
+      "tests": [
+        "tests.test_method_hf_basic5.TestVisionFamilies.test_local_checkpoint_is_required_and_incompatible_shapes_are_refused"
+      ]
+    },
+    {
+      "label": "explicit fixture selection",
+      "file": "downstream/hf_vision.py",
+      "old": "if spec.get(\"arch\") not in (\"released\", \"fixture\"):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_hf_basic5.TestVisionFamilies.test_local_checkpoint_is_required_and_incompatible_shapes_are_refused"
+      ]
+    },
+    {
+      "label": "geometry guard",
+      "file": "downstream/hf_vision.py",
+      "old": "if config.patch_size != spec[\"patch_size\"] or config.image_size != spec[\"img_size\"]:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_hf_basic5.TestVisionFamilies.test_local_checkpoint_is_required_and_incompatible_shapes_are_refused"
+      ]
+    },
+    {
+      "label": "missing weights",
+      "file": "downstream/hf_vision.py",
+      "old": "if info.get(\"missing_keys\") or info.get(\"mismatched_keys\") or info.get(\"error_msgs\"):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_hf_basic5.TestVisionFamilies.test_missing_weights_are_not_silently_randomly_initialized"
+      ]
+    },
+    {
+      "label": "unexpected weights",
+      "file": "downstream/hf_vision.py",
+      "old": "if any(not key.startswith(ignored) for key in info.get(\"unexpected_keys\", [])):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_hf_basic5.TestVisionFamilies.test_unexpected_nontext_weights_are_rejected"
+      ]
+    },
+    {
+      "label": "input normalization",
+      "file": "downstream/hf_vision.py",
+      "old": "images * channel(_IM_STD) + channel(_IM_MEAN)",
+      "new": "images",
+      "tests": [
+        "tests.test_method_hf_basic5.TestVisionFamilies.test_official_global_and_spatial_readouts_and_normalization"
+      ]
+    },
+    {
+      "label": "frozen eval",
+      "file": "downstream/hf_vision.py",
+      "old": "super().train(mode if self.trainable else False)",
+      "new": "super().train(mode)",
+      "tests": [
+        "tests.test_method_hf_basic5.TestVisionFamilies.test_official_global_and_spatial_readouts_and_normalization"
+      ]
+    },
+    {
+      "label": "special token stripping",
+      "file": "downstream/hf_vision.py",
+      "old": "tokens = out.last_hidden_state[:, prefix:].float()",
+      "new": "tokens = out.last_hidden_state.float()",
+      "tests": [
+        "tests.test_method_hf_basic5.TestVisionFamilies.test_official_global_and_spatial_readouts_and_normalization"
+      ]
+    },
+    {
+      "label": "global normalization",
+      "file": "downstream/hf_vision.py",
+      "old": "feat = F.normalize(feat, dim=-1)",
+      "new": "feat = feat",
+      "tests": [
+        "tests.test_method_hf_basic5.TestVisionFamilies.test_official_global_and_spatial_readouts_and_normalization"
+      ]
+    },
+    {
+      "label": "temporal readout",
+      "file": "downstream/hf_vision.py",
+      "old": "feat.reshape(batch, frames, -1).mean(1)",
+      "new": "feat.reshape(batch, frames, -1)[:,0]",
+      "tests": [
+        "tests.test_method_hf_basic5.TestVisionFamilies.test_frame_readout_uses_pooler_and_preserves_family_normalization_order"
+      ]
+    },
+    {
+      "label": "trainable graph",
+      "file": "downstream/hf_vision.py",
+      "old": "with nullcontext() if self.trainable else torch.no_grad():",
+      "new": "with torch.no_grad():",
+      "tests": [
+        "tests.test_method_hf_basic5.TestVisionFamilies.test_trainable_forward_gradients_and_no_grad_context"
+      ]
+    },
+    {
+      "label": "layer endpoint",
+      "file": "downstream/hf_vision.py",
+      "old": "endpoint = depth + 1 if self.family == \"register_cls\" else depth",
+      "new": "endpoint = depth + 1",
+      "tests": [
+        "tests.test_method_hf_basic5.TestVisionFamilies.test_parameter_groups_cover_all_layers_and_use_family_endpoints"
+      ]
+    },
+    {
+      "label": "layer block index",
+      "file": "downstream/hf_vision.py",
+      "old": "layer = index + 1",
+      "new": "layer = index",
+      "tests": [
+        "tests.test_method_hf_basic5.TestVisionFamilies.test_parameter_groups_cover_all_layers_and_use_family_endpoints"
+      ]
+    },
+    {
+      "label": "layer completeness",
+      "file": "downstream/hf_vision.py",
+      "old": "if blocks != set(range(depth)):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_hf_basic5.TestVisionFamilies.test_invalid_tensor_layouts_and_incomplete_blocks_are_rejected"
+      ]
+    },
+    {
+      "label": "token grid guard",
+      "file": "downstream/hf_vision.py",
+      "old": "if tokens.ndim != 3 or tokens.shape[1:] != (gh * gw, self.out_channels) or min(gh, gw) < 1:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_hf_basic5.TestVisionFamilies.test_invalid_tensor_layouts_and_incomplete_blocks_are_rejected"
+      ]
+    },
+    {
+      "label": "head initialization",
+      "file": "downstream/hf_vision.py",
+      "old": "self.classifier_init_std = 0. if family == \"register_cls\" else .01",
+      "new": "self.classifier_init_std = 0.",
+      "tests": [
+        "tests.test_method_hf_basic5.TestVisionFamilies.test_imagenet_uses_global_projection_and_family_head_initialization"
+      ]
+    },
+    {
+      "label": "image provider dispatch",
+      "file": "downstream/imagenet.py",
+      "old": "if callable(getattr(self.backbone, \"classification_features\", None)):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_hf_basic5.TestVisionFamilies.test_imagenet_uses_global_projection_and_family_head_initialization"
+      ]
+    },
+    {
+      "label": "video provider dispatch",
+      "file": "downstream/ssv2.py",
+      "old": "if callable(getattr(self.backbone, \"classification_features\", None)):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_hf_basic5.TestVisionFamilies.test_frame_readout_uses_pooler_and_preserves_family_normalization_order"
+      ]
+    },
+    {
+      "label": "AP boundary",
+      "file": "downstream/attention.py",
+      "old": "if not supports_adaptation(cfg.get(\"backbone\", {}).get(\"kind\"), adaptation):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_hf_basic5.TestVisionFamilies.test_ambiguous_attentive_recipe_is_refused_before_data_access"
+      ]
+    },
+    {
+      "label": "detection normalization boundary",
+      "file": "methods/siglip/downstream_backbone.py",
+      "old": "CAPTURE_PYRAMID = False",
+      "new": "CAPTURE_PYRAMID = True",
+      "tests": [
+        "tests.test_method_hf_basic5.TestVisionFamilies.test_detection_rejects_unreconciled_stride_or_padding_normalization"
+      ]
+    },
+    {
+      "label": "test_classifier_initialization_matches_one_captured_head_draw",
+      "file": "downstream/ssv2.py",
+      "old": "if hasattr(backbone, \"classifier_init_std\"):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_hf_basic5.TestVisionFamilies.test_classifier_initialization_matches_one_captured_head_draw"
+      ]
+    },
+    {
+      "label": "test_documented_backbone_examples_validate_with_online_image_config",
+      "file": "docs/BASIC5_VISION_PROVIDERS.md",
+      "old": "\"kind\": \"clip_hf\"",
+      "new": "\"kind\": \"invalid\"",
+      "tests": [
+        "tests.test_method_hf_basic5.TestVisionFamilies.test_documented_backbone_examples_validate_with_online_image_config"
+      ]
+    },
+    {
+      "label": "direct AP builder boundary",
+      "file": "downstream/spatial_backbones.py",
+      "old": "if not supports_adaptation(spec[\"kind\"], \"attentive\"):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_hf_basic5.TestVisionFamilies.test_ambiguous_attentive_recipe_is_refused_before_data_access"
+      ]
+    }
+  ]
+}
