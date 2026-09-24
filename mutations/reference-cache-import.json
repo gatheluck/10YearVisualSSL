@@ -1,0 +1,11 @@
+{
+  "targets": [
+    {"label": "pin input bytes", "file": "bin/import-reference-cache.py", "old": "if writer.sha256_of(path) != record[\"sha256\"]:", "new": "if False:", "tests": ["tests.test_import_reference_cache.TestCacheImport.test_source_hash_change_is_rejected_before_publication"]},
+    {"label": "require integer identity", "file": "bin/import-reference-cache.py", "old": "if y.dtype.kind not in \"iu\" or ix.dtype.kind not in \"iu\":", "new": "if False:", "tests": ["tests.test_import_reference_cache.TestCacheImport.test_invalid_order_labels_values_and_width_are_rejected"]},
+    {"label": "check feature width", "file": "bin/import-reference-cache.py", "old": "if x.ndim != 2 or x.shape[1] != profile[\"feat_dim\"]:", "new": "if False:", "tests": ["tests.test_import_reference_cache.TestCacheImport.test_invalid_order_labels_values_and_width_are_rejected"]},
+    {"label": "canonical sample order", "file": "bin/import-reference-cache.py", "old": "reference.restore_sample_order(np.concatenate(features), np.concatenate(labels),", "new": "reference.restore_sample_order(np.concatenate(features)[::-1], np.concatenate(labels),", "tests": ["tests.test_import_reference_cache.TestCacheImport.test_restores_order_normalizes_and_keeps_sources_unchanged"]},
+    {"label": "reject invalid values and labels", "file": "bin/import-reference-cache.py", "old": "reference.validate_features(x, y, expected, profile[\"count\"])", "new": "pass", "tests": ["tests.test_import_reference_cache.TestCacheImport.test_invalid_order_labels_values_and_width_are_rejected"]},
+    {"label": "L2 output", "file": "bin/import-reference-cache.py", "old": "normalized = writer.apply_representation(x, \"l2\")", "new": "normalized = x", "tests": ["tests.test_import_reference_cache.TestCacheImport.test_restores_order_normalizes_and_keeps_sources_unchanged"]},
+    {"label": "retain provenance", "file": "bin/import-reference-cache.py", "old": "source_profile=profile,", "new": "source_profile={},", "tests": ["tests.test_import_reference_cache.TestCacheImport.test_restores_order_normalizes_and_keeps_sources_unchanged"]}
+  ]
+}

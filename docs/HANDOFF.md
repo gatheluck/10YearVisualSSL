@@ -438,3 +438,15 @@ paths without skips. A separate `aimv2` container failure occurred fetching the
 Docker Hub authentication token (connection reset), before the image build or
 tests. This does not establish a model defect. See the PR for rerun outcomes;
 local success alone does not establish the full CI matrix result.
+
+### 2026-09-24: audited validation-cache staging
+
+PR 193 merged at `20eb5e5`; its 109 PR jobs passed. The user next requested
+ImageNet validation feature delivery for five additional figure models. Existing
+reference caches must be checked before submitting duplicate inference. The
+[cache delivery tool](REFERENCE_CACHE_DELIVERY.md) pins inputs, restores explicit
+sample indices and validates canonical L2 output. It does not establish that a
+reference model has been ported or that its paper scores are reproduced. Actual
+model variants, source/checkpoint hashes, jobs, GPU checks and delivery evidence
+remain in private execution state. Figure row numbers have changed between
+versions; never silently use an old row-number directory for a new model.
