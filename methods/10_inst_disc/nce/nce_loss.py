@@ -65,34 +65,46 @@ class NCELoss(nn.Module):
             torch.bmm(weight, features.unsqueeze(2)).squeeze(2)
             / self.temperature)  # [B, 1+m]
 
-        with torch.no_grad():
-            batch_Z = out.detach().float().mean().mul(N)
-            if self.Z.item() < 0:
-                self.Z.copy_(batch_Z)
-            else:
-                self.Z.mul_(0.5).add_(batch_Z, alpha=0.5)
+        return self.loss_from_exp(out)
+
+    def loss_from_exp(self, out: torch.Tensor, update_z=True) -> torch.Tensor:
+        """Use sampled exponentials and advance the running partition estimate."""
+        N, m = self.num_samples, self.num_negatives
+
+        if update_z:
+            self.update_partition(out)
 
         c = m * self.Z.item() / N
         loss_pos = -torch.log(out[:, 0] / (out[:, 0] + c) + 1e-7)
         loss_neg = -torch.log(c / (out[:, 1:] + c) + 1e-7).sum(dim=1)
         return (loss_pos + loss_neg).mean()
 
+    def update_partition(self, out):
+        with torch.no_grad():
+            batch_Z = out.detach().float().mean().mul(self.num_samples)
+            if self.Z.item() < 0:
+                self.Z.copy_(batch_Z)
+            else:
+                self.Z.mul_(0.5).add_(batch_Z, alpha=0.5)
+
     @torch.no_grad()
     def update_memory(self, features: torch.Tensor,
                       indices: torch.Tensor) -> None:
         """Momentum-update the memory bank rows for the batch's instances."""
-        feats = features.detach()
+        unique_idx, mean_features = self.unique_mean(features.detach(), indices)
+        updated = F.normalize(
+            self.momentum * self.memory[unique_idx]
+            + (1 - self.momentum) * mean_features, dim=1)
+        self.memory[unique_idx] = updated
+
+    @staticmethod
+    def unique_mean(feats, indices):
         unique_idx, inverse = torch.unique(indices, sorted=True,
                                            return_inverse=True)
-        feature_sum = torch.zeros(unique_idx.numel(), self.feature_dim,
+        feature_sum = torch.zeros(unique_idx.numel(), feats.size(1),
                                   device=feats.device, dtype=feats.dtype)
         feature_sum.index_add_(0, inverse, feats)
         counts = torch.zeros(unique_idx.numel(), device=feats.device,
                              dtype=feats.dtype)
         counts.index_add_(0, inverse, torch.ones_like(inverse, dtype=feats.dtype))
-        mean_features = feature_sum / counts.unsqueeze(1)
-
-        updated = F.normalize(
-            self.momentum * self.memory[unique_idx]
-            + (1 - self.momentum) * mean_features, dim=1)
-        self.memory[unique_idx] = updated
+        return unique_idx, feature_sum / counts.unsqueeze(1)

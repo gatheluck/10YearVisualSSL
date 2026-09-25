@@ -19,8 +19,9 @@ additively: the same ViT-B/16 backbone every method shares, its CLS token throug
 `Linear(768, 128)`, trained from scratch under the same NCE memory-bank objective
 (AdamW + warmup/cosine, no AMP/clip; checkpoints at 100/200/300, each probed by
 the same frozen-backbone `linear_eval`, whose head sizes to the CLS feature). The
-ViT path needs `timm` (imported lazily); the native ResNet-50 path is
-byte-for-byte unchanged.
+ViT path needs `timm` (imported lazily). The native ResNet-50 training behavior
+is preserved; its NCE arithmetic and duplicate-ID update now share helpers with
+the optional IDv2 components.
 
 The lab wrapper trains under `DistributedDataParallel` and logs to TensorBoard;
 neither is needed for a single-process run, so `train_pretrain_instdisc.py` owns a
@@ -59,6 +60,12 @@ L2-normalised, a single linear layer trained with SGD under a cosine schedule).
   mutation spec (`mutations/10_inst_disc-pretrain-device.json`).
 
 ## Environment
+
+The optional [IDv2 Step-4 profiles](../../docs/IDV2_COMPONENTS.md) add two-view,
+false-negative, EMA-bank, KoLeo, multicrop, multi-prototype and dense-ID component
+training through `arch: vit`. They include complete component checkpoint resume
+and backbone export. These are single-process FP32 paths, not verified full
+ImageNet scores or the native distributed recipes. The default path is unchanged.
 
 torch / torchvision / numpy / PyYAML — the self-contained methods' stack, no
 submodule — plus `timm` for the unified ViT-B/16 Step-2 path (imported lazily, so

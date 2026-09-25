@@ -74,6 +74,10 @@ def run(args, config: "dict | None" = None) -> dict:
     if getattr(args, "data_path", None):
         cfg["data"]["data_root"] = args.data_path
 
+    if cfg.get("profile"):
+        from idv2_components import run_components
+        return run_components(args, cfg)
+
     device = resolve_device(getattr(args, "device", "auto"))
     seed = int(cfg.get("seed", 42))
     make_deterministic(seed)

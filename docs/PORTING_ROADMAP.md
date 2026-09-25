@@ -16,6 +16,12 @@ reproduction; see the [current gap ledger](PAPER_REPRODUCTION_GAPS.md).
 
 ## The 38 methods (Step 1&2), and how the capture holds them
 
+IDv2 update (2026-09-25): the existing InstDisc ViT adapter now has seven
+explicit [Step-4 component profiles](IDV2_COMPONENTS.md), including complete
+component checkpoint continuation. Historical core-only descriptions below do
+not cover this addition. Native distributed and full score reproduction remain
+unverified.
+
 The capture (`gatheluck/10YearVisualSSLCapturePrivate`, `snapshots` branch) has a
 **self-contained `methods/<n>_<name>/` directory for every one of the 38**, and
 ~32 of them carry the lab's **own** model code under `models/*.py` (an

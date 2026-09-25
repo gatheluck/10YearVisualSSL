@@ -18,7 +18,8 @@
     "the run is seeded through make_deterministic (python, numpy, torch)",
     "the training loop drops the upstream DistributedDataParallel and the TensorBoard logging so the same step runs on a CPU or a GPU unchanged",
     "the capture's unified Step 2 (arch: vit) is also ported additively (models/vit_instdisc.py, train_pretrain_vit_instdisc.py, configs/pretrain_vit.yaml): the same ViT-B/16 backbone every method shares, its CLS token through Linear(768, feature_dim), trained under the same NCE memory-bank objective (AdamW + warmup/cosine, no AMP/clip, milestone checkpoints; the bank rides in each checkpoint). The native ResNet-50 path is byte-for-byte unchanged; timm is a lazy dependency of the ViT path only",
-    "DATA_ROOT is the dataset root; the pretrain stage reads its train/ subdirectory (unified data-root convention via adapterlib.dataset_split_dir)."
+    "DATA_ROOT is the dataset root; the pretrain stage reads its train/ subdirectory (unified data-root convention via adapterlib.dataset_split_dir).",
+    "Seven opt-in IDv2 Step-4 component profiles use the existing ViT and NCE primitives: two-view, false-negative exclusion, EMA bank, KoLeo, multicrop, four-prototype bank and dense ID. Single-process FP32 with complete version-1 component checkpoint resume; reduced private-reference comparisons cover losses, gradients, bank and optimizer updates. No native distributed checkpoint conversion or paper-score reproduction is claimed. See docs/IDV2_COMPONENTS.md."
   ],
   "step1_native_artifact": {
     "filename": "checkpoint_epoch_200.pth",
