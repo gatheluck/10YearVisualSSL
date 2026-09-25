@@ -555,7 +555,10 @@ What it cannot reproduce, it prints:
 - `uses:` steps are actions, not shell; their effect is provided differently
   and noted rather than executed
 
-`--dry-run` prints the plan, with the matrix resolved, without running it.
+`--dry-run` exports the committed sources once, executes the workflow's discovery
+steps and prints every resolved matrix row without running row commands. It does
+not create unused per-row exports. Real execution still uses an independent
+source tree for each row.
 
 ## Checking an adapter's output against the contract
 

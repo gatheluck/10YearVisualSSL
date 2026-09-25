@@ -56,7 +56,7 @@ LOSS_KEYS = frozenset({"student_temp", "teacher_temp_start", "teacher_temp_end",
                        "teacher_temp_warmup_epochs", "sk_n_iters"})
 PRETRAIN_TRAIN_KEYS = MODEL_KEYS | DATA_KEYS | TRAINING_KEYS | LOSS_KEYS
 OPTIONAL_PRETRAIN_KEYS = frozenset({'head_layout', 'dino_loss_weight', 'ibot_loss_weight',
-                                   'training_profile'})
+                                   'training_profile', 'resume_checkpoint'})
 
 EVAL_MODEL_KEYS = frozenset({"img_size", "patch_size", "embed_dim", "depth",
                              "num_heads", "mlp_ratio", "n_register_tokens",
@@ -198,7 +198,7 @@ def to_run_config(config: dict, out: Path) -> dict:
 
 def to_args(config: dict, out: Path) -> Namespace:
     to_run_config(config, out)
-    return Namespace(config=None, data_path=None, resume=None,
+    return Namespace(config=None, data_path=None, resume=config['train'].get('resume_checkpoint'),
                      device=config["device"])
 
 

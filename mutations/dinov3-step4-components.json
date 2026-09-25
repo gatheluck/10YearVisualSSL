@@ -84,7 +84,7 @@
     {
       "label": "unknown profile silently uses core",
       "file": "methods/31_dinov3/train_pretrain_dinov3.py",
-      "old": "if profile not in {\"core\", \"step4_gram_components\"}:",
+      "old": "if profile not in {\"core\", *component_profiles}:",
       "new": "if False:",
       "tests": [
         "tests.test_dinov3_head_designs.HeadDesigns.test_unknown_profile_and_unsupported_resume_cannot_silently_train"
@@ -93,7 +93,7 @@
     {
       "label": "resume silently ignored",
       "file": "methods/31_dinov3/train_pretrain_dinov3.py",
-      "old": "if getattr(args, \"resume\", None):",
+      "old": "if resume_path and (profile == 'core' or not Path(resume_path).is_file()):",
       "new": "if False:",
       "tests": [
         "tests.test_dinov3_head_designs.HeadDesigns.test_unknown_profile_and_unsupported_resume_cannot_silently_train"

@@ -173,6 +173,7 @@ class IBOTLoss(nn.Module):
         student_patch_logits: torch.Tensor,
         teacher_patch_logits: torch.Tensor,
         masks: torch.Tensor,
+        teacher_probs: torch.Tensor | None = None,
     ) -> torch.Tensor:
         if student_patch_logits.shape != teacher_patch_logits.shape:
             raise ValueError("student and teacher patch logits must have equal shape")
@@ -191,11 +192,12 @@ class IBOTLoss(nn.Module):
             teacher_masked = teacher_patch_logits.detach()[masks]
         else:
             raise ValueError("patch logits must have shape [M, K] or [B, N, K]")
-        teacher_probs = sinkhorn_knopp_patches(
-            teacher_masked,
-            teacher_temp=self.teacher_temp,
-            n_iters=self.sk_n_iters,
-        )
+        if teacher_probs is None:
+            teacher_probs = sinkhorn_knopp_patches(
+                teacher_masked, teacher_temp=self.teacher_temp, n_iters=self.sk_n_iters)
+        elif teacher_probs.shape != student_masked.shape:
+            raise ValueError('teacher probabilities must match masked logits')
+        teacher_probs = teacher_probs.detach()
         patch_loss = -(
             teacher_probs
             * F.log_softmax(student_masked.float() / self.student_temp, dim=-1)

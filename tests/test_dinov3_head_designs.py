@@ -172,6 +172,8 @@ class HeadDesigns(unittest.TestCase):
                 return value
             class RecordingLoader:
                 def __init__(self,loader):self.loader=loader
+                @property
+                def generator(self):return self.loader.generator
                 def __len__(self):return len(self.loader)
                 def __iter__(self):
                     for batch in self.loader:

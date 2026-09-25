@@ -473,3 +473,25 @@ drop-in inputs, and unsupported resume now fails. No new cluster jobs were
 submitted for this change. Preserve the unrelated dirty video submodule; private
 source snapshots, run identities and comparison outputs stay outside Git.
 Consult the PR for gate and mutation outcomes; local coverage is not CI evidence.
+
+### 2026-09-25: Step-4 continuation follow-up
+
+PR 195 merged at `23669d0`; all 109 PR checks succeeded. The user requested
+the largest remaining confirmed gaps under the approaching deadline, with
+strict TDD and consistent documentation. This follow-up connects H1S200 head
+splitting, H1CORE fixed-clock continuation and H1JA weighted joint assignment.
+See [checkpoint boundaries and examples](DINOV3_STEP4.md#continuation-and-joint-assignment-components).
+This supersedes the preceding blanket continuation/resume gap for component
+checkpoints; native distributed checkpoints and canonical scores remain pending.
+
+Tests compare real interrupted/resumed CPU training, optimizer/head ownership,
+Gram lifecycle and three-process uneven/empty-rank assignment. Captured joint
+outputs and three post-split AdamW/EMA updates match exactly on reduced inputs.
+Private sources and detailed evidence remain outside Git. No cluster jobs or
+original weights were modified; the unrelated dirty video submodule is preserved.
+
+The local CI dry planner previously exported the full repository and submodules
+for every unexecuted row. It now exports once, still executes discovery and
+expands every row. Real execution retains a fresh checkout per row. Behavioral
+tests cover both branches; this does not skip scientific tests or CI jobs.
+Consult the task PR for final regression, mutation and CI outcomes.

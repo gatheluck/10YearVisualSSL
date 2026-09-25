@@ -1,0 +1,409 @@
+{
+  "targets": [
+    {
+      "label": "student split aliases",
+      "file": "methods/31_dinov3/models/head_split.py",
+      "old": "student.ibot_head = copy.deepcopy(student.dino_head)",
+      "new": "student.ibot_head = student.dino_head",
+      "tests": [
+        "tests.test_dinov3_continuation.Continuation.test_split_clones_both_heads_and_adam_without_reset_or_aliases"
+      ]
+    },
+    {
+      "label": "teacher split aliases",
+      "file": "methods/31_dinov3/models/head_split.py",
+      "old": "teacher.ibot_head = copy.deepcopy(teacher.dino_head)",
+      "new": "teacher.ibot_head = teacher.dino_head",
+      "tests": [
+        "tests.test_dinov3_continuation.Continuation.test_split_clones_both_heads_and_adam_without_reset_or_aliases"
+      ]
+    },
+    {
+      "label": "Adam moments alias",
+      "file": "methods/31_dinov3/models/head_split.py",
+      "old": "states.append(copy.deepcopy(state))",
+      "new": "states.append(dict(state))",
+      "tests": [
+        "tests.test_dinov3_continuation.Continuation.test_split_clones_both_heads_and_adam_without_reset_or_aliases"
+      ]
+    },
+    {
+      "label": "split loses moments",
+      "file": "methods/31_dinov3/models/head_split.py",
+      "old": "optimizer.state[parameter] = state",
+      "new": "optimizer.state[parameter] = {}",
+      "tests": [
+        "tests.test_dinov3_continuation.Continuation.test_split_clones_both_heads_and_adam_without_reset_or_aliases"
+      ]
+    },
+    {
+      "label": "split no longer idempotent",
+      "file": "methods/31_dinov3/models/head_split.py",
+      "old": "if student.head_layout == teacher.head_layout == 'separate':\n        return False",
+      "new": "if student.head_layout == teacher.head_layout == 'separate':\n        return True",
+      "tests": [
+        "tests.test_dinov3_continuation.Continuation.test_split_clones_both_heads_and_adam_without_reset_or_aliases"
+      ]
+    },
+    {
+      "label": "missing moments accepted",
+      "file": "methods/31_dinov3/models/head_split.py",
+      "old": "if id(parameter) not in ids or not {'step', 'exp_avg', 'exp_avg_sq'} <= state.keys():",
+      "new": "if False:",
+      "tests": [
+        "tests.test_dinov3_continuation.Continuation.test_missing_moments_are_rejected_before_any_split"
+      ]
+    },
+    {
+      "label": "mixed layouts accepted",
+      "file": "methods/31_dinov3/models/head_split.py",
+      "old": "if student.head_layout != 'shared' or teacher.head_layout != 'shared':",
+      "new": "if False:",
+      "tests": [
+        "tests.test_dinov3_continuation.Continuation.test_split_rejects_mismatched_layout_and_multiple_optimizer_groups"
+      ]
+    },
+    {
+      "label": "multiple groups accepted",
+      "file": "methods/31_dinov3/models/head_split.py",
+      "old": "if len(optimizer.param_groups) != 1:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_dinov3_continuation.Continuation.test_split_rejects_mismatched_layout_and_multiple_optimizer_groups"
+      ]
+    },
+    {
+      "label": "joint groups use unequal masses",
+      "file": "methods/31_dinov3/losses/joint_assignment.py",
+      "old": "(.5, .5) if gc and gp",
+      "new": "(.25, .75) if gc and gp",
+      "tests": [
+        "tests.test_dinov3_continuation.Continuation.test_joint_mass_probabilities_and_empty_groups"
+      ]
+    },
+    {
+      "label": "joint probabilities retain transport scale",
+      "file": "methods/31_dinov3/losses/joint_assignment.py",
+      "old": "probs = q.t().contiguous() / mass.clamp_min(1e-12).unsqueeze(1)",
+      "new": "probs = q.t().contiguous()",
+      "tests": [
+        "tests.test_dinov3_continuation.Continuation.test_joint_mass_probabilities_and_empty_groups"
+      ]
+    },
+    {
+      "label": "joint prototype marginal unbalanced",
+      "file": "methods/31_dinov3/losses/joint_assignment.py",
+      "old": "q = q * (prototype_mass / row_sum.clamp_min(1e-12))",
+      "new": "q = q",
+      "tests": [
+        "tests.test_dinov3_continuation.Continuation.test_joint_mass_probabilities_and_empty_groups"
+      ]
+    },
+    {
+      "label": "joint counts not global",
+      "file": "methods/31_dinov3/losses/joint_assignment.py",
+      "old": "reduce(counts)",
+      "new": "pass",
+      "tests": [
+        "tests.test_dinov3_continuation.Continuation.test_joint_assignment_handles_uneven_and_empty_ranks"
+      ]
+    },
+    {
+      "label": "joint prototype reductions omitted",
+      "file": "methods/31_dinov3/losses/joint_assignment.py",
+      "old": "reduce(row_sum)",
+      "new": "pass",
+      "tests": [
+        "tests.test_dinov3_continuation.Continuation.test_joint_assignment_handles_uneven_and_empty_ranks"
+      ]
+    },
+    {
+      "label": "invalid temperature accepted",
+      "file": "methods/31_dinov3/losses/joint_assignment.py",
+      "old": "if teacher_temp <= 0 or n_iters < 1:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_dinov3_continuation.Continuation.test_invalid_joint_inputs_and_target_shapes_are_refused"
+      ]
+    },
+    {
+      "label": "joint integration bypassed",
+      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "old": "if profile == 'step4_joint_components':",
+      "new": "if False:",
+      "tests": [
+        "tests.test_dinov3_continuation.Continuation.test_joint_training_uses_one_assignment_per_update"
+      ]
+    },
+    {
+      "label": "core enters Gram EMA",
+      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "old": "momentum = step_protocol.CORE_TEACHER_MOMENTUM",
+      "new": "momentum = schedule.teacher_momentum",
+      "tests": [
+        "tests.test_dinov3_continuation.Continuation.test_gram_resume_restores_frozen_teacher_and_core_never_enters_gram"
+      ]
+    },
+    {
+      "label": "core local loss ramps",
+      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "old": "local_weight = step_protocol.DINO_LOCAL_WEIGHT_START",
+      "new": "local_weight = schedule.dino_local_weight",
+      "tests": [
+        "tests.test_dinov3_continuation.Continuation.test_gram_resume_restores_frozen_teacher_and_core_never_enters_gram"
+      ]
+    },
+    {
+      "label": "RNG restoration omitted: random.setstate",
+      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "old": "random.setstate(state['python'])",
+      "new": "pass",
+      "tests": [
+        "tests.test_dinov3_continuation.Continuation.test_rng_roundtrip_includes_numpy_python_torch_and_loader"
+      ]
+    },
+    {
+      "label": "RNG restoration omitted: torch.set_rng_state",
+      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "old": "torch.set_rng_state(state['torch_cpu'])",
+      "new": "pass",
+      "tests": [
+        "tests.test_dinov3_continuation.Continuation.test_rng_roundtrip_includes_numpy_python_torch_and_loader"
+      ]
+    },
+    {
+      "label": "RNG restoration omitted: np.random.set_state",
+      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "old": "np.random.set_state((ns[0], np.array(ns[1], dtype=np.uint32), *ns[2:]))",
+      "new": "pass",
+      "tests": [
+        "tests.test_dinov3_continuation.Continuation.test_rng_roundtrip_includes_numpy_python_torch_and_loader"
+      ]
+    },
+    {
+      "label": "RNG restoration omitted: loader.generator.set_state",
+      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "old": "loader.generator.set_state(state['loader'])",
+      "new": "pass",
+      "tests": [
+        "tests.test_dinov3_continuation.Continuation.test_rng_roundtrip_includes_numpy_python_torch_and_loader"
+      ]
+    },
+    {
+      "label": "optimizer state discarded",
+      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "old": "optimizer.load_state_dict(checkpoint['optimizer_state_dict'])",
+      "new": "pass",
+      "tests": [
+        "tests.test_dinov3_continuation.Continuation.test_resume_matches_uninterrupted_for_core_split_and_joint_profiles"
+      ]
+    },
+    {
+      "label": "teacher state discarded",
+      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "old": "teacher.load_state_dict(checkpoint['teacher_state_dict'], strict=True)",
+      "new": "pass",
+      "tests": [
+        "tests.test_dinov3_continuation.Continuation.test_resume_matches_uninterrupted_for_core_split_and_joint_profiles"
+      ]
+    },
+    {
+      "label": "resume clock resets",
+      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "old": "global_step = checkpoint['optimizer_step']",
+      "new": "global_step = 0",
+      "tests": [
+        "tests.test_dinov3_continuation.Continuation.test_resume_matches_uninterrupted_for_core_split_and_joint_profiles"
+      ]
+    },
+    {
+      "label": "frozen Gram state discarded",
+      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "old": "gram_teacher.load_state_dict(checkpoint['gram_teacher_state_dict'], strict=True)",
+      "new": "pass",
+      "tests": [
+        "tests.test_dinov3_continuation.Continuation.test_gram_resume_restores_frozen_teacher_and_core_never_enters_gram"
+      ]
+    },
+    {
+      "label": "split lifecycle omitted",
+      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "old": "if profile == 'step4_split_components' and epoch + 1 == HEAD_SPLIT_AFTER_EPOCH:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_dinov3_continuation.Continuation.test_resume_matches_uninterrupted_for_core_split_and_joint_profiles"
+      ]
+    },
+    {
+      "label": "resume configuration mismatch ignored",
+      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "old": "if old != new:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_dinov3_continuation.Continuation.test_resume_refuses_incomplete_changed_and_inconsistent_state"
+      ]
+    },
+    {
+      "label": "resume device mismatch ignored",
+      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "old": "if checkpoint['device_type'] != device.type:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_dinov3_continuation.Continuation.test_resume_refuses_incomplete_changed_and_inconsistent_state"
+      ]
+    },
+    {
+      "label": "resume layout mismatch ignored",
+      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "old": "if checkpoint['head_layout'] != expected_layout:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_dinov3_continuation.Continuation.test_resume_refuses_incomplete_changed_and_inconsistent_state"
+      ]
+    },
+    {
+      "label": "missing RNG accepted",
+      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "old": "if set(checkpoint['rng_state']) != {'python','torch_cpu','torch_cuda','numpy','loader'}:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_dinov3_continuation.Continuation.test_resume_refuses_incomplete_changed_and_inconsistent_state"
+      ]
+    },
+    {
+      "label": "cross-profile epoch boundary ignored",
+      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "old": "and completed == HEAD_SPLIT_AFTER_EPOCH",
+      "new": "and completed > 0",
+      "tests": [
+        "tests.test_dinov3_continuation.Continuation.test_shared_checkpoint_can_branch_only_at_the_split_boundary"
+      ]
+    },
+    {
+      "label": "source output overwritten",
+      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "old": "if resume_path and Path(resume_path).resolve().is_relative_to(Path(save_dir).resolve()):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_dinov3_continuation.Continuation.test_resume_refuses_to_overwrite_its_source_directory"
+      ]
+    },
+    {
+      "label": "invalid schedule length accepted",
+      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "old": "if not 0 < int(cfg['training']['epochs']) <= step_protocol.SCHEDULE_EPOCHS:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_dinov3_continuation.Continuation.test_new_profiles_reject_invalid_clock_and_initial_head_before_training"
+      ]
+    },
+    {
+      "label": "non-shared continuation accepted",
+      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "old": "if profile in component_profiles - {'step4_gram_components'} and cfg['model'].get('head_layout') != 'shared':",
+      "new": "if False:",
+      "tests": [
+        "tests.test_dinov3_continuation.Continuation.test_new_profiles_reject_invalid_clock_and_initial_head_before_training"
+      ]
+    },
+    {
+      "label": "dry plan exports every row",
+      "file": "bin/run-ci-locally.py",
+      "old": "if not dry_run:\n                    tree = Path(tempfile.mkdtemp(prefix=\"ci-local-\"))",
+      "new": "if True:\n                    tree = Path(tempfile.mkdtemp(prefix=\"ci-local-\"))",
+      "tests": [
+        "tests.test_ci_dry_run_exports.DryRunExports.test_dry_run_exports_once_but_runs_real_discovery_and_expands_all_rows"
+      ]
+    },
+    {
+      "label": "real rows share a checkout",
+      "file": "bin/run-ci-locally.py",
+      "old": "if not dry_run:\n                    tree = Path(tempfile.mkdtemp(prefix=\"ci-local-\"))",
+      "new": "if False:\n                    tree = Path(tempfile.mkdtemp(prefix=\"ci-local-\"))",
+      "tests": [
+        "tests.test_ci_dry_run_exports.DryRunExports.test_real_rows_still_have_independent_trees_and_execute"
+      ]
+    },
+    {
+      "label": "incomplete checkpoint accepted",
+      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "old": "if required - checkpoint.keys() or checkpoint.get('component_checkpoint_version') != 1:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_dinov3_continuation.Continuation.test_resume_refuses_incomplete_changed_and_inconsistent_state"
+      ]
+    },
+    {
+      "label": "inconsistent checkpoint clock accepted",
+      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "old": "if (checkpoint['steps_per_epoch'] != steps_per_epoch\n            or checkpoint['optimizer_step'] != completed * steps_per_epoch\n            or not 0 < completed < cfg['training']['epochs']):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_dinov3_continuation.Continuation.test_resume_refuses_incomplete_changed_and_inconsistent_state"
+      ]
+    },
+    {
+      "label": "incomplete Adam state accepted",
+      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "old": "if (not isinstance(opt, dict) or not opt.get('state')\n            or len(opt.get('param_groups', [])) != 1\n            or any(not {'step','exp_avg','exp_avg_sq'} <= state.keys()\n                   for state in opt['state'].values())):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_dinov3_continuation.Continuation.test_resume_refuses_incomplete_changed_and_inconsistent_state"
+      ]
+    },
+    {
+      "label": "unrelated resume profile accepted",
+      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "old": "if source_profile != profile and not transition:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_dinov3_continuation.Continuation.test_resume_refuses_incomplete_changed_and_inconsistent_state"
+      ]
+    },
+    {
+      "label": "missing frozen teacher accepted",
+      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "old": "and 'gram_teacher_state_dict' not in checkpoint):",
+      "new": "and False):",
+      "tests": [
+        "tests.test_dinov3_continuation.Continuation.test_resume_refuses_incomplete_changed_and_inconsistent_state"
+      ]
+    },
+    {
+      "label": "DINO recomputes independent targets",
+      "file": "methods/31_dinov3/losses/dino_loss.py",
+      "old": "if teacher_probs is None:",
+      "new": "if True:",
+      "tests": [
+        "tests.test_dinov3_continuation.Continuation.test_joint_targets_feed_existing_losses_without_second_sinkhorn"
+      ]
+    },
+    {
+      "label": "iBOT recomputes independent targets",
+      "file": "methods/31_dinov3/losses/ibot_loss.py",
+      "old": "if teacher_probs is None:",
+      "new": "if True:",
+      "tests": [
+        "tests.test_dinov3_continuation.Continuation.test_joint_targets_feed_existing_losses_without_second_sinkhorn"
+      ]
+    },
+    {
+      "label": "underflow returns raw logits",
+      "file": "methods/31_dinov3/losses/joint_assignment.py",
+      "old": "empty = torch.zeros_like(logits)",
+      "new": "empty = logits",
+      "tests": [
+        "tests.test_dinov3_continuation.Continuation.test_underflow_returns_zero_assignments_like_the_reference"
+      ]
+    },
+    {
+      "label": "sample mass uses input precision",
+      "file": "methods/31_dinov3/losses/joint_assignment.py",
+      "old": "cls_logits.new_full((nc,), cm / max(gc, 1), dtype=torch.float32)",
+      "new": "cls_logits.new_full((nc,), cm / max(gc, 1))",
+      "tests": [
+        "tests.test_dinov3_continuation.Continuation.test_joint_transport_computes_mass_in_float32_for_low_precision_inputs"
+      ]
+    }
+  ]
+}

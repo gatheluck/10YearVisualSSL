@@ -125,3 +125,11 @@ The exported arrays are float32. No substitute model or random-weight fallback
 is allowed. The default from-scratch representation remains a separate path.
 The original evaluator did not record its upstream commit; matching checkpoint
 identity and the newly pinned implementation do not recover that historical pin.
+
+## Step-4 continuation components
+
+The [Step-4 guide](../../docs/DINOV3_STEP4.md#continuation-and-joint-assignment-components)
+documents H1S200 splitting, H1CORE continuation, H1JA joint assignment and
+version-1 full-checkpoint resume via `train.resume_checkpoint`. Use a new output
+directory. These remain single-process FP32 components; native distributed
+checkpoints, CUDA BF16 and reproduced paper scores are not covered.
