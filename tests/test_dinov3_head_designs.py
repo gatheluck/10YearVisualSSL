@@ -310,3 +310,35 @@ class HeadDesigns(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError,key):
                     self.trainer.run(fixture.adapter.to_args(config,out),cfg)
                 model.assert_not_called()
+
+    def test_shared_prototypes_preserves_reference_seeded_initialization(self):
+        torch=self.torch
+        nn=torch.nn
+        def initialize(module):
+            if isinstance(module,nn.Linear):
+                nn.init.trunc_normal_(module.weight,std=.02)
+                if module.bias is not None:nn.init.zeros_(module.bias)
+        class ReferenceHead(nn.Module):
+            # The reference attaches the shared prototype to each head, whose
+            # recursive initialization visits it again. The public model avoids
+            # duplicate ownership but must preserve this observable RNG history.
+            def __init__(self,prototype):
+                super().__init__()
+                self.mlp=nn.Sequential(nn.Linear(fixture.EMBED,32),nn.GELU(),
+                                       nn.Linear(32,32),nn.GELU(),nn.Linear(32,16))
+                self.prototype=prototype
+                self.apply(initialize)
+        torch.manual_seed(71)
+        self.trainer.build_vit(**{k:fixture.MODEL[k] for k in self.trainer.MODEL_ARGS})
+        prototype=nn.Linear(16,64,bias=False)
+        initialize(prototype)
+        dino=ReferenceHead(prototype)
+        ibot=ReferenceHead(prototype)
+        expected_rng=torch.get_rng_state()
+        torch.manual_seed(71)
+        actual=self.model('shared_prototypes')
+        self.assertTrue(torch.equal(torch.get_rng_state(),expected_rng))
+        torch.testing.assert_close(actual.prototypes.weight,prototype.weight,rtol=0,atol=0)
+        for own,reference in ((actual.dino_mlp,dino.mlp),(actual.ibot_mlp,ibot.mlp)):
+            for key,value in own.state_dict().items():
+                torch.testing.assert_close(value,reference.state_dict()[key],rtol=0,atol=0)

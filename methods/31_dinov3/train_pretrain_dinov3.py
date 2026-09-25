@@ -92,7 +92,11 @@ class DINOv3Model(nn.Module):
         if self.head_layout == 'shared_prototypes':
             self.prototypes = build_prototypes(dino[1], dino[2])
             self.dino_mlp = build_head_mlp(embed_dim, *dino[:2])
+            # The reference recursively reinitializes the supplied prototype
+            # after each MLP. Preserve its seeded draws without registering aliases.
+            DINOHead._init_weights(self.prototypes)
             self.ibot_mlp = build_head_mlp(embed_dim, *ibot[:2])
+            DINOHead._init_weights(self.prototypes)
         elif self.head_layout == 'shared_mlp':
             self.shared_mlp = build_head_mlp(embed_dim, *dino[:2])
             self.dino_prototypes = build_prototypes(dino[1], dino[2])

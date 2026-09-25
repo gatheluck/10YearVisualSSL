@@ -23,8 +23,10 @@ head inputs; KoLeo and Gram receive the original backbone features. Shared
 heads require matching hidden, bottleneck and output dimensions. H1P permits
 different hidden dimensions; H1M permits different prototype counts. Invalid
 layouts or incompatible dimensions fail. Compact H1P checkpoint keys deliberately
-omit the reference implementation's duplicate aliases: native full training
-checkpoints are not directly interchangeable. Backbone exports remain compatible.
+omit the reference implementation's duplicate aliases. The reference's repeated
+prototype initialization is preserved explicitly, including its random-number
+consumption; removing those apparently redundant draws changes seeded runs.
+Native full training checkpoints are not directly interchangeable. Backbone exports remain compatible.
 
 `train.dino_loss_weight` and `train.ibot_loss_weight` default to 1. They must be
 finite and nonnegative. The existing head dimensions and mask bounds remain
@@ -101,7 +103,8 @@ Gram teacher (once created), profile and `canonical_eligible: false`.
 CPU tests cover both task-gradient routes, parameter ownership, EMA, strict
 checkpoint round trips, unchanged default state initialization, weighted loss
 and adapter/encoder contracts. Reduced comparisons against captured H1/H1P/H1M/
-H1TA code matched outputs, input/parameter gradients and three SGD/EMA updates
+H1TA code matched seeded initialization, outputs, input/parameter gradients
+and three SGD/EMA updates
 exactly on identical inputs and weights. These comparisons concern heads,
 not the entire distributed training pipeline.
 

@@ -197,6 +197,24 @@
       "tests": [
         "tests.test_dinov3_head_designs.HeadDesigns.test_fixed_schedule_rejects_contradictory_values_before_model_creation"
       ]
+    },
+    {
+      "label": "first shared-prototype reinitialization omitted",
+      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "old": "DINOHead._init_weights(self.prototypes)\n            self.ibot_mlp = build_head_mlp(embed_dim, *ibot[:2])",
+      "new": "self.ibot_mlp = build_head_mlp(embed_dim, *ibot[:2])",
+      "tests": [
+        "tests.test_dinov3_head_designs.HeadDesigns.test_shared_prototypes_preserves_reference_seeded_initialization"
+      ]
+    },
+    {
+      "label": "second shared-prototype reinitialization omitted",
+      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "old": "self.ibot_mlp = build_head_mlp(embed_dim, *ibot[:2])\n            DINOHead._init_weights(self.prototypes)",
+      "new": "self.ibot_mlp = build_head_mlp(embed_dim, *ibot[:2])",
+      "tests": [
+        "tests.test_dinov3_head_designs.HeadDesigns.test_shared_prototypes_preserves_reference_seeded_initialization"
+      ]
     }
   ]
 }

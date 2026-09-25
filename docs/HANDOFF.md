@@ -461,7 +461,9 @@ confirmed gap. See the [prioritized ledger](PAPER_REPRODUCTION_GAPS.md) and
 Four projection layouts, weighted objectives and the optional fixed-clock Gram
 stage now have CPU behavioral coverage, including real optimizer updates,
 clean-crop targets, snapshot/refresh boundaries and backbone-only exports. Reduced
-reference comparisons matched head outputs, gradients and three SGD/EMA updates.
+reference comparisons matched head initialization, outputs, gradients and three
+SGD/EMA updates. Shared-prototype construction preserves the reference's repeated
+codebook initialization without duplicate parameter ownership.
 This does not establish full ImageNet, distributed, BF16 or paper-score parity.
 H1S200, H1CORE continuation, H1JA, IDv2 banks and the remaining Basic5/Extend
 coverage are still pending. The new manuscript's H1-09 also changes masking.
