@@ -188,6 +188,15 @@
       "tests": [
         "tests.test_dinov3_head_designs.HeadDesigns.test_gram_profile_reaches_stage_boundary_with_frozen_clean_crop_teacher"
       ]
+    },
+    {
+      "label": "fixed profile silently ignores contradictory schedule",
+      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "old": "if cfg[section].get(key) != value:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_dinov3_head_designs.HeadDesigns.test_fixed_schedule_rejects_contradictory_values_before_model_creation"
+      ]
     }
   ]
 }

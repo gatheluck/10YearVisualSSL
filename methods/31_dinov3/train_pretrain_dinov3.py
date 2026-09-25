@@ -217,6 +217,27 @@ def core_objective(dino, ibot, koleo, loss_config, koleo_weight):
     return weights[0] * dino + weights[1] * ibot + koleo_weight * koleo
 
 
+def validate_gram_schedule(cfg):
+    """Prevent a fixed profile from silently ignoring contradictory settings."""
+    expected = {
+        'training': {
+            'lr': step_protocol.BASE_LR, 'min_lr': step_protocol.MIN_LR,
+            'warmup_epochs': step_protocol.WARMUP_EPOCHS,
+            'teacher_momentum_start': step_protocol.CORE_TEACHER_MOMENTUM,
+            'teacher_momentum_end': step_protocol.GRAM_TEACHER_MOMENTUM,
+        },
+        'loss': {
+            'teacher_temp_start': step_protocol.TEACHER_TEMP_START,
+            'teacher_temp_end': step_protocol.TEACHER_TEMP_END,
+            'teacher_temp_warmup_epochs': step_protocol.TEACHER_TEMP_WARMUP_EPOCHS,
+        },
+    }
+    for section, values in expected.items():
+        for key, value in values.items():
+            if cfg[section].get(key) != value:
+                raise ValueError(f'step4_gram_components requires {section}.{key}={value}')
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="DINOv3 step 2 (core objective)")
     parser.add_argument("--config", default="configs/pretrain.yaml")
@@ -243,6 +264,8 @@ def run(args, config: "dict | None" = None) -> dict:
     if getattr(args, "resume", None):
         raise ValueError("resume is not supported by this single-process trainer")
     use_gram = profile == "step4_gram_components"
+    if use_gram:
+        validate_gram_schedule(cfg)
 
     device = resolve_device(getattr(args, "device", "auto"))
     seed = int(cfg.get("seed", 42))

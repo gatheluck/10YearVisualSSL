@@ -23,6 +23,15 @@ class HeadDesigns(unittest.TestCase):
         torch.set_num_threads(1)
         self.trainer = fixture.load('step4_trainer', fixture.METHOD / 'train_pretrain_dinov3.py')
 
+    def gram_train(self, **changes):
+        train=dict(fixture.TRAIN, training_profile='step4_gram_components',
+                   lr=.0006, min_lr=.000001, warmup_epochs=10,
+                   teacher_momentum_start=.994, teacher_momentum_end=.999,
+                   teacher_temp_start=.04, teacher_temp_end=.07,
+                   teacher_temp_warmup_epochs=25)
+        train.update(changes)
+        return train
+
     def model(self, layout, **changes):
         return self.trainer.DINOv3Model(dict(fixture.MODEL, head_layout=layout, **changes))
 
@@ -143,7 +152,7 @@ class HeadDesigns(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp);fixture.tiny_split(root/'data',per=2)
             config=dict(stage='pretrain',seed=42,device='cpu',data_root=str(root/'data'),
-                        train=dict(fixture.TRAIN,head_layout='shared',training_profile='step4_gram_components',epochs=3,save_at_epochs=[1,2,3]))
+                        train=self.gram_train(head_layout='shared',epochs=3,save_at_epochs=[1,2,3]))
             cfg=fixture.adapter.to_run_config(config,root/'out')
             args=fixture.adapter.to_args(config,root/'out')
             protocol=self.trainer.step_protocol
@@ -226,8 +235,7 @@ class HeadDesigns(unittest.TestCase):
             root=Path(tmp);fixture.tiny_split(root/'data',per=2)
             for weight in (0.,2.):
                 config=dict(stage='pretrain',seed=42,device='cpu',data_root=str(root/'data'),
-                            train=dict(fixture.TRAIN,head_layout='shared',dino_loss_weight=weight,
-                                       training_profile='step4_gram_components'))
+                            train=self.gram_train(head_layout='shared',dino_loss_weight=weight))
                 out=root/str(weight);log=io.StringIO()
                 with redirect_stdout(log):
                     self.trainer.run(fixture.adapter.to_args(config,out),fixture.adapter.to_run_config(config,out))
@@ -280,8 +288,25 @@ class HeadDesigns(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp);fixture.tiny_split(root/'data',per=2)
             config=dict(stage='pretrain',seed=42,device='cpu',data_root=str(root/'data'),
-                        train=dict(fixture.TRAIN,training_profile='step4_gram_components'))
+                        train=self.gram_train())
             for core,refresh in ((0,()),(2,(1,))):
                 with mock.patch.multiple(self.trainer.step_protocol,CORE_EPOCHS=core,GRAM_TEACHER_UPDATE_EPOCHS=refresh):
                     with self.assertRaisesRegex(RuntimeError,'Gram'):
                         self.trainer.run(fixture.adapter.to_args(config,root/'out'),fixture.adapter.to_run_config(config,root/'out'))
+
+    def test_fixed_schedule_rejects_contradictory_values_before_model_creation(self):
+        temporary=tempfile.TemporaryDirectory();self.addCleanup(temporary.cleanup)
+        out=Path(temporary.name)
+        expected=dict(lr=.0006,min_lr=.000001,warmup_epochs=10,
+                      teacher_momentum_start=.994,teacher_momentum_end=.999,
+                      teacher_temp_start=.04,teacher_temp_end=.07,teacher_temp_warmup_epochs=25)
+        for key,value in expected.items():
+            train=dict(fixture.TRAIN,**expected)
+            train.update(training_profile='step4_gram_components')
+            train[key]=value+1
+            config=dict(stage='pretrain',seed=42,device='cpu',data_root='/not-read',train=train)
+            cfg=fixture.adapter.to_run_config(config,out)
+            with self.subTest(key=key), mock.patch.object(self.trainer,'DINOv3Model',side_effect=AssertionError('model initialized before validating schedule')) as model:
+                with self.assertRaisesRegex(ValueError,key):
+                    self.trainer.run(fixture.adapter.to_args(config,out),cfg)
+                model.assert_not_called()

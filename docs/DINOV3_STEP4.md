@@ -53,7 +53,15 @@ Merge these overrides into `train` in an otherwise resolved pretraining config:
   "head_layout": "shared",
   "training_profile": "step4_gram_components",
   "dino_loss_weight": 1.0,
-  "ibot_loss_weight": 1.0
+  "ibot_loss_weight": 1.0,
+  "lr": 0.0006,
+  "min_lr": 0.000001,
+  "warmup_epochs": 10,
+  "teacher_momentum_start": 0.994,
+  "teacher_momentum_end": 0.999,
+  "teacher_temp_start": 0.04,
+  "teacher_temp_end": 0.07,
+  "teacher_temp_warmup_epochs": 25
 }
 ```
 
@@ -61,7 +69,7 @@ For example, after resolving `methods/31_dinov3/configs/pretrain.yaml` with the
 existing resolver, save that JSON as `resolved.json`, then run:
 
 ```bash
-python -c 'import json; from pathlib import Path; p=Path("resolved.json"); c=json.loads(p.read_text()); c["train"].update(head_layout="shared", training_profile="step4_gram_components", dino_loss_weight=1.0, ibot_loss_weight=1.0); Path("step4.json").write_text(json.dumps(c, indent=2)+"\n")'
+python -c 'import json; from pathlib import Path; p=Path("resolved.json"); c=json.loads(p.read_text()); c["train"].update(head_layout="shared", training_profile="step4_gram_components", dino_loss_weight=1.0, ibot_loss_weight=1.0, lr=0.0006, min_lr=0.000001, warmup_epochs=10, teacher_momentum_start=0.994, teacher_momentum_end=0.999, teacher_temp_start=0.04, teacher_temp_end=0.07, teacher_temp_warmup_epochs=25); Path("step4.json").write_text(json.dumps(c, indent=2)+"\n")'
 ```
 
 Pass the absolute `step4.json` path to the existing `python -m adapter` invocation
@@ -72,9 +80,10 @@ fixture and verifies the saved profile, layout and noncanonical status.
 This profile selects the fixed optimizer-step schedule in
 `methods/31_dinov3/protocol.py`: 300-epoch clock, 10-epoch LR warmup from zero
 to 0.0006 then decay to 0.000001, 25-epoch teacher-temperature warmup from 0.04
-to 0.07, teacher EMA 0.994 before Gram and 0.999 during Gram. These profile
-schedule values replace the generic core LR, temperature and EMA schedule
-settings; shortening `epochs` truncates this clock, rather than compressing it.
+to 0.07, teacher EMA 0.994 before Gram and 0.999 during Gram. The profile rejects
+LR, temperature and EMA settings that disagree with these values before
+model construction. The adapter may create its diagnostic output directory
+before reporting an invalid configuration. Shortening `epochs` truncates this clock, rather than compressing it.
 Batch size, weight decay, masks, head dimensions and loss coefficients remain
 configurable. This is a component runner, not a strict canonical-config validator.
 
