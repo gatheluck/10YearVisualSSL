@@ -495,3 +495,22 @@ for every unexecuted row. It now exports once, still executes discovery and
 expands every row. Real execution retains a fresh checkout per row. Behavioral
 tests cover both branches; this does not skip scientific tests or CI jobs.
 Consult the task PR for final regression, mutation and CI outcomes.
+
+### 2026-09-25: IDv2 component follow-up
+
+PR 196 merged at `61ce5f4`; all 109 PR checks succeeded. The earlier sam3
+runner communication failure passed on rerun without code changes. Main was
+fast-forwarded and its code tree matched the previously tested PR head.
+
+The user reaffirmed broad, strict-TDD coverage under the deadline. Seven
+[IDv2 components](IDV2_COMPONENTS.md) now connect the existing ViT backbone,
+captured view/loss/bank behavior, AdamW updates, checkpoint continuation and
+backbone export. The new component format restores NCE partition and prototype
+state as well as RNG; it does not retrofit legacy checkpoints. This supersedes
+the earlier blanket IDv2 implementation gap. Private reference comparisons and
+CPU tests do not certify native DDP/BF16, full ImageNet scores or whole-workbook
+reproduction. Next major groups remain Basic5 provider/adaptation integration,
+Extend protocols, distributed training and result provenance. Keep scientific
+source contradictions pending. No cluster jobs or original inputs were changed;
+unrelated dirty submodule changes remain excluded. Refresh the task PR for final
+validation and CI status; private evidence is stored outside Git.

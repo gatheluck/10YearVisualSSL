@@ -7,8 +7,8 @@ L2-normalised embedding head under an NCE loss backed by a momentum **memory
 bank** that holds one embedding per training instance; each image is its own
 class. `encoder.pt` is the ResNet-50 backbone (the projection head and the
 memory bank are training machinery, excluded), and `linear_eval` probes the
-backbone's 2048-d feature. The captured step 2 (ViT) is excluded, as in every
-port.
+backbone's 2048-d feature. Unified ViT tests below cover Step 2; the separate
+test_idv2_components module covers the opt-in Step-4 profiles.
 """
 
 from __future__ import annotations

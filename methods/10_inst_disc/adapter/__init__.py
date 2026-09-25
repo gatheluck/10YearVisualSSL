@@ -6,7 +6,8 @@ Instance Discrimination trains a ResNet-50 with a 128-d L2-normalised head under
 an NCE loss backed by a momentum memory bank -- every image is its own class
 (step 1) -- then a linear probe on the ResNet backbone (linear_eval). A
 self-contained re-implementation (the lab's own code) -- no submodule. The
-capture's step 2 (ViT) is excluded, as in every port.
+unified Step-2 ViT path and opt-in Step-4 IDv2 components are also supported;
+see docs/IDV2_COMPONENTS.md for the single-process validation boundary.
 
 `encoder.pt` is the ResNet-50 backbone (`encoder.*`); the projection head
 (`fc.*`) and the memory bank are training machinery and are left out.
@@ -52,6 +53,9 @@ PRETRAIN_VIT_ONLY = frozenset({"epochs", "batch_size", "num_workers", "lr",
 PRETRAIN_VIT_KEYS = VIT_MODEL_KEYS | NCE_KEYS | PRETRAIN_VIT_ONLY
 EVAL_VIT_KEYS = VIT_MODEL_KEYS | EVAL_PROBE_KEYS
 _VIT_FLOATS = ("mlp_ratio", "drop_rate", "attn_drop_rate")
+IDV2_PROFILES = tuple("idv2_" + name + "_components" for name in
+                      ("twoview", "false_negative", "ema_bank", "koleo", "multicrop",
+                       "multi_prototype", "dense_id"))
 
 TOP_KEYS = frozenset({"stage", "seed", "data_root", "device", "train"})
 EVAL_TOP_KEYS = TOP_KEYS | {"encoder"}
@@ -122,6 +126,15 @@ def to_run_config(config: dict, out: Path) -> dict:
         keys = EVAL_VIT_KEYS if arch == "vit" else EVAL_TRAIN_KEYS
     else:
         keys = PRETRAIN_VIT_KEYS if arch == "vit" else PRETRAIN_TRAIN_KEYS
+    profile = train.get("profile")
+    if profile is not None:
+        if stage != "pretrain" or arch != "vit" or profile not in IDV2_PROFILES:
+            raise ConfigError("profile requires a supported IDv2 ViT pretrain component")
+        keys = keys | {"profile"}
+        if "resume_checkpoint" in rest:
+            keys = keys | {"resume_checkpoint"}
+        if profile == "idv2_multicrop_components":
+            keys = keys | {"local_size"}
     _named(keys - set(rest), set(rest) - keys, "config.train")
 
     if config["device"] not in DEVICES:
@@ -137,7 +150,20 @@ def to_run_config(config: dict, out: Path) -> dict:
            "num_negatives": int(train["num_negatives"])}
 
     if arch == "vit":
-        return {
+        if profile:
+            expected_momentum = 0.99 if profile == "idv2_ema_bank_components" else 0.5
+            if nce["momentum"] != expected_momentum:
+                raise ConfigError(f"profile requires nce_momentum={expected_momentum}")
+            if not 1 <= int(train["epochs"]) <= 300:
+                raise ConfigError("IDv2 epochs must be in 1..300 (fixed schedule)")
+            if (int(train["num_negatives"]) < 1 or float(train["temperature"]) <= 0
+                    or int(train["batch_size"]) < 1):
+                raise ConfigError("IDv2 negatives, temperature and batch_size must be positive")
+            if profile == "idv2_multicrop_components" and (
+                    int(train["local_size"]) <= 0 or
+                    int(train["local_size"]) % int(train["patch_size"])):
+                raise ConfigError("local_size must be positive and divisible by patch_size")
+        result = {
             "seed": int(config["seed"]),
             "arch": "vit",
             "model": {k: (float(train[k]) if k in _VIT_FLOATS else int(train[k]))
@@ -156,6 +182,11 @@ def to_run_config(config: dict, out: Path) -> dict:
                      "img_size": int(train["img_size"])},
             "output": {"checkpoint_dir": str(Path(out) / WORK)},
         }
+        if profile:
+            result["profile"] = profile
+            if "local_size" in train:
+                result["data"]["local_size"] = int(train["local_size"])
+        return result
 
     return {
         "seed": int(config["seed"]),
@@ -175,7 +206,8 @@ def to_run_config(config: dict, out: Path) -> dict:
 
 def to_args(config: dict, out: Path) -> Namespace:
     to_run_config(config, out)
-    return Namespace(config=None, data_path=None, resume=None,
+    return Namespace(config=None, data_path=None,
+                     resume=config["train"].get("resume_checkpoint"),
                      device=config["device"])
 
 
