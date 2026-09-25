@@ -115,8 +115,61 @@ The runner uses float32; the captured CUDA BF16 path, 8-rank physical batch and
 global Sinkhorn scope remain unverified/unintegrated here. No new GPU or paper
 accuracy result is claimed.
 
-Still pending: H1S200 shared-to-separate checkpoint conversion, H1CORE epoch-200
-continuation, H1JA joint CLS/patch assignments and mass weighting, distributed
-training and canonical evaluation. `--resume` fails explicitly rather than
-silently starting over. Do not use these components to claim those experiments
-are covered. See the [prioritized gap ledger](PAPER_REPRODUCTION_GAPS.md).
+## Continuation and joint assignment components
+
+The following overrides select three additional single-process profiles. Merge
+one object into `train`, together with the fixed schedule settings above:
+
+```json
+[
+  {"training_profile": "step4_core_components", "head_layout": "shared"},
+  {"training_profile": "step4_split_components", "head_layout": "shared"},
+  {"training_profile": "step4_joint_components", "head_layout": "shared"}
+]
+```
+
+- H1CORE keeps EMA at 0.994, local DINO weight at 1 and Gram disabled for the
+  whole 300-epoch clock. LR and teacher temperature keep the same fixed clock.
+- H1S200 clones the student and teacher heads independently after epoch 200,
+  duplicates AdamW step/first/second moments, and preserves the backbone and
+  optimizer ordering. Subsequent iBOT updates use the independent head. Gram
+  still starts after epoch 250.
+- H1JA solves one joint weighted Sinkhorn problem with CLS/patch masses 0.5/0.5
+  and uniform prototype mass. Per-token probabilities feed the existing losses
+  without a second Sinkhorn. An empty group transfers its mass to the other.
+  Unequal/empty ranks are covered by a real three-process CPU Gloo test, although
+  the training entry point itself remains single-process.
+
+All component profiles now save version-1 full checkpoints, including AdamW,
+epoch/step, head layout, frozen Gram teacher when applicable, Python/NumPy/Torch
+RNG state and the data-loader generator. `epoch` is zero-based in this format;
+`epochs` is the desired total completed epoch count, not extra epochs to run.
+For example, branch a shared Gram component checkpoint after epoch 200:
+
+```json
+{
+  "training_profile": "step4_split_components",
+  "head_layout": "shared",
+  "resume_checkpoint": "/path/to/component_epoch200.pth"
+}
+```
+
+Merge this into `train`, retain the original settings and increase `epochs` to
+the target, then run the adapter with a **new** output directory. Same-profile
+resumption is supported at completed epochs. Switching from the shared Gram
+profile to H1CORE or H1S200 is allowed only after epoch 200. Source checkpoints
+are read-only inputs. Data, model, loss, batch, seed and schedule configuration
+must match; only output location, target epochs and checkpoint milestones may
+change. Use the same immutable dataset: matching paths and loader length do not
+verify dataset content hashes. A device-type change is refused.
+
+Reduced CPU runs match uninterrupted versus resumed weights and final losses
+exactly, including a Gram refresh boundary and the shared-to-separate split.
+Reference comparisons match joint probabilities and three post-split AdamW/EMA
+updates exactly. This is component parity, not paper-score reproduction.
+The historical blanket resume refusal is superseded for version-1 component
+checkpoints only: legacy core, earlier incomplete component checkpoints,
+`encoder.pt` and native distributed checkpoints remain unsupported.
+
+Still pending: full distributed training, CUDA BF16 and canonical evaluation.
+See the [prioritized gap ledger](PAPER_REPRODUCTION_GAPS.md).

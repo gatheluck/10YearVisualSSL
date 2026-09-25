@@ -43,10 +43,14 @@ from models import (DINOHead, IBOTHead, VisionTransformer,  # noqa: E402
                     vit_base_patch16)
 from models.dino_head import (TokenTypeAffine, build_head_mlp,  # noqa: E402
                               build_prototypes, project_tokens)
+from models.head_split import apply_head_split  # noqa: E402
+from losses.joint_assignment import joint_teacher_assignments  # noqa: E402
 from losses import DINOLoss, IBOTLoss, KoLeoLoss, GramLoss   # noqa: E402
 import protocol as step_protocol                           # noqa: E402
 from losses.ibot_loss import generate_block_mask            # noqa: E402
 from data import MultiCropAugmentation, get_multicrop_dataloader  # noqa: E402
+
+HEAD_SPLIT_AFTER_EPOCH = 200
 
 MODEL_ARGS = ("img_size", "patch_size", "embed_dim", "depth", "num_heads",
               "mlp_ratio", "n_register_tokens", "drop_path_rate", "use_rope",
@@ -242,6 +246,72 @@ def validate_gram_schedule(cfg):
                 raise ValueError(f'step4_gram_components requires {section}.{key}={value}')
 
 
+def training_rng(loader):
+    numpy_state = np.random.get_state()
+    return dict(python=random.getstate(), torch_cpu=torch.get_rng_state(),
+                torch_cuda=torch.cuda.get_rng_state_all() if torch.cuda.is_available() else [],
+                numpy=(numpy_state[0], numpy_state[1].tolist(), *numpy_state[2:]),
+                loader=loader.generator.get_state())
+
+
+def restore_training_rng(state, loader):
+    random.setstate(state['python'])
+    torch.set_rng_state(state['torch_cpu'])
+    if state['torch_cuda']:
+        torch.cuda.set_rng_state_all(state['torch_cuda'])
+    ns = state['numpy']
+    np.random.set_state((ns[0], np.array(ns[1], dtype=np.uint32), *ns[2:]))
+    loader.generator.set_state(state['loader'])
+
+
+def validate_resume(checkpoint, cfg, profile, steps_per_epoch, device):
+    required = {'component_checkpoint_version', 'config', 'training_profile',
+                'student_state_dict', 'teacher_state_dict', 'optimizer_state_dict',
+                'optimizer_step', 'steps_per_epoch', 'rng_state', 'head_layout',
+                'epoch', 'device_type'}
+    if required - checkpoint.keys() or checkpoint.get('component_checkpoint_version') != 1:
+        raise ValueError('resume requires a complete version-1 component checkpoint')
+    completed = checkpoint['epoch'] + 1
+    if (checkpoint['steps_per_epoch'] != steps_per_epoch
+            or checkpoint['optimizer_step'] != completed * steps_per_epoch
+            or not 0 < completed < cfg['training']['epochs']):
+        raise ValueError('resume epoch, batch count or optimizer clock mismatch')
+    if checkpoint['device_type'] != device.type:
+        raise ValueError('resume device type differs')
+    opt = checkpoint['optimizer_state_dict']
+    if (not isinstance(opt, dict) or not opt.get('state')
+            or len(opt.get('param_groups', [])) != 1
+            or any(not {'step','exp_avg','exp_avg_sq'} <= state.keys()
+                   for state in opt['state'].values())):
+        raise ValueError('resume requires complete AdamW state')
+    source_profile = checkpoint['training_profile']
+    transition = (source_profile == 'step4_gram_components'
+                  and profile in {'step4_core_components', 'step4_split_components'}
+                  and completed == HEAD_SPLIT_AFTER_EPOCH
+                  and checkpoint['head_layout'] == 'shared')
+    if source_profile != profile and not transition:
+        raise ValueError('resume profile transition requires shared Gram epoch 200')
+    old, new = copy.deepcopy(checkpoint['config']), copy.deepcopy(cfg)
+    for config in (old, new):
+        config.pop('output', None)
+        for key in ('epochs', 'save_at_epochs', 'training_profile'):
+            config['training'].pop(key, None)
+    if old != new:
+        raise ValueError('resume configuration differs from the checkpoint')
+    if set(checkpoint['rng_state']) != {'python','torch_cpu','torch_cuda','numpy','loader'}:
+        raise ValueError('resume requires complete random state')
+    expected_layout = ('separate' if profile == 'step4_split_components'
+                       and completed >= HEAD_SPLIT_AFTER_EPOCH and not transition
+                       else cfg['model'].get('head_layout', 'separate'))
+    if checkpoint['head_layout'] != expected_layout:
+        raise ValueError('resume head layout does not match the lifecycle')
+    if (profile in {'step4_gram_components','step4_split_components','step4_joint_components'}
+            and completed >= step_protocol.CORE_EPOCHS
+            and 'gram_teacher_state_dict' not in checkpoint):
+        raise ValueError('resume is missing the frozen Gram teacher')
+    return completed, transition
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="DINOv3 step 2 (core objective)")
     parser.add_argument("--config", default="configs/pretrain.yaml")
@@ -263,19 +333,29 @@ def run(args, config: "dict | None" = None) -> dict:
         cfg["data"]["data_root"] = args.data_path
 
     profile = cfg["training"].get("training_profile", "core")
-    if profile not in {"core", "step4_gram_components"}:
+    component_profiles = {'step4_gram_components', 'step4_core_components',
+                          'step4_split_components', 'step4_joint_components'}
+    if profile not in {"core", *component_profiles}:
         raise ValueError(f"unknown training_profile: {profile!r}")
-    if getattr(args, "resume", None):
-        raise ValueError("resume is not supported by this single-process trainer")
-    use_gram = profile == "step4_gram_components"
-    if use_gram:
+    resume_path = getattr(args, 'resume', None)
+    if resume_path and (profile == 'core' or not Path(resume_path).is_file()):
+        raise ValueError('resume requires an existing component checkpoint')
+    component = profile in component_profiles
+    use_gram = component and profile != 'step4_core_components'
+    if component:
         validate_gram_schedule(cfg)
+        if not 0 < int(cfg['training']['epochs']) <= step_protocol.SCHEDULE_EPOCHS:
+            raise ValueError('component epochs must be within the fixed schedule')
+    if profile in component_profiles - {'step4_gram_components'} and cfg['model'].get('head_layout') != 'shared':
+        raise ValueError('continuation and joint profiles require shared initial heads')
 
     device = resolve_device(getattr(args, "device", "auto"))
     seed = int(cfg.get("seed", 42))
     make_deterministic(seed)
 
     save_dir = cfg["output"]["checkpoint_dir"]
+    if resume_path and Path(resume_path).resolve().is_relative_to(Path(save_dir).resolve()):
+        raise ValueError('resume requires a separate output directory')
     os.makedirs(save_dir, exist_ok=True)
 
     m, d, t, ls = cfg["model"], cfg["data"], cfg["training"], cfg["loss"]
@@ -321,6 +401,26 @@ def run(args, config: "dict | None" = None) -> dict:
     warmup_steps = int(t["warmup_epochs"]) * steps_per_epoch
     temp_warmup_steps = int(ls["teacher_temp_warmup_epochs"]) * steps_per_epoch
 
+    start_epoch, global_step = 0, 0
+    if resume_path:
+        checkpoint = torch.load(resume_path, map_location='cpu', weights_only=True)
+        start_epoch, transition = validate_resume(checkpoint, cfg, profile, steps_per_epoch, device)
+        if checkpoint['head_layout'] == 'separate' and student.head_layout == 'shared':
+            student.ibot_head = copy.deepcopy(student.dino_head)
+            teacher.ibot_head = copy.deepcopy(teacher.dino_head)
+            student.head_layout = teacher.head_layout = 'separate'
+            optimizer.param_groups[0]['params'].extend(student.ibot_head.parameters())
+        student.load_state_dict(checkpoint['student_state_dict'], strict=True)
+        teacher.load_state_dict(checkpoint['teacher_state_dict'], strict=True)
+        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        if transition and profile == 'step4_split_components':
+            apply_head_split(student, teacher, optimizer)
+        if 'gram_teacher_state_dict' in checkpoint and use_gram:
+            gram_teacher = copy.deepcopy(teacher.backbone).requires_grad_(False).eval()
+            gram_teacher.load_state_dict(checkpoint['gram_teacher_state_dict'], strict=True)
+        global_step = checkpoint['optimizer_step']
+        restore_training_rng(checkpoint['rng_state'], loader)
+
     print("=" * 72)
     print("DINOv3: ViT + DINO + iBOT + KoLeo  (arXiv:2508.10104)")
     print(f"  device={device}  epochs={total_epochs}  crops={n_global}g+{n_local}l"
@@ -333,9 +433,8 @@ def run(args, config: "dict | None" = None) -> dict:
     # the recipe; an empty save_at_epochs writes only checkpoint_latest.pth.
     save_at = {int(n) for n in t.get("save_at_epochs", [])}
 
-    global_step = 0
     final_loss = None
-    for epoch in range(total_epochs):
+    for epoch in range(start_epoch, total_epochs):
         running, count = 0.0, 0
         for batch in loader:
             views, gram_views, _labels = batch if use_gram else (batch[0], None, batch[1])
@@ -353,13 +452,16 @@ def run(args, config: "dict | None" = None) -> dict:
                               global_step, total_steps)
 
             local_weight = 1.0
-            if use_gram:
+            if component:
                 schedule = step_protocol.optimizer_step_schedule(global_step, steps_per_epoch)
                 for pg in optimizer.param_groups:
                     pg["lr"] = schedule.lr
                 lr, momentum = schedule.lr, schedule.teacher_momentum
                 dino_loss.teacher_temp = ibot_loss.teacher_temp = schedule.teacher_temp
                 local_weight = schedule.dino_local_weight
+                if not use_gram:
+                    momentum = step_protocol.CORE_TEACHER_MOMENTUM
+                    local_weight = step_protocol.DINO_LOCAL_WEIGHT_START
 
             views = [v.to(device, non_blocking=True) for v in views]
             B = views[0].shape[0]
@@ -378,8 +480,15 @@ def run(args, config: "dict | None" = None) -> dict:
                 views, n_global=n_global, masks_global=masks_global,
                 ibot_selection_masks=masks_global)
 
-            loss_dino = dino_loss(s_dino, t_dino, local_loss_weight=local_weight)
-            loss_ibot = ibot_loss(s_ibot, t_ibot, masks_global)
+            if profile == 'step4_joint_components':
+                cls_probs, patch_probs = joint_teacher_assignments(
+                    t_dino, t_ibot, dino_loss.teacher_temp, dino_loss.sk_n_iters)
+                loss_dino = dino_loss(s_dino, t_dino, local_loss_weight=local_weight,
+                                      teacher_probs=cls_probs)
+                loss_ibot = ibot_loss(s_ibot, t_ibot, masks_global, teacher_probs=patch_probs)
+            else:
+                loss_dino = dino_loss(s_dino, t_dino, local_loss_weight=local_weight)
+                loss_ibot = ibot_loss(s_ibot, t_ibot, masks_global)
             global_cls = s_cls[:B * n_global].reshape(n_global, B, -1)
             loss_koleo = sum(koleo_loss(c) for c in global_cls)
             loss = core_objective(loss_dino, loss_ibot, loss_koleo, ls, koleo_weight)
@@ -414,13 +523,17 @@ def run(args, config: "dict | None" = None) -> dict:
             if gram_teacher is None:
                 raise RuntimeError("Gram teacher refresh requested before snapshot")
             gram_teacher.load_state_dict(teacher.backbone.state_dict())
+        if profile == 'step4_split_components' and epoch + 1 == HEAD_SPLIT_AFTER_EPOCH:
+            apply_head_split(student, teacher, optimizer)
         ckpt = {"epoch": epoch, "teacher_state_dict": teacher.state_dict(),
                 "student_state_dict": student.state_dict(),
                 "loss": final_loss, "config": cfg}
-        if use_gram:
+        if component:
             ckpt.update(training_profile=profile, canonical_eligible=False,
                         optimizer_state_dict=optimizer.state_dict(),
-                        optimizer_step=global_step, steps_per_epoch=steps_per_epoch)
+                        optimizer_step=global_step, steps_per_epoch=steps_per_epoch,
+                        component_checkpoint_version=1, head_layout=student.head_layout,
+                        device_type=device.type, rng_state=training_rng(loader))
             if gram_teacher is not None:
                 ckpt["gram_teacher_state_dict"] = gram_teacher.state_dict()
         torch.save(ckpt, os.path.join(save_dir, "checkpoint_latest.pth"))

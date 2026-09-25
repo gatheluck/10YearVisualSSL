@@ -42,5 +42,6 @@
     "commit": "6876159a11b4df116f30f667f8c9888617df0751",
     "path": "third_party/dinov3",
     "license": "DINOv3 License, third_party/dinov3/LICENSE.md"
-  }
+  },
+  "step4_continuation": "Single-process H1CORE, H1S200 and H1JA components with version-1 full checkpoint continuation. Reduced CPU split/AdamW/EMA and joint-assignment comparisons match captured implementations. Native distributed checkpoint conversion, full DDP/BF16 and paper scores remain unverified. See docs/DINOV3_STEP4.md."
 }

@@ -401,9 +401,12 @@ def execute(doc: dict, event: str, only: str | None, platform: str,
                 # guards that scan the repository then read it. It showed up as
                 # two methods reporting different numbers of tests from the
                 # same suite -- found by running this, not by reasoning.
-                tree = Path(tempfile.mkdtemp(prefix="ci-local-"))
-                trees.append(tree)
-                export_head(root, tree)
+                # Dry plans still execute discovery above and expand every row,
+                # but never run row commands: no per-row checkout is consumed.
+                if not dry_run:
+                    tree = Path(tempfile.mkdtemp(prefix="ci-local-"))
+                    trees.append(tree)
+                    export_head(root, tree)
                 for step in job.spec.get("steps", []):
                     if "uses" in step:
                         note = describe_uses(step)

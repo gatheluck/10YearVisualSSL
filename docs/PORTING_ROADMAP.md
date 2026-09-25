@@ -197,3 +197,11 @@ under the 2026-08-09 keep-capture-numbering decision.
    -s tests`; the base run skips deps-gated tests and hides in-process collisions).
 6. GPU verify on the available device; `verify-environment` exact.
 7. Commit gated on the suite; open a PR; confirm CI green (incl. container).
+
+## Step-4 continuation update (2026-09-25)
+
+H1S200, H1CORE and H1JA now have single-process component paths and versioned
+checkpoint continuation. See [the Step-4 guide](DINOV3_STEP4.md) for exact
+interfaces and limits. Native distributed checkpoint conversion, full distributed
+training/BF16 and score reproduction remain open; IDv2 banks and the remaining
+Basic5/Extend work are the next major integration groups.

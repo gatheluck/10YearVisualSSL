@@ -76,6 +76,7 @@ class DINOLoss(nn.Module):
         student_logits: torch.Tensor,
         teacher_logits: torch.Tensor,
         local_loss_weight: float = 1.0,
+        teacher_probs: torch.Tensor | None = None,
     ) -> torch.Tensor:
         if student_logits.shape[0] % self.n_crops:
             raise ValueError("student batch is not divisible by the number of crops")
@@ -83,7 +84,12 @@ class DINOLoss(nn.Module):
         if teacher_logits.shape[0] != batch_size * self.n_global:
             raise ValueError("student and teacher crop batches do not match")
 
-        teacher_probs = self.teacher_targets(teacher_logits)
+        if teacher_probs is None:
+            teacher_probs = self.teacher_targets(teacher_logits)
+        else:
+            if teacher_probs.shape != teacher_logits.shape:
+                raise ValueError('teacher probabilities must match logits')
+            teacher_probs = teacher_probs.detach().reshape(self.n_global, batch_size, -1)
         student_log_probs = F.log_softmax(
             student_logits.float().reshape(self.n_crops, batch_size, -1) / self.student_temp,
             dim=-1,
