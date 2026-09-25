@@ -23,11 +23,11 @@ capture's **step 2**: the from-scratch **unified SSL comparison** that trains a
 DINOv3 representation on ImageNet-1k. It is **self-contained torch-only** code (the
 ViT, the losses and the multi-crop dataset are the lab's own; no timm/transformers).
 
-The released DINOv3 recipe adds a **Gram anchoring** second stage (epochs 251–300,
-a snapshotted Gram teacher). The capture exposes this as `gram.mode`, with
-**`core_only`** as a first-class mode; this port runs `core_only` and **excludes
-the Gram anchoring stage**, as every port excludes a secondary stage. The
-`GramLoss` module is shipped for completeness but is not wired into the loss.
+The default profile remains `core`, excluding Gram. As of 2026-09-25,
+[Step-4 components](../../docs/DINOV3_STEP4.md) add four selectable sharing
+layouts, weighted DINO/iBOT objectives and an explicit frozen-teacher Gram
+profile. This supersedes the earlier blanket Gram-exclusion statement.
+The opt-in profile is single-process float32 and is not a canonical paper run.
 
 ## Licence
 
@@ -56,8 +56,8 @@ using the shared single-feature probe instead is a documented deviation.)
 
 ## Milestone checkpoints for the frozen-backbone sweep
 
-This config **is** the unified ViT-B/16 Step 2 already, so there is a single
-recipe and no `recipe` selector. To support the Step-2 protocol's 100/200/300
+The default config contains the earlier core-only ViT-B/16 recipe.
+The optional `training_profile` selects the Gram component schedule. To support the Step-2 protocol's 100/200/300
 frozen-backbone probe sweep, `train.save_at_epochs` lists the epochs at which the
 trainer writes a `checkpoint_epoch_{N}.pth` (in addition to
 `checkpoint_latest.pth`); the adapter hands each over as `encoder_epoch{N}.pt`,

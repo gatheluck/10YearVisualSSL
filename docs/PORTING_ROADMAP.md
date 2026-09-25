@@ -7,6 +7,13 @@ externalised here so the plan survives across sessions. Generative-AR methods
 (`var`, `mar`, `image_gpt`) belong to **other steps**, not this list, and are
 already ported as pilots for the submodule / eval-only / download machinery.
 
+## DINOv3 scope update (2026-09-25)
+
+The historical rows below describe the original core-only port. The optional
+[Step-4 components](DINOV3_STEP4.md) now integrate four sharing layouts and a
+frozen-teacher Gram stage. They do not establish distributed or paper-score
+reproduction; see the [current gap ledger](PAPER_REPRODUCTION_GAPS.md).
+
 ## The 38 methods (Step 1&2), and how the capture holds them
 
 The capture (`gatheluck/10YearVisualSSLCapturePrivate`, `snapshots` branch) has a

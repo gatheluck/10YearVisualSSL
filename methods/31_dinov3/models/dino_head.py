@@ -53,6 +53,36 @@ class IBOTHead(DINOHead):
     """A separate DINO head applied to masked patch tokens."""
 
 
+class TokenTypeAffine(nn.Module):
+    """Identity-initialized calibration; raw backbone features stay unchanged."""
+
+    def __init__(self, dimension: int):
+        super().__init__()
+        self.gamma = nn.Parameter(torch.ones(dimension))
+        self.beta = nn.Parameter(torch.zeros(dimension))
+
+    def forward(self, tokens):
+        return tokens * self.gamma + self.beta
+
+
+def build_head_mlp(in_dim, hidden_dim, bottleneck_dim):
+    mlp = _build_mlp(3, in_dim, bottleneck_dim, hidden_dim, False, True)
+    mlp.apply(DINOHead._init_weights)
+    return mlp
+
+
+def build_prototypes(bottleneck_dim, out_dim):
+    layer = nn.Linear(bottleneck_dim, out_dim, bias=False)
+    DINOHead._init_weights(layer)
+    return layer
+
+
+def project_tokens(mlp, prototypes, tokens):
+    hidden = mlp(tokens)
+    eps = 1e-6 if hidden.dtype == torch.float16 else 1e-12
+    return prototypes(F.normalize(hidden, dim=-1, p=2, eps=eps))
+
+
 def _build_mlp(
     nlayers: int,
     in_dim: int,
