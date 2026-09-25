@@ -1,0 +1,338 @@
+{
+  "_note": "Run with the complete downstream interpreter. Reference forward, gradients, optimizer updates, loader refusals and capability boundaries must detect each mutation.",
+  "targets": [
+    {
+      "label": "unknown architecture accepted",
+      "file": "downstream/patch_vision.py",
+      "old": "if spec.get(\"arch\") not in (\"released\", \"fixture\"):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_patch_basic5.TestPatchFamilies.test_strict_local_loading_and_architecture"
+      ]
+    },
+    {
+      "label": "wrong vision config family accepted",
+      "file": "downstream/patch_vision.py",
+      "old": "if raw.get(\"model_type\") != cls.config_class.model_type:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_patch_basic5.TestPatchFamilies.test_strict_local_loading_and_architecture"
+      ]
+    },
+    {
+      "label": "released profile accepts fixture",
+      "file": "downstream/patch_vision.py",
+      "old": "if spec[\"arch\"] == \"released\" and any(",
+      "new": "if False and any(",
+      "tests": [
+        "tests.test_method_patch_basic5.TestPatchFamilies.test_strict_local_loading_and_architecture"
+      ]
+    },
+    {
+      "label": "patch geometry mismatch accepted",
+      "file": "downstream/patch_vision.py",
+      "old": "if cfg.patch_size != spec[\"patch_size\"]:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_patch_basic5.TestPatchFamilies.test_strict_local_loading_and_architecture"
+      ]
+    },
+    {
+      "label": "missing weights accepted",
+      "file": "downstream/patch_vision.py",
+      "old": "(\"missing_keys\", \"unexpected_keys\", \"mismatched_keys\", \"error_msgs\")",
+      "new": "(\"unexpected_keys\", \"mismatched_keys\", \"error_msgs\")",
+      "tests": [
+        "tests.test_method_patch_basic5.TestPatchFamilies.test_strict_local_loading_and_architecture"
+      ]
+    },
+    {
+      "label": "unexpected weights accepted",
+      "file": "downstream/patch_vision.py",
+      "old": "(\"missing_keys\", \"unexpected_keys\", \"mismatched_keys\", \"error_msgs\")",
+      "new": "(\"missing_keys\", \"mismatched_keys\", \"error_msgs\")",
+      "tests": [
+        "tests.test_method_patch_basic5.TestPatchFamilies.test_strict_local_loading_and_architecture"
+      ]
+    },
+    {
+      "label": "incorrect block decay index",
+      "file": "downstream/patch_vision.py",
+      "old": "layer = index + 1",
+      "new": "layer = index",
+      "tests": [
+        "tests.test_method_patch_basic5.TestPatchFamilies.test_frozen_state_and_parameter_policy"
+      ]
+    },
+    {
+      "label": "incorrect DeepStack decay index",
+      "file": "downstream/patch_vision.py",
+      "old": "layer = int(self.model.config.deepstack_visual_indexes[int(tap[1])]) + 1",
+      "new": "layer = 0",
+      "tests": [
+        "tests.test_method_patch_basic5.TestPatchFamilies.test_frozen_state_and_parameter_policy"
+      ]
+    },
+    {
+      "label": "merger assigned stem learning rate",
+      "file": "downstream/patch_vision.py",
+      "old": "elif \"merger.\" in name:\n                layer = self.depth",
+      "new": "elif \"merger.\" in name:\n                layer = 0",
+      "tests": [
+        "tests.test_method_patch_basic5.TestPatchFamilies.test_frozen_state_and_parameter_policy"
+      ]
+    },
+    {
+      "label": "normalization decays",
+      "file": "downstream/patch_vision.py",
+      "old": "entries[name] = (layer, vision_no_decay(name))",
+      "new": "entries[name] = (layer, False)",
+      "tests": [
+        "tests.test_method_patch_basic5.TestPatchFamilies.test_frozen_state_and_parameter_policy"
+      ]
+    },
+    {
+      "label": "missing blocks accepted",
+      "file": "downstream/patch_vision.py",
+      "old": "if blocks != set(range(self.depth)) or any(",
+      "new": "if False and any(",
+      "tests": [
+        "tests.test_method_patch_basic5.TestPatchFamilies.test_invalid_inputs_outputs_and_policy_are_refused"
+      ]
+    },
+    {
+      "label": "trunk invalid input accepted",
+      "file": "methods/sam3/downstream_backbone.py",
+      "old": "raise ValueError(\"images require nonempty [B, 3, H, W]\")",
+      "new": "pass",
+      "tests": [
+        "tests.test_method_patch_basic5.TestPatchFamilies.test_invalid_inputs_outputs_and_policy_are_refused"
+      ]
+    },
+    {
+      "label": "trunk loses gradients",
+      "file": "methods/sam3/downstream_backbone.py",
+      "old": "with nullcontext() if self.trainable else torch.no_grad():",
+      "new": "with torch.no_grad():",
+      "tests": [
+        "tests.test_method_patch_basic5.TestPatchFamilies.test_spatial_pooling_video_gradients_and_updates"
+      ]
+    },
+    {
+      "label": "trunk uses first token as pooled feature",
+      "file": "methods/sam3/downstream_backbone.py",
+      "old": "pooler_output=tokens.mean(1)",
+      "new": "pooler_output=tokens[:, 0]",
+      "tests": [
+        "tests.test_method_patch_basic5.TestPatchFamilies.test_spatial_pooling_video_gradients_and_updates"
+      ]
+    },
+    {
+      "label": "trunk allows unsupported detection",
+      "file": "methods/sam3/downstream_backbone.py",
+      "old": "CAPTURE_PYRAMID = False",
+      "new": "CAPTURE_PYRAMID = True",
+      "tests": [
+        "tests.test_method_patch_basic5.TestPatchFamilies.test_frozen_state_and_parameter_policy"
+      ]
+    },
+    {
+      "label": "trunk frozen constructor becomes trainable",
+      "file": "methods/sam3/downstream_backbone.py",
+      "old": "return _build(spec, False)",
+      "new": "return _build(spec, True)",
+      "tests": [
+        "tests.test_method_patch_basic5.TestPatchFamilies.test_frozen_state_and_parameter_policy"
+      ]
+    },
+    {
+      "label": "merger invalid input accepted",
+      "file": "downstream/hf_vision.py",
+      "old": "raise ValueError(\"images require nonempty [B, 3, H, W]\")",
+      "new": "pass",
+      "tests": [
+        "tests.test_method_patch_basic5.TestPatchFamilies.test_invalid_inputs_outputs_and_policy_are_refused"
+      ]
+    },
+    {
+      "label": "merger loses gradients",
+      "file": "methods/cosmos3_super/downstream_backbone.py",
+      "old": "with nullcontext() if self.trainable else torch.no_grad():",
+      "new": "with torch.no_grad():",
+      "tests": [
+        "tests.test_method_patch_basic5.TestPatchFamilies.test_spatial_pooling_video_gradients_and_updates"
+      ]
+    },
+    {
+      "label": "merger uses first token as pooled feature",
+      "file": "methods/cosmos3_super/downstream_backbone.py",
+      "old": "pooler_output=tokens.mean(1)",
+      "new": "pooler_output=tokens[:, 0]",
+      "tests": [
+        "tests.test_method_patch_basic5.TestPatchFamilies.test_spatial_pooling_video_gradients_and_updates"
+      ]
+    },
+    {
+      "label": "merger allows unsupported detection",
+      "file": "methods/cosmos3_super/downstream_backbone.py",
+      "old": "CAPTURE_PYRAMID = False",
+      "new": "CAPTURE_PYRAMID = True",
+      "tests": [
+        "tests.test_method_patch_basic5.TestPatchFamilies.test_frozen_state_and_parameter_policy"
+      ]
+    },
+    {
+      "label": "merger frozen constructor becomes trainable",
+      "file": "methods/cosmos3_super/downstream_backbone.py",
+      "old": "return _build(spec, False)",
+      "new": "return _build(spec, True)",
+      "tests": [
+        "tests.test_method_patch_basic5.TestPatchFamilies.test_frozen_state_and_parameter_policy"
+      ]
+    },
+    {
+      "label": "global RoPE scale incorrect",
+      "file": "methods/sam3/downstream_backbone.py",
+      "old": "scale = self.model.config.window_size / hp",
+      "new": "scale = 1.0",
+      "tests": [
+        "tests.test_method_patch_basic5.TestPatchFamilies.test_spatial_pooling_video_gradients_and_updates"
+      ]
+    },
+    {
+      "label": "window RoPE wrongly rebuilt",
+      "file": "methods/sam3/downstream_backbone.py",
+      "old": "if layer.window_size != 0:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_patch_basic5.TestPatchFamilies.test_global_rope_updates_buffers_without_replacing_modules"
+      ]
+    },
+    {
+      "label": "trunk output grid unchecked",
+      "file": "methods/sam3/downstream_backbone.py",
+      "old": "raise ValueError(\"trunk tokens do not match the spatial grid\")",
+      "new": "pass",
+      "tests": [
+        "tests.test_method_patch_basic5.TestPatchFamilies.test_invalid_inputs_outputs_and_policy_are_refused"
+      ]
+    },
+    {
+      "label": "official trunk patch geometry unchecked",
+      "file": "methods/sam3/downstream_backbone.py",
+      "old": "if model.config.patch_size != spec[\"patch_size\"]:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_patch_basic5.TestPatchFamilies.test_official_trunk_file_loads_without_changing_extraction"
+      ]
+    },
+    {
+      "label": "official released profile accepts fixture",
+      "file": "methods/sam3/downstream_backbone.py",
+      "old": "if spec[\"arch\"] == \"released\" and any(",
+      "new": "if False and any(",
+      "tests": [
+        "tests.test_method_patch_basic5.TestPatchFamilies.test_official_trunk_file_loads_without_changing_extraction"
+      ]
+    },
+    {
+      "label": "wrong channel normalization",
+      "file": "methods/cosmos3_super/downstream_backbone.py",
+      "old": "pixel = self._pixels(images)",
+      "new": "pixel = images",
+      "tests": [
+        "tests.test_method_patch_basic5.TestPatchFamilies.test_spatial_pooling_video_gradients_and_updates"
+      ]
+    },
+    {
+      "label": "wrong merge-window patch order",
+      "file": "methods/cosmos3_super/downstream_backbone.py",
+      "old": "0, 2, 5, 3, 6, 1, 4, 7",
+      "new": "0, 2, 3, 5, 6, 1, 4, 7",
+      "tests": [
+        "tests.test_method_patch_basic5.TestPatchFamilies.test_spatial_pooling_video_gradients_and_updates"
+      ]
+    },
+    {
+      "label": "merger replaced by hidden tokens",
+      "file": "methods/cosmos3_super/downstream_backbone.py",
+      "old": "tokens = out.pooler_output",
+      "new": "tokens = out.last_hidden_state",
+      "tests": [
+        "tests.test_method_patch_basic5.TestPatchFamilies.test_spatial_pooling_video_gradients_and_updates"
+      ]
+    },
+    {
+      "label": "merger grid unchecked",
+      "file": "methods/cosmos3_super/downstream_backbone.py",
+      "old": "raise ValueError(\"final merger output does not match the spatial grid\")",
+      "new": "pass",
+      "tests": [
+        "tests.test_method_patch_basic5.TestPatchFamilies.test_invalid_inputs_outputs_and_policy_are_refused"
+      ]
+    },
+    {
+      "label": "official file accepts unknown architecture",
+      "file": "methods/sam3/downstream_backbone.py",
+      "old": "if spec.get(\"arch\") not in (\"released\", \"fixture\"):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_patch_basic5.TestPatchFamilies.test_official_trunk_file_loads_without_changing_extraction"
+      ]
+    },
+    {
+      "label": "trunk snapshot image geometry ignored",
+      "file": "methods/sam3/downstream_backbone.py",
+      "old": "if model.config.image_size != spec[\"img_size\"]:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_patch_basic5.TestPatchFamilies.test_strict_local_loading_and_architecture"
+      ]
+    },
+    {
+      "label": "sam3 frozen input gradients leak",
+      "file": "methods/sam3/downstream_backbone.py",
+      "old": "with nullcontext() if self.trainable else torch.no_grad():",
+      "new": "with nullcontext():",
+      "tests": [
+        "tests.test_method_patch_basic5.TestPatchFamilies.test_frozen_state_and_parameter_policy"
+      ]
+    },
+    {
+      "label": "cosmos3_super frozen input gradients leak",
+      "file": "methods/cosmos3_super/downstream_backbone.py",
+      "old": "with nullcontext() if self.trainable else torch.no_grad():",
+      "new": "with nullcontext():",
+      "tests": [
+        "tests.test_method_patch_basic5.TestPatchFamilies.test_frozen_state_and_parameter_policy"
+      ]
+    },
+    {
+      "label": "missing snapshot path not rejected",
+      "file": "downstream/patch_vision.py",
+      "old": "raise ValueError(\"encoder must be a local vision checkpoint directory\")",
+      "new": "pass",
+      "tests": [
+        "tests.test_method_patch_basic5.TestPatchFamilies.test_strict_local_loading_and_architecture"
+      ]
+    },
+    {
+      "label": "all parameters exempt from weight decay",
+      "file": "downstream/patch_vision.py",
+      "old": "entries[name] = (layer, vision_no_decay(name))",
+      "new": "entries[name] = (layer, True)",
+      "tests": [
+        "tests.test_method_patch_basic5.TestPatchFamilies.test_frozen_state_and_parameter_policy"
+      ]
+    },
+    {
+      "label": "positional parameters wrongly decayed",
+      "file": "downstream/patch_vision.py",
+      "old": "entries[name] = (layer, vision_no_decay(name))",
+      "new": "entries[name] = (layer, vision_no_decay(name) and not (\"position_embeddings\" in name or \".pos_embed.\" in name))",
+      "tests": [
+        "tests.test_method_patch_basic5.TestPatchFamilies.test_frozen_state_and_parameter_policy"
+      ]
+    }
+  ]
+}

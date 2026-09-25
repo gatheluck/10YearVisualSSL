@@ -16,6 +16,14 @@ _IM_MEAN = (.485, .456, .406)
 _IM_STD = (.229, .224, .225)
 
 
+def vision_no_decay(name):
+    """Captured vision-tower bias, normalization and positional exemptions."""
+    lower = name.lower()
+    return any(key in lower for key in (
+        'bias', 'norm', 'ln', 'position_embedding', 'pos_embed',
+        'positional', 'class_token', 'cls_token'))
+
+
 def build_vision(spec, *, family, expected, trainable=False):
     """Read a complete local HF snapshot; reduced fixtures need arch=fixture."""
     from transformers import (AutoConfig, CLIPVisionModelWithProjection,
@@ -142,7 +150,7 @@ class VisionBackbone(nn.Module):
                 no_decay = (lower.endswith("bias") or any(k in lower for k in (
                     "norm", "cls_token", "register_tokens", "mask_token", "layer_scale")) or lower.endswith("lambda1"))
             else:
-                no_decay = any(k in lower for k in ("bias", "norm", "ln", "position_embedding", "pos_embed", "positional", "class_token", "cls_token"))
+                no_decay = vision_no_decay(name)
                 if self.family == "projected_cls":
                     no_decay = no_decay or "class_embedding" in lower
             entries[name] = (layer, no_decay)

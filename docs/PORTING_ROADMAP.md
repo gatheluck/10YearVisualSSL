@@ -211,3 +211,11 @@ checkpoint continuation. See [the Step-4 guide](DINOV3_STEP4.md) for exact
 interfaces and limits. Native distributed checkpoint conversion, full distributed
 training/BF16 and score reproduction remain open; IDv2 banks and the remaining
 Basic5/Extend work are the next major integration groups.
+
+## Basic5 provider update (2026-09-26)
+
+The preceding IDv2-bank gap was superseded by the [seven component profiles](IDV2_COMPONENTS.md).
+[SAM3 trunk and Cosmos3 final-merger components](BASIC5_PATCH_PROVIDERS.md)
+now add ImageNet frozen LP and ADE20K/NYUv2/SSv2 frozen/FT paths. These updates
+reduce implementation gaps; full-data scores, native distributed execution,
+other provider families, remaining AP/COCO recipes and Extend remain outstanding.

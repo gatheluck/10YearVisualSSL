@@ -132,3 +132,12 @@ Success is exit status 0 and `status: "ok"` in `out/run_manifest.json`. This
 stage writes `metrics.json` and **no** `encoder.pt`; the manifest carries
 `encoder_absent_reason`. Read what that number means in the section above before
 comparing it.
+
+## Basic5 final-merger integration (2026-09-26)
+
+The separate `cosmos3_super_vm` downstream provider supports frozen ImageNet LP
+and frozen/FT ADE20K, NYUv2 and SSv2 using official merge-window packing and
+5120-channel final-merger features. See [usage and limits](../../docs/BASIC5_PATCH_PROVIDERS.md).
+The older adapter described above uses 1152-channel patch-token features and its existing
+packing; its artifacts are unchanged and must not be relabeled as final-merger
+outputs. Neither provider availability nor fixture scores certify paper results.
