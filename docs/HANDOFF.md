@@ -450,3 +450,26 @@ reference model has been ported or that its paper scores are reproduced. Actual
 model variants, source/checkpoint hashes, jobs, GPU checks and delivery evidence
 remain in private execution state. Figure row numbers have changed between
 versions; never silently use an old row-number directory for a new model.
+
+### 2026-09-25: Step-4 head and Gram component integration
+
+Starting baseline: PR 194 merged, main `552ca1e`. The user requested a fresh
+paper/workbook/capture audit and grouped strict-TDD implementation of the largest
+confirmed gap. See the [prioritized ledger](PAPER_REPRODUCTION_GAPS.md) and
+[DINOv3 Step-4 guide](DINOV3_STEP4.md) for the implemented boundary and limits.
+
+Four projection layouts, weighted objectives and the optional fixed-clock Gram
+stage now have CPU behavioral coverage, including real optimizer updates,
+clean-crop targets, snapshot/refresh boundaries and backbone-only exports. Reduced
+reference comparisons matched head initialization, outputs, gradients and three
+SGD/EMA updates. Shared-prototype construction preserves the reference's repeated
+codebook initialization without duplicate parameter ownership.
+This does not establish full ImageNet, distributed, BF16 or paper-score parity.
+H1S200, H1CORE continuation, H1JA, IDv2 banks and the remaining Basic5/Extend
+coverage are still pending. The new manuscript's H1-09 also changes masking.
+
+The default core path is preserved. Full captured training checkpoints are not
+drop-in inputs, and unsupported resume now fails. No new cluster jobs were
+submitted for this change. Preserve the unrelated dirty video submodule; private
+source snapshots, run identities and comparison outputs stay outside Git.
+Consult the PR for gate and mutation outcomes; local coverage is not CI evidence.

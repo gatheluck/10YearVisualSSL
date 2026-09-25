@@ -12,9 +12,9 @@ timm), so this port is torch-only.
 Scope: the capture's step 1 loads the HF-**gated** official DINOv3 weights (the
 from-scratch data, LVD-1689M, is not public) -- that download is excluded. What is
 ported is the capture's step 2, the from-scratch **unified SSL comparison** on
-ImageNet, which trains a genuine DINOv3 representation. The released **Gram
-anchoring** second stage is excluded (the capture's `gram.mode: core_only`), the
-same way every port excludes a secondary stage.
+ImageNet, which trains a genuine DINOv3 representation. The default keeps the core objective. Optional Step-4 head
+layouts and `step4_gram_components` select a frozen-teacher Gram stage; see
+`docs/DINOV3_STEP4.md` for scope and remaining distributed/precision gaps.
 
 `encoder.pt` is the EMA teacher's ViT backbone (`backbone.*` from
 `teacher_state_dict`, the prefix stripped so it loads into a plain ViT); the DINO
@@ -55,6 +55,8 @@ TRAINING_KEYS = frozenset({"epochs", "batch_size", "lr", "min_lr",
 LOSS_KEYS = frozenset({"student_temp", "teacher_temp_start", "teacher_temp_end",
                        "teacher_temp_warmup_epochs", "sk_n_iters"})
 PRETRAIN_TRAIN_KEYS = MODEL_KEYS | DATA_KEYS | TRAINING_KEYS | LOSS_KEYS
+OPTIONAL_PRETRAIN_KEYS = frozenset({'head_layout', 'dino_loss_weight', 'ibot_loss_weight',
+                                   'training_profile'})
 
 EVAL_MODEL_KEYS = frozenset({"img_size", "patch_size", "embed_dim", "depth",
                              "num_heads", "mlp_ratio", "n_register_tokens",
@@ -114,7 +116,8 @@ def _model_section(t: dict) -> dict:
             "dino_head_hidden_dim": int(t["dino_head_hidden_dim"]),
             "dino_head_bottleneck_dim": int(t["dino_head_bottleneck_dim"]),
             "ibot_head_hidden_dim": int(t["ibot_head_hidden_dim"]),
-            "ibot_head_bottleneck_dim": int(t["ibot_head_bottleneck_dim"])}
+            "ibot_head_bottleneck_dim": int(t["ibot_head_bottleneck_dim"]),
+            **({'head_layout': t['head_layout']} if 'head_layout' in t else {})}
 
 
 def _data_section(config: dict, t: dict) -> dict:
@@ -140,7 +143,8 @@ def _training_section(t: dict) -> dict:
             "ibot_mask_ratio_max": float(t["ibot_mask_ratio_max"]),
             "ibot_mask_sample_probability": float(t["ibot_mask_sample_probability"]),
             "koleo_loss_weight": float(t["koleo_loss_weight"]),
-            "save_at_epochs": [int(e) for e in t["save_at_epochs"]]}
+            "save_at_epochs": [int(e) for e in t["save_at_epochs"]],
+            **{k: t[k] for k in ('training_profile',) if k in t}}
 
 
 def _loss_section(t: dict) -> dict:
@@ -148,7 +152,8 @@ def _loss_section(t: dict) -> dict:
             "teacher_temp_start": float(t["teacher_temp_start"]),
             "teacher_temp_end": float(t["teacher_temp_end"]),
             "teacher_temp_warmup_epochs": int(t["teacher_temp_warmup_epochs"]),
-            "sk_n_iters": int(t["sk_n_iters"])}
+            "sk_n_iters": int(t["sk_n_iters"]),
+            **{k: float(t[k]) for k in ('dino_loss_weight', 'ibot_loss_weight') if k in t}}
 
 
 def to_run_config(config: dict, out: Path) -> dict:
@@ -170,7 +175,8 @@ def to_run_config(config: dict, out: Path) -> dict:
     train = config["train"]
     if not isinstance(train, dict):
         raise ConfigError(f"config: train is {type(train).__name__}, not a mapping")
-    _named(keys - set(train), set(train) - keys, "config.train")
+    optional = OPTIONAL_PRETRAIN_KEYS if stage == 'pretrain' else frozenset()
+    _named(keys - set(train), set(train) - keys - optional, "config.train")
 
     if config["device"] not in DEVICES:
         raise ConfigError(

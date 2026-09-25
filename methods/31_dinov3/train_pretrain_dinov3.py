@@ -13,17 +13,12 @@ global crops); L_KoLeo spreads the batch's CLS features. The teacher is an EMA o
 the student; `encoder.pt` is the teacher backbone (the DINO/iBOT heads are
 training machinery and are excluded).
 
-Scope note (documented deviation): the released DINOv3 recipe adds a **Gram
-anchoring** second stage (epochs 251-300, a snapshotted Gram teacher). The capture
-exposes this as `gram.mode`, with `core_only` as a first-class mode; this port
-runs the **core** objective (`gram.mode: core_only`) and excludes the Gram
-anchoring stage, as it excludes every method's secondary stage. The GramLoss
-module is shipped for completeness but is not wired into the loss here.
+The default `core` profile preserves the original single-process schedules.
+The explicit `step4_gram_components` profile wires the fixed 300-epoch clock,
+frozen clean-crop Gram teacher and sparse refreshes; selectable heads implement
+four Step-4 sharing designs. See docs/DINOV3_STEP4.md. Both profiles remain
+single-process float32 components, not canonical distributed reproduction.
 
-The lab wrapper trains under DistributedDataParallel with TensorBoard; this
-single-process port drops DDP / TensorBoard / tqdm, resolves the device rather
-than assuming CUDA, and uses a plain cosine LR + teacher-temp warmup + teacher-EMA
-cosine schedule (the core schedule, without the Gram two-stage clock).
 """
 
 from __future__ import annotations
@@ -46,7 +41,10 @@ if str(ROOT) not in sys.path:
 
 from models import (DINOHead, IBOTHead, VisionTransformer,  # noqa: E402
                     vit_base_patch16)
-from losses import DINOLoss, IBOTLoss, KoLeoLoss             # noqa: E402
+from models.dino_head import (TokenTypeAffine, build_head_mlp,  # noqa: E402
+                              build_prototypes, project_tokens)
+from losses import DINOLoss, IBOTLoss, KoLeoLoss, GramLoss   # noqa: E402
+import protocol as step_protocol                           # noqa: E402
 from losses.ibot_loss import generate_block_mask            # noqa: E402
 from data import MultiCropAugmentation, get_multicrop_dataloader  # noqa: E402
 
@@ -76,16 +74,60 @@ class DINOv3Model(nn.Module):
 
     def __init__(self, model_cfg: dict):
         super().__init__()
+        self.head_layout = model_cfg.get('head_layout', 'separate')
+        layouts = ('separate', 'shared', 'shared_prototypes', 'shared_mlp', 'token_affine')
+        if self.head_layout not in layouts:
+            raise ValueError(f'unknown head_layout: {self.head_layout}')
+        dino = tuple(int(model_cfg[k]) for k in
+                     ('dino_head_hidden_dim', 'dino_head_bottleneck_dim', 'dino_out_dim'))
+        ibot = tuple(int(model_cfg[k]) for k in
+                     ('ibot_head_hidden_dim', 'ibot_head_bottleneck_dim', 'ibot_out_dim'))
+        incompatible = ((self.head_layout in ('shared', 'token_affine') and dino != ibot)
+                        or (self.head_layout == 'shared_prototypes' and dino[1:] != ibot[1:])
+                        or (self.head_layout == 'shared_mlp' and dino[:2] != ibot[:2]))
+        if incompatible:
+            raise ValueError(f'incompatible dimensions for {self.head_layout}')
         self.backbone = build_vit(**_vit_kwargs(model_cfg))
         embed_dim = self.backbone.embed_dim
-        self.dino_head = DINOHead(
-            in_dim=embed_dim, out_dim=int(model_cfg["dino_out_dim"]),
-            hidden_dim=int(model_cfg["dino_head_hidden_dim"]),
-            bottleneck_dim=int(model_cfg["dino_head_bottleneck_dim"]))
-        self.ibot_head = IBOTHead(
-            in_dim=embed_dim, out_dim=int(model_cfg["ibot_out_dim"]),
-            hidden_dim=int(model_cfg["ibot_head_hidden_dim"]),
-            bottleneck_dim=int(model_cfg["ibot_head_bottleneck_dim"]))
+        if self.head_layout == 'shared_prototypes':
+            self.prototypes = build_prototypes(dino[1], dino[2])
+            self.dino_mlp = build_head_mlp(embed_dim, *dino[:2])
+            # The reference recursively reinitializes the supplied prototype
+            # after each MLP. Preserve its seeded draws without registering aliases.
+            DINOHead._init_weights(self.prototypes)
+            self.ibot_mlp = build_head_mlp(embed_dim, *ibot[:2])
+            DINOHead._init_weights(self.prototypes)
+        elif self.head_layout == 'shared_mlp':
+            self.shared_mlp = build_head_mlp(embed_dim, *dino[:2])
+            self.dino_prototypes = build_prototypes(dino[1], dino[2])
+            self.ibot_prototypes = build_prototypes(ibot[1], ibot[2])
+        else:
+            self.dino_head = DINOHead(embed_dim, dino[2], dino[0], dino[1])
+            if self.head_layout == 'separate':
+                self.ibot_head = IBOTHead(embed_dim, ibot[2], ibot[0], ibot[1])
+            elif self.head_layout == 'token_affine':
+                self.token_affine_cls = TokenTypeAffine(embed_dim)
+                self.token_affine_patch = TokenTypeAffine(embed_dim)
+
+    def project_dino(self, tokens):
+        if self.head_layout == 'shared_prototypes':
+            return project_tokens(self.dino_mlp, self.prototypes, tokens)
+        if self.head_layout == 'shared_mlp':
+            return project_tokens(self.shared_mlp, self.dino_prototypes, tokens)
+        if self.head_layout == 'token_affine':
+            tokens = self.token_affine_cls(tokens)
+        return self.dino_head(tokens)
+
+    def project_ibot(self, tokens):
+        if self.head_layout == 'shared_prototypes':
+            return project_tokens(self.ibot_mlp, self.prototypes, tokens)
+        if self.head_layout == 'shared_mlp':
+            return project_tokens(self.shared_mlp, self.ibot_prototypes, tokens)
+        if self.head_layout == 'separate':
+            return self.ibot_head(tokens)
+        if self.head_layout == 'token_affine':
+            tokens = self.token_affine_patch(tokens)
+        return self.dino_head(tokens)
 
     def forward_backbone(self, crops, n_global, masks_global=None):
         B = crops[0].shape[0]
@@ -107,11 +149,11 @@ class DINOv3Model(nn.Module):
         # same positions via ibot_selection_masks -- so the teacher's unmasked
         # tokens are the targets for the student's masked predictions.
         cls_all, patches_global = self.forward_backbone(crops, n_global, masks_global)
-        dino_logits = self.dino_head(cls_all)
+        dino_logits = self.project_dino(cls_all)
         selection = (ibot_selection_masks if ibot_selection_masks is not None
                      else masks_global)
         selected = patches_global[selection] if selection is not None else patches_global
-        ibot_logits = self.ibot_head(selected)
+        ibot_logits = self.project_ibot(selected)
         return dino_logits, ibot_logits, cls_all, patches_global
 
 
@@ -164,8 +206,40 @@ def teacher_temp_at(step, warmup_steps, t_start, t_end):
 
 @torch.no_grad()
 def update_ema(teacher: nn.Module, student: nn.Module, momentum: float) -> None:
+    signature = lambda module: [(name, tuple(p.shape)) for name, p in module.named_parameters()]
+    if signature(teacher) != signature(student):
+        raise ValueError('teacher/student parameter layouts differ')
     for t_param, s_param in zip(teacher.parameters(), student.parameters()):
         t_param.data.mul_(momentum).add_(s_param.data, alpha=1.0 - momentum)
+
+
+def core_objective(dino, ibot, koleo, loss_config, koleo_weight):
+    weights = [float(loss_config.get(name, 1.)) for name in
+               ('dino_loss_weight', 'ibot_loss_weight')]
+    if any(not math.isfinite(w) or w < 0 for w in weights):
+        raise ValueError('DINO/iBOT loss weights must be finite and nonnegative')
+    return weights[0] * dino + weights[1] * ibot + koleo_weight * koleo
+
+
+def validate_gram_schedule(cfg):
+    """Prevent a fixed profile from silently ignoring contradictory settings."""
+    expected = {
+        'training': {
+            'lr': step_protocol.BASE_LR, 'min_lr': step_protocol.MIN_LR,
+            'warmup_epochs': step_protocol.WARMUP_EPOCHS,
+            'teacher_momentum_start': step_protocol.CORE_TEACHER_MOMENTUM,
+            'teacher_momentum_end': step_protocol.GRAM_TEACHER_MOMENTUM,
+        },
+        'loss': {
+            'teacher_temp_start': step_protocol.TEACHER_TEMP_START,
+            'teacher_temp_end': step_protocol.TEACHER_TEMP_END,
+            'teacher_temp_warmup_epochs': step_protocol.TEACHER_TEMP_WARMUP_EPOCHS,
+        },
+    }
+    for section, values in expected.items():
+        for key, value in values.items():
+            if cfg[section].get(key) != value:
+                raise ValueError(f'step4_gram_components requires {section}.{key}={value}')
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -188,6 +262,15 @@ def run(args, config: "dict | None" = None) -> dict:
     if getattr(args, "data_path", None):
         cfg["data"]["data_root"] = args.data_path
 
+    profile = cfg["training"].get("training_profile", "core")
+    if profile not in {"core", "step4_gram_components"}:
+        raise ValueError(f"unknown training_profile: {profile!r}")
+    if getattr(args, "resume", None):
+        raise ValueError("resume is not supported by this single-process trainer")
+    use_gram = profile == "step4_gram_components"
+    if use_gram:
+        validate_gram_schedule(cfg)
+
     device = resolve_device(getattr(args, "device", "auto"))
     seed = int(cfg.get("seed", 42))
     make_deterministic(seed)
@@ -208,7 +291,7 @@ def run(args, config: "dict | None" = None) -> dict:
     aug = MultiCropAugmentation(
         global_size=int(d["global_size"]), local_size=int(d["local_size"]),
         global_scale=tuple(d["global_scale"]), local_scale=tuple(d["local_scale"]),
-        n_global=n_global, n_local=n_local, return_gram_teacher_crops=False)
+        n_global=n_global, n_local=n_local, return_gram_teacher_crops=use_gram)
     loader = get_multicrop_dataloader(
         d["data_root"], aug, batch_size=int(t["batch_size"]),
         num_workers=int(d["num_workers"]), distributed=False, seed=seed)
@@ -220,6 +303,8 @@ def run(args, config: "dict | None" = None) -> dict:
                          student_temp=float(ls["student_temp"]),
                          sk_n_iters=int(ls["sk_n_iters"])).to(device)
     koleo_loss = KoLeoLoss().to(device)
+    gram_loss = GramLoss().to(device)
+    gram_teacher = None
 
     params = [p for p in student.parameters() if p.requires_grad]
     optimizer = torch.optim.AdamW(params, lr=float(t["lr"]),
@@ -237,9 +322,10 @@ def run(args, config: "dict | None" = None) -> dict:
     temp_warmup_steps = int(ls["teacher_temp_warmup_epochs"]) * steps_per_epoch
 
     print("=" * 72)
-    print("DINOv3  Step 2 (core): ViT + DINO + iBOT + KoLeo  (arXiv:2508.10104)")
+    print("DINOv3: ViT + DINO + iBOT + KoLeo  (arXiv:2508.10104)")
     print(f"  device={device}  epochs={total_epochs}  crops={n_global}g+{n_local}l"
-          f"  embed_dim={m['embed_dim']}  gram=core_only (excluded)")
+          f"  embed_dim={m['embed_dim']}  profile={profile}"
+          f"  head_layout={student.head_layout}  canonical_eligible=False")
     print("=" * 72)
 
     # Milestone checkpoints for the 100/200/300 frozen-backbone probe sweep. This
@@ -251,7 +337,8 @@ def run(args, config: "dict | None" = None) -> dict:
     final_loss = None
     for epoch in range(total_epochs):
         running, count = 0.0, 0
-        for views, _labels in loader:
+        for batch in loader:
+            views, gram_views, _labels = batch if use_gram else (batch[0], None, batch[1])
             lr = lr_at(global_step, total_steps, warmup_steps,
                        float(t["lr"]), float(t["min_lr"]))
             for pg in optimizer.param_groups:
@@ -264,6 +351,15 @@ def run(args, config: "dict | None" = None) -> dict:
             momentum = cosine(float(t["teacher_momentum_start"]),
                               float(t["teacher_momentum_end"]),
                               global_step, total_steps)
+
+            local_weight = 1.0
+            if use_gram:
+                schedule = step_protocol.optimizer_step_schedule(global_step, steps_per_epoch)
+                for pg in optimizer.param_groups:
+                    pg["lr"] = schedule.lr
+                lr, momentum = schedule.lr, schedule.teacher_momentum
+                dino_loss.teacher_temp = ibot_loss.teacher_temp = schedule.teacher_temp
+                local_weight = schedule.dino_local_weight
 
             views = [v.to(device, non_blocking=True) for v in views]
             B = views[0].shape[0]
@@ -278,15 +374,23 @@ def run(args, config: "dict | None" = None) -> dict:
                 t_dino, t_ibot, _, _ = teacher(
                     views[:n_global], n_global=n_global, masks_global=None,
                     ibot_selection_masks=masks_global)
-            s_dino, s_ibot, s_cls, _ = student(
+            s_dino, s_ibot, s_cls, s_patch = student(
                 views, n_global=n_global, masks_global=masks_global,
                 ibot_selection_masks=masks_global)
 
-            loss_dino = dino_loss(s_dino, t_dino, local_loss_weight=1.0)
+            loss_dino = dino_loss(s_dino, t_dino, local_loss_weight=local_weight)
             loss_ibot = ibot_loss(s_ibot, t_ibot, masks_global)
             global_cls = s_cls[:B * n_global].reshape(n_global, B, -1)
             loss_koleo = sum(koleo_loss(c) for c in global_cls)
-            loss = loss_dino + loss_ibot + koleo_weight * loss_koleo
+            loss = core_objective(loss_dino, loss_ibot, loss_koleo, ls, koleo_weight)
+            if use_gram and epoch >= step_protocol.CORE_EPOCHS:
+                if gram_teacher is None or gram_views is None:
+                    raise RuntimeError("Gram stage requires a frozen teacher and clean crops")
+                with torch.no_grad():
+                    gram_targets = torch.cat([
+                        gram_teacher(v.to(device), mask=None, is_global=True)[1]
+                        for v in gram_views], dim=0)
+                loss = loss + schedule.gram_weight * gram_loss(s_patch, gram_targets)
             if not math.isfinite(loss.item()):
                 raise FloatingPointError(f"DINOv3 loss became non-finite: {loss.item()}")
 
@@ -304,15 +408,27 @@ def run(args, config: "dict | None" = None) -> dict:
         print(f"  [{epoch}] dinov3_loss={final_loss}  dino={loss_dino.item():.4f}"
               f"  ibot={loss_ibot.item():.4f}  koleo={loss_koleo.item():.4f}"
               f"  lr={lr:.3g}  m={momentum:.4f}")
+        if use_gram and epoch + 1 == step_protocol.CORE_EPOCHS:
+            gram_teacher = copy.deepcopy(teacher.backbone).requires_grad_(False).eval()
+        if use_gram and epoch + 1 in step_protocol.GRAM_TEACHER_UPDATE_EPOCHS:
+            if gram_teacher is None:
+                raise RuntimeError("Gram teacher refresh requested before snapshot")
+            gram_teacher.load_state_dict(teacher.backbone.state_dict())
         ckpt = {"epoch": epoch, "teacher_state_dict": teacher.state_dict(),
                 "student_state_dict": student.state_dict(),
                 "loss": final_loss, "config": cfg}
+        if use_gram:
+            ckpt.update(training_profile=profile, canonical_eligible=False,
+                        optimizer_state_dict=optimizer.state_dict(),
+                        optimizer_step=global_step, steps_per_epoch=steps_per_epoch)
+            if gram_teacher is not None:
+                ckpt["gram_teacher_state_dict"] = gram_teacher.state_dict()
         torch.save(ckpt, os.path.join(save_dir, "checkpoint_latest.pth"))
         if (epoch + 1) in save_at:
             torch.save(ckpt, os.path.join(
                 save_dir, f"checkpoint_epoch_{epoch + 1}.pth"))
 
-    print("\nDINOv3 Step 2 (core) training complete!")
+    print(f"\nDINOv3 training complete (profile={profile})!")
     ran = total_epochs > 0 and final_loss is not None
     return {"epochs": total_epochs, "final_loss": final_loss if ran else None}
 

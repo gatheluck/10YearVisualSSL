@@ -1,0 +1,220 @@
+{
+  "targets": [
+    {
+      "label": "unknown layout accepted",
+      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "old": "if self.head_layout not in layouts:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_dinov3_head_designs.HeadDesigns.test_invalid_layouts_and_incompatible_dimensions_are_refused"
+      ]
+    },
+    {
+      "label": "incompatible shared dimensions accepted",
+      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "old": "if incompatible:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_dinov3_head_designs.HeadDesigns.test_invalid_layouts_and_incompatible_dimensions_are_refused"
+      ]
+    },
+    {
+      "label": "iBOT gradients sent through the DINO MLP",
+      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "old": "project_tokens(self.ibot_mlp, self.prototypes, tokens)",
+      "new": "project_tokens(self.dino_mlp, self.prototypes, tokens)",
+      "tests": [
+        "tests.test_dinov3_head_designs.HeadDesigns.test_sharing_is_observable_in_both_task_gradients"
+      ]
+    },
+    {
+      "label": "iBOT uses DINO prototypes",
+      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "old": "project_tokens(self.shared_mlp, self.ibot_prototypes, tokens)",
+      "new": "project_tokens(self.shared_mlp, self.dino_prototypes, tokens)",
+      "tests": [
+        "tests.test_dinov3_head_designs.HeadDesigns.test_sharing_is_observable_in_both_task_gradients"
+      ]
+    },
+    {
+      "label": "CLS affine bypassed",
+      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "old": "tokens = self.token_affine_cls(tokens)",
+      "new": "tokens = tokens",
+      "tests": [
+        "tests.test_dinov3_head_designs.HeadDesigns.test_token_affine_starts_as_identity_and_keeps_raw_features"
+      ]
+    },
+    {
+      "label": "patch affine bypassed",
+      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "old": "tokens = self.token_affine_patch(tokens)",
+      "new": "tokens = tokens",
+      "tests": [
+        "tests.test_dinov3_head_designs.HeadDesigns.test_token_affine_starts_as_identity_and_keeps_raw_features"
+      ]
+    },
+    {
+      "label": "normalization bypassed",
+      "file": "methods/31_dinov3/models/dino_head.py",
+      "old": "return prototypes(F.normalize(hidden, dim=-1, p=2, eps=eps))",
+      "new": "return prototypes(mlp(tokens))",
+      "tests": [
+        "tests.test_dinov3_head_designs.HeadDesigns.test_projection_matches_explicit_normalized_mlp_and_input_gradients"
+      ]
+    },
+    {
+      "label": "loss coefficient ignored in actual training",
+      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "old": "core_objective(loss_dino, loss_ibot, loss_koleo, ls, koleo_weight)",
+      "new": "core_objective(loss_dino, loss_ibot, loss_koleo, {}, koleo_weight)",
+      "tests": [
+        "tests.test_dinov3_head_designs.HeadDesigns.test_selected_profile_is_reported_and_weighted_loss_changes_training"
+      ]
+    },
+    {
+      "label": "invalid loss weight accepted",
+      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "old": "if any(not math.isfinite(w) or w < 0 for w in weights):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_dinov3_head_designs.HeadDesigns.test_loss_weights_control_gradients_and_reject_nonfinite_or_negative"
+      ]
+    },
+    {
+      "label": "unknown profile silently uses core",
+      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "old": "if profile not in {\"core\", \"step4_gram_components\"}:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_dinov3_head_designs.HeadDesigns.test_unknown_profile_and_unsupported_resume_cannot_silently_train"
+      ]
+    },
+    {
+      "label": "resume silently ignored",
+      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "old": "if getattr(args, \"resume\", None):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_dinov3_head_designs.HeadDesigns.test_unknown_profile_and_unsupported_resume_cannot_silently_train"
+      ]
+    },
+    {
+      "label": "Gram uses augmented student crops",
+      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "old": "for v in gram_views], dim=0)",
+      "new": "for v in views[:n_global]], dim=0)",
+      "tests": [
+        "tests.test_dinov3_head_designs.HeadDesigns.test_gram_profile_reaches_stage_boundary_with_frozen_clean_crop_teacher"
+      ]
+    },
+    {
+      "label": "Gram coefficient ignored",
+      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "old": "schedule.gram_weight * gram_loss(s_patch, gram_targets)",
+      "new": "0.0 * gram_loss(s_patch, gram_targets)",
+      "tests": [
+        "tests.test_dinov3_head_designs.HeadDesigns.test_gram_profile_reaches_stage_boundary_with_frozen_clean_crop_teacher"
+      ]
+    },
+    {
+      "label": "Gram teacher refreshed every epoch",
+      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "old": "epoch + 1 in step_protocol.GRAM_TEACHER_UPDATE_EPOCHS",
+      "new": "epoch + 1 >= step_protocol.CORE_EPOCHS",
+      "tests": [
+        "tests.test_dinov3_head_designs.HeadDesigns.test_gram_profile_reaches_stage_boundary_with_frozen_clean_crop_teacher"
+      ]
+    },
+    {
+      "label": "Gram snapshot omitted",
+      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "old": "if use_gram and epoch + 1 == step_protocol.CORE_EPOCHS:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_dinov3_head_designs.HeadDesigns.test_gram_profile_reaches_stage_boundary_with_frozen_clean_crop_teacher"
+      ]
+    },
+    {
+      "label": "missing Gram snapshot accepted",
+      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "old": "if gram_teacher is None or gram_views is None:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_dinov3_head_designs.HeadDesigns.test_invalid_gram_lifecycle_refuses_missing_snapshot"
+      ]
+    },
+    {
+      "label": "refresh before snapshot accepted",
+      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "old": "if gram_teacher is None:\n                raise RuntimeError(\"Gram teacher refresh requested before snapshot\")",
+      "new": "if False:\n                raise RuntimeError(\"Gram teacher refresh requested before snapshot\")",
+      "tests": [
+        "tests.test_dinov3_head_designs.HeadDesigns.test_invalid_gram_lifecycle_refuses_missing_snapshot"
+      ]
+    },
+    {
+      "label": "profile marked canonical",
+      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "old": "ckpt.update(training_profile=profile, canonical_eligible=False,",
+      "new": "ckpt.update(training_profile=profile, canonical_eligible=True,",
+      "tests": [
+        "tests.test_dinov3_head_designs.HeadDesigns.test_gram_profile_reaches_stage_boundary_with_frozen_clean_crop_teacher"
+      ]
+    },
+    {
+      "label": "EMA layout guard removed",
+      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "old": "if signature(teacher) != signature(student):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_dinov3_head_designs.HeadDesigns.test_ema_refuses_layout_mismatch_before_modifying_teacher"
+      ]
+    },
+    {
+      "label": "documentation command silently selects core",
+      "file": "docs/DINOV3_STEP4.md",
+      "old": "training_profile=\"step4_gram_components\", dino_loss_weight=1.0",
+      "new": "training_profile=\"core\", dino_loss_weight=1.0",
+      "tests": [
+        "tests.test_dinov3_head_designs.HeadDesigns.test_documented_overrides_run_and_preserve_profile_in_checkpoint"
+      ]
+    },
+    {
+      "label": "Gram stage keeps core local crop weight",
+      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "old": "local_weight = schedule.dino_local_weight",
+      "new": "local_weight = 1.0",
+      "tests": [
+        "tests.test_dinov3_head_designs.HeadDesigns.test_gram_profile_reaches_stage_boundary_with_frozen_clean_crop_teacher"
+      ]
+    },
+    {
+      "label": "fixed profile silently ignores contradictory schedule",
+      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "old": "if cfg[section].get(key) != value:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_dinov3_head_designs.HeadDesigns.test_fixed_schedule_rejects_contradictory_values_before_model_creation"
+      ]
+    },
+    {
+      "label": "first shared-prototype reinitialization omitted",
+      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "old": "DINOHead._init_weights(self.prototypes)\n            self.ibot_mlp = build_head_mlp(embed_dim, *ibot[:2])",
+      "new": "self.ibot_mlp = build_head_mlp(embed_dim, *ibot[:2])",
+      "tests": [
+        "tests.test_dinov3_head_designs.HeadDesigns.test_shared_prototypes_preserves_reference_seeded_initialization"
+      ]
+    },
+    {
+      "label": "second shared-prototype reinitialization omitted",
+      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "old": "self.ibot_mlp = build_head_mlp(embed_dim, *ibot[:2])\n            DINOHead._init_weights(self.prototypes)",
+      "new": "self.ibot_mlp = build_head_mlp(embed_dim, *ibot[:2])",
+      "tests": [
+        "tests.test_dinov3_head_designs.HeadDesigns.test_shared_prototypes_preserves_reference_seeded_initialization"
+      ]
+    }
+  ]
+}
