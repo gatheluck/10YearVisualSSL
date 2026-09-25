@@ -174,9 +174,10 @@ jobs:
       - name: Run Basic5 component contracts with downstream dependencies
         run: |
           .venv/bin/python -c 'import torch, torchvision, timm, h5py, scipy, av, pycocotools, einops'
-          .venv/bin/python -c 'from transformers import CLIPVisionModelWithProjection, SiglipVisionModel, DINOv3ViTModel'
+          .venv/bin/python -c 'from transformers import CLIPVisionModelWithProjection, SiglipVisionModel, DINOv3ViTModel, Sam3ViTModel, Qwen3VLVisionModel'
           PYTHONPATH=. .venv/bin/python -m unittest -v \
             tests.test_method_hf_basic5 \
+            tests.test_method_patch_basic5 \
             tests.test_basic5_protocol tests.test_basic5_readers \
             tests.test_basic5_depth_temporal tests.test_basic5_seg_detection \
             tests.test_coco_schedule \

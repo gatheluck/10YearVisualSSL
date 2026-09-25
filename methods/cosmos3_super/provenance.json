@@ -28,5 +28,6 @@
     "the feature is the vision encoder's patch tokens, mean-pooled over the sequence; feature_dim = hidden_size (1152), the frozen-probe width the capture uses, not the merger's out_hidden_size (5120)",
     "the probe follows this port's shared frozen-backbone protocol (mean-centre + L2-normalise, a single linear layer with SGD + cosine), returning the four comparable linear-probe accuracies and the epoch count",
     "the input resolution is read from the config (img_size, the native 448 in the shipped recipe), so the hermetic smoke can shrink it and build a random tiny Qwen3VLVisionModel; input normalisation is ImageNet's (the capture's Cosmos3-Super adapter); the video/dense heads of the capture adapter are not carried (this port is the image linear-probe comparison only)"
-  ]
+  ],
+  "basic5_components": "2026-09-26: Separate Basic5 provider with local-only strict loading, family-specific preprocessing and final spatial readout, frozen ImageNet LP plus frozen/FT ADE20K, NYUv2 and SSv2. Unchanged captured wrappers compared at tiny CPU loader boundaries through three updates and parameter-group assignments. Released weights, GPU, distributed execution and paper scores unverified; existing extraction unchanged. See docs/BASIC5_PATCH_PROVIDERS.md."
 }

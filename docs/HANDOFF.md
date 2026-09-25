@@ -514,3 +514,25 @@ Extend protocols, distributed training and result provenance. Keep scientific
 source contradictions pending. No cluster jobs or original inputs were changed;
 unrelated dirty submodule changes remain excluded. Refresh the task PR for final
 validation and CI status; private evidence is stored outside Git.
+
+### 2026-09-26: Basic5 trunk and final-merger follow-up
+
+PR 197 merged at `1b98078`; all 109 PR checks succeeded. Main was updated
+and its tree matched the tested IDv2 branch. The user again requested grouped,
+strict-TDD work on the largest remaining supported reproduction gaps.
+
+[SAM3 and Cosmos3 Basic5 components](BASIC5_PATCH_PROVIDERS.md) now expose
+14 frozen/FT execution paths with explicit local loading, captured pixel/grid
+handling, classification readouts and layer-decay policy. The final-merger
+Cosmos3 representation is separate from the older patch-token extraction path;
+do not overwrite or relabel those existing features. Tests exercise real tiny
+models and task output contracts. Private comparisons execute unchanged captured
+wrappers with loader-injected tiny models through three updates and all 75
+parameter-group assignments. They do not certify released checkpoints, GPU,
+distributed training or paper scores. See the PR for final gate/mutation results.
+
+COCO geometry, AP readers and ImageNet FT recipe discrepancies remain pending.
+Other provider families, Extend protocols and full-run result provenance remain
+major work. No original inputs or cluster jobs were changed. The unrelated dirty
+video submodule is preserved. Private source identities and numerical evidence
+remain outside Git.

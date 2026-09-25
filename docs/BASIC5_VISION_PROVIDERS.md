@@ -4,6 +4,10 @@ Status: 2026-09-24. This expands model integration, not the canonical experiment
 or score-reproduction claim. Use the [downstream environment](DOWNSTREAM.md)
 with its hashed lock; method-adapter environments remain separate.
 
+The 2026-09-26 [SAM3 and Cosmos3 component extension](BASIC5_PATCH_PROVIDERS.md)
+adds separate trunk/final-merger providers. The three-family scope below remains
+unchanged; it is not an exhaustive list of all current providers.
+
 | Provider | Released architecture | Classification readout | Spatial features |
 | --- | --- | --- | --- |
 | `clip_hf` | CLIP ViT-L/14 at native 336, 24 blocks | projected CLS, 768 channels | 1024 channels, CLS removed |

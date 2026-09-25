@@ -127,3 +127,11 @@ Success is exit status 0 and `status: "ok"` in `out/run_manifest.json`. This
 stage writes `metrics.json` and **no** `encoder.pt`; the manifest carries
 `encoder_absent_reason`. Read what that number means in the section above before
 comparing it.
+
+## Basic5 component integration (2026-09-26)
+
+The separate `sam3_trunk` downstream provider supports frozen ImageNet LP and
+frozen/FT ADE20K, NYUv2 and SSv2. It loads the official trunk file or a complete
+local vision-only HF snapshot. See [usage and limits](../../docs/BASIC5_PATCH_PROVIDERS.md).
+This does not certify full Basic5 scores; the existing extraction adapter remains
+unchanged.
