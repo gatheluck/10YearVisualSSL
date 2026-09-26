@@ -1,5 +1,9 @@
 # ImageNet-val feature sweep — reproducibility record
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 This document records how the ImageNet-1k **validation** feature dumps under
 `/data/visual_ssl/features/imagenet-val/` were produced, so that a colleague can
 consume them (or reproduce them) without guessing. Every number below was

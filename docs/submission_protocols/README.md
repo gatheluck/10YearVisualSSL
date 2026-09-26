@@ -1,7 +1,12 @@
 # Supplied experiment protocols
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 These seven documents are supplied protocol specifications, preserved verbatim.
-Their presence does not certify implementation coverage or reproduced scores.
+These describe experimental procedures separately from the coverage and
+validation of their portable implementations in this package.
 Instructions inside the documents describe the original experiment workflow;
 they are not commands to submit jobs when reading this archive.
 
@@ -28,12 +33,18 @@ neither a discrepancy nor a complete match is established without that evidence.
 
 ## Implementation boundary
 
-The code package supports selected executable components. Its parent Basic5
-protocol and provider guides document supported model/task/adaptation paths and
-remaining gaps. In particular, supplying these specifications does not add
-Extend dataset runners, missing attentive readers, native distributed training,
-or complete fine-tuning recipes. Do not convert protocol tables into a claim
-that all configurations ran or that paper scores were reproduced.
+The package integrates selected components from experimental implementations.
+Inspected source implementations include Basic5 readers/training and Extend
+linear, attentive and fine-tuning trainers. Their full model/task coverage,
+family-specific readers, distributed paths and complete recipes have not all
+been ported or validated in this package. The parent Basic5 and provider guides
+describe those package boundaries; they do not assert that the corresponding
+original experimental code is absent.
+
+Source-code existence, successful porting, and correspondence to a particular
+reported result are separate findings. Exact run identities and configuration
+records are still needed for the last of these. The protocol catalog alone
+does not establish which cells were completed.
 
 The NYUv2 evaluator now refuses an evaluation with no valid pixels and skips
 empty-mask batches. This intentionally corrects the captured zero fallback;

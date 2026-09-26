@@ -1,5 +1,9 @@
 # 35_vjepa — step 1 (V-JEPA pretext) + linear evaluation
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Bardes et al., *Revisiting Feature Prediction for Learning Visual Representations
 from Video* (V-JEPA), 2024 ([arXiv:2404.08471](https://arxiv.org/abs/2404.08471)).
 

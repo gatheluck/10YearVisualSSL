@@ -1,5 +1,9 @@
 # 02_vae — step 1
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Kingma & Welling, *Auto-Encoding Variational Bayes*, 2013.
 
 An encoder maps an image to a distribution over a latent code, a decoder maps

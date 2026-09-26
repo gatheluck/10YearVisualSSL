@@ -1,5 +1,9 @@
 # 24_beit — step 1 (BEiT MIM pretext) + linear evaluation
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Bao et al., *BEiT: BERT Pre-Training of Image Transformers*, 2021
 ([arXiv:2106.08254](https://arxiv.org/abs/2106.08254)).
 

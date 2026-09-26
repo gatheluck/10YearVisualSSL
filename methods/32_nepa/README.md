@@ -1,5 +1,9 @@
 # 32_nepa — step 1 (NEPA ViT pretext) + unified ViT-B/16 step 2 + linear evaluation
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Xu et al., *NEPA: Next-Embedding Predictive Autoregression*, 2025
 ([arXiv:2512.16922](https://arxiv.org/abs/2512.16922)).
 

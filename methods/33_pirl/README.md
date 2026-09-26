@@ -1,5 +1,9 @@
 # 33_pirl — step 1 (PIRL ResNet-50 pretext) + linear evaluation
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Misra & van der Maaten, *Self-Supervised Learning of Pretext-Invariant
 Representations* (PIRL), CVPR 2020
 ([arXiv:1912.01991](https://arxiv.org/abs/1912.01991)).

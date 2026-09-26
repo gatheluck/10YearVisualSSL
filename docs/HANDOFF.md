@@ -1,5 +1,9 @@
 # Cross-Mac project handoff
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Snapshot: 2026-09-19, after PR #183 merged. This document is a recovery entry
 point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 [repository rules](../CLAUDE.md), then refresh the actual Git/PR/cluster state.
@@ -559,3 +563,20 @@ ZIP is not a complete supplementary bundle while named companion inputs remain
 pending. Consult task/PR evidence for actual RED/GREEN, mutation, gate and archive
 checks; this entry does not assert CI completion. Preserve unrelated dirty
 submodule changes and stop for PR review.
+
+### 2026-09-26: distinguish experimental sources from the submission port
+
+The user requested a comprehensive wording review: incomplete integration into
+this submission package must not suggest that original experimental code is
+absent or that paper experiments were not performed. The new scope guide and
+entry-point links distinguish inspected-but-unported reference code, package
+validation, unverified source/result correspondence, genuine feature constraints,
+and deliberately out-of-scope pretraining. Supplied protocol originals and
+runtime status codes retain their meanings. Historical notes remain dated.
+
+This is a documentation correction, not additional scientific support or score
+verification. Anonymous README replacements and private archive policy need the
+same wording update before regeneration. Record manual semantic review separately
+from automated navigation, parsing and archive checks. Keep identifiers and
+private reference evidence outside Git. This continues the existing finalization
+PR so the user can review the package together; do not merge automatically.

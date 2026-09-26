@@ -1,5 +1,9 @@
 # 31_dinov3 — step 1 (DINOv3 core pretext) + linear evaluation
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Siméoni et al., *DINOv3*, 2025
 ([arXiv:2508.10104](https://arxiv.org/abs/2508.10104)).
 

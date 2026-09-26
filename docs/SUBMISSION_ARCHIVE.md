@@ -1,5 +1,9 @@
 # Anonymous supplementary source archive
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 `bin/submission-archive.py` audits a committed Git tree and creates a
 deterministic ZIP only when the audit passes. It does not modify the checkout,
 fetch dependencies, upload anything, or establish scientific reproducibility.

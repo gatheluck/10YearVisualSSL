@@ -1,5 +1,9 @@
 # Audited validation-cache delivery
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 An existing reference cache can avoid duplicate inference. Before importing it,
 verify the producer's checkpoint, preprocessing, readout, precision, dataset and
 sample ordering against the actual reference code and run configuration. A

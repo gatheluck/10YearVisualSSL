@@ -1,5 +1,9 @@
 # 18_sela — step 1 (SeLa ResNet pretext) + linear evaluation
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Asano, Rupprecht & Vedaldi, *Self-labelling via simultaneous clustering and
 representation learning* (SeLa), ICLR 2020
 ([arXiv:1911.05371](https://arxiv.org/abs/1911.05371)).

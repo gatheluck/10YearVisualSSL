@@ -1,5 +1,9 @@
 # Downstream tasks beyond ImageNet-1k: detection, segmentation, depth, video
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Historical design: 2026-08-20. Status reconciled: 2026-09-19.
 
 Dense attentive reader update (2026-09-21): the current shared and video-family
@@ -252,7 +256,7 @@ subject to warmup taking precedence. For a tiny loader whose epoch milestones
 fall inside warmup, the milestones do not interrupt warmup. A smoke step cap
 does not replace the full loader length in this denominator or reset the
 schedule each epoch. This matches the captured single-process, no-accumulation
-loop; accumulation and resume remain unsupported.
+portable loop; accumulation and resume have not yet been integrated into it.
 
 `optimization.lr` remains the nominal batch-scaled LR. `optimization.schedule`
 records the profile, warmup and decay settings, full loader steps per epoch,
@@ -428,4 +432,4 @@ readouts supersede the patch-mean-only description above for these providers.
 Head initialization, input normalization and FT endpoints are family-specific.
 They reject AP; detection support also has explicit boundaries. Consult the
 linked matrix and examples before selecting a provider. Full-recipe and score
-reproduction remain outstanding.
+reproduction using this portable package remain unvalidated.

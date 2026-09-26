@@ -1,5 +1,9 @@
 # 10 Year Visual SSL
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 > ## 🚧 Work in progress — not a finished release
 >
 > This repository is under **active development** and is published early **on
@@ -11,7 +15,7 @@
 >   **may change without notice**.
 > - The formal audit and the planned move to the **`cvpaperchallenge`**
 >   organisation have **not** happened yet.
-> - **Nothing here has executed a full-scale training run.** Each method's
+> - **Full-scale reruns of this portable package have not been validated.** Each method's
 >   `README` states exactly what was and was not exercised.
 >
 > Please treat everything as provisional.
@@ -28,7 +32,7 @@ certify anonymity or experiment completeness.
 
 ## What this optimises for
 
-1. **Reproducibility.** A result that cannot be reproduced is not a result.
+1. **Reproducibility.** Preserve the evidence needed to independently reproduce a result.
    Every run records the configuration that actually ran, the artifacts it
    produced, and their hashes, and `bin/contract-test.py` decides by machine
    whether that record is complete and self-consistent
@@ -57,10 +61,12 @@ becomes the exact bytes a run is identified by, an adapter produces
 decides by machine whether the port is finished. Every command below was run
 to produce the output shown.
 
-**What is not yet reproducible is a full-scale training run.** The recipes in
-the shipped configs are the ones the captured cluster runs used — hundreds of
-GPU-hours on ImageNet — and nothing here has executed one. Each method's
-README says exactly what was and was not exercised.
+**Full-scale reruns using this portable package remain unvalidated.** The
+experimental sources and run configurations supplied the references for these
+ports. This statement concerns validation of the port; it does not describe
+whether the original experiments were performed. Each method's README records
+what was exercised in this package. See [scope and terminology](docs/SUBMISSION_SCOPE.md)
+for porting status and the separate evidence needed to verify a reported result.
 
 ## Methods
 
@@ -75,7 +81,7 @@ tasks (ADE20K segmentation, COCO detection, NYUv2 depth, SSv2 video) — see
 
 Explicit Basic5 components also support provider-owned FT and online ImageNet
 probing. The [paper reproduction gap ledger](docs/PAPER_REPRODUCTION_GAPS.md)
-records current Step-4 coverage and outstanding experiments.
+records current Step-4 porting coverage and remaining package validation.
 The [vision-provider matrix](docs/BASIC5_VISION_PROVIDERS.md) lists the
 additional local vision models, task coverage and unresolved recipe boundaries;
 these integrations do not certify full-scale paper or workbook scores.

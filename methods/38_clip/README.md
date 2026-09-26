@@ -1,5 +1,9 @@
 # CLIP (method 38)
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Paper: [Learning Transferable Visual Models From Natural Language Supervision](https://arxiv.org/abs/2103.00020)
 
 Upstream: [openai/CLIP](https://github.com/openai/CLIP) (MIT), pinned as the

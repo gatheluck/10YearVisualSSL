@@ -1,5 +1,9 @@
 # Handoff — BASIC5 rule `b` (eval preprocessing) reconciliation
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Point-in-time handoff written 2026-09-10. Verify every claim against the code
 before acting on it (repo rule: measure before speaking).
 

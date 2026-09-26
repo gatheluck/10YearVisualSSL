@@ -1,5 +1,9 @@
 # aimv2 — as-is linear eval on the frozen pretrained backbone (eval-only)
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 AIMv2 (Fini, Béthune, Yang, Zhai, Susskind, El-Nouby et al., *Multimodal
 Autoregressive Pre-training of Large Vision Encoders*, 2024;
 [arXiv:2411.14402](https://arxiv.org/abs/2411.14402)), a vision encoder pretrained

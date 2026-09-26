@@ -1,5 +1,9 @@
 # 14_simclrv1 — SimCLR v1 pretext (ResNet-50 + unified ViT-B/16 Step 2) + linear evaluation
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Chen, Kornblith, Norouzi & Hinton, *A Simple Framework for Contrastive Learning
 of Visual Representations* (SimCLR v1), ICML 2020
 ([arXiv:2002.05709](https://arxiv.org/abs/2002.05709)).

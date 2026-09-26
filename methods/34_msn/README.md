@@ -1,5 +1,9 @@
 # 34_msn — step 1 (MSN pretext) + unified deit_base/16 step 2 + linear evaluation
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Assran et al., *Masked Siamese Networks for Label-Efficient Learning*, 2022
 ([arXiv:2204.07141](https://arxiv.org/abs/2204.07141)).
 

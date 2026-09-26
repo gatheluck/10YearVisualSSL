@@ -1,5 +1,9 @@
 # IDv2 Step-4 components
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Added 2026-09-25. Seven explicit profiles extend the existing Instance
 Discrimination ViT adapter. The default single-view and ResNet paths remain
 unchanged. These profiles implement single-process FP32 components, not a claim
@@ -310,5 +314,6 @@ training. Reduced private-reference comparisons cover three optimizer updates
 per profile, including gradients and NCE/AdamW state. Run
 `OMP_NUM_THREADS=1 PYTHONPATH=tests:. .venvs/downstream/bin/python -m unittest test_idv2_components test_method_10_inst_disc`.
 Mutation and full-suite results are recorded in the task PR. Private sources,
-run paths and comparison artifacts remain outside Git. Paper/workbook numerical
-or protocol contradictions remain pending; no reported score is rewritten.
+run paths and comparison artifacts remain outside Git. Matching this package's outputs to paper/workbook results remains unverified,
+and source protocol contradictions remain unresolved. No reported score is
+rewritten; these statements concern the port and its evidence review.

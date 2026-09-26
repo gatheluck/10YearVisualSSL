@@ -1,5 +1,9 @@
 # 12_cmc — step 1 (CMC AlexNet pretext) + linear evaluation
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Tian, Krishnan & Isola, *Contrastive Multiview Coding*, 2019
 ([arXiv:1906.05849](https://arxiv.org/abs/1906.05849)).
 

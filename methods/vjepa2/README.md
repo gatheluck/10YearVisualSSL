@@ -1,5 +1,9 @@
 # vjepa2 — as-is linear eval on the frozen pretrained backbone (eval-only)
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 V-JEPA 2 (Assran et al., Meta FAIR, *V-JEPA 2: Self-Supervised Video Models Enable
 Understanding, Prediction and Planning*, 2025;
 [arXiv:2506.09985](https://arxiv.org/abs/2506.09985)), a latent-prediction video

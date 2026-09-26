@@ -1,5 +1,9 @@
 # eva02 — as-is linear eval on the frozen pretrained backbone (eval-only)
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 EVA-02 (Fang, Sun, Wang, Huang, Wang & Cao, *EVA-02: A Visual Representation for
 Neon Genesis*, 2023; [arXiv:2303.11331](https://arxiv.org/abs/2303.11331)), a
 masked-image-modelling ViT that regresses the features of a strong (CLIP) teacher

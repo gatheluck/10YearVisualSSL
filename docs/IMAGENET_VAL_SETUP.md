@@ -1,5 +1,9 @@
 # Placing ImageNet-1k val on disk
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 The feature dump (`bin/extract-features.py`) reads ImageNet val as an
 `ImageFolder` at `<DATA_ROOT>/val/<wnid>/*.JPEG`. This is how that directory is
 built from the canonical HuggingFace source, `ILSVRC/imagenet-1k`.

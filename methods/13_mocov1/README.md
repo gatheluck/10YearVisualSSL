@@ -1,5 +1,9 @@
 # 13_mocov1 — step 1 (MoCo v1 ResNet-50 pretext) + linear evaluation
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 He, Fan, Wu, Xie & Girshick, *Momentum Contrast for Unsupervised Visual
 Representation Learning*, 2019
 ([arXiv:1911.05722](https://arxiv.org/abs/1911.05722)).

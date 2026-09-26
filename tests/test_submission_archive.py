@@ -2,6 +2,7 @@
 import hashlib
 import importlib.util
 import json
+import posixpath
 import re
 from pathlib import Path
 import shutil
@@ -98,15 +99,16 @@ class TestSubmissionArchive(unittest.TestCase):
         for path in source.iterdir():
             if path.is_file():
                 self.write('protocols/' + path.name, path.read_text())
+        self.write('SUBMISSION_SCOPE.md', (source.parent / 'SUBMISSION_SCOPE.md').read_text())
         self.commit()
-        self.policy['include'] = ['protocols']
+        self.policy['include'] = ['protocols', 'SUBMISSION_SCOPE.md']
         self.assertTrue(self.run_build())
         with zipfile.ZipFile(self.out) as archive:
             index = archive.read('code/protocols/README.md').decode()
             links = re.findall(r'\]\(([^)]+)\)', index)
             self.assertTrue(expected.issubset(set(links)))
             for target in links:
-                self.assertEqual(archive.read('code/protocols/' + target),
+                self.assertEqual(archive.read(posixpath.normpath('code/protocols/' + target)),
                                  (source / target).read_bytes())
 
     def test_encoded_and_unicode_identifiers_are_blocked(self):

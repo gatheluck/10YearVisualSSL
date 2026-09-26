@@ -1,5 +1,9 @@
 # 03_colorization — step 1 (colorization pretext) + linear evaluation
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Zhang, Isola & Efros, *Colorful Image Colorization*, ECCV 2016
 ([arXiv:1603.08511](https://arxiv.org/abs/1603.08511)).
 

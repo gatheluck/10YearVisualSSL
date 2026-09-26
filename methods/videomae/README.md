@@ -1,5 +1,9 @@
 # videomae — as-is linear eval on the frozen pretrained backbone (eval-only)
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 VideoMAE (Tong, Song, Wang & Wang, *VideoMAE: Masked Autoencoders are
 Data-Efficient Learners for Self-Supervised Video Pre-Training*, NeurIPS 2022;
 [arXiv:2203.12602](https://arxiv.org/abs/2203.12602)), a masked-video method that

@@ -1,5 +1,9 @@
 # var — step 1 (next-scale autoregressive pretraining)
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Tian, Jiang, Yuan, Peng & Wang, *Visual Autoregressive Modeling: Scalable Image
 Generation via Next-Scale Prediction*, NeurIPS 2024
 ([arXiv:2404.02905](https://arxiv.org/abs/2404.02905)).

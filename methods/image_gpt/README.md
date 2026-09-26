@@ -1,5 +1,9 @@
 # image_gpt — step 1 (generative pretraining from pixels) + linear evaluation
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Chen, Radford, Child, Wu, Jun, Luan & Sutskever, *Generative Pretraining from
 Pixels*, ICML 2020 ([arXiv:2006.14671](https://arxiv.org/abs/2006.14671)).
 

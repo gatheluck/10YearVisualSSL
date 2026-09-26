@@ -1,7 +1,11 @@
 # Local vision providers for Basic5 components
 
-Status: 2026-09-24. This expands model integration, not the canonical experiment
-or score-reproduction claim. Use the [downstream environment](DOWNSTREAM.md)
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
+Status: 2026-09-24. This expands portable integration of inspected experimental
+wrappers. It does not establish a full-scale rerun or score match using this package. Use the [downstream environment](DOWNSTREAM.md)
 with its hashed lock; method-adapter environments remain separate.
 
 The 2026-09-26 [SAM3 and Cosmos3 component extension](BASIC5_PATCH_PROVIDERS.md)
@@ -66,7 +70,7 @@ supported. Existing schedule/batch constraints apply. Results always report
 
 ## Explicit limits
 
-- AP is rejected for these three providers: query-reader and dense-adapter
+- AP is not yet integrated into these three portable providers: query-reader and dense-adapter
   definitions differ across the source evidence. No common reader is silently
   substituted. Existing providers' supported AP paths remain available.
 - ImageNet FT execution remains rejected pending augmentation reconciliation.

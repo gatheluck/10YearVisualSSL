@@ -1,5 +1,9 @@
 # 36_franca — as-is Step-1 probe + unified ViT-B/16 Step-2 pretrain + linear eval
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Franca ([arXiv:2507.14137](https://arxiv.org/abs/2507.14137)), a self-supervised
 ViT foundation model in the DINOv2 lineage.
 

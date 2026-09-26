@@ -1,5 +1,9 @@
 # Execution platform separation
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Last updated: 2026-07-29
 
 **Running on any particular compute facility is optional.** The core assumes

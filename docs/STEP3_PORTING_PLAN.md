@@ -1,5 +1,9 @@
 # Step 3 porting plan (on `main`, and enforced)
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Last updated: 2026-09-02
 
 This is the **sequenced, authoritative plan** for porting the "Step 3" methods

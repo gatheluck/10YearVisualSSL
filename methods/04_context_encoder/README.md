@@ -1,5 +1,9 @@
 # 04_context_encoder — step 1 and linear evaluation
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Pathak, Krähenbühl, Donahue, Darrell and Efros, *Context Encoders: Feature
 Learning by Inpainting*, 2016
 ([arXiv:1604.07379](https://arxiv.org/abs/1604.07379)).

@@ -1,5 +1,9 @@
 # 37_lejepa — step 1 (LeJEPA pretext) + linear evaluation
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Balestriero & LeCun, *LeJEPA: Provable and Scalable Self-Supervised Learning
 Without the Heuristics*, 2025
 ([arXiv:2511.08544](https://arxiv.org/abs/2511.08544)).

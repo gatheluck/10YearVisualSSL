@@ -1,5 +1,9 @@
 # 01_context_prediction — pretext (AlexNet + unified ViT-B/16 Step 2) and linear evaluation
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Doersch, Gupta and Efros, *Unsupervised Visual Representation Learning by
 Context Prediction*, ICCV 2015.
 

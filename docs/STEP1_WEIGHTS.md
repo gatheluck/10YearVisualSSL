@@ -1,5 +1,9 @@
 # Reproducing Step-1 features from identified checkpoints
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 The extraction driver already discovers feature providers, but an original training checkpoint is not necessarily the exported `encoder.pt` a provider expects. Never choose the newest filename or substitute publisher weights for a lab-trained run without recording a distinct target.
 
 ## Weight acquisition

@@ -1,5 +1,9 @@
 # Method naming
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 ## The convention
 
 A method directory under `methods/` is named in one of two forms:

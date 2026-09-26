@@ -1,5 +1,9 @@
 # 15_mocov2 — step 1 (MoCo v2 ResNet-50 pretext) + linear evaluation
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Chen, Fan, Girshick & He, *Improved Baselines with Momentum Contrastive Learning*
 (MoCo v2), 2020 ([arXiv:2003.04297](https://arxiv.org/abs/2003.04297)).
 

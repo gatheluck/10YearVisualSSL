@@ -1,5 +1,9 @@
 # 10_inst_disc — step 1 (ResNet-50 + NCE memory bank) + linear evaluation
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Wu, Xiong, Yu & Lin, *Unsupervised Feature Learning via Non-Parametric
 Instance-level Discrimination*, CVPR 2018
 ([arXiv:1805.01978](https://arxiv.org/abs/1805.01978)).
