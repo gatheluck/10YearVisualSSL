@@ -593,3 +593,18 @@ Update the private archive selection and its anonymous README from seven to
 eight documents, verify original-byte delivery and rebuild from the new commit.
 Keep the resulting ZIP and review evidence outside Git. Continue the same
 finalization PR while open; record gates/CI separately and stop for review.
+
+### 2026-09-26: matching Extend registries included
+
+The user authorized the 81-configuration registries matching the supplied
+Markdown. The earlier request to obtain missing registries was based on an
+incomplete search: reference and operational copies already existed. The matching
+reference registries are now tracked alongside the eight documents. Only dataset
+paths change to `${DATA_ROOT}/<dataset-id>`; all non-path values are preserved.
+The alternate 82-entry operational revision is not substituted. Source identities
+and original paths remain in private evidence, never Git or the submission.
+
+This supersedes earlier pending-registry delivery statements. It does not add
+trainers, execute jobs or prove result-to-run correspondence. JSON paths require
+explicit loader substitution. Refresh private archive selection, README status
+and affected hash-bound approvals, then verify ZIP delivery and anonymity.

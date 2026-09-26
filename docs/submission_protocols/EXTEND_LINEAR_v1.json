@@ -1,0 +1,1070 @@
+{
+  "protocol_id": "EXTEND_LINEAR_v1",
+  "version": "1.0",
+  "status": "canonical",
+  "track": "frozen_backbone_minimum_task_probe",
+  "purpose": "Single-trial expanded downstream evaluation of released visual backbones across all currently trainable datasets in the expanded catalog.",
+  "design_principle": "Keep the backbone fully frozen and use a standard-inspired, minimum-capacity task readout. Dataset-specific splits, heads, losses, schedules, and metrics override shared task-family recipes only where the dataset requires it.",
+  "models": [
+    "clip",
+    "siglip_giant",
+    "sam3",
+    "cradiov4_h",
+    "dinov3_7b",
+    "raev2_k7",
+    "vjepa2_1",
+    "vggt_omega"
+  ],
+  "execution": {
+    "logical_job": "one model x one dataset x EXTEND_LINEAR_v1 x seed 0",
+    "seeds": [
+      0
+    ],
+    "trials_per_cell": 1,
+    "submission": "submit every eligible logical job without manual wave partitioning; let PBS queue excess jobs",
+    "dependency_rule": "no LP-to-AP-to-FT chaining; this protocol launches LINEAR only",
+    "resume_rule": "resume an incomplete checkpoint under the same logical job ID; never duplicate a healthy owner",
+    "existing_result_rule": "reuse a valid BASIC5_LINEAR_v1 result when dataset, model, seed, head, split, and metric are equivalent",
+    "failure_isolation": "a failed or unsupported cell must not stop unrelated jobs"
+  },
+  "global_rules": {
+    "pretrained_weights": "released checkpoint as-is; no intermediate adaptation",
+    "backbone_mode": "fully_frozen_eval",
+    "backbone_gradients": false,
+    "normalization_statistics": "frozen",
+    "trainable_scope": "dataset head/readout only",
+    "feature_rule": "use the canonical final feature supplied by the model adapter; no layer search, learned layer mixing, or model-specific hyperparameter sweep",
+    "spatial_rule": "dense and correspondence tasks use final spatial tokens/features without global pooling",
+    "temporal_rule": "video tasks use 16 uniformly segmented frames unless a dataset override is specified; image backbones pool per-frame features temporally",
+    "precision": "AMP or bfloat16 permitted; numerically sensitive losses and metrics remain float32",
+    "seed": 0,
+    "audit_level": "lightweight_attempt_first",
+    "required_preflight": [
+      "dataset path and required annotation file can be opened",
+      "class/label mapping is nonempty",
+      "one mini-batch completes feature extraction, loss computation, and head-only backward",
+      "backbone receives no gradients"
+    ],
+    "not_required_before_launch": [
+      "multi-seed reproducibility",
+      "full-dataset annotation audit",
+      "strict canary certification",
+      "model-specific hyperparameter search"
+    ]
+  },
+  "recipes": {
+    "image_cls_100": {
+      "input": "224 train random-resized crop plus horizontal flip when label-preserving; 256 resize plus 224 center crop at evaluation; model normalization",
+      "feature": "L2-normalized canonical final global feature",
+      "head": "single linear classifier",
+      "optimization": {
+        "epochs": 100,
+        "optimizer": "SGD",
+        "base_lr": 0.1,
+        "lr_reference_effective_batch": 256,
+        "lr_scaling": "linear",
+        "momentum": 0.9,
+        "weight_decay": 0.0,
+        "warmup": "none",
+        "schedule": "cosine to 0"
+      },
+      "loss": "cross entropy",
+      "metrics": [
+        "top-1 accuracy",
+        "top-5 accuracy when classes >= 5"
+      ]
+    },
+    "image_cls_small_100": {
+      "input": "resize grayscale or small images to 224, replicate grayscale to 3 channels, random crop/translation and label-preserving horizontal flip only",
+      "feature": "L2-normalized canonical final global feature",
+      "head": "single linear classifier",
+      "optimization": {
+        "epochs": 100,
+        "optimizer": "SGD",
+        "base_lr": 0.1,
+        "lr_reference_effective_batch": 256,
+        "lr_scaling": "linear",
+        "momentum": 0.9,
+        "weight_decay": 0.0,
+        "warmup": "none",
+        "schedule": "cosine to 0"
+      },
+      "loss": "cross entropy",
+      "metrics": [
+        "top-1 accuracy"
+      ]
+    },
+    "image_multilabel_50": {
+      "input": "224 random-resized crop; label-preserving horizontal flip; center-crop evaluation",
+      "feature": "L2-normalized canonical final global feature",
+      "head": "single linear multi-label classifier",
+      "optimization": {
+        "epochs": 50,
+        "optimizer": "AdamW",
+        "base_lr": 0.001,
+        "lr_reference_effective_batch": 256,
+        "lr_scaling": "linear",
+        "weight_decay": 0.0001,
+        "warmup": "5 epochs linear",
+        "schedule": "cosine"
+      },
+      "loss": "binary cross entropy with logits",
+      "metrics": [
+        "mean average precision"
+      ]
+    },
+    "video_cls_50": {
+      "input": "16 uniformly segmented frames, temporally consistent 224 crop; center temporal/spatial evaluation; horizontal flip only when label-preserving",
+      "feature": "native final video feature, or spatial mean per frame then temporal mean for image backbones",
+      "head": "single linear classifier",
+      "optimization": {
+        "epochs": 50,
+        "optimizer": "SGD",
+        "base_lr": 0.1,
+        "lr_reference_effective_batch": 256,
+        "lr_scaling": "linear",
+        "momentum": 0.9,
+        "weight_decay": 0.0001,
+        "warmup": "5 epochs linear from 1e-6",
+        "schedule": "cosine to 0"
+      },
+      "loss": "cross entropy",
+      "metrics": [
+        "top-1 accuracy",
+        "top-5 accuracy"
+      ]
+    },
+    "video_multilabel_50": {
+      "input": "16 uniformly segmented frames, temporally consistent 224 crop; center evaluation",
+      "feature": "native final video feature, or spatial mean per frame then temporal mean",
+      "head": "single linear multi-label classifier",
+      "optimization": {
+        "epochs": 50,
+        "optimizer": "AdamW",
+        "base_lr": 0.001,
+        "lr_reference_effective_batch": 256,
+        "lr_scaling": "linear",
+        "weight_decay": 0.0001,
+        "warmup": "5 epochs linear",
+        "schedule": "cosine"
+      },
+      "loss": "binary cross entropy with logits",
+      "metrics": [
+        "mean average precision"
+      ]
+    },
+    "detection_1x": {
+      "input": "short side 800, long side <=1333; horizontal flip p=0.5",
+      "feature": "final spatial/multiscale features; no global pooling",
+      "head": "FPN plus Faster R-CNN RPN/RoIAlign/classifier/regressor",
+      "optimization": {
+        "epochs": 12,
+        "optimizer": "SGD",
+        "base_lr": 0.02,
+        "lr_reference_effective_batch": 16,
+        "lr_scaling": "linear",
+        "momentum": 0.9,
+        "weight_decay": 0.0001,
+        "warmup": "500 iterations, factor 0.001",
+        "schedule": "step x0.1 at epochs 8 and 11"
+      },
+      "loss": "standard Faster R-CNN losses",
+      "metrics": [
+        "bbox AP@[.50:.95]",
+        "AP50",
+        "AP75"
+      ]
+    },
+    "instance_seg_1x": {
+      "input": "short side 800, long side <=1333; horizontal flip p=0.5",
+      "feature": "final spatial/multiscale features",
+      "head": "FPN plus Mask R-CNN detection and mask heads",
+      "optimization": {
+        "epochs": 12,
+        "optimizer": "SGD",
+        "base_lr": 0.02,
+        "lr_reference_effective_batch": 16,
+        "lr_scaling": "linear",
+        "momentum": 0.9,
+        "weight_decay": 0.0001,
+        "warmup": "500 iterations",
+        "schedule": "step x0.1 at epochs 8 and 11"
+      },
+      "loss": "standard Mask R-CNN losses",
+      "metrics": [
+        "mask AP@[.50:.95]",
+        "bbox AP@[.50:.95]"
+      ]
+    },
+    "semantic_seg_20": {
+      "input": "random scale [0.5,2.0], random 224 crop, horizontal flip p=0.5; single-scale evaluation",
+      "feature": "final spatial tokens reshaped to 2-D grid",
+      "head": "single 1x1 Conv and bilinear upsampling",
+      "optimization": {
+        "epochs": 20,
+        "optimizer": "AdamW",
+        "base_lr": 0.001,
+        "lr_reference_effective_batch": 8,
+        "lr_scaling": "linear",
+        "weight_decay": 0.0001,
+        "warmup": "1 epoch from 1e-6",
+        "schedule": "cosine to 1e-6"
+      },
+      "loss": "pixel cross entropy with dataset ignore label",
+      "metrics": [
+        "mean IoU",
+        "pixel accuracy"
+      ]
+    },
+    "depth_30": {
+      "input": "dataset-standard geometry resized/cropped to 224-compatible dimensions; horizontal flip when valid",
+      "feature": "final spatial tokens reshaped to 2-D grid",
+      "head": "single-channel 1x1 Conv, positive-depth parameterization, bilinear upsampling",
+      "optimization": {
+        "epochs": 30,
+        "optimizer": "AdamW",
+        "base_lr": 0.001,
+        "lr_reference_effective_batch": 8,
+        "lr_scaling": "linear",
+        "weight_decay": 0.0001,
+        "warmup": "1 epoch from 1e-6",
+        "schedule": "cosine to 1e-6"
+      },
+      "loss": "valid-pixel scale-invariant log-depth",
+      "metrics": [
+        "RMSE",
+        "AbsRel",
+        "delta1"
+      ]
+    },
+    "pose_30": {
+      "input": "person crops and heatmap geometry from the dataset-standard top-down protocol",
+      "feature": "final spatial features",
+      "head": "single deconvolution-free 1x1 keypoint heatmap head with bilinear upsampling",
+      "optimization": {
+        "epochs": 30,
+        "optimizer": "AdamW",
+        "base_lr": 0.001,
+        "lr_reference_effective_batch": 64,
+        "lr_scaling": "linear",
+        "weight_decay": 0.0001,
+        "warmup": "1 epoch",
+        "schedule": "cosine"
+      },
+      "loss": "keypoint heatmap MSE",
+      "metrics": [
+        "dataset-standard keypoint AP or PCKh"
+      ]
+    },
+    "tracking_30": {
+      "input": "dataset-standard template/search frame pairs at 224-compatible resolution",
+      "feature": "frozen spatial tokens from both frames",
+      "head": "shared linear projection plus correlation and linear box/mask prediction",
+      "optimization": {
+        "epochs": 30,
+        "optimizer": "AdamW",
+        "base_lr": 0.001,
+        "lr_reference_effective_batch": 64,
+        "lr_scaling": "linear",
+        "weight_decay": 0.0001,
+        "warmup": "1 epoch",
+        "schedule": "cosine"
+      },
+      "loss": "dataset-standard localization loss",
+      "metrics": [
+        "dataset-standard tracking primary metric"
+      ]
+    },
+    "flow_30": {
+      "input": "paired frames with dataset-standard crop at dimensions divisible by patch size",
+      "feature": "frozen spatial tokens from both frames",
+      "head": "parameter-free correlation plus shallow linear flow regression/upsampling head",
+      "optimization": {
+        "epochs": 30,
+        "optimizer": "AdamW",
+        "base_lr": 0.001,
+        "lr_reference_effective_batch": 16,
+        "lr_scaling": "linear",
+        "weight_decay": 0.0001,
+        "warmup": "1 epoch",
+        "schedule": "cosine"
+      },
+      "loss": "robust endpoint loss on valid pixels",
+      "metrics": [
+        "EPE",
+        "dataset-standard outlier rate"
+      ]
+    },
+    "matching_30": {
+      "input": "paired views resized with aspect ratio preserved; longest side 800 unless dataset tooling fixes another size",
+      "feature": "L2-normalized frozen spatial descriptors",
+      "head": "shared linear descriptor projection; mutual-nearest-neighbor matching; no trainable geometric solver",
+      "optimization": {
+        "epochs": 30,
+        "optimizer": "AdamW",
+        "base_lr": 0.001,
+        "lr_reference_effective_batch": 64,
+        "lr_scaling": "linear",
+        "weight_decay": 0.0001,
+        "warmup": "1 epoch",
+        "schedule": "cosine"
+      },
+      "loss": "contrastive correspondence loss using available geometry",
+      "metrics": [
+        "matching accuracy/AUC at dataset-standard thresholds"
+      ]
+    },
+    "localization_30": {
+      "input": "single-view 224 center crop for global retrieval plus spatial descriptors for verification",
+      "feature": "frozen global and spatial final features",
+      "head": "linear descriptor projection; standard nearest-neighbor retrieval and fixed geometric verification",
+      "optimization": {
+        "epochs": 30,
+        "optimizer": "AdamW",
+        "base_lr": 0.001,
+        "lr_reference_effective_batch": 128,
+        "lr_scaling": "linear",
+        "weight_decay": 0.0001,
+        "warmup": "1 epoch",
+        "schedule": "cosine"
+      },
+      "loss": "supervised contrastive place/pose loss",
+      "metrics": [
+        "dataset-standard localization recall"
+      ]
+    },
+    "visual_reasoning_50": {
+      "input": "up to 16 frames for video or 224 image; use provided question/program tokens only as fixed inputs",
+      "feature": "frozen visual tokens",
+      "head": "one dataset-shared linear projection plus the smallest existing repository task head; visual backbone remains frozen",
+      "optimization": {
+        "epochs": 50,
+        "optimizer": "AdamW",
+        "base_lr": 0.001,
+        "lr_reference_effective_batch": 128,
+        "lr_scaling": "linear",
+        "weight_decay": 0.0001,
+        "warmup": "5 epochs",
+        "schedule": "cosine"
+      },
+      "loss": "dataset-standard answer/state classification loss",
+      "metrics": [
+        "dataset-standard accuracy"
+      ]
+    },
+    "action_detection_12": {
+      "input": "16-frame clip centered on annotated keyframe, short side 256, 224 crop",
+      "feature": "frozen spatiotemporal features",
+      "head": "frozen/person boxes plus RoIAlign and linear multi-label action classifier",
+      "optimization": {
+        "epochs": 12,
+        "optimizer": "SGD",
+        "base_lr": 0.02,
+        "lr_reference_effective_batch": 64,
+        "lr_scaling": "linear",
+        "momentum": 0.9,
+        "weight_decay": 0.0001,
+        "warmup": "1 epoch",
+        "schedule": "step at epochs 8 and 11"
+      },
+      "loss": "binary cross entropy with logits",
+      "metrics": [
+        "frame mAP"
+      ]
+    }
+  },
+  "dataset_policy": {
+    "included_dataset_configs": 81,
+    "basic5_reusable_configs": 5,
+    "new_configs_per_model": 76,
+    "new_logical_jobs_for_all_eight_models": 608,
+    "recommended_incremental_submission": "submit one or more complete 76-dataset model campaigns when nodes are available; for example, two models equal 152 logical jobs",
+    "domainnet": "one dataset config using all six official domains; do not create separate infograph/quickdraw/real/sketch jobs",
+    "industrial_iseg": "one dataset config; insp-wqisd is an internal subset, not another benchmark job",
+    "excluded": {
+      "scale_or_redundancy": [
+        "ImageNet-21k",
+        "ImageNet-100",
+        "Kinetics-700",
+        "FractalDB-WN60",
+        "Places30"
+      ],
+      "no_new_training_requested": [
+        "CIFAR-10C",
+        "CIFAR-100C",
+        "ImageNet-A",
+        "ImageNet-C",
+        "ImageNet-R",
+        "ImageNet-Sketch",
+        "ObjectNet",
+        "Places365-past"
+      ],
+      "no_supervised_downstream_target": [
+        "PASS"
+      ]
+    },
+    "included_special_cases": {
+      "ImageNet-1percent": "independent 100-epoch linear probe on the official 1% labeled training subset; evaluate on full ILSVRC2012 validation",
+      "ImageNet-10percent": "independent 100-epoch linear probe on the official 10% labeled training subset; evaluate on full ILSVRC2012 validation",
+      "Kinetics-400": "selected instead of Kinetics-700 for broader frozen-evaluation comparability and lower cost"
+    }
+  },
+  "datasets": {
+    "action40": {
+      "name": "Action40",
+      "path": "${DATA_ROOT}/action40",
+      "recipe": "image_cls_100",
+      "split": "official/standard train-test split",
+      "head_outputs": 40,
+      "primary_metric": "top-1 accuracy"
+    },
+    "ade20k": {
+      "name": "ADE20K",
+      "path": "${DATA_ROOT}/ade20k",
+      "recipe": "semantic_seg_20",
+      "split": "official train/validation",
+      "head_outputs": 150,
+      "primary_metric": "mIoU",
+      "reuse": "BASIC5_LINEAR_v1"
+    },
+    "cars": {
+      "name": "Stanford Cars",
+      "path": "${DATA_ROOT}/cars",
+      "recipe": "image_cls_100",
+      "split": "official train/test",
+      "head_outputs": 196,
+      "primary_metric": "top-1 accuracy"
+    },
+    "cifar10": {
+      "name": "CIFAR-10",
+      "path": "${DATA_ROOT}/cifar10",
+      "recipe": "image_cls_small_100",
+      "split": "official train/test",
+      "head_outputs": 10,
+      "primary_metric": "top-1 accuracy"
+    },
+    "cifar100": {
+      "name": "CIFAR-100",
+      "path": "${DATA_ROOT}/cifar100",
+      "recipe": "image_cls_small_100",
+      "split": "official train/test",
+      "head_outputs": 100,
+      "primary_metric": "top-1 accuracy"
+    },
+    "clevrer": {
+      "name": "CLEVRER",
+      "path": "${DATA_ROOT}/clevrer",
+      "recipe": "visual_reasoning_50",
+      "split": "official train/validation",
+      "primary_metric": "per-option and per-question accuracy"
+    },
+    "clue_egg": {
+      "name": "CLUE egg",
+      "path": "${DATA_ROOT}/clue_egg",
+      "recipe": "image_cls_100",
+      "split": "provided train/validation/test",
+      "head_outputs": "infer from train labels",
+      "primary_metric": "top-1 accuracy"
+    },
+    "clue_feather": {
+      "name": "CLUE feather",
+      "path": "${DATA_ROOT}/clue_feather",
+      "recipe": "image_cls_100",
+      "split": "provided train/validation/test",
+      "head_outputs": "infer from train labels",
+      "primary_metric": "top-1 accuracy"
+    },
+    "clue_footprint": {
+      "name": "CLUE footprint",
+      "path": "${DATA_ROOT}/clue_footprint",
+      "recipe": "image_cls_100",
+      "split": "provided train/validation/test",
+      "head_outputs": "infer from train labels",
+      "primary_metric": "top-1 accuracy"
+    },
+    "clue_skulls": {
+      "name": "CLUE skulls",
+      "path": "${DATA_ROOT}/clue_skulls",
+      "recipe": "image_cls_100",
+      "split": "provided train/validation/test",
+      "head_outputs": "infer from train labels",
+      "primary_metric": "top-1 accuracy"
+    },
+    "clue_stools": {
+      "name": "CLUE stools",
+      "path": "${DATA_ROOT}/clue_stools",
+      "recipe": "image_cls_100",
+      "split": "provided train/validation/test",
+      "head_outputs": "infer from train labels",
+      "primary_metric": "top-1 accuracy"
+    },
+    "coco2017": {
+      "name": "COCO 2017",
+      "path": "${DATA_ROOT}/coco2017",
+      "recipe": "detection_1x",
+      "split": "train2017/val2017",
+      "head_outputs": 80,
+      "primary_metric": "bbox AP@[.50:.95]",
+      "reuse": "BASIC5_LINEAR_v1"
+    },
+    "cub200": {
+      "name": "CUB-200-2011",
+      "path": "${DATA_ROOT}/cub200",
+      "recipe": "image_cls_100",
+      "split": "official train/test",
+      "head_outputs": 200,
+      "primary_metric": "top-1 accuracy"
+    },
+    "davis2017": {
+      "name": "DAVIS 2017",
+      "path": "${DATA_ROOT}/davis2017",
+      "recipe": "tracking_30",
+      "split": "official train/validation",
+      "primary_metric": "J&F mean",
+      "override": "mask prediction head; first-frame mask supervision"
+    },
+    "domainnet": {
+      "name": "DomainNet",
+      "path": "${DATA_ROOT}/domainnet",
+      "recipe": "image_cls_100",
+      "split": "official train/test lists across clipart, infograph, painting, quickdraw, real, sketch",
+      "head_outputs": 345,
+      "primary_metric": "macro mean top-1 across six domains"
+    },
+    "dtd": {
+      "name": "DTD",
+      "path": "${DATA_ROOT}/dtd",
+      "recipe": "image_cls_100",
+      "split": "official split 1",
+      "head_outputs": 47,
+      "primary_metric": "top-1 accuracy"
+    },
+    "endoscapes": {
+      "name": "Endoscapes",
+      "path": "${DATA_ROOT}/endoscapes",
+      "recipe": "semantic_seg_20",
+      "split": "official/provided train/validation/test",
+      "head_outputs": "infer from semantic annotations",
+      "primary_metric": "mIoU"
+    },
+    "eth3d": {
+      "name": "ETH3D",
+      "path": "${DATA_ROOT}/eth3d",
+      "recipe": "matching_30",
+      "split": "official training/evaluation sets",
+      "primary_metric": "dataset-standard stereo/matching error"
+    },
+    "flowers102": {
+      "name": "Oxford Flowers-102",
+      "path": "${DATA_ROOT}/flowers102",
+      "recipe": "image_cls_100",
+      "split": "official train+validation/test",
+      "head_outputs": 102,
+      "primary_metric": "top-1 accuracy"
+    },
+    "food101": {
+      "name": "Food-101",
+      "path": "${DATA_ROOT}/food101",
+      "recipe": "image_cls_100",
+      "split": "official train/test",
+      "head_outputs": 101,
+      "primary_metric": "top-1 accuracy"
+    },
+    "hmdb51": {
+      "name": "HMDB51",
+      "path": "${DATA_ROOT}/hmdb51",
+      "recipe": "video_cls_50",
+      "split": "official split 1",
+      "head_outputs": 51,
+      "primary_metric": "top-1 accuracy"
+    },
+    "imagenet_10percent": {
+      "name": "ImageNet-10percent",
+      "path": "${DATA_ROOT}/imagenet_10percent",
+      "recipe": "image_cls_100",
+      "split": "provided 10% train subset/full ILSVRC2012 validation",
+      "head_outputs": 1000,
+      "primary_metric": "top-1 accuracy"
+    },
+    "imagenet1k": {
+      "name": "ImageNet-1K",
+      "path": "${DATA_ROOT}/imagenet1k",
+      "recipe": "image_cls_100",
+      "split": "official train/validation",
+      "head_outputs": 1000,
+      "primary_metric": "top-1 accuracy",
+      "reuse": "BASIC5_LINEAR_v1"
+    },
+    "imagenet_1percent": {
+      "name": "ImageNet-1percent",
+      "path": "${DATA_ROOT}/imagenet_1percent",
+      "recipe": "image_cls_100",
+      "split": "provided 1% train subset/full ILSVRC2012 validation",
+      "head_outputs": 1000,
+      "primary_metric": "top-1 accuracy"
+    },
+    "industrial_iseg": {
+      "name": "Industrial iSeg",
+      "path": "${DATA_ROOT}/industrial_iseg",
+      "recipe": "semantic_seg_20",
+      "split": "provided train/validation/test; include insp-wqisd within this logical dataset",
+      "head_outputs": "infer from semantic annotations",
+      "primary_metric": "mIoU"
+    },
+    "ip102": {
+      "name": "IP102",
+      "path": "${DATA_ROOT}/ip102",
+      "recipe": "image_cls_100",
+      "split": "official train/validation/test",
+      "head_outputs": 102,
+      "primary_metric": "top-1 accuracy"
+    },
+    "kinetics400": {
+      "name": "Kinetics-400",
+      "path": "${DATA_ROOT}/kinetics400",
+      "recipe": "video_cls_50",
+      "split": "official train/validation",
+      "head_outputs": 400,
+      "primary_metric": "top-1 accuracy",
+      "override": "16 frames; no multi-view testing in canonical score"
+    },
+    "kitti": {
+      "name": "KITTI",
+      "path": "${DATA_ROOT}/kitti",
+      "recipe": "depth_30",
+      "split": "Eigen train/test split for monocular depth",
+      "primary_metric": "AbsRel",
+      "override": "valid depth 0.001-80m"
+    },
+    "kmnist": {
+      "name": "KMNIST",
+      "path": "${DATA_ROOT}/kmnist",
+      "recipe": "image_cls_small_100",
+      "split": "official train/test",
+      "head_outputs": 10,
+      "primary_metric": "top-1 accuracy"
+    },
+    "kuzushiji_kanji": {
+      "name": "Kuzushiji-Kanji",
+      "path": "${DATA_ROOT}/kuzushiji_kanji",
+      "recipe": "image_cls_small_100",
+      "split": "provided train/test or deterministic stratified 90/10 split when no official split exists",
+      "head_outputs": "infer from train labels",
+      "primary_metric": "top-1 accuracy"
+    },
+    "livecell": {
+      "name": "LIVECell",
+      "path": "${DATA_ROOT}/livecell",
+      "recipe": "instance_seg_1x",
+      "split": "official train/validation/test",
+      "head_outputs": 8,
+      "primary_metric": "mask AP@[.50:.95]"
+    },
+    "megadepth": {
+      "name": "MegaDepth",
+      "path": "${DATA_ROOT}/megadepth",
+      "recipe": "matching_30",
+      "split": "standard scene-disjoint train/validation split supplied by dataset tooling",
+      "primary_metric": "relative pose AUC"
+    },
+    "mit_indoor": {
+      "name": "MIT Indoor-67",
+      "path": "${DATA_ROOT}/mit_indoor",
+      "recipe": "image_cls_100",
+      "split": "official train/test",
+      "head_outputs": 67,
+      "primary_metric": "top-1 accuracy"
+    },
+    "mnist": {
+      "name": "MNIST",
+      "path": "${DATA_ROOT}/mnist",
+      "recipe": "image_cls_small_100",
+      "split": "official train/test",
+      "head_outputs": 10,
+      "primary_metric": "top-1 accuracy"
+    },
+    "nyuv2": {
+      "name": "NYU Depth V2",
+      "path": "${DATA_ROOT}/nyuv2",
+      "recipe": "depth_30",
+      "split": "official Eigen-style 795/654",
+      "primary_metric": "RMSE",
+      "override": "valid depth 0.1-10m",
+      "reuse": "BASIC5_LINEAR_v1"
+    },
+    "omniglot15": {
+      "name": "OG Omniglot15",
+      "path": "${DATA_ROOT}/omniglot15",
+      "recipe": "image_cls_small_100",
+      "split": "provided benchmark split",
+      "head_outputs": "infer from train labels",
+      "primary_metric": "top-1 accuracy"
+    },
+    "oxford_pets": {
+      "name": "Oxford-IIIT Pets",
+      "path": "${DATA_ROOT}/oxford_pets",
+      "recipe": "image_cls_100",
+      "split": "official trainval/test",
+      "head_outputs": 37,
+      "primary_metric": "top-1 accuracy"
+    },
+    "pascal_voc2012": {
+      "name": "PASCAL VOC 2012",
+      "path": "${DATA_ROOT}/pascal_voc2012",
+      "recipe": "semantic_seg_20",
+      "split": "official trainaug/validation when SBD augmentation exists, otherwise official train/validation",
+      "head_outputs": 21,
+      "primary_metric": "mIoU"
+    },
+    "seven_scenes": {
+      "name": "7-Scenes",
+      "path": "${DATA_ROOT}/seven_scenes",
+      "recipe": "localization_30",
+      "split": "official per-scene train/test",
+      "primary_metric": "median translation/rotation error"
+    },
+    "spacenet2_vegas": {
+      "name": "SpaceNet 2 Vegas",
+      "path": "${DATA_ROOT}/spacenet2_vegas",
+      "recipe": "semantic_seg_20",
+      "split": "official/provided train/validation split",
+      "head_outputs": 2,
+      "primary_metric": "building IoU/F1",
+      "override": "binary building mask"
+    },
+    "ssv2": {
+      "name": "Something-Something v2",
+      "path": "${DATA_ROOT}/ssv2",
+      "recipe": "video_cls_50",
+      "split": "official train/validation",
+      "head_outputs": 174,
+      "primary_metric": "top-1 accuracy",
+      "override": "horizontal flip disabled",
+      "reuse": "BASIC5_LINEAR_v1"
+    },
+    "sun397": {
+      "name": "SUN397",
+      "path": "${DATA_ROOT}/sun397",
+      "recipe": "image_cls_100",
+      "split": "official split 1",
+      "head_outputs": 397,
+      "primary_metric": "top-1 accuracy"
+    },
+    "ucf101": {
+      "name": "UCF101",
+      "path": "${DATA_ROOT}/ucf101",
+      "recipe": "video_cls_50",
+      "split": "official split 1",
+      "head_outputs": 101,
+      "primary_metric": "top-1 accuracy"
+    },
+    "fgvc_aircraft": {
+      "name": "FGVC-Aircraft",
+      "path": "${DATA_ROOT}/fgvc_aircraft",
+      "recipe": "image_cls_100",
+      "split": "official train+validation/test, variant labels",
+      "head_outputs": 100,
+      "primary_metric": "top-1 accuracy"
+    },
+    "places365": {
+      "name": "Places365-Standard",
+      "path": "${DATA_ROOT}/places365",
+      "recipe": "image_cls_100",
+      "split": "official train/validation",
+      "head_outputs": 365,
+      "primary_metric": "top-1 accuracy"
+    },
+    "lvis_v1": {
+      "name": "LVIS v1",
+      "path": "${DATA_ROOT}/lvis_v1",
+      "recipe": "instance_seg_1x",
+      "split": "train/validation v1",
+      "head_outputs": 1203,
+      "primary_metric": "mask AP",
+      "override": "repeat-factor sampling is allowed as dataset-standard sampling, but no backbone tuning"
+    },
+    "openimages_v7": {
+      "name": "Open Images V7",
+      "path": "${DATA_ROOT}/openimages_v7",
+      "recipe": "detection_1x",
+      "split": "official train/validation",
+      "head_outputs": "infer from selected boxable class vocabulary",
+      "primary_metric": "official box mAP"
+    },
+    "cityscapes": {
+      "name": "Cityscapes",
+      "path": "${DATA_ROOT}/cityscapes",
+      "recipe": "semantic_seg_20",
+      "split": "fine train/validation",
+      "head_outputs": 19,
+      "primary_metric": "mIoU"
+    },
+    "mapillary_vistas": {
+      "name": "Mapillary Vistas",
+      "path": "${DATA_ROOT}/mapillary_vistas",
+      "recipe": "semantic_seg_20",
+      "split": "official train/validation",
+      "head_outputs": 66,
+      "primary_metric": "mIoU"
+    },
+    "bdd100k": {
+      "name": "BDD100K",
+      "path": "${DATA_ROOT}/bdd100k",
+      "recipe": "semantic_seg_20",
+      "split": "official semantic-segmentation train/validation",
+      "head_outputs": 19,
+      "primary_metric": "mIoU"
+    },
+    "pascal_context": {
+      "name": "PASCAL Context",
+      "path": "${DATA_ROOT}/pascal_context",
+      "recipe": "semantic_seg_20",
+      "split": "standard train/validation",
+      "head_outputs": 59,
+      "primary_metric": "mIoU",
+      "override": "use 59-class protocol"
+    },
+    "hico_det": {
+      "name": "HICO-DET",
+      "path": "${DATA_ROOT}/hico_det",
+      "recipe": "detection_1x",
+      "split": "official train2015/test2015",
+      "head_outputs": 600,
+      "primary_metric": "full rare/non-rare HOI mAP",
+      "override": "frozen detector features plus linear verb/object interaction classifier"
+    },
+    "mot17": {
+      "name": "MOT17",
+      "path": "${DATA_ROOT}/mot17",
+      "recipe": "tracking_30",
+      "split": "official train split divided by sequence for validation; report test only if server available",
+      "primary_metric": "HOTA"
+    },
+    "dancetrack": {
+      "name": "DanceTrack",
+      "path": "${DATA_ROOT}/dancetrack",
+      "recipe": "tracking_30",
+      "split": "official train/validation",
+      "primary_metric": "HOTA"
+    },
+    "lasot": {
+      "name": "LaSOT",
+      "path": "${DATA_ROOT}/lasot",
+      "recipe": "tracking_30",
+      "split": "official train/test",
+      "primary_metric": "success AUC"
+    },
+    "tap_vid": {
+      "name": "TAP-Vid",
+      "path": "${DATA_ROOT}/tap_vid",
+      "recipe": "tracking_30",
+      "split": "official training/evaluation split for available subset",
+      "primary_metric": "average Jaccard",
+      "override": "point tracks instead of boxes"
+    },
+    "mpii_pose": {
+      "name": "MPII Human Pose",
+      "path": "${DATA_ROOT}/mpii_pose",
+      "recipe": "pose_30",
+      "split": "official train with standard validation split",
+      "head_outputs": 16,
+      "primary_metric": "PCKh@0.5"
+    },
+    "crowdpose": {
+      "name": "CrowdPose",
+      "path": "${DATA_ROOT}/crowdpose",
+      "recipe": "pose_30",
+      "split": "official train/validation",
+      "head_outputs": 14,
+      "primary_metric": "keypoint AP"
+    },
+    "ava_v2_2": {
+      "name": "AVA v2.2",
+      "path": "${DATA_ROOT}/ava_v2_2",
+      "recipe": "action_detection_12",
+      "split": "official train/validation v2.2",
+      "head_outputs": 60,
+      "primary_metric": "frame mAP@0.5"
+    },
+    "charades": {
+      "name": "Charades",
+      "path": "${DATA_ROOT}/charades",
+      "recipe": "video_multilabel_50",
+      "split": "official train/test or train/validation annotations available locally",
+      "head_outputs": 157,
+      "primary_metric": "mAP"
+    },
+    "clevr": {
+      "name": "CLEVR",
+      "path": "${DATA_ROOT}/clevr",
+      "recipe": "visual_reasoning_50",
+      "split": "official train/validation",
+      "primary_metric": "answer accuracy"
+    },
+    "gqa": {
+      "name": "GQA",
+      "path": "${DATA_ROOT}/gqa",
+      "recipe": "visual_reasoning_50",
+      "split": "official train/balanced validation",
+      "primary_metric": "accuracy"
+    },
+    "vqav2": {
+      "name": "VQAv2",
+      "path": "${DATA_ROOT}/vqav2",
+      "recipe": "visual_reasoning_50",
+      "split": "official train+validation with deterministic train/held-out validation partition",
+      "primary_metric": "VQA accuracy"
+    },
+    "physion": {
+      "name": "Physion",
+      "path": "${DATA_ROOT}/physion",
+      "recipe": "visual_reasoning_50",
+      "split": "official train/validation/test",
+      "primary_metric": "relative/absolute accuracy or official physical prediction metric"
+    },
+    "perception_test": {
+      "name": "Perception Test",
+      "path": "${DATA_ROOT}/perception_test",
+      "recipe": "visual_reasoning_50",
+      "split": "official train/validation",
+      "primary_metric": "accuracy"
+    },
+    "three_d_srbench": {
+      "name": "3DSRBench",
+      "path": "${DATA_ROOT}/three_d_srbench",
+      "recipe": "visual_reasoning_50",
+      "split": "provided train/evaluation split",
+      "primary_metric": "accuracy"
+    },
+    "next_qa": {
+      "name": "NExT-QA",
+      "path": "${DATA_ROOT}/next_qa",
+      "recipe": "visual_reasoning_50",
+      "split": "official train/validation/test",
+      "primary_metric": "accuracy"
+    },
+    "sun_rgbd": {
+      "name": "SUN RGB-D",
+      "path": "${DATA_ROOT}/sun_rgbd",
+      "recipe": "depth_30",
+      "split": "official train/test",
+      "primary_metric": "RMSE"
+    },
+    "diode": {
+      "name": "DIODE",
+      "path": "${DATA_ROOT}/diode",
+      "recipe": "depth_30",
+      "split": "official train/validation; indoor+outdoor",
+      "primary_metric": "AbsRel"
+    },
+    "hypersim": {
+      "name": "Hypersim",
+      "path": "${DATA_ROOT}/hypersim",
+      "recipe": "depth_30",
+      "split": "standard scene-disjoint train/validation split",
+      "primary_metric": "AbsRel"
+    },
+    "ddad": {
+      "name": "DDAD",
+      "path": "${DATA_ROOT}/ddad",
+      "recipe": "depth_30",
+      "split": "official train/validation",
+      "primary_metric": "AbsRel",
+      "override": "valid depth up to 200m"
+    },
+    "mpi_sintel": {
+      "name": "MPI Sintel",
+      "path": "${DATA_ROOT}/mpi_sintel",
+      "recipe": "flow_30",
+      "split": "official train split with standard train/validation partition; clean and final",
+      "primary_metric": "EPE"
+    },
+    "middlebury_flow": {
+      "name": "Middlebury Flow",
+      "path": "${DATA_ROOT}/middlebury_flow",
+      "recipe": "flow_30",
+      "split": "official training pairs; deterministic held-out partition",
+      "primary_metric": "average endpoint error"
+    },
+    "spring": {
+      "name": "Spring",
+      "path": "${DATA_ROOT}/spring",
+      "recipe": "flow_30",
+      "split": "official train/validation",
+      "primary_metric": "1px outlier rate and EPE"
+    },
+    "blinkvision": {
+      "name": "BlinkVision",
+      "path": "${DATA_ROOT}/blinkvision",
+      "recipe": "flow_30",
+      "split": "official train/validation",
+      "primary_metric": "EPE"
+    },
+    "dtu": {
+      "name": "DTU",
+      "path": "${DATA_ROOT}/dtu",
+      "recipe": "matching_30",
+      "split": "standard MVS train/validation/test scan split",
+      "primary_metric": "overall reconstruction distance"
+    },
+    "tanks_and_temples": {
+      "name": "Tanks and Temples",
+      "path": "${DATA_ROOT}/tanks_and_temples",
+      "recipe": "matching_30",
+      "split": "official intermediate training/evaluation sets",
+      "primary_metric": "reconstruction F-score"
+    },
+    "scannet": {
+      "name": "ScanNet",
+      "path": "${DATA_ROOT}/scannet",
+      "recipe": "matching_30",
+      "split": "official train/validation scene split",
+      "primary_metric": "relative pose AUC"
+    },
+    "cambridge_landmarks": {
+      "name": "Cambridge Landmarks",
+      "path": "${DATA_ROOT}/cambridge_landmarks",
+      "recipe": "localization_30",
+      "split": "official per-scene train/test",
+      "primary_metric": "median translation/rotation error"
+    },
+    "aachen_day_night": {
+      "name": "Aachen Day-Night",
+      "path": "${DATA_ROOT}/aachen_day_night",
+      "recipe": "localization_30",
+      "split": "official database/query split",
+      "primary_metric": "localization recall at standard thresholds"
+    },
+    "imc_phototourism": {
+      "name": "Image Matching Challenge PhotoTourism",
+      "path": "${DATA_ROOT}/imc_phototourism",
+      "recipe": "matching_30",
+      "split": "provided scene-disjoint train/validation split",
+      "primary_metric": "mean average accuracy at pose thresholds"
+    }
+  },
+  "reporting": {
+    "checkpoint_rule": "report the final scheduled epoch; validation may be used only for diagnostics, not best-checkpoint selection",
+    "aggregation": "report the single seed-0 score; do not report mean or standard deviation",
+    "required_metadata": [
+      "logical job ID",
+      "model checkpoint identifier",
+      "dataset version/path",
+      "split",
+      "recipe and overrides",
+      "feature shape",
+      "effective batch/LR",
+      "final metric",
+      "exit state"
+    ],
+    "failure_states": [
+      "FAILED_RETRYABLE",
+      "UNSUPPORTED_FEATURE",
+      "MISSING_ANNOTATION",
+      "OUT_OF_MEMORY",
+      "WALLTIME"
+    ],
+    "retry_policy": "record the first attempt, diagnose after execution, and retry only the affected logical job; OOM may reduce physical batch while preserving effective batch and LR",
+    "comparability_rule": "no model-specific feature-layer, resolution, head-capacity, or learning-rate search in the canonical table"
+  }
+}

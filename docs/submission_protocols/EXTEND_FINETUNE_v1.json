@@ -1,0 +1,364 @@
+{
+  "protocol_id": "EXTEND_FINETUNE_v1",
+  "version": "1.0",
+  "status": "canonical",
+  "track": "full_fine_tuning",
+  "inherits": {
+    "protocol": "EXTEND_LINEAR_v1",
+    "fields": [
+      "models",
+      "dataset_policy",
+      "datasets",
+      "dataset paths",
+      "splits",
+      "input geometry",
+      "epoch counts",
+      "task heads",
+      "loss definitions",
+      "evaluation metrics"
+    ]
+  },
+  "purpose": "Measure downstream adaptation by training the entire released backbone with the same minimum task head and schedule length used by EXTEND_LINEAR_v1.",
+  "design_principle": "Preserve the dataset definition, task head, epoch count, and metric. Unfreeze the backbone and change only optimizer, LR, weight decay, warmup, layer-wise LR decay, regularizing augmentation, and memory strategy where end-to-end training requires it.",
+  "models": [
+    "clip",
+    "siglip_giant",
+    "sam3",
+    "cradiov4_h",
+    "dinov3_7b",
+    "raev2_k7",
+    "vjepa2_1",
+    "vggt_omega"
+  ],
+  "execution": {
+    "logical_job": "one model x one dataset x EXTEND_FINETUNE_v1 x seed 0",
+    "seeds": [
+      0
+    ],
+    "trials_per_cell": 1,
+    "submission": "independent FT jobs; submit incrementally when sufficient resources are available",
+    "dependency_rule": "do not wait for, launch, or chain LINEAR or ATTENTIVE jobs",
+    "existing_result_rule": "reuse a valid BASIC5_FINETUNE_v1 seed-0 result for an equivalent Basic Five cell",
+    "resume_rule": "resume an incomplete checkpoint under the same logical ID; never duplicate a healthy owner",
+    "failure_isolation": "one failed dataset must not stop unrelated jobs"
+  },
+  "global_overrides": {
+    "backbone_mode": "trainable",
+    "backbone_gradients": true,
+    "trainable_scope": [
+      "all backbone parameters",
+      "the unchanged EXTEND_LINEAR_v1 task head"
+    ],
+    "attention_reader": "absent; do not carry the AP reader into full fine-tuning",
+    "normalization": "train affine parameters; update BatchNorm running statistics when present; SyncBN permitted",
+    "feature_layer": "same canonical output and token-to-grid conversion as EXTEND_LINEAR_v1",
+    "feature_cache": "forbidden",
+    "memory_only_changes": [
+      "AMP/bfloat16",
+      "activation checkpointing",
+      "gradient accumulation",
+      "FSDP or equivalent parameter sharding",
+      "smaller physical batch with preserved effective batch and LR"
+    ],
+    "forbidden_shortcuts": [
+      "LoRA or other parameter-efficient tuning",
+      "partial backbone freezing",
+      "quantized or distilled replacement",
+      "smaller-model substitution",
+      "stronger task decoder",
+      "model-specific hyperparameter sweep"
+    ],
+    "gradient_clipping": {
+      "type": "global_norm",
+      "max_norm": 1.0
+    },
+    "audit_level": "lightweight_attempt_first"
+  },
+  "parameter_groups": {
+    "head_lr_multiplier": 1.0,
+    "layer_decay_definition": "the latest backbone block has multiplier 1.0; multiply by layer_decay for each earlier block; embeddings/stem receive the smallest LR",
+    "no_weight_decay": [
+      "bias",
+      "normalization affine parameters",
+      "positional embeddings",
+      "class/register/prefix tokens"
+    ],
+    "no_weight_decay_value": 0.0,
+    "architecture_mapping": "map each released backbone's ordered blocks to depth groups deterministically and record the mapping"
+  },
+  "recipe_overrides": {
+    "image_cls_100": {
+      "optimization": {
+        "epochs": 100,
+        "optimizer": "AdamW",
+        "base_lr": 0.0005,
+        "lr_reference_effective_batch": 1024,
+        "lr_scaling": "linear",
+        "weight_decay": 0.05,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "warmup": "5 epochs from 1e-6",
+        "schedule": "cosine to 1e-6",
+        "layer_decay": 0.75
+      },
+      "augmentation": {
+        "randaugment": "9/0.5",
+        "mixup_alpha": 0.8,
+        "cutmix_alpha": 1.0,
+        "mix_probability": 1.0,
+        "label_smoothing": 0.1,
+        "random_erasing_probability": 0.25
+      }
+    },
+    "image_cls_small_100": {
+      "optimization": {
+        "epochs": 100,
+        "optimizer": "AdamW",
+        "base_lr": 0.0001,
+        "lr_reference_effective_batch": 256,
+        "lr_scaling": "linear",
+        "weight_decay": 0.05,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "warmup": "5 epochs from 1e-6",
+        "schedule": "cosine to 1e-6",
+        "layer_decay": 0.75
+      },
+      "augmentation": {
+        "randaugment": "9/0.5",
+        "mixup_alpha": 0.2,
+        "cutmix_alpha": 0.0,
+        "label_smoothing": 0.1,
+        "random_erasing_probability": 0.1
+      }
+    },
+    "image_multilabel_50": {
+      "optimization": {
+        "epochs": 50,
+        "optimizer": "AdamW",
+        "base_lr": 0.0001,
+        "lr_reference_effective_batch": 256,
+        "lr_scaling": "linear",
+        "weight_decay": 0.05,
+        "warmup": "5 epochs",
+        "schedule": "cosine",
+        "layer_decay": 0.75
+      },
+      "augmentation": "parent geometry plus RandAugment 9/0.5 and random erasing 0.25; no Mixup/CutMix unless label union is exact"
+    },
+    "video_cls_50": {
+      "optimization": {
+        "epochs": 50,
+        "optimizer": "AdamW",
+        "base_lr": 0.0005,
+        "lr_reference_effective_batch": 256,
+        "lr_scaling": "linear",
+        "weight_decay": 0.05,
+        "warmup": "5 epochs from 1e-6",
+        "schedule": "cosine to 1e-6",
+        "layer_decay": 0.75
+      },
+      "augmentation": {
+        "temporally_consistent_randaugment": "9/0.5",
+        "mixup_alpha": 0.8,
+        "cutmix_alpha": 1.0,
+        "label_smoothing": 0.1,
+        "random_erasing_probability": 0.25,
+        "horizontal_flip": "only when parent dataset permits"
+      }
+    },
+    "video_multilabel_50": {
+      "optimization": {
+        "epochs": 50,
+        "optimizer": "AdamW",
+        "base_lr": 0.0001,
+        "lr_reference_effective_batch": 256,
+        "lr_scaling": "linear",
+        "weight_decay": 0.05,
+        "warmup": "5 epochs",
+        "schedule": "cosine",
+        "layer_decay": 0.75
+      },
+      "augmentation": "temporally consistent RandAugment 9/0.5 and random erasing 0.25"
+    },
+    "detection_1x": {
+      "optimization": {
+        "epochs": 12,
+        "optimizer": "SGD",
+        "base_lr": 0.02,
+        "lr_reference_effective_batch": 16,
+        "lr_scaling": "linear",
+        "momentum": 0.9,
+        "weight_decay": 0.0001,
+        "warmup": "500 iterations, factor 0.001",
+        "schedule": "step x0.1 at epochs 8 and 11",
+        "layer_decay": 1.0
+      },
+      "augmentation": "unchanged from parent"
+    },
+    "instance_seg_1x": {
+      "optimization": {
+        "epochs": 12,
+        "optimizer": "SGD",
+        "base_lr": 0.02,
+        "lr_reference_effective_batch": 16,
+        "lr_scaling": "linear",
+        "momentum": 0.9,
+        "weight_decay": 0.0001,
+        "warmup": "500 iterations",
+        "schedule": "step x0.1 at epochs 8 and 11",
+        "layer_decay": 1.0
+      },
+      "augmentation": "unchanged from parent"
+    },
+    "semantic_seg_20": {
+      "optimization": {
+        "epochs": 20,
+        "optimizer": "AdamW",
+        "base_lr": 0.0001,
+        "lr_reference_effective_batch": 8,
+        "lr_scaling": "linear",
+        "weight_decay": 0.05,
+        "warmup": "1 epoch from 1e-6",
+        "schedule": "cosine to 1e-6",
+        "layer_decay": 0.8
+      },
+      "augmentation": "parent geometry plus color jitter 0.4"
+    },
+    "depth_30": {
+      "optimization": {
+        "epochs": 30,
+        "optimizer": "AdamW",
+        "base_lr": 0.0001,
+        "lr_reference_effective_batch": 8,
+        "lr_scaling": "linear",
+        "weight_decay": 0.05,
+        "warmup": "1 epoch from 1e-6",
+        "schedule": "cosine to 1e-6",
+        "layer_decay": 0.8
+      },
+      "augmentation": "parent geometry plus color jitter 0.2"
+    },
+    "pose_30": {
+      "optimization": {
+        "epochs": 30,
+        "optimizer": "AdamW",
+        "base_lr": 0.0001,
+        "lr_reference_effective_batch": 64,
+        "lr_scaling": "linear",
+        "weight_decay": 0.05,
+        "warmup": "1 epoch",
+        "schedule": "cosine",
+        "layer_decay": 0.8
+      },
+      "augmentation": "parent geometry plus standard scale/rotation jitter"
+    },
+    "tracking_30": {
+      "optimization": {
+        "epochs": 30,
+        "optimizer": "AdamW",
+        "base_lr": 0.0001,
+        "lr_reference_effective_batch": 64,
+        "lr_scaling": "linear",
+        "weight_decay": 0.05,
+        "warmup": "1 epoch",
+        "schedule": "cosine",
+        "layer_decay": 0.8
+      },
+      "augmentation": "parent paired-frame geometry plus shared photometric jitter"
+    },
+    "flow_30": {
+      "optimization": {
+        "epochs": 30,
+        "optimizer": "AdamW",
+        "base_lr": 0.0001,
+        "lr_reference_effective_batch": 16,
+        "lr_scaling": "linear",
+        "weight_decay": 0.05,
+        "warmup": "1 epoch",
+        "schedule": "cosine",
+        "layer_decay": 0.8
+      },
+      "augmentation": "parent paired geometry plus shared color jitter"
+    },
+    "matching_30": {
+      "optimization": {
+        "epochs": 30,
+        "optimizer": "AdamW",
+        "base_lr": 0.0001,
+        "lr_reference_effective_batch": 64,
+        "lr_scaling": "linear",
+        "weight_decay": 0.05,
+        "warmup": "1 epoch",
+        "schedule": "cosine",
+        "layer_decay": 0.8
+      },
+      "augmentation": "shared photometric jitter that preserves correspondence geometry"
+    },
+    "localization_30": {
+      "optimization": {
+        "epochs": 30,
+        "optimizer": "AdamW",
+        "base_lr": 0.0001,
+        "lr_reference_effective_batch": 128,
+        "lr_scaling": "linear",
+        "weight_decay": 0.05,
+        "warmup": "1 epoch",
+        "schedule": "cosine",
+        "layer_decay": 0.8
+      },
+      "augmentation": "parent crop plus mild photometric jitter"
+    },
+    "visual_reasoning_50": {
+      "optimization": {
+        "epochs": 50,
+        "optimizer": "AdamW",
+        "base_lr": 0.0001,
+        "lr_reference_effective_batch": 128,
+        "lr_scaling": "linear",
+        "weight_decay": 0.05,
+        "warmup": "5 epochs",
+        "schedule": "cosine",
+        "layer_decay": 0.8
+      },
+      "augmentation": "parent visual geometry; no augmentation that changes the answer"
+    },
+    "action_detection_12": {
+      "optimization": {
+        "epochs": 12,
+        "optimizer": "AdamW",
+        "base_lr": 0.0001,
+        "lr_reference_effective_batch": 64,
+        "lr_scaling": "linear",
+        "weight_decay": 0.05,
+        "warmup": "1 epoch",
+        "schedule": "cosine",
+        "layer_decay": 0.8
+      },
+      "augmentation": "parent clip geometry; temporally consistent mild color jitter"
+    }
+  },
+  "dataset_resolution": "Resolve every dataset entry from EXTEND_LINEAR_v1 and retain its path, split, epoch count, task head, loss, metric, and dataset-specific override. Apply the matching full-fine-tuning recipe above. Do not replace the inherited task head with a stronger decoder.",
+  "reporting": {
+    "checkpoint_rule": "final scheduled epoch",
+    "aggregation": "single seed-0 score; no mean or standard deviation",
+    "required_metadata": [
+      "logical and physical job IDs",
+      "checkpoint",
+      "dataset/version/split",
+      "trainable and total parameters",
+      "feature shape",
+      "effective batch and realized head/stem LRs",
+      "layer-group mapping",
+      "peak memory and distributed strategy",
+      "final metric",
+      "exit state"
+    ],
+    "comparability_rule": "no model-specific LR, layer decay, augmentation, layer selection, resolution, or task-head search",
+    "retry_policy": "attempt first, isolate failures, then repair and retry only the affected logical job; memory-only changes must preserve optimization semantics"
+  }
+}
