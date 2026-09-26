@@ -1,5 +1,9 @@
 # INITIAL_STEP1_v1: historical evidence and candidate reconstruction
 
+> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
+> code/experiment identifiers, not manuscript section numbers. See the
+> [ASIS, CTRL and manuscript comparison map](../PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+
 This is an edited, anonymized companion to the initial experiments, separate
 from the later Unified LP/AP/FT specifications. It is not a certification that
 all manuscript results follow a single recipe. Original experimental code and
@@ -79,7 +83,7 @@ Include every method row in `configs/step1_downstream_registry.yaml` whose `imag
 
 NYUv2 here is file order inside `labeled/nyu_depth_v2_labeled.mat`. It is not the Eigen `splits.mat` index list. Depth values are metric metres. RMSE is metric RMSE, not median-aligned RMSE.
 
-COCO here is box detection. The primary metric is bbox AP, not image-level multilabel mAP.
+COCO here is box detection. The primary metric is bbox AP.
 
 ### Global rules
 
@@ -211,7 +215,7 @@ Write outputs under `local_artifacts/downstream_full_resumable/<task>_method<id>
 
 ### Evaluation and reporting
 
-Report one row per method per task: the last-epoch metric, the checkpoint path, feature width and grid, input size, frame count, effective batch, learning rate, and seed. State units in the column header. Keep bbox AP, multilabel mAP, metric RMSE, and median-aligned RMSE in separate tables. This protocol uses bbox AP and metric RMSE.
+Report one row per method per task: the last-epoch metric, the checkpoint path, feature width and grid, input size, frame count, effective batch, learning rate, and seed. State units in the column header. Keep bbox AP, metric RMSE, and median-aligned RMSE in separate tables. This protocol uses bbox AP and metric RMSE.
 
 ### reconstruction decisions
 
