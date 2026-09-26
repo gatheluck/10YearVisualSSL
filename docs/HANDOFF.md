@@ -1,5 +1,7 @@
 # Cross-Mac project handoff
 
+For ASIS, CTRL and legacy numbered labels, see the [manuscript terminology guide](PAPER_TERMINOLOGY.md).
+
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](SUBMISSION_SCOPE.md)
 for the distinction from original experimental implementations and results.
@@ -26,6 +28,21 @@ Local ZIP tests verify delivery and selected evidence/proposal boundaries; full
 score-to-run correspondence remains unverified. The existing submission ZIP must
 not be described as containing these additions until explicitly rebuilt and
 inspected. Preserve the supplied Unified companions and unrelated submodule work.
+
+### 2026-09-26: supplementary v4 reconciliation
+
+The supplied v4 adds manuscript terminology and a reviewer README, now retained
+in [the mapping](PAPER_TERMINOLOGY.md) and the
+[export template](templates/REVIEWER_README.md). Legacy filenames remain stable.
+The user confirmed that the initial COCO experiments are object detection;
+previous classification attributions are superseded. The supplied v4 detection
+recipes are retained as reconstructions, not independently verified run settings.
+Initial and current Unified specifications remain separate. The eight current
+companions and three Extend JSON registries are already tracked and unchanged;
+Charades and AVA remain distinct Extended tasks. Generated dependency indexes
+remain export artifacts. No runtime or result is changed. The supplied v4 ZIP
+is not rewritten by this repository change. Local tests check navigation and
+protocol boundaries; score-to-run matching remains unverified.
 
 ## Verified baseline and what it means
 

@@ -7,6 +7,16 @@ this portable package's integration/validation are separate matters.
 
 ## Historical evidence and its limits
 
+### 2026-09-26 task correction
+
+The study authors confirmed that the COCO experiments use object detection.
+The previous task attribution in this companion was incorrect and is superseded.
+The detection reconstruction below comes from the supplied supplementary v4;
+its detailed optimizer, resolution and seed settings still require matching to
+individual run records. Confirmation of the task is not confirmation of every
+candidate hyperparameter or a newly reproduced score. Initial conditions remain
+separate from the later Unified LP/AP/FT specifications.
+
 This reconstruction concerns an older Cosmos3 Super adapter, not all video world models. The inspected historical adapter uses ImageNet normalization and last_hidden_state readout. Inspected shared readers include median depth alignment and AdamW calls without an explicit weight_decay argument. These source facts do not identify every reported run.
 
 The following rows are historical attributions in the supplied reconstruction,
@@ -17,7 +27,6 @@ not independent confirmation of every run:
 | Merger, MoT, DiT, VAE | Not loaded and not scored | Historical `checkpoint_identity.note`; `out_hidden_size` 5120 stored as `merger_out_hidden_size` only | Observed main-run setting |
 | Normalization and patch order | ImageNet mean/std; row-major unfold; temporal repeat of 2; no block-major unshuffle | `adapter.py.pre_official_preproc.bak` `_transform` and `_extract_patches` | Observed main-run setting |
 | Classification schedule | AdamW `1e-3`, WD `1e-4`, 100 epochs, cosine, last epoch, seeds 42/123/456 | `core20/registry.py` `PROBE["image_cls"]` and `train_linear_cls` | Observed main-run setting |
-| COCO weight decay | Executed AdamW default `0.01` | `run_coco` constructs `AdamW` with `lr` only. The `PROBE` value `0.0` is not passed | Observed main-run setting |
 | ADE and NYUv2 weight decay | Executed AdamW default `0.01` | `run_ade` and `run_nyu` omit `weight_decay` | Observed main-run setting |
 | Depth metric | Median-aligned RMSE | `depth_metrics` scales by `target.median()/pred.median()` before RMSE | Observed main-run setting |
 
@@ -76,12 +85,12 @@ Recorded weight hash of `vision_encoder/model.safetensors`: `3bdba32cec6f4f570a1
 | Task | Dataset | Split | Root |
 |---|---|---|---|
 | Image classification | ImageNet-1k | official `train` / `val` | `${LOCAL_REFERENCE_PATH}` |
-| Multilabel classification | COCO 2017 | train2017 / val2017, 80 category presence bits | `${LOCAL_REFERENCE_PATH}` |
+| Object detection | COCO 2017 | train2017 / val2017 | `${LOCAL_REFERENCE_PATH}` |
 | Semantic segmentation | ADE20K Challenge 2016 | training 20,210 / validation 2,000 | `${LOCAL_REFERENCE_PATH}` |
 | Monocular depth | NYUv2 labeled | `labeled/splits.mat` `trainNdxs` / `testNdxs`, converted from 1-based to 0-based | `${LOCAL_REFERENCE_PATH}` |
 | Action recognition | Something-Something v2 | `labels/train.json` / `labels/validation.json` | `${LOCAL_REFERENCE_PATH}` |
 
-COCO here is image-level multilabel mAP. It is not bbox AP. NYUv2 RMSE here is median-aligned RMSE. It is not unscaled metric RMSE.
+COCO here is box detection. The primary metric is bbox AP (%), AP@[0.50:0.95]. NYUv2 RMSE here is median-aligned RMSE.
 
 ### Global rules
 
@@ -90,8 +99,8 @@ COCO here is image-level multilabel mAP. It is not bbox AP. NYUv2 RMSE here is m
 - Use a 448×448 square input. Record `input_size` 448 and `input_geometry` `square squash at the model's declared img_size`.
 - Apply ImageNet normalization inside the adapter: mean `(0.485, 0.456, 0.406)`, std `(0.229, 0.224, 0.225)`.
 - Learning rates below are absolute at the stated head batch or dense batch. Do not rescale them. Do not accumulate gradients.
-- Image classification, SSv2, and COCO report the mean over seeds `42`, `123`, and `456` of the score at the last scheduled epoch. ADE20K and NYUv2 use one trial and the same last-epoch rule.
-- Do not select a checkpoint on the validation split. The unused `best` variable in `train_linear_cls` is not the score.
+- Image classification and SSv2 report the mean over seeds `42`, `123`, and `456` of the score at the last scheduled epoch. ADE20K and NYUv2 use one trial and the last-epoch rule. COCO uses one trial and the epoch with the highest validation bbox AP.
+- Image classification, SSv2, ADE20K, and NYUv2 do not select a checkpoint on the validation split. The unused `best` variable in `train_linear_cls` is not the score.
 
 ### Common representation interface
 
@@ -106,9 +115,9 @@ Implementation: historical `Cosmos3SuperAdapter` in `adapter.py.pre_official_pre
 - **Special tokens.** The tower output used here has no class token to drop.
 - **Patch packing.** Row-major `unfold` on height, then width, patch 16. Each spatial patch is repeated `temporal_patch_size` (2) times along a dummy time axis and flattened to `3 * 2 * 16 * 16`. `grid_thw` is `(1, H/16, W/16)` per image. This is not Qwen2-VL block-major 2×2 merge order.
 - **Preprocessing.** The dataset resizes with PIL bilinear (`resample` 2) to a 448 square (`core20/datasets.py` `cpu_to_tensor`). The adapter then applies a bicubic resize to 448, a center crop of 448, and ImageNet normalization. SSv2 applies that image preprocessing independently to each frame (`extract_split`).
-- **Feature normalization before the head.** Global tasks L2-normalize the 1152-d vector (`F.normalize`, `dim=-1`). Dense tasks L2-normalize across channels (`F.normalize`, `dim=1`). This normalization is part of the probe, after the frozen tower.
+- **Feature normalization before the head.** Image classification and SSv2 L2-normalize the 1152-d vector (`F.normalize`, `dim=-1`). ADE20K and NYUv2 L2-normalize across channels (`F.normalize`, `dim=1`). COCO uses the dense map with no extra L2 normalization.
 - **Video.** 8 frames, indices `linspace(0, n-1, 8)`. Per-frame global vectors, then a mean over time. One vector per clip.
-- **Head boundary.** The linear layer or the 1×1 convolution is the first trainable parameter.
+- **Head boundary.** The linear layer, the 1×1 convolution, or the Faster R-CNN heads are the first trainable parameters. The vision tower stays frozen.
 
 A trunk that emits a denoiser state, a VAE latent, or the 5120-d merger vector does not satisfy this interface. Do not place that tensor in these tables.
 
@@ -117,14 +126,14 @@ A trunk that emits a denoiser state, a VAE latent, or the 5120-d merger vector d
 | Task | Input | Head | Optimizer | Schedule | Score epoch | Primary metric |
 |---|---|---|---|---|---|---|
 | ImageNet-1k | 448 square | linear, 1000-way, zero init | AdamW | 100 epochs, cosine | last epoch | Top-1 (%) |
-| COCO 2017 | 448 square | linear, 80-way | AdamW | 40 epochs, constant LR | last epoch | multilabel mAP (%) |
+| COCO 2017 | 448 square, detector keeps that square | Faster R-CNN | SGD | 12 epochs, warmup then cosine | best validation bbox AP | bbox AP (%) |
 | ADE20K | 448 square | 1×1 conv, 150-way, zero init | AdamW | 20 epochs, constant LR | last epoch | mIoU (%) |
 | NYUv2 | 448 square | 1×1 conv, softplus, zero init | AdamW | 30 epochs, constant LR | last epoch | median-aligned RMSE (m) |
 | SSv2 | 448 square, 8 frames | linear, 174-way, zero init | AdamW | 100 epochs, cosine | last epoch | Top-1 (%) |
 
 ### Detailed task recipes
 
-Shared optimizer defaults, from the `AdamW` calls in `core20/run_cell.py`: betas `(0.9, 0.999)`, `eps` `1e-8`. No warmup. No label smoothing. Feature extraction uses the registry batch size 8. No train-time crop or flip.
+Image classification, ADE20K, NYUv2, and SSv2 use AdamW defaults from `core20/run_cell.py`: betas `(0.9, 0.999)`, `eps` `1e-8`. Those tasks have no warmup and no label smoothing. Feature extraction for them uses the registry batch size 8. COCO uses the SGD detector recipe below.
 
 #### ImageNet-1k
 
@@ -138,18 +147,21 @@ Shared optimizer defaults, from the `AdamW` calls in `core20/run_cell.py`: betas
 - **Checkpoint rule.** The weights after the last epoch. Evaluate once.
 - **Metrics.** Top-1 (%) primary. Report the mean and the sample standard deviation across the three seeds (`_mean_ci`, divisor `n-1`). Top-5 (%) per seed is secondary.
 
-#### COCO 2017 multilabel classification
+#### COCO 2017 detection
 
-- **Protocol name.** `COCO_GLOBAL_MULTILABEL_MAP_v1`.
-- **Target.** An 80-d multi-hot vector. Crowd annotations are skipped. A category bit is 1 when that category has a non-crowd instance in the image.
-- **Feature.** The same global vector as ImageNet-1k.
-- **Head.** `Linear(1152, 80)` with the default `Linear` initialization. Head batch 1024.
-- **Loss.** `BCEWithLogitsLoss`.
-- **Optimizer.** AdamW, learning rate `0.001`. The call does not pass `weight_decay`, so the PyTorch default `0.01` is the executed value. `PROBE["multilabel_cls"]["weight_decay"]` is `0.0` and is not passed into this optimizer.
-- **Schedule.** 40 epochs. Constant learning rate. No cosine scheduler.
-- **Seeds.** `42`, `123`, `456`.
-- **Checkpoint rule.** Last epoch.
-- **Metrics.** Multilabel mAP (%). For each class with at least one positive validation label, average precision is the mean of precision at the ranks of the positive labels after sorting scores descending. The score is the unweighted mean of those class values, times 100. Report the mean and sample standard deviation over the three seeds. This number is not bbox AP.
+- **Split.** train2017 and val2017.
+- **Target.** Instance boxes for the 80 COCO categories. Drop crowd boxes. Drop boxes whose width or height is at most 1 pixel.
+- **Input.** 448×448 square. Faster R-CNN uses `min_size=448` and `max_size=448`. No horizontal flip. ImageNet normalization from the historical adapter.
+- **Feature.** Pre-merger dense map `(B, 1152, h, w)` as the single scale `"0"`. No global mean and no L2 normalization.
+- **Head.** Torchvision Faster R-CNN. A trainable 1×1 conv maps 1152 channels to 256. Anchors `(32, 64, 128, 256, 512)` and ratios `(0.5, 1.0, 2.0)`. `MultiScaleRoIAlign` on feature name `"0"`, output 7×7, sampling ratio 2. Train that 1×1 conv, the RPN, the RoI heads, and the box predictor. The vision tower stays frozen. The constructor receives 81 classes: 80 foreground categories plus background.
+- **Detector limits.** Train pre-NMS 2000 and post-NMS 1000. Test pre-NMS 1000 and post-NMS 500. Score threshold `0.05`. Box NMS `0.5`. 100 detections per image.
+- **Loss.** Sum of RPN objectness, RPN box regression, classification, and box regression.
+- **Optimizer.** SGD, momentum `0.9`, weight decay `1e-4`, learning rate `0.001`, absolute, at effective batch 2.
+- **Schedule.** 12 epochs. Warmup for 1 epoch, then cosine. Forward the frozen tower in bfloat16.
+- **Seed.** One trial, seed `0`.
+- **Checkpoint rule.** Epoch with the highest validation bbox AP.
+- **Evaluation.** `COCOeval` on bbox, one view per image, over the val2017 ids in the loader.
+- **Metrics.** Primary bbox AP (%) = `100 * COCOeval.stats[0]` (AP@[0.50:0.95]). Secondary AP50 (%) = `100 * stats[1]`.
 
 #### ADE20K
 
@@ -194,11 +206,11 @@ python ${LOCAL_REFERENCE_PATH} \
   --method cosmos3_super --dataset imagenet_1k --device cuda
 ```
 
-Repeat with `--dataset` in `coco2017`, `ade20k`, `nyu_depth_v2`, `something_something_v2`. The adapter loaded by that command must be the historical ImageNet-normalized, row-major adapter. Completed cells record `canary: false`, `precision: bf16`, and `run_id: r2`.
+Repeat with `--dataset` in `ade20k`, `nyu_depth_v2`, `something_something_v2`. The adapter loaded by that command must be the historical ImageNet-normalized, row-major adapter. Completed cells record `canary: false`, `precision: bf16`, and `run_id: r2`. COCO is the Faster R-CNN recipe in this file, on that same frozen 1152-d map.
 
 ### Evaluation and reporting
 
-Write `run_meta.json` and `result.json` under `VideoGen/Cosmos3-Super/results/<dataset>/Cosmos3-Super/nvidia_Cosmos3-Super_vision_encoder/r2/`. Record `feature_dim` 1152, `merger_out_hidden_size` 5120, the sha256 above, input 448, and the protocol name of the task. Report Top-1, Top-5, multilabel mAP, mIoU, and pixel accuracy in percent. Report median-aligned RMSE in metres and AbsRel as a unitless ratio after the median scale. State the seed list or the single dense-task seed beside the number.
+Write `run_meta.json` and `result.json` under `VideoGen/Cosmos3-Super/results/<dataset>/Cosmos3-Super/nvidia_Cosmos3-Super_vision_encoder/r2/`. Record `feature_dim` 1152, `merger_out_hidden_size` 5120, the sha256 above, input 448, and the protocol name of the task. Report Top-1, Top-5, bbox AP, AP50, mIoU, and pixel accuracy in percent. Report median-aligned RMSE in metres and AbsRel as a unitless ratio after the median scale. State the seed list, or the single seed, beside the number.
 
 ### reconstruction decisions
 
@@ -209,7 +221,7 @@ Write `run_meta.json` and `result.json` under `VideoGen/Cosmos3-Super/results/<d
 | Normalization and patch order | ImageNet mean/std; row-major unfold; temporal repeat of 2; no block-major unshuffle | `adapter.py.pre_official_preproc.bak` `_transform` and `_extract_patches` | Observed main-run setting |
 | Later official preprocessing | Excluded | Current `adapter.py` and checkpoint id `nvidia_Cosmos3-Super_vision_encoder_official_preproc` | Excluded later revision |
 | Classification schedule | AdamW `1e-3`, WD `1e-4`, 100 epochs, cosine, last epoch, seeds 42/123/456 | `core20/registry.py` `PROBE["image_cls"]` and `train_linear_cls` | Observed main-run setting |
-| COCO weight decay | Executed AdamW default `0.01` | `run_coco` constructs `AdamW` with `lr` only. The `PROBE` value `0.0` is not passed | Observed main-run setting |
+| COCO task | bbox AP (%), AP@[0.50:0.95]. Faster R-CNN, 12 epochs, batch 2, LR `0.001`, WD `1e-4`, 1-epoch warmup, cosine, best validation epoch, 448 square | `3DFM/_common/coco_probe.py`; `INITIAL_STEP3_3DFM_v1.md`; `INITIAL_STEP3_4DFM_v1.md` | Supplied detection reconstruction; run matching pending |
 | ADE and NYUv2 weight decay | Executed AdamW default `0.01` | `run_ade` and `run_nyu` omit `weight_decay` | Observed main-run setting |
 | Depth metric | Median-aligned RMSE | `depth_metrics` scales by `target.median()/pred.median()` before RMSE | Observed main-run setting |
 | Other VideoGen trunks | Outside this interface | Wan, LTX, Hunyuan, and tokenizer probes read DiT or tokenizer states; `STEP3_candidate_MANIFEST.md` records ADE as scene Acc@1 for that earlier table | Compatibility gap |
@@ -219,6 +231,7 @@ Write `run_meta.json` and `result.json` under `VideoGen/Cosmos3-Super/results/<d
 - `methods_step3/VideoGen/Cosmos3-Super/adapter.py.pre_official_preproc.bak`
 - `methods_step3/VideoGen/checkpoints/cosmos3/Cosmos3-Super/vision_encoder/config.json`
 - `methods_step3/core20/registry.py` keys `DATASETS`, `PROBE`, and the historical note on `METHODS["cosmos3_super"]`
-- `methods_step3/core20/run_cell.py` functions `extract_split`, `train_linear_cls`, `run_coco`, `run_ade`, `run_nyu`, `depth_metrics`
+- `methods_step3/core20/run_cell.py` functions `extract_split`, `train_linear_cls`, `run_ade`, `run_nyu`, `depth_metrics`
+- Detection recipe: `methods_step3/3DFM/_common/coco_probe.py` and `methods_step3/protocol/INITIAL_STEP3_3DFM_v1.md`
 - `methods_step3/core20/datasets.py`
 - `methods_step3/VideoGen/Cosmos3-Super/results/<dataset>/Cosmos3-Super/nvidia_Cosmos3-Super_vision_encoder/r2/run_meta.json`

@@ -1,0 +1,49 @@
+{
+  "targets": [
+    {
+      "label": "reviewer-navigation",
+      "file": "docs/templates/REVIEWER_README.md",
+      "old": "| ASIS: original-setting evaluation (Section 3) |",
+      "new": "| Step 1 |",
+      "tests": [
+        "tests.test_paper_terminology.PaperTerminology.test_reviewer_navigation_uses_manuscript_terms"
+      ]
+    },
+    {
+      "label": "legacy-link",
+      "file": "docs/BASIC5_PROTOCOL.md",
+      "old": "](PAPER_TERMINOLOGY.md)",
+      "new": "](MISSING_TERMINOLOGY.md)",
+      "tests": [
+        "tests.test_paper_terminology.PaperTerminology.test_legacy_guides_offer_resolvable_mapping"
+      ]
+    },
+    {
+      "label": "mapping-boundary",
+      "file": "docs/PAPER_TERMINOLOGY.md",
+      "old": "not a one-to-one",
+      "new": "a complete",
+      "tests": [
+        "tests.test_paper_terminology.PaperTerminology.test_mapping_covers_scope_without_renaming_interfaces"
+      ]
+    },
+    {
+      "label": "coco-classification-regression",
+      "file": "docs/initial_protocols/INITIAL_STEP3_VLM_v1.md",
+      "old": "#### COCO 2017 detection",
+      "new": "#### COCO 2017 multilabel classification",
+      "tests": [
+        "tests.test_paper_terminology.PaperTerminology.test_initial_coco_is_detection_without_changing_unified_registry"
+      ]
+    },
+    {
+      "label": "template-delivery-link",
+      "file": "docs/templates/REVIEWER_README.md",
+      "old": "](docs/PAPER_TERMINOLOGY.md)",
+      "new": "](docs/MISSING.md)",
+      "tests": [
+        "tests.test_paper_terminology.PaperTerminology.test_template_links_resolve_at_export_root"
+      ]
+    }
+  ]
+}

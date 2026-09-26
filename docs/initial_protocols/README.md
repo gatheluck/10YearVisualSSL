@@ -25,8 +25,8 @@ Do not infer completed reruns from a candidate recipe. In particular, RAEv2
 last-seven-layer aggregation and final-layer readout are different features;
 4DFM 518-pixel and proposed 224-pixel runs are different conditions; VideoSSL's
 proposed common schedule and seed must not overwrite historical run settings.
-COCO bounding-box AP and image-level multilabel mAP, and metric versus
-median-aligned depth, are different evaluations. Preserve these distinctions.
+COCO uses bounding-box detection AP. Metric and median-aligned depth are
+different evaluations; preserve that distinction.
 The initial So400m VLM and old world-model preprocessing are not interchangeable
 with later giant-model or final-merger implementations.
 

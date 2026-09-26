@@ -139,7 +139,7 @@ A trunk that cannot emit a spatial patch grid at 224 is unsupported for ADE20K, 
 - **Feature.** Spatial grid at 224. No global pool.
 - **Optimizer.** SGD, momentum `0.9`.
 - **Checkpoint rule.** Best validation bbox AP.
-- **Metrics.** Bbox AP (%). Not multilabel mAP.
+- **Metrics.** Bounding-box AP (%).
 
 #### ADE20K
 

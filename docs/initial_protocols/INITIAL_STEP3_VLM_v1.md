@@ -7,6 +7,16 @@ this portable package's integration/validation are separate matters.
 
 ## Historical evidence and its limits
 
+### 2026-09-26 task correction
+
+The study authors confirmed that the COCO experiments use object detection.
+The previous task attribution in this companion was incorrect and is superseded.
+The detection reconstruction below comes from the supplied supplementary v4;
+its detailed optimizer, resolution and seed settings still require matching to
+individual run records. Confirmation of the task is not confirmation of every
+candidate hyperparameter or a newly reproduced score. Initial conditions remain
+separate from the later Unified LP/AP/FT specifications.
+
 This reconstruction concerns the earlier SigLIP2 So400m/14 at 384 pixels with width 1152. It is distinct from the later SigLIP2-G provider. The shared historical readers include median-aligned depth and optimizer defaults; exact run-to-score correspondence is not independently established here.
 
 The following rows are historical attributions in the supplied reconstruction,
@@ -17,8 +27,8 @@ not independent confirmation of every run:
 | Global feature | MAP pool from `get_image_features` | `SigLIPAdapter.extract_features` | Observed main-run setting |
 | Dense feature | `vision_model.last_hidden_state` patch grid | `SigLIPAdapter.extract_dense_features` | Observed main-run setting |
 | Normalization | mean = std = `(0.5, 0.5, 0.5)` | `SIGLIP_MEAN` and `SIGLIP_STD` in `VLM/SigLIP/adapter.py` | Observed main-run setting |
-| Probe schedule | The task table in this file | `core20/registry.py` `PROBE` and the matching functions in `run_cell.py` | Observed main-run setting |
-| COCO, ADE, and NYUv2 weight decay | Executed AdamW default `0.01` | Those three functions pass `lr` and omit `weight_decay`. The `PROBE` value `0.0` is not applied | Observed main-run setting |
+| Non-COCO probe schedule | The non-COCO task rows in this file | `core20/registry.py` `PROBE` and the matching functions in `run_cell.py` | Observed main-run setting |
+| ADE and NYUv2 weight decay | Executed AdamW default `0.01` | `run_ade` and `run_nyu` pass `lr` and omit `weight_decay`. The `PROBE` value `0.0` is not applied | Observed main-run setting |
 | Depth metric | Median-aligned RMSE | `depth_metrics` | Observed main-run setting |
 
 The supplied evidence table below distinguishes source claims from newly chosen
@@ -73,12 +83,12 @@ Recorded weight hash of `model.safetensors`: `9f4f4a49f908ef0c979bce8ff5a5c0e888
 | Task | Dataset | Split | Root |
 |---|---|---|---|
 | Image classification | ImageNet-1k | official `train` / `val` | `${LOCAL_REFERENCE_PATH}` |
-| Multilabel classification | COCO 2017 | train2017 / val2017, 80 category presence bits | `${LOCAL_REFERENCE_PATH}` |
+| Object detection | COCO 2017 | train2017 / val2017 | `${LOCAL_REFERENCE_PATH}` |
 | Semantic segmentation | ADE20K Challenge 2016 | training 20,210 / validation 2,000 | `${LOCAL_REFERENCE_PATH}` |
 | Monocular depth | NYUv2 labeled | `labeled/splits.mat` `trainNdxs` / `testNdxs`, converted from 1-based to 0-based | `${LOCAL_REFERENCE_PATH}` |
 | Action recognition | Something-Something v2 | `labels/train.json` / `labels/validation.json` | `${LOCAL_REFERENCE_PATH}` |
 
-COCO here is image-level multilabel mAP. It is not bbox AP. NYUv2 RMSE here is median-aligned RMSE. It is not unscaled metric RMSE.
+COCO here is box detection. The primary metric is bbox AP (%), AP@[0.50:0.95]. NYUv2 RMSE here is median-aligned RMSE.
 
 ### Global rules
 
@@ -86,8 +96,8 @@ COCO here is image-level multilabel mAP. It is not bbox AP. NYUv2 RMSE here is m
 - Use a 384×384 square input. Record `input_size` 384 and `input_geometry` `square squash at the model's declared img_size`.
 - Normalize with mean `(0.5, 0.5, 0.5)` and std `(0.5, 0.5, 0.5)`.
 - Learning rates below are absolute at the stated head batch or dense batch. Do not rescale them. Do not accumulate gradients.
-- Image classification, SSv2, and COCO report the mean over seeds `42`, `123`, and `456` of the last-epoch score. ADE20K and NYUv2 use one trial and the last-epoch score.
-- Do not select a checkpoint on the validation split.
+- Image classification and SSv2 report the mean over seeds `42`, `123`, and `456` of the last-epoch score. ADE20K and NYUv2 use one trial and the last-epoch score. COCO uses one trial and the epoch with the highest validation bbox AP.
+- Image classification, SSv2, ADE20K, and NYUv2 do not select a checkpoint on the validation split.
 
 ### Common representation interface
 
@@ -97,11 +107,11 @@ COCO here is image-level multilabel mAP. It is not bbox AP. NYUv2 RMSE here is m
 - **Feature stage, global.** `get_image_features(pixel_values=...)`, the released MAP-pooled embedding, shape `(B, 1152)`.
 - **Feature stage, dense.** `vision_model(...).last_hidden_state`, every token, reshaped to `(B, 1152, h, w)` with `h = w = int(N ** 0.5)`. There is no class token to drop. At patch 14 the grid side is the integer square root of the token count.
 - **Special tokens.** None are concatenated or removed.
-- **Pooling.** Global tasks use the MAP pool inside `get_image_features`. They do not mean-pool `last_hidden_state`. Dense tasks do not pool before the 1×1 head. Video mean-pools the per-frame MAP vectors over time.
+- **Pooling.** Image classification uses the MAP pool inside `get_image_features`. ADE20K and NYUv2 keep the patch grid. COCO keeps that same patch grid as detector scale `"0"`. Video mean-pools the per-frame MAP vectors over time.
 - **Preprocessing.** The dataset resizes with PIL bilinear (`resample` 2) to a 384 square. The adapter then applies a bicubic resize to 384, a center crop of 384, and the `0.5` / `0.5` normalization. SSv2 applies that image preprocessing to each frame.
-- **Feature normalization before the head.** Global tasks L2-normalize the 1152-d vector (`F.normalize`, `dim=-1`). Dense tasks L2-normalize across channels (`F.normalize`, `dim=1`).
+- **Feature normalization before the head.** Image classification and SSv2 L2-normalize the 1152-d vector (`F.normalize`, `dim=-1`). ADE20K and NYUv2 L2-normalize across channels (`F.normalize`, `dim=1`). COCO uses the dense map with no extra L2 normalization.
 - **Video.** 8 frames, indices `linspace(0, n-1, 8)`. One MAP vector per frame, then the mean over time.
-- **Head boundary.** The linear layer or the 1×1 convolution is the first trainable parameter.
+- **Head boundary.** The linear layer, the 1×1 convolution, or the Faster R-CNN heads are the first trainable parameters. The vision tower stays frozen.
 
 A trunk that cannot emit the MAP-pooled `get_image_features` vector and a square `last_hidden_state` patch grid does not satisfy this interface.
 
@@ -110,14 +120,14 @@ A trunk that cannot emit the MAP-pooled `get_image_features` vector and a square
 | Task | Input | Head | Optimizer | Schedule | Score epoch | Primary metric |
 |---|---|---|---|---|---|---|
 | ImageNet-1k | 384 square | linear, 1000-way, zero init | AdamW | 100 epochs, cosine | last epoch | Top-1 (%) |
-| COCO 2017 | 384 square | linear, 80-way | AdamW | 40 epochs, constant LR | last epoch | multilabel mAP (%) |
+| COCO 2017 | 384 square, detector keeps that square | Faster R-CNN | SGD | 12 epochs, warmup then cosine | best validation bbox AP | bbox AP (%) |
 | ADE20K | 384 square | 1×1 conv, 150-way, zero init | AdamW | 20 epochs, constant LR | last epoch | mIoU (%) |
 | NYUv2 | 384 square | 1×1 conv, softplus, zero init | AdamW | 30 epochs, constant LR | last epoch | median-aligned RMSE (m) |
 | SSv2 | 384 square, 8 frames | linear, 174-way, zero init | AdamW | 100 epochs, cosine | last epoch | Top-1 (%) |
 
 ### Detailed task recipes
 
-Shared optimizer defaults, from the `AdamW` calls in `core20/run_cell.py`: betas `(0.9, 0.999)`, `eps` `1e-8`. No warmup. No label smoothing. Feature extraction uses the registry batch size 32. No train-time crop or flip.
+Image classification, ADE20K, NYUv2, and SSv2 use AdamW defaults from `core20/run_cell.py`: betas `(0.9, 0.999)`, `eps` `1e-8`. Those tasks have no warmup and no label smoothing. Feature extraction for them uses the registry batch size 32. COCO uses the SGD detector recipe below.
 
 #### ImageNet-1k
 
@@ -131,18 +141,21 @@ Shared optimizer defaults, from the `AdamW` calls in `core20/run_cell.py`: betas
 - **Checkpoint rule.** The weights after the last epoch. Evaluate once.
 - **Metrics.** Top-1 (%) primary. Report the mean and the sample standard deviation across the three seeds (`_mean_ci`, divisor `n-1`). Top-5 (%) per seed is secondary.
 
-#### COCO 2017 multilabel classification
+#### COCO 2017 detection
 
-- **Protocol name.** `COCO_GLOBAL_MULTILABEL_MAP_v1`.
-- **Target.** An 80-d multi-hot vector. Crowd annotations are skipped. A category bit is 1 when that category has a non-crowd instance in the image.
-- **Feature.** The same MAP vector as ImageNet-1k, L2-normalized.
-- **Head.** `Linear(1152, 80)` with the default `Linear` initialization. Head batch 1024.
-- **Loss.** `BCEWithLogitsLoss`.
-- **Optimizer.** AdamW, learning rate `0.001`. The call does not pass `weight_decay`, so the PyTorch default `0.01` is the executed value. `PROBE["multilabel_cls"]["weight_decay"]` is `0.0` and is not passed into this optimizer.
-- **Schedule.** 40 epochs. Constant learning rate. No cosine scheduler.
-- **Seeds.** `42`, `123`, `456`.
-- **Checkpoint rule.** Last epoch.
-- **Metrics.** Multilabel mAP (%). For each class with at least one positive validation label, average precision is the mean of precision at the ranks of the positive labels after sorting scores descending. The score is the unweighted mean of those class values, times 100. Report the mean and sample standard deviation over the three seeds. This number is not bbox AP.
+- **Split.** train2017 and val2017.
+- **Target.** Instance boxes for the 80 COCO categories. Drop crowd boxes. Drop boxes whose width or height is at most 1 pixel.
+- **Input.** 384×384 square. Faster R-CNN uses `min_size=384` and `max_size=384`. No horizontal flip. Normalization mean = std = `(0.5, 0.5, 0.5)`.
+- **Feature.** Dense patch grid `(B, 1152, h, w)` from `vision_model.last_hidden_state`, as the single scale `"0"`. No MAP pool and no L2 normalization.
+- **Head.** Torchvision Faster R-CNN. A trainable 1×1 conv maps 1152 channels to 256. Anchors `(32, 64, 128, 256, 512)` and ratios `(0.5, 1.0, 2.0)`. `MultiScaleRoIAlign` on feature name `"0"`, output 7×7, sampling ratio 2. Train that 1×1 conv, the RPN, the RoI heads, and the box predictor. The vision tower stays frozen. The constructor receives 81 classes: 80 foreground categories plus background.
+- **Detector limits.** Train pre-NMS 2000 and post-NMS 1000. Test pre-NMS 1000 and post-NMS 500. Score threshold `0.05`. Box NMS `0.5`. 100 detections per image.
+- **Loss.** Sum of RPN objectness, RPN box regression, classification, and box regression.
+- **Optimizer.** SGD, momentum `0.9`, weight decay `1e-4`, learning rate `0.001`, absolute, at effective batch 2.
+- **Schedule.** 12 epochs. Warmup for 1 epoch, then cosine. Forward the frozen tower in float16.
+- **Seed.** One trial, seed `0`.
+- **Checkpoint rule.** Epoch with the highest validation bbox AP.
+- **Evaluation.** `COCOeval` on bbox, one view per image, over the val2017 ids in the loader.
+- **Metrics.** Primary bbox AP (%) = `100 * COCOeval.stats[0]` (AP@[0.50:0.95]). Secondary AP50 (%) = `100 * stats[1]`.
 
 #### ADE20K
 
@@ -187,11 +200,11 @@ python ${LOCAL_REFERENCE_PATH} \
   --method siglip --dataset imagenet_1k --device cuda
 ```
 
-Repeat with `--dataset` in `coco2017`, `ade20k`, `nyu_depth_v2`, `something_something_v2`. Completed cells record `canary: false`, `precision: fp16`, checkpoint id `google_siglip2-so400m-patch14-384`, and `run_id` `r1` or `r2`.
+Repeat with `--dataset` in `ade20k`, `nyu_depth_v2`, `something_something_v2`. Completed cells record `canary: false`, `precision: fp16`, checkpoint id `google_siglip2-so400m-patch14-384`, and `run_id` `r1` or `r2`. COCO is the Faster R-CNN recipe in this file, on the frozen dense patch grid.
 
 ### Evaluation and reporting
 
-Write `run_meta.json` and `result.json` under `VLM/SigLIP/results/<dataset>/SigLIP/google_siglip2-so400m-patch14-384/<run_id>/`. Record `feature_dim` 1152, patch size 14, input 384, normalization mean and std `0.5`, and the protocol name of the task. Report Top-1, Top-5, multilabel mAP, mIoU, and pixel accuracy in percent. Report median-aligned RMSE in metres and AbsRel as a unitless ratio after the median scale. State the seed list or the single dense-task seed beside the number.
+Write `run_meta.json` and `result.json` under `VLM/SigLIP/results/<dataset>/SigLIP/google_siglip2-so400m-patch14-384/<run_id>/`. Record `feature_dim` 1152, patch size 14, input 384, normalization mean and std `0.5`, and the protocol name of the task. Report Top-1, Top-5, bbox AP, AP50, mIoU, and pixel accuracy in percent. Report median-aligned RMSE in metres and AbsRel as a unitless ratio after the median scale. State the seed list, or the single seed, beside the number.
 
 ### reconstruction decisions
 
@@ -201,8 +214,9 @@ Write `run_meta.json` and `result.json` under `VLM/SigLIP/results/<dataset>/SigL
 | Global feature | MAP pool from `get_image_features` | `SigLIPAdapter.extract_features` | Observed main-run setting |
 | Dense feature | `vision_model.last_hidden_state` patch grid | `SigLIPAdapter.extract_dense_features` | Observed main-run setting |
 | Normalization | mean = std = `(0.5, 0.5, 0.5)` | `SIGLIP_MEAN` and `SIGLIP_STD` in `VLM/SigLIP/adapter.py` | Observed main-run setting |
-| Probe schedule | The task table in this file | `core20/registry.py` `PROBE` and the matching functions in `run_cell.py` | Observed main-run setting |
-| COCO, ADE, and NYUv2 weight decay | Executed AdamW default `0.01` | Those three functions pass `lr` and omit `weight_decay`. The `PROBE` value `0.0` is not applied | Observed main-run setting |
+| Non-COCO probe schedule | The non-COCO task rows in this file | `core20/registry.py` `PROBE` and the matching functions in `run_cell.py` | Observed main-run setting |
+| COCO task | bbox AP (%), AP@[0.50:0.95]. Faster R-CNN, 12 epochs, batch 2, LR `0.001`, WD `1e-4`, 1-epoch warmup, cosine, best validation epoch, 384 square | `3DFM/_common/coco_probe.py`; `INITIAL_STEP3_3DFM_v1.md`; `INITIAL_STEP3_4DFM_v1.md` | Supplied detection reconstruction; run matching pending |
+| ADE and NYUv2 weight decay | Executed AdamW default `0.01` | `run_ade` and `run_nyu` pass `lr` and omit `weight_decay`. The `PROBE` value `0.0` is not applied | Observed main-run setting |
 | Depth metric | Median-aligned RMSE | `depth_metrics` | Observed main-run setting |
 | CLIP, SigLIP 2 Giant, and the seven later VLMs | Outside this completed campaign | CLIP has a registry row and no matching result tree. Giant and the seven adapters are later `METHODS` entries | Compatibility gap for this protocol’s completed set |
 
@@ -211,5 +225,6 @@ Write `run_meta.json` and `result.json` under `VLM/SigLIP/results/<dataset>/SigL
 - `methods_step3/VLM/SigLIP/adapter.py`
 - `methods_step3/core20/registry.py` keys `DATASETS`, `PROBE`, and `METHODS["siglip"]`
 - `methods_step3/core20/run_cell.py`
+- Detection recipe: `methods_step3/3DFM/_common/coco_probe.py` and `methods_step3/protocol/INITIAL_STEP3_3DFM_v1.md`
 - `methods_step3/core20/datasets.py`
 - `methods_step3/VLM/SigLIP/results/<dataset>/SigLIP/google_siglip2-so400m-patch14-384/r2/run_meta.json`

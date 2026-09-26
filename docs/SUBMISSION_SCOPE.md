@@ -1,5 +1,9 @@
 # Experimental implementations and the portable submission package
 
+> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
+> code/experiment identifiers, not manuscript section numbers. See the
+> [ASIS, CTRL and manuscript comparison map](PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+
 This package is a selected, portable integration of experimental implementations
 and public model dependencies. It is not an export of the entire original
 experimental environment. Some reference pipelines have been inspected and

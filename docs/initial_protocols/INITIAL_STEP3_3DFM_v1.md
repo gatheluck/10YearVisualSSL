@@ -147,7 +147,7 @@ A model that only exposes a global scene token, a camera-head trunk, or a DPT fu
 - **Optimizer.** SGD, momentum `0.9`, weight decay `1e-4`, learning rate `0.001`, absolute, at effective batch 2.
 - **Schedule.** 12 epochs, 1-epoch warmup, then cosine.
 - **Checkpoint rule.** Epoch with the highest validation bbox AP.
-- **Metrics.** Bbox AP (%) primary. This number is detection AP. It is not multilabel mAP. Completed runs are near zero AP; report the value anyway.
+- **Metrics.** Bbox AP (%) primary. This number is detection AP. Completed runs are near zero AP; report the value anyway.
 
 #### ADE20K
 
