@@ -4,12 +4,14 @@ Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](../SUBMISSION_SCOPE.md)
 for the distinction from original experimental implementations and results.
 
-These seven documents are supplied protocol specifications, preserved verbatim.
+These eight documents are supplied protocol specifications and a scope/replication
+publication draft, preserved verbatim.
 These describe experimental procedures separately from the coverage and
 validation of their portable implementations in this package.
 Instructions inside the documents describe the original experiment workflow;
 they are not commands to submit jobs when reading this archive.
 
+- [Scope and replication profiles](00_scope_and_replication.md)
 - [Basic5 linear evaluation](BASIC5_LINEAR.md)
 - [Basic5 attentive evaluation](BASIC5_ATTENTIVE.md)
 - [Basic5 fine-tuning](BASIC5_FINETUNE.md)
@@ -20,9 +22,15 @@ they are not commands to submit jobs when reading this archive.
 
 ## Pending companion inputs
 
-As of 2026-09-26, `00_scope_and_replication.md` has not been supplied for this
-code package. The referenced `EXTEND_LINEAR_v1.json` and the corresponding
-attentive/fine-tuning registries also require delivery and review. Do not infer
+The scope/replication publication draft was supplied on 2026-09-26 and is included
+above. Its replication profiles are editorial proposals, not evidence that past
+runs followed them. It does not change executable configurations or prescribe
+a retroactive seed assignment. Its reference to `BASIC5_LINEAR_v1.md` uses the
+legacy name of the supplied `BASIC5_LINEAR.md` specification.
+
+The referenced `EXTEND_LINEAR_v1.json` and the corresponding attentive/fine-tuning
+registries still require delivery and review. The scope draft explicitly retains
+this requirement for exact per-dataset recipes. Do not infer
 the detailed dataset recipes or replication assignment from these summaries.
 This is a submission candidate, not a complete Appendix E companion bundle.
 

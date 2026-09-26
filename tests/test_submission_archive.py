@@ -95,6 +95,7 @@ class TestSubmissionArchive(unittest.TestCase):
         expected = {f'{family}_{track}.md' for family in ('BASIC5', 'EXTEND')
                     for track in ('LINEAR', 'ATTENTIVE', 'FINETUNE')}
         expected.add('BASIC5_FRONTIER_SYSTEM_PROMPTS.md')
+        expected.add('00_scope_and_replication.md')
         self.assertTrue(source.is_dir(), 'supplied protocol directory missing')
         for path in source.iterdir():
             if path.is_file():

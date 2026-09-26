@@ -580,3 +580,16 @@ same wording update before regeneration. Record manual semantic review separatel
 from automated navigation, parsing and archive checks. Keep identifiers and
 private reference evidence outside Git. This continues the existing finalization
 PR so the user can review the package together; do not merge automatically.
+
+### 2026-09-26: scope and replication companion received
+
+The previously pending `00_scope_and_replication.md` is now included verbatim
+in the [companion index](submission_protocols/README.md), completing delivery
+of its eight Markdown documents. This supersedes the scope-document delivery
+status above; Extend JSON registries remain pending. The document explicitly
+labels its replication profiles as editorial proposals, not historical-run
+evidence. No seed assignment, executable recipe or scientific behavior changed.
+Update the private archive selection and its anonymous README from seven to
+eight documents, verify original-byte delivery and rebuild from the new commit.
+Keep the resulting ZIP and review evidence outside Git. Continue the same
+finalization PR while open; record gates/CI separately and stop for review.
