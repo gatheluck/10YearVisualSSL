@@ -1,5 +1,9 @@
 # V-JEPA 2.1 downstream encoder integration
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 This module uses the pinned official author submodule at commit
 `204698b45b3712590f06245fbfba32d3be539812`. It does not copy author code or
 redownload weights. Initialize submodules before use. The method CPU/CUDA locks
@@ -44,7 +48,9 @@ and compares image/video outputs, input/parameter gradients and SGD updates.
 Tests using random reduced weights do not reproduce full-checkpoint scores.
 
 This is an encoder/downstream integration, **not a completed method adapter**.
-The Step-3 method and CompEval plan items remain incomplete. ImageNet FT,
+The Step-3/CompEval port remains incomplete relative to the inspected
+experimental pipelines; this describes package integration, not absence of
+the original implementations. ImageNet FT,
 video augmentation, distributed training, seed aggregation and full-data score
 comparisons remain separate work. The 2026-09-22 additions below supersede the
 earlier missing-components status for ImageNet LP/AP, FT groups and schedules.

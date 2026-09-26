@@ -1,5 +1,9 @@
 # Step-1 extraction progress
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 ## Objective
 Resolve actual Step-1 checkpoints on ABCI, record immutable weight identities and acquisition paths, and extract ImageNet-val features reproducibly without modifying original experiments.
 

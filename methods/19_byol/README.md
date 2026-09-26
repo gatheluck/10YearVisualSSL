@@ -1,5 +1,9 @@
 # 19_byol — step 1 (BYOL ResNet-50 pretext) + linear evaluation
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Grill et al., *Bootstrap Your Own Latent: A New Approach to Self-Supervised
 Learning* (BYOL), 2020 ([arXiv:2006.07733](https://arxiv.org/abs/2006.07733)).
 

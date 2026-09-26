@@ -1,0 +1,22 @@
+{
+  "targets": [
+    {
+      "label": "protocol-export-link-resolves",
+      "file": "docs/submission_protocols/README.md",
+      "old": "](BASIC5_LINEAR.md)",
+      "new": "](MISSING_LINEAR.md)",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_supplied_protocol_links_survive_committed_export"
+      ]
+    },
+    {
+      "label": "scope-companion-export-link-resolves",
+      "file": "docs/submission_protocols/README.md",
+      "old": "](00_scope_and_replication.md)",
+      "new": "](MISSING_SCOPE.md)",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_supplied_protocol_links_survive_committed_export"
+      ]
+    }
+  ]
+}

@@ -1,5 +1,9 @@
 # Trunk and final-merger Basic5 components
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Status: 2026-09-26. `sam3_trunk` and `cosmos3_super_vm` add 14 component
 execution paths: ImageNet frozen LP, and frozen/FT on ADE20K, NYUv2 and SSv2.
 Use the [downstream environment and complete task configurations](DOWNSTREAM.md)
@@ -59,10 +63,12 @@ source comparisons and validation outcomes are recorded in the task PR.
 - COCO is rejected: SAM3 patch-14 and Cosmos3 merged-stride-32 maps do not meet
   the current shared stride-16 pyramid assumptions, and detection normalization
   requires separate reconciliation.
-- AP and ImageNet FT remain rejected. This does not resolve the existing reader
+- AP and ImageNet FT are not integrated into these portable providers and remain
+  rejected at runtime. Inspected source pipelines do not yet supply one reconciled
+  recipe for this integration. This does not resolve the existing reader
   or augmentation discrepancies across sources.
 - Distributed/BF16 training, released-weight execution, full-data metrics and
-  workbook score agreement remain unverified. Local shape validation does not
+  workbook score matching using this package remain unverified. Local shape validation does not
   authenticate checkpoint identity; verify immutable checkpoint hashes before
   an experiment.
 - Existing providers and feature-extraction artifacts retain their interfaces.

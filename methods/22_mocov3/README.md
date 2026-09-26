@@ -1,5 +1,9 @@
 # 22_mocov3 — step 1 (MoCo v3 ViT pretext) + linear evaluation
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Chen, Xie & He, *An Empirical Study of Training Self-Supervised Vision
 Transformers* (MoCo v3), 2021
 ([arXiv:2104.02057](https://arxiv.org/abs/2104.02057)).

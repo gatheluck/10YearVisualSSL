@@ -1,5 +1,9 @@
 # mar — step 1 (masked autoregressive pretraining)
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Li, Tian, Li, Deng, Zhang, Feng, Cai and He, *Autoregressive Image Generation
 without Vector Quantization*, NeurIPS 2024
 ([arXiv:2406.11838](https://arxiv.org/abs/2406.11838)).

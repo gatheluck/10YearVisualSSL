@@ -1,5 +1,9 @@
 # 21_barlow_twins — step 1 and linear evaluation
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Zbontar, Jing, Misra, LeCun and Deny, *Barlow Twins: Self-Supervised Learning
 via Redundancy Reduction*, 2021
 ([arXiv:2103.03230](https://arxiv.org/abs/2103.03230)).

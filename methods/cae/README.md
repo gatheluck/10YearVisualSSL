@@ -1,5 +1,9 @@
 # cae — as-is linear eval on the frozen pretrained backbone (eval-only)
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 CAE (Chen, Ding, Wang, Xie, Lu, Yuan, Chen, Bai & Zhang, *Context Autoencoder for
 Self-Supervised Representation Learning*, 2022;
 [arXiv:2202.04200](https://arxiv.org/abs/2202.04200)), a masked-image method that

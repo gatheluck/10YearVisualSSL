@@ -1,5 +1,9 @@
 # Anonymous supplementary source archive
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 `bin/submission-archive.py` audits a committed Git tree and creates a
 deterministic ZIP only when the audit passes. It does not modify the checkout,
 fetch dependencies, upload anything, or establish scientific reproducibility.
@@ -145,6 +149,16 @@ indirect identifying links and prose can evade automated checks. Hash approvals
 record human review, not proof of safety. Source selection and copyright-header
 recognition also require manual review. Passing this audit says nothing about
 whether all paper experiments, weights or datasets are included or reproducible.
+
+Before rebuilding at a newer commit, compare the selected files against current
+runtime imports and document links. Exact-file include lists can omit newly
+added modules even when old selections still exist. Re-review changed content
+before refreshing hash-bound replacements or approvals; do not merely update
+hashes. Check the actual unpacked archive, not only the source checkout.
+The [supplied companion protocols](submission_protocols/README.md) distinguish
+received specifications from pending inputs and implemented components. Include
+that directory when packaging these specifications and resolve its pending
+companion inputs before describing the bundle as complete.
 
 Behavioral tests use real temporary Git repositories and submodules, exercise
 the CLI, unzip and execute packaged fixture code, check repeatability and

@@ -1,5 +1,9 @@
 # 23_dino — step 1 (DINO ViT-S/16 pretext) + linear evaluation
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Caron et al., *Emerging Properties in Self-Supervised Vision Transformers* (DINO),
 2021 ([arXiv:2104.14294](https://arxiv.org/abs/2104.14294)).
 

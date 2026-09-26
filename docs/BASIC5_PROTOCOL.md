@@ -1,5 +1,9 @@
 # BASIC5 evaluation protocol
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 This document is the on-`main` source of truth for the **BASIC5** evaluation
 protocol defined by the implementation team. The definitions originally arrived
 as chat messages; a chat message is not in the working tree next session and
@@ -24,8 +28,8 @@ generative or global-only backbone on a dense task) is reported as
 This repository's present focus is **`BASIC5_FAIR_v1` on ImageNet-1k** -- the
 linear probe -- because that is what the paper figure and the feature-extraction
 sweep need first. The other tracks and the four dense/video datasets now have
-the opt-in components described below; complete recipe conformance remains
-pending.
+the opt-in components described below; complete recipe conformance of these portable components remains
+unvalidated.
 
 Dense attentive components were reconciled with the refreshed Capture snapshot
 on 2026-09-21: Xavier input projection, truncated-normal attention-block linear
@@ -50,7 +54,8 @@ must likewise remain distinguishable from single-layer FAIR features.
 Passing a method contract or saving an L2 feature dump does not certify the
 complete five-task LP/AP/FT protocol. The existing dense/video runners retain
 their historical recipes; the NYUv2 DPT/L1 runner, for example, is not the
-canonical 1x1/log-depth recipe. AP/FT conformance remains pending.
+canonical 1x1/log-depth recipe. AP/FT conformance of the port remains unvalidated; this does not imply that
+the source experiments lacked AP/FT implementations.
 
 ### Safe aggregation of existing probe runs
 
@@ -533,10 +538,14 @@ contract verifies execution and artifacts, not paper/protocol conformance.
   An empty mask returns differentiable zero, matching the captured loss.
 - Emits RMSE (metres), AbsRel (ratio), and delta1/2/3 (percent, strict
   ratio thresholds `1.25`, `1.25^2`, `1.25^3`). Like the captured evaluator,
-  it averages **per-batch metrics**, including zero metrics for empty masks.
+  it averages **per-batch metrics** over batches containing valid pixels.
   Results record `metric_aggregation: "batch_mean"`; this is batch-size
   dependent and must not be mixed with legacy `global_valid_pixels` metrics.
-  An empty evaluation loader or nonfinite metric is refused.
+  An empty evaluation loader or evaluation with no valid pixels is refused;
+  empty-mask batches do not contribute fabricated zeros. Direct metric calls
+  with no valid pixels also fail. This reporting correction (2026-09-26)
+  intentionally supersedes the captured empty-mask zero fallback; valid-batch
+  formulas and averaging are unchanged. Nonfinite component metrics are refused.
 
 ### SSv2
 
@@ -659,12 +668,12 @@ For SSv2 image backbones, the captured FT composition uses float32 per-frame
 spatial means, L2-normalizes each frame, then averages over time. Its linear head
 starts at zero. This differs from the historical unnormalized frozen readout;
 the explicit adaptation field keeps the runs distinguishable. The attention
-path still receives unnormalized frame tokens. Native-video FT is unsupported.
+path still receives unnormalized frame tokens. Native-video FT has not been integrated into this runner.
 
 **This is full-gradient execution, not a complete `BASIC5_FINETUNE_v1` recipe.**
 The default unscaled runner LR, optimizer weight decay, schedules and data
 augmentation are retained. Layer decay, zero-decay parameter groups, strong video augmentation and
-effective-batch accumulation remain unimplemented here. The 2026-09-20 dense
+effective-batch accumulation have not yet been integrated into these portable runners. The 2026-09-20 dense
 FT follow-up below adds the captured training color jitter only. The generic timm final-layer grid does not certify a
 model-specific multi-layer representation. All component results remain
 noncanonical and nonrecordable, including full-data runs; random tiny-model
@@ -801,12 +810,12 @@ AP receives all ordered spatiotemporal tokens. Zero initialization of this
 linear classifier follows the captured native-video model. Image-provider frame
 averaging and legacy paths are unchanged. Existing reports remain noncanonical;
 full FT groups, video regularization, ImageNet integration, accumulation and
-full score reproduction remain outstanding.
+full-scale score reproduction using this package remain unvalidated.
 
 ## Broader training components (2026-09-22)
 
 This update supersedes the older blanket statement that all FT parameter groups
-and all ImageNet integration are missing. It does not supersede the outstanding
+and ImageNet integration have not been ported into these components. It does not supersede the outstanding
 canonical-recipe and score-reproduction requirements.
 
 - Four downstream tasks now have explicit, provider-owned FT parameter groups:

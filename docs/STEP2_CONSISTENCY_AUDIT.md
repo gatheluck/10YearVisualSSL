@@ -1,5 +1,9 @@
 # Step-2 consistency audit & remediation (source of truth, survives context loss)
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Started 2026-08-15, after the unified ViT-B/16 Step-2 fan-out reached main for all
 discriminative methods (Batches 1–7c + 26_simmim + the 28/36/30 eval-only trio).
 This file records a comprehensive audit of that fan-out, the remediation plan, and

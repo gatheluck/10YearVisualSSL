@@ -1,5 +1,9 @@
 # Porting the Step-2 unified ViT-B/16 pretraining (playbook + progress)
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 This is the **source of truth** for adding the capture's **Step 2** to each method.
 It is written to survive context loss: it records *why*, the *reusable pattern*, the
 *per-method facts from the capture*, the *batch plan*, *progress*, and the

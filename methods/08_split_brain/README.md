@@ -1,5 +1,9 @@
 # 08_split_brain — step 1 (Split-Brain cross-channel pretext) + linear evaluation
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Zhang, Isola & Efros, *Split-Brain Autoencoders: Unsupervised Learning by
 Cross-Channel Prediction*, CVPR 2017
 ([arXiv:1611.09842](https://arxiv.org/abs/1611.09842)).

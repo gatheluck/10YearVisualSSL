@@ -1,5 +1,9 @@
 # DINOv3 Step-4 components
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Status: 2026-09-25. This implements selectable projection layouts and a
 single-process Gram-stage training path. It does **not** establish canonical
 paper scores or complete distributed reproduction. The default remains the
@@ -169,7 +173,10 @@ Reference comparisons match joint probabilities and three post-split AdamW/EMA
 updates exactly. This is component parity, not paper-score reproduction.
 The historical blanket resume refusal is superseded for version-1 component
 checkpoints only: legacy core, earlier incomplete component checkpoints,
-`encoder.pt` and native distributed checkpoints remain unsupported.
+`encoder.pt` and native distributed checkpoints remain unsupported inputs to
+this portable resume interface.
 
-Still pending: full distributed training, CUDA BF16 and canonical evaluation.
+Not yet integrated or validated in this port: the full native distributed/CUDA
+BF16 pipeline and full-scale canonical evaluation. The inspected experimental
+implementations are distinct from this portable component path.
 See the [prioritized gap ledger](PAPER_REPRODUCTION_GAPS.md).

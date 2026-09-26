@@ -1,0 +1,22 @@
+{
+  "targets": [
+    {
+      "label": "scope-filename-decoy",
+      "file": "tests/test_submission_scope.py",
+      "old": "Path(target).name == \"SUBMISSION_SCOPE.md\"",
+      "new": "\"SUBMISSION_SCOPE.md\" in target",
+      "tests": [
+        "tests.test_submission_scope.TestSubmissionScope.test_scope_link_detection_uses_complete_filename"
+      ]
+    },
+    {
+      "label": "scope-link-misdirected",
+      "file": "docs/submission_protocols/README.md",
+      "old": "](../SUBMISSION_SCOPE.md)",
+      "new": "](SUBMISSION_SCOPE.md)",
+      "tests": [
+        "tests.test_submission_scope.TestSubmissionScope.test_every_package_entry_point_links_to_existing_scope_guide"
+      ]
+    }
+  ]
+}

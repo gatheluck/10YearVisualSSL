@@ -1,5 +1,9 @@
 # 11_cpc — step 1 (visual CPC 2018 pretext) + unified ViT-B/16 step 2 + linear evaluation
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 van den Oord, Li & Vinyals, *Representation Learning with Contrastive Predictive
 Coding*, 2018 ([arXiv:1807.03748](https://arxiv.org/abs/1807.03748)).
 

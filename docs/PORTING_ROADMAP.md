@@ -1,5 +1,9 @@
 # Porting roadmap — the 38 Step 1&2 methods, order, and status
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Last updated: 2026-08-11
 
 This is the fact-based plan for porting the **Step 1&2** visual-SSL methods. It is
@@ -19,7 +23,7 @@ reproduction; see the [current gap ledger](PAPER_REPRODUCTION_GAPS.md).
 IDv2 update (2026-09-25): the existing InstDisc ViT adapter now has seven
 explicit [Step-4 component profiles](IDV2_COMPONENTS.md), including complete
 component checkpoint continuation. Historical core-only descriptions below do
-not cover this addition. Native distributed and full score reproduction remain
+not cover this addition. Native distributed integration and full-score reruns in this port remain
 unverified.
 
 The capture (`gatheluck/10YearVisualSSLCapturePrivate`, `snapshots` branch) has a
@@ -218,4 +222,6 @@ The preceding IDv2-bank gap was superseded by the [seven component profiles](IDV
 [SAM3 trunk and Cosmos3 final-merger components](BASIC5_PATCH_PROVIDERS.md)
 now add ImageNet frozen LP and ADE20K/NYUv2/SSv2 frozen/FT paths. These updates
 reduce implementation gaps; full-data scores, native distributed execution,
-other provider families, remaining AP/COCO recipes and Extend remain outstanding.
+other family/AP/COCO/Extend pipelines remain partly unported or unreconciled
+in this package. These are packaging and validation gaps, not a statement
+that the corresponding experimental implementations are absent.

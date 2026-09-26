@@ -1,5 +1,9 @@
 # 16_simclrv2 — SimCLR v2 pretext (ResNet-50 + unified ViT-B/16 Step 2) + linear evaluation
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Chen, Kornblith, Swersky, Norouzi & Hinton, *Big Self-Supervised Models are
 Strong Semi-Supervised Learners* (SimCLR v2), NeurIPS 2020
 ([arXiv:2006.10029](https://arxiv.org/abs/2006.10029)).

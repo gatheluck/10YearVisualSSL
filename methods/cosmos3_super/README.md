@@ -1,5 +1,9 @@
 # cosmos3_super — as-is linear eval on the frozen Cosmos3-Super vision encoder (eval-only)
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 NVIDIA **Cosmos3-Super** (*Cosmos world foundation models*, NVIDIA, 2026;
 [huggingface.co/nvidia/Cosmos3-Super](https://huggingface.co/nvidia/Cosmos3-Super);
 [github.com/nvidia/cosmos](https://github.com/nvidia/cosmos)), a video

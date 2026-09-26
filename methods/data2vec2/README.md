@@ -1,5 +1,9 @@
 # data2vec2 — as-is linear eval on the frozen pretrained backbone (eval-only)
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 data2vec 2.0 (Baevski, Babu, Hsu & Auli, *Efficient Self-supervised Learning with
 Contextualized Target Representations for Vision, Speech and Language*, 2023;
 [arXiv:2212.07525](https://arxiv.org/abs/2212.07525)), a self-distillation method

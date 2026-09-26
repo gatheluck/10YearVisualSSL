@@ -1,5 +1,9 @@
 # 09_jigsaw_puzzle_pp — VGG16 Jigsaw++ pretext (+ unified ViT-B/16 Step 2) + knowledge transfer + linear evaluation
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Noroozi, Vinjimoor, Favaro & Pirsiavash, *Boosting Self-Supervised Learning via
 Knowledge Transfer*, CVPR 2018
 ([arXiv:1805.00385](https://arxiv.org/abs/1805.00385)).

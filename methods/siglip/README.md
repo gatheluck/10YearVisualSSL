@@ -1,5 +1,9 @@
 # siglip — as-is linear eval on the frozen pretrained image tower (eval-only)
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 SigLIP (Zhai, Mustafa, Kolesnikov & Beyer, *Sigmoid Loss for Language Image
 Pre-Training*, 2023; [arXiv:2303.15343](https://arxiv.org/abs/2303.15343)), an
 image-text model pretrained with a pairwise **sigmoid** loss (rather than the

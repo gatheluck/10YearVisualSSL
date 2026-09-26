@@ -1,5 +1,9 @@
 # 25_mae — step 1 (masked-autoencoder pretraining) + linear evaluation
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 He, Chen, Xie, Li, Dollár & Girshick, *Masked Autoencoders Are Scalable Vision
 Learners*, CVPR 2022 ([arXiv:2111.06377](https://arxiv.org/abs/2111.06377)).
 

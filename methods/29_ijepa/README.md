@@ -1,5 +1,9 @@
 # 29_ijepa — step 1 (I-JEPA ViT pretext) + unified ViT-B/16 step 2 + linear evaluation
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Assran et al., *Self-Supervised Learning from Images with a Joint-Embedding
 Predictive Architecture* (I-JEPA), 2023
 ([arXiv:2301.08243](https://arxiv.org/abs/2301.08243)).

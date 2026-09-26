@@ -1,5 +1,9 @@
 # Cross-Mac project handoff
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Snapshot: 2026-09-19, after PR #183 merged. This document is a recovery entry
 point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 [repository rules](../CLAUDE.md), then refresh the actual Git/PR/cluster state.
@@ -536,3 +540,56 @@ Other provider families, Extend protocols and full-run result provenance remain
 major work. No original inputs or cluster jobs were changed. The unrelated dirty
 video submodule is preserved. Private source identities and numerical evidence
 remain outside Git.
+
+### 2026-09-26: submission finalization candidate
+
+Baseline: PR 198 merged, main `ef6b1a8`. The user requested minimal submission
+corrections without new scientific features or repeated CI cycles. The
+[seven supplied protocols](submission_protocols/README.md) are preserved as
+specifications, with the outstanding scope document and JSON registries explicitly
+pending. Do not equate document delivery with executable coverage or score parity.
+
+The NYUv2 evaluator now refuses empty/all-invalid evaluations and omits empty-mask
+batches from component averages. The metric helper rejects an empty mask.
+Valid-batch formulas, actual zero errors and training-loss behavior are preserved.
+This deliberately supersedes the captured invalid-input zero fallback in the
+interest of truthful evaluation reporting. Historical depth alignment and full
+recipe differences remain unresolved; no new training or cluster job is implied.
+
+The previous private archive policy predates recent runtime modules and guides.
+Refresh its selection and review changed replacements/approvals before rebuilding.
+Keep identity lists, source hashes, audit reports and ZIPs outside Git. A candidate
+ZIP is not a complete supplementary bundle while named companion inputs remain
+pending. Consult task/PR evidence for actual RED/GREEN, mutation, gate and archive
+checks; this entry does not assert CI completion. Preserve unrelated dirty
+submodule changes and stop for PR review.
+
+### 2026-09-26: distinguish experimental sources from the submission port
+
+The user requested a comprehensive wording review: incomplete integration into
+this submission package must not suggest that original experimental code is
+absent or that paper experiments were not performed. The new scope guide and
+entry-point links distinguish inspected-but-unported reference code, package
+validation, unverified source/result correspondence, genuine feature constraints,
+and deliberately out-of-scope pretraining. Supplied protocol originals and
+runtime status codes retain their meanings. Historical notes remain dated.
+
+This is a documentation correction, not additional scientific support or score
+verification. Anonymous README replacements and private archive policy need the
+same wording update before regeneration. Record manual semantic review separately
+from automated navigation, parsing and archive checks. Keep identifiers and
+private reference evidence outside Git. This continues the existing finalization
+PR so the user can review the package together; do not merge automatically.
+
+### 2026-09-26: scope and replication companion received
+
+The previously pending `00_scope_and_replication.md` is now included verbatim
+in the [companion index](submission_protocols/README.md), completing delivery
+of its eight Markdown documents. This supersedes the scope-document delivery
+status above; Extend JSON registries remain pending. The document explicitly
+labels its replication profiles as editorial proposals, not historical-run
+evidence. No seed assignment, executable recipe or scientific behavior changed.
+Update the private archive selection and its anonymous README from seven to
+eight documents, verify original-byte delivery and rebuild from the new commit.
+Keep the resulting ZIP and review evidence outside Git. Continue the same
+finalization PR while open; record gates/CI separately and stop for review.

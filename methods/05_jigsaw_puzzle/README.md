@@ -1,5 +1,9 @@
 # 05_jigsaw_puzzle — jigsaw pretext (AlexNet/CFN + unified ViT-B/16) + linear evaluation
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Noroozi & Favaro, *Unsupervised Learning of Visual Representations by Solving
 Jigsaw Puzzles*, ECCV 2016 ([arXiv:1603.09246](https://arxiv.org/abs/1603.09246)).
 

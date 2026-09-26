@@ -1,5 +1,9 @@
 # 28_dinov2 — as-is Step-1 probe + unified ViT-B/16 Step-2 pretrain + linear eval
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Oquab et al., *DINOv2: Learning Robust Visual Features without Supervision*, 2023
 ([arXiv:2304.07193](https://arxiv.org/abs/2304.07193)).
 

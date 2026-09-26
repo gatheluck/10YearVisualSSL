@@ -1,5 +1,9 @@
 # 06_rotation_prediction — rotation pretext (AlexNet + unified ViT-B/16) + linear evaluation
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Gidaris, Singh & Komodakis, *Unsupervised Representation Learning by Predicting
 Image Rotations*, ICLR 2018 ([arXiv:1803.07728](https://arxiv.org/abs/1803.07728)).
 

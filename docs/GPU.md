@@ -1,5 +1,9 @@
 # Running the ported methods on a GPU
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Last updated: 2026-08-02
 
 Until now every method was ported, tested and verified **on a CPU only**. The

@@ -1,5 +1,9 @@
 # 26_simmim — step 1 (SimMIM Swin-B pretext) + unified ViT-B/16 step 2 + linear evaluation
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Xie et al., *SimMIM: A Simple Framework for Masked Image Modeling*, 2022
 ([arXiv:2111.09886](https://arxiv.org/abs/2111.09886)).
 

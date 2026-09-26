@@ -1,5 +1,9 @@
 # sam3 — as-is linear eval on the frozen SAM 3 vision encoder (eval-only)
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Meta **SAM 3** (*Segment Anything with Concepts*, Meta AI, 2025;
 [ai.meta.com/research/sam3](https://ai.meta.com/research/sam3/);
 [github.com/facebookresearch/sam3](https://github.com/facebookresearch/sam3)), a

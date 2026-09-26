@@ -1,5 +1,9 @@
 # Evaluating generative methods: downloaded backbones, and what their probes measure
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Last updated: 2026-08-05
 
 The contract's `linear_eval` stage was designed for methods whose step 1 trains

@@ -1,5 +1,9 @@
 # 30_aim — as-is Step-1 probe + unified ViT-B/16 Step-2 pretrain + linear eval
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 El-Nouby et al., *Scalable Pre-training of Large Autoregressive Image Models*,
 2024 ([arXiv:2401.08541](https://arxiv.org/abs/2401.08541)).
 

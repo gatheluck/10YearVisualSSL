@@ -1,5 +1,9 @@
 # Real-run verification: what the tests guarantee today, and the short-epoch matrix to build
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Last updated: 2026-08-27
 
 This document records, **fact-based and measured**, the state of the test suite as

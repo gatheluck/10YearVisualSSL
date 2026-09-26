@@ -1,5 +1,9 @@
 # 07_deepcluster — step 1 (DeepCluster pretext) + linear evaluation
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Caron, Bojanowski, Joulin & Douze, *Deep Clustering for Unsupervised Learning of
 Visual Features*, ECCV 2018 ([arXiv:1807.05520](https://arxiv.org/abs/1807.05520)).
 

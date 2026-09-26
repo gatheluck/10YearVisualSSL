@@ -1,5 +1,9 @@
 # 20_simsiam — step 1 and linear evaluation
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Chen & He, *Exploring Simple Siamese Representation Learning*, 2020
 ([arXiv:2011.10566](https://arxiv.org/abs/2011.10566)).
 

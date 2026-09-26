@@ -1,5 +1,9 @@
 # 27_ibot — step 1, unified ViT-B/16 step 2, and linear evaluation
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Zhou, Wei, Wang, Shen, Xie, Yuille and Kong, *iBOT: Image BERT Pre-Training
 with Online Tokenizer*, 2021 ([arXiv:2111.07832](https://arxiv.org/abs/2111.07832)).
 

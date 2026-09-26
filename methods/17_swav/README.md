@@ -1,5 +1,9 @@
 # 17_swav — step 1 (SwAV ResNet-50 pretext) + linear evaluation
 
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
 Caron, Misra, Mairal, Goyal, Bojanowski and Joulin, *Unsupervised Learning of
 Visual Features by Contrasting Cluster Assignments*, 2020
 ([arXiv:2006.09882](https://arxiv.org/abs/2006.09882)).
