@@ -146,6 +146,16 @@ record human review, not proof of safety. Source selection and copyright-header
 recognition also require manual review. Passing this audit says nothing about
 whether all paper experiments, weights or datasets are included or reproducible.
 
+Before rebuilding at a newer commit, compare the selected files against current
+runtime imports and document links. Exact-file include lists can omit newly
+added modules even when old selections still exist. Re-review changed content
+before refreshing hash-bound replacements or approvals; do not merely update
+hashes. Check the actual unpacked archive, not only the source checkout.
+The [supplied companion protocols](submission_protocols/README.md) distinguish
+received specifications from pending inputs and implemented components. Include
+that directory when packaging these specifications and resolve its pending
+companion inputs before describing the bundle as complete.
+
 Behavioral tests use real temporary Git repositories and submodules, exercise
 the CLI, unzip and execute packaged fixture code, check repeatability and
 original-file preservation, and reject unsafe inputs. Mutation tests verify

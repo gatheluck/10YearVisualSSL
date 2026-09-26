@@ -536,3 +536,26 @@ Other provider families, Extend protocols and full-run result provenance remain
 major work. No original inputs or cluster jobs were changed. The unrelated dirty
 video submodule is preserved. Private source identities and numerical evidence
 remain outside Git.
+
+### 2026-09-26: submission finalization candidate
+
+Baseline: PR 198 merged, main `ef6b1a8`. The user requested minimal submission
+corrections without new scientific features or repeated CI cycles. The
+[seven supplied protocols](submission_protocols/README.md) are preserved as
+specifications, with the outstanding scope document and JSON registries explicitly
+pending. Do not equate document delivery with executable coverage or score parity.
+
+The NYUv2 evaluator now refuses empty/all-invalid evaluations and omits empty-mask
+batches from component averages. The metric helper rejects an empty mask.
+Valid-batch formulas, actual zero errors and training-loss behavior are preserved.
+This deliberately supersedes the captured invalid-input zero fallback in the
+interest of truthful evaluation reporting. Historical depth alignment and full
+recipe differences remain unresolved; no new training or cluster job is implied.
+
+The previous private archive policy predates recent runtime modules and guides.
+Refresh its selection and review changed replacements/approvals before rebuilding.
+Keep identity lists, source hashes, audit reports and ZIPs outside Git. A candidate
+ZIP is not a complete supplementary bundle while named companion inputs remain
+pending. Consult task/PR evidence for actual RED/GREEN, mutation, gate and archive
+checks; this entry does not assert CI completion. Preserve unrelated dirty
+submodule changes and stop for PR review.

@@ -533,10 +533,14 @@ contract verifies execution and artifacts, not paper/protocol conformance.
   An empty mask returns differentiable zero, matching the captured loss.
 - Emits RMSE (metres), AbsRel (ratio), and delta1/2/3 (percent, strict
   ratio thresholds `1.25`, `1.25^2`, `1.25^3`). Like the captured evaluator,
-  it averages **per-batch metrics**, including zero metrics for empty masks.
+  it averages **per-batch metrics** over batches containing valid pixels.
   Results record `metric_aggregation: "batch_mean"`; this is batch-size
   dependent and must not be mixed with legacy `global_valid_pixels` metrics.
-  An empty evaluation loader or nonfinite metric is refused.
+  An empty evaluation loader or evaluation with no valid pixels is refused;
+  empty-mask batches do not contribute fabricated zeros. Direct metric calls
+  with no valid pixels also fail. This reporting correction (2026-09-26)
+  intentionally supersedes the captured empty-mask zero fallback; valid-batch
+  formulas and averaging are unchanged. Nonfinite component metrics are refused.
 
 ### SSv2
 

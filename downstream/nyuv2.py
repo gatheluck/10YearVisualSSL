@@ -262,7 +262,7 @@ def depth_metrics(pred, target, valid):
     """Captured per-batch depth metrics. Delta accuracies are percentages."""
     mask = valid.bool()
     if not mask.any():
-        return dict(rmse=0., abs_rel=0., delta1=0., delta2=0., delta3=0.)
+        raise ValueError("NYUv2 depth metrics have no valid pixels")
     p, t = pred.float()[mask], target.float()[mask]
     ratio = torch.maximum(p / t.clamp_min(1e-6), t / p.clamp_min(1e-6))
     return {"rmse": float((p-t).square().mean().sqrt()),
@@ -345,25 +345,26 @@ def evaluate(model, loader, device, *, profile="legacy") -> dict:
         mask = (valid.to(device) > 0) & torch.isfinite(depth) & (depth > 0)
         if profile == CAPTURE_PROFILE:
             mask = mask & (depth >= 0.1) & (depth <= 10.0)
+        if not mask.any():
+            continue
+        if profile == CAPTURE_PROFILE:
             current = depth_metrics(pred, depth, mask)
             if not all(np.isfinite(v) for v in current.values()):
                 raise RuntimeError("non-finite NYUv2 depth metrics")
             batch_metrics.append(current)
             count += int(mask.sum())
             continue
-        if not mask.any():
-            continue
         diff = pred[mask] - depth[mask]
         sq_sum += float((diff ** 2).sum().cpu())
         abs_rel_sum += float((diff.abs() / depth[mask].clamp_min(1e-6)).sum().cpu())
         count += int(mask.sum().cpu())
+    if count == 0:
+        raise RuntimeError("empty NYUv2 evaluation or no valid pixels")
     if profile == CAPTURE_PROFILE:
-        if not batch_metrics:
-            raise RuntimeError("empty NYUv2 evaluation loader")
         return {**{k: sum(m[k] for m in batch_metrics) / len(batch_metrics)
                    for k in batch_metrics[0]}, "valid_pixels": count}
-    return {"rmse": (sq_sum / max(count, 1)) ** 0.5,
-            "abs_rel": abs_rel_sum / max(count, 1), "valid_pixels": count}
+    return {"rmse": (sq_sum / count) ** 0.5,
+            "abs_rel": abs_rel_sum / count, "valid_pixels": count}
 
 
 def _mat_length(mat_path: Path) -> int:

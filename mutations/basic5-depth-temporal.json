@@ -93,7 +93,7 @@
     {
       "label": "depth-temporal-10",
       "file": "downstream/nyuv2.py",
-      "old": "if not batch_metrics:",
+      "old": "if count == 0:",
       "new": "if False:",
       "tests": [
         "tests.test_basic5_depth_temporal.TestDepthComponents.test_captured_evaluation_is_mean_of_batch_metrics"
@@ -151,6 +151,24 @@
       "new": "not subset_mode",
       "tests": [
         "tests.test_basic5_depth_temporal.TestTemporalComponents.test_video_runner_profile_is_delivered_and_not_canonical"
+      ]
+    },
+    {
+      "label": "empty-depth-metric-rejected",
+      "file": "downstream/nyuv2.py",
+      "old": "raise ValueError(\"NYUv2 depth metrics have no valid pixels\")",
+      "new": "return dict(rmse=0., abs_rel=0., delta1=0., delta2=0., delta3=0.)",
+      "tests": [
+        "tests.test_basic5_depth_temporal.TestDepthComponents.test_depth_metrics_threshold_units_and_float32"
+      ]
+    },
+    {
+      "label": "empty-depth-batches-skipped",
+      "file": "downstream/nyuv2.py",
+      "old": "if not mask.any():\n            continue",
+      "new": "if False:\n            continue",
+      "tests": [
+        "tests.test_basic5_depth_temporal.TestDepthComponents.test_evaluation_requires_measured_pixels_and_preserves_real_zero"
       ]
     }
   ]

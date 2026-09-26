@@ -2,6 +2,7 @@
 import hashlib
 import importlib.util
 import json
+import re
 from pathlib import Path
 import shutil
 import subprocess
@@ -87,6 +88,26 @@ class TestSubmissionArchive(unittest.TestCase):
             with self.subTest(name=name):
                 self.write(name, body); self.commit(); self.policy['include'] = [name]
                 self.assert_blocked('identifier')
+
+    def test_supplied_protocol_links_survive_committed_export(self):
+        source = TOOL.parent.parent / 'docs' / 'submission_protocols'
+        expected = {f'{family}_{track}.md' for family in ('BASIC5', 'EXTEND')
+                    for track in ('LINEAR', 'ATTENTIVE', 'FINETUNE')}
+        expected.add('BASIC5_FRONTIER_SYSTEM_PROMPTS.md')
+        self.assertTrue(source.is_dir(), 'supplied protocol directory missing')
+        for path in source.iterdir():
+            if path.is_file():
+                self.write('protocols/' + path.name, path.read_text())
+        self.commit()
+        self.policy['include'] = ['protocols']
+        self.assertTrue(self.run_build())
+        with zipfile.ZipFile(self.out) as archive:
+            index = archive.read('code/protocols/README.md').decode()
+            links = re.findall(r'\]\(([^)]+)\)', index)
+            self.assertTrue(expected.issubset(set(links)))
+            for target in links:
+                self.assertEqual(archive.read('code/protocols/' + target),
+                                 (source / target).read_bytes())
 
     def test_encoded_and_unicode_identifiers_are_blocked(self):
         for body in ('private%2Downer', 'private&#45;owner', '\uff50\uff52\uff49\uff56\uff41\uff54\uff45-owner', 'private\u200b-owner'):

@@ -69,8 +69,30 @@ class TestDepthComponents(unittest.TestCase):
         low = nyuv2.depth_metrics(pred.half(), target.half(), torch.ones(5))
         full = nyuv2.depth_metrics(pred.half().float(), target, torch.ones(5))
         self.assertEqual(low, full)
-        self.assertTrue(all(v == 0 for v in nyuv2.depth_metrics(
-            pred, target, torch.zeros(5)).values()))
+        with self.assertRaisesRegex(ValueError, "no valid"):
+            nyuv2.depth_metrics(pred, target, torch.zeros(5))
+
+    def test_evaluation_requires_measured_pixels_and_preserves_real_zero(self):
+        model = torch.nn.Identity()
+        one = torch.ones(1, 1, 1, 1)
+        invalid = (one, one, torch.zeros_like(one))
+        for profile in ("legacy", PROFILE):
+            with self.subTest(profile=profile):
+                for loader in ([], [invalid], [(one, one * float("nan"), one)]):
+                    with self.assertRaisesRegex(RuntimeError, "empty|no valid"):
+                        nyuv2.evaluate(model, loader, "cpu", profile=profile)
+                exact = nyuv2.evaluate(model, [(one, one, one)], "cpu", profile=profile)
+                self.assertEqual(exact["rmse"], 0.)
+                self.assertEqual(exact["abs_rel"], 0.)
+                self.assertEqual(exact["valid_pixels"], 1)
+                valid = (one * 3, one, one)
+                expected = nyuv2.evaluate(model, [valid], "cpu", profile=profile)
+                self.assertEqual(expected["rmse"], 2.)
+                self.assertEqual(nyuv2.evaluate(model, [invalid, valid, invalid],
+                                              "cpu", profile=profile), expected)
+        for depth in (.09, 10.1):
+            with self.assertRaisesRegex(RuntimeError, "no valid"):
+                nyuv2.evaluate(model, [(one, one * depth, one)], "cpu", profile=PROFILE)
 
     def test_official_split_ids_are_not_positional_and_formats_agree(self):
         self.assertTrue(hasattr(nyuv2, "load_official_splits"), "official split loader missing")
