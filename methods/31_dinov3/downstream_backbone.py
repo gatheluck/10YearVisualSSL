@@ -7,7 +7,9 @@ FINETUNE_GROUPS = True
 IMAGE_CLASSIFICATION = True
 COMPONENT_ONLY = True
 CAPTURE_PYRAMID = True
-SUPPORTED_ADAPTATIONS = ("frozen", "finetune")
+SUPPORTED_ADAPTATIONS = ("frozen", "attentive", "finetune")
+ATTENTIVE_PROFILE = "captured_single_block_v1"
+NATIVE_DETECTION = True
 
 
 def build(spec):

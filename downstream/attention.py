@@ -24,6 +24,12 @@ def validate_adaptation(cfg):
     from downstream.spatial_backbones import supports_adaptation
     if not supports_adaptation(cfg.get("backbone", {}).get("kind"), adaptation):
         raise ValueError("attentive reader recipe is unresolved for this provider")
+    from downstream.spatial_backbones import attentive_profile
+    expected = attentive_profile(cfg.get("backbone", {}).get("kind"))
+    selected = cfg.get("reader_profile")
+    if ((adaptation == "attentive" and selected != expected)
+            or (adaptation != "attentive" and "reader_profile" in cfg)):
+        raise ValueError(f"reader_profile must explicitly match the attentive provider recipe: {expected}")
     if adaptation == "finetune":
         from downstream.spatial_backbones import supports_trainable
         if not supports_trainable(cfg.get("backbone", {}).get("kind", "vit")):
@@ -136,11 +142,12 @@ require an explicit upstream mapping; they cannot silently get separate readers.
 class AttentiveSpatialBackbone(nn.Module):
     """Frozen spatial provider plus trainable shared adapter, usable by a head."""
 
-    def __init__(self, backbone: nn.Module):
+    def __init__(self, backbone: nn.Module, *, reader_profile=None):
         super().__init__()
         self.backbone = backbone
         self.out_channels = backbone.out_channels
-        self.adapter = SpatialAdapter(self.out_channels)
+        from downstream.captured_readers import spatial_adapter
+        self.adapter = spatial_adapter(backbone, reader_profile)
         self.backbone.requires_grad_(False)
         self.backbone.eval()
 

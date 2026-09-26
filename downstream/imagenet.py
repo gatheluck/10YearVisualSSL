@@ -19,8 +19,9 @@ from torchvision.datasets import ImageFolder
 from torchvision.transforms import RandomResizedCrop, InterpolationMode
 from torchvision.transforms import functional as TF
 
+from downstream.captured_readers import query_reader
 from downstream import contract
-from downstream.attention import QueryReader, task_spatial_features, clip_attentive_gradients, validate_adaptation
+from downstream.attention import task_spatial_features, clip_attentive_gradients, validate_adaptation
 from downstream.spatial_backbones import build_frozen_backbone, supports_image_classification
 from downstream.optimization import (resolve_optimization, build_optimizer,
     require_training_batches, build_task_scheduler, task_schedule_report, REFERENCE_SCHEDULE)
@@ -35,7 +36,7 @@ METRIC_NAMES = {"top1": "imagenet_top1", "top5": "imagenet_top5", "images": None
 def validate_config(cfg):
     required = {"task", "seed", "device", "data_root", "profile", "adaptation",
                 "optimizer_profile", "backbone", "probe"}
-    if set(cfg) - (required | {"scheduler_profile"}) or required - set(cfg):
+    if set(cfg) - (required | {"scheduler_profile", "reader_profile"}) or required - set(cfg):
         raise ValueError("ImageNet config has missing or unknown fields")
     if cfg["profile"] != "capture_basic5_components" or cfg["adaptation"] not in ("frozen", "attentive"):
         raise ValueError("ImageNet supports frozen/attentive components; FT augmentation is unresolved")
@@ -81,12 +82,12 @@ class ImageNetImages(ImageFolder):
 
 class ImageClassifier(nn.Module):
     """Verified final patch mean/L2 or query reader, with zero initialized head."""
-    def __init__(self, backbone, adaptation):
+    def __init__(self, backbone, adaptation, *, reader_profile=None):
         super().__init__()
         if adaptation not in ("frozen", "attentive", "finetune"):
             raise ValueError("invalid classification adaptation")
         self.backbone, self.adaptation = backbone, adaptation
-        self.reader = QueryReader(backbone.out_channels) if adaptation == "attentive" else None
+        self.reader = query_reader(backbone, reader_profile) if adaptation == "attentive" else None
         self.classifier = nn.Linear(512 if self.reader is not None else getattr(backbone, "global_channels", backbone.out_channels), NUM_CLASSES)
         std = getattr(backbone, "classifier_init_std", 0.)
         if std:
@@ -96,7 +97,7 @@ class ImageClassifier(nn.Module):
         nn.init.zeros_(self.classifier.bias)
 
     def forward(self, images):
-        if callable(getattr(self.backbone, "classification_features", None)):
+        if self.reader is None and callable(getattr(self.backbone, "classification_features", None)):
             from contextlib import nullcontext
             with nullcontext() if self.adaptation == "finetune" else torch.no_grad():
                 features = self.backbone.classification_features(images, adaptation=self.adaptation)
@@ -128,7 +129,7 @@ def run(cfg, out, *, device_override=None):
                         generator=torch.Generator().manual_seed(cfg["seed"]))
     validation = DataLoader(val, batch_size=settings["batch_size"], num_workers=settings["num_workers"])
     require_training_batches(loader, report)
-    model = ImageClassifier(build_frozen_backbone(cfg["backbone"], device), adaptation).to(device)
+    model = ImageClassifier(build_frozen_backbone(cfg["backbone"], device), adaptation, reader_profile=cfg.get("reader_profile")).to(device)
     optimizer = build_optimizer(model, report)
     scheduler = build_task_scheduler(optimizer, report, len(loader))
     cap = settings["max_steps_per_epoch"]
@@ -162,7 +163,7 @@ def run(cfg, out, *, device_override=None):
     out.mkdir(parents=True, exist_ok=True)
     contract.write_metrics(out, raw, METRIC_NAMES)
     (out / "results.json").write_text(json.dumps(dict(task=TASK, profile=cfg["profile"],
-        adaptation=adaptation, backbone=cfg["backbone"], num_classes=NUM_CLASSES,
+        adaptation=adaptation, reader_profile=cfg.get("reader_profile"), backbone=cfg["backbone"], num_classes=NUM_CLASSES,
         observed_classes=classes, optimization=report, final=raw,
         canonical_eligible=False, record_value=False), indent=2, sort_keys=True)+"\n")
     return raw

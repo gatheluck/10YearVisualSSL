@@ -1,0 +1,78 @@
+# Final submitted manuscript: implementation coverage
+
+Audit: 2026-09-27, against the final 70-page submitted manuscript and portable
+baseline after PR 202. This supersedes the table numbering and current-priority
+claims in the [September 25 ledger](PAPER_REPRODUCTION_GAPS.md), not its dated
+research history. See [terminology](PAPER_TERMINOLOGY.md) and
+[submission scope](SUBMISSION_SCOPE.md). Private manuscript/source fingerprints
+and run evidence remain outside Git.
+
+**The portable package does not yet reproduce the entire paper.** Original
+experimental implementations exist for many remaining gaps. A provider, extracted
+feature file, test fixture score, or tracked protocol is not proof of a complete
+training/evaluation port or a reproduced table cell. Workbook values predate
+some final manuscript revisions and must be matched by actual run identity.
+
+## Coverage by final appendix
+
+| Final location | Portable basis | Remaining verification or integration |
+| --- | --- | --- |
+| C.2 Table 10: ASIS, 37 methods | Method adapters, checkpoint/readout and extraction components | Per-row checkpoint/preprocessing, released-weight evaluation and score/run matching; extraction counts are not table coverage |
+| C.3 Tables 11-14: CTRL, 32 methods | Controlled training adapters and checkpoint interfaces | Native distributed settings, 100/200/300-epoch checkpoint identities and full-run parity |
+| C.4 Tables 15-22: DINO design/scaling, InstDisc, colorization, rotation, SplitBrain | [DINO components](DINOV3_STEP4.md), [instance-discrimination components](IDV2_COMPONENTS.md) and existing method code | Full native training, conversion/continuation and each ablation's result-to-run evidence |
+| C.5 Table 23: supervised references | Existing supervised adapters | Exact reference training/evaluation recipes and score parity |
+| C.6 Tables 24-25: 3D; C.7 Table 26: 4D | Existing inference/extraction providers where available | Variant/readout identity, task-specific wrappers, gradients and native metrics |
+| C.8 Tables 27-28: generative; C.9 Table 29: VideoSSL | Existing providers and selected native video components | RAEv2 K7 versus other readouts; distinct video checkpoints/pipelines and task integrations |
+| C.10 Tables 30-34: world/video generation; C.11 Table 35: VLM and related models | Selected provider/component integrations | All rows' exact component boundaries, adapters, task recipes and checkpoint identities |
+| C.12 Tables 36-38: BasicFive LP/AP/FT | Existing task runners plus [five-family explicit readers/native detection](BASIC5_NATIVE_PATHS.md) | Remaining families/recipes and actual full-data measurements; blank/incomplete FT cells must stay distinct from completed runs |
+| C.13 Tables 39-40: Extended LP/AP, 45 datasets and five models | Tracked registries and protocol companions | Full task catalog trainers, task-specific metrics, five-model integration and measured-run manifests; 81 catalog entries do not mean 81 measured datasets |
+| C.14 Table 41: six representative configurations | Per-method adapters and protocol documents | Different original protocols require separate recipe identities, not one inferred common leaderboard |
+| C.15 Table 42: frontier matched subsets | Supplied system prompts and protocol | Matched 500-sample manifests, raw outputs/retries, parsing, scoring and recomputation |
+| D.1-D.3: pairplots, CTRL progress and DINO scaling | Selected extraction/training artifacts | Complete provenance-linked analysis inputs and plot regeneration |
+| E: scope, run accounting and protocols | Eight current companions, separate historical companions and registries | Final-epoch results, actual per-cell run counts, sample standard deviations and task-specific run-to-table evidence |
+
+The BasicFive AP/FT tables list eight families. The current five-family extension
+does not cover all eight: the SAM3 component is useful elsewhere but is not one
+of those eight. C-RADIO, VGGT omega, RAEv2 K7 and complete V-JEPA2.1 task coverage
+remain important integration boundaries. Existing limited video support is not
+equivalent to all native-video tasks and adaptations.
+
+## Prioritized next work
+
+1. Complete the remaining BasicFive family/task integrations in source-supported
+   groups, with initialization/output/gradient/update parity. The current change
+   delivers 35 explicit profile routes; full-scale result reproduction remains
+   separate. ImageNet FT augmentation still needs per-run reconciliation.
+2. Integrate Extended task trainers and metrics for the **45 actually reported
+   datasets**, retaining each of the five model/readout identities. Registry
+   presence alone is insufficient. Charades and AVA remain distinct tasks.
+3. Validate native distributed/BF16 training and continuation/export against
+   original checkpoints for controlled and ablation training. Small FP32
+   component tests do not validate these paths.
+4. Add downstream run accounting and analysis from actual recorded runs, with
+   final-epoch selection, missing/partial repeats and sample standard deviation.
+   The existing method linear-evaluation three-seed aggregator does not cover
+   all downstream LP/AP/FT accounting described by E.1.
+5. Port frontier response parsing/scoring and matched-subset provenance, then
+   regenerate plots and table inputs from verified manifests.
+
+## Do not resolve these differences by guessing
+
+- Common experimental AP has cross attention plus self attention, while the
+  protocol describes one attention block; DINO's reader is a separate variant.
+  Explicit profiles retain both rather than relabeling one as canonical.
+- Final E.4 requires unaligned NYUv2 metric RMSE; inspected experimental
+  evaluators also contain median-aligned evaluation. Map runs before attributing
+  either metric to a paper value. The public metric remains unaligned.
+- Historical reconstructions and current Unified companions are separate
+  specifications. Initial COCO is object detection. E.6's frontier category-
+  presence Micro-F1 is a separate task and must not be confused with bbox AP.
+- Final manuscript tables, older workbook rows and local artifact availability
+  may differ. Missing physical files do not establish that an experiment was
+  never run, and a source implementation does not establish a verified score.
+
+This audit used read-only comparison of captured and current experimental
+sources. No original code, checkpoint or existing feature artifact was changed;
+no compute job was submitted for this component port. GPU/released-weight and
+full-score validation remain pending. Local and CI outcomes are recorded in
+the implementation PR, not inferred from this document.

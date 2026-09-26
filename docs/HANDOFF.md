@@ -12,6 +12,30 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-09-27: final-paper component port
+
+PR 202 was merged and main was fast-forwarded to `9d3b1ee`; its tree matched the
+previously tested PR head, and all 109 reported CI checks succeeded. Unrelated
+submodule edits were preserved. New work uses a separate branch and PR.
+
+The user requests grouped, strict-TDD porting toward the final submitted paper,
+with no silent resolution of source contradictions. The
+[final coverage audit](FINAL_PAPER_COVERAGE.md) replaces earlier table numbering
+and priorities. [Explicit reader/native detector profiles](BASIC5_NATIVE_PATHS.md)
+cover 35 small-fixture routes across five existing providers. Six unchanged
+reference reader/pyramid components matched initialization, outputs, gradients
+and three updates in private CPU comparisons. Full-data/GPU scores remain
+unverified; these are noncanonical components, not full-paper reproduction.
+
+Read-only source comparison found three changed files among 22 comparable files
+in the inspected subset: depth loss default and added evaluation diagnostics.
+The current public depth loss already matches the revised default. Median-
+aligned experimental metrics versus the final unaligned metric specification
+remain a run-mapping question. No cluster jobs were submitted and originals,
+weights and existing extracted features were unchanged. Private fingerprints
+and comparisons remain outside Git. Validation counts and delivery state belong
+to the task PR; refresh Git and CI rather than treating this note as live state.
+
 ### 2026-09-26: initial experiment protocol companions
 
 The user supplied eight reconstructions of experiments preceding Unified LP/AP/FT

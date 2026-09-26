@@ -1,5 +1,10 @@
 # Portable-package porting and validation ledger
 
+Current update (2026-09-27): [explicit five-family AP/native detection](BASIC5_NATIVE_PATHS.md)
+and [final submitted manuscript coverage](FINAL_PAPER_COVERAGE.md) supersede
+earlier provider limits and table numbering below. Dated sections retain their
+historical scope; they do not certify current full-paper reproduction.
+
 > **Legacy terminology:** numbered Step 1-4 labels in this file are historical
 > code/experiment identifiers, not manuscript section numbers. See the
 > [ASIS, CTRL and manuscript comparison map](PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.

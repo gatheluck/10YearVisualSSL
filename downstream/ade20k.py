@@ -40,8 +40,9 @@ from downstream.optimization import resolve_optimization, build_optimizer, requi
 from downstream.optimization import REFERENCE_SCHEDULE, build_task_scheduler, task_schedule_report
 from downstream.optimization import build_dense_ap_scheduler, dense_ap_schedule_report
 from downstream.photometric import captured_color_jitter
-from downstream.attention import (SpatialAdapter, task_spatial_features,
+from downstream.attention import (task_spatial_features,
                                   validate_adaptation, clip_attentive_gradients)
+from downstream.captured_readers import spatial_adapter
 from downstream import contract                                    # noqa: E402
 from downstream.spatial_backbones import build_frozen_backbone, build_trainable_backbone, KINDS  # noqa: E402
 
@@ -79,7 +80,7 @@ def validate_config(cfg: dict) -> None:
         if key in cfg:
             raise ConfigError(
                 f"config: {key} is set; the output location is fixed at --out")
-    _named(TOP_KEYS - set(cfg), set(cfg) - (TOP_KEYS | {"profile", "adaptation", "optimizer_profile", "scheduler_profile"}), "config")
+    _named(TOP_KEYS - set(cfg), set(cfg) - (TOP_KEYS | {"profile", "adaptation", "optimizer_profile", "scheduler_profile", "reader_profile"}), "config")
     try:
         validate_adaptation(cfg)
     except ValueError as exc:
@@ -190,11 +191,11 @@ def _subset(dataset: Dataset, maximum: int):
 
 class FrozenSegModel(nn.Module):
     def __init__(self, backbone: nn.Module, num_classes: int = NUM_CLASSES,
-                 *, adaptation: str = "frozen"):
+                 *, adaptation: str = "frozen", reader_profile=None):
         super().__init__()
         self.backbone = backbone
         self.adaptation = adaptation
-        self.adapter = SpatialAdapter(backbone.out_channels) if adaptation == "attentive" else None
+        self.adapter = spatial_adapter(backbone, reader_profile) if adaptation == "attentive" else None
         self.head = nn.Conv2d(backbone.out_channels, num_classes, kernel_size=1)
         nn.init.normal_(self.head.weight, std=0.01)
         nn.init.zeros_(self.head.bias)
@@ -282,7 +283,7 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
     require_training_batches(train_loader, optimization)
     builder = build_trainable_backbone if adaptation == "finetune" else build_frozen_backbone
     backbone = builder(cfg["backbone"], device)
-    model = FrozenSegModel(backbone, adaptation=adaptation).to(device)
+    model = FrozenSegModel(backbone, adaptation=adaptation, reader_profile=cfg.get("reader_profile")).to(device)
     if adaptation != "finetune" and any(p.requires_grad for p in model.backbone.parameters()):
         raise RuntimeError("backbone is not frozen")
     if optimization is not None:
@@ -321,7 +322,7 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
         json.dumps({"task": TASK, "backbone": cfg["backbone"],
                     "num_classes": NUM_CLASSES, "ignore_index": IGNORE_INDEX,
                     "epochs": epochs, "final": raw,
-                    "profile": profile, "adaptation": adaptation,
+                    "profile": profile, "adaptation": adaptation, "reader_profile": cfg.get("reader_profile"),
                     "training_color_jitter": getattr(train_ds, "dataset", train_ds).color_jitter,
                     "canonical_eligible": False,
                     "record_value": not subset_mode and profile == "legacy",

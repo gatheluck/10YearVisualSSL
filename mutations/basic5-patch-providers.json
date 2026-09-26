@@ -238,7 +238,7 @@
     {
       "label": "wrong channel normalization",
       "file": "methods/cosmos3_super/downstream_backbone.py",
-      "old": "pixel = self._pixels(images)",
+      "old": "pixel = images if already_normalized else self._pixels(images)",
       "new": "pixel = images",
       "tests": [
         "tests.test_method_patch_basic5.TestPatchFamilies.test_spatial_pooling_video_gradients_and_updates"

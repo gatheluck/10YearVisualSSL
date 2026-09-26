@@ -42,8 +42,9 @@ from downstream.optimization import resolve_optimization, build_optimizer, requi
 from downstream.optimization import REFERENCE_SCHEDULE, build_task_scheduler, task_schedule_report
 from downstream.optimization import build_dense_ap_scheduler, dense_ap_schedule_report
 from downstream.photometric import captured_color_jitter
-from downstream.attention import (SpatialAdapter, task_spatial_features,
+from downstream.attention import (task_spatial_features,
                                   validate_adaptation, clip_attentive_gradients)
+from downstream.captured_readers import spatial_adapter
 from downstream import contract                                    # noqa: E402
 from downstream.spatial_backbones import build_frozen_backbone, build_trainable_backbone, KINDS  # noqa: E402
 
@@ -85,7 +86,7 @@ def validate_config(cfg: dict) -> None:
         if key in cfg:
             raise ConfigError(
                 f"config: {key} is set; the output location is fixed at --out")
-    _named(TOP_KEYS - set(cfg), set(cfg) - (TOP_KEYS | {"profile", "adaptation", "optimizer_profile", "scheduler_profile"}), "config")
+    _named(TOP_KEYS - set(cfg), set(cfg) - (TOP_KEYS | {"profile", "adaptation", "optimizer_profile", "scheduler_profile", "reader_profile"}), "config")
     try:
         validate_adaptation(cfg)
     except ValueError as exc:
@@ -313,11 +314,11 @@ class DPTDepthHead(nn.Module):
 
 class FrozenDepthModel(nn.Module):
     def __init__(self, backbone: nn.Module, hidden_dim: int = 256,
-                 *, profile: str = "legacy", adaptation: str = "frozen"):
+                 *, profile: str = "legacy", adaptation: str = "frozen", reader_profile=None):
         super().__init__()
         self.backbone = backbone
         self.adaptation = adaptation
-        self.adapter = SpatialAdapter(backbone.out_channels) if adaptation == "attentive" else None
+        self.adapter = spatial_adapter(backbone, reader_profile) if adaptation == "attentive" else None
         self.head = (Depth1x1Head(backbone.out_channels) if profile == CAPTURE_PROFILE
                      else DPTDepthHead(backbone.out_channels, hidden_dim=hidden_dim))
 
@@ -407,7 +408,7 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
     builder = build_trainable_backbone if adaptation == "finetune" else build_frozen_backbone
     backbone = builder(cfg["backbone"], device)
     model = FrozenDepthModel(backbone, hidden_dim=int(probe["head_hidden_dim"]),
-                             profile=profile, adaptation=adaptation).to(device)
+                             profile=profile, adaptation=adaptation, reader_profile=cfg.get("reader_profile")).to(device)
     if adaptation != "finetune" and any(p.requires_grad for p in model.backbone.parameters()):
         raise RuntimeError("backbone is not frozen")
     if optimization is not None:
@@ -460,7 +461,7 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
     contract.write_metrics(out, raw, METRIC_NAMES)
     (Path(out) / "results.json").write_text(
         json.dumps({"task": TASK, "backbone": cfg["backbone"],
-                    "profile": profile, "adaptation": adaptation, "canonical_eligible": False,
+                    "profile": profile, "adaptation": adaptation, "reader_profile": cfg.get("reader_profile"), "canonical_eligible": False,
                     "training_color_jitter": train_ds.color_jitter,
                     "split_sha256": contract.sha256_file(split_path) if captured else None,
                     "metric_aggregation": "batch_mean" if captured else "global_valid_pixels",

@@ -242,12 +242,14 @@ def supports_trainable(kind):
     return getattr(provider, "TRAINABLE", False) is True and callable(getattr(provider, "build_trainable", None))
 
 
-def build_attentive_backbone(spec: dict, device: "torch.device") -> nn.Module:
+def build_attentive_backbone(spec: dict, device: "torch.device", *, reader_profile=None) -> nn.Module:
     """Compose a discovered frozen spatial provider and shared AP adapter."""
     if not supports_adaptation(spec["kind"], "attentive"):
         raise ValueError("attentive reader recipe is unresolved for this provider")
+    if attentive_profile(spec["kind"]) != reader_profile:
+        raise ValueError("reader_profile must explicitly select the provider recipe")
     from downstream.attention import AttentiveSpatialBackbone
-    return AttentiveSpatialBackbone(build_frozen_backbone(spec, device)).to(device)
+    return AttentiveSpatialBackbone(build_frozen_backbone(spec, device), reader_profile=reader_profile).to(device)
 
 
 def supports_capture_pyramid(kind):
@@ -278,3 +280,14 @@ def supports_adaptation(kind, adaptation):
         return True
     allowed = getattr(_load_provider(_PROVIDERS[kind]), "SUPPORTED_ADAPTATIONS", None)
     return allowed is None or adaptation in allowed
+
+
+def attentive_profile(kind):
+    """Return a verified provider's explicit source-reader identifier."""
+    return (getattr(_load_provider(_PROVIDERS[kind]), 'ATTENTIVE_PROFILE', None)
+            if kind in _PROVIDERS else None)
+
+
+def supports_native_detection(kind):
+    return (kind in _PROVIDERS and
+            getattr(_load_provider(_PROVIDERS[kind]), 'NATIVE_DETECTION', False) is True)

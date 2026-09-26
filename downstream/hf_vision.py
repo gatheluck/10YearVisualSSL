@@ -67,6 +67,8 @@ class VisionBackbone(nn.Module):
         self.out_channels = int(model.config.hidden_size)
         self.global_channels = int(model.config.projection_dim) if family == "projected_cls" else self.out_channels
         self.classifier_init_std = 0. if family == "register_cls" else .01
+        self.native_pyramid_style = "bilinear" if family == "register_cls" else "transposed"
+        self.reader_profile = ("captured_single_block_v1" if family == "register_cls" else "captured_cross_self_v1")
         self.patch_size = int(model.config.patch_size)
         self.requires_grad_(trainable)
         self.train(trainable)
@@ -88,8 +90,10 @@ class VisionBackbone(nn.Module):
             return images.new_tensor(values)[None, :, None, None]
         return (images * channel(_IM_STD) + channel(_IM_MEAN) - channel(mean)) / channel(std)
 
-    def _forward(self, images):
-        pixel = self._pixels(images)
+    def _forward(self, images, *, already_normalized=False):
+        pixel = images if already_normalized else self._pixels(images)
+        if already_normalized and self.family == "register_cls":
+            pixel = F.pad(pixel, (0, -pixel.shape[-1] % self.patch_size, 0, -pixel.shape[-2] % self.patch_size))
         param = next(self.model.parameters())
         kwargs = {} if self.family == "register_cls" else {"interpolate_pos_encoding": True}
         with nullcontext() if self.trainable else torch.no_grad():
@@ -97,7 +101,22 @@ class VisionBackbone(nn.Module):
         return out, pixel.shape[-2:]
 
     def forward_features(self, images):
-        out, (height, width) = self._forward(images)
+        return self._spatial(images, already_normalized=False)
+
+    def detection_normalization(self):
+        if self.family == "register_cls":
+            return (0.,)*3, (1.,)*3
+        if self.family == "projected_cls":
+            return (.48145466,.4578275,.40821073), (.26862954,.26130258,.27577711)
+        return (.5,)*3, (.5,)*3
+
+    def forward_detection_features(self, images):
+        if self.family == "register_cls":
+            images = (images - images.new_tensor(_IM_MEAN)[None,:,None,None]) / images.new_tensor(_IM_STD)[None,:,None,None]
+        return self._spatial(images, already_normalized=True)
+
+    def _spatial(self, images, *, already_normalized):
+        out, (height, width) = self._forward(images, already_normalized=already_normalized)
         prefix = (1 + self.model.config.num_register_tokens if self.family == "register_cls"
                   else 1 if self.family == "projected_cls" else 0)
         tokens = out.last_hidden_state[:, prefix:].float()

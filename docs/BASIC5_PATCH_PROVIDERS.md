@@ -60,13 +60,12 @@ both model classes and runs these tests with downstream dependencies. Private
 source comparisons and validation outcomes are recorded in the task PR.
 
 - Results stay `canonical_eligible: false`; fixture scores are not paper values.
-- COCO is rejected: SAM3 patch-14 and Cosmos3 merged-stride-32 maps do not meet
-  the current shared stride-16 pyramid assumptions, and detection normalization
-  requires separate reconciliation.
-- AP and ImageNet FT are not integrated into these portable providers and remain
-  rejected at runtime. Inspected source pipelines do not yet supply one reconciled
-  recipe for this integration. This does not resolve the existing reader
-  or augmentation discrepancies across sources.
+- As of 2026-09-27, explicit [native detection and reader profiles](BASIC5_NATIVE_PATHS.md)
+  add COCO LP/AP/FT and AP on the other four tasks. The old shared stride-16
+  detector path still rejects these grids. Omitted AP profiles remain rejected.
+- ImageNet FT remains rejected pending augmentation reconciliation. Explicit AP
+  variants preserve experimental source differences; they do not resolve which
+  reader produced each paper result.
 - Distributed/BF16 training, released-weight execution, full-data metrics and
   workbook score matching using this package remain unverified. Local shape validation does not
   authenticate checkpoint identity; verify immutable checkpoint hashes before

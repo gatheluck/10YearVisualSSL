@@ -8,7 +8,9 @@ IMAGE_CLASSIFICATION = True
 COMPONENT_ONLY = True
 # Detection pads after normalization; the shared transform must be reconciled.
 CAPTURE_PYRAMID = False
-SUPPORTED_ADAPTATIONS = ("frozen", "finetune")
+SUPPORTED_ADAPTATIONS = ("frozen", "attentive", "finetune")
+ATTENTIVE_PROFILE = "captured_cross_self_v1"
+NATIVE_DETECTION = True
 
 
 def build(spec):

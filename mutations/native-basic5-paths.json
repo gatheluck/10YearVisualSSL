@@ -1,0 +1,238 @@
+{
+  "targets": [
+    {
+      "label": "Remove cross-query residual",
+      "file": "downstream/captured_readers.py",
+      "old": "queries = queries + self.cross",
+      "new": "queries = self.cross",
+      "tests": [
+        "tests.test_captured_reader_reference.TestCapturedReaderReference.test_initialization_outputs_gradients_and_three_updates_match_reference"
+      ]
+    },
+    {
+      "label": "Change common query initialization",
+      "file": "downstream/captured_readers.py",
+      "old": "std=.02",
+      "new": "std=.2",
+      "tests": [
+        "tests.test_captured_reader_reference.TestCapturedReaderReference.test_initialization_outputs_gradients_and_three_updates_match_reference"
+      ]
+    },
+    {
+      "label": "Double single-adapter residual",
+      "file": "downstream/captured_readers.py",
+      "old": "tokens = self.block(x.flatten(2).transpose(1, 2))",
+      "new": "tokens = x.flatten(2).transpose(1, 2) + self.block(x.flatten(2).transpose(1, 2))",
+      "tests": [
+        "tests.test_captured_reader_reference.TestCapturedReaderReference.test_initialization_outputs_gradients_and_three_updates_match_reference"
+      ]
+    },
+    {
+      "label": "Change single-adapter initialization",
+      "file": "downstream/captured_readers.py",
+      "old": "nn.init.zeros_(self.output_projection.weight)",
+      "new": "nn.init.ones_(self.output_projection.weight)",
+      "tests": [
+        "tests.test_captured_reader_reference.TestCapturedReaderReference.test_initialization_outputs_gradients_and_three_updates_match_reference"
+      ]
+    },
+    {
+      "label": "Accept empty query",
+      "file": "downstream/captured_readers.py",
+      "old": "tokens.shape[1] < 1",
+      "new": "False",
+      "tests": [
+        "tests.test_native_basic5_paths.TestNativeBasic5Paths.test_readers_and_native_pyramid_reject_invalid_boundaries"
+      ]
+    },
+    {
+      "label": "Accept empty spatial map",
+      "file": "downstream/captured_readers.py",
+      "old": "min(features.shape[-2:]) < 1",
+      "new": "False",
+      "tests": [
+        "tests.test_native_basic5_paths.TestNativeBasic5Paths.test_readers_and_native_pyramid_reject_invalid_boundaries"
+      ]
+    },
+    {
+      "label": "Accept mismatched source reader",
+      "file": "downstream/captured_readers.py",
+      "old": "if expected != profile:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_native_basic5_paths.TestNativeBasic5Paths.test_readers_and_native_pyramid_reject_invalid_boundaries"
+      ]
+    },
+    {
+      "label": "Accept unknown source reader",
+      "file": "downstream/captured_readers.py",
+      "old": "if profile not in (None, SINGLE_BLOCK, CROSS_SELF):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_native_basic5_paths.TestNativeBasic5Paths.test_readers_and_native_pyramid_reject_invalid_boundaries"
+      ]
+    },
+    {
+      "label": "Substitute shared query reader",
+      "file": "downstream/captured_readers.py",
+      "old": "CrossSelfQueryReader if selected == CROSS_SELF else QueryReader",
+      "new": "QueryReader",
+      "tests": [
+        "tests.test_native_basic5_paths.TestNativeBasic5Paths.test_factory_selection_matches_reference_components"
+      ]
+    },
+    {
+      "label": "Substitute common spatial adapter",
+      "file": "downstream/captured_readers.py",
+      "old": "SingleBlockSpatialAdapter if selected == SINGLE_BLOCK else SpatialAdapter",
+      "new": "SpatialAdapter",
+      "tests": [
+        "tests.test_native_basic5_paths.TestNativeBasic5Paths.test_factory_selection_matches_reference_components"
+      ]
+    },
+    {
+      "label": "Change transposed pyramid initialization",
+      "file": "downstream/native_detection.py",
+      "old": "mode='fan_out'",
+      "new": "mode='fan_in'",
+      "tests": [
+        "tests.test_captured_reader_reference.TestCapturedReaderReference.test_initialization_outputs_gradients_and_three_updates_match_reference"
+      ]
+    },
+    {
+      "label": "Detach native finetune encoder",
+      "file": "downstream/native_detection.py",
+      "old": "with nullcontext() if self.adaptation == 'finetune' else torch.no_grad():",
+      "new": "with torch.no_grad():",
+      "tests": [
+        "tests.test_native_basic5_paths.TestNativeBasic5Paths.test_detector_losses_update_exactly_the_selected_trainable_scope"
+      ]
+    },
+    {
+      "label": "Accept invalid native grid",
+      "file": "downstream/native_detection.py",
+      "old": "min(feat.shape[-2:]) < 2",
+      "new": "False",
+      "tests": [
+        "tests.test_native_basic5_paths.TestNativeBasic5Paths.test_readers_and_native_pyramid_reject_invalid_boundaries"
+      ]
+    },
+    {
+      "label": "Ignore missing native detector profile",
+      "file": "downstream/native_detection.py",
+      "old": "if cfg.get('adaptation') == 'attentive' and attentive_profile(cfg.get('backbone',{}).get('kind')):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_native_basic5_paths.TestNativeBasic5Paths.test_detection_profile_is_required_for_family_ap_and_rejects_ignored_choices"
+      ]
+    },
+    {
+      "label": "Accept unsupported native provider",
+      "file": "downstream/native_detection.py",
+      "old": "not supports_native_detection(cfg.get('backbone',{}).get('kind'))",
+      "new": "False",
+      "tests": [
+        "tests.test_native_basic5_paths.TestNativeBasic5Paths.test_readers_and_native_pyramid_reject_invalid_boundaries"
+      ]
+    },
+    {
+      "label": "Accept legacy native profile",
+      "file": "downstream/native_detection.py",
+      "old": "cfg.get('profile') != 'capture_basic5_components'",
+      "new": "False",
+      "tests": [
+        "tests.test_native_basic5_paths.TestNativeBasic5Paths.test_readers_and_native_pyramid_reject_invalid_boundaries"
+      ]
+    },
+    {
+      "label": "Ignore explicit AP profile mismatch",
+      "file": "downstream/attention.py",
+      "old": "adaptation == \"attentive\" and selected != expected",
+      "new": "False",
+      "tests": [
+        "tests.test_native_basic5_paths.TestNativeBasic5Paths.test_explicit_reader_profiles_validate_and_ambiguous_or_unused_options_fail"
+      ]
+    },
+    {
+      "label": "Accept unused reader profile",
+      "file": "downstream/attention.py",
+      "old": "adaptation != \"attentive\" and \"reader_profile\" in cfg",
+      "new": "False",
+      "tests": [
+        "tests.test_native_basic5_paths.TestNativeBasic5Paths.test_explicit_reader_profiles_validate_and_ambiguous_or_unused_options_fail"
+      ]
+    },
+    {
+      "label": "Normalize native pixels twice",
+      "file": "downstream/hf_vision.py",
+      "old": "pixel = images if already_normalized else self._pixels(images)",
+      "new": "pixel = self._pixels(images)",
+      "tests": [
+        "tests.test_native_basic5_paths.TestNativeBasic5Paths.test_detection_native_normalization_padding_and_pyramids"
+      ]
+    },
+    {
+      "label": "Lose source evaluation threshold",
+      "file": "downstream/coco.py",
+      "old": "getattr(backbone, \"detection_score_threshold\", .05)",
+      "new": ".05",
+      "tests": [
+        "tests.test_native_basic5_paths.TestNativeBasic5Paths.test_detection_native_normalization_padding_and_pyramids"
+      ]
+    },
+    {
+      "label": "Accept boolean anchor",
+      "file": "downstream/coco.py",
+      "old": "type(s) is not int or s <= 0",
+      "new": "s < 0",
+      "tests": [
+        "tests.test_native_basic5_paths.TestNativeBasic5Paths.test_detection_profile_is_required_for_family_ap_and_rejects_ignored_choices"
+      ]
+    },
+    {
+      "label": "Omit reader metadata",
+      "file": "downstream/coco.py",
+      "old": "\"reader_profile\": cfg.get(\"reader_profile\"),",
+      "new": "\"reader_profile\": None,",
+      "tests": [
+        "tests.test_native_basic5_paths.TestNativeBasic5Paths.test_all_new_task_entrypoints_write_profiled_verified_artifacts"
+      ]
+    },
+    {
+      "label": "Omit numeric-reference CI invocation",
+      "file": ".github/workflows/tests.yml",
+      "old": "            tests.test_captured_reader_reference \\\n",
+      "new": "",
+      "tests": [
+        "tests.test_native_basic5_paths.TestNativePathCI.test_downstream_ci_runs_new_paths_with_full_dependencies"
+      ]
+    },
+    {
+      "label": "Load ambiguous AP before rejecting profile",
+      "file": "downstream/spatial_backbones.py",
+      "old": "if attentive_profile(spec[\"kind\"]) != reader_profile:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_native_basic5_paths.TestNativeBasic5Paths.test_public_attentive_builder_preserves_explicit_profile_and_frozen_scope"
+      ]
+    },
+    {
+      "label": "Drop explicit profile from public composition",
+      "file": "downstream/spatial_backbones.py",
+      "old": "AttentiveSpatialBackbone(build_frozen_backbone(spec, device), reader_profile=reader_profile)",
+      "new": "AttentiveSpatialBackbone(build_frozen_backbone(spec, device))",
+      "tests": [
+        "tests.test_native_basic5_paths.TestNativeBasic5Paths.test_public_attentive_builder_preserves_explicit_profile_and_frozen_scope"
+      ]
+    },
+    {
+      "label": "Relabel native patch grid as stride 16",
+      "file": "downstream/hf_vision.py",
+      "old": "gh, gw = height // self.patch_size, width // self.patch_size",
+      "new": "gh, gw = height // 16, width // 16",
+      "tests": [
+        "tests.test_native_basic5_paths.TestNativeBasic5Paths.test_patch14_detector_retains_native_non_square_grid"
+      ]
+    }
+  ]
+}
