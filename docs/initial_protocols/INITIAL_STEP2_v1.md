@@ -1,5 +1,9 @@
 # INITIAL_STEP2_v1: historical evidence and candidate reconstruction
 
+> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
+> code/experiment identifiers, not manuscript section numbers. See the
+> [ASIS, CTRL and manuscript comparison map](../PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+
 This is an edited, anonymized companion to the initial experiments, separate
 from the later Unified LP/AP/FT specifications. It is not a certification that
 all manuscript results follow a single recipe. Original experimental code and
@@ -18,7 +22,7 @@ not independent confirmation of every run:
 | Downstream heads and schedules | Shared `downstream/*.py` full-mode arguments | `scripts/submit_step2_downstream.sh`; DINO epoch-300 `results.json` `run_config` | Observed main-run setting |
 | Downstream score epoch | Last scheduled epoch | `final` field in `step2_downstream_full_resumable/*/results.json` | Observed main-run setting |
 | NYUv2 | Metric RMSE, mat-order 795/654, masked L1, DPT head | `downstream/nyuv2_depth.py` | Observed main-run setting |
-| COCO | Bbox AP, not multilabel mAP | Task id `coco_det_frcnn_frozen_backbone` | Observed main-run setting |
+| COCO | Bbox AP | Task id `coco_det_frcnn_frozen_backbone` | Observed main-run setting |
 | Pretext view count | Keep the count required by the implemented loss; record it | DINO canonical config uses 2 global and 8 local crops; the project plan also lists a single-crop type-1 policy | Observed objective requirement, recorded rather than retuned |
 
 The supplied evidence table below distinguishes source claims from newly chosen
@@ -207,7 +211,7 @@ Publish the epoch-300 table only. Columns are Top-1 / Top-5 (%), bbox AP / AP50 
 | Downstream heads and schedules | Shared `downstream/*.py` full-mode arguments | `scripts/submit_step2_downstream.sh`; DINO epoch-300 `results.json` `run_config` | Observed main-run setting |
 | Downstream score epoch | Last scheduled epoch | `final` field in `step2_downstream_full_resumable/*/results.json` | Observed main-run setting |
 | NYUv2 | Metric RMSE, mat-order 795/654, masked L1, DPT head | `downstream/nyuv2_depth.py` | Observed main-run setting |
-| COCO | Bbox AP, not multilabel mAP | Task id `coco_det_frcnn_frozen_backbone` | Observed main-run setting |
+| COCO | Bbox AP | Task id `coco_det_frcnn_frozen_backbone` | Observed main-run setting |
 | ImageNet linear probe | SGD, LR `0.1`, batch 256, 100 epochs, final epoch, pooled patch tokens | Stored probes differ (DINO online probe, effective LR `0.004`, feature dim 3072; MoCo-style `lr=30`) | Newly selected unification |
 | Pretext view count | Keep the count required by the implemented loss; record it | DINO candidate config uses 2 global and 8 local crops; the project plan also lists a single-crop type-1 policy | Observed objective requirement, recorded rather than retuned |
 

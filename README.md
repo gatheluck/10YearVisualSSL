@@ -1,5 +1,7 @@
 # 10 Year Visual SSL
 
+For ASIS, CTRL and legacy numbered labels, see the [manuscript terminology guide](docs/PAPER_TERMINOLOGY.md).
+
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](docs/SUBMISSION_SCOPE.md)
 for the distinction from original experimental implementations and results.

@@ -1,5 +1,9 @@
 # Porting roadmap — the 38 Step 1&2 methods, order, and status
 
+> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
+> code/experiment identifiers, not manuscript section numbers. See the
+> [ASIS, CTRL and manuscript comparison map](PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](SUBMISSION_SCOPE.md)
 for the distinction from original experimental implementations and results.
