@@ -20,7 +20,7 @@ they are not commands to submit jobs when reading this archive.
 - [Extended fine-tuning](EXTEND_FINETUNE.md)
 - [Frontier system prompts](BASIC5_FRONTIER_SYSTEM_PROMPTS.md)
 
-## Pending companion inputs
+## Companion delivery and replication scope
 
 The scope/replication publication draft was supplied on 2026-09-26 and is included
 above. Its replication profiles are editorial proposals, not evidence that past
@@ -28,11 +28,33 @@ runs followed them. It does not change executable configurations or prescribe
 a retroactive seed assignment. Its reference to `BASIC5_LINEAR_v1.md` uses the
 legacy name of the supplied `BASIC5_LINEAR.md` specification.
 
-The referenced `EXTEND_LINEAR_v1.json` and the corresponding attentive/fine-tuning
-registries still require delivery and review. The scope draft explicitly retains
-this requirement for exact per-dataset recipes. Do not infer
-the detailed dataset recipes or replication assignment from these summaries.
-This is a submission candidate, not a complete Appendix E companion bundle.
+The matching 81-configuration reference registries are now included:
+
+- [Extended linear registry](EXTEND_LINEAR_v1.json)
+- [Extended attentive overrides](EXTEND_ATTENTIVE_v1.json)
+- [Extended fine-tuning overrides](EXTEND_FINETUNE_v1.json)
+
+AP and FT inherit the LINEAR catalog and apply their named recipe overrides.
+These are the reference version accompanying the supplied Markdown; a separate
+82-configuration operational revision is not silently substituted. This catalog
+is not proof of which configuration produced each reported result.
+
+All original dataset locations are replaced by `${DATA_ROOT}/<dataset-id>`.
+For example, the `action40` entry is `${DATA_ROOT}/action40`. Set up each directory
+under your own data root, or map it to your local dataset before invoking a reader.
+These paths deliberately do not preserve the original machine's directory layout.
+JSON does not expand environment variables by itself: a consuming loader must
+substitute `DATA_ROOT` explicitly and reject missing data. The registries are
+protocol records, not drop-in launch configurations for every portable runner.
+No optimizer, schedule, split, model list, metric or other non-path value changed.
+
+The sanitized registries belong in version control with their documentation and
+tests. Keep original private copies, local path mappings, credentials and actual
+machine-specific resolved configurations outside Git and outside the submission.
+
+The FT Markdown and JSON retain their original wording and precedence rules.
+Dataset-specific overrides and run records must be checked before claiming a
+particular reported result was reproduced; no source conflict is resolved here.
 
 Frontier prompts request 100 samples per batch; the manuscript describes 500
 samples per task. The batch manifests, vocabularies and response records are

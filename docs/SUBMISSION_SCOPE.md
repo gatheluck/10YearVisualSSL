@@ -46,8 +46,8 @@ by an editorial change.
 - **Extended evaluation:** linear, attentive and fine-tuning reference training
   implementations are present in the inspected experimental sources. This
   package does not yet integrate their full task catalog. Exact per-dataset
-  coverage and correspondence to reported cells require the companion registries
-  and actual run records; the existence of those trainers alone is insufficient.
+  coverage and correspondence to reported cells require the included companion
+  registries and actual run records; the existence of those trainers alone is insufficient.
 - **Step-4 components:** reduced tests compare selected heads, losses, updates
   and checkpoint transitions with inspected experimental implementations. Native
   distributed execution, full-scale reruns and score matching have separate
@@ -57,7 +57,7 @@ by an editorial change.
   may intentionally be outside the evaluated comparison. Using its released
   weights is different from failing to port an experiment that was required.
 
-The companion index separately lists documents or registries awaiting delivery
-to this package. That delivery status does not imply that their owners lack
-the files. Preserve the distinction between source availability, porting,
+The companion index records the eight supplied documents and three sanitized
+registries now delivered to this package. Delivery status does not establish
+which configurations were used in historical runs. Preserve the distinction between source availability, porting,
 package validation, and verification of each reported experimental result.

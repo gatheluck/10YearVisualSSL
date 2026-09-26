@@ -1,0 +1,362 @@
+{
+  "protocol_id": "EXTEND_ATTENTIVE_v1",
+  "version": "1.0",
+  "status": "canonical",
+  "track": "frozen_backbone_attentive_probe",
+  "inherits": {
+    "protocol": "EXTEND_LINEAR_v1",
+    "fields": [
+      "models",
+      "dataset_policy",
+      "datasets",
+      "dataset paths",
+      "splits",
+      "input geometry",
+      "epoch counts",
+      "task heads",
+      "loss definitions",
+      "evaluation metrics"
+    ]
+  },
+  "purpose": "Measure how well each frozen representation can be read by one small, shared attention reader while preserving the EXTEND_LINEAR_v1 downstream definitions.",
+  "design_principle": "Keep the released backbone completely frozen. Insert exactly one canonical attention reader/adapter before the unchanged EXTEND_LINEAR_v1 task head and make only the optimizer changes needed for the reader.",
+  "models": [
+    "clip",
+    "siglip_giant",
+    "sam3",
+    "cradiov4_h",
+    "dinov3_7b",
+    "raev2_k7",
+    "vjepa2_1",
+    "vggt_omega"
+  ],
+  "execution": {
+    "logical_job": "one model x one dataset x EXTEND_ATTENTIVE_v1 x seed 0",
+    "seeds": [
+      0
+    ],
+    "trials_per_cell": 1,
+    "submission": "independent AP jobs; may be submitted whenever nodes are available",
+    "dependency_rule": "do not wait for, launch, or chain LINEAR or FINETUNE jobs",
+    "existing_result_rule": "reuse a valid BASIC5_ATTENTIVE_v1 seed-0 result for an equivalent Basic Five cell",
+    "resume_rule": "resume an incomplete checkpoint under the same logical ID; never duplicate a healthy owner",
+    "failure_isolation": "one failed dataset must not stop unrelated jobs"
+  },
+  "global_overrides": {
+    "backbone_mode": "fully_frozen_eval",
+    "backbone_gradients": false,
+    "normalization_statistics": "frozen",
+    "trainable_scope": [
+      "attention reader/adapter",
+      "reader projections and normalization",
+      "unchanged EXTEND_LINEAR_v1 task head"
+    ],
+    "not_trainable": [
+      "all backbone parameters",
+      "backbone normalization affine parameters and running statistics",
+      "positional embeddings",
+      "backbone prefix/register/class tokens"
+    ],
+    "feature_layer": "same canonical final feature used by EXTEND_LINEAR_v1; no layer search or learned layer mixing",
+    "gradient_clipping": {
+      "type": "global_norm",
+      "max_norm": 1.0
+    },
+    "precision": "AMP or bfloat16 permitted; sensitive losses and metrics remain float32",
+    "audit_level": "lightweight_attempt_first"
+  },
+  "reader": {
+    "depth": 1,
+    "normalization": "pre_layer_norm",
+    "attention_heads": 8,
+    "mlp_ratio": 4.0,
+    "attention_dropout": 0.0,
+    "projection_dropout": 0.0,
+    "stochastic_depth": 0.0,
+    "global": {
+      "type": "learned_query_cross_attention",
+      "num_queries": 32,
+      "reader_width": 512,
+      "output_pooling": "mean over query outputs"
+    },
+    "video": {
+      "type": "learned_query_cross_attention",
+      "num_queries": 32,
+      "reader_width": 512,
+      "tokens": "ordered temporal or spatiotemporal final tokens; do not temporal-mean-pool before attention",
+      "output_pooling": "mean over query outputs"
+    },
+    "spatial": {
+      "type": "residual_spatial_bottleneck_attention_adapter",
+      "adapter_width": 256,
+      "topology": "C-to-256 projection, one residual self-attention/MLP block over the spatial grid, zero-initialized 256-to-C projection, unchanged task head",
+      "multiscale_rule": "share adapter weights across selected feature scales"
+    },
+    "paired_or_multiview": {
+      "type": "shared_residual_spatial_bottleneck_attention_adapter",
+      "adapter_width": 256,
+      "rule": "apply the same reader weights independently to every view/frame, then use the unchanged fixed correlation/matching/localization pipeline"
+    },
+    "parameter_policy": "reader architecture is identical across models; only deterministic input/output projections accommodate feature width",
+    "reporting": "report reader, task-head, total trainable, and total model parameter counts"
+  },
+  "recipe_overrides": {
+    "image_cls_100": {
+      "reader": "global",
+      "optimization": {
+        "epochs": 100,
+        "optimizer": "AdamW",
+        "base_lr": 0.001,
+        "lr_reference_effective_batch": 256,
+        "lr_scaling": "linear",
+        "weight_decay": 0.05,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "warmup": "5 epochs from 1e-6",
+        "schedule": "cosine to 1e-6",
+        "layer_decay": 1.0
+      },
+      "augmentation": "unchanged from EXTEND_LINEAR_v1"
+    },
+    "image_cls_small_100": {
+      "reader": "global",
+      "optimization": {
+        "epochs": 100,
+        "optimizer": "AdamW",
+        "base_lr": 0.001,
+        "lr_reference_effective_batch": 256,
+        "lr_scaling": "linear",
+        "weight_decay": 0.05,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "warmup": "5 epochs from 1e-6",
+        "schedule": "cosine to 1e-6",
+        "layer_decay": 1.0
+      },
+      "augmentation": "unchanged from EXTEND_LINEAR_v1"
+    },
+    "image_multilabel_50": {
+      "reader": "global",
+      "optimization": {
+        "epochs": 50,
+        "optimizer": "AdamW",
+        "base_lr": 0.001,
+        "lr_reference_effective_batch": 256,
+        "lr_scaling": "linear",
+        "weight_decay": 0.05,
+        "warmup": "5 epochs",
+        "schedule": "cosine",
+        "layer_decay": 1.0
+      }
+    },
+    "video_cls_50": {
+      "reader": "video",
+      "optimization": {
+        "epochs": 50,
+        "optimizer": "AdamW",
+        "base_lr": 0.001,
+        "lr_reference_effective_batch": 256,
+        "lr_scaling": "linear",
+        "weight_decay": 0.05,
+        "warmup": "5 epochs from 1e-6",
+        "schedule": "cosine to 1e-6",
+        "layer_decay": 1.0
+      },
+      "augmentation": "unchanged from EXTEND_LINEAR_v1"
+    },
+    "video_multilabel_50": {
+      "reader": "video",
+      "optimization": {
+        "epochs": 50,
+        "optimizer": "AdamW",
+        "base_lr": 0.001,
+        "lr_reference_effective_batch": 256,
+        "lr_scaling": "linear",
+        "weight_decay": 0.05,
+        "warmup": "5 epochs",
+        "schedule": "cosine",
+        "layer_decay": 1.0
+      }
+    },
+    "detection_1x": {
+      "reader": "spatial",
+      "optimization": {
+        "epochs": 12,
+        "optimizer": "SGD",
+        "base_lr": 0.02,
+        "lr_reference_effective_batch": 16,
+        "lr_scaling": "linear",
+        "momentum": 0.9,
+        "weight_decay": 0.0001,
+        "warmup": "500 iterations, factor 0.001",
+        "schedule": "step x0.1 at epochs 8 and 11",
+        "layer_decay": 1.0
+      }
+    },
+    "instance_seg_1x": {
+      "reader": "spatial",
+      "optimization": {
+        "epochs": 12,
+        "optimizer": "SGD",
+        "base_lr": 0.02,
+        "lr_reference_effective_batch": 16,
+        "lr_scaling": "linear",
+        "momentum": 0.9,
+        "weight_decay": 0.0001,
+        "warmup": "500 iterations",
+        "schedule": "step x0.1 at epochs 8 and 11",
+        "layer_decay": 1.0
+      }
+    },
+    "semantic_seg_20": {
+      "reader": "spatial",
+      "optimization": {
+        "epochs": 20,
+        "optimizer": "AdamW",
+        "base_lr": 0.001,
+        "lr_reference_effective_batch": 8,
+        "lr_scaling": "linear",
+        "weight_decay": 0.05,
+        "warmup": "1 epoch from 1e-6",
+        "schedule": "cosine to 1e-6",
+        "layer_decay": 1.0
+      }
+    },
+    "depth_30": {
+      "reader": "spatial",
+      "optimization": {
+        "epochs": 30,
+        "optimizer": "AdamW",
+        "base_lr": 0.001,
+        "lr_reference_effective_batch": 8,
+        "lr_scaling": "linear",
+        "weight_decay": 0.05,
+        "warmup": "1 epoch from 1e-6",
+        "schedule": "cosine to 1e-6",
+        "layer_decay": 1.0
+      }
+    },
+    "pose_30": {
+      "reader": "spatial",
+      "optimization": {
+        "epochs": 30,
+        "optimizer": "AdamW",
+        "base_lr": 0.001,
+        "lr_reference_effective_batch": 64,
+        "lr_scaling": "linear",
+        "weight_decay": 0.05,
+        "warmup": "1 epoch",
+        "schedule": "cosine",
+        "layer_decay": 1.0
+      }
+    },
+    "tracking_30": {
+      "reader": "paired_or_multiview",
+      "optimization": {
+        "epochs": 30,
+        "optimizer": "AdamW",
+        "base_lr": 0.001,
+        "lr_reference_effective_batch": 64,
+        "lr_scaling": "linear",
+        "weight_decay": 0.05,
+        "warmup": "1 epoch",
+        "schedule": "cosine",
+        "layer_decay": 1.0
+      }
+    },
+    "flow_30": {
+      "reader": "paired_or_multiview",
+      "optimization": {
+        "epochs": 30,
+        "optimizer": "AdamW",
+        "base_lr": 0.001,
+        "lr_reference_effective_batch": 16,
+        "lr_scaling": "linear",
+        "weight_decay": 0.05,
+        "warmup": "1 epoch",
+        "schedule": "cosine",
+        "layer_decay": 1.0
+      }
+    },
+    "matching_30": {
+      "reader": "paired_or_multiview",
+      "optimization": {
+        "epochs": 30,
+        "optimizer": "AdamW",
+        "base_lr": 0.001,
+        "lr_reference_effective_batch": 64,
+        "lr_scaling": "linear",
+        "weight_decay": 0.05,
+        "warmup": "1 epoch",
+        "schedule": "cosine",
+        "layer_decay": 1.0
+      }
+    },
+    "localization_30": {
+      "reader": "paired_or_multiview",
+      "optimization": {
+        "epochs": 30,
+        "optimizer": "AdamW",
+        "base_lr": 0.001,
+        "lr_reference_effective_batch": 128,
+        "lr_scaling": "linear",
+        "weight_decay": 0.05,
+        "warmup": "1 epoch",
+        "schedule": "cosine",
+        "layer_decay": 1.0
+      }
+    },
+    "visual_reasoning_50": {
+      "reader": "global for images or video for clips",
+      "optimization": {
+        "epochs": 50,
+        "optimizer": "AdamW",
+        "base_lr": 0.001,
+        "lr_reference_effective_batch": 128,
+        "lr_scaling": "linear",
+        "weight_decay": 0.05,
+        "warmup": "5 epochs",
+        "schedule": "cosine",
+        "layer_decay": 1.0
+      }
+    },
+    "action_detection_12": {
+      "reader": "spatial/video before RoIAlign",
+      "optimization": {
+        "epochs": 12,
+        "optimizer": "SGD",
+        "base_lr": 0.02,
+        "lr_reference_effective_batch": 64,
+        "lr_scaling": "linear",
+        "momentum": 0.9,
+        "weight_decay": 0.0001,
+        "warmup": "1 epoch",
+        "schedule": "step at epochs 8 and 11",
+        "layer_decay": 1.0
+      }
+    }
+  },
+  "dataset_resolution": "Resolve every dataset entry from EXTEND_LINEAR_v1, retain its split/path/input/head/loss/metric, and apply the matching recipe override above. Dataset-specific overrides in EXTEND_LINEAR_v1 take precedence unless they would unfreeze or replace the backbone.",
+  "reporting": {
+    "checkpoint_rule": "final scheduled epoch",
+    "aggregation": "single seed-0 score; no mean or standard deviation",
+    "required_metadata": [
+      "logical and physical job IDs",
+      "checkpoint",
+      "dataset/version/split",
+      "reader type and parameter count",
+      "unchanged task head",
+      "feature shape",
+      "effective batch/LR",
+      "backbone gradient check",
+      "final metric",
+      "exit state"
+    ],
+    "comparability_rule": "no model-specific reader size, query count, layer choice, resolution, or hyperparameter search",
+    "retry_policy": "attempt first, isolate failures, then repair and retry only the affected logical job"
+  }
+}

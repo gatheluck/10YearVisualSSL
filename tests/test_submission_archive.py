@@ -96,6 +96,8 @@ class TestSubmissionArchive(unittest.TestCase):
                     for track in ('LINEAR', 'ATTENTIVE', 'FINETUNE')}
         expected.add('BASIC5_FRONTIER_SYSTEM_PROMPTS.md')
         expected.add('00_scope_and_replication.md')
+        expected.update(f'EXTEND_{track}_v1.json'
+                        for track in ('LINEAR', 'ATTENTIVE', 'FINETUNE'))
         self.assertTrue(source.is_dir(), 'supplied protocol directory missing')
         for path in source.iterdir():
             if path.is_file():

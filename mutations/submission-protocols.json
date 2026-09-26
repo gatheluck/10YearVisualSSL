@@ -17,6 +17,42 @@
       "tests": [
         "tests.test_submission_archive.TestSubmissionArchive.test_supplied_protocol_links_survive_committed_export"
       ]
+    },
+    {
+      "label": "registry-path-must-be-portable",
+      "file": "docs/submission_protocols/EXTEND_LINEAR_v1.json",
+      "old": "${DATA_ROOT}/action40",
+      "new": "/datasets/action40",
+      "tests": [
+        "tests.test_extended_registries"
+      ]
+    },
+    {
+      "label": "registry-scientific-values-preserved",
+      "file": "docs/submission_protocols/EXTEND_LINEAR_v1.json",
+      "old": "\"new_configs_per_model\": 76",
+      "new": "\"new_configs_per_model\": 75",
+      "tests": [
+        "tests.test_extended_registries"
+      ]
+    },
+    {
+      "label": "registry-inheritance-resolves",
+      "file": "docs/submission_protocols/EXTEND_ATTENTIVE_v1.json",
+      "old": "\"protocol\": \"EXTEND_LINEAR_v1\"",
+      "new": "\"protocol\": \"MISSING_PARENT\"",
+      "tests": [
+        "tests.test_extended_registries"
+      ]
+    },
+    {
+      "label": "registry-export-link-resolves",
+      "file": "docs/submission_protocols/README.md",
+      "old": "](EXTEND_LINEAR_v1.json)",
+      "new": "](MISSING_REGISTRY.json)",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_supplied_protocol_links_survive_committed_export"
+      ]
     }
   ]
 }
