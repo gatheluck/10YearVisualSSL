@@ -114,6 +114,42 @@ class TestSubmissionArchive(unittest.TestCase):
                 self.assertEqual(archive.read(posixpath.normpath('code/protocols/' + target)),
                                  (source / target).read_bytes())
 
+    def test_initial_protocols_export_with_separate_evidence_and_proposals(self):
+        source = TOOL.parent.parent / 'docs' / 'initial_protocols'
+        expected = {'INITIAL_STEP1_v1.md', 'INITIAL_STEP2_v1.md',
+                    'INITIAL_STEP3_3DFM_v1.md', 'INITIAL_STEP3_4DFM_v1.md',
+                    'INITIAL_STEP3_VIDEO_SSL_v1.md',
+                    'INITIAL_STEP3_VIDEO_WORLD_MODELS_v1.md',
+                    'INITIAL_STEP3_VISION_GENERATIVE_v1.md',
+                    'INITIAL_STEP3_VLM_v1.md'}
+        self.assertTrue(source.is_dir(), 'initial protocol companions missing')
+        for path in source.glob('*.md'):
+            self.write('initial/' + path.name, path.read_text())
+        self.commit()
+        self.policy['include'] = ['initial']
+        self.assertTrue(self.run_build(), self.report.read_text())
+        with zipfile.ZipFile(self.out) as archive:
+            index = archive.read('code/initial/README.md').decode()
+            links = re.findall(r'\]\(([^)]+)\)', index)
+            self.assertEqual(set(links), expected)
+            for name in expected:
+                body = archive.read('code/initial/' + name).decode()
+                self.assertEqual(body, (source / name).read_text())
+                observed, proposal = body.split('## Proposed changes and unresolved choices', 1)
+                self.assertIn('## Historical evidence and its limits', observed)
+                self.assertIn('not evidence of completed runs', proposal)
+                self.assertNotRegex(body, r'(?i)example job id|projdesc/|canonical v1')
+                self.assertNotRegex(body, r'/(?:groups|home|Users)/')
+            generative = archive.read('code/initial/INITIAL_STEP3_VISION_GENERATIVE_v1.md').decode()
+            observed, proposal = generative.split('## Proposed changes and unresolved choices', 1)
+            self.assertIn('K=7', observed)
+            self.assertIn('final-layer CLS', proposal)
+            video = archive.read('code/initial/INITIAL_STEP3_VIDEO_SSL_v1.md').decode()
+            observed, proposal = video.split('## Proposed changes and unresolved choices', 1)
+            self.assertIn('20 epochs', observed)
+            self.assertIn('50 epochs', proposal)
+            self.assertIn('seed remains unresolved', proposal)
+
     def test_encoded_and_unicode_identifiers_are_blocked(self):
         for body in ('private%2Downer', 'private&#45;owner', '\uff50\uff52\uff49\uff56\uff41\uff54\uff45-owner', 'private\u200b-owner'):
             with self.subTest(body=body):

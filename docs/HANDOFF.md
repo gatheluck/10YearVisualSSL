@@ -10,6 +10,23 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-09-26: initial experiment protocol companions
+
+The user supplied eight reconstructions of experiments preceding Unified LP/AP/FT
+and authorized separating historical evidence from new unification proposals.
+The [initial protocol companions](initial_protocols/README.md) retain detailed
+recipes as attributed candidate specifications, with explicit historical and
+proposal sections. RAEv2 readout, 4DFM resolution and VideoSSL schedule/seed
+changes are not represented as completed reruns. Private machine paths, project
+identifiers and job IDs are removed; originals and audit evidence remain private.
+
+This is separate from the Extend-registry delivery branch and must not be added
+to its ongoing PR. No runtime, original source, weights or experiments change.
+Local ZIP tests verify delivery and selected evidence/proposal boundaries; full
+score-to-run correspondence remains unverified. The existing submission ZIP must
+not be described as containing these additions until explicitly rebuilt and
+inspected. Preserve the supplied Unified companions and unrelated submodule work.
+
 ## Verified baseline and what it means
 
 - Default branch: `main`. PR #183 merge: `1c5ed6d66ad437db9d4fe4afb1f1e5cfe7a50776`.

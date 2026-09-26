@@ -1,0 +1,40 @@
+{
+  "targets": [
+    {
+      "label": "initial-link-delivery",
+      "file": "docs/initial_protocols/README.md",
+      "old": "](INITIAL_STEP1_v1.md)",
+      "new": "](MISSING_INITIAL.md)",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_initial_protocols_export_with_separate_evidence_and_proposals"
+      ]
+    },
+    {
+      "label": "initial-history-proposal-separation",
+      "file": "docs/initial_protocols/INITIAL_STEP3_VIDEO_SSL_v1.md",
+      "old": "## Proposed changes and unresolved choices",
+      "new": "## Historical settings",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_initial_protocols_export_with_separate_evidence_and_proposals"
+      ]
+    },
+    {
+      "label": "initial-local-path-disclosure",
+      "file": "docs/initial_protocols/INITIAL_STEP1_v1.md",
+      "old": "is an intentionally unresolved placeholder",
+      "new": "is located at /home/researcher/data and is an intentionally unresolved placeholder",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_initial_protocols_export_with_separate_evidence_and_proposals"
+      ]
+    },
+    {
+      "label": "initial-historical-readout",
+      "file": "docs/initial_protocols/INITIAL_STEP3_VISION_GENERATIVE_v1.md",
+      "old": "defaults to K=7",
+      "new": "defaults to K=1",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_initial_protocols_export_with_separate_evidence_and_proposals"
+      ]
+    }
+  ]
+}
