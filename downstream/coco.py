@@ -46,6 +46,7 @@ from downstream.optimization import REFERENCE_SCHEDULE, task_schedule_report
 from downstream.optimization import build_coco_scheduler
 from downstream.attention import (SpatialAdapter, task_spatial_features,
                                   validate_adaptation, clip_attentive_gradients)
+from downstream.native_detection import NativePyramidBackbone, PROFILE as NATIVE_PROFILE, validate_profile
 from downstream import contract                                    # noqa: E402
 from downstream.spatial_backbones import build_frozen_backbone, build_trainable_backbone, KINDS  # noqa: E402
 
@@ -83,9 +84,10 @@ def validate_config(cfg: dict) -> None:
         if key in cfg:
             raise ConfigError(
                 f"config: {key} is set; the output location is fixed at --out")
-    _named(TOP_KEYS - set(cfg), set(cfg) - (TOP_KEYS | {"profile", "adaptation", "optimizer_profile", "scheduler_profile"}), "config")
+    _named(TOP_KEYS - set(cfg), set(cfg) - (TOP_KEYS | {"profile", "adaptation", "optimizer_profile", "scheduler_profile", "reader_profile", "detector_profile"}), "config")
     try:
         validate_adaptation(cfg)
+        validate_profile(cfg)
     except ValueError as exc:
         raise ConfigError(str(exc)) from exc
     if cfg.get("profile", "legacy") not in ("legacy", CAPTURE_PROFILE):
@@ -225,10 +227,18 @@ class FrozenPyramidBackbone(nn.Module):
 
 def build_frozen_detector(backbone_spec: dict, detector: dict,
                           device: "torch.device", *, profile: str = "legacy",
-                          adaptation: str = "frozen") -> FasterRCNN:
-    validate_adaptation({"profile": profile, "adaptation": adaptation})
+                          adaptation: str = "frozen", reader_profile=None,
+                          detector_profile=None) -> FasterRCNN:
+    selected = dict(profile=profile, adaptation=adaptation, backbone=backbone_spec)
+    if reader_profile is not None:
+        selected["reader_profile"] = reader_profile
+    if detector_profile is not None:
+        selected["detector_profile"] = detector_profile
+    validate_adaptation(selected)
+    validate_profile(selected)
     captured = profile == CAPTURE_PROFILE
-    if captured:
+    native = detector_profile == NATIVE_PROFILE
+    if captured and not native:
         from downstream.spatial_backbones import supports_capture_pyramid
         if not supports_capture_pyramid(backbone_spec["kind"]):
             raise NotImplementedError("captured pyramid requires a verified stride-16 provider")
@@ -236,9 +246,23 @@ def build_frozen_detector(backbone_spec: dict, detector: dict,
             raise ValueError("captured pyramid requires stride 16")
         if len(detector["anchor_sizes"]) != 4 or any(int(s) <= 0 for s in detector["anchor_sizes"]):
             raise ValueError("captured pyramid requires four positive anchor sizes")
+    if native and (len(detector["anchor_sizes"]) != 4 or any(type(s) is not int or s <= 0 for s in detector["anchor_sizes"])):
+        raise ValueError("native pyramid requires four positive integer anchor sizes")
     builder = build_trainable_backbone if adaptation == "finetune" else build_frozen_backbone
     backbone = builder(backbone_spec, device)
     anchor_sizes = tuple(int(s) for s in detector["anchor_sizes"])
+    if native:
+        mean, std = backbone.detection_normalization()
+        model = FasterRCNN(
+            NativePyramidBackbone(backbone, adaptation=adaptation, reader_profile=reader_profile),
+            num_classes=NUM_CLASSES,
+            rpn_anchor_generator=AnchorGenerator(sizes=tuple((s,) for s in anchor_sizes),
+                                                aspect_ratios=((0.5,1.,2.),)*4),
+            box_roi_pool=MultiScaleRoIAlign(featmap_names=["0","1","2","3"], output_size=7, sampling_ratio=2),
+            min_size=int(detector["min_size"]), max_size=int(detector["max_size"]),
+            image_mean=list(mean), image_std=list(std), size_divisible=32,
+            box_score_thresh=getattr(backbone, "detection_score_threshold", .05))
+        return model.to(device)
     if captured:
         # The existing timm provider expects ImageNet normalization. Keep it in
         # FasterRCNN's transform, once, rather than transplanting another model's
@@ -352,7 +376,8 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
 
     require_training_batches(train_loader, optimization)
     model = build_frozen_detector(cfg["backbone"], detector, device, profile=profile,
-                                  adaptation=adaptation)
+                                  adaptation=adaptation, reader_profile=cfg.get("reader_profile"),
+                                  detector_profile=cfg.get("detector_profile"))
     encoder = model.backbone.body if profile == CAPTURE_PROFILE else model.backbone
     if adaptation != "finetune" and any(p.requires_grad for p in encoder.parameters()):
         raise RuntimeError("backbone is not frozen")
@@ -405,6 +430,8 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
         json.dumps({"task": TASK, "backbone": cfg["backbone"],
                     "num_classes": NUM_CLASSES, "epochs": epochs, "final": raw,
                     "profile": profile, "adaptation": adaptation,
+                    "reader_profile": cfg.get("reader_profile"),
+                    "detector_profile": cfg.get("detector_profile"),
                     "canonical_eligible": False,
                     "metric_units": "ratio; -1 means undefined",
                     "record_value": not subset_mode and profile == "legacy",

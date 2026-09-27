@@ -13,14 +13,16 @@ FINETUNE_GROUPS = True
 IMAGE_CLASSIFICATION = True
 COMPONENT_ONLY = True
 CAPTURE_PYRAMID = False
-SUPPORTED_ADAPTATIONS = ("frozen", "finetune")
+SUPPORTED_ADAPTATIONS = ("frozen", "attentive", "finetune")
+ATTENTIVE_PROFILE = "captured_cross_self_v1"
+NATIVE_DETECTION = True
 
 
 class MergerBackbone(PatchVisionBackbone):
-    def _forward(self, images):
+    def _forward(self, images, *, already_normalized=False):
         # Convert task ImageNet normalization once; zero pad in Qwen space.
         # _pixels also validates the shared image layout.
-        pixel = self._pixels(images)
+        pixel = images if already_normalized else self._pixels(images)
         pixel = F.pad(
             pixel,
             (

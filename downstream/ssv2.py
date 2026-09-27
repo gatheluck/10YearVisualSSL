@@ -43,8 +43,9 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 from downstream.optimization import resolve_optimization, build_optimizer, require_training_batches
 from downstream.optimization import build_task_scheduler, task_schedule_report
-from downstream.attention import (task_spatial_features, QueryReader,
+from downstream.attention import (task_spatial_features,
                                   validate_adaptation, clip_attentive_gradients)
+from downstream.captured_readers import query_reader
 from downstream import contract                                    # noqa: E402
 from downstream.spatial_backbones import build_frozen_backbone, build_trainable_backbone, KINDS  # noqa: E402
 
@@ -82,7 +83,7 @@ def validate_config(cfg: dict) -> None:
         if key in cfg:
             raise ConfigError(
                 f"config: {key} is set; the output location is fixed at --out")
-    _named(TOP_KEYS - set(cfg), set(cfg) - (TOP_KEYS | {"profile", "adaptation", "optimizer_profile", "scheduler_profile"}), "config")
+    _named(TOP_KEYS - set(cfg), set(cfg) - (TOP_KEYS | {"profile", "adaptation", "optimizer_profile", "scheduler_profile", "reader_profile"}), "config")
     try:
         validate_adaptation(cfg)
     except ValueError as exc:
@@ -249,11 +250,11 @@ def _subset(dataset: Dataset, maximum: int):
 
 class FrozenFrameAverageClassifier(nn.Module):
     def __init__(self, backbone: nn.Module, num_classes: int = NUM_CLASSES,
-                 *, adaptation: str = "frozen"):
+                 *, adaptation: str = "frozen", reader_profile=None):
         super().__init__()
         self.backbone = backbone
         self.adaptation = adaptation
-        self.reader = QueryReader(backbone.out_channels) if adaptation == "attentive" else None
+        self.reader = query_reader(backbone, reader_profile) if adaptation == "attentive" else None
         self.classifier = nn.Linear(512 if self.reader is not None else getattr(backbone, "global_channels", backbone.out_channels),
                                     num_classes)
         if hasattr(backbone, "classifier_init_std"):
@@ -269,7 +270,7 @@ class FrozenFrameAverageClassifier(nn.Module):
         nn.init.zeros_(self.classifier.bias)
 
     def forward(self, clips: torch.Tensor) -> torch.Tensor:
-        if callable(getattr(self.backbone, "classification_features", None)):
+        if self.reader is None and callable(getattr(self.backbone, "classification_features", None)):
             with nullcontext() if self.adaptation == "finetune" else torch.no_grad():
                 feat = self.backbone.classification_features(clips, adaptation=self.adaptation, video=True)
             return self.classifier(feat)
@@ -347,7 +348,7 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
     require_training_batches(train_loader, optimization)
     builder = build_trainable_backbone if adaptation == "finetune" else build_frozen_backbone
     backbone = builder(cfg["backbone"], device)
-    model = FrozenFrameAverageClassifier(backbone, adaptation=adaptation).to(device)
+    model = FrozenFrameAverageClassifier(backbone, adaptation=adaptation, reader_profile=cfg.get("reader_profile")).to(device)
     if adaptation != "finetune" and any(p.requires_grad for p in model.backbone.parameters()):
         raise RuntimeError("backbone is not frozen")
     if optimization is not None:
@@ -394,7 +395,7 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
     (Path(out) / "results.json").write_text(
         json.dumps({"task": TASK, "backbone": cfg["backbone"],
                     "num_classes": NUM_CLASSES, "num_frames": num_frames,
-                    "profile": profile, "adaptation": adaptation, "canonical_eligible": False,
+                    "profile": profile, "adaptation": adaptation, "reader_profile": cfg.get("reader_profile"), "canonical_eligible": False,
                     "epochs": epochs, "final": raw,
                     "record_value": not subset_mode and profile != CAPTURE_PROFILE,
                     **({"optimization": optimization} if optimization is not None else {}),

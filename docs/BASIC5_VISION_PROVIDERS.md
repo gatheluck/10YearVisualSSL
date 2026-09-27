@@ -74,14 +74,14 @@ supported. Existing schedule/batch constraints apply. Results always report
 
 ## Explicit limits
 
-- AP is not yet integrated into these three portable providers: query-reader and dense-adapter
-  definitions differ across the source evidence. No common reader is silently
-  substituted. Existing providers' supported AP paths remain available.
+- As of 2026-09-27, AP is available through the explicit source-specific
+  [reader profiles](BASIC5_NATIVE_PATHS.md). Omitted or mismatched profiles remain
+  rejected; differing experimental readers are not relabeled as one protocol.
 - ImageNet FT execution remains rejected pending augmentation reconciliation.
   The differentiable classifier composition alone does not complete its recipe.
-- CLIP COCO is rejected because its patch-14 grid does not satisfy the shared
-  stride-16 pyramid. SigLIP COCO is rejected because normalization relative to
-  detection padding has not been reconciled with the shared transform.
+- The existing shared stride-16 COCO path still rejects CLIP/SigLIP. The explicit
+  [native detector profile](BASIC5_NATIVE_PATHS.md) now preserves their actual
+  grids and family-specific normalization, and supports LP/AP/FT components.
 - No distributed/FSDP, accumulation, new GPU run, released 7B-weight execution,
   full dataset score, seed aggregate, Extend or additional Step-4 implementation
   is certified by this change. A CPU fixture score is never a workbook value.

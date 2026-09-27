@@ -165,7 +165,7 @@
     {
       "label": "image provider dispatch",
       "file": "downstream/imagenet.py",
-      "old": "if callable(getattr(self.backbone, \"classification_features\", None)):",
+      "old": "if self.reader is None and callable(getattr(self.backbone, \"classification_features\", None)):",
       "new": "if False:",
       "tests": [
         "tests.test_method_hf_basic5.TestVisionFamilies.test_imagenet_uses_global_projection_and_family_head_initialization"
@@ -174,7 +174,7 @@
     {
       "label": "video provider dispatch",
       "file": "downstream/ssv2.py",
-      "old": "if callable(getattr(self.backbone, \"classification_features\", None)):",
+      "old": "if self.reader is None and callable(getattr(self.backbone, \"classification_features\", None)):",
       "new": "if False:",
       "tests": [
         "tests.test_method_hf_basic5.TestVisionFamilies.test_frame_readout_uses_pooler_and_preserves_family_normalization_order"

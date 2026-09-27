@@ -15,11 +15,18 @@ FINETUNE_GROUPS = True
 IMAGE_CLASSIFICATION = True
 COMPONENT_ONLY = True
 CAPTURE_PYRAMID = False
-SUPPORTED_ADAPTATIONS = ("frozen", "finetune")
+SUPPORTED_ADAPTATIONS = ("frozen", "attentive", "finetune")
+ATTENTIVE_PROFILE = "captured_cross_self_v1"
+NATIVE_DETECTION = True
 
 
 class TrunkBackbone(PatchVisionBackbone):
-    def _forward(self, images):
+    detection_score_threshold = 0.0
+
+    def detection_normalization(self):
+        return (.485,.456,.406), (.229,.224,.225)
+
+    def _forward(self, images, *, already_normalized=False):
         if images.ndim != 4 or images.shape[1] != 3 or min(images.shape[-2:]) < 1:
             raise ValueError("images require nonempty [B, 3, H, W]")
         pixel = F.pad(

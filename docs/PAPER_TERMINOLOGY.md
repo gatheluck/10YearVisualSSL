@@ -25,7 +25,7 @@ resolution, feature readout and seed conventions.
 
 Section 5.2 also discusses scaling and a frontier-model reference. The
 [frontier prompts](submission_protocols/BASIC5_FRONTIER_SYSTEM_PROMPTS.md)
-relate to that reference and Appendix C.14, rather than a numbered code stage.
+relate to that reference and Appendix C.15 (final submitted manuscript), rather than a numbered code stage.
 Section 6 uses representation features from ImageNet-1K validation for its map;
 a path containing `step1` identifies a legacy artifact group, not the manuscript
 section in which that artifact is analyzed.
