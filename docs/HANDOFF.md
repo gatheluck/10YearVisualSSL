@@ -14,6 +14,16 @@ delivery status and permission assumptions do not describe today's workflow.
 
 ### 2026-09-27: final-paper component port
 
+Follow-up after PR 203: main was fast-forwarded to `a6dd760`; its full tree
+matched tested head `e985a3a`, and existing submodule edits were preserved.
+The separate two-family task adds [K7](BASIC5_K7.md) and
+[Omega](BASIC5_OMEGA.md), with 28 small-fixture LP/AP/FT routes and source-specific
+video/readout/COCO-label behavior. Direct reference comparisons cover outputs,
+gradients and three updates, not full paper results. C-RADIO, complete recipes,
+Extended tasks, distributed training and run accounting remain in the
+[current audit](FINAL_PAPER_COVERAGE.md). Originals and weights remain read-only;
+no extraction is repeated. Refresh the task PR for current validation/delivery.
+
 PR 202 was merged and main was fast-forwarded to `9d3b1ee`; its tree matched the
 previously tested PR head, and all 109 reported CI checks succeeded. Unrelated
 submodule edits were preserved. New work uses a separate branch and PR.

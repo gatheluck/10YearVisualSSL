@@ -291,3 +291,9 @@ def attentive_profile(kind):
 def supports_native_detection(kind):
     return (kind in _PROVIDERS and
             getattr(_load_provider(_PROVIDERS[kind]), 'NATIVE_DETECTION', False) is True)
+
+
+def detection_label_space(kind):
+    """A source-owned category convention; raw COCO ids remain the default."""
+    return (getattr(_load_provider(_PROVIDERS[kind]), 'DETECTION_LABEL_SPACE', 'category_id')
+            if kind in _PROVIDERS else 'category_id')
