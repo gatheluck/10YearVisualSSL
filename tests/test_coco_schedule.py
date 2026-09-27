@@ -115,6 +115,11 @@ class TestSchedule(unittest.TestCase):
                 self.weight = torch.nn.Parameter(torch.tensor(.1))
                 self.backbone = torch.nn.Module()
                 self.backbone.body = torch.nn.Linear(1, 1).requires_grad_(False)
+                # Preserve the public detector metadata interface in this
+                # inexpensive schedule fixture, including its real predictor.
+                from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
+                self.roi_heads = torch.nn.Module()
+                self.roi_heads.box_predictor = FastRCNNPredictor(1, coco.NUM_CLASSES)
             def forward(self, images, targets):
                 return {"loss": self.weight.square() * images[0].mean()}
         with tempfile.TemporaryDirectory() as d:
@@ -135,6 +140,9 @@ class TestSchedule(unittest.TestCase):
                  mock.patch.object(torch.optim.SGD, "step", step):
                 self.assertEqual(coco.main(["--config",str(config),"--out",str(out)]), 0)
             self.assertEqual(len(rates), 1200)
+            result = json.loads((out/"results.json").read_text())
+            self.assertEqual(result["num_classes"], coco.NUM_CLASSES)
+            self.assertEqual(result["label_space"], "category_id")
             base = .02*2/16
             for update in (499, 500, 799, 800, 807, 808, 1099, 1100, 1110, 1111):
                 factor = (.001+.999*update/500 if update < 500 else

@@ -296,6 +296,15 @@
       "tests": [
         "tests.test_method_vggt_omega.TestOmega.test_native_detector_and_category_roundtrip_preserve_sparse_coco_ids"
       ]
+    },
+    {
+      "file": "downstream/coco.py",
+      "label": "Misreport detector vocabulary size",
+      "old": "\"num_classes\": model.roi_heads.box_predictor.cls_score.out_features,",
+      "new": "\"num_classes\": model.roi_heads.box_predictor.cls_score.out_features + 1,",
+      "tests": [
+        "tests.test_coco_schedule.TestSchedule.test_runner_milestones_use_full_loader_despite_step_cap"
+      ]
     }
   ]
 }
