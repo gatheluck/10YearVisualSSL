@@ -25,6 +25,9 @@ What the definition has to hold:
 from __future__ import annotations
 
 import re
+import json
+import subprocess
+import sys
 import unittest
 from pathlib import Path
 
@@ -55,6 +58,28 @@ def instructions(text: str) -> list[str]:
 
 
 class TestThereIsOne(unittest.TestCase):
+    def load_smokes(self, names):
+        code = "import json,sys,unittest; l=unittest.TestLoader(); suites=[l.loadTestsFromName(n) for n in json.loads(sys.argv[1])]; print(json.dumps(dict(errors=l.errors, counts=[s.countTestCases() for s in suites])))"
+        proc = subprocess.run([sys.executable, "-c", code, json.dumps(names)],
+                              cwd=ROOT, capture_output=True, text=True, timeout=120)
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        return json.loads(proc.stdout.splitlines()[-1])
+
+    def test_every_locked_method_resolves_its_real_container_smoke(self):
+        names = ["tests.test_method_" + m.name for m in method_dirs()
+                 if (m / "requirements.lock.txt").is_file()]
+        self.assertTrue(names)
+        report = self.load_smokes(names)
+        self.assertEqual(report["errors"], [])
+        self.assertEqual(len(report["counts"]), len(names))
+        self.assertTrue(all(report["counts"]), "an empty suite is not a container smoke")
+
+    def test_missing_smoke_is_an_import_error_even_when_loader_counts_a_test(self):
+        report = self.load_smokes(["tests.test_method_that_does_not_exist"])
+        self.assertEqual(len(report["errors"]), 1)
+        self.assertIn("ModuleNotFoundError", report["errors"][0])
+        self.assertEqual(report["counts"], [1])
+
     def test_a_method_that_can_be_locked_can_be_containerised(self):
         for m in method_dirs():
             if not (m / "requirements.lock.txt").is_file():

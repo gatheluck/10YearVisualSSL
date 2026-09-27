@@ -127,9 +127,8 @@ class TestOmega(unittest.TestCase):
         body.aggregator.inter_frame_blocks[-1].requires_grad_(False)
         with self.assertRaisesRegex(ValueError,'complete paired'):body.finetune_group_policy()
 
-    def test_native_detector_and_category_roundtrip_preserve_sparse_coco_ids(self):
+    def test_native_detector_preserves_spatial_features_and_head(self):
         from downstream import coco
-        from tests.test_downstream_coco import tiny_coco
         spec,reference=self.fixture()
         self.assertTrue(sb.supports_native_detection(spec['kind']), 'source detector route missing')
         self.assertEqual(sb.detection_label_space(spec['kind']),'contiguous')
@@ -145,6 +144,15 @@ class TestOmega(unittest.TestCase):
         torch.testing.assert_close(actual,expected,atol=1e-6,rtol=1e-5)
         from downstream.native_detection import TransposedFeaturePyramid
         self.assertIsInstance(model.backbone.fpn,TransposedFeaturePyramid)
+
+    def test_native_detector_and_category_roundtrip_preserve_sparse_coco_ids(self):
+        try:
+            import pycocotools.coco
+        except ImportError:
+            self.skipTest('COCO mapping integration requires pycocotools')
+        from downstream import coco
+        from tests.test_downstream_coco import tiny_coco
+        spec,_=self.fixture()
         root=tiny_coco(Path(self.tmp.name)/'coco')
         ann=root/'annotations/instances_val2017.json'
         obj=json.loads(ann.read_text())
@@ -171,11 +179,12 @@ class TestOmega(unittest.TestCase):
             coco.evaluate(Invalid(),loader,ds,torch.device('cpu'),profile='capture_basic5_components')
         with self.assertRaisesRegex(ValueError,'label_space'):
             coco.CocoDetectionForFRCNN(*args,label_space='unknown')
-        from tests.test_basic5_optimization import TestOptimization
         from tests.test_downstream_coco import smoke_config
         from unittest import mock
-        cfg=TestOptimization().config(coco,smoke_config,root)
-        cfg.update(backbone=spec,detector_profile='captured_native_detection_v1')
+        cfg=smoke_config(root,backbone=spec,profile='capture_basic5_components',
+                        detector_profile='captured_native_detection_v1',
+                        optimizer_profile='basic5_frozen_v1')
+        cfg['detector'].update(lr='protocol',anchor_sizes=[8,16,32,64])
         with mock.patch.object(coco,'build_frozen_detector',side_effect=AssertionError('built before mapping validation')) as build:
             with self.assertRaisesRegex(ValueError,'category mappings differ'):
                 coco.run(cfg,Path(self.tmp.name)/'out')
@@ -187,7 +196,7 @@ class TestOmega(unittest.TestCase):
                 coco.run(smoke_config(root),Path(self.tmp.name)/'legacy-out')
 
     def test_all_fourteen_task_routes_use_the_native_video_and_category_profiles(self):
-        from tests.test_method_raev2_k7 import TestK7Backbone
+        from tests.test_method_raev2 import TestK7Backbone
         def prepare(module, root):
             if module.TASK == 'coco_detection':
                 # Keep the full 80-slot vocabulary even in the two-image smoke.

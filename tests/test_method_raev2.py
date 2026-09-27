@@ -136,6 +136,9 @@ class TestK7Backbone(unittest.TestCase):
 
     def _run_task_routes(self, reader_profile, prepare=None):
         try:
+            # Dataset libraries are imported lazily by some runners. Check the
+            # complete route environment before starting any training fixture.
+            import pycocotools.coco, h5py, av, timm, einops
             from tests import test_basic5_optimization as opt
             from tests.test_basic5_imagenet import TestImageNet
             from downstream import imagenet, coco, nyuv2, contract
@@ -193,7 +196,7 @@ class TestDelivery(unittest.TestCase):
                 self.skipTest('PyYAML required for workflow parsing')
             command = next(s['run'] for s in parsed()['tests.yml']['jobs']['downstream']['steps']
                            if s.get('name')=='Run Basic5 component contracts with downstream dependencies')
-            self.assertTrue(_runs_finetune_tests(command,module='tests.test_method_raev2_k7'))
+            self.assertTrue(_runs_finetune_tests(command,module='tests.test_method_raev2'))
 
 
 if __name__ == '__main__':

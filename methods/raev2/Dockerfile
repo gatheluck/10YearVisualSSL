@@ -1,4 +1,4 @@
-# Pinned downstream encoder environment; container build not yet verified.
+# Pinned downstream encoder environment; task extras use the downstream lock.
 FROM python:3.12.13-slim-bookworm@sha256:d50fb7611f86d04a3b0471b46d7557818d88983fc3136726336b2a4c657aa30b
 
 # No apt at all. The wheels in the lock are self-contained, and any

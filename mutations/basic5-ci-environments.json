@@ -1,0 +1,49 @@
+{
+  "targets": [
+    {
+      "file": "tests/test_method_vggt_omega.py",
+      "label": "Lose COCO-only dependency guard",
+      "old": "            import pycocotools.coco",
+      "new": "            import torch",
+      "tests": [
+        "tests.test_basic5_component_dependencies.TestComponentEnvironments.test_missing_task_extras_keep_encoder_and_detector_contracts_active"
+      ]
+    },
+    {
+      "file": "tests/test_method_raev2.py",
+      "label": "Forget lazy task dependency",
+      "old": "import pycocotools.coco, h5py, av, timm, einops",
+      "new": "import h5py, av, timm, einops",
+      "tests": [
+        "tests.test_basic5_component_dependencies.TestComponentEnvironments.test_one_missing_extra_is_not_hidden_by_other_installed_extras"
+      ]
+    },
+    {
+      "file": "tests/test_method_vggt_omega.py",
+      "label": "Skip pure detector contract",
+      "old": "    def test_native_detector_preserves_spatial_features_and_head(self):",
+      "new": "    @unittest.skip(\"incorrect broad skip\")\n    def test_native_detector_preserves_spatial_features_and_head(self):",
+      "tests": [
+        "tests.test_basic5_component_dependencies.TestComponentEnvironments.test_missing_task_extras_keep_encoder_and_detector_contracts_active"
+      ]
+    },
+    {
+      "file": ".github/workflows/tests.yml",
+      "label": "Omit complete environment CI regression",
+      "old": "            tests.test_basic5_component_dependencies \\\n",
+      "new": "",
+      "tests": [
+        "tests.test_basic5_component_dependencies.TestDependencyCI.test_complete_environment_regression_runs_in_downstream_job"
+      ]
+    },
+    {
+      "file": "tests/test_method_raev2.py",
+      "label": "Break container smoke module import",
+      "old": "import json",
+      "new": "raise ImportError(\"container smoke unavailable\")",
+      "tests": [
+        "tests.test_container.TestThereIsOne.test_every_locked_method_resolves_its_real_container_smoke"
+      ]
+    }
+  ]
+}

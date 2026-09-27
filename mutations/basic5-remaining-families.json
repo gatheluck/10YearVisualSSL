@@ -6,7 +6,7 @@
       "old": "(11, 13, 15, 17, 19, 21, 23)",
       "new": "(10, 13, 15, 17, 19, 21, 23)",
       "tests": [
-        "tests.test_method_raev2_k7.TestK7Backbone.test_seven_selected_normalized_layers_global_term_padding_and_gradients"
+        "tests.test_method_raev2.TestK7Backbone.test_seven_selected_normalized_layers_global_term_padding_and_gradients"
       ]
     },
     {
@@ -15,7 +15,7 @@
       "old": "torch.stack(layers).mean(0)",
       "new": "torch.stack(layers).sum(0)",
       "tests": [
-        "tests.test_method_raev2_k7.TestK7Backbone.test_seven_selected_normalized_layers_global_term_padding_and_gradients"
+        "tests.test_method_raev2.TestK7Backbone.test_seven_selected_normalized_layers_global_term_padding_and_gradients"
       ]
     },
     {
@@ -24,7 +24,7 @@
       "old": " + layers[-1].mean(1, keepdim=True)",
       "new": "",
       "tests": [
-        "tests.test_method_raev2_k7.TestK7Backbone.test_seven_selected_normalized_layers_global_term_padding_and_gradients"
+        "tests.test_method_raev2.TestK7Backbone.test_seven_selected_normalized_layers_global_term_padding_and_gradients"
       ]
     },
     {
@@ -33,7 +33,7 @@
       "old": "elementwise_affine=False",
       "new": "elementwise_affine=True",
       "tests": [
-        "tests.test_method_raev2_k7.TestK7Backbone.test_seven_selected_normalized_layers_global_term_padding_and_gradients"
+        "tests.test_method_raev2.TestK7Backbone.test_seven_selected_normalized_layers_global_term_padding_and_gradients"
       ]
     },
     {
@@ -42,7 +42,7 @@
       "old": "pixels = F.pad(images, (0, -images.shape[-1] % 16, 0, -images.shape[-2] % 16))",
       "new": "pixels = images",
       "tests": [
-        "tests.test_method_raev2_k7.TestK7Backbone.test_seven_selected_normalized_layers_global_term_padding_and_gradients"
+        "tests.test_method_raev2.TestK7Backbone.test_seven_selected_normalized_layers_global_term_padding_and_gradients"
       ]
     },
     {
@@ -51,7 +51,7 @@
       "old": "F.normalize(self.video_tokens(images), dim=-1).mean(1)",
       "new": "F.normalize(self.video_tokens(images).mean(1), dim=-1)",
       "tests": [
-        "tests.test_method_raev2_k7.TestK7Backbone.test_freezing_temporal_readout_and_native_detection_input"
+        "tests.test_method_raev2.TestK7Backbone.test_freezing_temporal_readout_and_native_detection_input"
       ]
     },
     {
@@ -60,7 +60,7 @@
       "old": "return F.normalize(tokens.mean(1), dim=-1)",
       "new": "return tokens.mean(1)",
       "tests": [
-        "tests.test_method_raev2_k7.TestK7Backbone.test_freezing_temporal_readout_and_native_detection_input"
+        "tests.test_method_raev2.TestK7Backbone.test_freezing_temporal_readout_and_native_detection_input"
       ]
     },
     {
@@ -69,7 +69,7 @@
       "old": "with nullcontext() if self.trainable else torch.no_grad():",
       "new": "with nullcontext():",
       "tests": [
-        "tests.test_method_raev2_k7.TestK7Backbone.test_freezing_temporal_readout_and_native_detection_input"
+        "tests.test_method_raev2.TestK7Backbone.test_freezing_temporal_readout_and_native_detection_input"
       ]
     },
     {
@@ -78,7 +78,7 @@
       "old": "self.model.rope_embed.eval()",
       "new": "self.model.rope_embed.train()",
       "tests": [
-        "tests.test_method_raev2_k7.TestK7Backbone.test_seven_selected_normalized_layers_global_term_padding_and_gradients"
+        "tests.test_method_raev2.TestK7Backbone.test_seven_selected_normalized_layers_global_term_padding_and_gradients"
       ]
     },
     {
@@ -87,7 +87,7 @@
       "old": "model.load_state_dict(state, strict=True)",
       "new": "model.load_state_dict(state, strict=False)",
       "tests": [
-        "tests.test_method_raev2_k7.TestK7Backbone.test_checkpoint_and_geometry_refuse_substitutes"
+        "tests.test_method_raev2.TestK7Backbone.test_checkpoint_and_geometry_refuse_substitutes"
       ]
     },
     {
@@ -96,7 +96,7 @@
       "old": "return depth + 1, entries",
       "new": "return depth, entries",
       "tests": [
-        "tests.test_method_raev2_k7.TestK7Backbone.test_finetune_layer_policy_and_state_updates"
+        "tests.test_method_raev2.TestK7Backbone.test_finetune_layer_policy_and_state_updates"
       ]
     },
     {
@@ -105,7 +105,7 @@
       "old": "\"storage_tokens\", ",
       "new": "",
       "tests": [
-        "tests.test_method_raev2_k7.TestK7Backbone.test_finetune_layer_policy_and_state_updates"
+        "tests.test_method_raev2.TestK7Backbone.test_finetune_layer_policy_and_state_updates"
       ]
     },
     {
@@ -114,7 +114,7 @@
       "old": "if blocks != set(range(depth)) or depth != 24:",
       "new": "if False:",
       "tests": [
-        "tests.test_method_raev2_k7.TestK7Backbone.test_invalid_inputs_outputs_and_incomplete_layer_groups_fail_closed"
+        "tests.test_method_raev2.TestK7Backbone.test_invalid_inputs_outputs_and_incomplete_layer_groups_fail_closed"
       ]
     },
     {
@@ -123,7 +123,7 @@
       "old": "if spec.get(\"arch\") not in (\"released\", \"fixture\"):",
       "new": "if False:",
       "tests": [
-        "tests.test_method_raev2_k7.TestK7Backbone.test_checkpoint_and_geometry_refuse_substitutes"
+        "tests.test_method_raev2.TestK7Backbone.test_checkpoint_and_geometry_refuse_substitutes"
       ]
     },
     {
@@ -132,7 +132,7 @@
       "old": "if spec.get(\"patch_size\") != 16 or spec.get(\"img_size\") != 224:",
       "new": "if False:",
       "tests": [
-        "tests.test_method_raev2_k7.TestK7Backbone.test_checkpoint_and_geometry_refuse_substitutes"
+        "tests.test_method_raev2.TestK7Backbone.test_checkpoint_and_geometry_refuse_substitutes"
       ]
     },
     {
@@ -213,7 +213,7 @@
       "old": "NATIVE_DETECTION = True",
       "new": "NATIVE_DETECTION = False",
       "tests": [
-        "tests.test_method_vggt_omega.TestOmega.test_native_detector_and_category_roundtrip_preserve_sparse_coco_ids"
+        "tests.test_method_vggt_omega.TestOmega.test_native_detector_preserves_spatial_features_and_head"
       ]
     },
     {
@@ -222,7 +222,7 @@
       "old": "detection_num_classes = 81",
       "new": "detection_num_classes = 91",
       "tests": [
-        "tests.test_method_vggt_omega.TestOmega.test_native_detector_and_category_roundtrip_preserve_sparse_coco_ids"
+        "tests.test_method_vggt_omega.TestOmega.test_native_detector_preserves_spatial_features_and_head"
       ]
     },
     {
@@ -231,7 +231,7 @@
       "old": "DETECTION_LABEL_SPACE = \"contiguous\"",
       "new": "DETECTION_LABEL_SPACE = \"category_id\"",
       "tests": [
-        "tests.test_method_vggt_omega.TestOmega.test_native_detector_and_category_roundtrip_preserve_sparse_coco_ids"
+        "tests.test_method_vggt_omega.TestOmega.test_native_detector_preserves_spatial_features_and_head"
       ]
     },
     {
@@ -240,7 +240,7 @@
       "old": "return (0., 0., 0.), (1., 1., 1.)",
       "new": "return (.5, .5, .5), (.5, .5, .5)",
       "tests": [
-        "tests.test_method_vggt_omega.TestOmega.test_native_detector_and_category_roundtrip_preserve_sparse_coco_ids"
+        "tests.test_method_vggt_omega.TestOmega.test_native_detector_preserves_spatial_features_and_head"
       ]
     },
     {
@@ -273,17 +273,17 @@
     {
       "file": ".github/workflows/tests.yml",
       "label": "Drop K7 CI execution",
-      "old": "tests.test_method_raev2_k7 tests.test_method_vggt_omega",
+      "old": "tests.test_method_raev2 tests.test_method_vggt_omega",
       "new": "tests.test_method_vggt_omega",
       "tests": [
-        "tests.test_method_raev2_k7.TestDelivery.test_usage_guide_and_ci_cover_the_real_entrypoints"
+        "tests.test_method_raev2.TestDelivery.test_usage_guide_and_ci_cover_the_real_entrypoints"
       ]
     },
     {
       "file": ".github/workflows/tests.yml",
       "label": "Drop Omega CI execution",
-      "old": "tests.test_method_raev2_k7 tests.test_method_vggt_omega",
-      "new": "tests.test_method_raev2_k7",
+      "old": "tests.test_method_raev2 tests.test_method_vggt_omega",
+      "new": "tests.test_method_raev2",
       "tests": [
         "tests.test_method_vggt_omega.TestOmegaDelivery.test_guide_and_ci_expose_the_new_component"
       ]
