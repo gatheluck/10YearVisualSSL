@@ -1,0 +1,157 @@
+{
+  "targets": [
+    {
+      "file": "methods/cradiov4_h/downstream_backbone.py",
+      "label": "Lose task normalization reversal",
+      "old": "if not raw:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_cradiov4_h.TestRadio.test_summary_spatial_padding_and_three_gradient_updates"
+      ]
+    },
+    {
+      "file": "methods/cradiov4_h/downstream_backbone.py",
+      "label": "Keep padded boundary patches",
+      "old": "features[:,:,:height//16,:width//16].float()",
+      "new": "features.float()",
+      "tests": [
+        "tests.test_method_cradiov4_h.TestRadio.test_summary_spatial_padding_and_three_gradient_updates"
+      ]
+    },
+    {
+      "file": "methods/cradiov4_h/downstream_backbone.py",
+      "label": "Normalize video summary incorrectly",
+      "old": "return self._video(images)[0].mean(1)",
+      "new": "return F.normalize(self._video(images)[0].mean(1),dim=-1)",
+      "tests": [
+        "tests.test_method_cradiov4_h.TestRadio.test_freeze_image_lp_video_summary_and_video_ap"
+      ]
+    },
+    {
+      "file": "methods/cradiov4_h/downstream_backbone.py",
+      "label": "Replace AP spatial tokens with summary",
+      "old": "return self._video(clip)[1]",
+      "new": "return self._video(clip)[0]",
+      "tests": [
+        "tests.test_method_cradiov4_h.TestRadio.test_freeze_image_lp_video_summary_and_video_ap"
+      ]
+    },
+    {
+      "file": "methods/cradiov4_h/downstream_backbone.py",
+      "label": "Lose CPE video context",
+      "old": "hasattr(radio,'cpe_video_mode')",
+      "new": "False",
+      "tests": [
+        "tests.test_method_cradiov4_h.TestRadio.test_freeze_image_lp_video_summary_and_video_ap"
+      ]
+    },
+    {
+      "file": "methods/cradiov4_h/downstream_backbone.py",
+      "label": "Wrong layer-decay endpoint",
+      "old": "return self.depth, entries",
+      "new": "return self.depth + 1, entries",
+      "tests": [
+        "tests.test_method_cradiov4_h.TestRadio.test_layer_policy_and_classification_initialization"
+      ]
+    },
+    {
+      "file": "methods/cradiov4_h/downstream_backbone.py",
+      "label": "Unfreeze frozen tower",
+      "old": "radio.model.requires_grad_(trainable)",
+      "new": "radio.model.requires_grad_(True)",
+      "tests": [
+        "tests.test_method_cradiov4_h.TestRadio.test_freeze_image_lp_video_summary_and_video_ap"
+      ]
+    },
+    {
+      "file": "methods/cradiov4_h/downstream_backbone.py",
+      "label": "Skip official layout guard",
+      "old": "or idxs is None or idxs.tolist() != [0, 1]",
+      "new": "or idxs is None",
+      "tests": [
+        "tests.test_method_cradiov4_h.TestRadio.test_layout_checkpoint_and_inputs_fail_closed"
+      ]
+    },
+    {
+      "file": "methods/cradiov4_h/downstream_backbone.py",
+      "label": "Allow incomplete weights",
+      "old": "if any(info.get(key) for key in ('missing_keys', 'unexpected_keys', 'mismatched_keys', 'error_msgs')):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_cradiov4_h.TestRadio.test_loader_uses_local_snapshot_and_refuses_partial_weights"
+      ]
+    },
+    {
+      "file": "methods/cradiov4_h/downstream_backbone.py",
+      "label": "Allow upstream nested download",
+      "old": "or cfg.get('args', {}).get('pretrained')",
+      "new": "",
+      "tests": [
+        "tests.test_method_cradiov4_h.TestRadio.test_snapshot_cannot_request_nested_download_or_extra_checkpoint"
+      ]
+    },
+    {
+      "file": "methods/cradiov4_h/downstream_backbone.py",
+      "label": "Permit canonical legacy route",
+      "old": "COMPONENT_ONLY = True",
+      "new": "COMPONENT_ONLY = False",
+      "tests": [
+        "tests.test_method_cradiov4_h.TestRadio.test_partial_port_cannot_claim_legacy_canonical_profile"
+      ]
+    },
+    {
+      "file": "downstream/accounting.py",
+      "label": "Use population instead of sample deviation",
+      "old": "statistics.stdev(values)",
+      "new": "statistics.pstdev(values)",
+      "tests": [
+        "tests.test_downstream_accounting.TestAccounting.test_low_and_zero_scores_partial_seeds_and_sample_std"
+      ]
+    },
+    {
+      "file": "downstream/accounting.py",
+      "label": "Ignore failed exit status",
+      "old": "contract.verify(out,config,record['exit_status'])",
+      "new": "contract.verify(out,config,0)",
+      "tests": [
+        "tests.test_downstream_accounting.TestAccounting.test_singleton_std_unknown_and_failed_run_is_not_zero"
+      ]
+    },
+    {
+      "file": "downstream/accounting.py",
+      "label": "Mix recipes",
+      "old": "identity != fingerprint",
+      "new": "False",
+      "tests": [
+        "tests.test_downstream_accounting.TestAccounting.test_duplicate_seed_or_changed_recipe_refused"
+      ]
+    },
+    {
+      "file": "downstream/accounting.py",
+      "label": "Drop seed identity guard",
+      "old": "cfg.get('seed') != seed or manifest.get('seed') != seed",
+      "new": "False",
+      "tests": [
+        "tests.test_downstream_accounting.TestAccounting.test_changed_artifact_wrong_seed_and_partial_epoch_are_not_valid"
+      ]
+    },
+    {
+      "file": "downstream/accounting.py",
+      "label": "Invent singleton deviation",
+      "old": "statistics.stdev(values) if len(values)>1 else None",
+      "new": "statistics.stdev(values) if len(values)>1 else 0",
+      "tests": [
+        "tests.test_downstream_accounting.TestAccounting.test_singleton_std_unknown_and_failed_run_is_not_zero"
+      ]
+    },
+    {
+      "file": "downstream/accounting.py",
+      "label": "Overwrite previous report",
+      "old": "Path(args.out).open('x')",
+      "new": "Path(args.out).open('w')",
+      "tests": [
+        "tests.test_downstream_accounting.TestAccounting.test_cli_delivers_parseable_report_without_overwriting"
+      ]
+    }
+  ]
+}

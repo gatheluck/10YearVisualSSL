@@ -294,7 +294,7 @@ ImageNet-100 is a separate future port), not A1.
 {
   "next": "C2:vjepa2_1",
   "grandfathered_ceiling": 0,
-  "non_step3_unnumbered": ["_reference", "image_gpt", "mar", "var"],
+  "non_step3_unnumbered": ["_reference", "image_gpt", "mar", "var", "cradiov4_h"],
   "items": [
     {"id": "A1", "phase": "A", "subphase": "A1", "order": 1, "kind": "task", "title": "ARSSL eval harness (driver over the downstream task probes)", "artifact": "downstream/arssl.py", "status": "done"},
     {"id": "A2:eva02", "phase": "A", "subphase": "A2", "order": 2, "kind": "method", "dir": "eva02", "title": "EVA-02", "status": "done"},
@@ -360,6 +360,11 @@ method adapter or CompEval recipe. Its two plan items intentionally remain
 
 
 ### 2026-09-27: K7 and Omega component progress
+
+September 28 addition: `cradiov4_h` is an explicit non-Step-3 namespace entry
+for the final-paper BasicFive downstream provider, not a completed method adapter
+in this historical queue. Its [14 component routes](BASIC5_RADIO.md) do not
+change the completion definitions or mark full experimental results reproduced.
 
 The user continues to prioritize grouped final-paper coverage over the historical
 one-item-per-PR order. `methods/raev2` now houses the explicit `raev2_k7` downstream

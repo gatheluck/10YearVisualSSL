@@ -1,7 +1,8 @@
 # Downstream tasks beyond ImageNet-1k: detection, segmentation, depth, video
 
-Current update (2026-09-27): [explicit five-family AP/native detection](BASIC5_NATIVE_PATHS.md)
-plus [K7](BASIC5_K7.md), [Omega](BASIC5_OMEGA.md) and
+Current update (2026-09-28): [explicit five-family AP/native detection](BASIC5_NATIVE_PATHS.md)
+plus [K7](BASIC5_K7.md), [Omega](BASIC5_OMEGA.md), [C-RADIO](BASIC5_RADIO.md),
+[final-run accounting](DOWNSTREAM_ACCOUNTING.md) and
 [final submitted manuscript coverage](FINAL_PAPER_COVERAGE.md) supersede
 earlier provider limits and table numbering below. Dated sections retain their
 historical scope; they do not certify current full-paper reproduction.
