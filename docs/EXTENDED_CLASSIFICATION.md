@@ -119,7 +119,9 @@ gradients and three SGD updates on identical synthetic features. This comparison
 does not validate released weights or end-to-end paper scores. Private source
 hashes and run records remain outside Git.
 
-Video classification and the remaining detection, segmentation, pose, tracking,
+Semantic segmentation now has a separate [component path](EXTENDED_SEGMENTATION.md)
+with explicit 224-grid evaluation and unresolved dataset differences.
+Video classification and the remaining detection, pose, tracking,
 flow, localization and reasoning routes still require their Extended-specific
 readers, metrics, native input builders and run-to-table reconciliation. Native
 BasicFive task components are not automatically equivalent Extended recipes.

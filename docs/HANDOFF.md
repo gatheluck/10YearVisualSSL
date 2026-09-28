@@ -14,6 +14,22 @@ delivery status and permission assumptions do not describe today's workflow.
 
 ### 2026-09-27: final-paper component port
 
+September 28 follow-up after PR 206: all 115 checks succeeded and main was
+fast-forwarded to `01a7375`, matching the tested `c9a750e` tree. Existing video
+submodule changes were preserved. The next grouped cycle adds
+[Extended semantic LP/AP](EXTENDED_SEGMENTATION.md), five explicit dense provider
+profiles, pixel-population metrics and ADE/VOC/BDD native membership conversion.
+Captured and current original dense heads/readers were compared read-only;
+reduced initialization/output/gradient/three-update comparisons matched. Actual
+recorded runs still use accumulation/BF16 not ported here. The runner explicitly
+reports 224-grid component scores, not native-resolution or paper reproduction.
+ADE's uncapped training crop is an explicit third profile, distinct from the
+older pair loader's 512-pixel cap and the current fixed-224 builders.
+SpaceNet metric and SUN RGB-D task contradictions remain pending. Remaining
+Extended families, full recipes and native/GPU/result validation are next work.
+No compute job or original input was changed. Consult the new PR for final
+validation/CI/delivery state; private source/run evidence stays outside Git.
+
 September 28 follow-up after PR 205: main was fast-forwarded to `48ae6d6`;
 its tree matched tested head `473b901`, all 115 CI checks succeeded, and
 preexisting submodule changes were preserved. The next grouped branch adds

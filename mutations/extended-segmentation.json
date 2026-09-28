@@ -1,0 +1,211 @@
+{
+  "targets": [
+    {
+      "file": "downstream/extended_segmentation.py",
+      "label": "Train encoder",
+      "old": "backbone.requires_grad_(False).eval()",
+      "new": "backbone.requires_grad_(True).eval()",
+      "tests": [
+        "tests.test_extended_segmentation.TestExtendedSegmentation.test_dense_head_freezes_encoder_and_updates_both_adapter_variants"
+      ]
+    },
+    {
+      "file": "downstream/extended_segmentation.py",
+      "label": "Lose frozen evaluation mode",
+      "old": "super().train(mode); self.backbone.eval(); return self",
+      "new": "super().train(mode); return self",
+      "tests": [
+        "tests.test_extended_segmentation.TestExtendedSegmentation.test_dense_head_freezes_encoder_and_updates_both_adapter_variants"
+      ]
+    },
+    {
+      "file": "downstream/extended_segmentation.py",
+      "label": "Zero dense head",
+      "old": "nn.init.normal_(self.head.weight,std=.01)",
+      "new": "nn.init.zeros_(self.head.weight)",
+      "tests": [
+        "tests.test_extended_segmentation.TestExtendedSegmentation.test_dense_head_freezes_encoder_and_updates_both_adapter_variants"
+      ]
+    },
+    {
+      "file": "downstream/extended_segmentation.py",
+      "label": "Detach spatial adapter",
+      "old": "features = self.adapter(features)",
+      "new": "features = self.adapter(features).detach()",
+      "tests": [
+        "tests.test_extended_segmentation.TestExtendedSegmentation.test_dense_head_freezes_encoder_and_updates_both_adapter_variants"
+      ]
+    },
+    {
+      "file": "downstream/extended_segmentation.py",
+      "label": "Include absent classes in mIoU",
+      "old": "(inter[present]/union[present]).mean()",
+      "new": "(inter/union.clamp_min(1)).mean()",
+      "tests": [
+        "tests.test_extended_segmentation.TestExtendedSegmentation.test_confusion_accumulates_pixels_not_image_averages_and_ignores_255"
+      ]
+    },
+    {
+      "file": "downstream/extended_segmentation.py",
+      "label": "Include ignore pixels",
+      "old": "return targets!=255",
+      "new": "return torch.ones_like(targets,dtype=torch.bool)",
+      "tests": [
+        "tests.test_extended_segmentation.TestExtendedSegmentation.test_confusion_accumulates_pixels_not_image_averages_and_ignores_255"
+      ]
+    },
+    {
+      "file": "downstream/extended_segmentation.py",
+      "label": "Discard earlier evaluation batches",
+      "old": "self.conf += torch.bincount",
+      "new": "self.conf = torch.bincount",
+      "tests": [
+        "tests.test_extended_segmentation.TestExtendedSegmentation.test_confusion_accumulates_pixels_not_image_averages_and_ignores_255"
+      ]
+    },
+    {
+      "file": "downstream/extended_segmentation.py",
+      "label": "Report all-ignore evaluation",
+      "old": "if not pixels: raise ValueError",
+      "new": "if False: raise ValueError",
+      "tests": [
+        "tests.test_extended_segmentation.TestExtendedSegmentation.test_confusion_accumulates_pixels_not_image_averages_and_ignores_255"
+      ]
+    },
+    {
+      "file": "downstream/extended_segmentation.py",
+      "label": "Accept all-ignore training",
+      "old": "if not _targets(targets,logits.shape[1]).any():",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_segmentation.TestExtendedSegmentation.test_dense_head_freezes_encoder_and_updates_both_adapter_variants"
+      ]
+    },
+    {
+      "file": "downstream/extended_segmentation.py",
+      "label": "Allow cross-split overlap",
+      "old": "or resolved in seen",
+      "new": "or False",
+      "tests": [
+        "tests.test_extended_segmentation.TestExtendedSegmentation.test_mask_mapping_precedes_nearest_resize_and_rejects_corruption"
+      ]
+    },
+    {
+      "file": "downstream/extended_segmentation.py",
+      "label": "Accept boolean schema",
+      "old": "type(data['schema_version']) is not int or ",
+      "new": "",
+      "tests": [
+        "tests.test_extended_segmentation.TestExtendedSegmentation.test_mask_mapping_precedes_nearest_resize_and_rejects_corruption"
+      ]
+    },
+    {
+      "file": "downstream/extended_segmentation.py",
+      "label": "Accept ambiguous native ID aliases",
+      "old": "or str(int(k))!=k",
+      "new": "",
+      "tests": [
+        "tests.test_extended_segmentation.TestExtendedSegmentation.test_mask_mapping_precedes_nearest_resize_and_rejects_corruption"
+      ]
+    },
+    {
+      "file": "downstream/extended_segmentation.py",
+      "label": "Flip image without target",
+      "old": "mask=TF.hflip(mask)",
+      "new": "mask=mask",
+      "tests": [
+        "tests.test_extended_segmentation.TestExtendedSegmentation.test_pair_crop_keeps_image_and_mask_geometry_aligned"
+      ]
+    },
+    {
+      "file": "downstream/extended_segmentation.py",
+      "label": "Silently use mIoU for building metric",
+      "old": "or entry.get('primary_metric') != 'mIoU'",
+      "new": "",
+      "tests": [
+        "tests.test_extended_segmentation.TestExtendedSegmentation.test_recipe_refuses_conflicting_metrics_and_scales_physical_batch"
+      ]
+    },
+    {
+      "file": "downstream/extended_classification.py",
+      "label": "Lose semantic warmup",
+      "old": "'1 epoch from 1e-6':1",
+      "new": "'1 epoch from 1e-6':0",
+      "tests": [
+        "tests.test_extended_segmentation.TestExtendedSegmentation.test_recipe_refuses_conflicting_metrics_and_scales_physical_batch"
+      ]
+    },
+    {
+      "file": "downstream/extended_segmentation_membership.py",
+      "label": "Keep ADE void as class zero",
+      "old": "label_map={'0':255,",
+      "new": "label_map={'0':0,",
+      "tests": [
+        "tests.test_extended_segmentation_membership.TestMembership.test_ade_pairs_labels_shift_and_orphans_fail"
+      ]
+    },
+    {
+      "file": "downstream/extended_segmentation_membership.py",
+      "label": "Drop unpaired masks",
+      "old": "if set(images)!=set(masks):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_segmentation_membership.TestMembership.test_ade_pairs_labels_shift_and_orphans_fail"
+      ]
+    },
+    {
+      "file": "downstream/extended_segmentation_membership.py",
+      "label": "Ignore augmented split",
+      "old": "if (lists/'trainaug.txt').exists():",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_segmentation_membership.TestMembership.test_voc_preserves_list_membership_and_refuses_unselected_augmented_split"
+      ]
+    },
+    {
+      "file": "downstream/extended_segmentation_membership.py",
+      "label": "Accept native split overlap",
+      "old": "if resolved in seen:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_segmentation_membership.TestMembership.test_voc_preserves_list_membership_and_refuses_unselected_augmented_split"
+      ]
+    },
+    {
+      "file": "downstream/extended_segmentation_membership.py",
+      "label": "Overwrite native mask alias",
+      "old": "if name in found:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_segmentation_membership.TestMembership.test_bdd_train_id_suffix_and_alias_collision"
+      ]
+    },
+    {
+      "file": "downstream/extended_segmentation_membership.py",
+      "label": "Accept incomplete release",
+      "old": "if len(images)!=expected:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_segmentation_membership.TestMembership.test_cli_requires_release_population_and_does_not_write_partial_manifest"
+      ]
+    },
+    {
+      "file": "downstream/extended_segmentation_membership.py",
+      "label": "Overwrite existing manifest",
+      "old": "Path(args.out).open('x')",
+      "new": "Path(args.out).open('w')",
+      "tests": [
+        "tests.test_extended_segmentation_membership.TestMembership.test_release_sized_cli_writes_once_and_records_population"
+      ]
+    },
+    {
+      "file": "downstream/extended_segmentation.py",
+      "label": "Cap the uncapped ADE crop",
+      "old": "if self.profile=='captured_pair_crop224_v1' and max(image.size)>512:",
+      "new": "if max(image.size)>512:",
+      "tests": [
+        "tests.test_extended_segmentation.TestExtendedSegmentation.test_ade_crop_preserves_uncapped_geometry_before_random_crop"
+      ]
+    }
+  ]
+}
