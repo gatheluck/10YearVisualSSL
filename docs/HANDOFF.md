@@ -14,6 +14,34 @@ delivery status and permission assumptions do not describe today's workflow.
 
 ### 2026-09-27: final-paper component port
 
+CI follow-up, 2026-09-28: the first PR 204 run had 57 failed jobs out of
+113. All 55 locked jobs and the Omega container reached a COCO integration
+test without `pycocotools`; the RAEv2 container requested a smoke module whose
+name differed from the method directory. The fully populated local environment
+did not reproduce either environment/entrypoint boundary. The correction keeps
+the pure Omega detector checks active in method environments, isolates the COCO
+evaluation dependency, checks all task extras before starting the grouped routes,
+and aligns the RAEv2 smoke with the actual container command. Fresh-process
+absence/presence tests and dynamic smoke-module loading guard these boundaries;
+the downstream CI job explicitly runs the complete-environment regression.
+This changes test delivery, not scientific model behavior or dependency locks.
+Both Linux/amd64 images were built locally and their locked environments and
+component tests passed, with task-extra skips explicit. Fresh-process complete
+environment controls execute those task tests without skips. This is component
+validation, not released-weight/GPU or full-paper result validation.
+Keep corrections in the existing PR and refresh its latest checks before merging;
+the earlier local success does not establish success of the corrected CI run.
+
+Follow-up after PR 203: main was fast-forwarded to `a6dd760`; its full tree
+matched tested head `e985a3a`, and existing submodule edits were preserved.
+The separate two-family task adds [K7](BASIC5_K7.md) and
+[Omega](BASIC5_OMEGA.md), with 28 small-fixture LP/AP/FT routes and source-specific
+video/readout/COCO-label behavior. Direct reference comparisons cover outputs,
+gradients and three updates, not full paper results. C-RADIO, complete recipes,
+Extended tasks, distributed training and run accounting remain in the
+[current audit](FINAL_PAPER_COVERAGE.md). Originals and weights remain read-only;
+no extraction is repeated. Refresh the task PR for current validation/delivery.
+
 PR 202 was merged and main was fast-forwarded to `9d3b1ee`; its tree matched the
 previously tested PR head, and all 109 reported CI checks succeeded. Unrelated
 submodule edits were preserved. New work uses a separate branch and PR.

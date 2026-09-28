@@ -1,0 +1,310 @@
+{
+  "targets": [
+    {
+      "file": "methods/raev2/downstream_backbone.py",
+      "label": "Change selected layer",
+      "old": "(11, 13, 15, 17, 19, 21, 23)",
+      "new": "(10, 13, 15, 17, 19, 21, 23)",
+      "tests": [
+        "tests.test_method_raev2.TestK7Backbone.test_seven_selected_normalized_layers_global_term_padding_and_gradients"
+      ]
+    },
+    {
+      "file": "methods/raev2/downstream_backbone.py",
+      "label": "Sum instead of average",
+      "old": "torch.stack(layers).mean(0)",
+      "new": "torch.stack(layers).sum(0)",
+      "tests": [
+        "tests.test_method_raev2.TestK7Backbone.test_seven_selected_normalized_layers_global_term_padding_and_gradients"
+      ]
+    },
+    {
+      "file": "methods/raev2/downstream_backbone.py",
+      "label": "Omit global final-layer term",
+      "old": " + layers[-1].mean(1, keepdim=True)",
+      "new": "",
+      "tests": [
+        "tests.test_method_raev2.TestK7Backbone.test_seven_selected_normalized_layers_global_term_padding_and_gradients"
+      ]
+    },
+    {
+      "file": "methods/raev2/downstream_backbone.py",
+      "label": "Keep affine final norm",
+      "old": "elementwise_affine=False",
+      "new": "elementwise_affine=True",
+      "tests": [
+        "tests.test_method_raev2.TestK7Backbone.test_seven_selected_normalized_layers_global_term_padding_and_gradients"
+      ]
+    },
+    {
+      "file": "methods/raev2/downstream_backbone.py",
+      "label": "Drop normalized-space padding",
+      "old": "pixels = F.pad(images, (0, -images.shape[-1] % 16, 0, -images.shape[-2] % 16))",
+      "new": "pixels = images",
+      "tests": [
+        "tests.test_method_raev2.TestK7Backbone.test_seven_selected_normalized_layers_global_term_padding_and_gradients"
+      ]
+    },
+    {
+      "file": "methods/raev2/downstream_backbone.py",
+      "label": "Normalize after temporal mean",
+      "old": "F.normalize(self.video_tokens(images), dim=-1).mean(1)",
+      "new": "F.normalize(self.video_tokens(images).mean(1), dim=-1)",
+      "tests": [
+        "tests.test_method_raev2.TestK7Backbone.test_freezing_temporal_readout_and_native_detection_input"
+      ]
+    },
+    {
+      "file": "methods/raev2/downstream_backbone.py",
+      "label": "Leave global features unnormalized",
+      "old": "return F.normalize(tokens.mean(1), dim=-1)",
+      "new": "return tokens.mean(1)",
+      "tests": [
+        "tests.test_method_raev2.TestK7Backbone.test_freezing_temporal_readout_and_native_detection_input"
+      ]
+    },
+    {
+      "file": "methods/raev2/downstream_backbone.py",
+      "label": "Permit gradients through frozen encoder",
+      "old": "with nullcontext() if self.trainable else torch.no_grad():",
+      "new": "with nullcontext():",
+      "tests": [
+        "tests.test_method_raev2.TestK7Backbone.test_freezing_temporal_readout_and_native_detection_input"
+      ]
+    },
+    {
+      "file": "methods/raev2/downstream_backbone.py",
+      "label": "Enable stochastic RoPE geometry",
+      "old": "self.model.rope_embed.eval()",
+      "new": "self.model.rope_embed.train()",
+      "tests": [
+        "tests.test_method_raev2.TestK7Backbone.test_seven_selected_normalized_layers_global_term_padding_and_gradients"
+      ]
+    },
+    {
+      "file": "methods/raev2/downstream_backbone.py",
+      "label": "Load incomplete checkpoint",
+      "old": "model.load_state_dict(state, strict=True)",
+      "new": "model.load_state_dict(state, strict=False)",
+      "tests": [
+        "tests.test_method_raev2.TestK7Backbone.test_checkpoint_and_geometry_refuse_substitutes"
+      ]
+    },
+    {
+      "file": "methods/raev2/downstream_backbone.py",
+      "label": "Change layer-decay endpoint",
+      "old": "return depth + 1, entries",
+      "new": "return depth, entries",
+      "tests": [
+        "tests.test_method_raev2.TestK7Backbone.test_finetune_layer_policy_and_state_updates"
+      ]
+    },
+    {
+      "file": "methods/raev2/downstream_backbone.py",
+      "label": "Decay storage tokens",
+      "old": "\"storage_tokens\", ",
+      "new": "",
+      "tests": [
+        "tests.test_method_raev2.TestK7Backbone.test_finetune_layer_policy_and_state_updates"
+      ]
+    },
+    {
+      "file": "methods/raev2/downstream_backbone.py",
+      "label": "Accept invalid layer coverage",
+      "old": "if blocks != set(range(depth)) or depth != 24:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_raev2.TestK7Backbone.test_invalid_inputs_outputs_and_incomplete_layer_groups_fail_closed"
+      ]
+    },
+    {
+      "file": "methods/raev2/downstream_backbone.py",
+      "label": "Accept wrong architecture",
+      "old": "if spec.get(\"arch\") not in (\"released\", \"fixture\"):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_raev2.TestK7Backbone.test_checkpoint_and_geometry_refuse_substitutes"
+      ]
+    },
+    {
+      "file": "methods/raev2/downstream_backbone.py",
+      "label": "Accept mismatched geometry",
+      "old": "if spec.get(\"patch_size\") != 16 or spec.get(\"img_size\") != 224:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_raev2.TestK7Backbone.test_checkpoint_and_geometry_refuse_substitutes"
+      ]
+    },
+    {
+      "file": "methods/vggt_omega/downstream_backbone.py",
+      "label": "Read first cached layer",
+      "old": "reversed(cached)",
+      "new": "cached",
+      "tests": [
+        "tests.test_method_vggt_omega.TestOmega.test_native_spatiotemporal_tokens_summary_normalization_and_updates"
+      ]
+    },
+    {
+      "file": "methods/vggt_omega/downstream_backbone.py",
+      "label": "Retain register token",
+      "old": "last[:, :, start:, :]",
+      "new": "last[:, :, start-1:, :]",
+      "tests": [
+        "tests.test_method_vggt_omega.TestOmega.test_native_spatiotemporal_tokens_summary_normalization_and_updates"
+      ]
+    },
+    {
+      "file": "methods/vggt_omega/downstream_backbone.py",
+      "label": "Do not reverse task normalization",
+      "old": "images = images * std + mean",
+      "new": "images = images",
+      "tests": [
+        "tests.test_method_vggt_omega.TestOmega.test_native_spatiotemporal_tokens_summary_normalization_and_updates"
+      ]
+    },
+    {
+      "file": "methods/vggt_omega/downstream_backbone.py",
+      "label": "Normalize FT global readout",
+      "old": "if adaptation == \"frozen\" else feat",
+      "new": "if adaptation in (\"frozen\", \"finetune\") else feat",
+      "tests": [
+        "tests.test_method_vggt_omega.TestOmega.test_native_spatiotemporal_tokens_summary_normalization_and_updates"
+      ]
+    },
+    {
+      "file": "methods/vggt_omega/downstream_backbone.py",
+      "label": "Replace native sequence by repeated first frame",
+      "old": "return self._patches(clip).flatten(1, 2)",
+      "new": "return self._patches(clip[:, :1].expand_as(clip).contiguous()).flatten(1, 2)",
+      "tests": [
+        "tests.test_method_vggt_omega.TestOmega.test_native_spatiotemporal_tokens_summary_normalization_and_updates"
+      ]
+    },
+    {
+      "file": "methods/vggt_omega/downstream_backbone.py",
+      "label": "Drop released checkpoint identity guard",
+      "old": "if spec[\"arch\"] == \"released\" and sha256_file(path) != RELEASED_SHA256:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_vggt_omega.TestOmega.test_freezing_checkpoint_validation_geometry_and_layer_groups"
+      ]
+    },
+    {
+      "file": "methods/vggt_omega/downstream_backbone.py",
+      "label": "Lose paired inter-frame layer IDs",
+      "old": "(frame_blocks|inter_frame_blocks)",
+      "new": "(frame_blocks)",
+      "tests": [
+        "tests.test_method_vggt_omega.TestOmega.test_freezing_checkpoint_validation_geometry_and_layer_groups"
+      ]
+    },
+    {
+      "file": "methods/vggt_omega/downstream_backbone.py",
+      "label": "Lose complete layer coverage guard",
+      "old": "if any(indices != set(range(depth)) for indices in seen.values()):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_vggt_omega.TestOmega.test_bad_inputs_cached_outputs_and_incomplete_groups_fail_closed"
+      ]
+    },
+    {
+      "file": "methods/vggt_omega/downstream_backbone.py",
+      "label": "Disable native detector capability",
+      "old": "NATIVE_DETECTION = True",
+      "new": "NATIVE_DETECTION = False",
+      "tests": [
+        "tests.test_method_vggt_omega.TestOmega.test_native_detector_preserves_spatial_features_and_head"
+      ]
+    },
+    {
+      "file": "methods/vggt_omega/downstream_backbone.py",
+      "label": "Use wrong detector vocabulary size",
+      "old": "detection_num_classes = 81",
+      "new": "detection_num_classes = 91",
+      "tests": [
+        "tests.test_method_vggt_omega.TestOmega.test_native_detector_preserves_spatial_features_and_head"
+      ]
+    },
+    {
+      "file": "methods/vggt_omega/downstream_backbone.py",
+      "label": "Use raw categories in the contiguous recipe",
+      "old": "DETECTION_LABEL_SPACE = \"contiguous\"",
+      "new": "DETECTION_LABEL_SPACE = \"category_id\"",
+      "tests": [
+        "tests.test_method_vggt_omega.TestOmega.test_native_detector_preserves_spatial_features_and_head"
+      ]
+    },
+    {
+      "file": "methods/vggt_omega/downstream_backbone.py",
+      "label": "Apply wrong detection conditioner",
+      "old": "return (0., 0., 0.), (1., 1., 1.)",
+      "new": "return (.5, .5, .5), (.5, .5, .5)",
+      "tests": [
+        "tests.test_method_vggt_omega.TestOmega.test_native_detector_preserves_spatial_features_and_head"
+      ]
+    },
+    {
+      "file": "downstream/coco.py",
+      "label": "Do not map category IDs to contiguous labels",
+      "old": "labels.append(self.category_to_label[ann[\"category_id\"]])",
+      "new": "labels.append(ann[\"category_id\"])",
+      "tests": [
+        "tests.test_method_vggt_omega.TestOmega.test_native_detector_and_category_roundtrip_preserve_sparse_coco_ids"
+      ]
+    },
+    {
+      "file": "downstream/coco.py",
+      "label": "Do not restore category IDs during evaluation",
+      "old": "category = source.label_to_category[category]",
+      "new": "category = category",
+      "tests": [
+        "tests.test_method_vggt_omega.TestOmega.test_native_detector_and_category_roundtrip_preserve_sparse_coco_ids"
+      ]
+    },
+    {
+      "file": "downstream/coco.py",
+      "label": "Accept different train and evaluation mappings",
+      "old": "if label_space == \"contiguous\" and train_source.category_to_label != val_source.category_to_label:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_vggt_omega.TestOmega.test_native_detector_and_category_roundtrip_preserve_sparse_coco_ids"
+      ]
+    },
+    {
+      "file": ".github/workflows/tests.yml",
+      "label": "Drop K7 CI execution",
+      "old": "tests.test_method_raev2 tests.test_method_vggt_omega",
+      "new": "tests.test_method_vggt_omega",
+      "tests": [
+        "tests.test_method_raev2.TestDelivery.test_usage_guide_and_ci_cover_the_real_entrypoints"
+      ]
+    },
+    {
+      "file": ".github/workflows/tests.yml",
+      "label": "Drop Omega CI execution",
+      "old": "tests.test_method_raev2 tests.test_method_vggt_omega",
+      "new": "tests.test_method_raev2",
+      "tests": [
+        "tests.test_method_vggt_omega.TestOmegaDelivery.test_guide_and_ci_expose_the_new_component"
+      ]
+    },
+    {
+      "file": "downstream/coco.py",
+      "label": "Apply contiguous mapping constraints to legacy runs",
+      "old": "if label_space == \"contiguous\" and train_source.category_to_label != val_source.category_to_label:",
+      "new": "if train_source.category_to_label != val_source.category_to_label:",
+      "tests": [
+        "tests.test_method_vggt_omega.TestOmega.test_native_detector_and_category_roundtrip_preserve_sparse_coco_ids"
+      ]
+    },
+    {
+      "file": "downstream/coco.py",
+      "label": "Misreport detector vocabulary size",
+      "old": "\"num_classes\": model.roi_heads.box_predictor.cls_score.out_features,",
+      "new": "\"num_classes\": model.roi_heads.box_predictor.cls_score.out_features + 1,",
+      "tests": [
+        "tests.test_coco_schedule.TestSchedule.test_runner_milestones_use_full_loader_despite_step_cap"
+      ]
+    }
+  ]
+}

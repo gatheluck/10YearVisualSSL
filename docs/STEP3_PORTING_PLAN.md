@@ -357,3 +357,16 @@ redistribution/download authorization is not inferred from local access.
 V-JEPA 2.1 now has a downstream image/video encoder provider, but no complete
 method adapter or CompEval recipe. Its two plan items intentionally remain
 `todo`. See [provider scope](../methods/vjepa2_1/README.md).
+
+
+### 2026-09-27: K7 and Omega component progress
+
+The user continues to prioritize grouped final-paper coverage over the historical
+one-item-per-PR order. `methods/raev2` now houses the explicit `raev2_k7` downstream
+provider, and `methods/vggt_omega` houses the native visual aggregator provider.
+Both add 14 small-fixture task/adaptation routes. These are partial components,
+not complete method adapters: `D1:raev2`, `E2:vggt_omega` and their associated
+CompEval items remain `todo` under this plan's completion definition. The K7
+readout does not replace historical RAE variants. See [K7](BASIC5_K7.md),
+[Omega](BASIC5_OMEGA.md) and the [current coverage audit](FINAL_PAPER_COVERAGE.md)
+for tested boundaries and remaining full-run work.

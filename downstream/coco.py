@@ -148,9 +148,16 @@ def collate(batch):
 class CocoDetectionForFRCNN(CocoDetection):
     """COCO in the (image_tensor, target-dict) shape torchvision detection wants."""
 
-    def __init__(self, *args, train: bool = False, profile: str = "legacy", **kwargs):
+    def __init__(self, *args, train: bool = False, profile: str = "legacy",
+                 label_space: str = "category_id", **kwargs):
+        if label_space not in ("category_id", "contiguous"):
+            raise ValueError("label_space must be category_id or contiguous")
         super().__init__(*args, **kwargs)
         self.augment = train and profile == CAPTURE_PROFILE
+        self.category_to_label = {cat: (i + 1 if label_space == "contiguous" else cat)
+                                  for i, cat in enumerate(sorted(self.coco.getCatIds()))}
+        self.label_to_category = {label: cat for cat, label in self.category_to_label.items()}
+        self.label_space = label_space
 
     def __getitem__(self, index: int):
         image, anns = super().__getitem__(index)
@@ -163,7 +170,7 @@ class CocoDetectionForFRCNN(CocoDetection):
             if w <= 1 or h <= 1:
                 continue
             boxes.append([x, y, x + w, y + h])
-            labels.append(ann["category_id"])
+            labels.append(self.category_to_label[ann["category_id"]])
             area.append(float(ann.get("area", w * h)))
             iscrowd.append(int(ann.get("iscrowd", 0)))
         box_tensor = (torch.as_tensor(boxes, dtype=torch.float32).reshape(-1, 4)
@@ -255,7 +262,7 @@ def build_frozen_detector(backbone_spec: dict, detector: dict,
         mean, std = backbone.detection_normalization()
         model = FasterRCNN(
             NativePyramidBackbone(backbone, adaptation=adaptation, reader_profile=reader_profile),
-            num_classes=NUM_CLASSES,
+            num_classes=getattr(backbone, "detection_num_classes", NUM_CLASSES),
             rpn_anchor_generator=AnchorGenerator(sizes=tuple((s,) for s in anchor_sizes),
                                                 aspect_ratios=((0.5,1.,2.),)*4),
             box_roi_pool=MultiScaleRoIAlign(featmap_names=["0","1","2","3"], output_size=7, sampling_ratio=2),
@@ -318,7 +325,8 @@ def _train_one_epoch(model, loader, optimizer, device, max_steps,
 def evaluate(model, loader, dataset, device, *, profile: str = "legacy") -> dict:
     from pycocotools.cocoeval import COCOeval
     model.eval()
-    coco = dataset.dataset.coco if isinstance(dataset, Subset) else dataset.coco
+    source = dataset.dataset if isinstance(dataset, Subset) else dataset
+    coco = source.coco
     results, image_ids = [], []
     for images, targets in loader:
         outputs = model([img.to(device) for img in images])
@@ -329,7 +337,12 @@ def evaluate(model, loader, dataset, device, *, profile: str = "legacy") -> dict
                                          output["labels"].cpu(),
                                          output["scores"].cpu()):
                 x1, y1, x2, y2 = box.tolist()
-                results.append({"image_id": image_id, "category_id": int(label),
+                category = int(label)
+                if getattr(source, "label_space", "category_id") == "contiguous":
+                    if category not in source.label_to_category:
+                        raise ValueError("predicted label is outside the dataset category mapping")
+                    category = source.label_to_category[category]
+                results.append({"image_id": image_id, "category_id": category,
                                 "bbox": [x1, y1, max(0.0, x2 - x1),
                                          max(0.0, y2 - y1)],
                                 "score": float(score)})
@@ -357,15 +370,24 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
     adaptation = validate_adaptation(cfg)
     optimization = resolve_optimization(cfg, TASK)
 
+    from downstream.spatial_backbones import detection_label_space
+    label_space = (detection_label_space(cfg["backbone"]["kind"])
+                   if cfg.get("detector_profile") == NATIVE_PROFILE else "category_id")
+
     root = Path(cfg["data_root"])
     train_ds = _subset(CocoDetectionForFRCNN(
         str(root / "images/train2017"),
-        str(root / "annotations/instances_train2017.json"), train=True, profile=profile),
+        str(root / "annotations/instances_train2017.json"), train=True, profile=profile,
+        label_space=label_space),
         int(detector["max_train_samples"]))
     val_ds = _subset(CocoDetectionForFRCNN(
         str(root / "images/val2017"),
-        str(root / "annotations/instances_val2017.json"), profile=profile),
+        str(root / "annotations/instances_val2017.json"), profile=profile, label_space=label_space),
         int(detector["max_val_samples"]))
+    train_source = train_ds.dataset if isinstance(train_ds, Subset) else train_ds
+    val_source = val_ds.dataset if isinstance(val_ds, Subset) else val_ds
+    if label_space == "contiguous" and train_source.category_to_label != val_source.category_to_label:
+        raise ValueError("training and validation category mappings differ")
     bs, nw = int(detector["batch_size"]), int(detector["num_workers"])
     train_loader = DataLoader(train_ds, batch_size=bs, shuffle=True, num_workers=nw,
                               drop_last=optimization is not None,
@@ -428,7 +450,9 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
     contract.write_metrics(out, raw, METRIC_NAMES)
     (Path(out) / "results.json").write_text(
         json.dumps({"task": TASK, "backbone": cfg["backbone"],
-                    "num_classes": NUM_CLASSES, "epochs": epochs, "final": raw,
+                    "num_classes": model.roi_heads.box_predictor.cls_score.out_features,
+                    "label_space": label_space, "label_to_category": val_source.label_to_category,
+                    "epochs": epochs, "final": raw,
                     "profile": profile, "adaptation": adaptation,
                     "reader_profile": cfg.get("reader_profile"),
                     "detector_profile": cfg.get("detector_profile"),
