@@ -25,7 +25,7 @@ some final manuscript revisions and must be matched by actual run identity.
 | C.8 Tables 27-28: generative; C.9 Table 29: VideoSSL | Existing providers and selected native video components | RAEv2 K7 versus other readouts; distinct video checkpoints/pipelines and task integrations |
 | C.10 Tables 30-34: world/video generation; C.11 Table 35: VLM and related models | Selected provider/component integrations | All rows' exact component boundaries, adapters, task recipes and checkpoint identities |
 | C.12 Tables 36-38: BasicFive LP/AP/FT | Existing task runners, [five-family readers/native detection](BASIC5_NATIVE_PATHS.md), [K7](BASIC5_K7.md), [Omega](BASIC5_OMEGA.md) and [C-RADIO](BASIC5_RADIO.md) | Remaining recipes, full-size checkpoint/GPU validation and actual full-data measurements; blank/incomplete FT cells must stay distinct from completed runs |
-| C.13 Tables 39-40: Extended LP/AP, 45 datasets and five models | Tracked registries and protocol companions | Full task catalog trainers, task-specific metrics, five-model integration and measured-run manifests; 81 catalog entries do not mean 81 measured datasets |
+| C.13 Tables 39-40: Extended LP/AP, 45 datasets and five models | Tracked registries, protocol companions and [image classification components](EXTENDED_CLASSIFICATION.md) for five providers | Remaining task families, native input builders, accumulation/distributed precision and measured-run manifests; 81 catalog entries do not mean 81 measured datasets |
 | C.14 Table 41: six representative configurations | Per-method adapters and protocol documents | Different original protocols require separate recipe identities, not one inferred common leaderboard |
 | C.15 Table 42: frontier matched subsets | Supplied system prompts and protocol | Matched 500-sample manifests, raw outputs/retries, parsing, scoring and recomputation |
 | D.1-D.3: pairplots, CTRL progress and DINO scaling | Selected extraction/training artifacts | Complete provenance-linked analysis inputs and plot regeneration |
@@ -51,8 +51,13 @@ availability does not establish complete native-video or paper-score coverage.
    Full-scale result reproduction is separate. ImageNet FT augmentation still
    needs per-run reconciliation.
 2. Integrate Extended task trainers and metrics for the **45 actually reported
-   datasets**, retaining each of the five model/readout identities. Registry
-   presence alone is insufficient. Charades and AVA remain distinct tasks.
+   datasets**, retaining each of the five model/readout identities. The image
+   LP/AP execution path now exists, with explicit sample manifests and native
+   CUB-200-2011/DTD/Aircraft annotation conversion. This addresses the common
+   path used by 24 image-classification rows, not 24 independently validated
+   dataset ports or reproduced scores. Other native builders, complete recipes
+   and non-image tasks remain. Registry presence alone is insufficient.
+   Charades and AVA remain distinct tasks.
 3. Validate native distributed/BF16 training and continuation/export against
    original checkpoints for controlled and ablation training. Small FP32
    component tests do not validate these paths.

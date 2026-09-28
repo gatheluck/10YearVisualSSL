@@ -14,6 +14,20 @@ delivery status and permission assumptions do not describe today's workflow.
 
 ### 2026-09-27: final-paper component port
 
+September 28 follow-up after PR 205: main was fast-forwarded to `48ae6d6`;
+its tree matched tested head `473b901`, all 115 CI checks succeeded, and
+preexisting submodule changes were preserved. The next grouped branch adds
+[Extended image LP/AP](EXTENDED_CLASSIFICATION.md), explicit provider reader
+declarations and official-membership converters for CUB-200-2011, DTD and
+Aircraft. The shared image path is relevant to 24 of the 45 reported datasets;
+it is not a claim of completed native dataset ports or score reproduction.
+Current experimental sources and one recorded classification run were read
+without changing originals. Some current small-image builders use the RGB
+random-resized-crop path, so transform profiles remain explicit. Distributed
+execution, accumulation, BF16, continuation, other native builders and the
+remaining Extended task families are still pending. No compute was submitted.
+Refresh the new PR for validation and delivery state.
+
 September 28 follow-up: PR 204 merged as `8c1acc4`, with all 113 checks
 successful. The next grouped cycle adds [C-RADIO](BASIC5_RADIO.md) and
 [downstream final-run accounting](DOWNSTREAM_ACCOUNTING.md). All eight BasicFive
