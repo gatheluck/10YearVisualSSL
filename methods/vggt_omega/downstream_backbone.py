@@ -12,6 +12,7 @@ from downstream.hf_vision import vision_no_decay
 from downstream.contract import sha256_file
 
 KIND = "vggt_omega"
+EXTENDED_IMAGE_READER = "captured_cross_self_v1"
 TRAINABLE = True
 FINETUNE_GROUPS = True
 IMAGE_CLASSIFICATION = True
