@@ -24,16 +24,17 @@ some final manuscript revisions and must be matched by actual run identity.
 | C.6 Tables 24-25: 3D; C.7 Table 26: 4D | Existing inference/extraction providers where available | Variant/readout identity, task-specific wrappers, gradients and native metrics |
 | C.8 Tables 27-28: generative; C.9 Table 29: VideoSSL | Existing providers and selected native video components | RAEv2 K7 versus other readouts; distinct video checkpoints/pipelines and task integrations |
 | C.10 Tables 30-34: world/video generation; C.11 Table 35: VLM and related models | Selected provider/component integrations | All rows' exact component boundaries, adapters, task recipes and checkpoint identities |
-| C.12 Tables 36-38: BasicFive LP/AP/FT | Existing task runners, [five-family readers/native detection](BASIC5_NATIVE_PATHS.md), [K7](BASIC5_K7.md) and [Omega](BASIC5_OMEGA.md) | C-RADIO integration, remaining recipes and actual full-data measurements; blank/incomplete FT cells must stay distinct from completed runs |
+| C.12 Tables 36-38: BasicFive LP/AP/FT | Existing task runners, [five-family readers/native detection](BASIC5_NATIVE_PATHS.md), [K7](BASIC5_K7.md), [Omega](BASIC5_OMEGA.md) and [C-RADIO](BASIC5_RADIO.md) | Remaining recipes, full-size checkpoint/GPU validation and actual full-data measurements; blank/incomplete FT cells must stay distinct from completed runs |
 | C.13 Tables 39-40: Extended LP/AP, 45 datasets and five models | Tracked registries and protocol companions | Full task catalog trainers, task-specific metrics, five-model integration and measured-run manifests; 81 catalog entries do not mean 81 measured datasets |
 | C.14 Table 41: six representative configurations | Per-method adapters and protocol documents | Different original protocols require separate recipe identities, not one inferred common leaderboard |
 | C.15 Table 42: frontier matched subsets | Supplied system prompts and protocol | Matched 500-sample manifests, raw outputs/retries, parsing, scoring and recomputation |
 | D.1-D.3: pairplots, CTRL progress and DINO scaling | Selected extraction/training artifacts | Complete provenance-linked analysis inputs and plot regeneration |
 | E: scope, run accounting and protocols | Eight current companions, separate historical companions and registries | Final-epoch results, actual per-cell run counts, sample standard deviations and task-specific run-to-table evidence |
 
-The BasicFive AP/FT tables list eight families. Seven now have portable
-downstream components, including K7 and Omega's 28 newly exercised routes;
-C-RADIO remains to be integrated. SAM3 is useful elsewhere but is not one of
+The BasicFive AP/FT tables list eight families. All eight now have portable
+downstream components, including C-RADIO's 14 fixture routes added on 2026-09-28.
+This does not complete their experimental recipes or numerical reproduction.
+SAM3 is useful elsewhere but is not one of
 those eight. V-JEPA2.1 already has differentiable image/native-video components,
 LP/AP and four-task FT with optimizer groups and schedules; its remaining gap is
 complete recipe and released-weight/result validation, not an absent provider.
@@ -44,8 +45,9 @@ availability does not establish complete native-video or paper-score coverage.
 
 1. Complete the remaining BasicFive family/task integrations in source-supported
    groups, with initialization/output/gradient/update parity. The preceding port
-   exercised 35 explicit routes and the two-family port adds 28. C-RADIO's
-   official custom-code/checkpoint loading and downstream integration remain.
+   exercised 35 explicit routes, the two-family port added 28, and C-RADIO adds 14.
+   C-RADIO's local custom-code loader and task interfaces now exist; full-size
+   released-checkpoint/GPU validation remains.
    Full-scale result reproduction is separate. ImageNet FT augmentation still
    needs per-run reconciliation.
 2. Integrate Extended task trainers and metrics for the **45 actually reported
@@ -54,8 +56,10 @@ availability does not establish complete native-video or paper-score coverage.
 3. Validate native distributed/BF16 training and continuation/export against
    original checkpoints for controlled and ablation training. Small FP32
    component tests do not validate these paths.
-4. Add downstream run accounting and analysis from actual recorded runs, with
-   final-epoch selection, missing/partial repeats and sample standard deviation.
+4. Apply [downstream run accounting](DOWNSTREAM_ACCOUNTING.md) to actual recorded
+   runs, with final-epoch selection, missing/partial repeats and sample standard
+   deviation. The portable artifact checker now exists; historical schema
+   conversion and run-to-table matching remain.
    The existing method linear-evaluation three-seed aggregator does not cover
    all downstream LP/AP/FT accounting described by E.1.
 5. Port frontier response parsing/scoring and matched-subset provenance, then

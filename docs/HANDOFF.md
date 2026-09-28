@@ -14,6 +14,26 @@ delivery status and permission assumptions do not describe today's workflow.
 
 ### 2026-09-27: final-paper component port
 
+September 28 follow-up: PR 204 merged as `8c1acc4`, with all 113 checks
+successful. The next grouped cycle adds [C-RADIO](BASIC5_RADIO.md) and
+[downstream final-run accounting](DOWNSTREAM_ACCOUNTING.md). All eight BasicFive
+AP/FT families now have components, not full-paper numerical reproduction.
+The C-RADIO source read from the current experimental workspace matched the
+captured backbone. Its local loader, separate summary/spatial features, video
+CPE, native detector and layer policy are tested; 14 fixture task routes execute.
+An actual reduced official model matched unchanged reference wrapper methods
+for outputs, gradients and three updates in private CPU tests. Released-weight
+GPU tests and full-scale results remain pending. No cluster compute job was
+submitted and no original checkpoint or extracted artifact was changed.
+
+Accounting audits existing portable final-epoch artifacts, retains low/zero
+scores and incomplete repeat counts, and uses sample standard deviation. It
+does not convert historical schemas or infer table cells. Next priorities are
+Extended's reported 45 datasets/five models, remaining complete BasicFive
+recipes, distributed precision/continuation, and actual run-to-table mapping.
+Keep ImageNet FT augmentation and source metric/reader conflicts pending.
+Refresh the task PR for delivery/CI status rather than inferring success here.
+
 CI follow-up, 2026-09-28: the first PR 204 run had 57 failed jobs out of
 113. All 55 locked jobs and the Omega container reached a COCO integration
 test without `pycocotools`; the RAEv2 container requested a smoke module whose
