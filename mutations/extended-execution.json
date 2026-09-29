@@ -1,0 +1,211 @@
+{
+  "targets": [
+    {
+      "label": "Remove loss scaling",
+      "file": "downstream/extended_execution.py",
+      "old": "(loss / accumulation_steps).backward()",
+      "new": "loss.backward()",
+      "tests": [
+        "tests.test_method_extended_execution.TestExecution.test_accumulated_updates_match_direct_oracle_including_clipping_and_tail"
+      ]
+    },
+    {
+      "label": "Drop short flush",
+      "file": "downstream/extended_execution.py",
+      "old": "if remaining and tail_policy == 'flush_scaled':",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_extended_execution.TestExecution.test_accumulated_updates_match_direct_oracle_including_clipping_and_tail"
+      ]
+    },
+    {
+      "label": "Skip accumulated clipping",
+      "file": "downstream/extended_execution.py",
+      "old": "clip_attentive_gradients(model, adaptation)",
+      "new": "pass",
+      "tests": [
+        "tests.test_method_extended_execution.TestExecution.test_accumulated_updates_match_direct_oracle_including_clipping_and_tail"
+      ]
+    },
+    {
+      "label": "Update on wrong boundary",
+      "file": "downstream/extended_execution.py",
+      "old": "stats['microbatches'] % accumulation_steps == 0",
+      "new": "stats['microbatches'] % accumulation_steps == 1",
+      "tests": [
+        "tests.test_method_extended_execution.TestExecution.test_accumulated_updates_match_direct_oracle_including_clipping_and_tail"
+      ]
+    },
+    {
+      "label": "Leak previous update gradients",
+      "file": "downstream/extended_execution.py",
+      "old": "optimizer.step(); scheduler.step(); optimizer.zero_grad(set_to_none=True)",
+      "new": "optimizer.step(); scheduler.step()",
+      "tests": [
+        "tests.test_method_extended_execution.TestExecution.test_accumulated_updates_match_direct_oracle_including_clipping_and_tail"
+      ]
+    },
+    {
+      "label": "Lose scheduler advancement",
+      "file": "downstream/extended_execution.py",
+      "old": "optimizer.step(); scheduler.step(); optimizer.zero_grad(set_to_none=True)",
+      "new": "optimizer.step(); optimizer.zero_grad(set_to_none=True)",
+      "tests": [
+        "tests.test_method_extended_execution.TestExecution.test_accumulated_updates_match_direct_oracle_including_clipping_and_tail"
+      ]
+    },
+    {
+      "label": "Physical instead of effective batch",
+      "file": "downstream/extended_execution.py",
+      "old": "cfg['probe']['batch_size']*count",
+      "new": "cfg['probe']['batch_size']",
+      "tests": [
+        "tests.test_method_extended_execution.TestExecution.test_both_runners_use_effective_batch_and_discard_incomplete_groups"
+      ]
+    },
+    {
+      "label": "Lose discarded tail accounting",
+      "file": "downstream/extended_execution.py",
+      "old": "stats['discarded_microbatches'] = remaining",
+      "new": "stats['discarded_microbatches'] = 0",
+      "tests": [
+        "tests.test_method_extended_execution.TestExecution.test_accumulated_updates_match_direct_oracle_including_clipping_and_tail"
+      ]
+    },
+    {
+      "label": "Accept unknown execution keys",
+      "file": "downstream/extended_execution.py",
+      "old": "set(settings) != {'accumulation_steps','precision','tail_policy'}",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_execution.TestExecution.test_provider_tail_semantics_and_invalid_configuration"
+      ]
+    },
+    {
+      "label": "Accept mismatched source policy",
+      "file": "downstream/extended_execution.py",
+      "old": "settings['tail_policy'] != expected",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_execution.TestExecution.test_provider_tail_semantics_and_invalid_configuration"
+      ]
+    },
+    {
+      "label": "Accept boolean accumulation",
+      "file": "downstream/extended_execution.py",
+      "old": "type(count) is not int or count < 1",
+      "new": "count < 1",
+      "tests": [
+        "tests.test_method_extended_execution.TestExecution.test_provider_tail_semantics_and_invalid_configuration"
+      ]
+    },
+    {
+      "label": "Allow empty update epoch",
+      "file": "downstream/extended_execution.py",
+      "old": "not len(loader) or (tail_policy == 'discard' and len(loader) < accumulation_steps)",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_execution.TestExecution.test_no_updates_and_nonfinite_loss_or_gradients_fail_closed"
+      ]
+    },
+    {
+      "label": "Accept nonfinite gradients",
+      "file": "downstream/extended_execution.py",
+      "old": "any(p.grad is not None and not torch.isfinite(p.grad).all() for p in model.parameters())",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_execution.TestExecution.test_no_updates_and_nonfinite_loss_or_gradients_fail_closed"
+      ]
+    },
+    {
+      "label": "Lose frozen guard",
+      "file": "downstream/extended_execution.py",
+      "old": "backbone is not None and any(p.requires_grad or p.grad is not None for p in backbone.parameters())",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_execution.TestExecution.test_invalid_epoch_settings_and_accidental_encoder_training_are_refused"
+      ]
+    },
+    {
+      "label": "Accept invalid direct epoch count",
+      "file": "downstream/extended_execution.py",
+      "old": "type(accumulation_steps) is not int or accumulation_steps < 1",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_execution.TestExecution.test_invalid_epoch_settings_and_accidental_encoder_training_are_refused"
+      ]
+    },
+    {
+      "label": "Accept invalid adaptation",
+      "file": "downstream/extended_execution.py",
+      "old": "adaptation not in ('frozen','attentive')",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_execution.TestExecution.test_invalid_epoch_settings_and_accidental_encoder_training_are_refused"
+      ]
+    },
+    {
+      "label": "Allow unsupported BF16 hardware",
+      "file": "downstream/extended_execution.py",
+      "old": "not torch.cuda.is_bf16_supported(including_emulation=False)",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_execution.TestExecution.test_bf16_has_no_cpu_or_unsupported_device_fallback"
+      ]
+    },
+    {
+      "label": "Emulate unavailable native BF16",
+      "file": "downstream/extended_execution.py",
+      "old": "including_emulation=False",
+      "new": "including_emulation=True",
+      "tests": [
+        "tests.test_method_extended_execution.TestExecution.test_bf16_has_no_cpu_or_unsupported_device_fallback"
+      ]
+    },
+    {
+      "label": "Wrong reduced precision",
+      "file": "downstream/extended_execution.py",
+      "old": "return torch.autocast('cuda', dtype=torch.bfloat16)",
+      "new": "return torch.autocast('cuda', dtype=torch.float16)",
+      "tests": [
+        "tests.test_method_extended_execution.TestExecution.test_bf16_has_no_cpu_or_unsupported_device_fallback"
+      ]
+    },
+    {
+      "label": "Image loss precision",
+      "file": "downstream/extended_classification.py",
+      "old": "F.cross_entropy(forward(images).float(),targets.to(device))",
+      "new": "F.cross_entropy(forward(images),targets.to(device))",
+      "tests": [
+        "tests.test_method_extended_execution.TestExecution.test_both_forward_paths_autocast_but_losses_remain_float32"
+      ]
+    },
+    {
+      "label": "Dense loss precision",
+      "file": "downstream/extended_segmentation.py",
+      "old": "pixel_loss(forward(images,targets.shape[-2:]).float(),targets.to(device))",
+      "new": "pixel_loss(forward(images,targets.shape[-2:]),targets.to(device))",
+      "tests": [
+        "tests.test_method_extended_execution.TestExecution.test_both_forward_paths_autocast_but_losses_remain_float32"
+      ]
+    },
+    {
+      "label": "Disable downstream/extended_classification.py autocast",
+      "file": "downstream/extended_classification.py",
+      "old": "with execution.autocast_context(device,plan['precision']):",
+      "new": "with execution.autocast_context(device,'fp32'):",
+      "tests": [
+        "tests.test_method_extended_execution.TestExecution.test_both_forward_paths_autocast_but_losses_remain_float32"
+      ]
+    },
+    {
+      "label": "Disable downstream/extended_segmentation.py autocast",
+      "file": "downstream/extended_segmentation.py",
+      "old": "with execution.autocast_context(device,plan['precision']):",
+      "new": "with execution.autocast_context(device,'fp32'):",
+      "tests": [
+        "tests.test_method_extended_execution.TestExecution.test_both_forward_paths_autocast_but_losses_remain_float32"
+      ]
+    }
+  ]
+}

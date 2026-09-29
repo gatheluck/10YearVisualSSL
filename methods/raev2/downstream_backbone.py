@@ -16,6 +16,7 @@ from provider_support import prepare_upstream
 KIND = "raev2_k7"
 EXTENDED_IMAGE_READER = "captured_single_block_v1"
 EXTENDED_DENSE_READER = "captured_single_block_v1"
+EXTENDED_ACCUMULATION_TAILS = {"frozen": "discard", "attentive": "flush_scaled"}
 TRAINABLE = True
 FINETUNE_GROUPS = True
 IMAGE_CLASSIFICATION = True

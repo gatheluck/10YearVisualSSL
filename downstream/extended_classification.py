@@ -17,7 +17,8 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms as T
 
 from downstream import contract
-from downstream.attention import QueryReader, clip_attentive_gradients
+from downstream.attention import QueryReader
+from downstream import extended_execution as execution
 from downstream.captured_readers import CrossSelfQueryReader, SINGLE_BLOCK, CROSS_SELF
 from downstream.hf_vision import vision_no_decay
 from downstream.spatial_backbones import build_frozen_backbone, discover_providers, _load_provider
@@ -158,7 +159,7 @@ def score(logits, targets):
 
 def optimizer(model, settings, *, batch_size, steps_per_epoch):
     if type(batch_size) is not int or batch_size < 1 or type(steps_per_epoch) is not int or steps_per_epoch < 1:
-        raise ValueError('positive physical batch and steps required')
+        raise ValueError('positive effective batch and microbatch steps required')
     lr = settings['base_lr'] * batch_size / settings['lr_reference_effective_batch']
     groups = []
     for no_decay in (False,True):
@@ -190,7 +191,7 @@ def optimizer(model, settings, *, batch_size, steps_per_epoch):
 def validate_config(cfg):
     required = {'task','profile','dataset','seed','device','data_root','samples','transform_profile',
                 'adaptation','reader_profile','backbone','probe'}
-    if set(cfg) != required or cfg['task'] != TASK or cfg['profile'] != PROFILE:
+    if set(cfg)-{'execution'} != required or cfg['task'] != TASK or cfg['profile'] != PROFILE:
         raise ValueError('explicit Extended component config required')
     if cfg['seed'] != 0 or type(cfg['seed']) is not int:
         raise ValueError('Extended protocol uses seed 0')
@@ -212,12 +213,14 @@ def validate_config(cfg):
         raise ValueError('provider lacks a verified Extended image readout')
     if cfg['reader_profile'] != (expected if cfg['adaptation']=='attentive' else None):
         raise ValueError('reader_profile does not match the Extended provider recipe')
+    return execution.resolve_execution(cfg,module)
 
 
 def run(cfg, out):
-    validate_config(cfg)
+    plan=validate_config(cfg)
     make_deterministic(cfg['seed'])
     device=resolve_device(cfg['device'])
+    execution.autocast_context(device,plan['precision'])
     train,val,membership=load_data(cfg['samples'],cfg['data_root'],cfg['transform_profile'])
     settings=cfg['probe']
     if len(train)<settings['batch_size']:
@@ -228,22 +231,23 @@ def run(cfg, out):
     backbone=build_frozen_backbone(cfg['backbone'],device)
     model=Classifier(backbone,len(membership['classes']),cfg['adaptation'],cfg['reader_profile']).to(device)
     settings_recipe=recipe(cfg['dataset'],cfg['adaptation'])
-    opt,scheduler=optimizer(model,settings_recipe,batch_size=settings['batch_size'],steps_per_epoch=len(loader))
+    opt,scheduler=optimizer(model,settings_recipe,batch_size=plan['effective_batch'],steps_per_epoch=len(loader))
+    runtime=execution.execution_report(plan,settings_recipe,len(loader),scheduler.base_lrs[0])
+    def forward(images):
+        with execution.autocast_context(device,plan['precision']):
+            return model(images.to(device))
+    def loss_for_batch(batch):
+        images,targets=batch
+        return F.cross_entropy(forward(images).float(),targets.to(device))
     for _ in range(settings['epochs']):
-        model.train()
-        for images,targets in loader:
-            opt.zero_grad(set_to_none=True)
-            loss=F.cross_entropy(model(images.to(device)),targets.to(device))
-            if not torch.isfinite(loss):
-                raise ValueError('nonfinite training loss')
-            loss.backward()
-            clip_attentive_gradients(model,cfg['adaptation'])
-            opt.step(); scheduler.step()
+        statistics=execution.train_epoch(model,loader,loss_for_batch,opt,scheduler,
+            accumulation_steps=plan['accumulation_steps'],tail_policy=plan['tail_policy'],adaptation=cfg['adaptation'])
+        execution.record_epoch(runtime,statistics)
     model.eval()
     logits,targets=[],[]
     with torch.no_grad():
         for images,y in validation:
-            logits.append(model(images.to(device)).cpu()); targets.append(y)
+            logits.append(forward(images).float().cpu()); targets.append(y)
     raw=score(torch.cat(logits),torch.cat(targets))
     raw['epochs']=settings['epochs']
     out=Path(out)
@@ -252,8 +256,8 @@ def run(cfg, out):
     report=dict(task=TASK,profile=PROFILE,dataset=cfg['dataset'],adaptation=cfg['adaptation'],
                 backbone=cfg['backbone'],reader_profile=cfg['reader_profile'],transform_profile=cfg['transform_profile'],
                 membership=membership,recipe=settings_recipe,physical_batch=settings['batch_size'],
-                updates=scheduler.last_epoch,final=raw,canonical_eligible=False,record_value=False,
-                limitations=['single-process FP32 component','official split membership unverified',
+                updates=scheduler.last_epoch,execution=runtime,final=raw,canonical_eligible=False,record_value=False,
+                limitations=['single-process component; distributed execution and resume not ported','official split membership unverified',
                              'released-weight and full-score parity unverified'])
     (out/'results.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')
     return raw
