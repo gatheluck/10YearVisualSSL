@@ -94,12 +94,17 @@ The schedule horizon uses each rank's local loader length. Reported microbatch,
 update and discarded-tail counters are per rank; synchronized updates are not
 multiplied by the number of ranks.
 
-The training sampler uses seed 0 and `set_epoch(epoch)`, pads a non-divisible
+Python, NumPy and Torch use the captured `seed + 1000 * rank` initialization;
+rank zero and single-process initialization remain unchanged. DDP synchronizes
+model state from rank zero after construction. The training sampler independently
+uses seed 0 and `set_epoch(epoch)`, pads a non-divisible
 population as PyTorch's captured `DistributedSampler` does, then distributes
 indices by rank. Incomplete physical batches are dropped locally. Unlike the
 single-process compatibility route's dedicated generator, the distributed loader
 uses the global Torch RNG for iterator/worker seeding, matching the captured
-loader. Exact random-transform parity still needs matching workers and full runs.
+loader. This is not complete historical RNG replay: the portable component does
+not replay the experimental trainer's preflight forward/backward, and exact
+random-transform parity still needs matching model construction, workers and runs.
 Unlike the experimental trainer's small-population fallback, this package rejects a
 population smaller than one full global physical batch; choose explicit smaller
 settings instead of silently changing the batch or accumulation. The DDP wrapper

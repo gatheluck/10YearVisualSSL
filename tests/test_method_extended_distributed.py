@@ -5,6 +5,7 @@ from datetime import timedelta
 import io
 import json
 import os
+import random
 import socket
 from pathlib import Path
 import subprocess
@@ -15,6 +16,7 @@ from unittest.mock import patch
 
 try:
     import torch
+    import numpy as np
     from torch import nn
     from torch.utils.data import TensorDataset
     import torchvision
@@ -33,6 +35,7 @@ def worker(root):
 
 def _worker(root):
     from downstream import extended_distributed as distributed, extended_execution as execution
+    from downstream.ssv2 import make_deterministic
     from tests.test_method_extended_execution import TestExecution
     helper=TestExecution(); helper.setUp()
     rank=int(os.environ['RANK'])
@@ -48,14 +51,20 @@ def _worker(root):
             out=Path(root)/(task.TASK+'_'+adaptation)
             config=Path(root)/(task.TASK+'_'+adaptation+'.json')
             # Files are prepared by the parent before torchrun starts.
-            with patch.object(task,'load_data',return_value=(data,data,meta)), \
+            def load_data(*args):
+                expected_seed=1000*rank
+                assert torch.equal(torch.get_rng_state(),torch.Generator().manual_seed(expected_seed).get_state()), 'captured rank-specific Torch seed missing'
+                assert random.getstate()==random.Random(expected_seed).getstate(), 'captured Python rank seed missing'
+                assert np.array_equal(np.random.get_state()[1],np.random.RandomState(expected_seed).get_state()[1]), 'captured NumPy rank seed missing'
+                return data,data,meta
+            with patch.object(task,'load_data',side_effect=load_data), \
                  patch.object(task,'build_frozen_backbone',side_effect=lambda *a:helper.body()):
                 rc=task.main(['--config',str(config),'--out',str(out)])
                 if rc: raise AssertionError(f'runner failed on rank {rank}: {(out/"run_manifest.json").read_text()}')
                 if rank==0:
                     # Independently reproduce the runner's global sequence;
                     # detects missing epoch reseeding and wrong LR/world scaling.
-                    task.make_deterministic(0)
+                    make_deterministic(0)
                     expected=(task.Classifier(helper.body(),len(meta['classes']),adaptation,cfg['reader_profile'])
                               if task is helper.image else task.DenseProbe(helper.body(),19,cfg['reader_profile']))
                     refopt,refschedule=task.optimizer(expected,task.recipe(cfg['dataset'],adaptation),

@@ -13,7 +13,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader, DistributedSampler
 
 from downstream import contract
-from downstream.ssv2 import resolve_device
+from downstream.ssv2 import make_deterministic, resolve_device
 
 
 def launch():
@@ -37,6 +37,9 @@ class Session:
     def __init__(self,device):
         self.rank,self.local,self.world=launch()
         self.device=device
+
+    def seed(self,seed):
+        make_deterministic(seed+1000*self.rank)
 
     def call(self,fn,*,leader=False):
         """Propagate setup/evaluation/I/O errors before peers enter more collectives."""

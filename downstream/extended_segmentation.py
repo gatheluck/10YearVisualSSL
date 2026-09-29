@@ -21,7 +21,6 @@ from downstream import extended_distributed as distributed
 from downstream.captured_readers import SingleBlockSpatialAdapter, SINGLE_BLOCK, CROSS_SELF
 from downstream.extended_classification import PROTOCOLS, optimizer
 from downstream.spatial_backbones import build_frozen_backbone, discover_providers, _load_provider
-from downstream.ssv2 import make_deterministic
 
 TASK = 'extended_semantic_segmentation'
 PROFILE = 'capture_extended_components'
@@ -219,7 +218,7 @@ def run(cfg,out):
 def _run(cfg,out,context):
     plan=context.call(lambda:validate_config(cfg))
     context.agree(cfg)
-    make_deterministic(cfg['seed']); device=context.device
+    context.seed(cfg['seed']); device=context.device
     execution.autocast_context(device,plan['precision'])
     train,val,membership=context.call(lambda:load_data(cfg['samples'],cfg['data_root'],cfg['transform_profile']))
     context.agree(membership)

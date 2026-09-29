@@ -21,7 +21,9 @@ semantic LP/AP runners, across their existing five provider profiles. This
 supersedes the prior checkpoint's single-process limitation, not its remaining
 recipe, resume or numerical-reproduction limitations. Captured training sources
 use padded DistributedSampler membership, epoch reseeding, per-microbatch DDP
-synchronization and global effective-batch LR scaling. Rank-zero full-population
+synchronization, rank-specific Python/NumPy/Torch seed offsets and global
+effective-batch LR scaling. The original preflight is not replayed, so this is
+not a claim of complete historical random-transform trajectories. Rank-zero full-population
 evaluation and probe-only export preserve the existing task/metric identities.
 Small-population automatic batch changes are deliberately refused rather than
 silently copied. See [execution](EXTENDED_EXECUTION.md) for ownership and failure

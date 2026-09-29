@@ -179,6 +179,15 @@
       "tests": [
         "tests.test_method_extended_distributed.TestDistributed.test_distributed_loader_retains_reference_global_rng_clock"
       ]
+    },
+    {
+      "label": "captured per-rank RNG seed",
+      "file": "downstream/extended_distributed.py",
+      "old": "make_deterministic(seed+1000*self.rank)",
+      "new": "make_deterministic(seed)",
+      "tests": [
+        "tests.test_method_extended_distributed.TestDistributed.test_two_ranks_train_both_tasks_and_write_one_complete_population"
+      ]
     }
   ]
 }
