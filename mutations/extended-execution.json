@@ -120,8 +120,8 @@
     {
       "label": "Lose frozen guard",
       "file": "downstream/extended_execution.py",
-      "old": "backbone is not None and any(p.requires_grad or p.grad is not None for p in backbone.parameters())",
-      "new": "False",
+      "old": "backbone is None or not any(p.requires_grad or p.grad is not None for p in backbone.parameters())",
+      "new": "True",
       "tests": [
         "tests.test_method_extended_execution.TestExecution.test_invalid_epoch_settings_and_accidental_encoder_training_are_refused"
       ]

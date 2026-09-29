@@ -12,6 +12,23 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-09-29: Extended distributed execution
+
+PR 209 merged as `29e9991`, with all 115 checks successful; main matched the
+validated `2f60122` tree. Existing video submodule changes were preserved.
+The next grouped change adds torchrun execution to both Extended image and
+semantic LP/AP runners, across their existing five provider profiles. This
+supersedes the prior checkpoint's single-process limitation, not its remaining
+recipe, resume or numerical-reproduction limitations. Captured training sources
+use padded DistributedSampler membership, epoch reseeding, per-microbatch DDP
+synchronization and global effective-batch LR scaling. Rank-zero full-population
+evaluation and probe-only export preserve the existing task/metric identities.
+Small-population automatic batch changes are deliberately refused rather than
+silently copied. See [execution](EXTENDED_EXECUTION.md) for ownership and failure
+limits. Private source hashes and cluster access findings remain outside Git.
+Local reduced Gloo parity is distinct from NCCL/BF16 released-weight and full-data
+experiments. Refresh the implementation PR for final validation and delivery.
+
 ### 2026-09-29: Extended accumulation and precision
 
 PR 208 merged as `eb352c2`, with all 115 checks successful; the pulled main tree

@@ -2,12 +2,9 @@
 from __future__ import annotations
 
 import argparse
-from datetime import datetime, timezone
 import json
-import os
 from pathlib import Path
 import random
-import traceback
 
 import numpy as np
 from PIL import Image
@@ -20,10 +17,11 @@ from torchvision.transforms import functional as TF
 from downstream import contract
 from downstream.attention import SpatialAdapter
 from downstream import extended_execution as execution
+from downstream import extended_distributed as distributed
 from downstream.captured_readers import SingleBlockSpatialAdapter, SINGLE_BLOCK, CROSS_SELF
 from downstream.extended_classification import PROTOCOLS, optimizer
 from downstream.spatial_backbones import build_frozen_backbone, discover_providers, _load_provider
-from downstream.ssv2 import make_deterministic, resolve_device
+from downstream.ssv2 import make_deterministic
 
 TASK = 'extended_semantic_segmentation'
 PROFILE = 'capture_extended_components'
@@ -195,9 +193,7 @@ def validate_config(cfg):
     if set(cfg)-{'execution'}!=required or cfg['task']!=TASK or cfg['profile']!=PROFILE:
         raise ValueError('explicit Extended semantic component config required')
     if type(cfg['seed']) is not int or cfg['seed']!=0: raise ValueError('Extended seed must be 0')
-    if (os.environ.get('WORLD_SIZE','1')!='1' or
-        (torch.distributed.is_initialized() and torch.distributed.get_world_size()!=1)):
-        raise ValueError('distributed Extended execution is not yet ported')
+    distributed.launch()
     settings=recipe(cfg['dataset'],cfg['adaptation'])
     if cfg['transform_profile'] not in TRANSFORMS: raise ValueError('explicit transform profile required')
     probe=cfg['probe']
@@ -216,19 +212,27 @@ def validate_config(cfg):
 
 
 def run(cfg,out):
-    plan=validate_config(cfg); make_deterministic(cfg['seed']); device=resolve_device(cfg['device'])
+    with distributed.session(cfg['device']) as context:
+        return _run(cfg,out,context)
+
+
+def _run(cfg,out,context):
+    plan=context.call(lambda:validate_config(cfg))
+    context.agree(cfg)
+    make_deterministic(cfg['seed']); device=context.device
     execution.autocast_context(device,plan['precision'])
-    train,val,membership=load_data(cfg['samples'],cfg['data_root'],cfg['transform_profile'])
+    train,val,membership=context.call(lambda:load_data(cfg['samples'],cfg['data_root'],cfg['transform_profile']))
+    context.agree(membership)
     classes=dataset_spec(cfg['dataset'])['head_outputs']
     if len(membership['classes'])!=classes: raise ValueError('manifest ontology differs from dataset recipe')
     settings=cfg['probe']
-    if len(train)<settings['batch_size']: raise ValueError('physical batch exceeds training population')
-    loader=DataLoader(train,batch_size=settings['batch_size'],shuffle=True,drop_last=True,
-        num_workers=settings['num_workers'],generator=torch.Generator().manual_seed(cfg['seed']))
+    loader=context.call(lambda:context.loader(train,settings,cfg['seed']))
     validation=DataLoader(val,batch_size=settings['batch_size'],num_workers=settings['num_workers'])
-    model=DenseProbe(build_frozen_backbone(cfg['backbone'],device),classes,cfg['reader_profile']).to(device)
+    model=context.call(lambda:DenseProbe(build_frozen_backbone(cfg['backbone'],device),classes,cfg['reader_profile']).to(device))
+    raw_model=model
+    model=context.wrap(model)
     spec=recipe(cfg['dataset'],cfg['adaptation'])
-    opt,scheduler=optimizer(model,spec,batch_size=plan['effective_batch'],steps_per_epoch=len(loader))
+    opt,scheduler=optimizer(raw_model,spec,batch_size=plan['effective_batch'],steps_per_epoch=len(loader))
     runtime=execution.execution_report(plan,spec,len(loader),scheduler.base_lrs[0])
     def forward(images,hw):
         with execution.autocast_context(device,plan['precision']):
@@ -236,42 +240,40 @@ def run(cfg,out):
     def loss_for_batch(batch):
         images,targets=batch
         return pixel_loss(forward(images,targets.shape[-2:]).float(),targets.to(device))
-    for _ in range(settings['epochs']):
+    for epoch in range(settings['epochs']):
+        if context.world>1: loader.sampler.set_epoch(epoch)
         statistics=execution.train_epoch(model,loader,loss_for_batch,opt,scheduler,
             accumulation_steps=plan['accumulation_steps'],tail_policy=plan['tail_policy'],adaptation=cfg['adaptation'])
         execution.record_epoch(runtime,statistics)
-    model.eval(); score=SegmentationScore(classes)
-    with torch.no_grad():
-        for images,targets in validation:
-            logits=forward(images,targets.shape[-2:])
-            if not torch.isfinite(logits).all(): raise ValueError('nonfinite semantic evaluation logits')
-            score.update(logits.argmax(1).cpu(),targets)
-    result=score.result(); result['epochs']=settings['epochs']; out=Path(out)
-    contract.write_metrics(out,result,METRICS)
-    torch.save({k:v.cpu() for k,v in model.state_dict().items() if not k.startswith('backbone.')},out/'probe.pt')
-    report=dict(task=TASK,profile=PROFILE,dataset=cfg['dataset'],adaptation=cfg['adaptation'],
-        reader_profile=cfg['reader_profile'],transform_profile=cfg['transform_profile'],backbone=cfg['backbone'],
-        evaluation_grid=[224,224],membership=membership,recipe=spec,physical_batch=settings['batch_size'],
-        updates=scheduler.last_epoch,execution=runtime,final=result,canonical_eligible=False,record_value=False,
-        limitations=['single-process component; distributed execution and resume not ported','224-grid evaluation, not native-resolution benchmark',
-                     'official membership and released-weight/full-score parity unverified'])
-    (out/'results.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')
-    return result
+    model=raw_model
+    out=Path(out)
+    def evaluate_and_save():
+        model.eval(); score=SegmentationScore(classes)
+        with torch.no_grad():
+            for images,targets in validation:
+                logits=forward(images,targets.shape[-2:])
+                if not torch.isfinite(logits).all(): raise ValueError('nonfinite semantic evaluation logits')
+                score.update(logits.argmax(1).cpu(),targets)
+        result=score.result(); result['epochs']=settings['epochs']
+        contract.write_metrics(out,result,METRICS)
+        torch.save({k:v.cpu() for k,v in model.state_dict().items() if not k.startswith('backbone.')},out/'probe.pt')
+        report=dict(task=TASK,profile=PROFILE,dataset=cfg['dataset'],adaptation=cfg['adaptation'],
+            reader_profile=cfg['reader_profile'],transform_profile=cfg['transform_profile'],backbone=cfg['backbone'],
+            evaluation_grid=[224,224],membership=membership,recipe=spec,physical_batch=settings['batch_size'],
+            updates=scheduler.last_epoch,execution=runtime,final=result,canonical_eligible=False,record_value=False,
+            limitations=['native checkpoint resume not ported','224-grid evaluation, not native-resolution benchmark',
+                         'official membership and released-weight/full-score parity unverified'])
+        (out/'results.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')
+        return result
+
+    return context.call(evaluate_and_save,leader=True)
 
 
 def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--config',required=True); parser.add_argument('--out',required=True)
-    args=parser.parse_args(argv); raw=Path(args.config).read_bytes(); cfg=json.loads(raw)
-    out=Path(args.out); out.mkdir(parents=True,exist_ok=False)
-    now=lambda:datetime.now(timezone.utc).isoformat()
-    started=now(); error=None
-    try: run(cfg,out); status='ok'
-    except Exception: status='failed'; error=traceback.format_exc(limit=8)
-    contract.write_manifest(out,task=TASK,method_ref=str(cfg.get('backbone',{}).get('encoder') or 'fixture'),
-        status=status,config_sha256=contract.sha256_bytes(raw),started_at=started,finished_at=now(),
-        seed=cfg.get('seed',0),backbone=cfg.get('backbone',{}),error=error)
-    return 0 if status=='ok' else 1
+    args=parser.parse_args(argv); data=Path(args.config).read_bytes()
+    return distributed.cli(data,args.out,run,TASK)
 
 
 if __name__=='__main__': raise SystemExit(main())

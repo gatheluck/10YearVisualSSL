@@ -1,0 +1,184 @@
+{
+  "targets": [
+    {
+      "label": "reject invalid world",
+      "file": "downstream/extended_distributed.py",
+      "old": "if world<1 or not 0<=rank<world or local<0:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_extended_distributed.TestDistributed"
+      ]
+    },
+    {
+      "label": "require complete rank identity",
+      "file": "downstream/extended_distributed.py",
+      "old": "if world>1 and not all(k in os.environ for k in ('WORLD_SIZE','RANK','LOCAL_RANK')):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_extended_distributed.TestDistributed"
+      ]
+    },
+    {
+      "label": "collective errors cannot disappear",
+      "file": "downstream/extended_distributed.py",
+      "old": "if any(errors): raise RuntimeError(f'Extended distributed stage failed: {errors}')",
+      "new": "if False: raise RuntimeError(errors)",
+      "tests": [
+        "tests.test_method_extended_distributed.TestDistributed"
+      ]
+    },
+    {
+      "label": "configuration agreement",
+      "file": "downstream/extended_distributed.py",
+      "old": "if any(v!=values[0] for v in values):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_extended_distributed.TestDistributed"
+      ]
+    },
+    {
+      "label": "small population refusal",
+      "file": "downstream/extended_distributed.py",
+      "old": "if len(data)<batch*self.world:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_extended_distributed.TestDistributed"
+      ]
+    },
+    {
+      "label": "per-rank device selection guard",
+      "file": "downstream/extended_distributed.py",
+      "old": "if world>1 and device_spec not in ('cpu','cuda'):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_extended_distributed.TestDistributed"
+      ]
+    },
+    {
+      "label": "global effective batch",
+      "file": "downstream/extended_execution.py",
+      "old": "effective_batch=cfg['probe']['batch_size']*count*world",
+      "new": "effective_batch=cfg['probe']['batch_size']*count",
+      "tests": [
+        "tests.test_method_extended_distributed.TestDistributed"
+      ]
+    },
+    {
+      "label": "report actual world",
+      "file": "downstream/extended_execution.py",
+      "old": "world_size=world,",
+      "new": "world_size=1,",
+      "tests": [
+        "tests.test_method_extended_distributed.TestDistributed"
+      ]
+    },
+    {
+      "label": "synchronized finite checks",
+      "file": "downstream/extended_execution.py",
+      "old": "torch.distributed.all_reduce(valid,op=torch.distributed.ReduceOp.MIN)",
+      "new": "pass",
+      "tests": [
+        "tests.test_method_extended_distributed.TestDistributed.test_peer_invalid_loss_refuses_local_backward_and_update"
+      ]
+    },
+    {
+      "label": "unwrap frozen backbone guard",
+      "file": "downstream/extended_execution.py",
+      "old": "getattr(unwrap(model), 'backbone', None)",
+      "new": "getattr(model, 'backbone', None)",
+      "tests": [
+        "tests.test_method_extended_distributed.TestDistributed"
+      ]
+    },
+    {
+      "label": "image epoch shuffle",
+      "file": "downstream/extended_classification.py",
+      "old": "if context.world>1: loader.sampler.set_epoch(epoch)",
+      "new": "if context.world>1: loader.sampler.set_epoch(0)",
+      "tests": [
+        "tests.test_method_extended_distributed.TestDistributed"
+      ]
+    },
+    {
+      "label": "semantic epoch shuffle",
+      "file": "downstream/extended_segmentation.py",
+      "old": "if context.world>1: loader.sampler.set_epoch(epoch)",
+      "new": "if context.world>1: loader.sampler.set_epoch(0)",
+      "tests": [
+        "tests.test_method_extended_distributed.TestDistributed"
+      ]
+    },
+    {
+      "label": "image complete evaluation",
+      "file": "downstream/extended_classification.py",
+      "old": "for images,y in validation:",
+      "new": "for images,y in list(validation)[:1]:",
+      "tests": [
+        "tests.test_method_extended_distributed.TestDistributed"
+      ]
+    },
+    {
+      "label": "semantic complete evaluation",
+      "file": "downstream/extended_segmentation.py",
+      "old": "for images,targets in validation:",
+      "new": "for images,targets in list(validation)[:1]:",
+      "tests": [
+        "tests.test_method_extended_distributed.TestDistributed"
+      ]
+    },
+    {
+      "label": "image export excludes backbone",
+      "file": "downstream/extended_classification.py",
+      "old": "if not k.startswith('backbone.')",
+      "new": "if True",
+      "tests": [
+        "tests.test_method_extended_distributed.TestDistributed"
+      ]
+    },
+    {
+      "label": "semantic export excludes backbone",
+      "file": "downstream/extended_segmentation.py",
+      "old": "if not k.startswith('backbone.')",
+      "new": "if True",
+      "tests": [
+        "tests.test_method_extended_distributed.TestDistributed"
+      ]
+    },
+    {
+      "label": "no output overwrite",
+      "file": "downstream/extended_distributed.py",
+      "old": "out.mkdir(parents=True,exist_ok=False)",
+      "new": "out.mkdir(parents=True,exist_ok=True)",
+      "tests": [
+        "tests.test_method_extended_distributed.TestDistributed"
+      ]
+    },
+    {
+      "label": "output refusal diagnostic",
+      "file": "downstream/extended_distributed.py",
+      "old": "if context.rank==0: print(f'{type(exc).__name__}: {exc}',file=sys.stderr)",
+      "new": "if context.rank==0: pass",
+      "tests": [
+        "tests.test_method_extended_distributed.TestDistributed.test_existing_output_refusal_explains_error_without_writing"
+      ]
+    },
+    {
+      "label": "long evaluation collective timeout",
+      "file": "downstream/extended_distributed.py",
+      "old": "timeout=timedelta(seconds=10800)",
+      "new": "timeout=timedelta(seconds=120)",
+      "tests": [
+        "tests.test_method_extended_distributed.TestDistributed.test_owned_group_allows_captured_long_evaluation_window"
+      ]
+    },
+    {
+      "label": "captured loader RNG clock",
+      "file": "downstream/extended_distributed.py",
+      "old": "generator=torch.Generator().manual_seed(seed) if self.world==1 else None",
+      "new": "generator=torch.Generator().manual_seed(seed)",
+      "tests": [
+        "tests.test_method_extended_distributed.TestDistributed.test_distributed_loader_retains_reference_global_rng_clock"
+      ]
+    }
+  ]
+}

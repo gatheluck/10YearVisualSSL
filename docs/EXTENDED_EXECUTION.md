@@ -7,7 +7,8 @@ The [image](EXTENDED_CLASSIFICATION.md) and [semantic](EXTENDED_SEGMENTATION.md)
 LP/AP runners share this execution component. It applies to their five verified
 providers; it does not add new dataset memberships or certify paper scores.
 Omitting `execution` preserves one physical batch per update in FP32.
-Distributed execution and native checkpoint continuation are not integrated.
+Both runners also accept `torchrun` for distributed execution. Native checkpoint
+continuation is not integrated.
 
 ## Explicit configuration
 
@@ -60,7 +61,8 @@ carry across epochs. An epoch that cannot produce any update is rejected.
 The existing data loader still drops an incomplete **physical** training batch.
 That is distinct from a tail of full microbatches in an accumulation group.
 
-Learning-rate scaling uses physical batch times accumulation count. The source
+Learning-rate scaling uses physical batch times world size times accumulation
+count. The source
 schedule indexes **optimizer updates**, but its warmup and total horizon use
 the full number of loader **microbatches** per epoch. For example, accumulation
 8 advances the schedule approximately one eighth as far per epoch as count 1.
@@ -72,6 +74,51 @@ about epoch-level cosine decay alone does not resolve that mapping.
 The backbone stays frozen and in evaluation mode. Nonfinite losses or gradients
 and unexpected backbone gradients fail the run. Terminal probe export still
 excludes backbone weights and never overwrites an existing CLI output directory.
+
+## Distributed launch and ownership
+
+Use the same configuration on every rank, with `device: cuda` for NCCL or
+`device: cpu` for Gloo. The launcher chooses each CUDA device through
+`LOCAL_RANK`; an explicit `cuda:0` is refused in a multi-process launch.
+For example, after preparing the image configuration and its sample manifest:
+
+```bash
+python -m torch.distributed.run --standalone --nproc-per-node=2 -m downstream.extended_classification --config extended-image.json --out runs/extended-image-ddp
+```
+
+For semantic segmentation, replace the module with
+`downstream.extended_segmentation` and supply its configuration. `probe.batch_size`
+is **per rank**, not a global batch. Changing world size without adjusting the
+physical batch or accumulation changes the realized batch and scaled LR.
+The schedule horizon uses each rank's local loader length. Reported microbatch,
+update and discarded-tail counters are per rank; synchronized updates are not
+multiplied by the number of ranks.
+
+The training sampler uses seed 0 and `set_epoch(epoch)`, pads a non-divisible
+population as PyTorch's captured `DistributedSampler` does, then distributes
+indices by rank. Incomplete physical batches are dropped locally. Unlike the
+single-process compatibility route's dedicated generator, the distributed loader
+uses the global Torch RNG for iterator/worker seeding, matching the captured
+loader. Exact random-transform parity still needs matching workers and full runs.
+Unlike the experimental trainer's small-population fallback, this package rejects a
+population smaller than one full global physical batch; choose explicit smaller
+settings instead of silently changing the batch or accumulation. The DDP wrapper
+uses `find_unused_parameters=True`, including adapters with initially unused
+parameters. Gradients synchronize on every microbatch, before accumulated AP
+clipping and the optimizer update. Frozen encoder parameters remain excluded.
+
+Only rank 0 evaluates the **complete** validation population, using the unwrapped
+model. Validation is neither padded nor sharded; exported probe keys have no DDP
+prefix and contain no backbone weights. Only rank 0 creates the output directory
+and writes metrics, probe state, results and the final manifest. An existing
+output is refused collectively and left unchanged. Configurations and membership
+metadata must agree across ranks before training. Setup and evaluation errors,
+and nonfinite loss/gradient guards, propagate across ranks. A process crash or
+failure inside a data-loader/model collective still relies on the process-group
+timeout (three hours, as in the captured launcher) and torchrun's worker termination;
+long rank-zero evaluation must fit that window. This is not fault-tolerant
+training. Launch one run per torchrun invocation. An already initialized matching
+group can be borrowed, but the runner does not destroy a group owned by its caller.
 
 ## Evidence and limits
 
@@ -89,6 +136,11 @@ five original loops: ten task/loop combinations over three epochs match the
 portable parameters and per-update gradients exactly on reduced CPU inputs.
 BF16 forward/loss boundaries are exercised with CPU autocast in an
 explicit test harness; that is not evidence of CUDA numerical parity.
-Released-weight CUDA execution, full-data scores, distributed semantics and
-historical checkpoint continuation remain unverified or unported. Existing
+Two real CPU/Gloo ranks exercise both runners' LP/AP training, full-population
+evaluation, output protection and failure propagation. A separate global-batch
+oracle compares three epochs of synchronized updates for both accumulation-tail
+policies, including sampler padding and AP clipping. These reduced tests are not
+released-weight NCCL/BF16 numerical validation or multi-node evidence.
+Released-weight CUDA execution, full-data scores and historical checkpoint
+continuation remain unverified or unported. Existing
 224-grid semantic evaluation and unresolved task/metric identities are unchanged.

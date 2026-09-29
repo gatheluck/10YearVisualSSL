@@ -185,6 +185,7 @@ jobs:
             tests.test_method_extended_classification tests.test_extended_membership \
             tests.test_extended_segmentation tests.test_method_extended_segmentation \
             tests.test_extended_segmentation_membership tests.test_method_extended_execution \
+            tests.test_method_extended_distributed \
             tests.test_basic5_component_dependencies \
             tests.test_basic5_protocol tests.test_basic5_readers \
             tests.test_basic5_depth_temporal tests.test_basic5_seg_detection \
