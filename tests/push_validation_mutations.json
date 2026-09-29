@@ -1,0 +1,148 @@
+{
+  "targets": [
+    {
+      "label": "fingerprint check removed",
+      "file": "bin/validate-push.py",
+      "old": "if fingerprint(python, env) != record['fingerprint']:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_push_validation.TestPushValidation.test_dependency_byte_change_invalidates_even_with_same_timestamp"
+      ]
+    },
+    {
+      "label": "source post-check removed",
+      "file": "bin/validate-push.py",
+      "old": "if fingerprint(python, env) != before:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_push_validation.TestPushValidation.test_source_change_during_suite_cannot_issue_receipt"
+      ]
+    },
+    {
+      "label": "failure accepted",
+      "file": "bin/validate-push.py",
+      "old": "if result.returncode:\n        print",
+      "new": "if False:\n        print",
+      "tests": [
+        "tests.test_push_validation.TestPushValidation.test_failure_revokes_previous_success_and_keeps_diagnostics"
+      ]
+    },
+    {
+      "label": "old success retained",
+      "file": "bin/validate-push.py",
+      "old": "receipt.unlink(missing_ok=True)",
+      "new": "pass",
+      "tests": [
+        "tests.test_push_validation.TestPushValidation.test_failure_revokes_previous_success_and_keeps_diagnostics"
+      ]
+    },
+    {
+      "label": "TTL disabled",
+      "file": "bin/validate-push.py",
+      "old": "not 0 <= time.time() - record['created_at'] < MAX_AGE",
+      "new": "False",
+      "tests": [
+        "tests.test_push_validation.TestPushValidation.test_corrupt_expired_or_missing_log_records_fail_closed"
+      ]
+    },
+    {
+      "label": "schema unchecked",
+      "file": "bin/validate-push.py",
+      "old": "record['version'] != 1",
+      "new": "False",
+      "tests": [
+        "tests.test_push_validation.TestPushValidation.test_corrupt_expired_or_missing_log_records_fail_closed"
+      ]
+    },
+    {
+      "label": "exit status unchecked",
+      "file": "bin/validate-push.py",
+      "old": "record['exit_code'] != 0",
+      "new": "False",
+      "tests": [
+        "tests.test_push_validation.TestPushValidation.test_corrupt_expired_or_missing_log_records_fail_closed"
+      ]
+    },
+    {
+      "label": "log digest unchecked",
+      "file": "bin/validate-push.py",
+      "old": "if sha(state / log) != record['log_sha256']:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_push_validation.TestPushValidation.test_corrupt_expired_or_missing_log_records_fail_closed"
+      ]
+    },
+    {
+      "label": "proposed commit unchecked",
+      "file": "bin/validate-push.py",
+      "old": "fields[1] != record['head']",
+      "new": "False",
+      "tests": [
+        "tests.test_push_validation.TestPushValidation.test_receipt_is_bound_to_checkout_and_actual_pushed_commit"
+      ]
+    },
+    {
+      "label": "submodule omitted",
+      "file": "bin/validate-push.py",
+      "old": "value = source_identity(path)",
+      "new": "value = 'omitted'",
+      "tests": [
+        "tests.test_push_validation.TestPushValidation.test_dirty_submodule_content_is_bound_without_modifying_it"
+      ]
+    },
+    {
+      "label": "skip bypass restored",
+      "file": "bin/validate-push.py",
+      "old": "raise Invalid('SKIP_TORCH_GATE is not supported; validation is required.')",
+      "new": "return 0",
+      "tests": [
+        "tests.test_push_validation.TestPushValidation.test_skip_flag_and_missing_torch_cannot_authorize_push"
+      ]
+    },
+    {
+      "label": "lock omitted",
+      "file": "bin/validate-push.py",
+      "old": "fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)",
+      "new": "pass",
+      "tests": [
+        "tests.test_push_validation.TestPushValidation.test_prepare_lock_prevents_concurrent_validation"
+      ]
+    },
+    {
+      "label": "remote guard removed",
+      "file": "bin/validate-push.py",
+      "old": "if not args.remote or args.remote.startswith('-'):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_push_validation.TestPushValidation.test_remote_option_cannot_bypass_hook"
+      ]
+    },
+    {
+      "label": "reuse removed",
+      "file": "bin/validate-push.py",
+      "old": "if not force:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_push_validation.TestPushValidation.test_transport_failure_then_wrapper_retry_does_not_rerun"
+      ]
+    },
+    {
+      "label": "clean root guard removed",
+      "file": "bin/validate-push.py",
+      "old": "if git('status', '--porcelain', '--untracked-files=all', '--ignore-submodules=all').strip():",
+      "new": "if False:",
+      "tests": [
+        "tests.test_push_validation.TestPushValidation.test_prepare_rejects_dirty_root_and_disabled_hook"
+      ]
+    },
+    {
+      "label": "explicit interpreter lost during push",
+      "file": "bin/validate-push.py",
+      "old": "env={**os.environ, 'TORCH_GATE_PYTHON': python}",
+      "new": "env=os.environ",
+      "tests": [
+        "tests.test_push_validation.TestPushValidation.test_explicit_python_override_is_used_for_actual_push"
+      ]
+    }
+  ]
+}
