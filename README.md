@@ -54,7 +54,7 @@ with [the project handoff](docs/HANDOFF.md) and [agent instructions](AGENTS.md).
 | `methods/` | **forty-one methods ported and tested** (forty with a linear evaluation; only `mar` is pretrain-only). `28_dinov2`, `30_aim` and `36_franca` pair an as-is Step-1 download probe with a from-scratch unified Step-2. The per-method table is below under [Methods](#methods) |
 | `bin/launch.py` | **implemented and tested.** One command: resolve, submit, verify, record |
 | `adapterlib/` | **implemented and tested.** The one place a `run_manifest.json` is written |
-| `downstream/` | **implemented and tested components** (hermetic smokes run in CI). ADE20K segmentation, COCO detection, NYUv2 depth, SSv2 video, and [Extended image LP/AP](docs/EXTENDED_CLASSIFICATION.md), with explicit recipe and validation limits. Task execution has its own output contract; passing a smoke does not reproduce a paper score. See [docs/DOWNSTREAM.md](docs/DOWNSTREAM.md) |
+| `downstream/` | **implemented and tested components** (hermetic smokes run in CI). ADE20K segmentation, COCO detection, NYUv2 depth, SSv2 video, [Extended image LP/AP](docs/EXTENDED_CLASSIFICATION.md) and [Extended semantic LP/AP](docs/EXTENDED_SEGMENTATION.md), with explicit recipe and validation limits. Task execution has its own output contract; passing a smoke does not reproduce a paper score. See [docs/DOWNSTREAM.md](docs/DOWNSTREAM.md) |
 | `LICENSE` | **MIT** (Copyright (c) 2026 LIMIT.Lab) |
 
 Three adapters exist and the chain runs end to end on a CPU: a configuration

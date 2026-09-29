@@ -183,6 +183,8 @@ jobs:
             tests.test_method_raev2 tests.test_method_vggt_omega \
             tests.test_method_cradiov4_h tests.test_downstream_accounting \
             tests.test_method_extended_classification tests.test_extended_membership \
+            tests.test_extended_segmentation tests.test_method_extended_segmentation \
+            tests.test_extended_segmentation_membership \
             tests.test_basic5_component_dependencies \
             tests.test_basic5_protocol tests.test_basic5_readers \
             tests.test_basic5_depth_temporal tests.test_basic5_seg_detection \

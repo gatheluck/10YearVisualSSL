@@ -171,9 +171,10 @@ def optimizer(model, settings, *, batch_size, steps_per_epoch):
         opt = torch.optim.AdamW(groups,lr=lr,betas=tuple(settings['betas']))
     else:
         raise ValueError('unsupported optimizer')
-    warm = 5 * steps_per_epoch if settings['warmup'] == '5 epochs from 1e-6' else 0
-    if settings['warmup'] not in ('none','5 epochs from 1e-6'):
+    warm_epochs = {'none':0, '1 epoch from 1e-6':1, '5 epochs from 1e-6':5}
+    if settings['warmup'] not in warm_epochs:
         raise ValueError('unresolved warmup specification')
+    warm = warm_epochs[settings['warmup']] * steps_per_epoch
     total = settings['epochs'] * steps_per_epoch
     floor = 1e-6 if settings['schedule'] == 'cosine to 1e-6' else 0.
     if settings['schedule'] not in ('cosine to 0','cosine to 1e-6'):
