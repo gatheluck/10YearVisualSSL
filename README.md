@@ -171,6 +171,7 @@ shown so the shape is visible before it is built.
 │   ├── matrix-audit.py                judge a produced grid: did everything land?
 │   ├── verify-environment.py         is this the locked environment?
 │   ├── run-ci-locally.py            run the workflow here, by reading it
+│   ├── validate-push.py             validate offline, then check evidence and push
 │   ├── mutate.py                     break the code, check the tests notice
 │   ├── submission-archive.py        audit and package an anonymous source ZIP
 │   ├── build-lock.py                 render a resolved set into a CPU lock
@@ -445,6 +446,12 @@ Once per clone, so that the pre-commit hook is active:
 ```bash
 git config core.hooksPath .githooks
 ```
+
+After committing, validate and push with `python3 bin/validate-push.py push --remote origin`.
+The long Torch suite runs locally before SSH starts; the pre-push hook checks
+its saved evidence without rerunning tests. Unchanged network retries reuse
+that evidence. See [offline push validation](docs/PUSH_VALIDATION.md) for
+interpreter selection, logs, expiration and validation limits.
 
 ## Training a method
 

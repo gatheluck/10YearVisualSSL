@@ -1,3 +1,7 @@
+> Historical checkpoint. The push instructions below were superseded on
+> 2026-09-29 by [offline push validation](PUSH_VALIDATION.md): validation now
+> runs before Git transport and the hook checks a receipt.
+
 # Handoff — BASIC5 rule `b` (eval preprocessing) reconciliation
 
 Status, support and validation statements describe this portable package at the

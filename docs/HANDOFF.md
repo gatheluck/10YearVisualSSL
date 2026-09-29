@@ -12,6 +12,19 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-09-29: offline push validation
+
+The user requested a separate stacked PR above the dense-component branch,
+leaving its running CI unchanged. Long whole-suite validation moves before
+Git transport; a private, per-checkout receipt gates the actual pushed commit.
+SSH remains the transport. Network-only retries reuse matching evidence;
+changed inputs, failed validation, missing Torch and expired evidence refuse
+publication. The former skip environment variable no longer bypasses the gate.
+See [the workflow](PUSH_VALIDATION.md) for commands, limitations and recovery.
+The full local suite remains distinct from the Linux CI matrix and GPU tests.
+No scientific implementation, original input or cluster job is changed.
+Refresh the task PR for final test counts and delivery/CI status.
+
 ### 2026-09-27: final-paper component port
 
 September 28 follow-up after PR 206: all 115 checks succeeded and main was
@@ -342,6 +355,8 @@ git clone --recurse-submodules "$PORT_REMOTE" "$PORT_DIR" && git -C "$PORT_DIR" 
    unverified Mac packages. CPU/tooling skips on a Mac are not GPU validation.
    Read `.githooks/pre-commit` and `.githooks/pre-push`; enable hooks as above and
    do not bypass them. Existing `tests/run-tests.sh` is the base regression gate.
+   After committing, use `python3 bin/validate-push.py push --remote origin`;
+   the whole Torch suite runs offline before Git transport.
 7. Verify ABCI access read-only first: account, private destination, source and
    checkpoint readability, reservation status and any already running jobs.
    Never resubmit a job merely because the Mac changed. Compute tests use only
