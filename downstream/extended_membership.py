@@ -8,9 +8,12 @@ from collections import Counter
 import hashlib
 import json
 from pathlib import Path
+import re
 
 COUNTS = {'cub200': (5994,5794,200), 'dtd': (1880,1880,47),
-          'fgvc_aircraft': (6667,3333,100)}
+          'fgvc_aircraft': (6667,3333,100), 'food101': (75750,25250,101),
+          'oxford_pets': (3680,3669,37), 'ip102': (45095,22619,102),
+          'mit_indoor': (5360,1340,67)}
 
 
 def build(dataset, root, *, fixture_counts=None):
@@ -47,7 +50,7 @@ def build(dataset, root, *, fixture_counts=None):
             result[int(key)]=value
         return result
 
-    rows={'train':[],'validation':[]}; unused=[]
+    rows={'train':[],'validation':[]}; unused=[]; extra={}
     if dataset=='cub200':
         classes_by_id=table('classes.txt')
         if set(classes_by_id)!=set(range(1,counts[2]+1)):
@@ -72,6 +75,82 @@ def build(dataset, root, *, fixture_counts=None):
                     raise ValueError('aircraft image ID or variant is invalid')
                 rows[split].append(dict(path='data/images/'+key+'.jpg',target=classes.index(label)))
         inventory_root='data/images'
+    elif dataset=='food101':
+        parts={sp:lines('meta/'+name+'.txt') for sp,name in [('train','train'),('validation','test')]}
+        classes=sorted({p.split('/')[0] for p in parts['train']})
+        for sp,paths in parts.items():
+            if fixture_counts is None and set(Counter(p.split('/')[0] for p in paths).values())!={750 if sp=='train' else 250}:
+                raise ValueError('Food-101 per-class split quota differs')
+            for path in paths:
+                bits=path.split('/')
+                if len(bits)!=2 or bits[0] not in classes or '\\' in path or any(c.isspace() for c in path) or Path(path).suffix:
+                    raise ValueError('Food-101 annotation path/class disagreement')
+                rows[sp].append(dict(path='images/'+path+'.jpg',target=classes.index(bits[0])))
+        inventory_root=None
+    elif dataset=='oxford_pets':
+        names={}
+        for sp,filename in [('train','train'),('validation','test')]:
+            for row in lines('annotations/'+filename+'.txt'):
+                fields=row.split()
+                if len(fields)!=4 or re.fullmatch(r'[A-Za-z_]+_[0-9]+',fields[0]) is None or not all(re.fullmatch(r'[0-9]+',v) for v in fields[1:]):
+                    raise ValueError('invalid pet annotation schema')
+                ident,raw,species,breed=fields; label=int(raw)-1; cls=ident.rsplit('_',1)[0]
+                if not 0<=label<counts[2] or int(species) not in (1,2) or int(breed)<1:
+                    raise ValueError('invalid pet label/species/breed')
+                if sp=='train':
+                    if names.get(label,cls)!=cls: raise ValueError('pet training label mapping conflict')
+                    names[label]=cls
+                if names.get(label)!=cls: raise ValueError('pet evaluation label mapping conflict')
+                rows[sp].append(dict(path='images/'+ident+'.jpg',target=label))
+        if set(names)!=set(range(counts[2])): raise ValueError('pet class IDs incomplete')
+        classes=[names[i] for i in range(counts[2])]; inventory_root=None
+        extra['training_annotation']='annotations/train.txt (captured renamed trainval list)'
+    elif dataset=='ip102':
+        names=table('classes.txt')
+        if set(names)!=set(range(1,counts[2]+1)): raise ValueError('IP102 class IDs incomplete')
+        classes=[names[i] for i in range(1,counts[2]+1)]
+        parts={}
+        for sp in ('train','val','test'):
+            parts[sp]=[]
+            for row in lines(sp+'.txt'):
+                fields=row.split()
+                if len(fields)!=2 or '/' in fields[0] or '\\' in fields[0] or Path(fields[0]).suffix.lower() not in {'.jpg','.jpeg','.png','.bmp','.webp','.tif','.tiff','.ppm'} or re.fullmatch(r'[0-9]+',fields[1]) is None:
+                    raise ValueError('invalid IP102 list row')
+                parts[sp].append((fields[0],int(fields[1])))
+        labels={label for _,label in parts['train']}
+        bases=[b for b in (0,1) if labels==set(range(b,counts[2]+b))]
+        if len(bases)!=1: raise ValueError('ambiguous IP102 label encoding')
+        base=bases[0]; extra['list_label_base']=base
+        if len(parts['val'])!=(counts[1] if fixture_counts is not None else 7508):
+            raise ValueError('IP102 held-out validation count differs')
+        for sp,items in parts.items():
+            if {label-base for _,label in items}!=set(range(counts[2])):
+                raise ValueError('IP102 split class coverage differs')
+            for path,label in items:
+                (unused if sp=='val' else rows['train' if sp=='train' else 'validation']).append(dict(path='images/'+path,target=label-base))
+        inventory_root='images'
+        extra['held_out_validation']='val.txt checked and excluded from training/evaluation'
+    elif dataset=='mit_indoor':
+        index={}
+        for folder in ('train','val'):
+            directory=root/folder
+            if not directory.is_dir(): raise ValueError('missing MIT storage directory')
+            for p in directory.rglob('*'):
+                if not p.is_file() or p.name=='.DS_Store': continue
+                rel=p.relative_to(directory).as_posix()
+                if len(Path(rel).parts)!=2 or p.suffix.lower()!='.jpg' or rel in index:
+                    raise ValueError('ambiguous or invalid MIT storage image')
+                safe(folder+'/'+rel); index[rel]=folder+'/'+rel
+        classes=sorted({p.split('/')[0] for p in index}); listed=[]
+        for sp,filename in [('train','TrainImages.txt'),('validation','TestImages.txt')]:
+            for row in lines(filename):
+                path=row.replace('\\','/')
+                if path not in index: raise ValueError('missing MIT official image')
+                listed.append(path)
+                rows[sp].append(dict(path=index[path],target=classes.index(path.split('/')[0])))
+        if set(listed)!=set(index): raise ValueError('MIT list union differs from image inventory')
+        inventory_root=None
+        extra['storage_membership']='official lists override physical train/val directory placement'
     else:
         parts={split:lines('labels/'+split+'1.txt') for split in ('train','val','test')}
         classes=sorted({p.split('/')[0] for p in parts['train']})
@@ -104,7 +183,7 @@ def build(dataset, root, *, fixture_counts=None):
             raise ValueError('official membership does not match complete image inventory')
     evidence=dict(dataset=dataset,annotation_sha256=hashes,fixture=fixture_counts is not None,
                   split_counts=list(counts),authenticity_verified=False,
-                  source='explicit annotation join; no prepared-folder membership inference')
+                  source='explicit annotation join; no prepared-folder membership inference',**extra)
     return dict(schema_version=1,classes=classes,split_evidence=json.dumps(evidence,sort_keys=True),**rows)
 
 

@@ -12,6 +12,25 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-09-30: Extended native classification membership
+
+PR 210 merged as `6f01364`; all 115 checks succeeded, and pulled main matched
+the tested `9641b11` tree. Preexisting video submodule changes were preserved.
+The next grouped change adds Food-101, Pets, IP102 and MIT Indoor-67 native
+annotation conversion to the existing image LP/AP sample contract. It does not
+add providers, alter training recipes or certify full-data results. Both splits
+are validated; IP102's separate validation split is checked and excluded. MIT
+official lists override physical directory placement without uniform quotas.
+See [the input guide](EXTENDED_CLASSIFICATION.md) for layouts, deliberate
+prepared-copy differences and the unresolved Flowers102 train/validation conflict.
+
+Current original files differed from Capture; both revisions were inspected and
+executed on reduced fixtures, with ten matching split/label comparisons each.
+Private source paths/hashes remain outside Git. Synthetic CLI counts and LP/AP
+input/update tests are distinct from released-data/GPU/score reproduction.
+No compute job, original dataset or weight was changed. Refresh the task PR for
+final gates, mutation results and CI; stop for review after branch/PR delivery.
+
 ### 2026-09-29: Extended distributed execution
 
 PR 209 merged as `29e9991`, with all 115 checks successful; main matched the

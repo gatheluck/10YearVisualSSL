@@ -1,0 +1,148 @@
+{
+  "targets": [
+    {
+      "file": "downstream/extended_membership.py",
+      "label": "Food quota replaced with aggregate count",
+      "old": "if fixture_counts is None and set(Counter(p.split('/')[0] for p in paths).values())!={750 if sp=='train' else 250}:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_native_inputs.TestNativeInputs.test_food_per_class_quota_cannot_be_replaced_with_total_count"
+      ]
+    },
+    {
+      "file": "downstream/extended_membership.py",
+      "label": "Food label vocabulary reverses",
+      "old": "classes=sorted({p.split('/')[0] for p in parts['train']})\n        for sp,paths in parts.items():",
+      "new": "classes=sorted({p.split('/')[0] for p in parts['train']},reverse=True)\n        for sp,paths in parts.items():",
+      "tests": [
+        "tests.test_extended_native_inputs.TestNativeInputs.test_four_native_contracts_preserve_membership_and_vocabulary"
+      ]
+    },
+    {
+      "file": "downstream/extended_membership.py",
+      "label": "Pet class order ignores annotation IDs",
+      "old": "classes=[names[i] for i in range(counts[2])]; inventory_root=None",
+      "new": "classes=sorted(names.values()); inventory_root=None",
+      "tests": [
+        "tests.test_extended_native_inputs.TestNativeInputs.test_four_native_contracts_preserve_membership_and_vocabulary"
+      ]
+    },
+    {
+      "file": "downstream/extended_membership.py",
+      "label": "Pet evaluation mapping conflict ignored",
+      "old": "if names.get(label)!=cls: raise ValueError('pet evaluation label mapping conflict')",
+      "new": "if False: raise ValueError('pet evaluation label mapping conflict')",
+      "tests": [
+        "tests.test_extended_native_inputs.TestNativeInputs.test_pet_numeric_labels_and_split_conflicts"
+      ]
+    },
+    {
+      "file": "downstream/extended_membership.py",
+      "label": "Pet species validation removed",
+      "old": "int(species) not in (1,2)",
+      "new": "False",
+      "tests": [
+        "tests.test_extended_native_inputs.TestNativeInputs.test_pet_numeric_labels_and_split_conflicts"
+      ]
+    },
+    {
+      "file": "downstream/extended_membership.py",
+      "label": "IP102 forced zero based",
+      "old": "base=bases[0]; extra['list_label_base']=base",
+      "new": "base=0; extra['list_label_base']=base",
+      "tests": [
+        "tests.test_extended_native_inputs.TestNativeInputs.test_ip_both_label_encodings_and_heldout_integrity"
+      ]
+    },
+    {
+      "file": "downstream/extended_membership.py",
+      "label": "IP102 validation count ignored",
+      "old": "if len(parts['val'])!=(counts[1] if fixture_counts is not None else 7508):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_native_inputs.TestNativeInputs.test_ip_both_label_encodings_and_heldout_integrity"
+      ]
+    },
+    {
+      "file": "downstream/extended_membership.py",
+      "label": "IP102 validation becomes evaluation",
+      "old": "if sp=='train' else 'validation']).append(dict(path='images/'+path,target=label-base))",
+      "new": "if sp=='val' else 'validation']).append(dict(path='images/'+path,target=label-base))",
+      "tests": [
+        "tests.test_extended_native_inputs.TestNativeInputs.test_four_native_contracts_preserve_membership_and_vocabulary"
+      ]
+    },
+    {
+      "file": "downstream/extended_membership.py",
+      "label": "IP102 full inventory not checked",
+      "old": "extra['held_out_validation']='val.txt checked and excluded from training/evaluation'",
+      "new": "inventory_root=None\n        extra['held_out_validation']='val.txt checked and excluded from training/evaluation'",
+      "tests": [
+        "tests.test_extended_native_inputs.TestNativeInputs.test_ip_both_label_encodings_and_heldout_integrity"
+      ]
+    },
+    {
+      "file": "downstream/extended_membership.py",
+      "label": "MIT list union not checked",
+      "old": "if set(listed)!=set(index): raise ValueError('MIT list union differs from image inventory')",
+      "new": "if False: raise ValueError('MIT list union differs from image inventory')",
+      "tests": [
+        "tests.test_extended_native_inputs.TestNativeInputs.test_mit_complete_union_not_uniform_quota_or_physical_split"
+      ]
+    },
+    {
+      "file": "downstream/extended_membership.py",
+      "label": "MIT ambiguous images silently selected",
+      "old": "or rel in index:",
+      "new": ":",
+      "tests": [
+        "tests.test_extended_native_inputs.TestNativeInputs.test_mit_complete_union_not_uniform_quota_or_physical_split"
+      ]
+    },
+    {
+      "file": "downstream/extended_membership.py",
+      "label": "MIT train and evaluation lists swapped",
+      "old": "[('train','TrainImages.txt'),('validation','TestImages.txt')]",
+      "new": "[('validation','TrainImages.txt'),('train','TestImages.txt')]",
+      "tests": [
+        "tests.test_extended_native_inputs.TestNativeInputs.test_four_native_contracts_preserve_membership_and_vocabulary"
+      ]
+    },
+    {
+      "file": "downstream/extended_membership.py",
+      "label": "Native split overlap admitted",
+      "old": "if len(paths)!=len(set(paths)):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_native_inputs.TestNativeInputs.test_food_lists_override_prepared_copy_and_detect_bad_population"
+      ]
+    },
+    {
+      "file": "downstream/extended_membership.py",
+      "label": "Escaping symlink admitted",
+      "old": "not resolved.is_relative_to(root) or not resolved.is_file()",
+      "new": "not resolved.is_file()",
+      "tests": [
+        "tests.test_extended_native_inputs.TestNativeInputs.test_native_missing_images_and_escaping_links_fail"
+      ]
+    },
+    {
+      "file": "downstream/extended_membership.py",
+      "label": "CLI replaces existing manifest",
+      "old": "Path(args.out).open('x')",
+      "new": "Path(args.out).open('w')",
+      "tests": [
+        "tests.test_extended_native_inputs.TestNativeInputs.test_release_mit_cli_accepts_nonuniform_official_counts_and_never_overwrites"
+      ]
+    },
+    {
+      "file": "downstream/extended_membership.py",
+      "label": "Food backslash relative IDs accepted",
+      "old": "or '\\\\' in path or any",
+      "new": "or any",
+      "tests": [
+        "tests.test_extended_native_inputs.TestNativeInputs.test_food_backslash_annotation_is_not_a_native_relative_id"
+      ]
+    }
+  ]
+}
