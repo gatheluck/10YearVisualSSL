@@ -118,8 +118,10 @@ LP decay is 0.0001; AP decay is 0.05. Bias/norm/positional parameters have no
 decay. AP clips trainable gradients at 1.0. Shortened executions retain the
 20-epoch schedule and report their terminal epoch, never the best epoch.
 
-This port is single-process FP32, one physical batch per update. Original runs
-also use accumulation and BF16; those paths, distributed execution and native
+This port is single-process, with optional
+[accumulation and CUDA BF16](EXTENDED_EXECUTION.md). FP32 and one physical batch
+per update remain the default. The captured microbatch schedule horizon and
+provider-specific tail policies are explicit; distributed execution and native
 resume remain unported. The saved `probe.pt` contains only head/adapter state;
 `results.json`, numeric metrics and the downstream manifest record the run.
 An existing destination is refused. Released weights, full-data/GPU execution,

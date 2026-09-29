@@ -18,7 +18,8 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision.transforms import functional as TF
 
 from downstream import contract
-from downstream.attention import SpatialAdapter, clip_attentive_gradients
+from downstream.attention import SpatialAdapter
+from downstream import extended_execution as execution
 from downstream.captured_readers import SingleBlockSpatialAdapter, SINGLE_BLOCK, CROSS_SELF
 from downstream.extended_classification import PROTOCOLS, optimizer
 from downstream.spatial_backbones import build_frozen_backbone, discover_providers, _load_provider
@@ -191,7 +192,7 @@ def load_data(manifest, root, profile):
 def validate_config(cfg):
     required={'task','profile','dataset','seed','device','data_root','samples','transform_profile',
               'adaptation','reader_profile','backbone','probe'}
-    if set(cfg)!=required or cfg['task']!=TASK or cfg['profile']!=PROFILE:
+    if set(cfg)-{'execution'}!=required or cfg['task']!=TASK or cfg['profile']!=PROFILE:
         raise ValueError('explicit Extended semantic component config required')
     if type(cfg['seed']) is not int or cfg['seed']!=0: raise ValueError('Extended seed must be 0')
     if (os.environ.get('WORLD_SIZE','1')!='1' or
@@ -206,14 +207,17 @@ def validate_config(cfg):
         raise ValueError('invalid probe integers')
     if probe['epochs']>settings['epochs']: raise ValueError('cannot exceed the scheduled epoch horizon')
     path=discover_providers().get(cfg['backbone'].get('kind'))
-    expected=getattr(_load_provider(path),'EXTENDED_DENSE_READER',None) if path else None
+    provider=_load_provider(path) if path else None
+    expected=getattr(provider,'EXTENDED_DENSE_READER',None)
     if expected not in (SINGLE_BLOCK,CROSS_SELF): raise ValueError('provider lacks verified Extended dense recipe')
     if cfg['reader_profile']!=(expected if cfg['adaptation']=='attentive' else None):
         raise ValueError('dense reader profile disagrees with provider')
+    return execution.resolve_execution(cfg,provider)
 
 
 def run(cfg,out):
-    validate_config(cfg); make_deterministic(cfg['seed']); device=resolve_device(cfg['device'])
+    plan=validate_config(cfg); make_deterministic(cfg['seed']); device=resolve_device(cfg['device'])
+    execution.autocast_context(device,plan['precision'])
     train,val,membership=load_data(cfg['samples'],cfg['data_root'],cfg['transform_profile'])
     classes=dataset_spec(cfg['dataset'])['head_outputs']
     if len(membership['classes'])!=classes: raise ValueError('manifest ontology differs from dataset recipe')
@@ -224,19 +228,22 @@ def run(cfg,out):
     validation=DataLoader(val,batch_size=settings['batch_size'],num_workers=settings['num_workers'])
     model=DenseProbe(build_frozen_backbone(cfg['backbone'],device),classes,cfg['reader_profile']).to(device)
     spec=recipe(cfg['dataset'],cfg['adaptation'])
-    opt,scheduler=optimizer(model,spec,batch_size=settings['batch_size'],steps_per_epoch=len(loader))
+    opt,scheduler=optimizer(model,spec,batch_size=plan['effective_batch'],steps_per_epoch=len(loader))
+    runtime=execution.execution_report(plan,spec,len(loader),scheduler.base_lrs[0])
+    def forward(images,hw):
+        with execution.autocast_context(device,plan['precision']):
+            return model(images.to(device),hw)
+    def loss_for_batch(batch):
+        images,targets=batch
+        return pixel_loss(forward(images,targets.shape[-2:]).float(),targets.to(device))
     for _ in range(settings['epochs']):
-        model.train()
-        for images,targets in loader:
-            images,targets=images.to(device),targets.to(device)
-            opt.zero_grad(set_to_none=True)
-            loss=pixel_loss(model(images,targets.shape[-2:]),targets)
-            if not torch.isfinite(loss): raise ValueError('nonfinite semantic training loss')
-            loss.backward(); clip_attentive_gradients(model,cfg['adaptation']); opt.step(); scheduler.step()
+        statistics=execution.train_epoch(model,loader,loss_for_batch,opt,scheduler,
+            accumulation_steps=plan['accumulation_steps'],tail_policy=plan['tail_policy'],adaptation=cfg['adaptation'])
+        execution.record_epoch(runtime,statistics)
     model.eval(); score=SegmentationScore(classes)
     with torch.no_grad():
         for images,targets in validation:
-            logits=model(images.to(device),targets.shape[-2:])
+            logits=forward(images,targets.shape[-2:])
             if not torch.isfinite(logits).all(): raise ValueError('nonfinite semantic evaluation logits')
             score.update(logits.argmax(1).cpu(),targets)
     result=score.result(); result['epochs']=settings['epochs']; out=Path(out)
@@ -245,8 +252,8 @@ def run(cfg,out):
     report=dict(task=TASK,profile=PROFILE,dataset=cfg['dataset'],adaptation=cfg['adaptation'],
         reader_profile=cfg['reader_profile'],transform_profile=cfg['transform_profile'],backbone=cfg['backbone'],
         evaluation_grid=[224,224],membership=membership,recipe=spec,physical_batch=settings['batch_size'],
-        updates=scheduler.last_epoch,final=result,canonical_eligible=False,record_value=False,
-        limitations=['single-process FP32 component','224-grid evaluation, not native-resolution benchmark',
+        updates=scheduler.last_epoch,execution=runtime,final=result,canonical_eligible=False,record_value=False,
+        limitations=['single-process component; distributed execution and resume not ported','224-grid evaluation, not native-resolution benchmark',
                      'official membership and released-weight/full-score parity unverified'])
     (out/'results.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')
     return result

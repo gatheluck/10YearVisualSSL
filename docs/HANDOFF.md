@@ -12,6 +12,24 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-09-29: Extended accumulation and precision
+
+PR 208 merged as `eb352c2`, with all 115 checks successful; the pulled main tree
+matched tested head `dc7a3ef`. Existing video submodule changes were preserved.
+The next grouped cycle adds [shared execution](EXTENDED_EXECUTION.md) to Extended
+image and semantic LP/AP across the five providers. This supersedes the earlier
+entries' statement that these two runners only support one FP32 physical batch.
+Current original training entrypoints were read-only inspected: all LP routes
+discard accumulation tails, while AP differs by provider. Preserve those
+differences and the observed optimizer-update/microbatch-horizon schedule clock;
+do not silently reinterpret them as a conventional epoch-level schedule.
+CPU tests cover accumulated updates, loss/gradient failures, clipping, frozen
+encoders and explicit precision boundaries. CUDA released-weight parity, native
+resume, distributed execution, remaining task families and run-to-table mapping
+are still pending. No compute job or original input was changed. Private source
+and run evidence stays outside Git. Refresh the task PR for final validation,
+mutation, CI and delivery status; this checkpoint is not a claim of completion.
+
 ### 2026-09-29: offline push validation
 
 The user requested a separate stacked PR above the dense-component branch,
