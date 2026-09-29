@@ -55,11 +55,10 @@ SigLIP AP uses its own single-block reader; BasicFive remains unchanged.
 
 For LP select `adaptation: frozen` and `reader_profile: null`. Checkpoint schemas
 are those of the existing provider documents. No checkpoint is downloaded.
-Reduced fixtures are not released model substitutes. The runner supports one
-process with optional [accumulation and CUDA BF16](EXTENDED_EXECUTION.md).
+Reduced fixtures are not released model substitutes. The runner supports single-process and torchrun execution with optional
+[accumulation and CUDA BF16](EXTENDED_EXECUTION.md).
 The default remains FP32 and one physical batch per update. Learning rate scales
-with the effective batch; native resume and distributed training are not yet
-ported. AP clips accumulated trainable gradients at 1.0. Weight decay excludes
+with the global effective batch; native checkpoint resume is not yet ported. AP clips accumulated trainable gradients at 1.0. Weight decay excludes
 bias, normalization and positional parameters as in the experimental grouping.
 Schedules retain the 100-epoch microbatch horizon even for a shortened run;
 the captured update clock and model-specific tail policies are documented in

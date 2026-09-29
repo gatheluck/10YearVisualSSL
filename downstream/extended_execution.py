@@ -4,6 +4,14 @@ from contextlib import nullcontext
 import torch
 
 from downstream.attention import clip_attentive_gradients
+from downstream.extended_distributed import launch, unwrap
+
+
+def _require_all(condition,device,message):
+    valid=torch.tensor(int(bool(condition)),device=device)
+    if torch.distributed.is_initialized() and torch.distributed.get_world_size()>1:
+        torch.distributed.all_reduce(valid,op=torch.distributed.ReduceOp.MIN)
+    if not valid.item(): raise ValueError(message)
 
 
 def resolve_execution(cfg, provider):
@@ -20,7 +28,8 @@ def resolve_execution(cfg, provider):
         raise ValueError('accumulation_steps must be a positive integer')
     if settings['precision'] not in ('fp32','bf16') or settings['tail_policy'] != expected:
         raise ValueError('precision or captured provider tail policy does not agree')
-    return dict(settings, effective_batch=cfg['probe']['batch_size']*count, world_size=1,
+    world=launch()[2]
+    return dict(settings, effective_batch=cfg['probe']['batch_size']*count*world, world_size=world,
                 schedule_clock='optimizer_updates_with_microbatch_horizon')
 
 
@@ -56,19 +65,19 @@ def train_epoch(model, loader, loss_for_batch, optimizer, scheduler, *,
     stats = dict(microbatches=0, updates=0, tail_updates=0, discarded_microbatches=0)
 
     def update():
-        if any(p.grad is not None and not torch.isfinite(p.grad).all() for p in model.parameters()):
-            raise ValueError('nonfinite accumulated gradients')
-        backbone = getattr(model, 'backbone', None)
-        if backbone is not None and any(p.requires_grad or p.grad is not None for p in backbone.parameters()):
-            raise ValueError('Extended backbone must remain frozen with no gradients')
+        device=next(model.parameters()).device
+        _require_all(not any(p.grad is not None and not torch.isfinite(p.grad).all() for p in model.parameters()),
+                     device,'nonfinite accumulated gradients')
+        backbone = getattr(unwrap(model), 'backbone', None)
+        _require_all(backbone is None or not any(p.requires_grad or p.grad is not None for p in backbone.parameters()),
+                     device,'Extended backbone must remain frozen with no gradients')
         clip_attentive_gradients(model, adaptation)
         optimizer.step(); scheduler.step(); optimizer.zero_grad(set_to_none=True)
         stats['updates'] += 1
 
     for batch in loader:
         loss = loss_for_batch(batch)
-        if loss.ndim != 0 or not torch.isfinite(loss):
-            raise ValueError('nonfinite or nonscalar training loss')
+        _require_all(loss.ndim == 0 and torch.isfinite(loss),loss.device,'nonfinite or nonscalar training loss')
         (loss / accumulation_steps).backward()
         stats['microbatches'] += 1
         if stats['microbatches'] % accumulation_steps == 0:
