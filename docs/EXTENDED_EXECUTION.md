@@ -7,8 +7,9 @@ The [image](EXTENDED_CLASSIFICATION.md) and [semantic](EXTENDED_SEGMENTATION.md)
 LP/AP runners share this execution component. It applies to their five verified
 providers; it does not add new dataset memberships or certify paper scores.
 Omitting `execution` preserves one physical batch per update in FP32.
-Both runners also accept `torchrun` for distributed execution. Native checkpoint
-continuation is not integrated.
+Both runners also accept `torchrun` for distributed execution and support
+portable epoch-boundary continuation. Legacy experimental checkpoints use a
+different format and are not imported.
 
 ## Explicit configuration
 
@@ -125,7 +126,68 @@ long rank-zero evaluation must fit that window. This is not fault-tolerant
 training. Launch one run per torchrun invocation. An already initialized matching
 group can be borrowed, but the runner does not destroy a group owned by its caller.
 
-## Evidence and limits
+## Epoch checkpoints and continuation
+
+Both runners atomically publish `resume.pt` after every **completed training
+epoch**, before final evaluation. The file contains head/adapter tensors,
+optimizer and scheduler state, execution counters, and each rank's Python,
+NumPy, Torch, local CUDA and loader-generator RNG states. Frozen encoder weights
+are excluded. The encoder state is hashed once when starting or resuming, so
+even changed weights at the same path are refused. Hashing large encoders adds
+startup I/O and CPU transfer; checkpoint writes contain only the trainable probe
+and its optimizer state. Keep sufficient space for the old and temporary files.
+
+To continue, copy the previous JSON configuration, add the top-level field
+`"resume": "runs/extended-first/resume.pt"`, and increase `probe.epochs` to
+the desired **total** completed epoch count.
+
+For example, changing `probe.epochs` from 10 to 100 runs epochs 11 through 100;
+it does not run 100 additional epochs. The protocol schedule horizon stays
+100 epochs for classification or 20 for semantic segmentation, including a
+short initial invocation. The checkpoint epoch cannot exceed the requested
+target. If it equals the target, both runners skip training and retry evaluation
+from the completed checkpoint. This allows recovery from a failed terminal
+evaluation without repeating training; a new checkpoint is delivered as well.
+Run the existing command with the copied configuration and a new output:
+
+```bash
+python -m downstream.extended_classification --config extended-resumed.json --out runs/extended-resumed
+```
+
+For semantic segmentation, use `downstream.extended_segmentation`. For
+distributed continuation, use the same torchrun world size and device type as
+before; every rank must be able to read the same checkpoint and dataset. Only
+rank zero writes checkpoints and outputs. The source checkpoint is never
+overwritten. Existing CLI output directories are still refused. If a write
+fails, the previously published epoch remains intact; a partial temporary file
+does not become a valid checkpoint. A failed run may therefore have a usable
+earlier checkpoint but still has `status: failed`, not a successful experiment.
+
+Only `resume`, the output directory, and the requested epoch count may change.
+Configuration, membership manifest, class vocabulary, loader length, world
+size, execution settings, recipe-derived learning rates, Torch version and
+frozen encoder state must agree. Missing/corrupt states and optimizer restore
+errors fail; there is no silent fresh start. Checkpoints are loaded with
+`weights_only=True`. Use the same code and dependency environment and immutable
+input assets: identity checks hash the membership manifest and encoder, **not
+every image/mask file or every dependency/source file**. They do not certify
+unchanged raw data bytes or replay across software versions.
+
+Resume starts at the next complete epoch, with no saved partial gradients.
+Mid-epoch progress is intentionally replayed from the last complete epoch;
+there is no automatic restart, signal handler, mid-batch continuation or
+walltime policy. Data-loader workers are recreated each epoch as before, not
+persistent. The terminal `probe.pt` remains an inference export, not a resume
+checkpoint. `results.json` adds the starting epoch and source-checkpoint SHA-256;
+execution counters and metrics count all epochs, including restored progress.
+
+The captured trainers provide the epoch/step and optimizer continuation basis,
+but do not preserve these per-rank RNG states and may suppress optimizer load
+errors. This portable format deliberately requires stricter state identity and
+does not accept their legacy files, replay their preflight, or establish a
+historical paper-score trajectory. The two formats must not be interchanged.
+
+## Verification boundaries
 
 The `results.json` execution record reports precision, accumulation count,
 nominal effective batch, tail policy, scaled base LR, schedule clock/horizon,
@@ -146,6 +208,12 @@ evaluation, output protection and failure propagation. A separate global-batch
 oracle compares three epochs of synchronized updates for both accumulation-tail
 policies, including sampler padding and AP clipping. These reduced tests are not
 released-weight NCCL/BF16 numerical validation or multi-node evidence.
-Released-weight CUDA execution, full-data scores and historical checkpoint
-continuation remain unverified or unported. Existing
+The September 30 continuation tests compare uninterrupted and resumed image and
+semantic LP/AP runs, including momentum/AdamW state, stochastic samples,
+accumulation tails, schedules and rank-specific RNG streams. Real two-rank Gloo
+tests cover all four routes; a separate real-image CLI test includes a loader
+worker and verifies the output contract. These fixtures do not use released
+weights. Atomic write failures, changed identity, incomplete state and source
+output protection have negative tests. Released-weight CUDA/NCCL continuation,
+full-data scores and legacy checkpoint import remain unverified or unported. Existing
 224-grid semantic evaluation and unresolved task/metric identities are unchanged.

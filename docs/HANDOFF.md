@@ -12,6 +12,33 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-09-30: Extended portable epoch continuation
+
+PR 212 merged as `63263e0`; all 115 checks succeeded. Pulled main matched the
+previously tested `0f7ae2c` tree, and existing video submodule changes were
+preserved byte-for-byte. This cycle adds shared epoch checkpoints and strict
+continuation to image and semantic LP/AP, retaining five provider profiles and
+their existing update rules. It does not import historical experimental
+checkpoints or certify a reproduced paper cell. See
+[continuation](EXTENDED_EXECUTION.md#epoch-checkpoints-and-continuation) for the
+format, immutable-input/software assumptions and remaining CUDA boundaries.
+
+Current original LP/AP training and revision helpers matched captured sources
+in a read-only inspection. The source saves completed epoch/step and optimizer
+state; the portable format additionally preserves per-rank random state and
+rejects identity/state inconsistencies instead of silently restarting. Behavioral
+RED preceded implementation and CI routing. Additional RED tests exposed empty
+optimizer state, inconsistent learning-rate state and nonfinite optimizer state.
+Completed training can also retry terminal evaluation in a new directory without
+further optimizer updates, matching the original completed-epoch loop boundary.
+No cluster compute job,
+original data, weight or capture snapshot was changed. Private source evidence
+stays outside Git. Refresh the task PR for final mutation/regression gates and CI;
+stop for review after delivery. Other task families, unresolved source/protocol
+identities, full recipes, released-weight/full-data execution and result-to-table
+mapping remain incomplete. This entry supersedes earlier portable-resume gaps,
+not the distinction between original experiments and public component support.
+
 ### 2026-09-30: Cars and MNIST native binary inputs
 
 PR 211 merged as `9183575`; all 115 checks succeeded. Pulled main matched the

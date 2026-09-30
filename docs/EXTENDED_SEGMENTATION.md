@@ -121,7 +121,9 @@ decay. AP clips trainable gradients at 1.0. Shortened executions retain the
 This port supports single-process and torchrun execution, with optional
 [accumulation and CUDA BF16](EXTENDED_EXECUTION.md). FP32 and one physical batch
 per update remain the default. The captured microbatch schedule horizon and
-provider-specific tail policies are explicit. Native resume remains unported. The saved `probe.pt` contains only head/adapter state;
+provider-specific tail policies are explicit. Portable epoch continuation is available through the
+[shared runner](EXTENDED_EXECUTION.md#epoch-checkpoints-and-continuation); legacy
+experimental checkpoint import remains unported. The saved `probe.pt` contains only head/adapter state;
 `results.json`, numeric metrics and the downstream manifest record the run.
 An existing destination is refused. Released weights, full-data/GPU execution,
 real dataset contents and exact run-to-table score matching remain unverified.

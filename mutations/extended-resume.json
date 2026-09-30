@@ -1,0 +1,320 @@
+{
+  "targets": [
+    {
+      "file": "downstream/extended_resume.py",
+      "label": "identity",
+      "old": "blob['identity']!=self.identity",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_resume.TestResume.test_changed_training_identity_and_backbone_are_rejected"
+      ]
+    },
+    {
+      "file": "downstream/extended_resume.py",
+      "label": "format",
+      "old": "blob['format']!=FORMAT",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_resume.TestResume.test_incomplete_legacy_or_corrupt_state_never_silently_restarts"
+      ]
+    },
+    {
+      "file": "downstream/extended_resume.py",
+      "label": "epoch",
+      "old": "not 0<epoch<=target",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_resume.TestResume.test_incomplete_legacy_or_corrupt_state_never_silently_restarts",
+        "tests.test_method_extended_resume.TestResume.test_resume_source_and_epoch_guards_leave_source_unchanged"
+      ]
+    },
+    {
+      "file": "downstream/extended_resume.py",
+      "label": "epoch type",
+      "old": "type(epoch) is not int",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_resume.TestResume.test_incomplete_legacy_or_corrupt_state_never_silently_restarts"
+      ]
+    },
+    {
+      "file": "downstream/extended_resume.py",
+      "label": "rank population",
+      "old": "len(blob['rng'])!=self.context.world",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_resume.TestResume.test_incomplete_legacy_or_corrupt_state_never_silently_restarts"
+      ]
+    },
+    {
+      "file": "downstream/extended_resume.py",
+      "label": "runtime counters",
+      "old": "blob['runtime']!=expected",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_resume.TestResume.test_incomplete_legacy_or_corrupt_state_never_silently_restarts"
+      ]
+    },
+    {
+      "file": "downstream/extended_resume.py",
+      "label": "schedule clock",
+      "old": "blob['scheduler'].get('last_epoch')!=expected['updates']",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_resume.TestResume.test_incomplete_legacy_or_corrupt_state_never_silently_restarts"
+      ]
+    },
+    {
+      "file": "downstream/extended_resume.py",
+      "label": "schedule completeness",
+      "old": "set(blob['scheduler'])!=set(self.scheduler.state_dict())",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_resume.TestResume.test_incomplete_legacy_or_corrupt_state_never_silently_restarts"
+      ]
+    },
+    {
+      "file": "downstream/extended_resume.py",
+      "label": "base rates",
+      "old": "schedule['base_lrs']!=self.scheduler.base_lrs",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_resume.TestResume.test_incomplete_legacy_or_corrupt_state_never_silently_restarts"
+      ]
+    },
+    {
+      "file": "downstream/extended_resume.py",
+      "label": "scheduled rates",
+      "old": "schedule['_last_lr']!=rates",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_resume.TestResume.test_incomplete_legacy_or_corrupt_state_never_silently_restarts"
+      ]
+    },
+    {
+      "file": "downstream/extended_resume.py",
+      "label": "optimizer rates",
+      "old": "[group['lr'] for group in blob['optimizer']['param_groups']]!=rates",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_resume.TestResume.test_incomplete_legacy_or_corrupt_state_never_silently_restarts"
+      ]
+    },
+    {
+      "file": "downstream/extended_resume.py",
+      "label": "missing optimizer",
+      "old": "not blob['optimizer']['state']",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_resume.TestResume.test_incomplete_legacy_or_corrupt_state_never_silently_restarts"
+      ]
+    },
+    {
+      "file": "downstream/extended_resume.py",
+      "label": "probe keys",
+      "old": "set(blob['model'])!=set(current)",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_resume.TestResume.test_incomplete_legacy_or_corrupt_state_never_silently_restarts"
+      ]
+    },
+    {
+      "file": "downstream/extended_resume.py",
+      "label": "tensor dtype",
+      "old": "value.dtype!=current[name].dtype",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_resume.TestResume.test_invalid_tensor_state_is_refused_before_any_optimizer_update"
+      ]
+    },
+    {
+      "file": "downstream/extended_resume.py",
+      "label": "finite probe",
+      "old": "value.dtype!=current[name].dtype or not torch.isfinite(value).all()",
+      "new": "value.dtype!=current[name].dtype",
+      "tests": [
+        "tests.test_method_extended_resume.TestResume.test_invalid_tensor_state_is_refused_before_any_optimizer_update"
+      ]
+    },
+    {
+      "file": "downstream/extended_resume.py",
+      "label": "python RNG",
+      "old": "random.setstate(state['python'])",
+      "new": "pass",
+      "tests": [
+        "tests.test_method_extended_resume.TestResume.test_both_tasks_lp_ap_resume_matches_all_updates_and_random_states"
+      ]
+    },
+    {
+      "file": "downstream/extended_resume.py",
+      "label": "torch RNG",
+      "old": "torch.set_rng_state(state['torch'])",
+      "new": "pass",
+      "tests": [
+        "tests.test_method_extended_resume.TestResume.test_both_tasks_lp_ap_resume_matches_all_updates_and_random_states"
+      ]
+    },
+    {
+      "file": "downstream/extended_resume.py",
+      "label": "numpy RNG",
+      "old": "np.random.set_state((value[0],np.asarray(value[1],dtype=np.uint32),*value[2:]))",
+      "new": "None",
+      "tests": [
+        "tests.test_method_extended_resume.TestResume.test_both_tasks_lp_ap_resume_matches_all_updates_and_random_states"
+      ]
+    },
+    {
+      "file": "downstream/extended_resume.py",
+      "label": "loader RNG",
+      "old": "loader.generator.set_state(state['loader'])",
+      "new": "None",
+      "tests": [
+        "tests.test_method_extended_resume.TestResume.test_both_tasks_lp_ap_resume_matches_all_updates_and_random_states"
+      ]
+    },
+    {
+      "file": "downstream/extended_resume.py",
+      "label": "optimizer restore",
+      "old": "self.opt.load_state_dict(blob['optimizer'])",
+      "new": "pass",
+      "tests": [
+        "tests.test_method_extended_resume.TestResume.test_both_tasks_lp_ap_resume_matches_all_updates_and_random_states"
+      ]
+    },
+    {
+      "file": "downstream/extended_resume.py",
+      "label": "schedule restore",
+      "old": "self.scheduler.load_state_dict(blob['scheduler'])",
+      "new": "pass",
+      "tests": [
+        "tests.test_method_extended_resume.TestResume.test_both_tasks_lp_ap_resume_matches_all_updates_and_random_states"
+      ]
+    },
+    {
+      "file": "downstream/extended_resume.py",
+      "label": "probe restore",
+      "old": "self.model.load_state_dict({**self.model.state_dict(),**blob['model']},strict=True)",
+      "new": "pass",
+      "tests": [
+        "tests.test_method_extended_resume.TestResume.test_both_tasks_lp_ap_resume_matches_all_updates_and_random_states"
+      ]
+    },
+    {
+      "file": "downstream/extended_resume.py",
+      "label": "counter restore",
+      "old": "self.runtime.update(blob['runtime'])",
+      "new": "pass",
+      "tests": [
+        "tests.test_method_extended_resume.TestResume.test_both_tasks_lp_ap_resume_matches_all_updates_and_random_states"
+      ]
+    },
+    {
+      "file": "downstream/extended_resume.py",
+      "label": "start epoch",
+      "old": "self.start_epoch=epoch",
+      "new": "self.start_epoch=0",
+      "tests": [
+        "tests.test_method_extended_resume.TestResume.test_both_tasks_lp_ap_resume_matches_all_updates_and_random_states"
+      ]
+    },
+    {
+      "file": "downstream/extended_resume.py",
+      "label": "atomic publish",
+      "old": "temporary=self.path.with_suffix('.tmp')",
+      "new": "temporary=self.path",
+      "tests": [
+        "tests.test_method_extended_resume.TestResume.test_previous_completed_epoch_survives_failure_and_can_resume"
+      ]
+    },
+    {
+      "file": "downstream/extended_resume.py",
+      "label": "source protection",
+      "old": "Path(source).resolve()==self.path.resolve()",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_resume.TestResume.test_resume_source_and_epoch_guards_leave_source_unchanged"
+      ]
+    },
+    {
+      "file": "downstream/extended_resume.py",
+      "label": "source path validation",
+      "old": "not isinstance(source,str) or not source.strip()",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_resume.TestResume.test_resume_source_and_epoch_guards_leave_source_unchanged"
+      ]
+    },
+    {
+      "file": "downstream/extended_resume.py",
+      "label": "frozen identity",
+      "old": "backbone_sha256=context.call(lambda:_backbone_digest(model))",
+      "new": "backbone_sha256='unchecked'",
+      "tests": [
+        "tests.test_method_extended_resume.TestResume.test_changed_training_identity_and_backbone_are_rejected"
+      ]
+    },
+    {
+      "file": "downstream/extended_resume.py",
+      "label": "probe only",
+      "old": "if not k.startswith('backbone.')",
+      "new": "",
+      "tests": [
+        "tests.test_method_extended_resume.TestResume.test_both_tasks_lp_ap_resume_matches_all_updates_and_random_states"
+      ]
+    },
+    {
+      "file": "downstream/extended_resume.py",
+      "label": "finite optimizer",
+      "old": "if any(isinstance(value,torch.Tensor) and not torch.isfinite(value).all() for value in state.values()):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_extended_resume.TestResume.test_invalid_tensor_state_is_refused_before_any_optimizer_update"
+      ]
+    },
+    {
+      "file": "downstream/extended_resume.py",
+      "label": "schedule update count",
+      "old": "schedule['_step_count']!=expected['updates']+1",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_resume.TestResume.test_incomplete_legacy_or_corrupt_state_never_silently_restarts"
+      ]
+    },
+    {
+      "file": "downstream/extended_resume.py",
+      "label": "CUDA state identity",
+      "old": "(state['cuda'] is None)!=(device.type!='cuda')",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_resume.TestResume.test_incomplete_legacy_or_corrupt_state_never_silently_restarts"
+      ]
+    },
+    {
+      "file": "downstream/extended_resume.py",
+      "label": "loader state identity",
+      "old": "(state['loader'] is None)!=(loader.generator is None)",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_resume.TestResume.test_incomplete_legacy_or_corrupt_state_never_silently_restarts"
+      ]
+    },
+    {
+      "file": "downstream/extended_resume.py",
+      "label": "per-rank random stream",
+      "old": "blob['rng'][self.context.rank]",
+      "new": "blob['rng'][0]",
+      "tests": [
+        "tests.test_method_extended_resume.TestResume.test_two_rank_resume_preserves_each_rng_stream_and_collective_refusal"
+      ]
+    },
+    {
+      "file": "downstream/extended_resume.py",
+      "label": "completed training export",
+      "old": "if self.start_epoch==cfg['probe']['epochs']:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_extended_resume.TestResume.test_completed_training_can_retry_evaluation_without_more_updates"
+      ]
+    }
+  ]
+}
