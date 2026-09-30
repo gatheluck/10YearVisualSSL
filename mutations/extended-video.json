@@ -1,0 +1,256 @@
+{
+  "targets": [
+    {
+      "file": "downstream/extended_video.py",
+      "label": "video shape",
+      "old": "clips.shape[1:3]!=(16,3)",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_video.TestVideo.test_lp_preserves_global_temporal_scale_and_native_normalization"
+      ]
+    },
+    {
+      "file": "downstream/extended_video.py",
+      "label": "global scale",
+      "old": "features=self.backbone.classification_features(clips,adaptation='frozen',video=True).float()",
+      "new": "features=F.normalize(self.backbone.classification_features(clips,adaptation='frozen',video=True).float(),dim=-1)",
+      "tests": [
+        "tests.test_method_extended_video.TestVideo.test_lp_preserves_global_temporal_scale_and_native_normalization"
+      ]
+    },
+    {
+      "file": "downstream/extended_video.py",
+      "label": "native LP normalization",
+      "old": "F.normalize(tokens.mean(1),dim=-1)",
+      "new": "tokens.mean(1)",
+      "tests": [
+        "tests.test_method_extended_video.TestVideo.test_lp_preserves_global_temporal_scale_and_native_normalization"
+      ]
+    },
+    {
+      "file": "downstream/extended_video.py",
+      "label": "temporal AP tokens",
+      "old": "features=tokens if self.reader is not None",
+      "new": "features=tokens.mean(1,keepdim=True) if self.reader is not None",
+      "tests": [
+        "tests.test_method_extended_video.TestVideo.test_ap_preserves_spatial_mean_per_frame_or_all_native_tokens"
+      ]
+    },
+    {
+      "file": "downstream/extended_video.py",
+      "label": "image AP temporal order",
+      "old": ".mean((2,3)).reshape(b,t,-1)",
+      "new": ".mean((2,3)).reshape(b,t,-1).mean(1,keepdim=True)",
+      "tests": [
+        "tests.test_method_extended_video.TestVideo.test_ap_preserves_spatial_mean_per_frame_or_all_native_tokens"
+      ]
+    },
+    {
+      "file": "downstream/extended_video.py",
+      "label": "rounded segment boundaries",
+      "old": "round(i*count/16)",
+      "new": "int(i*count/16)",
+      "tests": [
+        "tests.test_method_extended_video.TestVideo.test_frame_sampling_and_temporally_shared_augmentation"
+      ]
+    },
+    {
+      "file": "downstream/extended_video.py",
+      "label": "empty video",
+      "old": "type(count) is not int or count<1",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_video.TestVideo.test_frame_sampling_and_temporally_shared_augmentation"
+      ]
+    },
+    {
+      "file": "downstream/extended_video.py",
+      "label": "normalization",
+      "old": "(.485,.456,.406),(.229,.224,.225)",
+      "new": "(0.,0.,0.),(1.,1.,1.)",
+      "tests": [
+        "tests.test_method_extended_video.TestVideo.test_frame_directories_fail_closed_and_load_explicit_membership"
+      ]
+    },
+    {
+      "file": "downstream/extended_video.py",
+      "label": "epoch horizon",
+      "old": "max_epochs=50",
+      "new": "max_epochs=100",
+      "tests": [
+        "tests.test_method_extended_video.TestVideo.test_configuration_refuses_other_tasks_profiles_and_recipe_overrides"
+      ]
+    },
+    {
+      "file": "downstream/extended_video.py",
+      "label": "task identity",
+      "old": "task=TASK,get_recipe=recipe",
+      "new": "task=image.TASK,get_recipe=recipe",
+      "tests": [
+        "tests.test_method_extended_video.TestVideo.test_configuration_refuses_other_tasks_profiles_and_recipe_overrides"
+      ]
+    },
+    {
+      "file": "downstream/extended_video.py",
+      "label": "dataset restriction",
+      "old": "dataset not in ('hmdb51','ucf101')",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_video.TestVideo.test_configuration_refuses_other_tasks_profiles_and_recipe_overrides"
+      ]
+    },
+    {
+      "file": "downstream/extended_video.py",
+      "label": "transform selection",
+      "old": "cfg.get('transform_profile')!='captured_video16_v1'",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_video.TestVideo.test_configuration_refuses_other_tasks_profiles_and_recipe_overrides"
+      ]
+    },
+    {
+      "file": "downstream/extended_video.py",
+      "label": "metric identity",
+      "old": "result['videos']=result.pop('images')",
+      "new": "result['images']=result.pop('images')",
+      "tests": [
+        "tests.test_method_extended_video.TestVideo.test_both_datasets_both_adaptations_use_video_horizon_and_resume"
+      ]
+    },
+    {
+      "file": "downstream/extended_video.py",
+      "label": "resume integration",
+      "old": "api=sys.modules[__name__]",
+      "new": "api=image",
+      "tests": [
+        "tests.test_method_extended_video.TestVideo.test_both_datasets_both_adaptations_use_video_horizon_and_resume"
+      ]
+    },
+    {
+      "file": "downstream/extended_video_membership.py",
+      "label": "split index",
+      "old": "split_index!=1",
+      "new": "False",
+      "tests": [
+        "tests.test_extended_video_membership.TestVideoMembership.test_hmdb_labels_unused_and_single_split"
+      ]
+    },
+    {
+      "file": "downstream/extended_video_membership.py",
+      "label": "class ids",
+      "old": "key=lambda p:p[1]",
+      "new": "key=lambda p:p[0]",
+      "tests": [
+        "tests.test_extended_video_membership.TestVideoMembership.test_ucf_numeric_vocabulary_and_groups"
+      ]
+    },
+    {
+      "file": "downstream/extended_video_membership.py",
+      "label": "unused tags",
+      "old": "if tag=='0':unused+=1;continue",
+      "new": "if tag=='0':unused+=1",
+      "tests": [
+        "tests.test_extended_video_membership.TestVideoMembership.test_hmdb_labels_unused_and_single_split"
+      ]
+    },
+    {
+      "file": "downstream/extended_video_membership.py",
+      "label": "HMDB duplicate",
+      "old": "if identity in ids:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_video_membership.TestVideoMembership.test_unused_duplicates_and_incomplete_class_population_are_rejected"
+      ]
+    },
+    {
+      "file": "downstream/extended_video_membership.py",
+      "label": "groups",
+      "old": "if group in groups and groups[group]!=split:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_video_membership.TestVideoMembership.test_ucf_numeric_vocabulary_and_groups"
+      ]
+    },
+    {
+      "file": "downstream/extended_video_membership.py",
+      "label": "train labels",
+      "old": "int(parts[1])-1!=target",
+      "new": "False",
+      "tests": [
+        "tests.test_extended_video_membership.TestVideoMembership.test_ucf_label_duplicates_missing_overlap_and_path_escape"
+      ]
+    },
+    {
+      "file": "downstream/extended_video_membership.py",
+      "label": "release counts",
+      "old": "len(rows[split])!=n",
+      "new": "False",
+      "tests": [
+        "tests.test_extended_video_membership.TestVideoMembership.test_count_mismatch_with_valid_class_coverage_is_rejected"
+      ]
+    },
+    {
+      "file": "downstream/extended_video_membership.py",
+      "label": "class count",
+      "old": "len(classes)!=counts[2]",
+      "new": "False",
+      "tests": [
+        "tests.test_extended_video_membership.TestVideoMembership.test_unused_duplicates_and_incomplete_class_population_are_rejected"
+      ]
+    },
+    {
+      "file": "downstream/extended_video_membership.py",
+      "label": "symlink input",
+      "old": "if any(part.is_symlink() for part in (source,*source.parents) if part!=root and part.is_relative_to(root)):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_video_membership.TestVideoMembership.test_internal_symlink_annotation_is_not_an_immutable_source"
+      ]
+    },
+    {
+      "file": "docs/examples/extended_video_lp.json",
+      "label": "documented encoder architecture",
+      "old": "\"arch\": \"released\"",
+      "new": "\"arch\": \"invalid\"",
+      "tests": [
+        "tests.test_method_extended_video.TestVideoCI.test_documented_configuration_parses_and_selects_video_recipe"
+      ]
+    },
+    {
+      "file": "docs/examples/extended_video_lp.json",
+      "label": "documented encoder geometry",
+      "old": "\"img_size\": 384",
+      "new": "\"img_size\": 224",
+      "tests": [
+        "tests.test_method_extended_video.TestVideoCI.test_documented_configuration_parses_and_selects_video_recipe"
+      ]
+    },
+    {
+      "file": "downstream/extended_video.py",
+      "label": "clip frame count",
+      "old": "len(frames)!=16",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_video.TestVideo.test_frame_sampling_and_temporally_shared_augmentation"
+      ]
+    },
+    {
+      "file": "downstream/extended_video.py",
+      "label": "clip frame geometry",
+      "old": "len({f.size for f in frames})!=1",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_video.TestVideo.test_frame_sampling_and_temporally_shared_augmentation"
+      ]
+    },
+    {
+      "file": "downstream/extended_video.py",
+      "label": "frame escape",
+      "old": "not p.resolve().is_relative_to(self.root)",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_video.TestVideo.test_frame_directories_fail_closed_and_load_explicit_membership"
+      ]
+    }
+  ]
+}

@@ -12,6 +12,32 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-10-01: Extended video classification integration
+
+PR 213 merged as `2b45f2c`; all 115 checks succeeded. Pulled main matches the
+previously tested `51e8c23` tree. Existing video submodule changes remain preserved.
+This cycle adds HMDB51/UCF101 split-1 membership conversion, captured 16-frame
+inputs and five-provider LP/AP through the shared accumulation, distributed and
+epoch-continuation implementation. See [video support](EXTENDED_VIDEO.md) for
+native decoder dependencies, source-specific readouts and scope boundaries.
+
+Current original video paths and strict split builders match the snapshot;
+changes elsewhere concern tracking. Actual rerun settings retain the 50-epoch
+LP/AP recipes. The current catalog flags historical split contamination in
+HMDB51 and selected UCF101 runs. Corrected rerun availability does not identify
+which run supplied a submitted table value. Keep this result-provenance gap
+pending; do not copy historical scores into verified portable results.
+
+Behavioral tests preceded the new APIs; a separate behavioral RED exposed
+symlinked annotation acceptance, and CI-routing RED preceded workflow changes.
+Source comparisons cover reduced heads, updates, sampling, pixels and memberships.
+The reduced provider/CLI/Gloo and Linux native-decoder checks are distinct from
+released-weight CUDA/NCCL, authentic full-data and final-score reproduction.
+Private source/configuration copies remain outside Git. No cluster compute job,
+original data, checkpoint or capture snapshot was modified. Refresh the task PR
+for final mandatory gates and CI; stop for review after delivery. Remaining
+Extended families, full recipes and table/run provenance remain open.
+
 ### 2026-09-30: Extended portable epoch continuation
 
 PR 212 merged as `63263e0`; all 115 checks succeeded. Pulled main matched the

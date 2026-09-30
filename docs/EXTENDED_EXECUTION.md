@@ -3,17 +3,18 @@
 See [package scope](SUBMISSION_SCOPE.md) for the distinction between original
 experiments, portable components and verified numerical reproduction.
 
-The [image](EXTENDED_CLASSIFICATION.md) and [semantic](EXTENDED_SEGMENTATION.md)
+The [image](EXTENDED_CLASSIFICATION.md), [semantic](EXTENDED_SEGMENTATION.md)
+and [video](EXTENDED_VIDEO.md)
 LP/AP runners share this execution component. It applies to their five verified
 providers; it does not add new dataset memberships or certify paper scores.
 Omitting `execution` preserves one physical batch per update in FP32.
-Both runners also accept `torchrun` for distributed execution and support
+All three runners also accept `torchrun` for distributed execution and support
 portable epoch-boundary continuation. Legacy experimental checkpoints use a
 different format and are not imported.
 
 ## Explicit configuration
 
-Add this top-level object as the value of `execution` in either runner's
+Add this top-level object as the value of `execution` in any runner's
 configuration for DINOv3 or RAEv2 attentive probing:
 
 ```json
@@ -143,9 +144,9 @@ the desired **total** completed epoch count.
 
 For example, changing `probe.epochs` from 10 to 100 runs epochs 11 through 100;
 it does not run 100 additional epochs. The protocol schedule horizon stays
-100 epochs for classification or 20 for semantic segmentation, including a
+100 epochs for image classification, 50 for video, or 20 for semantic segmentation, including a
 short initial invocation. The checkpoint epoch cannot exceed the requested
-target. If it equals the target, both runners skip training and retry evaluation
+target. If it equals the target, all three runners skip training and retry evaluation
 from the completed checkpoint. This allows recovery from a failed terminal
 evaluation without repeating training; a new checkpoint is delivered as well.
 Run the existing command with the copied configuration and a new output:

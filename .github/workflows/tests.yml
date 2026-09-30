@@ -186,6 +186,7 @@ jobs:
             tests.test_extended_native_inputs tests.test_method_extended_native_inputs \
             tests.test_method_extended_binary_inputs \
             tests.test_method_extended_resume \
+            tests.test_method_extended_video \
             tests.test_extended_segmentation tests.test_method_extended_segmentation \
             tests.test_extended_segmentation_membership tests.test_method_extended_execution \
             tests.test_method_extended_distributed \

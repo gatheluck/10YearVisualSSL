@@ -17,6 +17,7 @@ from provider_support import prepare_upstream
 
 KIND = "vjepa2_1"
 EXTENDED_IMAGE_READER = "captured_single_block_v1"
+EXTENDED_VIDEO_READER = "captured_single_block_v1"
 EXTENDED_DENSE_READER = "captured_single_block_v1"
 EXTENDED_ACCUMULATION_TAILS = {"frozen": "discard", "attentive": "discard"}
 UPSTREAM = "https://github.com/facebookresearch/vjepa2"

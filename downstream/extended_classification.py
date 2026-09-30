@@ -106,7 +106,7 @@ class Images(Dataset):
             return self.transform(im.convert('RGB')), row['target']
 
 
-def load_data(manifest, root, profile):
+def load_data(manifest, root, profile, *, dataset_factory=Images, allow_directories=False):
     raw = Path(manifest).read_bytes()
     data = json.loads(raw)
     if (set(data) != {'schema_version','classes','split_evidence','train','validation'} or
@@ -133,13 +133,13 @@ def load_data(manifest, root, profile):
             resolved = (root/path).resolve()
             if not resolved.is_relative_to(root) or resolved in seen:
                 raise ValueError('duplicate, overlapping or escaping sample path')
-            if not resolved.is_file():
+            if not resolved.is_file() and not (allow_directories and resolved.is_dir()):
                 raise ValueError('sample file is missing')
             if type(row['target']) is not int or not 0 <= row['target'] < len(classes):
                 raise ValueError('sample target is outside the declared class vocabulary')
             seen.add(resolved)
-    return (Images(root,data['train'],train=True,profile=profile),
-            Images(root,data['validation'],train=False,profile=profile),
+    return (dataset_factory(root,data['train'],train=True,profile=profile),
+            dataset_factory(root,data['validation'],train=False,profile=profile),
             dict(manifest_sha256=contract.sha256_bytes(raw),classes=classes,
                  split_evidence=data['split_evidence'], train_count=len(data['train']),
                  validation_count=len(data['validation']), official_membership_verified=False))
@@ -186,26 +186,26 @@ def optimizer(model, settings, *, batch_size, steps_per_epoch):
     return opt, torch.optim.lr_scheduler.LambdaLR(opt,factor)
 
 
-def validate_config(cfg):
+def validate_config(cfg, *, task=TASK, get_recipe=recipe, reader_attribute="EXTENDED_IMAGE_READER", max_epochs=100):
     required = {'task','profile','dataset','seed','device','data_root','samples','transform_profile',
                 'adaptation','reader_profile','backbone','probe'}
-    if set(cfg)-{'execution','resume'} != required or cfg['task'] != TASK or cfg['profile'] != PROFILE:
+    if set(cfg)-{'execution','resume'} != required or cfg['task'] != task or cfg['profile'] != PROFILE:
         raise ValueError('explicit Extended component config required')
     if cfg['seed'] != 0 or type(cfg['seed']) is not int:
         raise ValueError('Extended protocol uses seed 0')
     distributed.launch()
-    recipe(cfg['dataset'],cfg['adaptation'])
+    get_recipe(cfg['dataset'],cfg['adaptation'])
     probe=cfg['probe']
     if set(probe) != {'epochs','batch_size','num_workers'}:
         raise ValueError('probe requires epochs, batch_size, num_workers')
     for name in probe:
         if type(probe[name]) is not int or probe[name] < (0 if name=='num_workers' else 1):
             raise ValueError('invalid probe integer')
-    if probe['epochs'] > 100:
-        raise ValueError('component execution cannot exceed the 100-epoch recipe')
+    if probe['epochs'] > max_epochs:
+        raise ValueError('component execution cannot exceed the recipe epoch horizon')
     path=discover_providers().get(cfg['backbone'].get('kind'))
     module=_load_provider(path) if path else None
-    expected=getattr(module,'EXTENDED_IMAGE_READER',None)
+    expected=getattr(module,reader_attribute,None)
     if expected not in (SINGLE_BLOCK,CROSS_SELF):
         raise ValueError('provider lacks a verified Extended image readout')
     if cfg['reader_profile'] != (expected if cfg['adaptation']=='attentive' else None):
@@ -218,22 +218,25 @@ def run(cfg,out):
         return _run(cfg,out,context)
 
 
-def _run(cfg,out,context):
-    plan=context.call(lambda:validate_config(cfg))
+def _run(cfg,out,context, *, api=None):
+    if api is None:
+        import sys
+        api=sys.modules[__name__]
+    plan=context.call(lambda:api.validate_config(cfg))
     context.agree(cfg)
     context.seed(cfg['seed']); device=context.device
     execution.autocast_context(device,plan['precision'])
-    train,val,membership=context.call(lambda:load_data(cfg['samples'],cfg['data_root'],cfg['transform_profile']))
+    train,val,membership=context.call(lambda:api.load_data(cfg['samples'],cfg['data_root'],cfg['transform_profile']))
     context.agree(membership)
     settings=cfg['probe']
     loader=context.call(lambda:context.loader(train,settings,cfg['seed']))
     validation=DataLoader(val,batch_size=settings['batch_size'],num_workers=settings['num_workers'])
-    model=context.call(lambda:Classifier(build_frozen_backbone(cfg['backbone'],device),
+    model=context.call(lambda:api.Classifier(api.build_frozen_backbone(cfg['backbone'],device),
         len(membership['classes']),cfg['adaptation'],cfg['reader_profile']).to(device))
     raw_model=model
     model=context.wrap(model)
-    settings_recipe=recipe(cfg['dataset'],cfg['adaptation'])
-    opt,scheduler=optimizer(raw_model,settings_recipe,batch_size=plan['effective_batch'],steps_per_epoch=len(loader))
+    settings_recipe=api.recipe(cfg['dataset'],cfg['adaptation'])
+    opt,scheduler=api.optimizer(raw_model,settings_recipe,batch_size=plan['effective_batch'],steps_per_epoch=len(loader))
     runtime=execution.execution_report(plan,settings_recipe,len(loader),scheduler.base_lrs[0])
     def forward(images):
         with execution.autocast_context(device,plan['precision']):
@@ -256,11 +259,11 @@ def _run(cfg,out,context):
         with torch.no_grad():
             for images,y in validation:
                 logits.append(forward(images).float().cpu()); targets.append(y)
-        raw=score(torch.cat(logits),torch.cat(targets))
+        raw=api.score(torch.cat(logits),torch.cat(targets))
         raw['epochs']=settings['epochs']
-        contract.write_metrics(out,raw,METRICS)
+        contract.write_metrics(out,raw,api.METRICS)
         torch.save({k:v.cpu() for k,v in model.state_dict().items() if not k.startswith('backbone.')},out/'probe.pt')
-        report=dict(task=TASK,profile=PROFILE,dataset=cfg['dataset'],adaptation=cfg['adaptation'],
+        report=dict(task=api.TASK,profile=api.PROFILE,dataset=cfg['dataset'],adaptation=cfg['adaptation'],
                     backbone=cfg['backbone'],reader_profile=cfg['reader_profile'],transform_profile=cfg['transform_profile'],
                     membership=membership,recipe=settings_recipe,physical_batch=settings['batch_size'],
                     updates=scheduler.last_epoch,execution=runtime,continuation=continuation.report(),final=raw,canonical_eligible=False,record_value=False,
