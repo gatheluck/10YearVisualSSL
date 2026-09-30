@@ -17,6 +17,7 @@ from torchvision.transforms import functional as TF
 from downstream import contract
 from downstream.attention import SpatialAdapter
 from downstream import extended_execution as execution
+from downstream.extended_resume import Continuation
 from downstream import extended_distributed as distributed
 from downstream.captured_readers import SingleBlockSpatialAdapter, SINGLE_BLOCK, CROSS_SELF
 from downstream.extended_classification import PROTOCOLS, optimizer
@@ -189,7 +190,7 @@ def load_data(manifest, root, profile):
 def validate_config(cfg):
     required={'task','profile','dataset','seed','device','data_root','samples','transform_profile',
               'adaptation','reader_profile','backbone','probe'}
-    if set(cfg)-{'execution'}!=required or cfg['task']!=TASK or cfg['profile']!=PROFILE:
+    if set(cfg)-{'execution','resume'}!=required or cfg['task']!=TASK or cfg['profile']!=PROFILE:
         raise ValueError('explicit Extended semantic component config required')
     if type(cfg['seed']) is not int or cfg['seed']!=0: raise ValueError('Extended seed must be 0')
     distributed.launch()
@@ -239,11 +240,13 @@ def _run(cfg,out,context):
     def loss_for_batch(batch):
         images,targets=batch
         return pixel_loss(forward(images,targets.shape[-2:]).float(),targets.to(device))
-    for epoch in range(settings['epochs']):
+    continuation=Continuation(cfg,membership,raw_model,opt,scheduler,runtime,loader,context,out)
+    for epoch in range(continuation.start_epoch,settings['epochs']):
         if context.world>1: loader.sampler.set_epoch(epoch)
         statistics=execution.train_epoch(model,loader,loss_for_batch,opt,scheduler,
             accumulation_steps=plan['accumulation_steps'],tail_policy=plan['tail_policy'],adaptation=cfg['adaptation'])
         execution.record_epoch(runtime,statistics)
+        continuation.save(epoch+1)
     model=raw_model
     out=Path(out)
     def evaluate_and_save():
@@ -259,8 +262,8 @@ def _run(cfg,out,context):
         report=dict(task=TASK,profile=PROFILE,dataset=cfg['dataset'],adaptation=cfg['adaptation'],
             reader_profile=cfg['reader_profile'],transform_profile=cfg['transform_profile'],backbone=cfg['backbone'],
             evaluation_grid=[224,224],membership=membership,recipe=spec,physical_batch=settings['batch_size'],
-            updates=scheduler.last_epoch,execution=runtime,final=result,canonical_eligible=False,record_value=False,
-            limitations=['native checkpoint resume not ported','224-grid evaluation, not native-resolution benchmark',
+            updates=scheduler.last_epoch,execution=runtime,continuation=continuation.report(),final=result,canonical_eligible=False,record_value=False,
+            limitations=['legacy native checkpoint import not supported','224-grid evaluation, not native-resolution benchmark',
                          'official membership and released-weight/full-score parity unverified'])
         (out/'results.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')
         return result

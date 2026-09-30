@@ -16,6 +16,7 @@ from torchvision import transforms as T
 from downstream import contract
 from downstream.attention import QueryReader
 from downstream import extended_execution as execution
+from downstream.extended_resume import Continuation
 from downstream import extended_distributed as distributed
 from downstream.captured_readers import CrossSelfQueryReader, SINGLE_BLOCK, CROSS_SELF
 from downstream.hf_vision import vision_no_decay
@@ -188,7 +189,7 @@ def optimizer(model, settings, *, batch_size, steps_per_epoch):
 def validate_config(cfg):
     required = {'task','profile','dataset','seed','device','data_root','samples','transform_profile',
                 'adaptation','reader_profile','backbone','probe'}
-    if set(cfg)-{'execution'} != required or cfg['task'] != TASK or cfg['profile'] != PROFILE:
+    if set(cfg)-{'execution','resume'} != required or cfg['task'] != TASK or cfg['profile'] != PROFILE:
         raise ValueError('explicit Extended component config required')
     if cfg['seed'] != 0 or type(cfg['seed']) is not int:
         raise ValueError('Extended protocol uses seed 0')
@@ -240,11 +241,13 @@ def _run(cfg,out,context):
     def loss_for_batch(batch):
         images,targets=batch
         return F.cross_entropy(forward(images).float(),targets.to(device))
-    for epoch in range(settings['epochs']):
+    continuation=Continuation(cfg,membership,raw_model,opt,scheduler,runtime,loader,context,out)
+    for epoch in range(continuation.start_epoch,settings['epochs']):
         if context.world>1: loader.sampler.set_epoch(epoch)
         statistics=execution.train_epoch(model,loader,loss_for_batch,opt,scheduler,
             accumulation_steps=plan['accumulation_steps'],tail_policy=plan['tail_policy'],adaptation=cfg['adaptation'])
         execution.record_epoch(runtime,statistics)
+        continuation.save(epoch+1)
     model=raw_model
     out=Path(out)
     def evaluate_and_save():
@@ -260,8 +263,8 @@ def _run(cfg,out,context):
         report=dict(task=TASK,profile=PROFILE,dataset=cfg['dataset'],adaptation=cfg['adaptation'],
                     backbone=cfg['backbone'],reader_profile=cfg['reader_profile'],transform_profile=cfg['transform_profile'],
                     membership=membership,recipe=settings_recipe,physical_batch=settings['batch_size'],
-                    updates=scheduler.last_epoch,execution=runtime,final=raw,canonical_eligible=False,record_value=False,
-                    limitations=['native checkpoint resume not ported','official split membership unverified',
+                    updates=scheduler.last_epoch,execution=runtime,continuation=continuation.report(),final=raw,canonical_eligible=False,record_value=False,
+                    limitations=['legacy native checkpoint import not supported','official split membership unverified',
                                  'released-weight and full-score parity unverified'])
         (out/'results.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')
         return raw
