@@ -12,6 +12,30 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-09-30: Cars and MNIST native binary inputs
+
+PR 211 merged as `9183575`; all 115 checks succeeded. Pulled main matched the
+tested `7c0839f` tree, with existing video submodule changes preserved. This
+cycle adds Cars MAT annotation conversion and MNIST IDX-to-lossless-PNG staging
+for the existing five-provider image LP/AP path. Neither changes model recipes
+nor certifies reproduced scores. Original inputs are read only; MNIST requires
+a new external output directory and publishes its sample manifest last.
+
+Captured and current original builders were compared separately on four splits
+and 80 transformed fixture images each; labels and tensors match exactly after
+common normalization. Strict RED preceded the converters and CI routing; a
+second RED exposed incomplete-manifest publication during a simulated write
+failure. Cars integer-label validation also has an observed RED/GREEN check.
+An additional RED confirmed that parent-traversing output paths could create
+an intermediate directory in the synthetic source tree; such output paths are
+now refused before any write. No original experimental data was used in that test.
+See [the input guide](EXTENDED_CLASSIFICATION.md) for layouts and the unresolved
+MNIST transform/registry difference. The separate Flowers102 split disagreement,
+other native input/task ports, resume and released-weight/full-score validation
+remain pending. No compute job or original data/weight was changed. Private
+source fingerprints remain outside Git. Refresh the task PR for final gate,
+mutation and CI results; this entry is not a live completion record.
+
 ### 2026-09-30: Extended native classification membership
 
 PR 210 merged as `6f01364`; all 115 checks succeeded, and pulled main matched

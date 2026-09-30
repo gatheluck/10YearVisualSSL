@@ -6,6 +6,7 @@ are required by the CLI; reduced fixture counts are an explicit Python test API.
 import argparse
 from collections import Counter
 import hashlib
+import io
 import json
 from pathlib import Path
 import re
@@ -13,7 +14,7 @@ import re
 COUNTS = {'cub200': (5994,5794,200), 'dtd': (1880,1880,47),
           'fgvc_aircraft': (6667,3333,100), 'food101': (75750,25250,101),
           'oxford_pets': (3680,3669,37), 'ip102': (45095,22619,102),
-          'mit_indoor': (5360,1340,67)}
+          'mit_indoor': (5360,1340,67), 'cars': (8144,8041,196)}
 
 
 def build(dataset, root, *, fixture_counts=None):
@@ -50,6 +51,18 @@ def build(dataset, root, *, fixture_counts=None):
             result[int(key)]=value
         return result
 
+    def mat_vector(path, key):
+        from scipy.io import loadmat
+        raw=safe(path).read_bytes(); hashes[path]=hashlib.sha256(raw).hexdigest()
+        try:
+            data=loadmat(io.BytesIO(raw),simplify_cells=True)
+        except Exception as exc:
+            raise ValueError('unreadable MAT annotation') from exc
+        if key not in data: raise ValueError('missing MAT annotation field')
+        value=data[key]
+        if hasattr(value,'reshape'): value=value.reshape(-1).tolist()
+        return value if isinstance(value,(list,tuple)) else [value]
+
     rows={'train':[],'validation':[]}; unused=[]; extra={}
     if dataset=='cub200':
         classes_by_id=table('classes.txt')
@@ -75,6 +88,24 @@ def build(dataset, root, *, fixture_counts=None):
                     raise ValueError('aircraft image ID or variant is invalid')
                 rows[split].append(dict(path='data/images/'+key+'.jpg',target=classes.index(label)))
         inventory_root='data/images'
+    elif dataset=='cars':
+        classes=mat_vector('devkit/cars_meta.mat','class_names')
+        if any(not isinstance(v,str) or not v.strip() for v in classes):
+            raise ValueError('invalid Cars class vocabulary')
+        for sp,folder,annotation in [('train','train','cars_train_annos.mat'),
+                                      ('validation','val','cars_test_annos_withlabels.mat')]:
+            for entry in mat_vector('devkit/'+annotation,'annotations'):
+                if not isinstance(entry,dict) or not {'fname','class'}<=set(entry):
+                    raise ValueError('invalid Cars annotation schema')
+                name=entry['fname']; label=entry['class']
+                if (not isinstance(name,str) or '/' in name or '\\' in name or
+                    Path(name).suffix.lower() not in {'.jpg','.jpeg','.png','.bmp','.webp','.tif','.tiff','.ppm'}):
+                    raise ValueError('invalid Cars image name')
+                if type(label) is not int or not 1<=label<=counts[2]:
+                    raise ValueError('invalid Cars class ID')
+                rows[sp].append(dict(path=folder+'_original/original/'+name,target=int(label)-1))
+        inventory_root=None
+        extra['image_readout']='full original image; annotation bounding boxes are not applied'
     elif dataset=='food101':
         parts={sp:lines('meta/'+name+'.txt') for sp,name in [('train','train'),('validation','test')]}
         classes=sorted({p.split('/')[0] for p in parts['train']})

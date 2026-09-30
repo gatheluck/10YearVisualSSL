@@ -104,6 +104,7 @@ The config contains exactly `dataset` and `data_root`. Supported native layouts:
 | `oxford_pets` | captured layout `annotations/train.txt`, `annotations/test.txt`, four fields per row; `images/` | 3680/3669/37 |
 | `ip102` | `classes.txt`, `train.txt`, `val.txt`, `test.txt`; `images/` | 45095/22619/102 |
 | `mit_indoor` | `TrainImages.txt`, `TestImages.txt` at the configured root; images in `train/` and `val/` | 5360/1340/67 |
+| `cars` | `devkit/cars_meta.mat`, `devkit/cars_train_annos.mat`, `devkit/cars_test_annos_withlabels.mat`; `train_original/original/` and `val_original/original/` | 8144/8041/196 |
 
 CUB joins numeric IDs and preserves class-ID order; it refuses an older CUB
 release. Aircraft uses variant-list order and trainval membership. DTD validates
@@ -140,9 +141,57 @@ All four additions validate both splits, preserve relative paths, reject
 escaping paths/links and keep existing output files unchanged. The Python-only
 `fixture_counts` override is for reduced tests, never the CLI; for IP102 its
 held-out fixture validation count equals the fixture evaluation count.
-Other datasets require an
+For datasets beyond these converters and the MNIST staging below, provide an
 explicit externally prepared sample manifest; their native builders are not
 claimed ported. Keep manifests containing local information outside Git.
+
+### Stanford Cars MAT annotations
+
+Use the public registry key `cars`; the inspected experimental builder is named
+`build_stanford_cars`. SciPy is already included in the downstream dependency lock.
+The converter preserves `cars_meta.mat:class_names` order and converts integer
+class IDs from one-based to zero-based. Annotation rows may contain bounding
+boxes, but the runner reads **full original images**, matching that builder.
+Train and test can legitimately reuse filenames: their original directories
+are separate namespaces. Duplicate membership within a split, invalid labels,
+missing files and escaping links fail. Both populations and all three annotation
+hashes are checked before delivery. Prepared class-folder copies are not used
+or certified; the original deployment's additional copy-agreement checks are
+outside this portable input contract.
+
+### MNIST IDX staging
+
+`python -m downstream.extended_mnist --config /path/mnist-input.json --out /path/new-mnist-images`
+
+The input config contains exactly `{"data_root":"/path/native-mnist"}`. Under
+that root, provide `MNIST/raw/train-images-idx3-ubyte`,
+`MNIST/raw/train-labels-idx1-ubyte`, `MNIST/raw/t10k-images-idx3-ubyte` and
+`MNIST/raw/t10k-labels-idx1-ubyte`. These are uncompressed native files; no
+download, gzip fallback or inferred split is performed. The converter requires
+60,000/10,000 rows, ten digit labels, the IDX magic numbers, 28x28 geometry and
+exact payload lengths. It validates both populations before creating output.
+
+Output must be a **new directory outside the source tree**, with no `..` path
+components (including in its ancestors). Source files are
+read only. Each source row becomes a lossless grayscale PNG under
+`images/train/` or `images/t10k/`; numeric row order and digit labels are preserved.
+`samples.json` is published atomically after all images are written and contains
+relative paths, original IDX hashes and staging provenance, without the local
+source path. Existing or partially written directories are refused, even on an
+identical rerun. On I/O failure, keep or remove the incomplete directory manually
+and retry with a new destination; absence of `samples.json` means staging did not
+complete. PNG staging requires additional disk space and is not an authenticity
+check against the publisher. Conversion alone does not train a model.
+
+For the existing image runner, set `dataset` to `mnist`, `data_root` to the new
+directory and `samples` to its `samples.json`. RGB conversion then occurs in the
+unchanged image loader. **Choose `transform_profile` from run evidence**: the
+inspected native MNIST builder calls the shared `small=False` transform (random
+resized crop and horizontal flip), while the registry specifies a small-image
+recipe. This port does not silently resolve that disagreement. Explicit
+`captured_rgb_rrc_v1` matches the inspected builder's geometry; it is not proof
+that the final table used that profile. The Python-only `fixture_counts` API is
+for tests and cannot be set through the CLI.
 
 ## Evidence and remaining work
 
@@ -164,6 +213,13 @@ that difference was inspected rather than treating the snapshot as live state.
 Flowers102 remains pending: the registry specifies train+validation, while the
 inspected current builder uses only `trnid` and excludes `valid`. Do not silently
 choose one as the final table's membership.
+
+The Cars/MNIST binary-input audit compared captured and current original
+builders separately. Each comparison covered all four train/evaluation splits
+and 80 transformed synthetic images, exactly matching after the common model
+normalization. Cars/MNIST LP and AP also pass artifact-contract checks using a
+reduced random encoder. These checks do not establish native data authenticity,
+released-weight performance, full-epoch training or paper-score reproduction.
 
 Semantic segmentation now has a separate [component path](EXTENDED_SEGMENTATION.md)
 with explicit 224-grid evaluation and unresolved dataset differences.

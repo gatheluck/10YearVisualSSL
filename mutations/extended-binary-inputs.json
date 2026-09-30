@@ -1,0 +1,247 @@
+{
+  "targets": [
+    {
+      "file": "downstream/extended_membership.py",
+      "label": "Cars class IDs become alphabetical",
+      "old": "classes=mat_vector('devkit/cars_meta.mat','class_names')",
+      "new": "classes=sorted(mat_vector('devkit/cars_meta.mat','class_names'))",
+      "tests": [
+        "tests.test_method_extended_binary_inputs.TestBinaryInputs.test_cars_numeric_order_independent_namespaces_and_hashes"
+      ]
+    },
+    {
+      "file": "downstream/extended_membership.py",
+      "label": "Cars floating label accepted",
+      "old": "type(label) is not int or not 1<=label<=counts[2]",
+      "new": "not 1<=label<=counts[2]",
+      "tests": [
+        "tests.test_method_extended_binary_inputs.TestBinaryInputs.test_cars_malformed_mat_labels_paths_and_vocabulary_fail"
+      ]
+    },
+    {
+      "file": "downstream/extended_membership.py",
+      "label": "Cars nested filename accepted",
+      "old": "'/' in name or '\\\\' in name or",
+      "new": "'\\\\' in name or",
+      "tests": [
+        "tests.test_method_extended_binary_inputs.TestBinaryInputs.test_cars_malformed_mat_labels_paths_and_vocabulary_fail"
+      ]
+    },
+    {
+      "file": "downstream/extended_membership.py",
+      "label": "Cars backslash filename accepted",
+      "old": "'/' in name or '\\\\' in name or",
+      "new": "'/' in name or",
+      "tests": [
+        "tests.test_method_extended_binary_inputs.TestBinaryInputs.test_cars_malformed_mat_labels_paths_and_vocabulary_fail"
+      ]
+    },
+    {
+      "file": "downstream/extended_membership.py",
+      "label": "Cars image suffix unchecked",
+      "old": "Path(name).suffix.lower() not in {'.jpg','.jpeg','.png','.bmp','.webp','.tif','.tiff','.ppm'}",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_binary_inputs.TestBinaryInputs.test_cars_malformed_mat_labels_paths_and_vocabulary_fail"
+      ]
+    },
+    {
+      "file": "downstream/extended_membership.py",
+      "label": "Cars split namespaces collapsed",
+      "old": "path=folder+'_original/original/'+name",
+      "new": "path='train_original/original/'+name",
+      "tests": [
+        "tests.test_method_extended_binary_inputs.TestBinaryInputs.test_cars_numeric_order_independent_namespaces_and_hashes"
+      ]
+    },
+    {
+      "file": "downstream/extended_membership.py",
+      "label": "Cars vocabulary blank accepted",
+      "old": "if any(not isinstance(v,str) or not v.strip() for v in classes):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_extended_binary_inputs.TestBinaryInputs.test_cars_malformed_mat_labels_paths_and_vocabulary_fail"
+      ]
+    },
+    {
+      "file": "downstream/extended_mnist.py",
+      "label": "MNIST original tree protection removed",
+      "old": "if out.resolve().is_relative_to(root):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_extended_binary_inputs.TestBinaryInputs.test_idx_output_protection_no_fallback_and_no_partial_manifest"
+      ]
+    },
+    {
+      "file": "downstream/extended_mnist.py",
+      "label": "MNIST escaping input link accepted",
+      "old": "if not path.is_relative_to(root): raise ValueError('escaping IDX input link')",
+      "new": "if False: raise ValueError('escaping IDX input link')",
+      "tests": [
+        "tests.test_method_extended_binary_inputs.TestBinaryInputs.test_idx_output_protection_no_fallback_and_no_partial_manifest"
+      ]
+    },
+    {
+      "file": "downstream/extended_mnist.py",
+      "label": "MNIST header validation removed",
+      "old": "if len(images)<16 or len(labels)<8: raise ValueError('truncated IDX header')",
+      "new": "if False: raise ValueError('truncated IDX header')",
+      "tests": [
+        "tests.test_method_extended_binary_inputs.TestBinaryInputs.test_idx_corrupt_headers_lengths_targets_and_counts_fail_before_output"
+      ]
+    },
+    {
+      "file": "downstream/extended_mnist.py",
+      "label": "MNIST magic ignored",
+      "old": "if magic!=2051 or label_magic!=2049:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_extended_binary_inputs.TestBinaryInputs.test_idx_corrupt_headers_lengths_targets_and_counts_fail_before_output"
+      ]
+    },
+    {
+      "file": "downstream/extended_mnist.py",
+      "label": "MNIST geometry ignored",
+      "old": "if (height,width)!=(28,28):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_extended_binary_inputs.TestBinaryInputs.test_idx_corrupt_headers_lengths_targets_and_counts_fail_before_output"
+      ]
+    },
+    {
+      "file": "downstream/extended_mnist.py",
+      "label": "MNIST count join ignored",
+      "old": "if n!=nlabels or n!=count:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_extended_binary_inputs.TestBinaryInputs.test_idx_corrupt_headers_lengths_targets_and_counts_fail_before_output"
+      ]
+    },
+    {
+      "file": "downstream/extended_mnist.py",
+      "label": "MNIST exact payload lengths ignored",
+      "old": "if len(images)!=16+n*784 or len(labels)!=8+n:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_extended_binary_inputs.TestBinaryInputs.test_idx_corrupt_headers_lengths_targets_and_counts_fail_before_output"
+      ]
+    },
+    {
+      "file": "downstream/extended_mnist.py",
+      "label": "MNIST label coverage ignored",
+      "old": "if set(labels[8:])!=set(range(counts[2])):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_extended_binary_inputs.TestBinaryInputs.test_idx_corrupt_headers_lengths_targets_and_counts_fail_before_output"
+      ]
+    },
+    {
+      "file": "downstream/extended_mnist.py",
+      "label": "MNIST existing empty output reused",
+      "old": "out.mkdir(parents=True,exist_ok=False)",
+      "new": "out.mkdir(parents=True,exist_ok=True)",
+      "tests": [
+        "tests.test_method_extended_binary_inputs.TestBinaryInputs.test_idx_output_protection_no_fallback_and_no_partial_manifest"
+      ]
+    },
+    {
+      "file": "downstream/extended_mnist.py",
+      "label": "MNIST atomic completion removed",
+      "old": "pending=out/'.samples.json.tmp'",
+      "new": "pending=out/'samples.json'",
+      "tests": [
+        "tests.test_method_extended_binary_inputs.TestBinaryInputs.test_failed_manifest_write_never_publishes_completion_marker"
+      ]
+    },
+    {
+      "file": "downstream/extended_mnist.py",
+      "label": "MNIST payload reversed",
+      "old": "payloads[split][i*784:(i+1)*784]",
+      "new": "payloads[split][i*784:(i+1)*784][::-1]",
+      "tests": [
+        "tests.test_method_extended_binary_inputs.TestBinaryInputs.test_idx_lossless_export_order_evidence_and_source_preservation"
+      ]
+    },
+    {
+      "file": "downstream/extended_mnist.py",
+      "label": "MNIST labels shifted",
+      "old": "target=label) for i,label",
+      "new": "target=(label+1)%counts[2]) for i,label",
+      "tests": [
+        "tests.test_method_extended_binary_inputs.TestBinaryInputs.test_idx_lossless_export_order_evidence_and_source_preservation"
+      ]
+    },
+    {
+      "file": "downstream/extended_mnist.py",
+      "label": "MNIST extra config accepted",
+      "old": "if set(cfg)!={'data_root'}:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_extended_binary_inputs.TestBinaryInputs.test_mnist_cli_has_fixed_release_counts_and_exclusive_output"
+      ]
+    },
+    {
+      "file": "downstream/extended_membership.py",
+      "label": "Cars MAT schema guard removed",
+      "old": "if not isinstance(entry,dict) or not {'fname','class'}<=set(entry):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_extended_binary_inputs.TestBinaryInputs.test_cars_malformed_mat_labels_paths_and_vocabulary_fail"
+      ]
+    },
+    {
+      "file": "downstream/extended_mnist.py",
+      "label": "MNIST source hash replaced",
+      "old": "hashes[name]=hashlib.sha256(raw).hexdigest()",
+      "new": "hashes[name]='invalid'",
+      "tests": [
+        "tests.test_method_extended_binary_inputs.TestBinaryInputs.test_idx_lossless_export_order_evidence_and_source_preservation"
+      ]
+    },
+    {
+      "file": ".github/workflows/tests.yml",
+      "label": "Downstream CI binary-input suite omitted",
+      "old": "            tests.test_method_extended_binary_inputs \\\n",
+      "new": "",
+      "tests": [
+        "tests.test_method_extended_binary_inputs.TestBinaryInputs.test_ci_runs_binary_input_contracts"
+      ]
+    },
+    {
+      "file": "tests/test_method_extended_binary_inputs.py",
+      "label": "Missing optional encoder crashes input test suite",
+      "old": "self.skipTest('encoder integration requires downstream Transformers; input parsers still run')",
+      "new": "raise",
+      "tests": [
+        "tests.test_method_extended_binary_inputs.TestOptionalDependencies"
+      ]
+    },
+    {
+      "file": "downstream/extended_membership.py",
+      "old": "if key not in data: raise ValueError('missing MAT annotation field')",
+      "new": "if False: raise ValueError('missing MAT annotation field')",
+      "label": "MAT field error contract",
+      "tests": [
+        "tests.test_method_extended_binary_inputs.TestBinaryInputs.test_cars_malformed_mat_labels_paths_and_vocabulary_fail"
+      ]
+    },
+    {
+      "file": "downstream/extended_mnist.py",
+      "old": "if len(counts)!=3 or any(type(v) is not int or v<1 for v in counts) or counts[2]>10:",
+      "new": "if False:",
+      "label": "Fixture count schema error contract",
+      "tests": [
+        "tests.test_method_extended_binary_inputs.TestBinaryInputs.test_idx_corrupt_headers_lengths_targets_and_counts_fail_before_output"
+      ]
+    },
+    {
+      "file": "downstream/extended_mnist.py",
+      "label": "Parent traversal writes an intermediate source directory",
+      "old": "if '..' in out.parts:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_extended_binary_inputs.TestBinaryInputs.test_output_parent_traversal_cannot_create_source_directories"
+      ]
+    }
+  ]
+}
