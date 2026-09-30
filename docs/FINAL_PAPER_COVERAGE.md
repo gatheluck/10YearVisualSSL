@@ -54,7 +54,8 @@ availability does not establish complete native-video or paper-score coverage.
    datasets**, retaining each of the five model/readout identities. The image
    LP/AP execution path now exists, with explicit sample manifests and native
    CUB-200-2011/DTD/Aircraft annotation conversion, extended on September 30 with
-   Food-101/Pets/IP102/MIT Indoor-67 annotation conversion. This addresses the common
+   Food-101/Pets/IP102/MIT Indoor-67 annotation conversion, followed by Cars MAT
+   annotation conversion and lossless MNIST IDX staging. This addresses the common
    path used by 24 image-classification rows, not 24 independently validated
    dataset ports or reproduced scores. [Semantic LP/AP](EXTENDED_SEGMENTATION.md)
    now adds five-provider spatial heads/adapters, 224-grid metrics and native
@@ -99,6 +100,9 @@ availability does not establish complete native-video or paper-score coverage.
 - Flowers102's registry specifies train+validation, whereas the current inspected
   builder uses `setid.mat:trnid` only and checks/excludes `valid`. Its native
   membership port remains pending final run reconciliation.
+- MNIST's native builder uses the shared `small=False` crop/flip path, whereas
+  its registry describes the small-image recipe. IDX staging preserves input
+  pixels and splits but does not resolve which transform produced a table cell.
 
 This audit used read-only comparison of captured and current experimental
 sources. No original code, checkpoint or existing feature artifact was changed;
