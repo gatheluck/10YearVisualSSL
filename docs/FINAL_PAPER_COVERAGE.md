@@ -53,7 +53,8 @@ availability does not establish complete native-video or paper-score coverage.
 2. Integrate Extended task trainers and metrics for the **45 actually reported
    datasets**, retaining each of the five model/readout identities. The image
    LP/AP execution path now exists, with explicit sample manifests and native
-   CUB-200-2011/DTD/Aircraft annotation conversion. This addresses the common
+   CUB-200-2011/DTD/Aircraft annotation conversion, extended on September 30 with
+   Food-101/Pets/IP102/MIT Indoor-67 annotation conversion. This addresses the common
    path used by 24 image-classification rows, not 24 independently validated
    dataset ports or reproduced scores. [Semantic LP/AP](EXTENDED_SEGMENTATION.md)
    now adds five-provider spatial heads/adapters, 224-grid metrics and native
@@ -95,6 +96,9 @@ availability does not establish complete native-video or paper-score coverage.
 - Final manuscript tables, older workbook rows and local artifact availability
   may differ. Missing physical files do not establish that an experiment was
   never run, and a source implementation does not establish a verified score.
+- Flowers102's registry specifies train+validation, whereas the current inspected
+  builder uses `setid.mat:trnid` only and checks/excludes `valid`. Its native
+  membership port remains pending final run reconciliation.
 
 This audit used read-only comparison of captured and current experimental
 sources. No original code, checkpoint or existing feature artifact was changed;
