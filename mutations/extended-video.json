@@ -251,6 +251,15 @@
       "tests": [
         "tests.test_method_extended_video.TestVideo.test_frame_directories_fail_closed_and_load_explicit_membership"
       ]
+    },
+    {
+      "file": "tests/test_method_extended_video.py",
+      "label": "unqualified discovery worker",
+      "old": "'--module','tests.'+Path(__file__).stem",
+      "new": "'--module',__name__",
+      "tests": [
+        "tests.test_method_extended_video.TestVideo.test_discovery_alias_does_not_change_worker_module"
+      ]
     }
   ]
 }

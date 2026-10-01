@@ -231,12 +231,17 @@ class TestVideo(unittest.TestCase):
             path.write_bytes(b'corrupt video')
             with self.assertRaises(Exception):ds[0]
 
+    def test_discovery_alias_does_not_change_worker_module(self):
+        with patch.dict(globals(),__name__=Path(__file__).stem):
+            self.assertEqual(__name__,'test_method_extended_video')
+            self.test_two_ranks_continue_and_evaluate_complete_population()
+
     def test_two_ranks_continue_and_evaluate_complete_population(self):
         import os,socket,subprocess,sys
         with tempfile.TemporaryDirectory() as tmp, socket.socket() as sock:
             sock.bind(('127.0.0.1',0));port=sock.getsockname()[1];sock.close()
             proc=subprocess.run([sys.executable,'-m','torch.distributed.run','--master-addr=127.0.0.1',
-                f'--master-port={port}','--nproc-per-node=2','--module',__name__,'--worker',tmp],
+                f'--master-port={port}','--nproc-per-node=2','--module','tests.'+Path(__file__).stem,'--worker',tmp],
                 env={**os.environ,'OMP_NUM_THREADS':'1','MKL_NUM_THREADS':'1'},capture_output=True,text=True,timeout=150)
             self.assertEqual(proc.returncode,0,proc.stdout+proc.stderr)
             self.assertEqual(len(list(Path(tmp).glob('rank*.done'))),2)

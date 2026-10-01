@@ -31,6 +31,8 @@ pending; do not copy historical scores into verified portable results.
 Behavioral tests preceded the new APIs; a separate behavioral RED exposed
 symlinked annotation acceptance, and CI-routing RED preceded workflow changes.
 Source comparisons cover reduced heads, updates, sampling, pixels and memberships.
+The distributed worker uses an explicit importable module name; discovery-mode
+RED/GREEN and mutation checks guard against a test that passes only when named.
 The reduced provider/CLI/Gloo and Linux native-decoder checks are distinct from
 released-weight CUDA/NCCL, authentic full-data and final-score reproduction.
 Private source/configuration copies remain outside Git. No cluster compute job,
