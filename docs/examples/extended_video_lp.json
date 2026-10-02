@@ -1,0 +1,29 @@
+{
+  "task": "extended_video_classification",
+  "profile": "capture_extended_components",
+  "dataset": "hmdb51",
+  "seed": 0,
+  "device": "cpu",
+  "data_root": "/path/to/hmdb51",
+  "samples": "/path/to/samples.json",
+  "transform_profile": "captured_video16_v1",
+  "adaptation": "frozen",
+  "reader_profile": null,
+  "backbone": {
+    "kind": "siglip2_g",
+    "arch": "released",
+    "encoder": "/path/to/encoder",
+    "img_size": 384,
+    "patch_size": 16
+  },
+  "probe": {
+    "epochs": 50,
+    "batch_size": 4,
+    "num_workers": 0
+  },
+  "execution": {
+    "accumulation_steps": 1,
+    "precision": "fp32",
+    "tail_policy": "discard"
+  }
+}

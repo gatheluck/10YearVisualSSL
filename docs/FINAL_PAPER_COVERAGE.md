@@ -25,7 +25,7 @@ some final manuscript revisions and must be matched by actual run identity.
 | C.8 Tables 27-28: generative; C.9 Table 29: VideoSSL | Existing providers and selected native video components | RAEv2 K7 versus other readouts; distinct video checkpoints/pipelines and task integrations |
 | C.10 Tables 30-34: world/video generation; C.11 Table 35: VLM and related models | Selected provider/component integrations | All rows' exact component boundaries, adapters, task recipes and checkpoint identities |
 | C.12 Tables 36-38: BasicFive LP/AP/FT | Existing task runners, [five-family readers/native detection](BASIC5_NATIVE_PATHS.md), [K7](BASIC5_K7.md), [Omega](BASIC5_OMEGA.md) and [C-RADIO](BASIC5_RADIO.md) | Remaining recipes, full-size checkpoint/GPU validation and actual full-data measurements; blank/incomplete FT cells must stay distinct from completed runs |
-| C.13 Tables 39-40: Extended LP/AP, 45 datasets and five models | Tracked registries, protocol companions, [image classification](EXTENDED_CLASSIFICATION.md) and [semantic segmentation](EXTENDED_SEGMENTATION.md) components for five providers, with explicit [accumulation/precision](EXTENDED_EXECUTION.md) | Remaining task families, native input builders, conflicting task/metric identities, legacy checkpoint import, released-weight distributed/CUDA parity and measured-run manifests; 81 catalog entries do not mean 81 measured datasets |
+| C.13 Tables 39-40: Extended LP/AP, 45 datasets and five models | Tracked registries, protocol companions, [image classification](EXTENDED_CLASSIFICATION.md), [semantic segmentation](EXTENDED_SEGMENTATION.md) and [video classification](EXTENDED_VIDEO.md) components for five providers, with explicit [accumulation/precision](EXTENDED_EXECUTION.md) | Remaining task families, native input builders, conflicting task/metric identities, legacy checkpoint import, released-weight distributed/CUDA parity and measured-run manifests; 81 catalog entries do not mean 81 measured datasets |
 | C.14 Table 41: six representative configurations | Per-method adapters and protocol documents | Different original protocols require separate recipe identities, not one inferred common leaderboard |
 | C.15 Table 42: frontier matched subsets | Supplied system prompts and protocol | Matched 500-sample manifests, raw outputs/retries, parsing, scoring and recomputation |
 | D.1-D.3: pairplots, CTRL progress and DINO scaling | Selected extraction/training artifacts | Complete provenance-linked analysis inputs and plot regeneration |
@@ -70,6 +70,10 @@ availability does not establish complete native-video or paper-score coverage.
    full-population evaluation. Portable epoch-boundary continuation now restores probe/optimizer/scheduler
    state and per-rank RNG streams across both runners. Legacy checkpoint import
    and released-weight distributed/CUDA continuation validation remain.
+   The 2026-10-01 video port adds HMDB51/UCF101 split-1 conversion and five-provider
+   LP/AP with shared execution and continuation. The original rerun catalog flags
+   historical split contamination; final-table-to-corrected-run identity remains
+   unverified. Strict membership and component tests do not certify those scores.
    Registry presence alone is insufficient.
    Charades and AVA remain distinct tasks.
 3. Validate native distributed/BF16 training and continuation/export against

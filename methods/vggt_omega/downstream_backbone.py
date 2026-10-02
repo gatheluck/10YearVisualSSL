@@ -13,6 +13,7 @@ from downstream.contract import sha256_file
 
 KIND = "vggt_omega"
 EXTENDED_IMAGE_READER = "captured_cross_self_v1"
+EXTENDED_VIDEO_READER = "captured_cross_self_v1"
 EXTENDED_DENSE_READER = "captured_cross_self_v1"
 EXTENDED_ACCUMULATION_TAILS = {"frozen": "discard", "attentive": "discard"}
 TRAINABLE = True
