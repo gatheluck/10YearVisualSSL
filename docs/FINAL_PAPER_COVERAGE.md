@@ -74,6 +74,10 @@ availability does not establish complete native-video or paper-score coverage.
    LP/AP with shared execution and continuation. The original rerun catalog flags
    historical split contamination; final-table-to-corrected-run identity remains
    unverified. Strict membership and component tests do not certify those scores.
+   The 2026-10-02 [detection component port](EXTENDED_DETECTION.md) adds COCO/LIVECell/LVIS inputs,
+   five-provider LP/AP detector compositions and official prediction evaluation.
+   The complete Extended detection training CLI, source/catalog geometry, released-weight
+   validation and score provenance remain pending.
    Registry presence alone is insufficient.
    Charades and AVA remain distinct tasks.
 3. Validate native distributed/BF16 training and continuation/export against

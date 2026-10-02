@@ -1,0 +1,8 @@
+{
+  "task": "extended_detection_evaluation",
+  "profile": "official_annotations_v1",
+  "dataset": "livecell",
+  "data_root": "/path/to/images",
+  "annotation": "/path/to/official-validation.json",
+  "predictions": "/path/to/predictions.pt"
+}

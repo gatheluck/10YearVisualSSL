@@ -1,0 +1,202 @@
+{
+  "targets": [
+    {
+      "file": "downstream/extended_detection.py",
+      "label": "contiguous foreground IDs",
+      "old": "c: i + 1",
+      "new": "c: i + 2",
+      "tests": [
+        "tests.test_method_extended_detection.TestExtendedDetection.test_sparse_ids_masks_and_joint_flip"
+      ]
+    },
+    {
+      "file": "downstream/extended_detection.py",
+      "label": "flip",
+      "old": "random.random() < 0.5",
+      "new": "random.random() < 0.0",
+      "tests": [
+        "tests.test_method_extended_detection.TestExtendedDetection.test_sparse_ids_masks_and_joint_flip"
+      ]
+    },
+    {
+      "file": "downstream/extended_detection.py",
+      "label": "training instance cap",
+      "old": ")[:64]",
+      "new": ")[:65]",
+      "tests": [
+        "tests.test_method_extended_detection.TestExtendedDetection.test_input_resize_and_training_cap_do_not_change_evaluation_ground_truth"
+      ]
+    },
+    {
+      "file": "downstream/extended_detection.py",
+      "label": "512 side limit",
+      "old": "scale = 512 / max(width, height)",
+      "new": "scale = 256 / max(width, height)",
+      "tests": [
+        "tests.test_method_extended_detection.TestExtendedDetection.test_input_resize_and_training_cap_do_not_change_evaluation_ground_truth"
+      ]
+    },
+    {
+      "file": "downstream/extended_detection.py",
+      "label": "duplicate IDs",
+      "old": "len(set(ids)) != len(\n                ids\n            )",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_detection.TestExtendedDetection.test_corrupt_masks_paths_duplicate_ids_and_geometry_fail_closed"
+      ]
+    },
+    {
+      "file": "downstream/extended_detection.py",
+      "label": "frozen encoder",
+      "old": "body.requires_grad_(False).eval()",
+      "new": "body.requires_grad_(True).eval()",
+      "tests": [
+        "tests.test_method_extended_detection.TestExtendedDetection.test_box_and_mask_backward_freeze_encoder_but_update_heads_and_readers"
+      ]
+    },
+    {
+      "file": "downstream/extended_detection.py",
+      "label": "frozen mode",
+      "old": "self.body.eval()",
+      "new": "self.body.train()",
+      "tests": [
+        "tests.test_method_extended_detection.TestExtendedDetection.test_detector_uses_transposed_pyramid_and_explicit_geometry_caps"
+      ]
+    },
+    {
+      "file": "downstream/extended_detection.py",
+      "label": "LIVECell detector cap",
+      "old": "\"livecell\": (True, 3000, 2000)",
+      "new": "\"livecell\": (True, 100, 2000)",
+      "tests": [
+        "tests.test_method_extended_detection.TestExtendedDetection.test_detector_uses_transposed_pyramid_and_explicit_geometry_caps"
+      ]
+    },
+    {
+      "file": "downstream/extended_detection.py",
+      "label": "COCO inverse label mapping",
+      "old": "inverse[int(labels[idx])]",
+      "new": "int(labels[idx])",
+      "tests": [
+        "tests.test_method_extended_detection.TestExtendedDetection.test_coco_label_inverse_and_livecell_category_pooling"
+      ]
+    },
+    {
+      "file": "downstream/extended_detection.py",
+      "label": "complete evaluation",
+      "old": "seen != set(data.ids)",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_detection.TestExtendedDetection.test_empty_predictions_are_zero_but_missing_duplicate_unknown_and_nonfinite_fail"
+      ]
+    },
+    {
+      "file": "downstream/extended_detection.py",
+      "label": "duplicate evaluation image",
+      "old": "iid in seen",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_detection.TestExtendedDetection.test_empty_predictions_are_zero_but_missing_duplicate_unknown_and_nonfinite_fail"
+      ]
+    },
+    {
+      "file": "downstream/extended_detection.py",
+      "label": "score probability validation",
+      "old": "or not torch.isfinite(scores).all()\n            or not ((scores >= 0) & (scores <= 1)).all()",
+      "new": "or False",
+      "tests": [
+        "tests.test_method_extended_detection.TestExtendedDetection.test_empty_predictions_are_zero_but_missing_duplicate_unknown_and_nonfinite_fail"
+      ]
+    },
+    {
+      "file": "downstream/extended_detection.py",
+      "label": "mask probabilities",
+      "old": "or not ((masks >= 0) & (masks <= 1)).all()",
+      "new": "or False",
+      "tests": [
+        "tests.test_method_extended_detection.TestExtendedDetection.test_prediction_masks_are_probabilities_and_empty_ground_truth_is_not_a_score"
+      ]
+    },
+    {
+      "file": "downstream/extended_detection.py",
+      "label": "pooled LIVECell categories",
+      "old": "int(dataset != \"livecell\")",
+      "new": "1",
+      "tests": [
+        "tests.test_method_extended_detection.TestExtendedDetection.test_coco_label_inverse_and_livecell_category_pooling"
+      ]
+    },
+    {
+      "file": "downstream/extended_detection.py",
+      "label": "original box size",
+      "old": "w / iw, h / ih, w / iw, h / ih",
+      "new": "1., 1., 1., 1.",
+      "tests": [
+        "tests.test_method_extended_detection.TestExtendedDetection.test_lvis_federated_unknown_categories_and_original_resolution"
+      ]
+    },
+    {
+      "file": "downstream/extended_detection.py",
+      "label": "empty LVIS result type",
+      "old": "dt = object.__new__(LVISResults)",
+      "new": "dt = copy.deepcopy(gt)",
+      "tests": [
+        "tests.test_method_extended_detection.TestExtendedDetection.test_lvis_federated_negative_and_nonexhaustive_labels_change_false_positive_accounting"
+      ]
+    },
+    {
+      "file": "downstream/extended_detection.py",
+      "label": "private NumPy compatibility",
+      "old": "return float if name == \"float\" else getattr(np, name)",
+      "new": "return getattr(np, name)",
+      "tests": [
+        "tests.test_method_extended_detection.TestExtendedDetection.test_lvis_federated_unknown_categories_and_original_resolution"
+      ]
+    },
+    {
+      "file": "downstream/extended_detection.py",
+      "label": "no ground truth",
+      "old": "raise ValueError(\"evaluation has no scored ground truth\")",
+      "new": "return 0.",
+      "tests": [
+        "tests.test_method_extended_detection.TestExtendedDetection.test_prediction_masks_are_probabilities_and_empty_ground_truth_is_not_a_score"
+      ]
+    },
+    {
+      "file": "downstream/extended_detection.py",
+      "label": "output overwrite protection",
+      "old": "out.mkdir(parents=True, exist_ok=False)",
+      "new": "out.mkdir(parents=True, exist_ok=True)",
+      "tests": [
+        "tests.test_method_extended_detection.TestExtendedDetection.test_cli_artifacts_and_existing_output_protection"
+      ]
+    },
+    {
+      "file": ".github/workflows/tests.yml",
+      "label": "required CI route",
+      "old": "            tests.test_method_extended_detection \\\n",
+      "new": "",
+      "tests": [
+        "tests.test_method_extended_detection.TestExtendedDetection.test_required_ci_runs_detection_and_installs_official_evaluator"
+      ]
+    },
+    {
+      "file": "docs/examples/extended_detection_evaluation.json",
+      "label": "executable documentation benchmark",
+      "old": "\"dataset\": \"livecell\"",
+      "new": "\"dataset\": \"hico_det\"",
+      "tests": [
+        "tests.test_method_extended_detection.TestExtendedDetection.test_cli_artifacts_and_existing_output_protection"
+      ]
+    },
+    {
+      "file": "downstream/extended_detection.py",
+      "label": "LIVECell stable tie order",
+      "old": "order = order[torch.argsort(labels, stable=True)]",
+      "new": "order = order",
+      "tests": [
+        "tests.test_method_extended_detection.TestExtendedDetection.test_livecell_tied_scores_use_category_order_before_detection_cap"
+      ]
+    }
+  ]
+}

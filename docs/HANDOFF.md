@@ -12,6 +12,33 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-10-02: Extended detection and instance evaluation components
+
+PR 214 merged as `89ac6e3`; all 115 checks succeeded after CI restart. Pulled
+main matches the tested `b6004d2` tree. Existing video submodule edits remain
+unchanged. Read-only current sources and the rerun catalog were inspected;
+`runnable` is not a completed experiment or a verified paper score.
+
+[Detection components](EXTENDED_DETECTION.md) add explicit COCO/LIVECell/LVIS
+inputs, transposed FPN Faster/Mask R-CNN compositions for the five frozen/AP
+providers, and official original-annotation prediction evaluation. The prior
+Basic5 compositions are unchanged. Unknown benchmark identities and invalid
+masks are refused rather than approximated. LVIS's NumPy compatibility adapter
+is local to the evaluator instance; no installed package is patched.
+
+The first tests exercised missing component APIs; executable CLI RED separately
+proved that merely importing the module did not deliver results. Further RED
+covered CI routing, out-of-range mask probabilities and empty LVIS predictions.
+Source parity, reduced real-provider updates and contract output checks remain
+separate from full-data/GPU and score validation. Required final gates and CI
+status belong in this task's PR evidence; stop for review after delivery.
+
+Full Extended detection training/distributed/resume integration remains open.
+The source's conditional 224/256 versus catalog 800/1333 geometry is explicitly
+unresolved; the low-level factory requires a named profile and does not certify
+its paper provenance. No compute jobs, original inputs, weights or snapshots
+were changed. Evidence and current run configuration copies remain outside Git.
+
 ### 2026-10-01: Extended video classification integration
 
 PR 213 merged as `2b45f2c`; all 115 checks succeeded. Pulled main matches the
