@@ -65,3 +65,9 @@ def validate_profile(cfg):
     if (cfg['detector_profile'] != PROFILE or cfg.get('profile') != 'capture_basic5_components'
             or not supports_native_detection(cfg.get('backbone',{}).get('kind'))):
         raise ValueError('detector_profile requires an explicitly verified native provider and component profile')
+
+
+# Explicit Extended entry points retain their own dataset and geometry identity.
+from downstream.extended_detection import (  # noqa: E402,F401
+    ExtendedDetectionData, build_extended_detector, evaluate_extended_detection,
+)

@@ -33,6 +33,21 @@ PER_TASK = "per-task"
 # counters are per-task bookkeeping. A task runner may write only these names.
 # Add a name together with the runner that writes it, never ahead of one.
 DOWNSTREAM_METRICS = {
+    "extended_coco2017_bbox_ap": COMPARABLE,
+    "extended_coco2017_bbox_ap50": COMPARABLE,
+    "extended_coco2017_bbox_ap75": COMPARABLE,
+    "extended_livecell_bbox_ap": COMPARABLE,
+    "extended_livecell_bbox_ap50": COMPARABLE,
+    "extended_livecell_bbox_ap75": COMPARABLE,
+    "extended_livecell_mask_ap": COMPARABLE,
+    "extended_livecell_mask_ap50": COMPARABLE,
+    "extended_livecell_mask_ap75": COMPARABLE,
+    "extended_lvis_v1_bbox_ap": COMPARABLE,
+    "extended_lvis_v1_bbox_ap50": COMPARABLE,
+    "extended_lvis_v1_bbox_ap75": COMPARABLE,
+    "extended_lvis_v1_mask_ap": COMPARABLE,
+    "extended_lvis_v1_mask_ap50": COMPARABLE,
+    "extended_lvis_v1_mask_ap75": COMPARABLE,
     "extended_video_top1": COMPARABLE,
     "extended_video_top5": COMPARABLE,
     "extended_semantic_miou": COMPARABLE,
