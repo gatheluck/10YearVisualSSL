@@ -12,6 +12,33 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-10-03: Extended detection LP/AP execution integration
+
+PR 215 merged as `100e523`; all 115 checks succeeded. Pulled main matches the
+validated `1e63bce` tree. The existing dirty video submodule remains preserved.
+Read-only current LP/AP trainers match their captured sources; catalog status
+is execution readiness, not a completed experiment or score certification.
+
+The [detection guide](EXTENDED_DETECTION.md) now covers LP/AP training, variable
+image-size batches, captured SGD warmup/milestones, provider-specific short-tail
+behavior, two-rank execution and portable epoch continuation. Frozen encoder
+weights are omitted from checkpoints without dropping the trainable pyramid.
+Missing LVIS federated metadata fails before model construction. Evaluation uses
+original annotations and occurs once on rank zero. Earlier evaluation-only
+configurations remain supported. Existing output directories are protected.
+
+Behavioral RED preceded component APIs, ragged batching, encoder-excluding
+checkpoints, CLI routing, required CI routing and preflight metadata checks.
+A source comparison exposed a floating-point warmup operation-order mismatch;
+a failing exact test preceded its correction. Public tests and private evidence
+cover reduced model updates, source schedule/parameter groups and continuation.
+Record final gate and CI outcomes in the PR; local passes do not certify CI.
+
+The source/catalog geometry conflict, FT, GPU/NCCL, full-data/released-weight
+runs and historical table provenance remain unresolved. No original code,
+weights, snapshot or cluster job was modified. Private source/configuration
+copies and evidence stay outside Git. Stop for PR review after delivery.
+
 ### 2026-10-02: Extended detection and instance evaluation components
 
 PR 214 merged as `89ac6e3`; all 115 checks succeeded after CI restart. Pulled

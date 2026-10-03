@@ -447,5 +447,5 @@ They reject AP; detection support also has explicit boundaries. Consult the
 linked matrix and examples before selecting a provider. Full-recipe and score
 reproduction using this portable package remain unvalidated.
 
-Extended detection inputs, detector components and prediction evaluation are described in
-[the detection guide](EXTENDED_DETECTION.md); full training and paper-score reproduction remain pending.
+Extended detection LP/AP training, continuation and official evaluation are described in
+[the detection guide](EXTENDED_DETECTION.md); released-weight/full-data validation and paper-score reproduction remain pending.

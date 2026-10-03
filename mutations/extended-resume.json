@@ -256,7 +256,7 @@
     {
       "file": "downstream/extended_resume.py",
       "label": "probe only",
-      "old": "if not k.startswith('backbone.')",
+      "old": "if not k.startswith(prefix)",
       "new": "",
       "tests": [
         "tests.test_method_extended_resume.TestResume.test_both_tasks_lp_ap_resume_matches_all_updates_and_random_states"

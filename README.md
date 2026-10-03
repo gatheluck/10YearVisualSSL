@@ -750,5 +750,5 @@ git binary, which is the closest thing here to what a reader downloads.
 Strict TDD. The rules are in [CLAUDE.md](CLAUDE.md). Everything in this
 repository is written in English, enforced by `tests/test_language.py`.
 
-Extended detection inputs, detector components and prediction evaluation are described in
-[the detection guide](docs/EXTENDED_DETECTION.md); full training and paper-score reproduction remain pending.
+Extended detection LP/AP training, continuation and official evaluation are described in
+[the detection guide](docs/EXTENDED_DETECTION.md); released-weight/full-data validation and paper-score reproduction remain pending.

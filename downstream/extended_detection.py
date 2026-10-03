@@ -417,8 +417,348 @@ def evaluate_extended_detection(data, outputs, *, dataset):
     return result
 
 
+# Training reuses the component evaluator without asserting historical score identity.
+from downstream import extended_distributed as distributed
+from downstream import extended_execution as execution
+from downstream.extended_classification import PROTOCOLS, vision_no_decay
+from downstream.extended_resume import Continuation, _probe
+from downstream.spatial_backbones import (
+    _load_provider,
+    build_frozen_backbone,
+    discover_providers,
+)
+
+TRAIN_TASK = "extended_detection_training"
+
+
+def training_recipe(dataset, adaptation):
+    if dataset not in BENCHMARKS or adaptation not in ("frozen", "attentive"):
+        raise ValueError("only verified detection LP/AP recipes are supported")
+    catalog = json.loads((PROTOCOLS / "EXTEND_LINEAR_v1.json").read_text())
+    key = catalog["datasets"][dataset]["recipe"]
+    if adaptation == "attentive":
+        catalog = json.loads((PROTOCOLS / "EXTEND_ATTENTIVE_v1.json").read_text())
+        return dict(catalog["recipe_overrides"][key]["optimization"])
+    return dict(catalog["recipes"][key]["optimization"])
+
+
+def training_optimizer(model, spec, *, effective_batch, updates_per_epoch):
+    if any(type(x) is not int or x < 1 for x in (effective_batch, updates_per_epoch)):
+        raise ValueError("positive effective batch and updates per epoch required")
+    if (
+        spec["optimizer"] != "SGD"
+        or spec["epochs"] != 12
+        or spec["schedule"] != "step x0.1 at epochs 8 and 11"
+        or spec["warmup"] not in ("500 iterations", "500 iterations, factor 0.001")
+    ):
+        raise ValueError("unverified detection optimization recipe")
+    lr = spec["base_lr"] * effective_batch / spec["lr_reference_effective_batch"]
+    groups = []
+    for no_decay in (False, True):
+        params = [
+            p
+            for n, p in model.named_parameters()
+            if p.requires_grad and vision_no_decay(n) == no_decay
+        ]
+        if params:
+            groups.append(
+                {
+                    "params": params,
+                    "weight_decay": 0.0 if no_decay else spec["weight_decay"],
+                }
+            )
+    opt = torch.optim.SGD(groups, lr=lr, momentum=spec["momentum"])
+
+    def factor(step):
+        if step < 500:
+            return 0.001 + (1.0 - 0.001) * (step / 500)
+        epoch = step // updates_per_epoch
+        return 0.01 if epoch >= 11 else 0.1 if epoch >= 8 else 1.0
+
+    return opt, torch.optim.lr_scheduler.LambdaLR(opt, factor)
+
+
+def detection_collate(rows):
+    images, targets = zip(*rows)
+    return list(images), list(targets)
+
+
+def training_batch(batch, device):
+    images, targets = batch
+    images = [im.to(device) for im in images]
+    clean = []
+    for im, source in zip(images, targets):
+        target = {
+            k: v.to(device) if isinstance(v, torch.Tensor) else v
+            for k, v in source.items()
+        }
+        boxes = target["boxes"]
+        h, w = im.shape[-2:]
+        keep = (
+            (boxes[:, 2] > boxes[:, 0])
+            & (boxes[:, 3] > boxes[:, 1])
+            & (boxes[:, 2] > 0)
+            & (boxes[:, 3] > 0)
+            & (boxes[:, 0] < w)
+            & (boxes[:, 1] < h)
+        )
+        for key in ("boxes", "labels", "masks"):
+            if key in target:
+                target[key] = target[key][keep][:64]
+        clean.append(target)
+    return images, clean
+
+
+def load_training_data(cfg):
+    mask = BENCHMARKS[cfg["dataset"]][0]
+    train = ExtendedDetectionData(
+        cfg["data_root"], cfg["train_annotations"], train=True, mask=mask
+    )
+    validation = ExtendedDetectionData(
+        cfg["data_root"], cfg["validation_annotations"], train=False, mask=mask
+    )
+    if cfg["dataset"] == "lvis_v1" and not all(
+        "neg_category_ids" in row and "not_exhaustive_category_ids" in row
+        for data in (train, validation)
+        for row in data.coco.imgs.values()
+    ):
+        raise ValueError("LVIS requires federated metadata before training")
+    ontology = lambda data: {k: v["name"] for k, v in data.coco.cats.items()}
+    spec = json.loads((PROTOCOLS / "EXTEND_LINEAR_v1.json").read_text())["datasets"][
+        cfg["dataset"]
+    ]
+    if (
+        ontology(train) != ontology(validation)
+        or train.num_classes != spec["head_outputs"] + 1
+    ):
+        raise ValueError(
+            "annotation ontology disagrees with dataset recipe or evaluation split"
+        )
+    if set(train.ids) & set(validation.ids) or set(train.paths.values()) & set(
+        validation.paths.values()
+    ):
+        raise ValueError("training and validation membership overlap")
+    from downstream import contract
+
+    membership = {
+        "train_sha256": contract.sha256_bytes(train.annotation.read_bytes()),
+        "validation_sha256": contract.sha256_bytes(validation.annotation.read_bytes()),
+        "categories": ontology(train),
+        "train_count": len(train),
+        "validation_count": len(validation),
+        "official_membership_verified": False,
+    }
+    return train, validation, membership
+
+
+class DetectionProbe(nn.Module):
+    """Expose only the frozen encoder as backbone; retain the trainable FPN."""
+
+    BACKBONE_STATE_PREFIX = "detector.backbone.body."
+
+    def __init__(self, body, classes, cfg):
+        super().__init__()
+        self.detector = build_extended_detector(
+            body,
+            classes,
+            dataset=cfg["dataset"],
+            reader_profile=cfg["reader_profile"],
+            geometry_profile=cfg["geometry_profile"],
+        )
+
+    @property
+    def backbone(self):
+        return self.detector.backbone.body
+
+    def forward(self, images, targets=None):
+        return self.detector(images, targets)
+
+
+def validate_training_config(cfg):
+    required = {
+        "task",
+        "profile",
+        "dataset",
+        "seed",
+        "device",
+        "data_root",
+        "train_annotations",
+        "validation_annotations",
+        "adaptation",
+        "reader_profile",
+        "geometry_profile",
+        "backbone",
+        "probe",
+    }
+    if (
+        set(cfg) - {"execution", "resume"} != required
+        or cfg["task"] != TRAIN_TASK
+        or cfg["profile"] != "capture_extended_components"
+        or type(cfg["seed"]) is not int
+        or cfg["seed"] != 0
+    ):
+        raise ValueError("explicit Extended detection training config required")
+    spec = training_recipe(cfg["dataset"], cfg["adaptation"])
+    if cfg["geometry_profile"] not in GEOMETRIES:
+        raise ValueError("explicit verified detector geometry required")
+    probe = cfg["probe"]
+    if (
+        not isinstance(probe, dict)
+        or set(probe) != {"epochs", "batch_size", "num_workers"}
+        or any(
+            type(v) is not int or v < (0 if k == "num_workers" else 1)
+            for k, v in probe.items()
+        )
+        or probe["epochs"] > spec["epochs"]
+    ):
+        raise ValueError("invalid physical probe settings")
+    path = discover_providers().get(cfg["backbone"].get("kind"))
+    provider = _load_provider(path) if path else None
+    reader = getattr(provider, "EXTENDED_DENSE_READER", None)
+    if reader not in (SINGLE_BLOCK, CROSS_SELF) or cfg["reader_profile"] != (
+        reader if cfg["adaptation"] == "attentive" else None
+    ):
+        raise ValueError("provider and detector reader disagree")
+    plan = execution.resolve_execution(cfg, provider)
+    if plan["precision"] != "fp32":
+        raise ValueError("captured detector training requires FP32; no BF16 fallback")
+    plan["schedule_clock"] = "optimizer_updates_warmup_then_epoch_milestones"
+    return plan
+
+
+def train_run(cfg, out):
+    from torch.utils.data import DataLoader
+
+    from downstream import contract
+
+    with distributed.session(cfg["device"]) as context:
+        plan = context.call(lambda: validate_training_config(cfg))
+        context.agree(cfg)
+        context.seed(cfg["seed"])
+        train, validation, membership = context.call(lambda: load_training_data(cfg))
+        context.agree(membership)
+        settings = cfg["probe"]
+        loader = context.call(
+            lambda: context.loader(
+                train, settings, cfg["seed"], collate_fn=detection_collate
+            )
+        )
+        val_loader = DataLoader(
+            validation,
+            batch_size=settings["batch_size"],
+            num_workers=settings["num_workers"],
+            collate_fn=detection_collate,
+        )
+        raw = context.call(
+            lambda: DetectionProbe(
+                build_frozen_backbone(cfg["backbone"], context.device),
+                train.num_classes,
+                cfg,
+            ).to(context.device)
+        )
+        model = context.wrap(raw)
+        updates = len(loader) // plan["accumulation_steps"]
+        if (
+            plan["tail_policy"] == "flush_scaled"
+            and len(loader) % plan["accumulation_steps"]
+        ):
+            updates += 1
+        spec = training_recipe(cfg["dataset"], cfg["adaptation"])
+        opt, schedule = training_optimizer(
+            raw,
+            spec,
+            effective_batch=plan["effective_batch"],
+            updates_per_epoch=updates,
+        )
+        runtime = execution.execution_report(
+            plan, spec, len(loader), schedule.base_lrs[0]
+        )
+        continuation = Continuation(
+            cfg, membership, raw, opt, schedule, runtime, loader, context, out
+        )
+
+        def loss_for_batch(batch):
+            images, targets = training_batch(batch, context.device)
+            return sum(model(images, targets).values())
+
+        for epoch in range(continuation.start_epoch, settings["epochs"]):
+            if context.world > 1:
+                loader.sampler.set_epoch(epoch)
+            stats = execution.train_epoch(
+                model,
+                loader,
+                loss_for_batch,
+                opt,
+                schedule,
+                accumulation_steps=plan["accumulation_steps"],
+                tail_policy=plan["tail_policy"],
+                adaptation=cfg["adaptation"],
+            )
+            execution.record_epoch(runtime, stats)
+            continuation.save(epoch + 1)
+
+        def evaluate_and_save():
+            raw.eval()
+
+            def predictions():
+                with torch.no_grad():
+                    for images, targets in val_loader:
+                        output = raw([im.to(context.device) for im in images])
+                        for im, target, prediction in zip(images, targets, output):
+                            yield (
+                                int(target["image_id"].item()),
+                                tuple(im.shape[-2:]),
+                                prediction,
+                            )
+
+            metrics = evaluate_extended_detection(
+                validation, predictions(), dataset=cfg["dataset"]
+            )
+            metrics["epochs"] = settings["epochs"]
+            names = {
+                k: f"extended_{cfg['dataset']}_{k}"
+                if k.startswith(("bbox_", "mask_"))
+                else "epochs_completed"
+                if k == "epochs"
+                else None
+                for k in metrics
+            }
+            contract.write_metrics(
+                out, {k: v for k, v in metrics.items() if type(v) is not bool}, names
+            )
+            torch.save(
+                {k: v.cpu() for k, v in _probe(raw).items()}, Path(out) / "probe.pt"
+            )
+            report = {
+                "task": TRAIN_TASK,
+                "dataset": cfg["dataset"],
+                "adaptation": cfg["adaptation"],
+                "geometry_profile": cfg["geometry_profile"],
+                "reader_profile": cfg["reader_profile"],
+                "backbone": cfg["backbone"],
+                "membership": membership,
+                "recipe": spec,
+                "execution": runtime,
+                "continuation": continuation.report(),
+                "final": metrics,
+                "canonical_eligible": False,
+                "record_value": False,
+                "limitations": [
+                    "source/catalog geometry unresolved",
+                    "FP32 detector execution; released-weight CUDA parity unverified",
+                    "official split identity and historical score correspondence unverified",
+                ],
+            }
+            (Path(out) / "results.json").write_text(
+                json.dumps(report, indent=2, sort_keys=True) + "\n"
+            )
+            return metrics
+
+        return context.call(evaluate_and_save, leader=True)
+
+
 def main(argv=None):
-    """Score a weights-only prediction archive against complete annotations."""
+    """Train explicit LP/AP components or score a prediction archive."""
     import argparse
     from datetime import datetime
 
@@ -430,6 +770,8 @@ def main(argv=None):
     args = parser.parse_args(argv)
     config_bytes = Path(args.config).read_bytes()
     cfg = json.loads(config_bytes)
+    if cfg.get("task") == TRAIN_TASK:
+        return distributed.cli(config_bytes, args.out, train_run, TRAIN_TASK)
     out = Path(args.out)
     try:
         out.mkdir(parents=True, exist_ok=False)
