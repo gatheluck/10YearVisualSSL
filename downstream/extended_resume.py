@@ -22,7 +22,8 @@ def _cpu(value):
 
 
 def _probe(model):
-    return {k:v for k,v in model.state_dict().items() if not k.startswith('backbone.')}
+    prefix = getattr(model, 'BACKBONE_STATE_PREFIX', 'backbone.')
+    return {k:v for k,v in model.state_dict().items() if not k.startswith(prefix)}
 
 
 def _backbone_digest(model):

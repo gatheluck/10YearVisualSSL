@@ -76,8 +76,9 @@ availability does not establish complete native-video or paper-score coverage.
    unverified. Strict membership and component tests do not certify those scores.
    The 2026-10-02 [detection component port](EXTENDED_DETECTION.md) adds COCO/LIVECell/LVIS inputs,
    five-provider LP/AP detector compositions and official prediction evaluation.
-   The complete Extended detection training CLI, source/catalog geometry, released-weight
-   validation and score provenance remain pending.
+   The October 3 port connects those components to LP/AP training, accumulation,
+   distributed execution, continuation and final scoring. FT, source/catalog geometry,
+   released-weight/full-data validation and score provenance remain pending.
    Registry presence alone is insufficient.
    Charades and AVA remain distinct tasks.
 3. Validate native distributed/BF16 training and continuation/export against

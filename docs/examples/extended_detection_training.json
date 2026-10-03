@@ -1,0 +1,30 @@
+{
+  "task": "extended_detection_training",
+  "profile": "capture_extended_components",
+  "dataset": "coco2017",
+  "seed": 0,
+  "device": "cuda",
+  "data_root": "/data/coco",
+  "train_annotations": "/data/coco/annotations/instances_train2017.json",
+  "validation_annotations": "/data/coco/annotations/instances_val2017.json",
+  "adaptation": "frozen",
+  "reader_profile": null,
+  "geometry_profile": "captured_800_1333",
+  "backbone": {
+    "kind": "siglip2_g",
+    "arch": "siglip2_g",
+    "encoder": "/models/vision-encoder",
+    "img_size": 384,
+    "patch_size": 16
+  },
+  "probe": {
+    "epochs": 12,
+    "batch_size": 2,
+    "num_workers": 2
+  },
+  "execution": {
+    "accumulation_steps": 8,
+    "precision": "fp32",
+    "tail_policy": "discard"
+  }
+}

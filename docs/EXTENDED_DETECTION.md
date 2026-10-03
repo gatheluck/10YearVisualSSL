@@ -102,6 +102,53 @@ are refused. A failed evaluation produces a failed manifest, not an invented
 score. `record_value` and `canonical_eligible` are always false: hashes alone do
 not prove official split identity, checkpoint identity or historical provenance.
 
+## Training, distributed execution and continuation
+
+The training route is `python -m downstream.extended_detection --config resolved.json --out new-training-run`.
+Start from the [training configuration](examples/extended_detection_training.json).
+It trains frozen LP or attentive AP on COCO, LIVECell or LVIS, evaluates the full
+validation population and writes contract artifacts. FT is not included.
+
+Provide a common image root and separate explicit training/validation annotation
+files. Category IDs and names must agree across splits; foreground counts must
+match the supplied registry (80, 8 and 1203 respectively). Image IDs and resolved
+paths must not overlap. LVIS federated metadata is required before constructing
+the model. These checks do not authenticate official membership or detect
+identical image bytes stored under different names. Keep input bytes immutable
+throughout training and continuation.
+
+The supplied LP/AP recipes use SGD with momentum 0.9, weight decay 0.0001 and
+base learning rate 0.02 at effective batch 16. Bias/normalization/position
+exemptions follow the captured parameter-group rule. Effective batch is physical
+batch times accumulation times world size. There is no automatic OOM-driven
+batch change. The captured detector uses FP32 training; BF16 is refused here,
+even though other Extended tasks accept it.
+
+The schedule warms up over 500 **optimizer updates**, from factor 0.001, then
+uses factors 0.1 and 0.01 starting at zero-based epochs 8 and 11. Warmup takes
+precedence even when a small fixture reaches those epochs before update 500.
+This is not the cosine schedule used by other Extended tasks. LP discards an
+incomplete accumulation group. AP flushes a short group (still divided by the
+full accumulation count) for DINOv3 and RAEv2, but discards it for SigLIP2-G,
+V-JEPA2.1 and Omega. AP clips all trainable gradients to norm 1. The configured
+tail policy must match the provider. The frozen encoder stays in evaluation mode.
+
+Use the same entry point under `torchrun --standalone --nproc-per-node=2 -m downstream.extended_detection --config resolved.json --out new-training-run`
+for two processes. CPU uses Gloo and CUDA uses NCCL. Rank zero alone evaluates
+all validation images and publishes artifacts; training uses a distributed
+sampler. All ranks must agree on configuration and membership.
+
+`resume.pt` saves completed epochs, optimizer/scheduler state and per-rank RNGs.
+Add `"resume": "/runs/previous/resume.pt"` and increase `probe.epochs` within the
+12-epoch horizon, using a different output directory. The shared
+[continuation contract](EXTENDED_EXECUTION.md#epoch-checkpoints-and-continuation)
+requires unchanged configuration, world size, data and encoder identity.
+The checkpoint and `probe.pt` omit frozen encoder weights, while retaining the
+trainable FPN, reader and detector heads. Native historical checkpoints are not
+interchangeable with this format. Final metrics describe the requested last
+epoch, including shorter diagnostic runs; no best-epoch selection is introduced.
+`canonical_eligible` and `record_value` stay false.
+
 ## Verification and remaining work
 
 Behavioral tests cover image/mask geometry, labels, original-ground-truth scoring,
@@ -111,10 +158,15 @@ Private comparisons cover captured detector initialization, losses, gradients an
 updates, plus input/evaluator comparisons. Mutation and regression outcomes are
 recorded in the PR; component tests do not certify released-weight CUDA behavior.
 
-**A complete Extended detection training CLI is not added in this change.** The
-12-epoch optimizer/accumulation/distributed/continuation path, source/catalog
-geometry reconciliation, complete official split membership and table-to-run
-mapping remain to be integrated and verified. In particular, do not substitute
-the Basic5 trainer's labels, pyramid or recipe for these Extended components.
-The current rerun catalog's `runnable` entries are not evidence of completed
-training. Full-data and released-weight reproduction remain unverified.
+The October 3 integration supersedes the earlier training-CLI gap: it now
+connects the components to 12-epoch LP/AP recipes, accumulation, distributed
+execution, epoch continuation and final evaluation. Reduced actual providers
+exercise 20 training routes; CPU two-rank tests verify uninterrupted/resumed
+parameter equality. The CLI example is exercised with a local reduced encoder.
+Source comparisons cover warmup/milestone factors and 12-epoch reduced updates.
+
+Remaining gaps are source/catalog geometry reconciliation, FT integration,
+CUDA/NCCL and released-weight validation, authentic full-data runs, complete
+split authentication and table-to-run mapping. The inspected catalog labels
+23 LP/AP entries for these datasets `runnable`, not completed. No score is
+certified by these component tests. Other Extended task families remain separate.
