@@ -1,0 +1,21 @@
+{
+  "task": "extended_depth",
+  "profile": "capture_extended_components",
+  "dataset": "nyuv2",
+  "seed": 0,
+  "device": "cuda",
+  "data_root": "/data/nyuv2/labeled/nyu_depth_v2_labeled.mat",
+  "samples": "/data/nyuv2/labeled/splits.mat",
+  "transform_profile": "captured_nyu_fixed224_v1",
+  "adaptation": "frozen",
+  "reader_profile": null,
+  "backbone": {
+    "kind": "siglip2_g",
+    "arch": "siglip2_g",
+    "encoder": "/models/vision-encoder",
+    "img_size": 384,
+    "patch_size": 16
+  },
+  "probe": {"epochs": 30, "batch_size": 2, "num_workers": 2},
+  "execution": {"accumulation_steps": 4, "precision": "fp32", "tail_policy": "discard"}
+}

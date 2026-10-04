@@ -80,6 +80,11 @@ availability does not establish complete native-video or paper-score coverage.
    distributed execution, continuation and final scoring. FT, source/catalog geometry,
    released-weight/full-data validation and score provenance remain pending.
    Registry presence alone is insufficient.
+   The October 4 [NYUv2 depth port](EXTENDED_DEPTH.md) adds the five-provider
+   Extended LP/AP head/loss, native split-file inputs, training, distributed
+   continuation and unaligned pixel-pooled metrics. These explicitly retain
+   differences from the BasicFive component recipe. Full-data/released-weight
+   validation, historical run attribution and other depth datasets remain pending.
    Charades and AVA remain distinct tasks.
 3. Validate native distributed/BF16 training and continuation/export against
    original checkpoints for controlled and ablation training. Small FP32

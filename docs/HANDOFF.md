@@ -12,6 +12,28 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-10-04: Extended NYUv2 execution
+
+PR 216 merged as `6de256b`; its CI checks succeeded and main matches the
+validated `a053902` tree. The unrelated dirty video submodule is preserved.
+Current sources were queried read-only; changes outside the depth path were
+not mistaken for snapshot parity. Depth data/head/loss behavior was inspected
+separately from the existing BasicFive port.
+
+The [depth guide](EXTENDED_DEPTH.md) describes native split-file inputs,
+five-provider LP/AP training, shared accumulation/distributed execution and
+portable epoch continuation. Positive mapping precedes upsampling; loss uses
+full log variance. Neither replaces the distinct BasicFive behavior.
+Evaluation pools valid pixels without alignment. Empty populations fail rather
+than inheriting a misleading zero score. Outputs explicitly remain noncanonical.
+
+Behavioral RED preceded the new components, provider normalization, execution,
+metric contract and documentation/CI delivery. Record final numerical, mutation,
+whole-suite and CI outcomes in the PR. Released weights, CUDA/BF16/NCCL,
+full-data scores and historical-run attribution remain unverified. Other depth
+datasets and conflicting tasks remain pending. No cluster compute or original
+input was modified; private evidence stays outside Git. Stop for PR review.
+
 ### 2026-10-03: Extended detection LP/AP execution integration
 
 PR 215 merged as `100e523`; all 115 checks succeeded. Pulled main matches the
