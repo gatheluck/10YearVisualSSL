@@ -753,6 +753,11 @@ repository is written in English, enforced by `tests/test_language.py`.
 Extended detection LP/AP training, continuation and official evaluation are described in
 [the detection guide](docs/EXTENDED_DETECTION.md); released-weight/full-data validation and paper-score reproduction remain pending.
 
+[Extended optical flow](docs/EXTENDED_FLOW.md) adds five-provider LP/AP execution,
+Sintel/Middlebury split conversion, explicit Spring inputs, pixel-coordinate
+metrics and distributed continuation. Source/companion head and loss conflicts
+remain explicit; this component port does not certify paper scores.
+
 [Extended NYUv2 LP/AP](docs/EXTENDED_DEPTH.md) connects official split-file input,
 five spatial providers, depth training, distributed continuation and unaligned
 pixel-pooled evaluation. Its head/loss differ from the BasicFive component path;

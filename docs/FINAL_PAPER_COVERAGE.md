@@ -86,6 +86,13 @@ availability does not establish complete native-video or paper-score coverage.
    differences from the BasicFive component recipe. Full-data/released-weight
    validation, historical run attribution and other depth datasets remain pending.
    Charades and AVA remain distinct tasks.
+   The October 4 [optical-flow port](EXTENDED_FLOW.md) adds five-provider LP/AP
+   execution, Sintel/Middlebury local held-out membership conversion, explicit
+   Spring inputs, input-coordinate metrics and distributed continuation. Sintel
+   and Middlebury appear in the final tables; Spring is catalog-only. Captured
+   feature-difference/L1 behavior conflicts with the companion's correlation/
+   robust-endpoint description. This remains a named experimental component
+   profile, not a resolution of that conflict or certification of the table cells.
 3. Validate native distributed/BF16 training and continuation/export against
    original checkpoints for controlled and ablation training. Small FP32
    component tests do not validate these paths.
@@ -118,6 +125,10 @@ availability does not establish complete native-video or paper-score coverage.
 - MNIST's native builder uses the shared `small=False` crop/flip path, whereas
   its registry describes the small-image recipe. IDX staging preserves input
   pixels and splits but does not resolve which transform produced a table cell.
+- Flow's executable head/loss, local held-out splits and 224-pixel metric units
+  must be reconciled with the companion and historical final-table runs. A
+  runnable catalog entry is not a completed experiment. BlinkVision prepared
+  data revisions and Spring native archive partitioning remain outside this port.
 
 This audit used read-only comparison of captured and current experimental
 sources. No original code, checkpoint or existing feature artifact was changed;

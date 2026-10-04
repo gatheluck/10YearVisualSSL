@@ -190,6 +190,7 @@ jobs:
             tests.test_method_extended_detection \
             tests.test_method_extended_detection_training \
             tests.test_method_extended_depth \
+            tests.test_method_extended_flow \
             tests.test_extended_segmentation tests.test_method_extended_segmentation \
             tests.test_extended_segmentation_membership tests.test_method_extended_execution \
             tests.test_method_extended_distributed \

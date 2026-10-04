@@ -1,0 +1,21 @@
+{
+  "task": "extended_flow",
+  "profile": "capture_extended_components",
+  "dataset": "mpi_sintel",
+  "seed": 0,
+  "device": "cuda",
+  "data_root": "/data/sintel",
+  "samples": "/data/sintel-samples.json",
+  "transform_profile": "captured_flow_input_pixels_v2",
+  "adaptation": "frozen",
+  "reader_profile": null,
+  "backbone": {
+    "kind": "siglip2_g",
+    "arch": "siglip2_g",
+    "encoder": "/models/vision-encoder",
+    "img_size": 384,
+    "patch_size": 16
+  },
+  "probe": {"epochs": 30, "batch_size": 2, "num_workers": 2},
+  "execution": {"accumulation_steps": 8, "precision": "fp32", "tail_policy": "discard"}
+}
