@@ -1,0 +1,29 @@
+{
+  "task": "extended_structured",
+  "profile": "capture_extended_components",
+  "dataset": "three_d_srbench",
+  "seed": 0,
+  "device": "cuda",
+  "data_root": "/data/three_d_srbench",
+  "samples": "/data/three_d_srbench/samples.json",
+  "transform_profile": "captured_structured_v1",
+  "adaptation": "frozen",
+  "reader_profile": null,
+  "backbone": {
+    "kind": "siglip2_g",
+    "arch": "siglip2_g",
+    "encoder": "/models/vision-encoder",
+    "img_size": 384,
+    "patch_size": 16
+  },
+  "probe": {
+    "epochs": 50,
+    "batch_size": 2,
+    "num_workers": 2
+  },
+  "execution": {
+    "accumulation_steps": 4,
+    "precision": "fp32",
+    "tail_policy": "discard"
+  }
+}

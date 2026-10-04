@@ -12,6 +12,22 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-10-04: Extended structured-task integration
+
+PR 218 merged as `a79f63f`; all 115 checks succeeded and main matched its tested
+source tree. Existing video-submodule changes remain unrelated and preserved.
+Read-only current sources confirm the target camera/question/pose components;
+other task revisions differ from the snapshot and are not treated as parity.
+
+The [structured guide](EXTENDED_STRUCTURED.md) documents five-dataset LP/AP,
+native annotation conversion, exact-population metrics and portable continuation.
+Behavioral RED preceded heads/metrics, data handling, training, readout integration
+and delivery. Localization's source/companion conflict and 3DSRBench's local fitted
+holdout remain explicit. Released-weight/GPU/full-data scores, historical run
+attribution and native checkpoint import are pending. No cluster compute or
+original input was modified. Record final validation and CI in the PR and stop
+for review; private evidence remains outside Git.
+
 ### 2026-10-04: Extended optical-flow execution
 
 PR 217 merged as `5db0452`; all 115 checks succeeded. Pulled main matches the

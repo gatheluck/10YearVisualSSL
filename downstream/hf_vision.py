@@ -144,6 +144,14 @@ class VisionBackbone(nn.Module):
             feat = F.normalize(feat, dim=-1)
         return feat.reshape(batch, frames, -1).mean(1) if video else feat
 
+    def structured_global_features(self, images):
+        """Captured global task readout: preserve MAP magnitude, normalize CLS.
+
+        The readout selector does not change encoder trainability. The Extended
+        localization/reasoning source uses the MAP pool directly, unlike image LP.
+        """
+        return self.classification_features(images, adaptation="finetune")
+
     def forward(self, images):
         return self.forward_features(images)
 
