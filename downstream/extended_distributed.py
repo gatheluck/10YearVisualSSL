@@ -67,14 +67,14 @@ class Session:
         return DDP(model,device_ids=[self.device.index] if self.device.type=='cuda' else None,
                    find_unused_parameters=True)
 
-    def loader(self,data,settings,seed):
+    def loader(self,data,settings,seed,*,collate_fn=None):
         batch=settings['batch_size']
         if len(data)<batch*self.world:
             raise ValueError('physical global batch exceeds training population; choose explicit smaller settings')
         sampler=(DistributedSampler(data,num_replicas=self.world,rank=self.rank,shuffle=True,seed=seed)
                  if self.world>1 else None)
         return DataLoader(data,batch_size=batch,sampler=sampler,shuffle=sampler is None,drop_last=True,
-                          num_workers=settings['num_workers'],
+                          num_workers=settings['num_workers'], collate_fn=collate_fn,
                           generator=torch.Generator().manual_seed(seed) if self.world==1 else None)
 
 

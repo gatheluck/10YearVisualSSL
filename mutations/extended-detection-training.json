@@ -1,0 +1,274 @@
+{
+  "targets": [
+    {
+      "label": "LP AP family scope",
+      "file": "downstream/extended_detection.py",
+      "old": "if dataset not in BENCHMARKS or adaptation not in (\"frozen\", \"attentive\"):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_extended_detection_training.TestDetectionTraining.test_recipe_schedule_warmup_precedes_epoch_drops_and_scales_batch"
+      ]
+    },
+    {
+      "label": "positive optimizer dimensions",
+      "file": "downstream/extended_detection.py",
+      "old": "if any(type(x) is not int or x < 1 for x in (effective_batch, updates_per_epoch)):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_extended_detection_training.TestDetectionTraining.test_invalid_schedule_and_probe_settings_fail_closed"
+      ]
+    },
+    {
+      "label": "optimization recipe identity",
+      "file": "downstream/extended_detection.py",
+      "old": "spec[\"optimizer\"] != \"SGD\"\n        or spec[\"epochs\"] != 12\n        or spec[\"schedule\"] != \"step x0.1 at epochs 8 and 11\"\n        or spec[\"warmup\"] not in (\"500 iterations\", \"500 iterations, factor 0.001\")",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_detection_training.TestDetectionTraining.test_invalid_schedule_and_probe_settings_fail_closed"
+      ]
+    },
+    {
+      "label": "effective batch scaling",
+      "file": "downstream/extended_detection.py",
+      "old": "spec[\"base_lr\"] * effective_batch / spec[\"lr_reference_effective_batch\"]",
+      "new": "spec[\"base_lr\"]",
+      "tests": [
+        "tests.test_method_extended_detection_training.TestDetectionTraining.test_recipe_schedule_warmup_precedes_epoch_drops_and_scales_batch"
+      ]
+    },
+    {
+      "label": "no decay exemptions",
+      "file": "downstream/extended_detection.py",
+      "old": "\"weight_decay\": 0.0 if no_decay else spec[\"weight_decay\"]",
+      "new": "\"weight_decay\": spec[\"weight_decay\"]",
+      "tests": [
+        "tests.test_method_extended_detection_training.TestDetectionTraining.test_recipe_schedule_warmup_precedes_epoch_drops_and_scales_batch"
+      ]
+    },
+    {
+      "label": "SGD momentum",
+      "file": "downstream/extended_detection.py",
+      "old": "momentum=spec[\"momentum\"]",
+      "new": "momentum=0.",
+      "tests": [
+        "tests.test_method_extended_detection_training.TestDetectionTraining.test_recipe_schedule_warmup_precedes_epoch_drops_and_scales_batch"
+      ]
+    },
+    {
+      "label": "warmup operation order",
+      "file": "downstream/extended_detection.py",
+      "old": "0.001 + (1.0 - 0.001) * (step / 500)",
+      "new": "0.001 + 0.999 * step / 500",
+      "tests": [
+        "tests.test_method_extended_detection_training.TestDetectionTraining.test_captured_warmup_floating_point_order_is_exact"
+      ]
+    },
+    {
+      "label": "warmup before epoch drops",
+      "file": "downstream/extended_detection.py",
+      "old": "if step < 500:",
+      "new": "if step < 10:",
+      "tests": [
+        "tests.test_method_extended_detection_training.TestDetectionTraining.test_recipe_schedule_warmup_precedes_epoch_drops_and_scales_batch"
+      ]
+    },
+    {
+      "label": "epoch schedule clock",
+      "file": "downstream/extended_detection.py",
+      "old": "epoch = step // updates_per_epoch",
+      "new": "epoch = step",
+      "tests": [
+        "tests.test_method_extended_detection_training.TestDetectionTraining.test_recipe_schedule_warmup_precedes_epoch_drops_and_scales_batch"
+      ]
+    },
+    {
+      "label": "epoch eight milestone",
+      "file": "downstream/extended_detection.py",
+      "old": "epoch >= 8 else 1.0",
+      "new": "epoch >= 9 else 1.0",
+      "tests": [
+        "tests.test_method_extended_detection_training.TestDetectionTraining.test_recipe_schedule_warmup_precedes_epoch_drops_and_scales_batch"
+      ]
+    },
+    {
+      "label": "epoch eleven milestone",
+      "file": "downstream/extended_detection.py",
+      "old": "epoch >= 11 else 0.1",
+      "new": "epoch >= 12 else 0.1",
+      "tests": [
+        "tests.test_method_extended_detection_training.TestDetectionTraining.test_recipe_schedule_warmup_precedes_epoch_drops_and_scales_batch"
+      ]
+    },
+    {
+      "label": "outside box correspondence",
+      "file": "downstream/extended_detection.py",
+      "old": "& (boxes[:, 2] > 0)\n            & (boxes[:, 3] > 0)",
+      "new": "& torch.ones_like(boxes[:, 2], dtype=torch.bool)",
+      "tests": [
+        "tests.test_method_extended_detection_training.TestDetectionTraining.test_ragged_loader_and_outside_boxes_preserve_correspondence"
+      ]
+    },
+    {
+      "label": "LVIS preflight metadata",
+      "file": "downstream/extended_detection.py",
+      "old": "if cfg[\"dataset\"] == \"lvis_v1\" and not all(",
+      "new": "if False and not all(",
+      "tests": [
+        "tests.test_method_extended_detection_training.TestDetectionTraining.test_missing_lvis_federated_metadata_fails_before_model_construction"
+      ]
+    },
+    {
+      "label": "matching ontology",
+      "file": "downstream/extended_detection.py",
+      "old": "ontology(train) != ontology(validation)\n        or train.num_classes != spec[\"head_outputs\"] + 1",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_detection_training.TestDetectionTraining.test_split_ontology_and_path_overlap_are_rejected"
+      ]
+    },
+    {
+      "label": "disjoint image IDs and paths",
+      "file": "downstream/extended_detection.py",
+      "old": "if set(train.ids) & set(validation.ids) or set(train.paths.values()) & set(\n        validation.paths.values()\n    ):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_extended_detection_training.TestDetectionTraining.test_split_ontology_and_path_overlap_are_rejected"
+      ]
+    },
+    {
+      "label": "seed identity",
+      "file": "downstream/extended_detection.py",
+      "old": "or cfg[\"seed\"] != 0",
+      "new": "or False",
+      "tests": [
+        "tests.test_method_extended_detection_training.TestDetectionTraining.test_configuration_validates_provider_profile_precision_and_tail"
+      ]
+    },
+    {
+      "label": "training geometry profile",
+      "file": "downstream/extended_detection.py",
+      "old": "if cfg[\"geometry_profile\"] not in GEOMETRIES:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_extended_detection_training.TestDetectionTraining.test_configuration_validates_provider_profile_precision_and_tail"
+      ]
+    },
+    {
+      "label": "probe epoch horizon",
+      "file": "downstream/extended_detection.py",
+      "old": "or probe[\"epochs\"] > spec[\"epochs\"]",
+      "new": "or False",
+      "tests": [
+        "tests.test_method_extended_detection_training.TestDetectionTraining.test_invalid_schedule_and_probe_settings_fail_closed"
+      ]
+    },
+    {
+      "label": "physical probe integers",
+      "file": "downstream/extended_detection.py",
+      "old": "type(v) is not int or v < (0 if k == \"num_workers\" else 1)",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_detection_training.TestDetectionTraining.test_invalid_schedule_and_probe_settings_fail_closed"
+      ]
+    },
+    {
+      "label": "reader matches provider",
+      "file": "downstream/extended_detection.py",
+      "old": "reader not in (SINGLE_BLOCK, CROSS_SELF) or cfg[\"reader_profile\"] != (\n        reader if cfg[\"adaptation\"] == \"attentive\" else None\n    )",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_detection_training.TestDetectionTraining.test_configuration_validates_provider_profile_precision_and_tail"
+      ]
+    },
+    {
+      "label": "FP32 detector training",
+      "file": "downstream/extended_detection.py",
+      "old": "if plan[\"precision\"] != \"fp32\":",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_extended_detection_training.TestDetectionTraining.test_configuration_validates_provider_profile_precision_and_tail"
+      ]
+    },
+    {
+      "label": "ragged batch collation",
+      "file": "downstream/extended_distributed.py",
+      "old": "collate_fn=collate_fn,",
+      "new": "collate_fn=None,",
+      "tests": [
+        "tests.test_method_extended_detection_training.TestDetectionTraining.test_ragged_loader_and_outside_boxes_preserve_correspondence"
+      ]
+    },
+    {
+      "label": "exclude only frozen encoder",
+      "file": "downstream/extended_detection.py",
+      "old": "BACKBONE_STATE_PREFIX = \"detector.backbone.body.\"",
+      "new": "BACKBONE_STATE_PREFIX = \"detector.backbone.\"",
+      "tests": [
+        "tests.test_method_extended_detection_training.TestDetectionTraining.test_box_mask_lp_ap_resume_exact_and_checkpoint_excludes_encoder"
+      ]
+    },
+    {
+      "label": "nested frozen encoder checkpoint",
+      "file": "downstream/extended_resume.py",
+      "old": "prefix = getattr(model, 'BACKBONE_STATE_PREFIX', 'backbone.')",
+      "new": "prefix = 'backbone.'",
+      "tests": [
+        "tests.test_method_extended_detection_training.TestDetectionTraining.test_box_mask_lp_ap_resume_exact_and_checkpoint_excludes_encoder"
+      ]
+    },
+    {
+      "label": "train through final requested epoch",
+      "file": "downstream/extended_detection.py",
+      "old": "range(continuation.start_epoch, settings[\"epochs\"])",
+      "new": "range(continuation.start_epoch, settings[\"epochs\"] - 1)",
+      "tests": [
+        "tests.test_method_extended_detection_training.TestDetectionTraining.test_box_mask_lp_ap_resume_exact_and_checkpoint_excludes_encoder"
+      ]
+    },
+    {
+      "label": "evaluate validation population",
+      "file": "downstream/extended_detection.py",
+      "old": "validation, predictions(), dataset=cfg[\"dataset\"]",
+      "new": "train, predictions(), dataset=cfg[\"dataset\"]",
+      "tests": [
+        "tests.test_method_extended_detection_training.TestDetectionTraining.test_box_mask_lp_ap_resume_exact_and_checkpoint_excludes_encoder"
+      ]
+    },
+    {
+      "label": "training CLI dispatch",
+      "file": "downstream/extended_detection.py",
+      "old": "if cfg.get(\"task\") == TRAIN_TASK:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_extended_detection_training.TestDetectionTraining.test_cli_trains_evaluates_delivers_manifest_and_refuses_overwrite"
+      ]
+    },
+    {
+      "label": "required CI training route",
+      "file": ".github/workflows/tests.yml",
+      "old": "            tests.test_method_extended_detection_training \\\n",
+      "new": "",
+      "tests": [
+        "tests.test_method_extended_detection_training.TestDetectionTraining.test_required_ci_runs_training_suite"
+      ]
+    },
+    {
+      "label": "training example task",
+      "file": "docs/examples/extended_detection_training.json",
+      "old": "\"task\": \"extended_detection_training\"",
+      "new": "\"task\": \"extended_detection_evaluation\"",
+      "tests": [
+        "tests.test_method_extended_detection_training.TestDetectionTraining.test_cli_trains_evaluates_delivers_manifest_and_refuses_overwrite"
+      ]
+    },
+    {
+      "label": "fixture reexport isolation",
+      "file": "tests/test_method_extended_detection_training.py",
+      "old": "        from downstream import (\n            native_detection,  # Initialize reexports before fixture patches.\n        )\n\n        self.assertIs(\n            native_detection.build_extended_detector, api.build_extended_detector\n        )\n\n",
+      "new": "",
+      "tests": [
+        "tests.test_method_extended_detection_training.TestDetectionTraining.test_fixture_patch_does_not_leak_into_public_factory"
+      ]
+    }
+  ]
+}
