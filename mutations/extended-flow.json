@@ -182,7 +182,7 @@
     },
     {
       "label": "frozen backbone",
-      "file": "downstream/extended_flow.py",
+      "file": "downstream/paired_spatial.py",
       "old": "backbone.requires_grad_(False).eval()",
       "new": "backbone.requires_grad_(True).eval()",
       "tests": [
@@ -191,7 +191,7 @@
     },
     {
       "label": "backbone eval",
-      "file": "downstream/extended_flow.py",
+      "file": "downstream/paired_spatial.py",
       "old": "self.backbone.eval()",
       "new": "self.backbone.train()",
       "tests": [
@@ -200,7 +200,7 @@
     },
     {
       "label": "reader identity",
-      "file": "downstream/extended_flow.py",
+      "file": "downstream/paired_spatial.py",
       "old": "reader_profile not in (None, SINGLE_BLOCK, CROSS_SELF)",
       "new": "False",
       "tests": [
@@ -209,9 +209,9 @@
     },
     {
       "label": "provider normalization",
-      "file": "downstream/extended_flow.py",
-      "old": "TF.normalize(x, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225])",
-      "new": "x",
+      "file": "downstream/paired_spatial.py",
+      "old": "normalize(images, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225])",
+      "new": "images",
       "tests": [
         "tests.test_method_extended_flow.TestFlow.test_head_initialization_difference_order_freeze_and_updates"
       ]

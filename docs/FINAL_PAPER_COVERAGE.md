@@ -28,7 +28,7 @@ some final manuscript revisions and must be matched by actual run identity.
 | C.8 Tables 27-28: generative; C.9 Table 29: VideoSSL | Existing providers and selected native video components | RAEv2 K7 versus other readouts; distinct video checkpoints/pipelines and task integrations |
 | C.10 Tables 30-34: world/video generation; C.11 Table 35: VLM and related models | Selected provider/component integrations | All rows' exact component boundaries, adapters, task recipes and checkpoint identities |
 | C.12 Tables 36-38: BasicFive LP/AP/FT | Existing task runners, [five-family readers/native detection](BASIC5_NATIVE_PATHS.md), [K7](BASIC5_K7.md), [Omega](BASIC5_OMEGA.md) and [C-RADIO](BASIC5_RADIO.md) | Remaining recipes, full-size checkpoint/GPU validation and actual full-data measurements; blank/incomplete FT cells must stay distinct from completed runs |
-| C.13 Tables 39-40: Extended LP/AP, 45 datasets and five models | Tracked registries, protocol companions, [image classification](EXTENDED_CLASSIFICATION.md), [semantic segmentation](EXTENDED_SEGMENTATION.md) and [video classification](EXTENDED_VIDEO.md) components for five providers, with explicit [accumulation/precision](EXTENDED_EXECUTION.md) | Remaining task families, native input builders, conflicting task/metric identities, legacy checkpoint import, released-weight distributed/CUDA parity and measured-run manifests; 81 catalog entries do not mean 81 measured datasets |
+| C.13 Tables 39-40: Extended LP/AP, 45 datasets and five models | Tracked registries, protocol companions, [image](EXTENDED_CLASSIFICATION.md), [semantic](EXTENDED_SEGMENTATION.md), [video](EXTENDED_VIDEO.md), [detection](EXTENDED_DETECTION.md), [depth](EXTENDED_DEPTH.md), [flow](EXTENDED_FLOW.md), [structured](EXTENDED_STRUCTURED.md) and [DAVIS](EXTENDED_VOS.md) components for five providers, with explicit [accumulation/precision](EXTENDED_EXECUTION.md) | Remaining task families, native input builders, conflicting task/metric identities, legacy checkpoint import, released-weight distributed/CUDA parity and measured-run manifests; 81 catalog entries do not mean 81 measured datasets |
 | C.14 Table 41: six representative configurations | Per-method adapters and protocol documents | Different original protocols require separate recipe identities, not one inferred common leaderboard |
 | C.15 Table 42: frontier matched subsets | Supplied system prompts and protocol | Matched 500-sample manifests, raw outputs/retries, parsing, scoring and recomputation |
 | D.1-D.3: pairplots, CTRL progress and DINO scaling | Selected extraction/training artifacts | Complete provenance-linked analysis inputs and plot regeneration |
@@ -101,8 +101,15 @@ availability does not establish complete native-video or paper-score coverage.
    annotation conversion, task-specific metrics and continuation. Absolute-pose
    regression conflicts with the companion retrieval description; the local
    reasoning holdout is not CircularEval. These component paths do not certify
-   table cells. DAVIS, SpaceNet/SUN RGB-D identity reconciliation and full-run
-   score attribution remain pending.
+   table cells. The October 5 [DAVIS port](EXTENDED_VOS.md) adds five-provider
+   LP/AP first-mask execution, native sequence membership, object-macro J/F and
+   continuation. Its evaluation retains captured void-as-background behavior;
+   official-metric parity and historical run attribution remain unverified.
+   [Context/Mapillary staging](EXTENDED_SEMANTIC_INPUTS.md) adds native PC59 MAT
+   conversion and full 18,000/2,000 v1.2 archive joins. The old Mapillary cap is
+   absent from the inspected current source, but old result/cache attribution
+   remains pending. SpaceNet/SUN RGB-D identity reconciliation and full-run
+   score validation remain pending.
 3. Validate native distributed/BF16 training and continuation/export against
    original checkpoints for controlled and ablation training. Small FP32
    component tests do not validate these paths.

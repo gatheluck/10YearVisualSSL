@@ -192,6 +192,7 @@ jobs:
             tests.test_method_extended_depth \
             tests.test_method_extended_flow \
             tests.test_method_extended_structured tests.test_structured_membership \
+            tests.test_method_extended_vos tests.test_context_membership tests.test_mapillary_membership \
             tests.test_extended_segmentation tests.test_method_extended_segmentation \
             tests.test_extended_segmentation_membership tests.test_method_extended_execution \
             tests.test_method_extended_distributed \

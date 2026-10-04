@@ -768,3 +768,9 @@ released-weight and paper-score verification remain pending.
 with native annotation conversion and portable continuation. Localization recipe
 conflicts and local reasoning holdout semantics remain explicit; these components
 do not certify final-table scores.
+
+The [DAVIS first-mask LP/AP path](docs/EXTENDED_VOS.md) now includes native
+sequence membership, object-mask training/evaluation and portable continuation.
+[Context and Mapillary converters](docs/EXTENDED_SEMANTIC_INPUTS.md) connect native
+annotations to the existing semantic runner. Component support is distinct from
+full-data paper-score reproduction.

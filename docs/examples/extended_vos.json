@@ -1,0 +1,29 @@
+{
+  "task": "extended_vos",
+  "profile": "capture_extended_components",
+  "dataset": "davis2017",
+  "seed": 0,
+  "device": "cuda",
+  "data_root": "/data/davis2017",
+  "samples": "/data/davis2017/samples.json",
+  "transform_profile": "captured_first_mask_v1",
+  "adaptation": "frozen",
+  "reader_profile": null,
+  "backbone": {
+    "kind": "siglip2_g",
+    "arch": "siglip2_g",
+    "encoder": "/models/vision-encoder",
+    "img_size": 384,
+    "patch_size": 16
+  },
+  "probe": {
+    "epochs": 30,
+    "batch_size": 2,
+    "num_workers": 2
+  },
+  "execution": {
+    "accumulation_steps": 4,
+    "precision": "fp32",
+    "tail_policy": "discard"
+  }
+}

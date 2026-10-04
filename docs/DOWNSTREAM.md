@@ -46,6 +46,12 @@ The initial evidence is the capture's `downstream/` package on the `snapshots` b
 
 ---
 
+[DAVIS LP/AP](EXTENDED_VOS.md) provides five-provider first-mask video
+segmentation, native sequence conversion, metrics and continuation.
+[Native Context/Mapillary staging](EXTENDED_SEMANTIC_INPUTS.md) supplies verified
+label conversion and full-list joins for the semantic runner; released-weight
+and full-score validation remain separate.
+
 ## 1. What the capture harness is (measured)
 
 `downstream/` is a **single, cross-method package** — not per-method code. It
