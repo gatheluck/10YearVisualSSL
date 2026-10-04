@@ -136,6 +136,10 @@ class Backbone(nn.Module):
         feat = self._patches(images).mean((1, 2))
         return F.normalize(feat, dim=-1) if adaptation == "frozen" else feat
 
+    def structured_global_features(self, images):
+        """Preserve pooled magnitude in the captured structured-task readout."""
+        return self.classification_features(images, adaptation="finetune")
+
     def forward(self, images):
         return self.forward_features(images)
 

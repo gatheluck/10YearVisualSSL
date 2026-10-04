@@ -21,7 +21,8 @@ certification of the final manuscript's scores. Every result retains
 
 The five existing Extended providers are DINOv3-7B, SigLIP2 Giant, RAEv2-K7,
 VGGT-Omega and V-JEPA 2.1. LP uses their frozen global readout for
-localization/reasoning (MAP magnitude is retained; CLS/patch-pooled profiles are normalized) and spatial features for pose. AP uses the provider's
+localization/reasoning (SigLIP MAP and VGGT-Omega pooled magnitudes are retained;
+DINO, RAE and V-JEPA readouts are normalized) and spatial features for pose. AP uses the provider's
 explicit spatial adapter for pose/localization and query reader for reasoning.
 The encoder remains frozen and in evaluation mode. RGB crops for pose use
 bilinear affine sampling; localization/reasoning use fixed bicubic 224 resizing.

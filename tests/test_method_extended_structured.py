@@ -710,6 +710,33 @@ class TestExecution(unittest.TestCase):
         self.assertGreater(abs(expected.norm().item() - 1), 0.1)
         torch.testing.assert_close(observed[0], expected, rtol=0, atol=0)
 
+    def test_omega_pool_magnitude_is_preserved_for_structured_lp(self):
+        import torch
+        from torchvision.transforms.functional import normalize
+
+        from downstream.structured_heads import Probe
+        from tests.test_method_vggt_omega import TestOmega
+
+        owner = TestOmega()
+        owner.setUp()
+        self.addCleanup(owner.doCleanups)
+        spec, _ = owner.fixture()
+        backbone = owner.provider.build(spec)
+        model = Probe(backbone, "localization", 1, None)
+        images = torch.rand(1, 3, 224, 224)
+        normalized = normalize(images, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        expected = backbone.classification_features(normalized, adaptation="finetune")
+        observed = []
+        handle = model.head.register_forward_pre_hook(
+            lambda _m, args: observed.append(args[0].detach())
+        )
+        try:
+            model(images)
+        finally:
+            handle.remove()
+        self.assertGreater(abs(expected.norm().item() - 1), 0.1)
+        torch.testing.assert_close(observed[0], expected, rtol=0, atol=0)
+
     def test_all_five_provider_three_family_lp_ap_routes(self):
         import json
 

@@ -296,6 +296,15 @@
       "tests": [
         "tests.test_method_extended_structured.TestExecution.test_localization_evaluation_preserves_source_float32_targets"
       ]
+    },
+    {
+      "label": "Omega global magnitude",
+      "file": "methods/vggt_omega/downstream_backbone.py",
+      "old": "return self.classification_features(images, adaptation=\"finetune\")",
+      "new": "return self.classification_features(images, adaptation=\"frozen\")",
+      "tests": [
+        "tests.test_method_extended_structured.TestExecution.test_omega_pool_magnitude_is_preserved_for_structured_lp"
+      ]
     }
   ]
 }
