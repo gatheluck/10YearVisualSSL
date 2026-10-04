@@ -460,3 +460,9 @@ historical scores.
 explicit split-file input and portable distributed continuation. It preserves
 the distinct Extended head/loss and unaligned pixel-pooled evaluation; it does
 not change the BasicFive path or certify either table's scores.
+
+[Extended structured tasks](EXTENDED_STRUCTURED.md) add MPII/CrowdPose heatmaps,
+7-Scenes/Cambridge absolute localization and 3DSRBench question-conditioned LP/AP,
+with native annotation conversion and portable continuation. Localization recipe
+conflicts and local reasoning holdout semantics remain explicit; these components
+do not certify final-table scores.

@@ -1,0 +1,310 @@
+{
+  "targets": [
+    {
+      "label": "freeze encoder",
+      "file": "downstream/structured_heads.py",
+      "old": "backbone.requires_grad_(False).eval()",
+      "new": "backbone.requires_grad_(True).eval()",
+      "tests": [
+        "tests.test_method_extended_structured.TestHeads.test_probe_normalization_freezing_and_readouts"
+      ]
+    },
+    {
+      "label": "encoder evaluation mode",
+      "file": "downstream/structured_heads.py",
+      "old": "self.backbone.eval()",
+      "new": "self.backbone.train()",
+      "tests": [
+        "tests.test_method_extended_structured.TestHeads.test_probe_normalization_freezing_and_readouts"
+      ]
+    },
+    {
+      "label": "normalize provider input",
+      "file": "downstream/structured_heads.py",
+      "old": "images = normalize(images, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225])",
+      "new": "images = images",
+      "tests": [
+        "tests.test_method_extended_structured.TestHeads.test_probe_normalization_freezing_and_readouts"
+      ]
+    },
+    {
+      "label": "masked heatmap loss",
+      "file": "downstream/structured_heads.py",
+      "old": "error[mask].mean()",
+      "new": "error.mean()",
+      "tests": [
+        "tests.test_method_extended_structured.TestHeads.test_pose_loss_masks_whole_joints_and_preserves_zero_gradient"
+      ]
+    },
+    {
+      "label": "partial heatmap missing channels",
+      "file": "downstream/structured_heads.py",
+      "old": "if ((count != 0) & (count != target.shape[-1] * target.shape[-2])).any():",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_extended_structured.TestHeads.test_pose_loss_masks_whole_joints_and_preserves_zero_gradient"
+      ]
+    },
+    {
+      "label": "scene-selected pose supervision",
+      "file": "downstream/structured_heads.py",
+      "old": "torch.arange(len(scene), device=outputs.device), scene",
+      "new": "torch.arange(len(scene), device=outputs.device), 0",
+      "tests": [
+        "tests.test_method_extended_structured.TestHeads.test_camera_head_produces_rotations_and_scene_selected_l1"
+      ]
+    },
+    {
+      "label": "question masking",
+      "file": "downstream/structured_heads.py",
+      "old": "sizes.reshape(b, k)[:, 1:] == 0, -1e4",
+      "new": "sizes.reshape(b, k)[:, 1:] == 0, 0.",
+      "tests": [
+        "tests.test_method_extended_structured.TestHeads.test_question_order_padding_options_and_visual_gradient"
+      ]
+    },
+    {
+      "label": "ordered question padding",
+      "file": "downstream/structured_heads.py",
+      "old": "not torch.equal(flat != 0, valid)",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_structured.TestHeads.test_question_order_padding_options_and_visual_gradient"
+      ]
+    },
+    {
+      "label": "MPII one-based evaluator",
+      "file": "downstream/structured_metrics.py",
+      "old": "(pred + 1) - pos",
+      "new": "pred - pos",
+      "tests": [
+        "tests.test_method_extended_structured.TestMetrics.test_mpii_one_based_sidecar_and_ignored_joints"
+      ]
+    },
+    {
+      "label": "MPII pelvis/thorax exclusion",
+      "file": "downstream/structured_metrics.py",
+      "old": "visible[:, [6, 7]] = False",
+      "new": "visible[:, [6, 7]] = True",
+      "tests": [
+        "tests.test_method_extended_structured.TestMetrics.test_mpii_one_based_sidecar_and_ignored_joints"
+      ]
+    },
+    {
+      "label": "MPII head size validity",
+      "file": "downstream/structured_metrics.py",
+      "old": "np.any(headsize <= 0)",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_structured.TestMetrics.test_mpii_one_based_sidecar_and_ignored_joints"
+      ]
+    },
+    {
+      "label": "scene median reduction",
+      "file": "downstream/structured_metrics.py",
+      "old": "np.median(v, axis=0)",
+      "new": "np.mean(v, axis=0)",
+      "tests": [
+        "tests.test_method_extended_structured.TestMetrics.test_camera_metrics_macro_scene_medians_and_rotation_units"
+      ]
+    },
+    {
+      "label": "CrowdPose score order",
+      "file": "downstream/structured_metrics.py",
+      "old": "key=lambda a: -float(a[\"score\"])",
+      "new": "key=lambda a: float(a[\"score\"])",
+      "tests": [
+        "tests.test_method_extended_structured.TestMetrics.test_crowdpose_ranking_ignored_people_and_duplicate_images"
+      ]
+    },
+    {
+      "label": "CrowdPose duplicate image",
+      "file": "downstream/structured_metrics.py",
+      "old": "if image_id in self.seen:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_extended_structured.TestMetrics.test_crowdpose_ranking_ignored_people_and_duplicate_images"
+      ]
+    },
+    {
+      "label": "image leakage",
+      "file": "downstream/structured_data.py",
+      "old": "if sha in assets and assets[sha] != split:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_extended_structured.TestData.test_leakage_ids_paths_and_data_change_identity"
+      ]
+    },
+    {
+      "label": "asset identity hashing",
+      "file": "downstream/structured_data.py",
+      "old": "hashlib.sha256(asset_bytes(root, row[\"image\"])).hexdigest()",
+      "new": "row[\"image\"][\"path\"]",
+      "tests": [
+        "tests.test_method_extended_structured.TestData.test_leakage_ids_paths_and_data_change_identity"
+      ]
+    },
+    {
+      "label": "schema type",
+      "file": "downstream/structured_data.py",
+      "old": "or type(data[\"schema_version\"]) is not int",
+      "new": "or False",
+      "tests": [
+        "tests.test_method_extended_structured.TestData.test_manifest_schema_scenes_and_archive_guards"
+      ]
+    },
+    {
+      "label": "split evidence",
+      "file": "downstream/structured_data.py",
+      "old": "or not data[\"split_evidence\"].strip()",
+      "new": "or False",
+      "tests": [
+        "tests.test_method_extended_structured.TestData.test_manifest_schema_scenes_and_archive_guards"
+      ]
+    },
+    {
+      "label": "scene coverage",
+      "file": "downstream/structured_data.py",
+      "old": "if family == \"localization\" and seen_scenes != set(scenes):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_extended_structured.TestData.test_manifest_schema_scenes_and_archive_guards"
+      ]
+    },
+    {
+      "label": "question byte encoding",
+      "file": "downstream/structured_data.py",
+      "old": "b + 1 for b in text.encode(\"utf-8\")",
+      "new": "b for b in text.encode(\"utf-8\")",
+      "tests": [
+        "tests.test_method_extended_structured.TestData.test_five_datasets_and_exact_heatmap_geometry"
+      ]
+    },
+    {
+      "label": "joint label boolean",
+      "file": "downstream/structured_data.py",
+      "old": "or labeled.dtype != np.bool_",
+      "new": "or False",
+      "tests": [
+        "tests.test_method_extended_structured.TestData.test_pose_label_guard_and_missing_mpii_sidecar"
+      ]
+    },
+    {
+      "label": "person heatmap sigma",
+      "file": "downstream/structured_data.py",
+      "old": "        / 8\n",
+      "new": "        / 4\n",
+      "tests": [
+        "tests.test_method_extended_structured.TestData.test_five_datasets_and_exact_heatmap_geometry"
+      ]
+    },
+    {
+      "label": "Cambridge c2w quaternion",
+      "file": "downstream/structured_membership.py",
+      "old": "quaternion_matrix(v[3:])",
+      "new": "np.eye(3)",
+      "tests": [
+        "tests.test_structured_membership.TestMembership.test_cambridge_quaternion_is_camera_to_world_and_preserves_official_lists"
+      ]
+    },
+    {
+      "label": "native scene populations",
+      "file": "downstream/structured_membership.py",
+      "old": "if len(rows) != counts[scene][index]:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_structured_membership.TestMembership.test_seven_scenes_no_truncation_and_split_overlap_refused"
+      ]
+    },
+    {
+      "label": "question fixed viewpoint choices",
+      "file": "downstream/structured_membership.py",
+      "old": "[\"front\", \"left\", \"back\", \"right\"]",
+      "new": "[\"left\", \"front\", \"back\", \"right\"]",
+      "tests": [
+        "tests.test_structured_membership.TestMembership.test_sr_renderer_does_not_leak_answer_and_joins_image_holdout"
+      ]
+    },
+    {
+      "label": "CrowdPose person crop margin",
+      "file": "downstream/structured_membership.py",
+      "old": "max(w, h) * 1.25",
+      "new": "max(w, h)",
+      "tests": [
+        "tests.test_structured_membership.TestMembership.test_crowdpose_gt_crop_visibility_and_all_annotations"
+      ]
+    },
+    {
+      "label": "MPII sidecar pin",
+      "file": "downstream/structured_membership.py",
+      "old": "if hashlib.sha256(side).hexdigest() != pins[\"gt_val_sidecar_sha256\"]:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_structured_membership.TestMembership.test_mpii_requires_pins_sidecar_join_and_image_partition"
+      ]
+    },
+    {
+      "label": "MAP global magnitude",
+      "file": "downstream/hf_vision.py",
+      "old": "return self.classification_features(images, adaptation=\"finetune\")",
+      "new": "return self.classification_features(images, adaptation=\"frozen\")",
+      "tests": [
+        "tests.test_method_extended_structured.TestExecution.test_map_pool_magnitude_is_preserved_for_structured_lp"
+      ]
+    },
+    {
+      "label": "result eligibility",
+      "file": "downstream/extended_structured.py",
+      "old": "\"canonical_eligible\": False",
+      "new": "\"canonical_eligible\": True",
+      "tests": [
+        "tests.test_method_extended_structured.TestExecution.test_five_dataset_lp_ap_execution_metrics_and_resume"
+      ]
+    },
+    {
+      "label": "repeat evaluation sample",
+      "file": "downstream/extended_structured.py",
+      "old": "if index in seen or not 0 <= index < len(data):",
+      "new": "if not 0 <= index < len(data):",
+      "tests": [
+        "tests.test_method_extended_structured.TestExecution.test_evaluation_requires_exact_population"
+      ]
+    },
+    {
+      "label": "full evaluation coverage",
+      "file": "downstream/extended_structured.py",
+      "old": "if seen != set(range(len(data))):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_extended_structured.TestExecution.test_nonempty_incomplete_evaluation_is_rejected"
+      ]
+    },
+    {
+      "label": "required CI route",
+      "file": ".github/workflows/tests.yml",
+      "old": "            tests.test_method_extended_structured tests.test_structured_membership \\\n",
+      "new": "",
+      "tests": [
+        "tests.test_method_extended_structured.TestDelivery.test_guide_examples_and_required_ci_cover_both_suites"
+      ]
+    },
+    {
+      "label": "camera target precision",
+      "file": "downstream/extended_structured.py",
+      "old": "np.asarray(row[\"pose\"], dtype=np.float32)",
+      "new": "np.asarray(row[\"pose\"], dtype=np.float64)",
+      "tests": [
+        "tests.test_method_extended_structured.TestExecution.test_localization_evaluation_preserves_source_float32_targets"
+      ]
+    },
+    {
+      "label": "Omega global magnitude",
+      "file": "methods/vggt_omega/downstream_backbone.py",
+      "old": "return self.classification_features(images, adaptation=\"finetune\")",
+      "new": "return self.classification_features(images, adaptation=\"frozen\")",
+      "tests": [
+        "tests.test_method_extended_structured.TestExecution.test_omega_pool_magnitude_is_preserved_for_structured_lp"
+      ]
+    }
+  ]
+}

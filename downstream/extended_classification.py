@@ -46,6 +46,15 @@ def recipe(dataset, adaptation):
     return result
 
 
+def frozen_global_features(backbone, images):
+    """Canonical normalized global readout, including token-only providers."""
+    if callable(getattr(backbone, 'classification_features', None)):
+        features = backbone.classification_features(images, adaptation='frozen').float()
+    else:
+        features = backbone.forward_features(images).float().mean((2, 3))
+    return F.normalize(features, dim=-1)
+
+
 class Classifier(nn.Module):
     """Frozen canonical global readout or explicitly selected spatial AP reader."""
     def __init__(self, backbone, classes, adaptation, reader_profile):
@@ -73,11 +82,9 @@ class Classifier(nn.Module):
         with torch.no_grad():
             if self.reader is not None:
                 features = self.backbone.forward_features(images).float().flatten(2).transpose(1, 2)
-            elif callable(getattr(self.backbone, 'classification_features', None)):
-                features = self.backbone.classification_features(images, adaptation='frozen').float()
             else:
-                features = self.backbone.forward_features(images).float().mean((2, 3))
-        features = self.reader(features) if self.reader is not None else F.normalize(features, dim=-1)
+                features = frozen_global_features(self.backbone, images)
+        features = self.reader(features) if self.reader is not None else features
         return self.head(features)
 
 

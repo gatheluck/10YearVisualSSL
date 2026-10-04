@@ -7,6 +7,9 @@ research history. See [terminology](PAPER_TERMINOLOGY.md) and
 [submission scope](SUBMISSION_SCOPE.md). Private manuscript/source fingerprints
 and run evidence remain outside Git.
 
+Updated 2026-10-04 for structured-task LP/AP integration. Remaining priorities
+below distinguish executable component support from actual result reproduction.
+
 **The portable package does not yet reproduce the entire paper.** Original
 experimental implementations exist for many remaining gaps. A provider, extracted
 feature file, test fixture score, or tracked protocol is not proof of a complete
@@ -93,6 +96,13 @@ availability does not establish complete native-video or paper-score coverage.
    feature-difference/L1 behavior conflicts with the companion's correlation/
    robust-endpoint description. This remains a named experimental component
    profile, not a resolution of that conflict or certification of the table cells.
+   The October 4 [structured-task port](EXTENDED_STRUCTURED.md) adds five-provider
+   LP/AP execution for MPII/CrowdPose, 7-Scenes/Cambridge and 3DSRBench, native
+   annotation conversion, task-specific metrics and continuation. Absolute-pose
+   regression conflicts with the companion retrieval description; the local
+   reasoning holdout is not CircularEval. These component paths do not certify
+   table cells. DAVIS, SpaceNet/SUN RGB-D identity reconciliation and full-run
+   score attribution remain pending.
 3. Validate native distributed/BF16 training and continuation/export against
    original checkpoints for controlled and ablation training. Small FP32
    component tests do not validate these paths.

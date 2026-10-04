@@ -762,3 +762,9 @@ remain explicit; this component port does not certify paper scores.
 five spatial providers, depth training, distributed continuation and unaligned
 pixel-pooled evaluation. Its head/loss differ from the BasicFive component path;
 released-weight and paper-score verification remain pending.
+
+[Extended structured tasks](docs/EXTENDED_STRUCTURED.md) add MPII/CrowdPose heatmaps,
+7-Scenes/Cambridge absolute localization and 3DSRBench question-conditioned LP/AP,
+with native annotation conversion and portable continuation. Localization recipe
+conflicts and local reasoning holdout semantics remain explicit; these components
+do not certify final-table scores.
