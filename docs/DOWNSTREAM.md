@@ -450,6 +450,12 @@ reproduction using this portable package remain unvalidated.
 Extended detection LP/AP training, continuation and official evaluation are described in
 [the detection guide](EXTENDED_DETECTION.md); released-weight/full-data validation and paper-score reproduction remain pending.
 
+[Extended optical flow](EXTENDED_FLOW.md) adds paired LP/AP training for the five
+spatial providers, strict Sintel/Middlebury membership, explicit Spring manifests,
+input-pixel metrics and distributed continuation. The captured difference/L1
+recipe is separate from conflicting companion descriptions and uncertified
+historical scores.
+
 [Extended NYUv2 LP/AP](EXTENDED_DEPTH.md) adds five-provider depth training,
 explicit split-file input and portable distributed continuation. It preserves
 the distinct Extended head/loss and unaligned pixel-pooled evaluation; it does

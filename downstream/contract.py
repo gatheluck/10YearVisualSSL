@@ -33,6 +33,13 @@ PER_TASK = "per-task"
 # counters are per-task bookkeeping. A task runner may write only these names.
 # Add a name together with the runner that writes it, never ahead of one.
 DOWNSTREAM_METRICS = {
+    "extended_flow_epe": COMPARABLE,
+    "extended_flow_epe_clean": COMPARABLE,
+    "extended_flow_epe_final": COMPARABLE,
+    "extended_flow_epe_native_pixels_on_224_grid": COMPARABLE,
+    "extended_flow_outlier_gt1px_at224_pct": COMPARABLE,
+    "extended_flow_outlier_gt1px_at224_pct_clean": COMPARABLE,
+    "extended_flow_outlier_gt1px_at224_pct_final": COMPARABLE,
     "extended_depth_rmse": COMPARABLE,
     "extended_depth_absrel": COMPARABLE,
     "extended_depth_delta1": COMPARABLE,

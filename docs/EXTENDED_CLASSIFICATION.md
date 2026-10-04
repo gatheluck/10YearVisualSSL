@@ -225,7 +225,9 @@ released-weight performance, full-epoch training or paper-score reproduction.
 
 Semantic segmentation now has a separate [component path](EXTENDED_SEGMENTATION.md)
 with explicit 224-grid evaluation and unresolved dataset differences.
-Video classification and the remaining detection, pose, tracking,
-flow, localization and reasoning routes still require their Extended-specific
-readers, metrics, native input builders and run-to-table reconciliation. Native
-BasicFive task components are not automatically equivalent Extended recipes.
+[Video](EXTENDED_VIDEO.md), [detection](EXTENDED_DETECTION.md),
+[NYUv2 depth](EXTENDED_DEPTH.md) and [flow](EXTENDED_FLOW.md) now have separate
+LP/AP component runners. Their source conflicts, remaining native builders and
+full-data run-to-table reconciliation remain explicit in those guides. Pose,
+tracking, localization and reasoning still require further Extended integration.
+Native BasicFive task components are not automatically equivalent Extended recipes.

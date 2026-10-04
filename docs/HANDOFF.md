@@ -12,6 +12,28 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-10-04: Extended optical-flow execution
+
+PR 217 merged as `5db0452`; all 115 checks succeeded. Pulled main matches the
+validated `a89c141` tree. The unrelated dirty video submodule is preserved.
+Current flow targets/builders/runtime match the capture; the matching model
+class bodies also match, while other task edits in their files are not parity.
+
+The [flow guide](EXTENDED_FLOW.md) covers paired LP/AP training for five spatial
+providers, Sintel/Middlebury local partitions, explicit Spring manifests, strict
+target validity, coordinate-aware metrics, distributed execution and portable
+continuation. The source feature-difference/L1 path conflicts with the Unified
+companion's correlation/robust-endpoint description. This is explicitly a
+noncanonical component profile; historical score attribution remains pending.
+
+Behavioral RED preceded numerical/data components, execution, metric vocabulary,
+cross-split RGB leakage protection and documentation/CI delivery. Selected
+source comparisons cover initialization, outputs, gradients, three AdamW updates,
+data and metrics. Record final regression, mutations, mandatory gates and CI in
+the PR. No cluster compute was submitted and no original inputs were modified.
+Released-weight/GPU/full-data scores, FT, BlinkVision revisions, Spring native
+membership and legacy checkpoint imports remain pending. Stop for PR review.
+
 ### 2026-10-04: Extended NYUv2 execution
 
 PR 216 merged as `6de256b`; its CI checks succeeded and main matches the

@@ -1,0 +1,364 @@
+{
+  "targets": [
+    {
+      "label": "float target type",
+      "file": "downstream/extended_flow.py",
+      "old": "or flow.dtype.kind != \"f\"",
+      "new": "or False",
+      "tests": [
+        "tests.test_method_extended_flow.TestFlow.test_resize_uses_image_pixels_and_requires_full_valid_support"
+      ]
+    },
+    {
+      "label": "binary validity",
+      "file": "downstream/extended_flow.py",
+      "old": "not np.isin(valid, [0, 1]).all()",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_flow.TestFlow.test_fail_closed_input_and_recipe_guards"
+      ]
+    },
+    {
+      "label": "FLO magic",
+      "file": "downstream/extended_flow.py",
+      "old": "magic != 202021.25",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_flow.TestFlow.test_native_decoding_and_strict_invalid_targets"
+      ]
+    },
+    {
+      "label": "unknown-flow sentinel",
+      "file": "downstream/extended_flow.py",
+      "old": "(np.abs(flow) < 1e9).all(-1)",
+      "new": "np.ones(flow.shape[:2], dtype=bool)",
+      "tests": [
+        "tests.test_method_extended_flow.TestFlow.test_native_decoding_and_strict_invalid_targets"
+      ]
+    },
+    {
+      "label": "FLO5 schema",
+      "file": "downstream/extended_flow.py",
+      "old": "set(f) - {\"flow\", \"valid\"}",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_flow.TestFlow.test_native_decoding_and_strict_invalid_targets"
+      ]
+    },
+    {
+      "label": "horizontal native RGB units",
+      "file": "downstream/extended_flow.py",
+      "old": "target[0] *= ow / iw",
+      "new": "target[0] *= ow / valid.shape[1]",
+      "tests": [
+        "tests.test_method_extended_flow.TestFlow.test_resize_uses_image_pixels_and_requires_full_valid_support"
+      ]
+    },
+    {
+      "label": "vertical native RGB units",
+      "file": "downstream/extended_flow.py",
+      "old": "target[1] *= oh / ih",
+      "new": "target[1] *= oh / valid.shape[0]",
+      "tests": [
+        "tests.test_method_extended_flow.TestFlow.test_resize_uses_image_pixels_and_requires_full_valid_support"
+      ]
+    },
+    {
+      "label": "invalid support zeroing",
+      "file": "downstream/extended_flow.py",
+      "old": "target[:, ~keep] = 0",
+      "new": "pass",
+      "tests": [
+        "tests.test_method_extended_flow.TestFlow.test_resize_uses_image_pixels_and_requires_full_valid_support"
+      ]
+    },
+    {
+      "label": "valid support threshold",
+      "file": "downstream/extended_flow.py",
+      "old": "support >= 1.0 - 1e-6",
+      "new": "support >= 0",
+      "tests": [
+        "tests.test_method_extended_flow.TestFlow.test_resize_uses_image_pixels_and_requires_full_valid_support"
+      ]
+    },
+    {
+      "label": "prediction finite",
+      "file": "downstream/extended_flow.py",
+      "old": "or not torch.isfinite(pred).all()",
+      "new": "or False",
+      "tests": [
+        "tests.test_method_extended_flow.TestFlow.test_l1_loss_and_global_metrics_keep_coordinate_units_separate"
+      ]
+    },
+    {
+      "label": "nonempty per sample",
+      "file": "downstream/extended_flow.py",
+      "old": "or not valid.flatten(1).any(1).all()",
+      "new": "or False",
+      "tests": [
+        "tests.test_method_extended_flow.TestFlow.test_l1_loss_and_global_metrics_keep_coordinate_units_separate"
+      ]
+    },
+    {
+      "label": "L1 components",
+      "file": "downstream/extended_flow.py",
+      "old": "(pred.float() - target.float()).abs().mean(1)[valid].mean()",
+      "new": "(pred.float() - target.float()).square().mean(1)[valid].mean()",
+      "tests": [
+        "tests.test_method_extended_flow.TestFlow.test_l1_loss_and_global_metrics_keep_coordinate_units_separate"
+      ]
+    },
+    {
+      "label": "masked loss",
+      "file": "downstream/extended_flow.py",
+      "old": "abs().mean(1)[valid].mean()",
+      "new": "abs().mean(1).mean()",
+      "tests": [
+        "tests.test_method_extended_flow.TestFlow.test_l1_loss_and_global_metrics_keep_coordinate_units_separate"
+      ]
+    },
+    {
+      "label": "metadata positive geometry",
+      "file": "downstream/extended_flow.py",
+      "old": "or not (sizes > 0).all()",
+      "new": "or False",
+      "tests": [
+        "tests.test_method_extended_flow.TestFlow.test_fail_closed_input_and_recipe_guards"
+      ]
+    },
+    {
+      "label": "known rendering",
+      "file": "downstream/extended_flow.py",
+      "old": "any(tag not in (\"\", \"clean\", \"final\") for tag in tags)",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_flow.TestFlow.test_fail_closed_input_and_recipe_guards"
+      ]
+    },
+    {
+      "label": "outlier strict boundary",
+      "file": "downstream/extended_flow.py",
+      "old": "errors > 1.0",
+      "new": "errors >= 1.0",
+      "tests": [
+        "tests.test_method_extended_flow.TestFlow.test_l1_loss_and_global_metrics_keep_coordinate_units_separate"
+      ]
+    },
+    {
+      "label": "native metric scale",
+      "file": "downstream/extended_flow.py",
+      "old": "native[0] *= sizes[i, 1].item() / target.shape[-1]",
+      "new": "native[0] *= 1",
+      "tests": [
+        "tests.test_method_extended_flow.TestFlow.test_l1_loss_and_global_metrics_keep_coordinate_units_separate"
+      ]
+    },
+    {
+      "label": "pixel pooled denominator",
+      "file": "downstream/extended_flow.py",
+      "old": "result[\"epe\" + suffix] = total / count",
+      "new": "result[\"epe\" + suffix] = total / self.images",
+      "tests": [
+        "tests.test_method_extended_flow.TestFlow.test_l1_loss_and_global_metrics_keep_coordinate_units_separate"
+      ]
+    },
+    {
+      "label": "nonzero evaluation",
+      "file": "downstream/extended_flow.py",
+      "old": "if not self.nonzero or not self.groups:",
+      "new": "if not self.groups:",
+      "tests": [
+        "tests.test_method_extended_flow.TestFlow.test_l1_loss_and_global_metrics_keep_coordinate_units_separate"
+      ]
+    },
+    {
+      "label": "feature subtraction order",
+      "file": "downstream/extended_flow.py",
+      "old": "self.flow(self.proj(b) - self.proj(a))",
+      "new": "self.flow(self.proj(a) - self.proj(b))",
+      "tests": [
+        "tests.test_method_extended_flow.TestFlow.test_head_initialization_difference_order_freeze_and_updates"
+      ]
+    },
+    {
+      "label": "frozen backbone",
+      "file": "downstream/extended_flow.py",
+      "old": "backbone.requires_grad_(False).eval()",
+      "new": "backbone.requires_grad_(True).eval()",
+      "tests": [
+        "tests.test_method_extended_flow.TestFlow.test_head_initialization_difference_order_freeze_and_updates"
+      ]
+    },
+    {
+      "label": "backbone eval",
+      "file": "downstream/extended_flow.py",
+      "old": "self.backbone.eval()",
+      "new": "self.backbone.train()",
+      "tests": [
+        "tests.test_method_extended_flow.TestFlow.test_head_initialization_difference_order_freeze_and_updates"
+      ]
+    },
+    {
+      "label": "reader identity",
+      "file": "downstream/extended_flow.py",
+      "old": "reader_profile not in (None, SINGLE_BLOCK, CROSS_SELF)",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_flow.TestFlow.test_fail_closed_input_and_recipe_guards"
+      ]
+    },
+    {
+      "label": "provider normalization",
+      "file": "downstream/extended_flow.py",
+      "old": "TF.normalize(x, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225])",
+      "new": "x",
+      "tests": [
+        "tests.test_method_extended_flow.TestFlow.test_head_initialization_difference_order_freeze_and_updates"
+      ]
+    },
+    {
+      "label": "Spring image-grid convention",
+      "file": "downstream/extended_flow.py",
+      "old": "allowed.add(tuple(2 * x for x in sizes[0]))",
+      "new": "allowed.add(sizes[0])",
+      "tests": [
+        "tests.test_method_extended_flow.TestFlow.test_spring_double_grid_data_and_bad_geometry"
+      ]
+    },
+    {
+      "label": "source hashes",
+      "file": "downstream/extended_flow.py",
+      "old": "fingerprints[str(path)] = contract.sha256_file(path)",
+      "new": "fingerprints[str(path)] = \"unverified\"",
+      "tests": [
+        "tests.test_method_extended_flow.TestFlow.test_membership_data_hashes_and_invalid_splits"
+      ]
+    },
+    {
+      "label": "schema integer",
+      "file": "downstream/extended_flow.py",
+      "old": "or type(data[\"schema_version\"]) is not int",
+      "new": "or False",
+      "tests": [
+        "tests.test_method_extended_flow.TestFlow.test_fail_closed_input_and_recipe_guards"
+      ]
+    },
+    {
+      "label": "split evidence",
+      "file": "downstream/extended_flow.py",
+      "old": "or not data[\"split_evidence\"].strip()",
+      "new": "or False",
+      "tests": [
+        "tests.test_method_extended_flow.TestFlow.test_fail_closed_input_and_recipe_guards"
+      ]
+    },
+    {
+      "label": "row schema",
+      "file": "downstream/extended_flow.py",
+      "old": "or set(row) != {\"a\", \"b\", \"flow\", \"scene\", \"rendering\"}",
+      "new": "or False",
+      "tests": [
+        "tests.test_method_extended_flow.TestFlow.test_fail_closed_input_and_recipe_guards"
+      ]
+    },
+    {
+      "label": "scene membership disjoint",
+      "file": "downstream/extended_flow.py",
+      "old": "split_scenes[0] & split_scenes[1]",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_flow.TestFlow.test_membership_data_hashes_and_invalid_splits"
+      ]
+    },
+    {
+      "label": "target membership disjoint",
+      "file": "downstream/extended_flow.py",
+      "old": "or split_targets[0] & split_targets[1]",
+      "new": "or False",
+      "tests": [
+        "tests.test_method_extended_flow.TestFlow.test_membership_data_hashes_and_invalid_splits"
+      ]
+    },
+    {
+      "label": "RGB membership disjoint",
+      "file": "downstream/extended_flow.py",
+      "old": "or split_images[0] & split_images[1]",
+      "new": "or False",
+      "tests": [
+        "tests.test_method_extended_flow.TestFlow.test_cross_split_rgb_leakage_is_rejected"
+      ]
+    },
+    {
+      "label": "duplicate pairs",
+      "file": "downstream/extended_flow.py",
+      "old": "if pair in pairs or ids[0] == ids[1]:",
+      "new": "if ids[0] == ids[1]:",
+      "tests": [
+        "tests.test_method_extended_flow.TestFlow.test_fail_closed_input_and_recipe_guards"
+      ]
+    },
+    {
+      "label": "nonzero supervision",
+      "file": "downstream/extended_flow.py",
+      "old": "if not any(bool(torch.count_nonzero(t[:, m])) for _, _, t, m, *_ in ds):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_extended_flow.TestFlow.test_fail_closed_input_and_recipe_guards"
+      ]
+    },
+    {
+      "label": "Sintel target required",
+      "file": "downstream/extended_flow.py",
+      "old": "if not target.is_file():",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_extended_flow.TestFlow.test_native_sintel_and_archive_middlebury_membership"
+      ]
+    },
+    {
+      "label": "Middlebury frame correspondence",
+      "file": "downstream/extended_flow.py",
+      "old": "if not targets or not set(targets) <= set(a) or not set(targets) <= set(b):",
+      "new": "if not targets:",
+      "tests": [
+        "tests.test_method_extended_flow.TestFlow.test_native_sintel_and_archive_middlebury_membership"
+      ]
+    },
+    {
+      "label": "flow adaptation scope",
+      "file": "downstream/extended_flow.py",
+      "old": "adaptation not in (\"frozen\", \"attentive\")",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_flow.TestFlow.test_fail_closed_input_and_recipe_guards"
+      ]
+    },
+    {
+      "label": "exact transform selection",
+      "file": "downstream/extended_flow.py",
+      "old": "if cfg[\"transform_profile\"] != TRANSFORM:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_extended_flow.TestFlow.test_training_cli_resume_and_contract"
+      ]
+    },
+    {
+      "label": "noncanonical result",
+      "file": "downstream/extended_flow.py",
+      "old": "\"record_value\": False",
+      "new": "\"record_value\": True",
+      "tests": [
+        "tests.test_method_extended_flow.TestFlow.test_training_cli_resume_and_contract"
+      ]
+    },
+    {
+      "label": "required CI route",
+      "file": ".github/workflows/tests.yml",
+      "old": "            tests.test_method_extended_flow \\\n",
+      "new": "",
+      "tests": [
+        "tests.test_method_extended_flow.TestDelivery.test_example_guide_and_ci_route"
+      ]
+    }
+  ]
+}
