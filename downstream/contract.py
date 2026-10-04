@@ -33,6 +33,9 @@ PER_TASK = "per-task"
 # counters are per-task bookkeeping. A task runner may write only these names.
 # Add a name together with the runner that writes it, never ahead of one.
 DOWNSTREAM_METRICS = {
+    "extended_depth_rmse": COMPARABLE,
+    "extended_depth_absrel": COMPARABLE,
+    "extended_depth_delta1": COMPARABLE,
     "extended_coco2017_bbox_ap": COMPARABLE,
     "extended_coco2017_bbox_ap50": COMPARABLE,
     "extended_coco2017_bbox_ap75": COMPARABLE,

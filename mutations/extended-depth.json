@@ -1,0 +1,337 @@
+{
+  "targets": [
+    {
+      "label": "dataset scope",
+      "file": "downstream/extended_depth.py",
+      "old": "dataset != \"nyuv2\"",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_depth.TestDepth.test_recipe_selects_only_verified_dataset_and_weight_decay"
+      ]
+    },
+    {
+      "label": "adaptation scope",
+      "file": "downstream/extended_depth.py",
+      "old": "adaptation not in (\"frozen\", \"attentive\")",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_depth.TestDepth.test_recipe_selects_only_verified_dataset_and_weight_decay"
+      ]
+    },
+    {
+      "label": "reader scope",
+      "file": "downstream/extended_depth.py",
+      "old": "reader_profile not in (None, SINGLE_BLOCK, CROSS_SELF)",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_depth.TestDepth.test_positive_mapping_precedes_resize_and_encoder_stays_frozen"
+      ]
+    },
+    {
+      "label": "encoder frozen",
+      "file": "downstream/extended_depth.py",
+      "old": "backbone.requires_grad_(False).eval()",
+      "new": "backbone.requires_grad_(True).eval()",
+      "tests": [
+        "tests.test_method_extended_depth.TestDepth.test_positive_mapping_precedes_resize_and_encoder_stays_frozen"
+      ]
+    },
+    {
+      "label": "encoder eval",
+      "file": "downstream/extended_depth.py",
+      "old": "self.backbone.eval()",
+      "new": "self.backbone.train()",
+      "tests": [
+        "tests.test_method_extended_depth.TestDepth.test_positive_mapping_precedes_resize_and_encoder_stays_frozen"
+      ]
+    },
+    {
+      "label": "provider normalization",
+      "file": "downstream/extended_depth.py",
+      "old": "features = self.backbone.forward_features(normalized).float()",
+      "new": "features = self.backbone.forward_features(images).float()",
+      "tests": [
+        "tests.test_method_extended_depth.TestDepth.test_raw_rgb_is_normalized_once_for_provider_contract"
+      ]
+    },
+    {
+      "label": "positive depth",
+      "file": "downstream/extended_depth.py",
+      "old": "F.softplus(self.head(features)) + 0.001",
+      "new": "self.head(features) + 0.001",
+      "tests": [
+        "tests.test_method_extended_depth.TestDepth.test_positive_mapping_precedes_resize_and_encoder_stays_frozen"
+      ]
+    },
+    {
+      "label": "full mean penalty",
+      "file": "downstream/extended_depth.py",
+      "old": "delta.square().mean() - delta.mean().square()",
+      "new": "delta.square().mean() - 0.5 * delta.mean().square()",
+      "tests": [
+        "tests.test_method_extended_depth.TestDepth.test_loss_is_full_log_variance_and_rejects_empty_or_nonfinite"
+      ]
+    },
+    {
+      "label": "empty training",
+      "file": "downstream/extended_depth.py",
+      "old": "raise ValueError(\"training batch has no valid depth pixels\")",
+      "new": "return pred.sum() * 0",
+      "tests": [
+        "tests.test_method_extended_depth.TestDepth.test_loss_is_full_log_variance_and_rejects_empty_or_nonfinite"
+      ]
+    },
+    {
+      "label": "finite predictions",
+      "file": "downstream/extended_depth.py",
+      "old": "or not torch.isfinite(pred).all()",
+      "new": "",
+      "tests": [
+        "tests.test_method_extended_depth.TestDepth.test_loss_is_full_log_variance_and_rejects_empty_or_nonfinite"
+      ]
+    },
+    {
+      "label": "finite targets",
+      "file": "downstream/extended_depth.py",
+      "old": "or not torch.isfinite(target[valid]).all()",
+      "new": "",
+      "tests": [
+        "tests.test_method_extended_depth.TestDepth.test_loss_is_full_log_variance_and_rejects_empty_or_nonfinite"
+      ]
+    },
+    {
+      "label": "positive targets",
+      "file": "downstream/extended_depth.py",
+      "old": "or not (target[valid] > 0).all()",
+      "new": "",
+      "tests": [
+        "tests.test_method_extended_depth.TestDepth.test_loss_is_full_log_variance_and_rejects_empty_or_nonfinite"
+      ]
+    },
+    {
+      "label": "boolean mask",
+      "file": "downstream/extended_depth.py",
+      "old": "or valid.dtype != torch.bool",
+      "new": "",
+      "tests": [
+        "tests.test_method_extended_depth.TestDepth.test_loss_is_full_log_variance_and_rejects_empty_or_nonfinite"
+      ]
+    },
+    {
+      "label": "empty evaluation",
+      "file": "downstream/extended_depth.py",
+      "old": "raise ValueError(\"evaluation has no valid depth pixels\")",
+      "new": "return {\"rmse\": 0.0}",
+      "tests": [
+        "tests.test_method_extended_depth.TestDepth.test_metrics_pool_pixels_without_alignment_and_reject_empty"
+      ]
+    },
+    {
+      "label": "pixel pooling",
+      "file": "downstream/extended_depth.py",
+      "old": "self.pixels += int(mask.sum())",
+      "new": "self.pixels += len(pred)",
+      "tests": [
+        "tests.test_method_extended_depth.TestDepth.test_metrics_pool_pixels_without_alignment_and_reject_empty"
+      ]
+    },
+    {
+      "label": "delta threshold",
+      "file": "downstream/extended_depth.py",
+      "old": "torch.maximum(p / t, t / p) < 1.25",
+      "new": "torch.maximum(p / t, t / p) < 3.0",
+      "tests": [
+        "tests.test_method_extended_depth.TestDepth.test_metrics_pool_pixels_without_alignment_and_reject_empty"
+      ]
+    },
+    {
+      "label": "metre metric clamp",
+      "file": "downstream/extended_depth.py",
+      "old": "target[mask].float().clamp(1e-3, 80)",
+      "new": "target[mask].float().clamp(1e-3, 800)",
+      "tests": [
+        "tests.test_method_extended_depth.TestDepth.test_metrics_pool_pixels_without_alignment_and_reject_empty"
+      ]
+    },
+    {
+      "label": "training flip",
+      "file": "downstream/extended_depth.py",
+      "old": "if self.train and random.random() < 0.5:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_extended_depth.TestDepth.test_official_indices_geometry_and_paired_flip"
+      ]
+    },
+    {
+      "label": "depth valid range",
+      "file": "downstream/extended_depth.py",
+      "old": "(target > 0.1) & (target < 10)",
+      "new": "(target > 0) & (target < 80)",
+      "tests": [
+        "tests.test_method_extended_depth.TestDepth.test_official_indices_geometry_and_paired_flip"
+      ]
+    },
+    {
+      "label": "depth interpolation",
+      "file": "downstream/extended_depth.py",
+      "old": "Image.Resampling.BILINEAR",
+      "new": "Image.Resampling.NEAREST",
+      "tests": [
+        "tests.test_method_extended_depth.TestDepth.test_official_indices_geometry_and_paired_flip"
+      ]
+    },
+    {
+      "label": "split offset",
+      "file": "downstream/extended_depth.py",
+      "old": "values.astype(np.int64) - 1",
+      "new": "values.astype(np.int64)",
+      "tests": [
+        "tests.test_method_extended_depth.TestDepth.test_official_indices_geometry_and_paired_flip"
+      ]
+    },
+    {
+      "label": "integer split",
+      "file": "downstream/extended_depth.py",
+      "old": "values.dtype.kind not in \"iu\"",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_depth.TestDepth.test_rejects_invalid_membership_and_geometry"
+      ]
+    },
+    {
+      "label": "split bounds",
+      "file": "downstream/extended_depth.py",
+      "old": "or not ((values >= 1) & (values <= count)).all()",
+      "new": "",
+      "tests": [
+        "tests.test_method_extended_depth.TestDepth.test_rejects_invalid_membership_and_geometry"
+      ]
+    },
+    {
+      "label": "split uniqueness",
+      "file": "downstream/extended_depth.py",
+      "old": "len(joined) != count or len(set(joined)) != count",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_depth.TestDepth.test_rejects_invalid_membership_and_geometry"
+      ]
+    },
+    {
+      "label": "matching geometries",
+      "file": "downstream/extended_depth.py",
+      "old": "or depth != expected",
+      "new": "",
+      "tests": [
+        "tests.test_method_extended_depth.TestDepth.test_rejects_invalid_membership_and_geometry"
+      ]
+    },
+    {
+      "label": "RGB scale",
+      "file": "downstream/extended_depth.py",
+      "old": "rgb = rgb * 255",
+      "new": "rgb = rgb * 1",
+      "tests": [
+        "tests.test_method_extended_depth.TestDepth.test_float_rgb_invalid_values_and_input_hashes"
+      ]
+    },
+    {
+      "label": "input fingerprint",
+      "file": "downstream/extended_depth.py",
+      "old": "contract.sha256_file(path)",
+      "new": "\"unchecked\"",
+      "tests": [
+        "tests.test_method_extended_depth.TestDepth.test_float_rgb_invalid_values_and_input_hashes"
+      ]
+    },
+    {
+      "label": "explicit transform",
+      "file": "downstream/extended_depth.py",
+      "old": "cfg[\"transform_profile\"] != TRANSFORM",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_depth.TestDepth.test_cli_training_resume_matches_uninterrupted_and_protects_outputs"
+      ]
+    },
+    {
+      "label": "write final checkpoint",
+      "file": "downstream/extended_depth.py",
+      "old": "continuation.save(epoch + 1)",
+      "new": "pass",
+      "tests": [
+        "tests.test_method_extended_depth.TestDepth.test_cli_training_resume_matches_uninterrupted_and_protects_outputs"
+      ]
+    },
+    {
+      "label": "exclude frozen checkpoint",
+      "file": "downstream/extended_depth.py",
+      "old": "_probe(raw).items()",
+      "new": "raw.state_dict().items()",
+      "tests": [
+        "tests.test_method_extended_depth.TestDepth.test_cli_training_resume_matches_uninterrupted_and_protects_outputs"
+      ]
+    },
+    {
+      "label": "result noncanonical",
+      "file": "downstream/extended_depth.py",
+      "old": "\"canonical_eligible\": False",
+      "new": "\"canonical_eligible\": True",
+      "tests": [
+        "tests.test_method_extended_depth.TestDepth.test_cli_training_resume_matches_uninterrupted_and_protects_outputs"
+      ]
+    },
+    {
+      "label": "depth metric delivery",
+      "file": "downstream/contract.py",
+      "old": "\"extended_depth_rmse\": COMPARABLE,",
+      "new": "",
+      "tests": [
+        "tests.test_method_extended_depth.TestDepth.test_cli_training_resume_matches_uninterrupted_and_protects_outputs"
+      ]
+    },
+    {
+      "label": "RGB bounds",
+      "file": "downstream/extended_depth.py",
+      "old": "if not np.isfinite(rgb).all() or rgb.min() < 0 or rgb.max() > 255:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_extended_depth.TestDepth.test_float_rgb_invalid_values_and_input_hashes"
+      ]
+    },
+    {
+      "label": "image rank",
+      "file": "downstream/extended_depth.py",
+      "old": "len(im) != 4",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_depth.TestDepth.test_rejects_invalid_membership_and_geometry"
+      ]
+    },
+    {
+      "label": "image channels",
+      "file": "downstream/extended_depth.py",
+      "old": "or (not channels_first and im[1] != 3)",
+      "new": "",
+      "tests": [
+        "tests.test_method_extended_depth.TestDepth.test_rejects_invalid_membership_and_geometry"
+      ]
+    },
+    {
+      "label": "positive spatial dimensions",
+      "file": "downstream/extended_depth.py",
+      "old": "or min(im) < 1",
+      "new": "",
+      "tests": [
+        "tests.test_method_extended_depth.TestDepth.test_rejects_invalid_membership_and_geometry"
+      ]
+    },
+    {
+      "label": "depth tensor rank",
+      "file": "downstream/extended_depth.py",
+      "old": "pred.ndim != 3",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_depth.TestDepth.test_loss_is_full_log_variance_and_rejects_empty_or_nonfinite"
+      ]
+    }
+  ]
+}

@@ -449,3 +449,8 @@ reproduction using this portable package remain unvalidated.
 
 Extended detection LP/AP training, continuation and official evaluation are described in
 [the detection guide](EXTENDED_DETECTION.md); released-weight/full-data validation and paper-score reproduction remain pending.
+
+[Extended NYUv2 LP/AP](EXTENDED_DEPTH.md) adds five-provider depth training,
+explicit split-file input and portable distributed continuation. It preserves
+the distinct Extended head/loss and unaligned pixel-pooled evaluation; it does
+not change the BasicFive path or certify either table's scores.
