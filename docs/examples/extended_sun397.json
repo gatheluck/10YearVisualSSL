@@ -1,0 +1,29 @@
+{
+  "task": "extended_image_classification",
+  "profile": "capture_extended_components",
+  "dataset": "sun397",
+  "seed": 0,
+  "device": "cuda",
+  "data_root": "/data/sun397-staged",
+  "samples": "/data/sun397-staged/samples.json",
+  "transform_profile": "captured_rgb_rrc_v1",
+  "adaptation": "frozen",
+  "reader_profile": null,
+  "backbone": {
+    "kind": "siglip2_g",
+    "arch": "siglip2_g",
+    "encoder": "/models/vision-encoder",
+    "img_size": 384,
+    "patch_size": 16
+  },
+  "probe": {
+    "epochs": 100,
+    "batch_size": 2,
+    "num_workers": 2
+  },
+  "execution": {
+    "accumulation_steps": 4,
+    "precision": "fp32",
+    "tail_policy": "discard"
+  }
+}

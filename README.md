@@ -774,3 +774,7 @@ sequence membership, object-mask training/evaluation and portable continuation.
 [Context and Mapillary converters](docs/EXTENDED_SEMANTIC_INPUTS.md) connect native
 annotations to the existing semantic runner. Component support is distinct from
 full-data paper-score reproduction.
+
+[CLUE and SUN397 staging](docs/EXTENDED_NATIVE_IMAGES.md) connects six further
+native image inputs to Extended LP/AP. Source split, label order and overlap
+limitations are recorded explicitly.

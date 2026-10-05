@@ -472,3 +472,9 @@ not change the BasicFive path or certify either table's scores.
 with native annotation conversion and portable continuation. Localization recipe
 conflicts and local reasoning holdout semantics remain explicit; these components
 do not certify final-table scores.
+
+## Native image inputs
+
+The [CLUE/SUN397 converter](EXTENDED_NATIVE_IMAGES.md) connects six reported
+dataset inputs to Extended image LP/AP, preserving source membership and overlap
+disclosures. Staging and component tests do not certify paper scores.
