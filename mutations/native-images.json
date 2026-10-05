@@ -282,7 +282,7 @@
     {
       "label": "CLI fixture boundary",
       "file": "downstream/native_images.py",
-      "old": "if set(cfg) != {\"dataset\", \"data_root\"}:",
+      "old": "if set(cfg) not in (\n        {\"dataset\", \"data_root\"},\n        {\"dataset\", \"data_root\", \"eval_data_root\"},\n    ):",
       "new": "if False:",
       "tests": [
         "tests.test_extended_native_images.NativeImages"
@@ -291,8 +291,8 @@
     {
       "label": "CLI full counts",
       "file": "downstream/native_images.py",
-      "old": "convert(cfg[\"dataset\"], cfg[\"data_root\"], args.out)",
-      "new": "convert(cfg[\"dataset\"], cfg[\"data_root\"], args.out, fixture_counts=(2, 2, 2))",
+      "old": "convert(cfg[\"dataset\"], cfg[\"data_root\"], args.out, **kwargs)",
+      "new": "convert(cfg[\"dataset\"], cfg[\"data_root\"], args.out, fixture_counts=(2, 2, 2), **kwargs)",
       "tests": [
         "tests.test_extended_native_images.NativeImages"
       ]

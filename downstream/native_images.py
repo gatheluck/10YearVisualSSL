@@ -1,4 +1,4 @@
-"""Stage captured CLUE and SUN397 memberships without inferring splits.
+"""Stage inspected native image memberships without inferring splits.
 
 Original images stay read-only. Publication uses a new directory, preserves image
 bytes and records membership limitations instead of dropping inconvenient rows.
@@ -14,6 +14,7 @@ from collections import Counter
 from contextlib import ExitStack
 from pathlib import Path, PurePosixPath
 
+from downstream import prepared_images
 from downstream.semantic_staging import write
 
 COUNTS = {
@@ -248,8 +249,9 @@ def sun(root, counts, stack):
     )
 
 
-def convert(dataset, root, out, *, fixture_counts=None):
-    if dataset not in COUNTS:
+def convert(dataset, root, out, *, fixture_counts=None, eval_data_root=None):
+    profiles = COUNTS | prepared_images.COUNTS
+    if dataset not in profiles:
         raise ValueError("no verified native image profile")
     root, out = Path(root), Path(out)
     if root.is_symlink() or not root.is_dir():
@@ -259,12 +261,32 @@ def convert(dataset, root, out, *, fixture_counts=None):
         raise ValueError("output must be outside read-only sources")
     if out.exists() or out.is_symlink():
         raise FileExistsError("output already exists")
-    counts = COUNTS[dataset] if fixture_counts is None else fixture_counts
+    evaluation = None
+    if eval_data_root is not None:
+        if dataset not in prepared_images.SUBSETS:
+            raise ValueError("separate evaluation root is only for ImageNet subsets")
+        evaluation = Path(eval_data_root)
+        if evaluation.is_symlink():
+            raise ValueError("evaluation source symlinks are not accepted")
+        if not evaluation.is_dir():
+            raise ValueError("evaluation source must be a directory")
+        evaluation = evaluation.resolve()
+        if out.resolve().is_relative_to(evaluation):
+            raise ValueError("output must be outside read-only evaluation sources")
+    counts = profiles[dataset] if fixture_counts is None else fixture_counts
     if len(counts) != 3 or any(type(n) is not int or n < 1 for n in counts):
         raise ValueError("counts require positive train/evaluation/classes")
     with ExitStack() as stack:
         archives = {}
-        if dataset == "sun397":
+        if dataset in prepared_images.COUNTS:
+            classes, rows, extra, hashes = prepared_images.membership(
+                dataset,
+                root,
+                counts,
+                fixture=fixture_counts is not None,
+                eval_root=evaluation,
+            )
+        elif dataset == "sun397":
             classes, rows, extra, hashes, archives = sun(root, counts, stack)
             rows.sort(key=lambda r: r["archive"] + "/" + r["member"])
         else:
@@ -276,7 +298,7 @@ def convert(dataset, root, out, *, fixture_counts=None):
 
         def read(row):
             if "archive" not in row:
-                return file_at(root, row["source"]).read_bytes()
+                return file_at(row.get("source_root", root), row["source"]).read_bytes()
             tar, index = archives[row["archive"]]
             handle = tar.extractfile(index[row["member"]])
             if handle is None:
@@ -309,6 +331,8 @@ def convert(dataset, root, out, *, fixture_counts=None):
                 source_rows.append(
                     {"path": row["path"], "source": row["source"], "sha256": sha}
                 )
+                if "source_role" in row:
+                    source_rows[-1]["source_role"] = row["source_role"]
                 splits["train" if sp == "train" else "validation"].append(
                     {"path": row["path"], "target": row["target"]}
                 )
@@ -349,9 +373,17 @@ def main(argv=None):
     parser.add_argument("--out", required=True)
     args = parser.parse_args(argv)
     cfg = json.loads(Path(args.config).read_text())
-    if set(cfg) != {"dataset", "data_root"}:
-        raise ValueError("config requires dataset and data_root only")
-    convert(cfg["dataset"], cfg["data_root"], args.out)
+    if set(cfg) not in (
+        {"dataset", "data_root"},
+        {"dataset", "data_root", "eval_data_root"},
+    ):
+        raise ValueError(
+            "config requires dataset/data_root and optional eval_data_root"
+        )
+    kwargs = (
+        {"eval_data_root": cfg["eval_data_root"]} if "eval_data_root" in cfg else {}
+    )
+    convert(cfg["dataset"], cfg["data_root"], args.out, **kwargs)
     return 0
 
 

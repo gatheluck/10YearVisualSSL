@@ -775,6 +775,9 @@ sequence membership, object-mask training/evaluation and portable continuation.
 annotations to the existing semantic runner. Component support is distinct from
 full-data paper-score reproduction.
 
-[CLUE and SUN397 staging](docs/EXTENDED_NATIVE_IMAGES.md) connects six further
+[Native image staging](docs/EXTENDED_NATIVE_IMAGES.md) also supports prepared
+Action40, CIFAR-10/100, KMNIST, ImageNet 1%/10% and Omniglot15 memberships;
+upstream authentication and small-image recipe reconciliation remain pending.
+Its CLUE and SUN397 profiles connect six further
 native image inputs to Extended LP/AP. Source split, label order and overlap
 limitations are recorded explicitly.

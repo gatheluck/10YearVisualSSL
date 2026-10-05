@@ -62,7 +62,13 @@ availability does not establish complete native-video or paper-score coverage.
    path used by 24 image-classification rows. The October 5
    [CLUE/SUN397 staging](EXTENDED_NATIVE_IMAGES.md) adds five CLUE source splits
    and the SUN397 split-1 redistribution, including source-specific overlap
-   disclosure and content verification. This does not establish 24 independently validated
+   disclosure and content verification. Prepared-folder staging now adds Action40,
+   CIFAR-10/100, KMNIST, ImageNet 1%/10% and Omniglot15, preserving sorted labels,
+   release counts and source identity rules. ImageNet evaluation can use a
+   separate explicit root. The seven builders do not authenticate upstream
+   membership; the four small-image augmentation conflicts remain unresolved.
+   Flowers102 and Kuzushiji-Kanji still need source/protocol reconciliation.
+   This does not establish 24 independently validated
    dataset ports or reproduced scores. [Semantic LP/AP](EXTENDED_SEGMENTATION.md)
    now adds five-provider spatial heads/adapters, 224-grid metrics and native
    ADE/VOC/BDD membership conversion. It is relevant to five reported semantic

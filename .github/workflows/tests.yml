@@ -183,6 +183,7 @@ jobs:
             tests.test_method_raev2 tests.test_method_vggt_omega \
             tests.test_method_cradiov4_h tests.test_downstream_accounting \
             tests.test_method_extended_classification tests.test_extended_membership tests.test_extended_native_images \
+            tests.test_extended_prepared_images \
             tests.test_extended_native_inputs tests.test_method_extended_native_inputs \
             tests.test_method_extended_binary_inputs \
             tests.test_method_extended_resume \
