@@ -781,6 +781,10 @@ upstream authentication and small-image recipe reconciliation remain pending.
 Its CLUE and SUN397 profiles connect six further
 native image inputs to Extended LP/AP. Source split, label order and overlap
 limitations are recorded explicitly.
+Flowers102 now stages the recorded `trnid`-only profile, separately from the
+registry's train+validation declaration. Kuzushiji-Kanji stages the observed
+1,966-class prepared benchmark without inventing a split; historical input-byte
+identity and transform attribution remain unverified.
 
 [Historical Extended accounting](docs/REFERENCE_ACCOUNTING.md) audits pinned
 native LP/AP results across cells, retaining missing/invalid repeats and explicit

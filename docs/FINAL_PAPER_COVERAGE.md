@@ -67,7 +67,11 @@ availability does not establish complete native-video or paper-score coverage.
    release counts and source identity rules. ImageNet evaluation can use a
    separate explicit root. The seven builders do not authenticate upstream
    membership; the four small-image augmentation conflicts remain unresolved.
-   Flowers102 and Kuzushiji-Kanji still need source/protocol reconciliation.
+   Flowers102 now stages the recorded `trnid`/`tstid` profile whose ten recorded
+   scores match the printed values. Kuzushiji-Kanji stages the observed 1,966-class
+   benchmark (126,551/9,830 images), without inferring an upstream partition.
+   Historical input-byte identity and transform attribution remain unverified;
+   the Flowers train+validation registry conflict is disclosed, not overwritten.
    This does not establish 24 independently validated
    dataset ports or reproduced scores. [Semantic LP/AP](EXTENDED_SEGMENTATION.md)
    now adds five-provider spatial heads/adapters, 224-grid metrics and native
@@ -151,8 +155,11 @@ availability does not establish complete native-video or paper-score coverage.
   may differ. Missing physical files do not establish that an experiment was
   never run, and a source implementation does not establish a verified score.
 - Flowers102's registry specifies train+validation, whereas the current inspected
-  builder uses `setid.mat:trnid` only and checks/excludes `valid`. Its native
-  membership port remains pending final run reconciliation.
+  builder and ten matching result records use `setid.mat:trnid` only and
+  check/exclude `valid`. Native staging now preserves that recorded profile,
+  with the conflict explicit. Kanji's observed prepared benchmark is not the
+  publisher's unsplit release, and nine of ten recorded values match ordinary
+  printed rounding; the remaining LP 0.295015... is printed as 0.29.
 - MNIST's native builder uses the shared `small=False` crop/flip path, whereas
   its registry describes the small-image recipe. IDX staging preserves input
   pixels and splits but does not resolve which transform produced a table cell.

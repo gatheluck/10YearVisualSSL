@@ -212,9 +212,12 @@ perform LP/AP updates, and exercise a release-count-sized MIT CLI fixture with
 nonuniform class counts. These are synthetic inputs, not full-data or score
 reproduction. The source changed after capture, including prepared-copy guards;
 that difference was inspected rather than treating the snapshot as live state.
-Flowers102 remains pending: the registry specifies train+validation, while the
-inspected current builder uses only `trnid` and excludes `valid`. Do not silently
-choose one as the final table's membership.
+[Native staging](EXTENDED_NATIVE_IMAGES.md) now includes Flowers102's recorded
+`trnid`/`tstid` membership and the observed prepared Kuzushiji-Kanji benchmark.
+Ten Flowers LP/AP result records match the printed values and identify train-only
+membership; the registry still says train+validation. Staging records this conflict
+without rewriting the supplied protocol. Kanji source partition creation and
+historical input-byte/transform attribution remain unverified.
 
 The Cars/MNIST binary-input audit compared captured and current original
 builders separately. Each comparison covered all four train/evaluation splits

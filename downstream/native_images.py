@@ -14,7 +14,7 @@ from collections import Counter
 from contextlib import ExitStack
 from pathlib import Path, PurePosixPath
 
-from downstream import prepared_images
+from downstream import flowers_membership, prepared_images
 from downstream.semantic_staging import write
 
 COUNTS = {
@@ -250,7 +250,7 @@ def sun(root, counts, stack):
 
 
 def convert(dataset, root, out, *, fixture_counts=None, eval_data_root=None):
-    profiles = COUNTS | prepared_images.COUNTS
+    profiles = COUNTS | prepared_images.COUNTS | flowers_membership.COUNTS
     if dataset not in profiles:
         raise ValueError("no verified native image profile")
     root, out = Path(root), Path(out)
@@ -285,6 +285,10 @@ def convert(dataset, root, out, *, fixture_counts=None, eval_data_root=None):
                 counts,
                 fixture=fixture_counts is not None,
                 eval_root=evaluation,
+            )
+        elif dataset in flowers_membership.COUNTS:
+            classes, rows, extra, hashes = flowers_membership.membership(
+                root, counts, fixture=fixture_counts is not None
             )
         elif dataset == "sun397":
             classes, rows, extra, hashes, archives = sun(root, counts, stack)
