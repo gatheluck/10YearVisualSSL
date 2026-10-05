@@ -12,6 +12,24 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-10-05: video segmentation and semantic input integration
+
+PR 219 merged as `76e89b8`; all 115 checks succeeded. Pulled main matches the
+validated PR tree. Unrelated video-submodule changes remain preserved.
+
+The [DAVIS guide](EXTENDED_VOS.md) describes five-provider LP/AP first-mask
+training, native membership, streamed object-mask evaluation and continuation.
+The [semantic input guide](EXTENDED_SEMANTIC_INPUTS.md) adds Context PC59 MAT
+conversion and complete Mapillary v1.2 joins. Current read-only sources retain
+the inspected DAVIS head/data/metrics; unrelated tracking changes are not parity.
+Current Mapillary code removes the old training cap. Historical cache/run/table
+identity and official void-metric parity remain pending, not silently resolved.
+
+Behavioral RED preceded heads/metrics, membership, execution, native semantic
+conversion and delivery. Record reference comparisons, regressions, mutations,
+mandatory gates and CI separately in the PR. No compute job was submitted and
+original inputs remain unchanged. Stop for review; private evidence stays outside Git.
+
 ### 2026-10-04: Extended structured-task integration
 
 PR 218 merged as `a79f63f`; all 115 checks succeeded and main matched its tested

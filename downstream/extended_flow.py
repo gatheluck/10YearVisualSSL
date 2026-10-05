@@ -23,15 +23,10 @@ from torchvision.transforms import functional as TF
 from downstream import contract
 from downstream import extended_distributed as distributed
 from downstream import extended_execution as execution
-from downstream.attention import SpatialAdapter
-from downstream.captured_readers import (
-    CROSS_SELF,
-    SINGLE_BLOCK,
-    SingleBlockSpatialAdapter,
-)
 from downstream.extended_classification import PROTOCOLS, optimizer
 from downstream.extended_classification import validate_config as validate_probe
 from downstream.extended_resume import Continuation, _probe
+from downstream.paired_spatial import FrozenSpatialPair
 from downstream.spatial_backbones import build_frozen_backbone
 
 TASK = "extended_flow"
@@ -181,39 +176,14 @@ class FlowHead(nn.Module):
         return self.flow(self.proj(b) - self.proj(a))
 
 
-class FlowProbe(nn.Module):
+class FlowProbe(FrozenSpatialPair):
     def __init__(self, backbone, reader_profile):
-        super().__init__()
-        if reader_profile not in (None, SINGLE_BLOCK, CROSS_SELF):
-            raise ValueError("unknown flow reader profile")
-        self.backbone = backbone.requires_grad_(False).eval()
-        # Unlike the depth constructor, the original flow adapter precedes its head.
-        self.adapter = (
-            (
-                SingleBlockSpatialAdapter
-                if reader_profile == SINGLE_BLOCK
-                else SpatialAdapter
-            )(backbone.out_channels)
-            if reader_profile
-            else None
-        )
+        super().__init__(backbone, reader_profile)
         self.head = FlowHead(backbone.out_channels)
 
-    def train(self, mode=True):
-        super().train(mode)
-        self.backbone.eval()
-        return self
-
     def forward(self, a, b, out_hw):
-        def features(x):
-            with torch.no_grad():
-                f = self.backbone.forward_features(
-                    TF.normalize(x, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-                ).float()
-            return self.adapter(f) if self.adapter is not None else f
-
         return F.interpolate(
-            self.head(features(a), features(b)),
+            self.head(self.features(a), self.features(b)),
             size=out_hw,
             mode="bilinear",
             align_corners=False,

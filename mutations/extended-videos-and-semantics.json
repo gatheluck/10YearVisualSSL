@@ -1,0 +1,337 @@
+{
+  "targets": [
+    {
+      "label": "template occupancy",
+      "file": "downstream/extended_vos.py",
+      "old": "size=t.shape[-2:], mode=\"area\"",
+      "new": "size=t.shape[-2:], mode=\"nearest\"",
+      "tests": [
+        "tests.test_method_extended_vos.TestComponents.test_mask_head_occupancy_correlation_and_updates"
+      ]
+    },
+    {
+      "label": "mask descriptor pooling",
+      "file": "downstream/extended_vos.py",
+      "old": " / mass",
+      "new": " / 1",
+      "tests": [
+        "tests.test_method_extended_vos.TestComponents.test_mask_head_occupancy_correlation_and_updates"
+      ]
+    },
+    {
+      "label": "empty template",
+      "file": "downstream/extended_vos.py",
+      "old": "if (mass <= 0).any():",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_extended_vos.TestComponents.test_mask_head_occupancy_correlation_and_updates"
+      ]
+    },
+    {
+      "label": "void gradient",
+      "file": "downstream/extended_vos.py",
+      "old": "valid = target != 255",
+      "new": "valid = torch.ones_like(target,dtype=torch.bool)",
+      "tests": [
+        "tests.test_method_extended_vos.TestComponents.test_bce_masks_void_without_diluting_gradient"
+      ]
+    },
+    {
+      "label": "valid target values",
+      "file": "downstream/extended_vos.py",
+      "old": "not ((target == 0) | (target == 1) | (target == 255)).all()",
+      "new": "False",
+      "tests": [
+        "tests.test_method_extended_vos.TestComponents.test_bce_masks_void_without_diluting_gradient"
+      ]
+    },
+    {
+      "label": "boundary tolerance",
+      "file": "downstream/extended_vos.py",
+      "old": ".008",
+      "new": ".004",
+      "tests": [
+        "tests.test_method_extended_vos.TestComponents.test_boundary_iou_and_empty_masks"
+      ]
+    },
+    {
+      "label": "background and object ties",
+      "file": "downstream/extended_vos.py",
+      "old": "replace = value > best",
+      "new": "replace = value >= best",
+      "tests": [
+        "tests.test_method_extended_vos.TestComponents.test_stream_only_uses_first_mask_and_has_deterministic_background_ties"
+      ]
+    },
+    {
+      "label": "logit shape",
+      "file": "downstream/extended_vos.py",
+      "old": "or tuple(logits.shape) != (1, 1, 224, 224)",
+      "new": "or False",
+      "tests": [
+        "tests.test_method_extended_vos.TestComponents.test_stream_only_uses_first_mask_and_has_deterministic_background_ties"
+      ]
+    },
+    {
+      "label": "frame endpoints",
+      "file": "downstream/extended_vos.py",
+      "old": "if 0 < t < len(truth) - 1:",
+      "new": "if True:",
+      "tests": [
+        "tests.test_method_extended_vos.TestComponents.test_object_macro_reduction_excludes_both_endpoint_frames"
+      ]
+    },
+    {
+      "label": "object macro average",
+      "file": "downstream/extended_vos.py",
+      "old": "self.scores.extend(sums / (len(truth) - 2))",
+      "new": "self.scores.append((sums / (len(truth) - 2)).mean(0))",
+      "tests": [
+        "tests.test_method_extended_vos.TestComponents.test_object_macro_reduction_excludes_both_endpoint_frames"
+      ]
+    },
+    {
+      "label": "extra frames",
+      "file": "downstream/extended_vos.py",
+      "old": "if next(stream, sentinel) is not sentinel:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_extended_vos.TestComponents.test_object_macro_reduction_excludes_both_endpoint_frames"
+      ]
+    },
+    {
+      "label": "captured void convention",
+      "file": "downstream/extended_vos.py",
+      "old": "frame_score(target == obj, pred == obj)",
+      "new": "frame_score(target == obj, pred == obj, target == 255)",
+      "tests": [
+        "tests.test_method_extended_vos.TestComponents.test_captured_void_evaluation_is_explicitly_background"
+      ]
+    },
+    {
+      "label": "complete sequence evaluation",
+      "file": "downstream/extended_vos.py",
+      "old": "if seen != set(range(len(data))):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_extended_vos.TestExecution.test_exact_sequence_population_and_target_independence"
+      ]
+    },
+    {
+      "label": "repeat sequence evaluation",
+      "file": "downstream/extended_vos.py",
+      "old": "if name in self.seen or len(truth) < 3:",
+      "new": "if len(truth) < 3:",
+      "tests": [
+        "tests.test_method_extended_vos.TestExecution.test_exact_sequence_population_and_target_independence"
+      ]
+    },
+    {
+      "label": "canonical eligibility",
+      "file": "downstream/extended_vos.py",
+      "old": "\"canonical_eligible\": False",
+      "new": "\"canonical_eligible\": True",
+      "tests": [
+        "tests.test_method_extended_vos.TestExecution.test_lp_ap_training_continuation_and_frozen_export"
+      ]
+    },
+    {
+      "label": "encoder freeze",
+      "file": "downstream/paired_spatial.py",
+      "old": "backbone.requires_grad_(False).eval()",
+      "new": "backbone.requires_grad_(True).eval()",
+      "tests": [
+        "tests.test_method_extended_vos.TestComponents.test_pair_freezing_normalization_and_adapter_gradient"
+      ]
+    },
+    {
+      "label": "encoder evaluation mode",
+      "file": "downstream/paired_spatial.py",
+      "old": "self.backbone.eval()",
+      "new": "self.backbone.train()",
+      "tests": [
+        "tests.test_method_extended_vos.TestComponents.test_pair_freezing_normalization_and_adapter_gradient"
+      ]
+    },
+    {
+      "label": "frozen input gradients",
+      "file": "downstream/paired_spatial.py",
+      "old": "with torch.no_grad():",
+      "new": "with torch.enable_grad():",
+      "tests": [
+        "tests.test_method_extended_vos.TestComponents.test_pair_freezing_normalization_and_adapter_gradient"
+      ]
+    },
+    {
+      "label": "input normalization",
+      "file": "downstream/paired_spatial.py",
+      "old": "normalize(images, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225])",
+      "new": "images",
+      "tests": [
+        "tests.test_method_extended_vos.TestComponents.test_pair_freezing_normalization_and_adapter_gradient"
+      ]
+    },
+    {
+      "label": "first training frame",
+      "file": "downstream/vos_data.py",
+      "old": "for t in range(len(row[\"frames\"]))",
+      "new": "for t in range(1, len(row[\"frames\"]))",
+      "tests": [
+        "tests.test_method_extended_vos.TestData.test_native_split_pairs_geometry_void_and_membership_identity"
+      ]
+    },
+    {
+      "label": "schema integer",
+      "file": "downstream/vos_data.py",
+      "old": "or type(obj[\"schema_version\"]) is not int",
+      "new": "or False",
+      "tests": [
+        "tests.test_method_extended_vos.TestData.test_schema_path_escape_and_incomplete_sequence_rejected"
+      ]
+    },
+    {
+      "label": "image split leakage",
+      "file": "downstream/vos_data.py",
+      "old": "if digest in images and images[digest] != split:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_extended_vos.TestData.test_cross_split_names_and_images_must_be_independent"
+      ]
+    },
+    {
+      "label": "asset hash binding",
+      "file": "downstream/vos_data.py",
+      "old": "key, digest]",
+      "new": "key, \"constant\"]",
+      "tests": [
+        "tests.test_method_extended_vos.TestData.test_native_split_pairs_geometry_void_and_membership_identity"
+      ]
+    },
+    {
+      "label": "new mask objects",
+      "file": "downstream/vos_data.py",
+      "old": "if not np.isin(_mask(image), [0, 255] + objects).all():",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_extended_vos.TestData.test_unknown_objects_palette_shapes_and_missing_frames_rejected"
+      ]
+    },
+    {
+      "label": "repeated assets",
+      "file": "downstream/vos_data.py",
+      "old": "if key in seen:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_extended_vos.TestData.test_schema_path_escape_and_incomplete_sequence_rejected"
+      ]
+    },
+    {
+      "label": "native CLI overwrite",
+      "file": "downstream/vos_data.py",
+      "old": "Path(args.out).open(\"x\")",
+      "new": "Path(args.out).open(\"w\")",
+      "tests": [
+        "tests.test_method_extended_vos.TestData.test_native_cli_preserves_existing_manifest"
+      ]
+    },
+    {
+      "label": "PC59 ontology",
+      "file": "downstream/context_membership.py",
+      "old": "rows.get(i) != n",
+      "new": "False",
+      "tests": [
+        "tests.test_context_membership.TestContext.test_swapped_names_unknown_ids_and_missing_labelmap_fail_before_output"
+      ]
+    },
+    {
+      "label": "native label mapping",
+      "file": "downstream/context_membership.py",
+      "old": "NATIVE_IDS.index(i) if i in NATIVE_IDS else 255",
+      "new": "0 if i in NATIVE_IDS else 255",
+      "tests": [
+        "tests.test_context_membership.TestContext.test_mapping_staging_and_real_semantic_loader"
+      ]
+    },
+    {
+      "label": "native split population",
+      "file": "downstream/context_membership.py",
+      "old": "if len(listed) != expected:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_context_membership.TestContext.test_population_paths_and_cli_fail_closed"
+      ]
+    },
+    {
+      "label": "Context image leakage",
+      "file": "downstream/context_membership.py",
+      "old": "if digest in images and images[digest] != split:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_context_membership.TestContext.test_lists_are_main_not_segmentation_and_independence_is_enforced"
+      ]
+    },
+    {
+      "label": "Context native integer targets",
+      "file": "downstream/context_membership.py",
+      "old": "or target.dtype.kind not in \"iu\"",
+      "new": "or False",
+      "tests": [
+        "tests.test_context_membership.TestContext.test_swapped_names_unknown_ids_and_missing_labelmap_fail_before_output"
+      ]
+    },
+    {
+      "label": "complete Mapillary join",
+      "file": "downstream/mapillary_membership.py",
+      "old": "if set(a) != set(b) or len(a) != count:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_mapillary_membership.TestMapillary.test_release_counts_and_cli_refuse_truncated_population"
+      ]
+    },
+    {
+      "label": "Mapillary prefix truncation",
+      "file": "downstream/mapillary_membership.py",
+      "old": "for ident in sorted(a):",
+      "new": "for ident in sorted(a)[:1]:",
+      "tests": [
+        "tests.test_mapillary_membership.TestMapillary.test_all_listed_pairs_and_class65_are_preserved"
+      ]
+    },
+    {
+      "label": "Mapillary byte independence",
+      "file": "downstream/mapillary_membership.py",
+      "old": "if digest in seen and seen[digest] != split:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_mapillary_membership.TestMapillary.test_incomplete_join_invalid_target_and_image_leakage_fail"
+      ]
+    },
+    {
+      "label": "Mapillary ontology IDs",
+      "file": "downstream/mapillary_membership.py",
+      "old": "or not np.isin(array, list(range(66)) + [255]).all()",
+      "new": "or False",
+      "tests": [
+        "tests.test_mapillary_membership.TestMapillary.test_incomplete_join_invalid_target_and_image_leakage_fail"
+      ]
+    },
+    {
+      "label": "Context output protection",
+      "file": "downstream/context_membership.py",
+      "old": "if out.exists():",
+      "new": "if False:",
+      "tests": [
+        "tests.test_context_membership.TestContext.test_mapping_staging_and_real_semantic_loader"
+      ]
+    },
+    {
+      "label": "required native CI",
+      "file": ".github/workflows/tests.yml",
+      "old": "            tests.test_method_extended_vos tests.test_context_membership tests.test_mapillary_membership \\\n",
+      "new": "",
+      "tests": [
+        "tests.test_method_extended_vos.TestDelivery.test_guides_examples_and_ci_deliver_all_three_paths"
+      ]
+    }
+  ]
+}
