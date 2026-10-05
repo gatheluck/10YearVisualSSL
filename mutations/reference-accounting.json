@@ -1,0 +1,355 @@
+{
+  "targets": [
+    {
+      "label": "duplicate JSON",
+      "file": "downstream/reference_accounting.py",
+      "old": "if key in result:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_reference_accounting.ReferenceAccounting"
+      ]
+    },
+    {
+      "label": "nonfinite JSON",
+      "file": "downstream/reference_accounting.py",
+      "old": "parse_constant=invalid_constant",
+      "new": "parse_constant=lambda _: None",
+      "tests": [
+        "tests.test_reference_accounting.ReferenceAccounting"
+      ]
+    },
+    {
+      "label": "object root",
+      "file": "downstream/reference_accounting.py",
+      "old": "if not isinstance(value, dict):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_reference_accounting.ReferenceAccounting"
+      ]
+    },
+    {
+      "label": "pinned hash",
+      "file": "downstream/reference_accounting.py",
+      "old": "if hashlib.sha256(raw).hexdigest() != sha:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_reference_accounting.ReferenceAccounting"
+      ]
+    },
+    {
+      "label": "cell identifier",
+      "file": "downstream/reference_accounting.py",
+      "old": "if not isinstance(cell[\"cell_id\"], str) or not cell[\"cell_id\"].strip():",
+      "new": "if False:",
+      "tests": [
+        "tests.test_reference_accounting.ReferenceAccounting"
+      ]
+    },
+    {
+      "label": "positive population",
+      "file": "downstream/reference_accounting.py",
+      "old": "if not positive(cell[\"epochs\"]) or not positive(cell[\"evaluation_count\"]):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_reference_accounting.ReferenceAccounting"
+      ]
+    },
+    {
+      "label": "reference fields",
+      "file": "downstream/reference_accounting.py",
+      "old": "if not isinstance(identity, dict) or not IDENTITY <= identity.keys():",
+      "new": "if False:",
+      "tests": [
+        "tests.test_reference_accounting.ReferenceAccounting"
+      ]
+    },
+    {
+      "label": "track scope",
+      "file": "downstream/reference_accounting.py",
+      "old": "if identity[\"track\"] not in (\"LINEAR\", \"ATTENTIVE\"):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_reference_accounting.ReferenceAccounting"
+      ]
+    },
+    {
+      "label": "null identity",
+      "file": "downstream/reference_accounting.py",
+      "old": "if any(identity[k] is None for k in IDENTITY):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_reference_accounting.ReferenceAccounting"
+      ]
+    },
+    {
+      "label": "unknown or failed exit",
+      "file": "downstream/reference_accounting.py",
+      "old": "if type(run[\"exit_status\"]) is not int or run[\"exit_status\"] != 0:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_reference_accounting.ReferenceAccounting"
+      ]
+    },
+    {
+      "label": "result completion disagreement",
+      "file": "downstream/reference_accounting.py",
+      "old": "if canonical(result) != canonical(completion):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_reference_accounting.ReferenceAccounting"
+      ]
+    },
+    {
+      "label": "completion status",
+      "file": "downstream/reference_accounting.py",
+      "old": "if result.get(\"status\") != \"COMPLETED_VALID\":",
+      "new": "if False:",
+      "tests": [
+        "tests.test_reference_accounting.ReferenceAccounting"
+      ]
+    },
+    {
+      "label": "result seed",
+      "file": "downstream/reference_accounting.py",
+      "old": "if type(result.get(\"seed\")) is not int or result[\"seed\"] != run[\"seed\"]:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_reference_accounting.ReferenceAccounting"
+      ]
+    },
+    {
+      "label": "reference identity",
+      "file": "downstream/reference_accounting.py",
+      "old": "if key not in result or canonical(result[key]) != canonical(expected):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_reference_accounting.ReferenceAccounting"
+      ]
+    },
+    {
+      "label": "protocol aliases",
+      "file": "downstream/reference_accounting.py",
+      "old": "if result.get(\"protocol\") != cell[\"identity\"][\"protocol_id\"]:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_reference_accounting.ReferenceAccounting"
+      ]
+    },
+    {
+      "label": "final epochs",
+      "file": "downstream/reference_accounting.py",
+      "old": "if type(value) is not int or value != cell[\"epochs\"]:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_reference_accounting.ReferenceAccounting"
+      ]
+    },
+    {
+      "label": "final selection",
+      "file": "downstream/reference_accounting.py",
+      "old": "if result.get(\"final_epoch_only\") is not True:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_reference_accounting.ReferenceAccounting"
+      ]
+    },
+    {
+      "label": "evaluation population",
+      "file": "downstream/reference_accounting.py",
+      "old": "or metrics[\"n\"] != cell[\"evaluation_count\"]",
+      "new": "or False",
+      "tests": [
+        "tests.test_reference_accounting.ReferenceAccounting"
+      ]
+    },
+    {
+      "label": "numeric score",
+      "file": "downstream/reference_accounting.py",
+      "old": "if type(score) not in (int, float) or not math.isfinite(score):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_reference_accounting.ReferenceAccounting"
+      ]
+    },
+    {
+      "label": "explicit metric",
+      "file": "downstream/reference_accounting.py",
+      "old": "metrics.get(cell[\"metric\"][\"field\"])",
+      "new": "metrics.get(\"primary\")",
+      "tests": [
+        "tests.test_reference_accounting.ReferenceAccounting"
+      ]
+    },
+    {
+      "label": "duplicate cell",
+      "file": "downstream/reference_accounting.py",
+      "old": "if cell[\"cell_id\"] in identifiers:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_reference_accounting.ReferenceAccounting"
+      ]
+    },
+    {
+      "label": "deterministic seed order",
+      "file": "downstream/reference_accounting.py",
+      "old": "valid.sort(key=lambda item: item[\"seed\"])",
+      "new": "valid.sort(key=lambda item: -item[\"seed\"])",
+      "tests": [
+        "tests.test_reference_accounting.ReferenceAccounting"
+      ]
+    },
+    {
+      "label": "actual completion",
+      "file": "downstream/reference_accounting.py",
+      "old": "len(valid) == len(cell[\"expected_seeds\"])",
+      "new": "True",
+      "tests": [
+        "tests.test_reference_accounting.ReferenceAccounting"
+      ]
+    },
+    {
+      "label": "missing seed accounting",
+      "file": "downstream/reference_accounting.py",
+      "old": "set(cell[\"expected_seeds\"]) - seen",
+      "new": "set()",
+      "tests": [
+        "tests.test_reference_accounting.ReferenceAccounting"
+      ]
+    },
+    {
+      "label": "paper verification",
+      "file": "downstream/reference_accounting.py",
+      "old": "\"paper_score_verified\": False",
+      "new": "\"paper_score_verified\": True",
+      "tests": [
+        "tests.test_reference_accounting.ReferenceAccounting"
+      ]
+    },
+    {
+      "label": "source privacy",
+      "file": "downstream/reference_accounting.py",
+      "old": "\"valid_runs\": valid",
+      "new": "\"source_identity\": cell[\"identity\"], \"source_runs\": cell[\"runs\"], \"valid_runs\": valid",
+      "tests": [
+        "tests.test_reference_accounting.ReferenceAccounting"
+      ]
+    },
+    {
+      "label": "plan evidence",
+      "file": "downstream/reference_accounting.py",
+      "old": "hashlib.sha256(canonical(plan)).hexdigest()",
+      "new": "\"unbound\"",
+      "tests": [
+        "tests.test_reference_accounting.ReferenceAccounting"
+      ]
+    },
+    {
+      "label": "output preservation",
+      "file": "downstream/reference_accounting.py",
+      "old": "Path(args.out).open(\"x\")",
+      "new": "Path(args.out).open(\"w\")",
+      "tests": [
+        "tests.test_reference_accounting.ReferenceAccounting"
+      ]
+    },
+    {
+      "label": "shared sample variance",
+      "file": "downstream/accounting.py",
+      "old": "statistics.stdev(values)",
+      "new": "statistics.pstdev(values)",
+      "tests": [
+        "tests.test_reference_accounting.Summaries"
+      ]
+    },
+    {
+      "label": "pinned schema 0",
+      "file": "downstream/reference_accounting.py",
+      "old": "    if not isinstance(descriptor, dict) or set(descriptor) != {\"path\", \"sha256\"}:",
+      "new": "    if False:",
+      "tests": [
+        "tests.test_reference_accounting.ReferenceAccounting"
+      ]
+    },
+    {
+      "label": "validate_cell schema 0",
+      "file": "downstream/reference_accounting.py",
+      "old": "    if not isinstance(cell, dict) or set(cell) != required:",
+      "new": "    if False:",
+      "tests": [
+        "tests.test_reference_accounting.ReferenceAccounting"
+      ]
+    },
+    {
+      "label": "validate_cell schema 6",
+      "file": "downstream/reference_accounting.py",
+      "old": "    if (\n        not isinstance(identity[\"checkpoint_identity\"], dict)\n        or not identity[\"checkpoint_identity\"]\n    ):",
+      "new": "    if False:",
+      "tests": [
+        "tests.test_reference_accounting.ReferenceAccounting"
+      ]
+    },
+    {
+      "label": "validate_cell schema 7",
+      "file": "downstream/reference_accounting.py",
+      "old": "    if re.fullmatch(r\"[0-9a-f]{64}\", str(identity[\"protocol_sha256\"])) is None:",
+      "new": "    if False:",
+      "tests": [
+        "tests.test_reference_accounting.ReferenceAccounting"
+      ]
+    },
+    {
+      "label": "validate_cell schema 8",
+      "file": "downstream/reference_accounting.py",
+      "old": "    if (\n        not isinstance(metric, dict)\n        or set(metric) != {\"field\", \"name\", \"unit\", \"direction\"}\n        or any(not isinstance(v, str) or not v.strip() for v in metric.values())\n        or metric[\"direction\"] not in (\"higher\", \"lower\")\n    ):",
+      "new": "    if False:",
+      "tests": [
+        "tests.test_reference_accounting.ReferenceAccounting"
+      ]
+    },
+    {
+      "label": "validate_cell schema 9",
+      "file": "downstream/reference_accounting.py",
+      "old": "    if not isinstance(cell[\"runs\"], list):",
+      "new": "    if False:",
+      "tests": [
+        "tests.test_reference_accounting.ReferenceAccounting"
+      ]
+    },
+    {
+      "label": "audit schema 0",
+      "file": "downstream/reference_accounting.py",
+      "old": "    if (\n        not isinstance(plan, dict)\n        or set(plan) != {\"schema_version\", \"cells\"}\n        or type(plan[\"schema_version\"]) is not int\n        or plan[\"schema_version\"] != 1\n        or not isinstance(plan[\"cells\"], list)\n        or not plan[\"cells\"]\n    ):",
+      "new": "    if False:",
+      "tests": [
+        "tests.test_reference_accounting.ReferenceAccounting"
+      ]
+    },
+    {
+      "label": "canonical_eligible",
+      "file": "downstream/reference_accounting.py",
+      "old": "\"canonical_eligible\": False",
+      "new": "\"canonical_eligible\": True",
+      "tests": [
+        "tests.test_reference_accounting.ReferenceAccounting"
+      ]
+    },
+    {
+      "label": "record_value",
+      "file": "downstream/reference_accounting.py",
+      "old": "\"record_value\": False",
+      "new": "\"record_value\": True",
+      "tests": [
+        "tests.test_reference_accounting.ReferenceAccounting"
+      ]
+    },
+    {
+      "label": "blank input rejection",
+      "file": "downstream/reference_accounting.py",
+      "old": "if \"n_all_zero_clips\" in metrics and (",
+      "new": "if False and (",
+      "tests": [
+        "tests.test_reference_accounting.ReferenceAccounting"
+      ]
+    }
+  ]
+}
