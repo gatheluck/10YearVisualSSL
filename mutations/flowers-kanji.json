@@ -1,0 +1,184 @@
+{
+  "targets": [
+    {
+      "label": "MAT unreadable normalized diagnostic",
+      "file": "downstream/flowers_membership.py",
+      "old": "raise ValueError(\"unreadable MAT annotation\") from exc",
+      "new": "raise RuntimeError(\"unreadable MAT annotation\") from exc",
+      "tests": [
+        "tests.test_extended_flowers_kanji.Membership"
+      ]
+    },
+    {
+      "label": "MAT required field diagnostic",
+      "file": "downstream/flowers_membership.py",
+      "old": "raise ValueError(\"missing annotation field\")",
+      "new": "raise RuntimeError(\"missing annotation field\")",
+      "tests": [
+        "tests.test_extended_flowers_kanji.Membership"
+      ]
+    },
+    {
+      "label": "MAT integer validation",
+      "file": "downstream/flowers_membership.py",
+      "old": "if not values or any(type(v) is not int or v < 1 for v in values):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_flowers_kanji.Membership"
+      ]
+    },
+    {
+      "label": "label population",
+      "file": "downstream/flowers_membership.py",
+      "old": "if len(labels) != counts[0] * 2 + counts[1]:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_flowers_kanji.Membership"
+      ]
+    },
+    {
+      "label": "label range",
+      "file": "downstream/flowers_membership.py",
+      "old": "if any(v > counts[2] for v in labels):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_flowers_kanji.Membership"
+      ]
+    },
+    {
+      "label": "duplicate membership",
+      "file": "downstream/flowers_membership.py",
+      "old": "if len(ids) != len(set(ids)):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_flowers_kanji.Membership"
+      ]
+    },
+    {
+      "label": "complete ID coverage",
+      "file": "downstream/flowers_membership.py",
+      "old": "if set(ids) != set(range(1, len(labels) + 1)):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_flowers_kanji.Membership"
+      ]
+    },
+    {
+      "label": "excluded valid population",
+      "file": "downstream/flowers_membership.py",
+      "old": "if len(parts[\"valid\"]) != counts[0]:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_flowers_kanji.Membership"
+      ]
+    },
+    {
+      "label": "all split vocabularies",
+      "file": "downstream/flowers_membership.py",
+      "old": "if set(targets) != set(range(1, counts[2] + 1)):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_flowers_kanji.Membership"
+      ]
+    },
+    {
+      "label": "release quota",
+      "file": "downstream/flowers_membership.py",
+      "old": "if not fixture and split != \"test\" and set(Counter(targets).values()) != {10}:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_flowers_kanji.Membership"
+      ]
+    },
+    {
+      "label": "excluded validation existence",
+      "file": "downstream/flowers_membership.py",
+      "old": "            file_at(root, name)",
+      "new": "            if split != \"valid\":\n                file_at(root, name)",
+      "tests": [
+        "tests.test_extended_flowers_kanji.Membership"
+      ]
+    },
+    {
+      "label": "excluded valid never staged",
+      "file": "downstream/flowers_membership.py",
+      "old": "if split != \"valid\":",
+      "new": "if True:",
+      "tests": [
+        "tests.test_extended_flowers_kanji.Membership"
+      ]
+    },
+    {
+      "label": "class-index origin",
+      "file": "downstream/flowers_membership.py",
+      "old": "\"target\": labels[ident - 1] - 1,",
+      "new": "\"target\": labels[ident - 1],",
+      "tests": [
+        "tests.test_extended_flowers_kanji.Membership"
+      ]
+    },
+    {
+      "label": "stable annotation order",
+      "file": "downstream/flowers_membership.py",
+      "old": "for ident in sorted(values):",
+      "new": "for ident in values:",
+      "tests": [
+        "tests.test_extended_flowers_kanji.Membership"
+      ]
+    },
+    {
+      "label": "protocol difference disclosed",
+      "file": "downstream/flowers_membership.py",
+      "old": "\"protocol_split_conflict\": True,",
+      "new": "\"protocol_split_conflict\": False,",
+      "tests": [
+        "tests.test_extended_flowers_kanji.Membership"
+      ]
+    },
+    {
+      "label": "Kanji unicode vocabulary",
+      "file": "downstream/prepared_images.py",
+      "old": "else r\"U\\+[0-9A-F]{4,6}\"",
+      "new": "else None",
+      "tests": [
+        "tests.test_extended_flowers_kanji.Membership"
+      ]
+    },
+    {
+      "label": "Kanji evaluated population quota",
+      "file": "downstream/prepared_images.py",
+      "old": "\"kuzushiji_kanji\": (None, 5),",
+      "new": "\"kuzushiji_kanji\": (None, None),",
+      "tests": [
+        "tests.test_extended_flowers_kanji.Membership"
+      ]
+    },
+    {
+      "label": "Kanji observed training population",
+      "file": "downstream/prepared_images.py",
+      "old": "\"kuzushiji_kanji\": (126551, 9830, 1966),",
+      "new": "\"kuzushiji_kanji\": (126550, 9830, 1966),",
+      "tests": [
+        "tests.test_extended_flowers_kanji.Delivery.test_profiles_pin_observed_populations_used_by_documented_cli"
+      ]
+    },
+    {
+      "label": "Kanji historical boundary",
+      "file": "downstream/prepared_images.py",
+      "old": "\"historical_membership_verified\": False,",
+      "new": "\"historical_membership_verified\": True,",
+      "tests": [
+        "tests.test_extended_flowers_kanji.Membership"
+      ]
+    },
+    {
+      "label": "Kanji transform boundary",
+      "file": "downstream/prepared_images.py",
+      "old": "\"transform_reference\": \"captured_small_crop_v1\",",
+      "new": "\"transform_reference\": \"captured_rgb_rrc_v1\",",
+      "tests": [
+        "tests.test_extended_flowers_kanji.Membership"
+      ]
+    }
+  ]
+}

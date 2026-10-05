@@ -11,6 +11,7 @@ COUNTS = {
     "imagenet_1percent": (12811, 50000, 1000),
     "imagenet_10percent": (128116, 50000, 1000),
     "omniglot15": (24345, 8115, 1623),
+    "kuzushiji_kanji": (126551, 9830, 1966),
 }
 QUOTAS = {
     "action40": (100, None),
@@ -20,6 +21,7 @@ QUOTAS = {
     "imagenet_1percent": (None, 50),
     "imagenet_10percent": (None, 50),
     "omniglot15": (15, 5),
+    "kuzushiji_kanji": (None, 5),
 }
 SUBSETS = {"imagenet_1percent", "imagenet_10percent"}
 LOCAL_IDS = {"cifar10", "cifar100", "kmnist"}
@@ -60,6 +62,8 @@ def membership(dataset, root, counts, *, fixture, eval_root=None):
         if dataset in SUBSETS
         else r"[0-9]"
         if dataset == "kmnist"
+        else r"U\+[0-9A-F]{4,6}"
+        if dataset == "kuzushiji_kanji"
         else None
     )
     if pattern and not all(re.fullmatch(pattern, c) for c in classes):
@@ -111,7 +115,19 @@ def membership(dataset, root, counts, *, fixture, eval_root=None):
             else "unverified",
             "transform_reference": "captured_rgb_rrc_v1",
             "small_image_recipe_conflict": dataset in LOCAL_IDS
-            or dataset == "omniglot15",
+            or dataset in {"omniglot15", "kuzushiji_kanji"},
+            **(
+                {
+                    "count_basis": "observed prepared benchmark; not the unsplit publisher release",
+                    "historical_membership_verified": False,
+                    "evaluation_per_class": 5,
+                    "membership_profile": "observed_kanji_1966_v1",
+                    "transform_reference": "captured_small_crop_v1",
+                    "alternate_builder_transform": "captured_rgb_rrc_v1",
+                }
+                if dataset == "kuzushiji_kanji"
+                else {}
+            ),
         },
         {},
     )

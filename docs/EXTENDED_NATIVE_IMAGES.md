@@ -1,7 +1,7 @@
 # Native image inputs
 
 See [package scope](SUBMISSION_SCOPE.md). These converters connect six reported
-CLUE/SUN397 datasets and seven prepared-folder datasets in Tables 39–40 to the
+CLUE/SUN397 datasets, eight prepared-folder datasets and Flowers102 in Tables 39–40 to the
 existing five-provider [image LP/AP runner](EXTENDED_CLASSIFICATION.md).
 They preserve the inspected experimental memberships. They do not certify the
 paper's scores, upstream release authenticity or statistical independence.
@@ -35,7 +35,7 @@ or full training has been run on every current cluster input.
 
 ## Prepared train/val inputs
 
-The same CLI additionally accepts these seven dataset identifiers:
+The same CLI additionally accepts these eight dataset identifiers:
 
 | Dataset | Training | Evaluation | Classes | Per-class train / evaluation |
 | --- | ---: | ---: | ---: | --- |
@@ -46,6 +46,7 @@ The same CLI additionally accepts these seven dataset identifiers:
 | imagenet_1percent | 12,811 | 50,000 | 1,000 | variable / 50 |
 | imagenet_10percent | 128,116 | 50,000 | 1,000 | variable / 50 |
 | omniglot15 | 24,345 | 8,115 | 1,623 | 15 / 5 |
+| kuzushiji_kanji | 126,551 | 9,830 | 1,966 | variable / 5 |
 
 Provide `train/class/image` and `val/class/image`. Both splits must contain the
 same complete vocabulary. Sorted class names define labels and path order;
@@ -53,7 +54,7 @@ CIFAR-100 requires fine classes, KMNIST one-digit class names, and ImageNet
 `n` followed by eight digits. Unknown files, nested images, empty classes,
 selected symlinks, wrong counts and corrupt images are refused. `.DS_Store` is
 ignored. CIFAR/KMNIST filenames are split-local array indices; the other four
-profiles reject a repeated `class/filename` across splits. Identical bytes under
+original profiles and Kanji reject a repeated `class/filename` across splits. Identical bytes under
 different valid identities are preserved and disclosed, matching the inspected
 membership rule. Byte overlap does not establish independent samples.
 
@@ -78,12 +79,50 @@ relative names and training/evaluation roles, never the absolute input roots.
 
 Use the [prepared-image training example](examples/extended_prepared_images.json)
 after staging. The captured folder builders use `captured_rgb_rrc_v1` for all
-seven datasets. For CIFAR-10/100, KMNIST and Omniglot15 this differs from the
+original seven datasets. For CIFAR-10/100, KMNIST and Omniglot15 this differs from the
 registry's small-image augmentation recipe. The evidence explicitly flags that
 conflict. Neither transform profile is silently declared the historical paper
-recipe; selecting another profile requires independent run evidence. Flowers102
-split reconciliation and Kuzushiji-Kanji's class/membership ambiguity remain
-outside this port.
+recipe; selecting another profile requires independent run evidence.
+
+### Observed Kuzushiji-Kanji benchmark
+
+Kanji additionally requires class names matching `U+` and four to six uppercase
+hexadecimal digits. Counts above were measured across the actual prepared
+benchmark on October 5, not inferred from three sampled classes or the unsplit
+3,832-class publisher release. Both vocabularies agree; every evaluation class
+contains five images. Training counts vary and no new 90/10 split is generated.
+
+Original result records point to this data location and have evaluation n=9,830.
+Nine of ten LP/AP values round to the final tables; the remaining LP value is
+0.295015... versus printed 0.29. This is evidence of a candidate run association,
+not proof that today's image bytes equal the historical training inputs.
+Partition creation, upstream provenance and historical membership hashes remain
+unverified. Evidence explicitly retains these limits and all observed byte overlap.
+
+The [Kanji training example](examples/extended_kuzushiji_kanji.json) selects
+`captured_small_crop_v1`, matching the generic captured small-image loader and
+registry recipe. A later folder builder uses RGB random-resized crop and still
+refuses production without membership pins. Its fixture availability is not a
+historical transform certification. Both reference profiles remain named in the
+staging evidence; the example does not resolve which produced the paper scores.
+
+## Flowers102: recorded train-only membership
+
+Use `dataset: flowers102` with `setid.mat`, `imagelabels.mat` and `jpg/`.
+The `observed_flowers_trnid_v1` profile selects 1,020 `trnid` images for training
+and 6,149 `tstid` images for evaluation, with 102 numeric classes in one-based
+annotation order (portable labels are zero-based). The 1,020 `valid` IDs are
+checked for counts, class coverage, disjointness and listed-file existence,
+but are never trained on or staged. All three sets must partition every label ID.
+Train and valid each require ten images per class. Prepared `train/val/test`
+folders are ignored, even if present. Selected image bytes are preserved.
+
+Read-only inspection found ten original LP/AP records matching the final printed
+Flowers scores; all record `trnid`/`tstid` and the counts above. The supplied
+registry instead declares train+validation. This port makes the recorded profile
+executable and flags that contradiction; it neither rewrites the historical
+protocol nor claims both conditions are equivalent. See the
+[Flowers training example](examples/extended_flowers102.json).
 
 ## CLUE membership and overlap
 
@@ -136,7 +175,7 @@ The converter does not alter optimizer, schedule or model behavior.
 
 Tests cover native membership, source-specific overlap policy, label order,
 hashes, malformed inputs, write failures and actual reduced LP/AP training on all
-six CLUE/SUN identifiers and seven prepared-folder identifiers. Reference
+six CLUE/SUN identifiers, eight prepared-folder identifiers and Flowers102. Reference
 comparisons, mutations and regression results
 are recorded separately in the PR. Full-data/released-weight GPU measurements and
 historical result attribution remain unverified. Results retain

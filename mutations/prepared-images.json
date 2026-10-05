@@ -93,7 +93,7 @@
     {
       "label": "recipe conflict disclosure",
       "file": "downstream/prepared_images.py",
-      "old": "dataset in LOCAL_IDS\n            or dataset == \"omniglot15\"",
+      "old": "dataset in LOCAL_IDS\n            or dataset in {\"omniglot15\", \"kuzushiji_kanji\"}",
       "new": "False",
       "tests": [
         "tests.test_extended_prepared_images.PreparedImages"

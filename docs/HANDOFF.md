@@ -12,6 +12,25 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-10-05: observed Flowers and Kanji memberships
+
+PR 223 merged as `9889083`; all 115 checks succeeded. Main matches the validated
+tree. Existing video-submodule changes remain unrelated and preserved.
+
+The [native image guide](EXTENDED_NATIVE_IMAGES.md) adds Flowers `trnid`-only
+membership and the observed Kanji 1,966-class train/val benchmark to image LP/AP.
+Behavioral RED precedes implementation. Record reference parity, regressions,
+mutations and push/CI outcomes in the PR. No compute job or original mutation is
+implied by component tests. The registry conflict, transform attribution and
+historical image-byte identity remain explicit, not guessed.
+
+Read-only follow-up found newer table-to-run audit material beyond the capture
+snapshot. Its PDF fingerprint differs from the supplied final PDF; do not adopt
+its conclusions without checking the actual rows. Some BasicFive records remain
+permission-denied. Frontier sample-level artifacts were not located in bounded
+accessible searches, which does not prove cluster-wide absence. Private paths,
+source copies, numeric comparisons and data inventories remain outside Git.
+
 ### 2026-10-05: historical Extended accounting
 
 PR 222 merged as `a0e448f`; all 115 checks succeeded. Main has the same tree
