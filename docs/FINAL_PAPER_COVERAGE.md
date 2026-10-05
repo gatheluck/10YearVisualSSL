@@ -7,7 +7,7 @@ research history. See [terminology](PAPER_TERMINOLOGY.md) and
 [submission scope](SUBMISSION_SCOPE.md). Private manuscript/source fingerprints
 and run evidence remain outside Git.
 
-Updated 2026-10-04 for structured-task LP/AP integration. Remaining priorities
+Updated 2026-10-05 for DAVIS and native image/semantic input integration. Remaining priorities
 below distinguish executable component support from actual result reproduction.
 
 **The portable package does not yet reproduce the entire paper.** Original
@@ -59,7 +59,10 @@ availability does not establish complete native-video or paper-score coverage.
    CUB-200-2011/DTD/Aircraft annotation conversion, extended on September 30 with
    Food-101/Pets/IP102/MIT Indoor-67 annotation conversion, followed by Cars MAT
    annotation conversion and lossless MNIST IDX staging. This addresses the common
-   path used by 24 image-classification rows, not 24 independently validated
+   path used by 24 image-classification rows. The October 5
+   [CLUE/SUN397 staging](EXTENDED_NATIVE_IMAGES.md) adds five CLUE source splits
+   and the SUN397 split-1 redistribution, including source-specific overlap
+   disclosure and content verification. This does not establish 24 independently validated
    dataset ports or reproduced scores. [Semantic LP/AP](EXTENDED_SEGMENTATION.md)
    now adds five-provider spatial heads/adapters, 224-grid metrics and native
    ADE/VOC/BDD membership conversion. It is relevant to five reported semantic

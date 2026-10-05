@@ -12,6 +12,22 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-10-05: six native image inputs
+
+PR 220 merged as `2615bfd`; all 115 checks succeeded. Pulled main has the same
+tree as the validated PR. Existing video-submodule edits remain preserved.
+
+[CLUE/SUN397 staging](EXTENDED_NATIVE_IMAGES.md) adds the five CLUE categories and
+SUN397 redistribution to the existing image LP/AP runner. Selected current
+builders match their captured counterparts; other changes in dispatch/transform
+files are not claimed as whole-file parity. Original memberships, label order
+and source-specific overlap disclosure remain explicit. Upstream SUN filename
+identity and historical score attribution remain unverified.
+
+Behavioral RED preceded the native converters and reference-boundary corrections.
+Record later mutation-verified controls, reference comparisons, gates and CI in
+the PR. No compute job was submitted and no original input was modified.
+
 ### 2026-10-05: video segmentation and semantic input integration
 
 PR 219 merged as `76e89b8`; all 115 checks succeeded. Pulled main matches the

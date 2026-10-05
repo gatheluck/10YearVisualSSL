@@ -1,0 +1,310 @@
+{
+  "targets": [
+    {
+      "label": "relative parent traversal",
+      "file": "downstream/native_images.py",
+      "old": "or any(p in (\"\", \".\", \"..\") for p in name.split(\"/\"))",
+      "new": "or False",
+      "tests": [
+        "tests.test_extended_native_images.NativeImages"
+      ]
+    },
+    {
+      "label": "JSON duplicates",
+      "file": "downstream/native_images.py",
+      "old": "if key in result:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_native_images.NativeImages"
+      ]
+    },
+    {
+      "label": "submission identity",
+      "file": "downstream/native_images.py",
+      "old": "groups[sp].add(match[1])",
+      "new": "groups[sp].add(name)",
+      "tests": [
+        "tests.test_extended_native_images.NativeImages"
+      ]
+    },
+    {
+      "label": "unknown submission IDs",
+      "file": "downstream/native_images.py",
+      "old": "unknown[sp] += 1",
+      "new": "unknown[sp] += 0",
+      "tests": [
+        "tests.test_extended_native_images.NativeImages"
+      ]
+    },
+    {
+      "label": "CLUE class vocabulary",
+      "file": "downstream/native_images.py",
+      "old": "if len(classes) != counts[2]:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_native_images.NativeImages"
+      ]
+    },
+    {
+      "label": "CLUE evaluation vocabulary",
+      "file": "downstream/native_images.py",
+      "old": "if cls not in classes:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_native_images.NativeImages"
+      ]
+    },
+    {
+      "label": "SUN schema",
+      "file": "downstream/native_images.py",
+      "old": "if not isinstance(r, dict) or not required <= r.keys():",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_native_images.NativeImages"
+      ]
+    },
+    {
+      "label": "SUN integer labels",
+      "file": "downstream/native_images.py",
+      "old": "if type(label) is not int or not 0 <= label < counts[2]:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_native_images.NativeImages"
+      ]
+    },
+    {
+      "label": "SUN class names",
+      "file": "downstream/native_images.py",
+      "old": "if not isinstance(cls, str) or not cls.strip() or cls != cls.strip():",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_native_images.NativeImages"
+      ]
+    },
+    {
+      "label": "SUN stable ontology",
+      "file": "downstream/native_images.py",
+      "old": "if names.get(label, cls) != cls:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_native_images.NativeImages"
+      ]
+    },
+    {
+      "label": "SUN explicit split",
+      "file": "downstream/native_images.py",
+      "old": "if sp not in (\"train\", \"test\"):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_native_images.NativeImages"
+      ]
+    },
+    {
+      "label": "SUN SHA syntax",
+      "file": "downstream/native_images.py",
+      "old": "if not isinstance(sha, str) or re.fullmatch(\"[0-9a-f]{64}\", sha) is None:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_native_images.NativeImages"
+      ]
+    },
+    {
+      "label": "SUN member digest name",
+      "file": "downstream/native_images.py",
+      "old": "or PurePosixPath(member).stem != sha",
+      "new": "or False",
+      "tests": [
+        "tests.test_extended_native_images.NativeImages"
+      ]
+    },
+    {
+      "label": "SUN numeric bytes",
+      "file": "downstream/native_images.py",
+      "old": "if type(r[\"bytes\"]) is not int or r[\"bytes\"] < 1:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_native_images.NativeImages"
+      ]
+    },
+    {
+      "label": "SUN duplicate occurrence",
+      "file": "downstream/native_images.py",
+      "old": "if key in seen:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_native_images.NativeImages"
+      ]
+    },
+    {
+      "label": "SUN duplicate archive members",
+      "file": "downstream/native_images.py",
+      "old": "if item.name in index or not (item.isfile() or item.isdir()):",
+      "new": "if not (item.isfile() or item.isdir()):",
+      "tests": [
+        "tests.test_extended_native_images.NativeImages"
+      ]
+    },
+    {
+      "label": "SUN linked archive members",
+      "file": "downstream/native_images.py",
+      "old": "if item.name in index or not (item.isfile() or item.isdir()):",
+      "new": "if item.name in index:",
+      "tests": [
+        "tests.test_extended_native_images.NativeImages"
+      ]
+    },
+    {
+      "label": "SUN missing member",
+      "file": "downstream/native_images.py",
+      "old": "if member not in index or not index[member].isfile():",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_native_images.NativeImages"
+      ]
+    },
+    {
+      "label": "SUN byte length",
+      "file": "downstream/native_images.py",
+      "old": "if index[member].size != r[\"bytes\"]:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_native_images.NativeImages"
+      ]
+    },
+    {
+      "label": "SUN class completeness",
+      "file": "downstream/native_images.py",
+      "old": "if set(names) != set(range(counts[2])):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_native_images.NativeImages"
+      ]
+    },
+    {
+      "label": "SUN unique class names",
+      "file": "downstream/native_images.py",
+      "old": "if len(set(classes)) != len(classes):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_native_images.NativeImages"
+      ]
+    },
+    {
+      "label": "source output isolation",
+      "file": "downstream/native_images.py",
+      "old": "if out.resolve().is_relative_to(root):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_native_images.NativeImages"
+      ]
+    },
+    {
+      "label": "fixture count types",
+      "file": "downstream/native_images.py",
+      "old": "if len(counts) != 3 or any(type(n) is not int or n < 1 for n in counts):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_native_images.NativeImages"
+      ]
+    },
+    {
+      "label": "SUN original ordering",
+      "file": "downstream/native_images.py",
+      "old": "rows.sort(key=lambda r: r[\"archive\"] + \"/\" + r[\"member\"])",
+      "new": "rows.sort(key=lambda r: r[\"archive\"] + \"/\" + r[\"member\"], reverse=True)",
+      "tests": [
+        "tests.test_extended_native_images.NativeImages"
+      ]
+    },
+    {
+      "label": "full split population",
+      "file": "downstream/native_images.py",
+      "old": "if len(items) != expected:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_native_images.NativeImages"
+      ]
+    },
+    {
+      "label": "SUN split coverage",
+      "file": "downstream/native_images.py",
+      "old": "if dataset == \"sun397\" and {r[\"target\"] for r in items} != set(",
+      "new": "if False and {r[\"target\"] for r in items} != set(",
+      "tests": [
+        "tests.test_extended_native_images.NativeImages"
+      ]
+    },
+    {
+      "label": "SUN release quota",
+      "file": "downstream/native_images.py",
+      "old": "and set(Counter(r[\"target\"] for r in items).values()) != {50}",
+      "new": "and False",
+      "tests": [
+        "tests.test_extended_native_images.NativeImages"
+      ]
+    },
+    {
+      "label": "SUN actual content hash",
+      "file": "downstream/native_images.py",
+      "old": "if \"expected_sha256\" in row and sha != row[\"expected_sha256\"]:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_native_images.NativeImages"
+      ]
+    },
+    {
+      "label": "source overlap refusal",
+      "file": "downstream/native_images.py",
+      "old": "if overlap and dataset in {\"clue_footprint\", \"clue_stools\"}:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_native_images.NativeImages"
+      ]
+    },
+    {
+      "label": "source overlap count",
+      "file": "downstream/native_images.py",
+      "old": "len(content[\"train\"] & content[\"test\"])",
+      "new": "0",
+      "tests": [
+        "tests.test_extended_native_images.NativeImages"
+      ]
+    },
+    {
+      "label": "changed input protection",
+      "file": "downstream/native_images.py",
+      "old": "if digest(raw) != row[\"sha256\"]:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_native_images.NativeImages"
+      ]
+    },
+    {
+      "label": "CLI fixture boundary",
+      "file": "downstream/native_images.py",
+      "old": "if set(cfg) != {\"dataset\", \"data_root\"}:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_native_images.NativeImages"
+      ]
+    },
+    {
+      "label": "CLI full counts",
+      "file": "downstream/native_images.py",
+      "old": "convert(cfg[\"dataset\"], cfg[\"data_root\"], args.out)",
+      "new": "convert(cfg[\"dataset\"], cfg[\"data_root\"], args.out, fixture_counts=(2, 2, 2))",
+      "tests": [
+        "tests.test_extended_native_images.NativeImages"
+      ]
+    },
+    {
+      "label": "required CI",
+      "file": ".github/workflows/tests.yml",
+      "old": " tests.test_extended_native_images \\\n",
+      "new": " \\\n",
+      "tests": [
+        "tests.test_extended_native_images.Delivery"
+      ]
+    }
+  ]
+}
