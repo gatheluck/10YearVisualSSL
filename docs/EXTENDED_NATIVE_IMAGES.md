@@ -1,7 +1,8 @@
-# Native CLUE and SUN397 inputs
+# Native image inputs
 
 See [package scope](SUBMISSION_SCOPE.md). These converters connect six reported
-datasets in Tables 39–40 to the existing five-provider [image LP/AP runner](EXTENDED_CLASSIFICATION.md).
+CLUE/SUN397 datasets and seven prepared-folder datasets in Tables 39–40 to the
+existing five-provider [image LP/AP runner](EXTENDED_CLASSIFICATION.md).
 They preserve the inspected experimental memberships. They do not certify the
 paper's scores, upstream release authenticity or statistical independence.
 
@@ -31,6 +32,58 @@ only for reduced tests and is not accepted in CLI configuration.
 
 These are requirements from the inspected builders, not a claim that conversion
 or full training has been run on every current cluster input.
+
+## Prepared train/val inputs
+
+The same CLI additionally accepts these seven dataset identifiers:
+
+| Dataset | Training | Evaluation | Classes | Per-class train / evaluation |
+| --- | ---: | ---: | ---: | --- |
+| action40 | 4,000 | 5,532 | 40 | 100 / variable |
+| cifar10 | 50,000 | 10,000 | 10 | 5,000 / 1,000 |
+| cifar100 | 50,000 | 10,000 | 100 | 500 / 100 |
+| kmnist | 60,000 | 10,000 | 10 | 6,000 / 1,000 |
+| imagenet_1percent | 12,811 | 50,000 | 1,000 | variable / 50 |
+| imagenet_10percent | 128,116 | 50,000 | 1,000 | variable / 50 |
+| omniglot15 | 24,345 | 8,115 | 1,623 | 15 / 5 |
+
+Provide `train/class/image` and `val/class/image`. Both splits must contain the
+same complete vocabulary. Sorted class names define labels and path order;
+CIFAR-100 requires fine classes, KMNIST one-digit class names, and ImageNet
+`n` followed by eight digits. Unknown files, nested images, empty classes,
+selected symlinks, wrong counts and corrupt images are refused. `.DS_Store` is
+ignored. CIFAR/KMNIST filenames are split-local array indices; the other four
+profiles reject a repeated `class/filename` across splits. Identical bytes under
+different valid identities are preserved and disclosed, matching the inspected
+membership rule. Byte overlap does not establish independent samples.
+
+These inputs are **prepared experimental exports**. Counts do not authenticate
+upstream membership. No CIFAR pickle/IDX download or ImageNet subset sampling is
+performed. Omniglot15 is the provided 15/5-per-character benchmark, **not** the
+publisher's disjoint-alphabet background/evaluation partition. Source lists and
+their correspondence to final table runs remain unverified.
+
+ImageNet subsets may use a separate explicit evaluation root, containing `val`:
+
+```json
+{"dataset": "imagenet_1percent", "data_root": "/data/subset", "eval_data_root": "/data/imagenet"}
+```
+
+Only ImageNet subset profiles accept `eval_data_root`. The converter then reads
+only `train` from the subset and `val` from the evaluation root; an unused subset
+`val` symlink is not followed. This matches the inspected current builder's
+separate-root correction. Without that option, both splits must be real local
+directories. Output must be outside both source trees. `sources.json` records
+relative names and training/evaluation roles, never the absolute input roots.
+
+Use the [prepared-image training example](examples/extended_prepared_images.json)
+after staging. The captured folder builders use `captured_rgb_rrc_v1` for all
+seven datasets. For CIFAR-10/100, KMNIST and Omniglot15 this differs from the
+registry's small-image augmentation recipe. The evidence explicitly flags that
+conflict. Neither transform profile is silently declared the historical paper
+recipe; selecting another profile requires independent run evidence. Flowers102
+split reconciliation and Kuzushiji-Kanji's class/membership ambiguity remain
+outside this port.
 
 ## CLUE membership and overlap
 
@@ -83,7 +136,8 @@ The converter does not alter optimizer, schedule or model behavior.
 
 Tests cover native membership, source-specific overlap policy, label order,
 hashes, malformed inputs, write failures and actual reduced LP/AP training on all
-six dataset identifiers. Reference comparisons, mutations and regression results
+six CLUE/SUN identifiers and seven prepared-folder identifiers. Reference
+comparisons, mutations and regression results
 are recorded separately in the PR. Full-data/released-weight GPU measurements and
 historical result attribution remain unverified. Results retain
 `canonical_eligible: false` and `record_value: false`.

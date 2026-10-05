@@ -12,6 +12,25 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-10-05: seven prepared image inputs
+
+PR 221 merged as `c5e3ff7`; all 115 checks succeeded. Pulled main matches the
+previously validated tree. The unrelated dirty video submodule remains untouched.
+
+The [native image guide](EXTENDED_NATIVE_IMAGES.md) now includes Action40,
+CIFAR-10/100, KMNIST, ImageNet 1%/10% and Omniglot15. Current read-only source
+inspection found an ImageNet separate-evaluation-root correction beyond the
+captured version. The portable interface accepts an explicit evaluation root
+without following the unused subset symlink. No source is modified or sampled.
+
+Membership and label tests precede implementation; record mutation, reference
+comparison, integration and gate evidence in the PR. Prepared folders do not
+prove upstream membership or historical scores. Small-image augmentation differs
+between the supplied registry and inspected folder builders; keep that conflict
+explicit. Flowers102, Kuzushiji-Kanji, remaining task/recipe gaps and actual
+released-weight/full-data measurements remain pending. No cluster compute is
+implied by these CPU component checks.
+
 ### 2026-10-05: six native image inputs
 
 PR 220 merged as `2615bfd`; all 115 checks succeeded. Pulled main has the same

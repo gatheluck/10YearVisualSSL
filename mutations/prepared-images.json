@@ -1,0 +1,220 @@
+{
+  "targets": [
+    {
+      "label": "selected split symlink",
+      "file": "downstream/prepared_images.py",
+      "old": "if directory.is_symlink():",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_prepared_images.PreparedImages"
+      ]
+    },
+    {
+      "label": "missing split",
+      "file": "downstream/prepared_images.py",
+      "old": "if not directory.is_dir():",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_prepared_images.PreparedImages"
+      ]
+    },
+    {
+      "label": "selected file symlink",
+      "file": "downstream/prepared_images.py",
+      "old": "if path.is_symlink():",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_prepared_images.PreparedImages"
+      ]
+    },
+    {
+      "label": "layout",
+      "file": "downstream/prepared_images.py",
+      "old": "if len(name.split(\"/\")) != 3 or path.suffix.lower() not in SUFFIXES:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_prepared_images.PreparedImages"
+      ]
+    },
+    {
+      "label": "empty classes",
+      "file": "downstream/prepared_images.py",
+      "old": "if not found or directories != set(found.values()):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_prepared_images.PreparedImages"
+      ]
+    },
+    {
+      "label": "class count",
+      "file": "downstream/prepared_images.py",
+      "old": "if len(classes) != counts[2]:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_prepared_images.PreparedImages"
+      ]
+    },
+    {
+      "label": "class patterns",
+      "file": "downstream/prepared_images.py",
+      "old": "if pattern and not all(re.fullmatch(pattern, c) for c in classes):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_prepared_images.PreparedImages"
+      ]
+    },
+    {
+      "label": "split class coverage",
+      "file": "downstream/prepared_images.py",
+      "old": "if set(found.values()) != set(classes):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_prepared_images.PreparedImages"
+      ]
+    },
+    {
+      "label": "release quotas",
+      "file": "downstream/prepared_images.py",
+      "old": "and set(Counter(found.values()).values()) != {quota}",
+      "new": "and False",
+      "tests": [
+        "tests.test_extended_prepared_images.PreparedImages"
+      ]
+    },
+    {
+      "label": "split quota selection",
+      "file": "downstream/prepared_images.py",
+      "old": "QUOTAS[dataset][index]",
+      "new": "QUOTAS[dataset][1-index]",
+      "tests": [
+        "tests.test_extended_prepared_images.PreparedImages"
+      ]
+    },
+    {
+      "label": "recipe conflict disclosure",
+      "file": "downstream/prepared_images.py",
+      "old": "dataset in LOCAL_IDS\n            or dataset == \"omniglot15\"",
+      "new": "False",
+      "tests": [
+        "tests.test_extended_prepared_images.PreparedImages"
+      ]
+    },
+    {
+      "label": "cross split identity",
+      "file": "downstream/prepared_images.py",
+      "old": "if identities[\"train\"] & identities[\"val\"]:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_prepared_images.PreparedImages"
+      ]
+    },
+    {
+      "label": "split local identity",
+      "file": "downstream/prepared_images.py",
+      "old": "name if dataset in LOCAL_IDS else name.split(\"/\", 1)[1]",
+      "new": "name.split(\"/\", 1)[1]",
+      "tests": [
+        "tests.test_extended_prepared_images.PreparedImages"
+      ]
+    },
+    {
+      "label": "label ordering",
+      "file": "downstream/prepared_images.py",
+      "old": "sorted(set(inventories[\"train\"].values()))",
+      "new": "sorted(set(inventories[\"train\"].values()), reverse=True)",
+      "tests": [
+        "tests.test_extended_prepared_images.PreparedImages"
+      ]
+    },
+    {
+      "label": "source split mapping",
+      "file": "downstream/prepared_images.py",
+      "old": "\"split\": \"train\" if split == \"train\" else \"test\"",
+      "new": "\"split\": \"train\"",
+      "tests": [
+        "tests.test_extended_prepared_images.PreparedImages"
+      ]
+    },
+    {
+      "label": "source authentication",
+      "file": "downstream/prepared_images.py",
+      "old": "\"upstream_membership_verified\": False",
+      "new": "\"upstream_membership_verified\": True",
+      "tests": [
+        "tests.test_extended_prepared_images.PreparedImages"
+      ]
+    },
+    {
+      "label": "publisher partition",
+      "file": "downstream/prepared_images.py",
+      "old": "\"not the disjoint-alphabet split\"",
+      "new": "\"publisher split\"",
+      "tests": [
+        "tests.test_extended_prepared_images.PreparedImages"
+      ]
+    },
+    {
+      "label": "external profile scope",
+      "file": "downstream/native_images.py",
+      "old": "if dataset not in prepared_images.SUBSETS:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_prepared_images.PreparedImages"
+      ]
+    },
+    {
+      "label": "external source link",
+      "file": "downstream/native_images.py",
+      "old": "if evaluation.is_symlink():",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_prepared_images.PreparedImages"
+      ]
+    },
+    {
+      "label": "external directory",
+      "file": "downstream/native_images.py",
+      "old": "if not evaluation.is_dir():",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_prepared_images.PreparedImages"
+      ]
+    },
+    {
+      "label": "external write isolation",
+      "file": "downstream/native_images.py",
+      "old": "if out.resolve().is_relative_to(evaluation):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_extended_prepared_images.PreparedImages"
+      ]
+    },
+    {
+      "label": "external payload source",
+      "file": "downstream/native_images.py",
+      "old": "row.get(\"source_root\", root)",
+      "new": "root",
+      "tests": [
+        "tests.test_extended_prepared_images.PreparedImages"
+      ]
+    },
+    {
+      "label": "source role preservation",
+      "file": "downstream/native_images.py",
+      "old": "source_rows[-1][\"source_role\"] = row[\"source_role\"]",
+      "new": "source_rows[-1][\"source_role\"] = \"training_root\"",
+      "tests": [
+        "tests.test_extended_prepared_images.PreparedImages"
+      ]
+    },
+    {
+      "label": "required CI",
+      "file": ".github/workflows/tests.yml",
+      "old": "            tests.test_extended_prepared_images \\\n",
+      "new": "",
+      "tests": [
+        "tests.test_extended_prepared_images.Delivery"
+      ]
+    }
+  ]
+}

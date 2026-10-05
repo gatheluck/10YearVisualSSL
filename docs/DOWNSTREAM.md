@@ -475,6 +475,9 @@ do not certify final-table scores.
 
 ## Native image inputs
 
-The [CLUE/SUN397 converter](EXTENDED_NATIVE_IMAGES.md) connects six reported
+The [native image converter](EXTENDED_NATIVE_IMAGES.md) adds prepared Action40,
+CIFAR-10/100, KMNIST, ImageNet 1%/10% and Omniglot15 inputs with explicit
+membership limits and unresolved small-image recipe conflicts. Its CLUE/SUN397
+profiles connect six reported
 dataset inputs to Extended image LP/AP, preserving source membership and overlap
 disclosures. Staging and component tests do not certify paper scores.
