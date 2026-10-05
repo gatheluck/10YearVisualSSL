@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "cells": [{
+    "cell_id": "example-lp-cell",
+    "identity": {
+      "dataset": "action40", "model": "siglip_giant", "track": "LINEAR",
+      "protocol_id": "EXTEND_LINEAR_v1",
+      "protocol_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "checkpoint_identity": {"sha256": "replace-with-actual-recorded-identity"},
+      "recipe": "image_cls_100", "feature_layer": "replace-with-observed-readout",
+      "evaluation_split": "test", "effective_batch": 256, "realized_lr": 0.1,
+      "world_size": 1, "per_gpu_batch": 32, "accumulation": 8
+    },
+    "expected_seeds": [0, 1, 2], "epochs": 100, "evaluation_count": 5532,
+    "metric": {"field": "primary", "name": "top1", "unit": "percent", "direction": "higher"},
+    "runs": []
+  }]
+}

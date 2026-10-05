@@ -125,7 +125,12 @@ availability does not establish complete native-video or paper-score coverage.
 4. Apply [downstream run accounting](DOWNSTREAM_ACCOUNTING.md) to actual recorded
    runs, with final-epoch selection, missing/partial repeats and sample standard
    deviation. The portable artifact checker now exists; historical schema
-   conversion and run-to-table matching remain.
+   conversion and run-to-table matching remain. The October 5
+   [historical Extended auditor](REFERENCE_ACCOUNTING.md) can now check explicitly
+   pinned native LP/AP records across cells, including final-epoch metadata,
+   evaluated population, recorded exit and identity before summarizing repeats.
+   It does not create portable run manifests or authenticate historical execution.
+   Missing source artifacts/exit evidence and paper-to-run mapping remain pending.
    The existing method linear-evaluation three-seed aggregator does not cover
    all downstream LP/AP/FT accounting described by E.1.
 5. Port frontier response parsing/scoring and matched-subset provenance, then

@@ -781,3 +781,7 @@ upstream authentication and small-image recipe reconciliation remain pending.
 Its CLUE and SUN397 profiles connect six further
 native image inputs to Extended LP/AP. Source split, label order and overlap
 limitations are recorded explicitly.
+
+[Historical Extended accounting](docs/REFERENCE_ACCOUNTING.md) audits pinned
+native LP/AP results across cells, retaining missing/invalid repeats and explicit
+final-epoch evidence. Artifact consistency is separate from paper-score verification.

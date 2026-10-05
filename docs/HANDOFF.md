@@ -12,6 +12,28 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-10-05: historical Extended accounting
+
+PR 222 merged as `a0e448f`; all 115 checks succeeded. Main has the same tree
+as the validated branch. The existing dirty video submodule is preserved.
+
+The [historical Extended auditor](REFERENCE_ACCOUNTING.md) compares explicitly
+pinned LP/AP result, completion and epoch metadata with recorded exit and planned
+identity/population. It supports grouped cells without selecting attempts by
+score or combining protocols. Shared statistics retain actual n and sample
+deviation; invalid/missing runs remain distinct. Generated evidence stays outside
+Git. This does not import checkpoints or certify full experimental reproduction.
+
+Captured native schemas and current read-only trainer sources were inspected.
+Paths referenced by two historical example records no longer had their three
+original artifacts at inspection time; this does not prove the runs never existed.
+Do not rebuild missing artifacts or infer successful exits. Record reference,
+RED/GREEN, mutation and gate evidence in the PR. No compute job is submitted.
+An archived native completion record disclosed nonzero all-zero video inputs;
+the auditor rejects that diagnostic rather than treating the completion label
+alone as a valid measurement. Fixture reader parity uses synthetic epoch/exit
+controls and is not historical execution verification.
+
 ### 2026-10-05: seven prepared image inputs
 
 PR 221 merged as `c5e3ff7`; all 115 checks succeeded. Pulled main matches the
