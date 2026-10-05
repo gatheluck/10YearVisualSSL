@@ -83,7 +83,8 @@ cross-plus-self reader remain different. Explicit profiles preserve this
 difference; they do not decide which run produced a table cell. Similarly, some
 experimental depth evaluators median-align predictions, whereas final Appendix
 E.4 specifies unaligned metric RMSE. The public metric is not silently changed.
-ImageNet FT augmentation, distributed/BF16 execution, released-weight GPU
+ImageNet FT now has [explicit source profiles](IMAGENET_FINETUNE.md), while
+historical recipe reconciliation, distributed/BF16 execution, released-weight GPU
 feasibility, complete schedules/data recipes, repeated-run score correspondence
 and full-data paper reproduction remain unverified or require further porting.
 Component parity does not establish identical whole-run RNG consumption or

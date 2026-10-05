@@ -30,8 +30,9 @@ Overlay an existing downstream task configuration with:
 LP selects `frozen` and omits `reader_profile`. FT selects `finetune` and
 `basic5_finetune_v1`, without `reader_profile`. COCO also selects
 `detector_profile: captured_native_detection_v1`. ImageNet LP/AP and
-ADE20K/COCO/NYUv2/SSv2 LP/AP/FT are component routes. ImageNet FT execution
-remains refused until its augmentation/run identity is reconciled.
+ADE20K/COCO/NYUv2/SSv2 LP/AP/FT are component routes. ImageNet FT now uses an
+[explicit source profile](IMAGENET_FINETUNE.md); augmentation/run identity
+remains unreconciled and local reduced fixtures do not verify released weights.
 
 ## Preserved experimental behavior
 

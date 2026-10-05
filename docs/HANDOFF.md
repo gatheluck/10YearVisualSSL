@@ -12,6 +12,26 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-10-06: explicit ImageNet FT source profiles
+
+PR 224 merged as `7374576`; all 115 checks succeeded. Pulled main is tree-identical
+to the validated branch. The unrelated dirty video submodule remains preserved.
+
+[ImageNet FT](IMAGENET_FINETUNE.md) now connects eight provider-owned readouts to
+six explicitly selected source augmentation/mixing profiles, FT optimization and
+final-state export. Behavioral configuration/execution/export RED precedes the
+implementation. Record mutations, current/captured parity, regression and gates
+in the PR. Original source and source/run identities remain outside Git.
+
+Historical protocol reconciliation is still pending: inspected soft targets lack
+the documented smoothing; one family omits strong image augmentation, and another
+has a legacy whole-image unit-interval heuristic. These are explicit experimental
+component profiles, not corrected canonical recipes. Single-process FP32 support
+does not add native accumulation/FSDP/BF16, continuation or full-score evidence.
+No ABCI job is submitted and no original source/weight/artifact is changed.
+Earlier dated FT-refusal statements below describe superseded package boundaries,
+not the present source-profile interface or a resolution of the scientific gaps.
+
 ### 2026-10-05: observed Flowers and Kanji memberships
 
 PR 223 merged as `9889083`; all 115 checks succeeded. Main matches the validated

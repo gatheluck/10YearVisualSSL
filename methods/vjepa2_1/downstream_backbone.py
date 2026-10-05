@@ -26,6 +26,7 @@ CAPTURE_PYRAMID = True
 COMPONENT_ONLY = True
 FINETUNE_GROUPS = True
 IMAGE_CLASSIFICATION = True
+IMAGENET_FT_RECIPE = "captured_bilinear_normalized_zero_torch_v1"
 _VARIANTS = {"vit_large": "ema_encoder", "vit_giant_xformers": "target_encoder"}
 
 

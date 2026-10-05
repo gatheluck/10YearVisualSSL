@@ -1,0 +1,265 @@
+{
+  "targets": [
+    {
+      "label": "recipe adaptation guard",
+      "file": "downstream/imagenet_finetune.py",
+      "old": "cfg.get(\"adaptation\") != \"finetune\"",
+      "new": "False",
+      "tests": [
+        "tests.test_method_imagenet_finetune.Profiles"
+      ]
+    },
+    {
+      "label": "provider recipe binding",
+      "file": "downstream/imagenet_finetune.py",
+      "old": "or profile != expected",
+      "new": "or False",
+      "tests": [
+        "tests.test_method_imagenet_finetune.Profiles"
+      ]
+    },
+    {
+      "label": "conflict disclosure",
+      "file": "downstream/imagenet_finetune.py",
+      "old": "\"protocol_conflict\": True",
+      "new": "\"protocol_conflict\": False",
+      "tests": [
+        "tests.test_method_imagenet_finetune.Profiles"
+      ]
+    },
+    {
+      "label": "historical attribution boundary",
+      "file": "downstream/imagenet_finetune.py",
+      "old": "\"historical_run_verified\": False",
+      "new": "\"historical_run_verified\": True",
+      "tests": [
+        "tests.test_method_imagenet_finetune.Profiles"
+      ]
+    },
+    {
+      "label": "unsmoothed target disclosure",
+      "file": "downstream/imagenet_finetune.py",
+      "old": "\"label_smoothing\": 0.0",
+      "new": "\"label_smoothing\": 0.1",
+      "tests": [
+        "tests.test_method_imagenet_finetune.Profiles"
+      ]
+    },
+    {
+      "label": "cubic source geometry",
+      "file": "downstream/imagenet_finetune.py",
+      "old": "T.InterpolationMode.BICUBIC",
+      "new": "T.InterpolationMode.BILINEAR",
+      "tests": [
+        "tests.test_method_imagenet_finetune.Profiles"
+      ]
+    },
+    {
+      "label": "training flip direction",
+      "file": "downstream/imagenet_finetune.py",
+      "old": "if torch.rand(1).item() < 0.5:",
+      "new": "if torch.rand(1).item() > 0.5:",
+      "tests": [
+        "tests.test_method_imagenet_finetune.Profiles"
+      ]
+    },
+    {
+      "label": "strong image augmentation",
+      "file": "downstream/imagenet_finetune.py",
+      "old": "if recipe[\"randaugment\"]:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_imagenet_finetune.Profiles"
+      ]
+    },
+    {
+      "label": "raw erase membership",
+      "file": "downstream/imagenet_finetune.py",
+      "old": "if train and recipe[\"erase_domain\"] == \"raw\":",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_imagenet_finetune.Profiles"
+      ]
+    },
+    {
+      "label": "normalized erase membership",
+      "file": "downstream/imagenet_finetune.py",
+      "old": "if train and recipe[\"erase_domain\"] == \"normalized\":",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_imagenet_finetune.Profiles"
+      ]
+    },
+    {
+      "label": "normalization domain",
+      "file": "downstream/imagenet_finetune.py",
+      "old": "tensor = TF.normalize(tensor, MEAN, STD)",
+      "new": "tensor = tensor",
+      "tests": [
+        "tests.test_method_imagenet_finetune.Profiles"
+      ]
+    },
+    {
+      "label": "negative wrapper trigger",
+      "file": "downstream/imagenet_finetune.py",
+      "old": "if float(tensor.min()) < -1e-4:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_imagenet_finetune.Profiles"
+      ]
+    },
+    {
+      "label": "unit wrapper positive control",
+      "file": "downstream/imagenet_finetune.py",
+      "old": "if float(tensor.min()) < -1e-4:",
+      "new": "if True:",
+      "tests": [
+        "tests.test_method_imagenet_finetune.Profiles"
+      ]
+    },
+    {
+      "label": "unit interval clamp",
+      "file": "downstream/imagenet_finetune.py",
+      "old": "tensor = tensor.clamp(0.0, 1.0)",
+      "new": "tensor = tensor",
+      "tests": [
+        "tests.test_method_imagenet_finetune.Profiles"
+      ]
+    },
+    {
+      "label": "python cutmix choice",
+      "file": "downstream/imagenet_finetune.py",
+      "old": "cutmix = random.random() >= 0.5",
+      "new": "cutmix = False",
+      "tests": [
+        "tests.test_method_imagenet_finetune.Profiles"
+      ]
+    },
+    {
+      "label": "torch cutmix choice",
+      "file": "downstream/imagenet_finetune.py",
+      "old": "cutmix = torch.rand(1).item() < 0.5",
+      "new": "cutmix = False",
+      "tests": [
+        "tests.test_method_imagenet_finetune.Profiles"
+      ]
+    },
+    {
+      "label": "torch probability RNG draw",
+      "file": "downstream/imagenet_finetune.py",
+      "old": "torch.rand(1)  # Captured probability=1 application draw.",
+      "new": "pass  # application draw removed",
+      "tests": [
+        "tests.test_method_imagenet_finetune.Profiles"
+      ]
+    },
+    {
+      "label": "cutmix effective area",
+      "file": "downstream/imagenet_finetune.py",
+      "old": "lam = 1.0 - ((x2 - x1) * (y2 - y1) / (h * w))",
+      "new": "lam = lam",
+      "tests": [
+        "tests.test_method_imagenet_finetune.Profiles"
+      ]
+    },
+    {
+      "label": "class target permutation",
+      "file": "downstream/imagenet_finetune.py",
+      "old": "targets * lam + targets[perm] * (1.0 - lam)",
+      "new": "targets",
+      "tests": [
+        "tests.test_method_imagenet_finetune.Profiles"
+      ]
+    },
+    {
+      "label": "mixed image permutation",
+      "file": "downstream/imagenet_finetune.py",
+      "old": "images * lam + images[perm] * (1.0 - lam)",
+      "new": "images",
+      "tests": [
+        "tests.test_method_imagenet_finetune.Profiles"
+      ]
+    },
+    {
+      "label": "trainable backbone execution",
+      "file": "downstream/imagenet.py",
+      "old": "builder = build_trainable_backbone if adaptation == \"finetune\" else build_frozen_backbone",
+      "new": "builder = build_frozen_backbone",
+      "tests": [
+        "tests.test_method_imagenet_finetune.Profiles.test_all_eight_real_ft_routes_update_encoder_and_head_and_preserve_contract"
+      ]
+    },
+    {
+      "label": "FT dataset recipe execution",
+      "file": "downstream/imagenet.py",
+      "old": "self.finetune_recipe = finetune_recipe",
+      "new": "self.finetune_recipe = None",
+      "tests": [
+        "tests.test_method_imagenet_finetune.Profiles"
+      ]
+    },
+    {
+      "label": "FT clipping",
+      "file": "downstream/imagenet.py",
+      "old": "clip_attentive_gradients(model, adaptation)",
+      "new": "pass",
+      "tests": [
+        "tests.test_method_imagenet_finetune.Profiles.test_runner_clips_large_gradients_and_preserves_small_gradients"
+      ]
+    },
+    {
+      "label": "final state export",
+      "file": "downstream/imagenet.py",
+      "old": "torch.save(dict(model=model.state_dict(), finetune_recipe=ft_recipe,",
+      "new": "torch.save(dict(model={}, finetune_recipe=ft_recipe,",
+      "tests": [
+        "tests.test_method_imagenet_finetune.Profiles.test_all_eight_real_ft_routes_update_encoder_and_head_and_preserve_contract"
+      ]
+    },
+    {
+      "label": "release input boundary",
+      "file": "downstream/imagenet.py",
+      "old": "cfg[\"probe\"][\"image_size\"] != 224",
+      "new": "False",
+      "tests": [
+        "tests.test_method_imagenet_finetune.Profiles"
+      ]
+    },
+    {
+      "label": "FT reference batch",
+      "file": "downstream/optimization.py",
+      "old": "\"imagenet_classification\": (\"AdamW\", .0005, 1024, .75),",
+      "new": "\"imagenet_classification\": (\"AdamW\", .0005, 256, .75),",
+      "tests": [
+        "tests.test_method_imagenet_finetune.Profiles"
+      ]
+    },
+    {
+      "label": "FT layer decay",
+      "file": "downstream/optimization.py",
+      "old": "\"imagenet_classification\": (\"AdamW\", .0005, 1024, .75),",
+      "new": "\"imagenet_classification\": (\"AdamW\", .0005, 1024, 1.),",
+      "tests": [
+        "tests.test_method_imagenet_finetune.Profiles"
+      ]
+    },
+    {
+      "label": "CI collection",
+      "file": ".github/workflows/tests.yml",
+      "old": "            tests.test_method_imagenet_finetune \\\n",
+      "new": "",
+      "tests": [
+        "tests.test_method_imagenet_finetune.Delivery.test_ci_executes_new_tests"
+      ]
+    },
+    {
+      "label": "soft-target training loss",
+      "file": "downstream/imagenet.py",
+      "old": "loss = -(targets * F.log_softmax(model(images).float(), dim=-1)).sum(-1).mean()",
+      "new": "loss = F.cross_entropy(model(images), labels)",
+      "tests": [
+        "tests.test_method_imagenet_finetune.Profiles.test_runner_uses_soft_targets_from_mixing"
+      ]
+    }
+  ]
+}

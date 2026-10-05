@@ -77,8 +77,9 @@ supported. Existing schedule/batch constraints apply. Results always report
 - As of 2026-09-27, AP is available through the explicit source-specific
   [reader profiles](BASIC5_NATIVE_PATHS.md). Omitted or mismatched profiles remain
   rejected; differing experimental readers are not relabeled as one protocol.
-- ImageNet FT execution remains rejected pending augmentation reconciliation.
-  The differentiable classifier composition alone does not complete its recipe.
+- [ImageNet FT source profiles](IMAGENET_FINETUNE.md) now execute for all three
+  families. Explicit selection preserves augmentation differences; historical
+  recipe and score attribution remain unverified.
 - The existing shared stride-16 COCO path still rejects CLIP/SigLIP. The explicit
   [native detector profile](BASIC5_NATIVE_PATHS.md) now preserves their actual
   grids and family-specific normalization, and supports LP/AP/FT components.

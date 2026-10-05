@@ -1,8 +1,4 @@
-"""Online ImageNet LP/AP components with explicitly verified provider readout.
-
-FT model composition is available for parity tests, but the FT execution recipe
-is refused while its augmentation interpretation remains unresolved.
-"""
+"""Online ImageNet components with explicit provider readouts and FT source profiles."""
 from __future__ import annotations
 
 import argparse
@@ -23,6 +19,8 @@ from downstream.captured_readers import query_reader
 from downstream import contract
 from downstream.attention import task_spatial_features, clip_attentive_gradients, validate_adaptation
 from downstream.spatial_backbones import build_frozen_backbone, supports_image_classification
+from downstream.spatial_backbones import build_trainable_backbone
+from downstream import imagenet_finetune
 from downstream.optimization import (resolve_optimization, build_optimizer,
     require_training_batches, build_task_scheduler, task_schedule_report, REFERENCE_SCHEDULE)
 from downstream.ssv2 import accuracy, resolve_device, make_deterministic
@@ -36,13 +34,17 @@ METRIC_NAMES = {"top1": "imagenet_top1", "top5": "imagenet_top5", "images": None
 def validate_config(cfg):
     required = {"task", "seed", "device", "data_root", "profile", "adaptation",
                 "optimizer_profile", "backbone", "probe"}
-    if set(cfg) - (required | {"scheduler_profile", "reader_profile"}) or required - set(cfg):
+    if set(cfg) - (required | {"scheduler_profile", "reader_profile", "finetune_recipe"}) or required - set(cfg):
         raise ValueError("ImageNet config has missing or unknown fields")
-    if cfg["profile"] != "capture_basic5_components" or cfg["adaptation"] not in ("frozen", "attentive"):
-        raise ValueError("ImageNet supports frozen/attentive components; FT augmentation is unresolved")
+    if cfg["profile"] != "capture_basic5_components" or cfg["adaptation"] not in ("frozen", "attentive", "finetune"):
+        raise ValueError("ImageNet requires an explicit component adaptation")
     if not supports_image_classification(cfg["backbone"].get("kind")):
         raise ValueError("ImageNet requires an explicitly verified classification provider")
     validate_adaptation(cfg)
+    if cfg["adaptation"] == "finetune" or "finetune_recipe" in cfg:
+        imagenet_finetune.resolve(cfg)
+        if cfg["backbone"].get("arch") == "released" and cfg["probe"]["image_size"] != 224:
+            raise ValueError("released ImageNet FT requires 224 input")
     if cfg["device"] not in ("auto", "cpu", "cuda"):
         raise ValueError("device must be auto, cpu or cuda")
     settings = cfg["probe"]
@@ -59,17 +61,20 @@ def validate_config(cfg):
 
 
 class ImageNetImages(ImageFolder):
-    """Captured bilinear geometry and normalization; no FT augmentation guess."""
-    def __init__(self, root, split, image_size):
+    """Legacy LP/AP geometry or an explicitly selected FT source transform."""
+    def __init__(self, root, split, image_size, *, finetune_recipe=None):
         if split not in ("train", "val"):
             raise ValueError("ImageNet split must be train or val")
         super().__init__(Path(root) / split)
         self.train = split == "train"
         self.image_size = image_size
+        self.finetune_recipe = finetune_recipe
 
     def __getitem__(self, index):
         path, label = self.samples[index]
         image = self.loader(path)
+        if self.finetune_recipe is not None:
+            return imagenet_finetune.transform(image, self.train, self.image_size, self.finetune_recipe), label
         if self.train:
             image = TF.resized_crop(image, *RandomResizedCrop.get_params(image, (.08, 1.), (.75, 4./3.)),
                                     [self.image_size]*2, InterpolationMode.BILINEAR)
@@ -113,8 +118,9 @@ def run(cfg, out, *, device_override=None):
     make_deterministic(cfg["seed"])
     settings, adaptation = cfg["probe"], cfg["adaptation"]
     report = resolve_optimization(cfg, TASK)
-    train = ImageNetImages(cfg["data_root"], "train", settings["image_size"])
-    val = ImageNetImages(cfg["data_root"], "val", settings["image_size"])
+    ft_recipe = imagenet_finetune.resolve(cfg) if adaptation == "finetune" else None
+    train = ImageNetImages(cfg["data_root"], "train", settings["image_size"], finetune_recipe=ft_recipe)
+    val = ImageNetImages(cfg["data_root"], "val", settings["image_size"], finetune_recipe=ft_recipe)
     if train.class_to_idx != val.class_to_idx:
         raise ValueError("ImageNet train/val class mapping differs")
     if len(train.classes) > NUM_CLASSES:
@@ -129,7 +135,8 @@ def run(cfg, out, *, device_override=None):
                         generator=torch.Generator().manual_seed(cfg["seed"]))
     validation = DataLoader(val, batch_size=settings["batch_size"], num_workers=settings["num_workers"])
     require_training_batches(loader, report)
-    model = ImageClassifier(build_frozen_backbone(cfg["backbone"], device), adaptation, reader_profile=cfg.get("reader_profile")).to(device)
+    builder = build_trainable_backbone if adaptation == "finetune" else build_frozen_backbone
+    model = ImageClassifier(builder(cfg["backbone"], device), adaptation, reader_profile=cfg.get("reader_profile")).to(device)
     optimizer = build_optimizer(model, report)
     scheduler = build_task_scheduler(optimizer, report, len(loader))
     cap = settings["max_steps_per_epoch"]
@@ -138,7 +145,12 @@ def run(cfg, out, *, device_override=None):
         for step, (images, labels) in enumerate(loader):
             if cap and step >= cap:
                 break
-            loss = F.cross_entropy(model(images.to(device)), labels.to(device))
+            images, labels = images.to(device), labels.to(device)
+            if ft_recipe is not None:
+                images, targets = imagenet_finetune.mix(images, labels, NUM_CLASSES, ft_recipe)
+                loss = -(targets * F.log_softmax(model(images).float(), dim=-1)).sum(-1).mean()
+            else:
+                loss = F.cross_entropy(model(images), labels)
             if not torch.isfinite(loss):
                 raise RuntimeError("non-finite ImageNet loss")
             optimizer.zero_grad(set_to_none=True)
@@ -161,10 +173,14 @@ def run(cfg, out, *, device_override=None):
     raw = dict(top1=totals[0]/count, top5=totals[1]/count, images=count, epochs=settings["epochs"])
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
+    if ft_recipe is not None:
+        torch.save(dict(model=model.state_dict(), finetune_recipe=ft_recipe,
+                        epochs_completed=settings["epochs"]), out / "finetune_model.pt")
     contract.write_metrics(out, raw, METRIC_NAMES)
     (out / "results.json").write_text(json.dumps(dict(task=TASK, profile=cfg["profile"],
         adaptation=adaptation, reader_profile=cfg.get("reader_profile"), backbone=cfg["backbone"], num_classes=NUM_CLASSES,
         observed_classes=classes, optimization=report, final=raw,
+        **({"finetune_recipe": ft_recipe} if ft_recipe is not None else {}),
         canonical_eligible=False, record_value=False), indent=2, sort_keys=True)+"\n")
     return raw
 
