@@ -7,7 +7,7 @@ research history. See [terminology](PAPER_TERMINOLOGY.md) and
 [submission scope](SUBMISSION_SCOPE.md). Private manuscript/source fingerprints
 and run evidence remain outside Git.
 
-Updated 2026-10-05 for DAVIS and native image/semantic input integration. Remaining priorities
+Updated 2026-10-06 for explicit ImageNet FT source profiles. Remaining priorities
 below distinguish executable component support from actual result reproduction.
 
 **The portable package does not yet reproduce the entire paper.** Original
@@ -41,7 +41,11 @@ SAM3 is useful elsewhere but is not one of
 those eight. V-JEPA2.1 already has differentiable image/native-video components,
 LP/AP and four-task FT with optimizer groups and schedules; its remaining gap is
 complete recipe and released-weight/result validation, not an absent provider.
-ImageNet FT execution remains pending across these components. Component
+The October 6 [ImageNet FT profiles](IMAGENET_FINETUNE.md) add all eight execution
+paths, source-specific augmentation/mixing and final-model export. Single-process
+FP32 component tests do not resolve the supplied protocol conflicts; native
+accumulation/BF16/distributed execution and historical run attribution remain
+pending. Component
 availability does not establish complete native-video or paper-score coverage.
 
 ## Prioritized next work
@@ -51,8 +55,11 @@ availability does not establish complete native-video or paper-score coverage.
    exercised 35 explicit routes, the two-family port added 28, and C-RADIO adds 14.
    C-RADIO's local custom-code loader and task interfaces now exist; full-size
    released-checkpoint/GPU validation remains.
-   Full-scale result reproduction is separate. ImageNet FT augmentation still
-   needs per-run reconciliation.
+   Full-scale result reproduction is separate. ImageNet FT now requires one of
+   six provider-bound source profiles across eight families. Augmentation and
+   unsmoothed targets preserve inspected behavior, not one inferred protocol.
+   Full-run scheduling, accumulation and final-table attribution still require
+   per-run reconciliation and released-weight validation.
 2. Integrate Extended task trainers and metrics for the **45 actually reported
    datasets**, retaining each of the five model/readout identities. The image
    LP/AP execution path now exists, with explicit sample manifests and native

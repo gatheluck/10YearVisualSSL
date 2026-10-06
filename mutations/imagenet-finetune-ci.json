@@ -1,0 +1,76 @@
+{
+  "targets": [
+    {
+      "label": "fixture dependency isolation",
+      "file": "tests/test_basic5_imagenet.py",
+      "old": "        import numpy as np\n        from PIL import Image\n",
+      "new": "        import numpy as np\n",
+      "tests": [
+        "tests.test_method_imagenet_finetune.Delivery.test_dependency_subsets_keep_available_checks_running"
+      ]
+    },
+    {
+      "label": "test_runner_uses_soft_targets_from_mixing dependency guard",
+      "file": "tests/test_method_imagenet_finetune.py",
+      "old": "    @unittest.skipUnless(\n        HAVE and image_helpers.HAVE, \"Image encoder dependencies required\"\n    )\n    def test_runner_uses_soft_targets_from_mixing",
+      "new": "    @unittest.skipUnless(\n        HAVE, \"Image encoder dependencies required\"\n    )\n    def test_runner_uses_soft_targets_from_mixing",
+      "tests": [
+        "tests.test_method_imagenet_finetune.Delivery.test_dependency_subsets_keep_available_checks_running"
+      ]
+    },
+    {
+      "label": "test_runner_clips_large_gradients_and_preserves_small_gradients dependency guard",
+      "file": "tests/test_method_imagenet_finetune.py",
+      "old": "    @unittest.skipUnless(\n        HAVE and image_helpers.HAVE, \"Image encoder dependencies required\"\n    )\n    def test_runner_clips_large_gradients_and_preserves_small_gradients",
+      "new": "    @unittest.skipUnless(\n        HAVE, \"Image encoder dependencies required\"\n    )\n    def test_runner_clips_large_gradients_and_preserves_small_gradients",
+      "tests": [
+        "tests.test_method_imagenet_finetune.Delivery.test_dependency_subsets_keep_available_checks_running"
+      ]
+    },
+    {
+      "label": "pure tests are not over-skipped",
+      "file": "tests/test_method_imagenet_finetune.py",
+      "old": "@unittest.skipUnless(HAVE, \"downstream dependencies required\")\nclass Profiles",
+      "new": "@unittest.skipUnless(HAVE and image_helpers.HAVE, \"downstream dependencies required\")\nclass Profiles",
+      "tests": [
+        "tests.test_method_imagenet_finetune.Delivery.test_dependency_subsets_keep_available_checks_running"
+      ]
+    },
+    {
+      "label": "FP64 diagnostic reduction",
+      "file": "tests/test_method_imagenet_finetune.py",
+      "old": "gradient.double().flatten()",
+      "new": "gradient.flatten()",
+      "tests": [
+        "tests.test_method_imagenet_finetune.Profiles.test_gradient_norm_measures_high_dimensional_values_accurately"
+      ]
+    },
+    {
+      "label": "clipping is executed",
+      "file": "downstream/imagenet.py",
+      "old": "            clip_attentive_gradients(model, adaptation)",
+      "new": "            pass",
+      "tests": [
+        "tests.test_method_imagenet_finetune.Profiles.test_runner_clips_large_gradients_and_preserves_small_gradients"
+      ]
+    },
+    {
+      "label": "clipping coefficient is one",
+      "file": "downstream/attention.py",
+      "old": "torch.nn.utils.clip_grad_norm_([p for p in model.parameters() if p.requires_grad], 1.0)",
+      "new": "torch.nn.utils.clip_grad_norm_([p for p in model.parameters() if p.requires_grad], 2.0)",
+      "tests": [
+        "tests.test_method_imagenet_finetune.Profiles.test_runner_clips_large_gradients_and_preserves_small_gradients"
+      ]
+    },
+    {
+      "label": "gradient direction despite preserved norm",
+      "file": "downstream/imagenet.py",
+      "old": "            clip_attentive_gradients(model, adaptation)",
+      "new": "            clip_attentive_gradients(model, adaptation)\n            for parameter in model.parameters():\n                if parameter.grad is not None:\n                    parameter.grad.neg_()",
+      "tests": [
+        "tests.test_method_imagenet_finetune.Profiles.test_runner_clips_large_gradients_and_preserves_small_gradients"
+      ]
+    }
+  ]
+}

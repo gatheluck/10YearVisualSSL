@@ -39,9 +39,9 @@ requires `detector_profile: captured_native_detection_v1`. Frozen LP and FT omit
 accepts reduced width/head count but retains all 24 layers; it is not a released
 model. All checkpoints are local, strictly loaded, and never downloaded implicitly.
 
-The component exposes LP/AP on ImageNet and LP/AP/FT on ADE20K, COCO, NYUv2 and
-SSv2. ImageNet FT execution remains refused because its full augmentation recipe
-has not been reconciled. Results remain `canonical_eligible: false` and
+The component exposes LP/AP/FT on all five tasks. ImageNet FT requires its
+[explicit source profile](IMAGENET_FINETUNE.md), preserving the raw-zero-erasing
+behavior without certifying the historical recipe. Results remain `canonical_eligible: false` and
 `record_value: false`; successful component execution is not paper-score parity.
 
 ## Readout and training boundaries

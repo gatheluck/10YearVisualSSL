@@ -61,6 +61,8 @@ class TestImageNet(unittest.TestCase):
 
     def fixture(self, root):
         import numpy as np
+        from PIL import Image
+
         image = np.random.RandomState(9).randint(0, 256, (39, 57, 3), dtype="uint8")
         for split in ("train", "val"):
             for name in ("n00000001", "n00000002"):

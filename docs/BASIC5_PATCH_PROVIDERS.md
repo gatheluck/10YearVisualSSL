@@ -63,9 +63,9 @@ source comparisons and validation outcomes are recorded in the task PR.
 - As of 2026-09-27, explicit [native detection and reader profiles](BASIC5_NATIVE_PATHS.md)
   add COCO LP/AP/FT and AP on the other four tasks. The old shared stride-16
   detector path still rejects these grids. Omitted AP profiles remain rejected.
-- ImageNet FT remains rejected pending augmentation reconciliation. Explicit AP
-  variants preserve experimental source differences; they do not resolve which
-  reader produced each paper result.
+- [ImageNet FT source profiles](IMAGENET_FINETUNE.md) now include Cosmos3-Super's
+  final vision merger. SAM3 remains outside that port. Explicit AP variants
+  preserve source differences without resolving historical reader attribution.
 - Distributed/BF16 training, released-weight execution, full-data metrics and
   workbook score matching using this package remain unverified. Local shape validation does not
   authenticate checkpoint identity; verify immutable checkpoint hashes before

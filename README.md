@@ -83,7 +83,8 @@ tasks (ADE20K segmentation, COCO detection, NYUv2 depth, SSv2 video) — see
 [docs/DOWNSTREAM.md](docs/DOWNSTREAM.md).
 
 Explicit Basic5 components also support provider-owned FT and online ImageNet
-probing. The [paper reproduction gap ledger](docs/PAPER_REPRODUCTION_GAPS.md)
+probing, including [explicit ImageNet FT source profiles](docs/IMAGENET_FINETUNE.md)
+for eight families. Source/protocol conflicts remain disclosed. The [paper reproduction gap ledger](docs/PAPER_REPRODUCTION_GAPS.md)
 records current Step-4 porting coverage and remaining package validation.
 The [vision-provider matrix](docs/BASIC5_VISION_PROVIDERS.md) lists the
 additional local vision models, task coverage and unresolved recipe boundaries;

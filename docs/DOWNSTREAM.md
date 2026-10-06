@@ -437,11 +437,12 @@ evaluation resizes the shorter side to 256 and center-crops. Tiny random models,
 fewer classes and non-224 crops are supported solely for explicit component
 smokes; none become canonical results.
 
-ImageNet FT **execution is refused**: the classifier's differentiable
-composition is tested, but the supplied RandAugment description and captured
-factory do not establish one unambiguous full recipe. No missing augmentation
-is silently omitted from a purported FT reproduction. The separate per-method
-ImageNet probe and Step-3 A1 driver remain unchanged.
+As of October 6, [explicit FT source profiles](IMAGENET_FINETUNE.md) execute
+ImageNet FT for eight BasicFive providers and export the final model state.
+An exact provider-owned `finetune_recipe` is mandatory. Source/protocol
+augmentation differences remain explicit; this does not establish one canonical
+recipe or a reproduced score. The separate per-method ImageNet probe and Step-3
+A1 driver remain unchanged.
 
 ### Additional local vision providers (2026-09-24)
 

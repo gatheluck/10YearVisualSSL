@@ -34,8 +34,9 @@ weights and full GPU execution have not been validated by the local fixture test
 
 COCO additionally requires `detector_profile: captured_native_detection_v1`.
 Frozen LP and FT omit `reader_profile`; FT selects `basic5_finetune_v1`.
-LP/AP execute on ImageNet; LP/AP/FT execute on ADE20K, COCO, NYUv2 and SSv2.
-ImageNet FT execution remains refused pending augmentation reconciliation.
+LP/AP/FT execute on all five tasks. ImageNet FT requires its
+[explicit source profile](IMAGENET_FINETUNE.md), retaining Mixup-only and the
+legacy unit-interval heuristic without declaring the recipe reconciled.
 All routes remain noncanonical, nonrecordable components.
 
 ## Source-specific behavior

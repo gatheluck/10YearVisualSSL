@@ -839,9 +839,10 @@ canonical-recipe and score-reproduction requirements.
   Full physical batch and one process remain mandatory. All other-batch cosine
   interpretations and accumulation clocks stay pending.
 - Online ImageNet LP/AP includes dataset geometry, explicit provider readout,
-  training, scheduling and evaluation. ImageNet FT composition is differentiable
-  and tested, but its CLI recipe remains refused because augmentation evidence
-  is not unambiguous. This does not fill the separate method-adapter checklist.
+  training, scheduling and evaluation. The October 6
+  [ImageNet FT source profiles](IMAGENET_FINETUNE.md) add explicit eight-provider
+  execution while retaining augmentation/run-identity conflicts. This does not
+  fill the separate method-adapter checklist or establish score reproduction.
 
 See [interfaces and full configuration](DOWNSTREAM.md#extended-training-components-2026-09-22).
 Captured-family CPU comparisons cover fourteen schedules at two loader lengths,

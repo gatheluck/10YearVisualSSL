@@ -9,6 +9,7 @@ EXTENDED_ACCUMULATION_TAILS = {"frozen": "discard", "attentive": "discard"}
 TRAINABLE = True
 FINETUNE_GROUPS = True
 IMAGE_CLASSIFICATION = True
+IMAGENET_FT_RECIPE = "captured_bicubic_random_python_v1"
 COMPONENT_ONLY = True
 # Detection pads after normalization; the shared transform must be reconciled.
 CAPTURE_PYRAMID = False

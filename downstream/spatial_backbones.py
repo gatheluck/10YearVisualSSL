@@ -274,6 +274,12 @@ def supports_image_classification(kind):
     return kind in _PROVIDERS and getattr(_load_provider(_PROVIDERS[kind]), "IMAGE_CLASSIFICATION", False) is True
 
 
+def imagenet_finetune_recipe(kind):
+    """Only explicitly inspected providers can select an ImageNet FT source profile."""
+    return (getattr(_load_provider(_PROVIDERS[kind]), "IMAGENET_FT_RECIPE", None)
+            if kind in _PROVIDERS else None)
+
+
 def supports_adaptation(kind, adaptation):
     """An explicit provider restriction takes precedence over generic readers."""
     if kind not in _PROVIDERS:

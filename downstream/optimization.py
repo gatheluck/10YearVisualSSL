@@ -85,8 +85,10 @@ only supports one process and one full physical batch per optimizer update.
         weight_decay = 0.
     if finetune:
         if task == "imagenet_classification":
-            raise ValueError("ImageNet FT recipe conflicts remain unresolved")
+            from downstream.imagenet_finetune import resolve
+            resolve(cfg)
         algorithm, base_lr, reference_batch, layer_decay = {
+            "imagenet_classification": ("AdamW", .0005, 1024, .75),
             "ade20k_segmentation": ("AdamW", .0001, 8, .8),
             "nyuv2_depth": ("AdamW", .0001, 8, .8),
             "coco_detection": ("SGD", .02, 16, 1.),
