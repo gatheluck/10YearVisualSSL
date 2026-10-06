@@ -36,6 +36,12 @@ PROFILES = {
 }
 
 
+def _gradient_norm(gradients):
+    return torch.linalg.vector_norm(
+        torch.cat([gradient.double().flatten() for gradient in gradients])
+    )
+
+
 @unittest.skipUnless(HAVE, "downstream dependencies required")
 class Profiles(unittest.TestCase):
     def setUp(self):
@@ -53,6 +59,36 @@ class Profiles(unittest.TestCase):
 
     def module(self):
         return importlib.import_module("downstream.imagenet_finetune")
+
+    def assert_reference_clipping(self, model, raw):
+        parameters = [
+            p for p in model.parameters() if p.requires_grad and p.grad is not None
+        ]
+        self.assertEqual(set(raw), {id(p) for p in parameters})
+        expected = []
+        for parameter in parameters:
+            reference = torch.nn.Parameter(torch.zeros_like(parameter))
+            reference.grad = raw[id(parameter)].clone()
+            expected.append(reference)
+        # Use the inspected source operation on independent saved gradients.
+        # A flattened FP32 reduction is not a portable mathematical norm bound.
+        torch.nn.utils.clip_grad_norm_(expected, 1.0)
+        for actual, reference in zip(parameters, expected):
+            torch.testing.assert_close(actual.grad, reference.grad, rtol=0, atol=0)
+
+    def test_gradient_norm_measures_high_dimensional_values_accurately(self):
+        import math
+
+        for value in (0.01, 0.0100002):
+            with self.subTest(value=value):
+                gradient = torch.full((10000,), value, dtype=torch.float32)
+                expected = math.sqrt(gradient.numel()) * float(gradient[0])
+                measured = _gradient_norm([gradient[:5000], gradient[5000:]]).item()
+                self.assertAlmostEqual(measured, expected, places=12)
+                if value == 0.01:
+                    self.assertLessEqual(measured, 1.000001)
+                else:
+                    self.assertGreater(measured, 1.000001)
 
     def test_explicit_source_recipes_enable_all_eight_classifiers(self):
         for kind in PROFILES:
@@ -340,6 +376,9 @@ class Profiles(unittest.TestCase):
                 torch.testing.assert_close(actual, expected, rtol=0, atol=0)
                 self.assertEqual(label, 0)
 
+    @unittest.skipUnless(
+        HAVE and image_helpers.HAVE, "Image encoder dependencies required"
+    )
     def test_runner_uses_soft_targets_from_mixing(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
@@ -362,6 +401,9 @@ class Profiles(unittest.TestCase):
             self.assertGreater(bias[999].item(), 0)
             self.assertLess(bias[0].item(), 0)
 
+    @unittest.skipUnless(
+        HAVE and image_helpers.HAVE, "Image encoder dependencies required"
+    )
     def test_runner_clips_large_gradients_and_preserves_small_gradients(self):
         for factor in (0.000001, 1000.0):
             with self.subTest(factor=factor), tempfile.TemporaryDirectory() as d:
@@ -369,12 +411,12 @@ class Profiles(unittest.TestCase):
                 image_helpers.TestImageNet().fixture(root / "data")
                 cfg = self.config(root=root / "data")
                 cfg["probe"]["max_steps_per_epoch"] = 1
-                models, raw = [], []
+                models, raw = [], {}
                 cls = imagenet.ImageClassifier
 
-                def amplify(gradient, factor=factor, raw=raw):
+                def amplify(gradient, key, factor=factor, raw=raw):
                     gradient = gradient * factor
-                    raw.append(gradient.detach().clone().flatten())
+                    raw[key] = gradient.detach().clone()
                     return gradient
 
                 def build(*args, cls=cls, models=models, amplify=amplify, **kwargs):
@@ -382,7 +424,8 @@ class Profiles(unittest.TestCase):
                     models.append(model)
                     for parameter in model.parameters():
                         if parameter.requires_grad:
-                            parameter.register_hook(amplify)
+                            key = id(parameter)
+                            parameter.register_hook(lambda g, key=key: amplify(g, key))
                     return model
 
                 with (
@@ -394,23 +437,20 @@ class Profiles(unittest.TestCase):
                 ):
                     imagenet.run(cfg, root / "out")
                 self.assertEqual(clipping.call_count, 1)
-                before = torch.linalg.vector_norm(torch.cat(raw)).item()
-                after = torch.linalg.vector_norm(
-                    torch.cat(
-                        [
-                            p.grad.flatten()
-                            for p in models[0].parameters()
-                            if p.grad is not None
-                        ]
-                    )
+                self.assert_reference_clipping(models[0], raw)
+                before = _gradient_norm(
+                    raw[id(p)] for p in models[0].parameters() if p.grad is not None
+                ).item()
+                after = _gradient_norm(
+                    p.grad for p in models[0].parameters() if p.grad is not None
                 ).item()
                 if factor > 1:
                     self.assertGreater(before, 1)
-                    self.assertAlmostEqual(after, 1.0, places=5)
+                    self.assertLess(after, before)
                 else:
                     self.assertGreater(before, 0)
                     self.assertLess(before, 1)
-                    self.assertAlmostEqual(after, before, delta=before * 1e-5)
+                    self.assertEqual(after, before)
 
     def test_all_eight_real_ft_routes_update_encoder_and_head_and_preserve_contract(
         self,
@@ -468,13 +508,24 @@ class Profiles(unittest.TestCase):
                     cfg["probe"].update(epochs=2)
                     out, config = Path(d) / "out", Path(d) / "config.json"
                     config.write_text(json.dumps(cfg))
-                    models, before = [], []
+                    models, before, raw = [], [], {}
                     cls = imagenet.ImageClassifier
 
-                    def build(*args, cls=cls, models=models, before=before, **kwargs):
+                    def build(
+                        *args, cls=cls, models=models, before=before, raw=raw, **kwargs
+                    ):
                         model = cls(*args, **kwargs)
                         models.append(model)
                         before.append(copy.deepcopy(model.state_dict()))
+
+                        def save(gradient, key):
+                            raw[key] = gradient.detach().clone()
+                            return gradient
+
+                        for parameter in model.parameters():
+                            if parameter.requires_grad:
+                                key = id(parameter)
+                                parameter.register_hook(lambda g, key=key: save(g, key))
                         return model
 
                     with mock.patch.object(
@@ -502,17 +553,11 @@ class Profiles(unittest.TestCase):
                             for p in model.parameters()
                         )
                     )
-                    norm = torch.linalg.vector_norm(
-                        torch.cat(
-                            [
-                                p.grad.flatten()
-                                for p in model.parameters()
-                                if p.grad is not None
-                            ]
-                        )
+                    norm = _gradient_norm(
+                        p.grad for p in model.parameters() if p.grad is not None
                     )
                     self.assertGreater(norm.item(), 0.0)
-                    self.assertLessEqual(norm.item(), 1.000001)
+                    self.assert_reference_clipping(model, raw)
                     self.assertIsNone(model.reader)
                     result = json.loads((out / "results.json").read_text())
                     self.assertEqual(result["finetune_recipe"]["profile"], profile)
@@ -562,6 +607,60 @@ assert len(result.skipped) == 1, result.skipped
 
 
 class Delivery(unittest.TestCase):
+    @unittest.skipUnless(HAVE, "downstream dependencies required")
+    def test_dependency_subsets_keep_available_checks_running(self):
+        import subprocess
+        import sys
+
+        for missing in (
+            ("timm",),
+            ("einops",),
+            ("transformers",),
+            ("timm", "einops", "transformers"),
+        ):
+            with self.subTest(missing=missing):
+                script = """
+import importlib, json, sys, unittest
+missing = json.loads(sys.argv[1])
+for name in missing:
+    sys.modules[name] = None
+    try:
+        importlib.import_module(name)
+    except ModuleNotFoundError:
+        pass
+    else:
+        raise AssertionError('dependency hiding was ineffective: ' + name)
+encoder_available = True
+for name in ('timm', 'einops'):
+    try:
+        importlib.import_module(name)
+    except ImportError:
+        encoder_available = False
+from tests.test_method_imagenet_finetune import HAVE, Profiles
+assert HAVE, 'pure image/recipe tests must remain available'
+names = [
+    'test_dataset_uses_the_selected_source_transform',
+    'test_runner_clips_large_gradients_and_preserves_small_gradients',
+    'test_runner_uses_soft_targets_from_mixing',
+    'test_all_eight_real_ft_routes_update_encoder_and_head_and_preserve_contract',
+]
+result = unittest.TestResult()
+unittest.TestSuite(Profiles(name) for name in names).run(result)
+assert result.testsRun == 4, result.testsRun
+assert not result.errors and not result.failures, (result.errors, result.failures)
+expected = 1 if encoder_available else 3
+assert len(result.skipped) == expected, result.skipped
+assert all(case._testMethodName != names[0] for case, _ in result.skipped)
+"""
+                result = subprocess.run(
+                    [sys.executable, "-c", script, json.dumps(missing)],
+                    capture_output=True,
+                    text=True,
+                    timeout=60,
+                    check=False,
+                )
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_discovery_does_not_repeat_imported_test_cases(self):
         import sys
 

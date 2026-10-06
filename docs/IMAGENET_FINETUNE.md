@@ -90,3 +90,10 @@ comparisons execute captured and current transforms/mixers with fixed seeds,
 then compare loss/gradients/updates on identical small classifiers. They do not
 establish whole-source or full-backbone GPU equivalence. Mutation, regression,
 mandatory local gate and CI results belong in the PR.
+
+The tests exercise reduced dependency environments explicitly: image fixtures
+require only their image libraries, while encoder execution requires the encoder's
+dependencies. Clipping checks compare individual gradients with the reference
+PyTorch operation on saved pre-clip gradients, including large and small gradient
+controls. FP64 diagnostic reductions avoid the flattened FP32 summation error;
+they do not redefine the source's FP32 clipping behavior or loosen its coefficient.

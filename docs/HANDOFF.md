@@ -12,6 +12,20 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-10-06: PR 225 CI correction
+
+The initial PR 225 CI run had 53 failed jobs. All reported failures came from
+the new FT tests: 51 dependency-specific jobs called an image fixture whose
+optional imports had stopped early, and two jobs failed a flattened FP32 norm
+assertion. The fixture now imports its own image dependency; encoder-dependent
+tests have explicit prerequisites while image/recipe tests continue to run.
+Clipping verification compares every gradient against the captured PyTorch
+operation on independent saved gradients, rather than treating a rounded FP32
+reduction as a strict mathematical bound. The training implementation and
+scientific profiles are unchanged. Record Linux lock verification, partial
+dependency checks, mutation controls and final CI results in PR 225; a local
+whole-suite pass alone does not certify the dependency matrix.
+
 ### 2026-10-06: explicit ImageNet FT source profiles
 
 PR 224 merged as `7374576`; all 115 checks succeeded. Pulled main is tree-identical
