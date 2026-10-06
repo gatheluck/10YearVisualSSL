@@ -384,6 +384,10 @@ unresolved. The existing schedule/profile names retain their original behavior.
 
 ### Online ImageNet components
 
+For inspected model-specific LP/AP geometry, use the explicit
+[ImageNet preprocessing profile](IMAGENET_PROBE_PREPROCESSING.md).
+Existing configurations retain legacy common-bilinear geometry.
+
 `python -m downstream.imagenet --config <config.json> --out <new-output>` runs
 online LP or AP, including training augmentation, a frozen encoder, a zero
 initialized 1000-way classifier, and top-1/top-5 evaluation. Providers opt in only

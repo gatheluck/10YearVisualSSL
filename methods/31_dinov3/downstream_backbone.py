@@ -10,6 +10,7 @@ TRAINABLE = True
 FINETUNE_GROUPS = True
 IMAGE_CLASSIFICATION = True
 IMAGENET_FT_RECIPE = "captured_bilinear_plain_torch_v1"
+IMAGENET_PROBE_INTERPOLATION = "bilinear"
 COMPONENT_ONLY = True
 CAPTURE_PYRAMID = True
 SUPPORTED_ADAPTATIONS = ("frozen", "attentive", "finetune")

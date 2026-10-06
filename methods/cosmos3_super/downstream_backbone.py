@@ -12,6 +12,7 @@ TRAINABLE = True
 FINETUNE_GROUPS = True
 IMAGE_CLASSIFICATION = True
 IMAGENET_FT_RECIPE = "captured_bicubic_half_python_v1"
+IMAGENET_PROBE_INTERPOLATION = "bicubic"
 COMPONENT_ONLY = True
 CAPTURE_PYRAMID = False
 SUPPORTED_ADAPTATIONS = ("frozen", "attentive", "finetune")

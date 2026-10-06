@@ -31,10 +31,26 @@ METRIC_NAMES = {"top1": "imagenet_top1", "top5": "imagenet_top5", "images": None
                 "epochs": "epochs_completed"}
 
 
+def resolve_preprocessing(cfg):
+    """Explicit source geometry; missing selection retains the legacy component."""
+    if "preprocessing_profile" not in cfg:
+        return None
+    from downstream.spatial_backbones import imagenet_probe_interpolation
+    interpolation = imagenet_probe_interpolation(cfg["backbone"].get("kind"))
+    if (cfg["preprocessing_profile"] != "captured_provider_v1"
+            or cfg["adaptation"] not in ("frozen", "attentive")
+            or interpolation not in ("bilinear", "bicubic")):
+        raise ValueError("ImageNet LP/AP requires an inspected provider preprocessing profile")
+    if cfg["backbone"].get("arch") == "released" and cfg["probe"]["image_size"] != 224:
+        raise ValueError("released ImageNet LP/AP requires 224 input")
+    return dict(profile=cfg["preprocessing_profile"], interpolation=interpolation,
+                historical_run_verified=False)
+
+
 def validate_config(cfg):
     required = {"task", "seed", "device", "data_root", "profile", "adaptation",
                 "optimizer_profile", "backbone", "probe"}
-    if set(cfg) - (required | {"scheduler_profile", "reader_profile", "finetune_recipe"}) or required - set(cfg):
+    if set(cfg) - (required | {"scheduler_profile", "reader_profile", "finetune_recipe", "preprocessing_profile"}) or required - set(cfg):
         raise ValueError("ImageNet config has missing or unknown fields")
     if cfg["profile"] != "capture_basic5_components" or cfg["adaptation"] not in ("frozen", "attentive", "finetune"):
         raise ValueError("ImageNet requires an explicit component adaptation")
@@ -58,30 +74,37 @@ def validate_config(cfg):
     if "scheduler_profile" in cfg and cfg["scheduler_profile"] != REFERENCE_SCHEDULE:
         raise ValueError("ImageNet requires basic5_reference_schedule_v1")
     resolve_optimization(cfg, TASK)
+    resolve_preprocessing(cfg)
 
 
 class ImageNetImages(ImageFolder):
-    """Legacy LP/AP geometry or an explicitly selected FT source transform."""
-    def __init__(self, root, split, image_size, *, finetune_recipe=None):
+    """Legacy geometry or explicitly selected provider-owned LP/AP and FT inputs."""
+    def __init__(self, root, split, image_size, *, finetune_recipe=None, preprocessing=None):
         if split not in ("train", "val"):
             raise ValueError("ImageNet split must be train or val")
+        if finetune_recipe is not None and preprocessing is not None:
+            raise ValueError("FT and LP/AP preprocessing cannot be combined")
         super().__init__(Path(root) / split)
         self.train = split == "train"
         self.image_size = image_size
         self.finetune_recipe = finetune_recipe
+        self.preprocessing = preprocessing
 
     def __getitem__(self, index):
         path, label = self.samples[index]
         image = self.loader(path)
         if self.finetune_recipe is not None:
             return imagenet_finetune.transform(image, self.train, self.image_size, self.finetune_recipe), label
+        interpolation = (InterpolationMode.BICUBIC
+                         if self.preprocessing is not None and self.preprocessing["interpolation"] == "bicubic"
+                         else InterpolationMode.BILINEAR)
         if self.train:
             image = TF.resized_crop(image, *RandomResizedCrop.get_params(image, (.08, 1.), (.75, 4./3.)),
-                                    [self.image_size]*2, InterpolationMode.BILINEAR)
+                                    [self.image_size]*2, interpolation)
             if torch.rand(1).item() < .5:
                 image = TF.hflip(image)
         else:
-            image = TF.center_crop(TF.resize(image, 256, InterpolationMode.BILINEAR), [self.image_size]*2)
+            image = TF.center_crop(TF.resize(image, 256, interpolation), [self.image_size]*2)
         return TF.normalize(TF.to_tensor(image), [.485, .456, .406], [.229, .224, .225]), label
 
 
@@ -119,8 +142,9 @@ def run(cfg, out, *, device_override=None):
     settings, adaptation = cfg["probe"], cfg["adaptation"]
     report = resolve_optimization(cfg, TASK)
     ft_recipe = imagenet_finetune.resolve(cfg) if adaptation == "finetune" else None
-    train = ImageNetImages(cfg["data_root"], "train", settings["image_size"], finetune_recipe=ft_recipe)
-    val = ImageNetImages(cfg["data_root"], "val", settings["image_size"], finetune_recipe=ft_recipe)
+    preprocessing = resolve_preprocessing(cfg)
+    train = ImageNetImages(cfg["data_root"], "train", settings["image_size"], finetune_recipe=ft_recipe, preprocessing=preprocessing)
+    val = ImageNetImages(cfg["data_root"], "val", settings["image_size"], finetune_recipe=ft_recipe, preprocessing=preprocessing)
     if train.class_to_idx != val.class_to_idx:
         raise ValueError("ImageNet train/val class mapping differs")
     if len(train.classes) > NUM_CLASSES:
@@ -181,6 +205,7 @@ def run(cfg, out, *, device_override=None):
         adaptation=adaptation, reader_profile=cfg.get("reader_profile"), backbone=cfg["backbone"], num_classes=NUM_CLASSES,
         observed_classes=classes, optimization=report, final=raw,
         **({"finetune_recipe": ft_recipe} if ft_recipe is not None else {}),
+        **({"preprocessing": preprocessing} if preprocessing is not None else {}),
         canonical_eligible=False, record_value=False), indent=2, sort_keys=True)+"\n")
     return raw
 
