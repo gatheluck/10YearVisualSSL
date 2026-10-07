@@ -16,6 +16,7 @@ IMAGE_CLASSIFICATION = True
 IMAGENET_FT_RECIPE = "captured_bicubic_random_python_v1"
 IMAGENET_PROBE_INTERPOLATION = "bicubic"
 IMAGENET_EXECUTION = dict(tail_policy="discard", rank_seed_stride=1000, distributed=True)
+VIDEO_RECIPE = {'interpolation': 'bicubic', 'temporal_rng': 'python', 'augmentation': 'shared_random', 'batch_mixing': 'python'}
 NATIVE_VIDEO = True
 NATIVE_DETECTION = True
 CAPTURE_PYRAMID = False

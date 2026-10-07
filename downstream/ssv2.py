@@ -83,7 +83,7 @@ def validate_config(cfg: dict) -> None:
         if key in cfg:
             raise ConfigError(
                 f"config: {key} is set; the output location is fixed at --out")
-    _named(TOP_KEYS - set(cfg), set(cfg) - (TOP_KEYS | {"profile", "adaptation", "optimizer_profile", "scheduler_profile", "reader_profile"}), "config")
+    _named(TOP_KEYS - set(cfg), set(cfg) - (TOP_KEYS | {"profile", "adaptation", "optimizer_profile", "scheduler_profile", "reader_profile", "video_recipe", "execution", "resume"}), "config")
     try:
         validate_adaptation(cfg)
     except ValueError as exc:
@@ -103,11 +103,18 @@ def validate_config(cfg: dict) -> None:
         raise ConfigError(
             f"config.backbone: kind is {backbone['kind']!r}; ported kinds are "
             f"{', '.join(KINDS)}")
+    if ("execution" in cfg or "resume" in cfg) and "video_recipe" not in cfg:
+        raise ConfigError("video execution/resume requires an explicit video recipe")
+    if "resume" in cfg and "execution" not in cfg:
+        raise ConfigError("resume requires explicit video execution")
     probe = cfg["probe"]
     if not isinstance(probe, dict):
         raise ConfigError("config: probe is not a mapping")
     _named(PROBE_KEYS - set(probe), set(probe) - PROBE_KEYS, "config.probe")
     try:
+        if "video_recipe" in cfg:
+            from downstream.video_recipe import resolve
+            resolve(cfg)
         resolve_optimization(cfg, TASK)
     except ValueError as exc:
         raise ConfigError(str(exc)) from exc
@@ -157,7 +164,7 @@ def sample_segment_indices(n_frames: int, num_segments: int, train: bool) -> lis
 
 
 def decode_video_frames(path: Path, num_frames: int, *, profile="legacy",
-                        train=False) -> "list[Image.Image]":
+                        train=False, recipe=None) -> "list[Image.Image]":
     import av
     frames: "list[Image.Image]" = []
     with av.open(str(path)) as container:
@@ -165,6 +172,9 @@ def decode_video_frames(path: Path, num_frames: int, *, profile="legacy",
             frames.append(frame.to_image().convert("RGB"))
     if not frames:
         raise RuntimeError(f"no frames decoded from {path}")
+    if recipe is not None:
+        from downstream.video_recipe import sample_indices
+        return [frames[i] for i in sample_indices(len(frames), num_frames, train, recipe)]
     if profile == CAPTURE_PROFILE:
         return [frames[i] for i in sample_segment_indices(len(frames), num_frames, train)]
     if len(frames) > num_frames:
@@ -178,7 +188,8 @@ def decode_video_frames(path: Path, num_frames: int, *, profile="legacy",
 
 class SSV2Clips(Dataset):
     def __init__(self, root: Path, split: str, num_frames: int, image_size: int,
-                 *, profile="legacy"):
+                 *, profile="legacy", recipe=None):
+        self.recipe = recipe
         if split not in {"train", "validation"}:
             raise ValueError(f"unknown SSV2 split: {split}")
         self.video_dir = Path(root) / "videos"
@@ -217,6 +228,10 @@ class SSV2Clips(Dataset):
 
     def __getitem__(self, index: int):
         path, label = self.samples[index]
+        if self.recipe is not None:
+            from downstream.video_recipe import transform
+            frames = decode_video_frames(path, self.num_frames, train=self.train, recipe=self.recipe)
+            return transform(frames, self.train, self.image_size, self.recipe), torch.tensor(label, dtype=torch.long)
         if self.profile == CAPTURE_PROFILE:
             from torchvision.transforms import RandomResizedCrop, InterpolationMode
             selected = decode_video_frames(path, self.num_frames,
@@ -325,6 +340,9 @@ def evaluate(model, loader, device) -> dict:
 
 def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
     validate_config(cfg)
+    if "video_recipe" in cfg:
+        from downstream.video_execution import run
+        return run(cfg, out, device_override=device_override)
     device = resolve_device(device_override or cfg["device"])
     seed = int(cfg["seed"])
     make_deterministic(seed)
@@ -418,10 +436,13 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: "list[str] | None" = None) -> int:
     args = build_parser().parse_args(argv)
-    out = Path(args.out)
-    out.mkdir(parents=True, exist_ok=True)
     config_bytes = Path(args.config).read_bytes()
     cfg = json.loads(config_bytes)
+    if "video_recipe" in cfg:
+        from downstream.extended_distributed import cli
+        return cli(config_bytes,args.out,lambda c,o:run(c,o,device_override=args.device),TASK,device_override=args.device)
+    out = Path(args.out)
+    out.mkdir(parents=True, exist_ok=True)
     method_ref = str(cfg.get("backbone", {}).get("encoder") or "random-smoke")
     started = _now()
     error = None

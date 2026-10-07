@@ -137,7 +137,7 @@
     },
     {
       "label": "existing output preservation",
-      "file": "downstream/imagenet_execution.py",
+      "file": "downstream/classification_execution.py",
       "old": "if out.exists() and any(out.iterdir()):",
       "new": "if False:",
       "tests": [
@@ -146,7 +146,7 @@
     },
     {
       "label": "FT gradient opt in",
-      "file": "downstream/imagenet_execution.py",
+      "file": "downstream/classification_execution.py",
       "old": "trainable_backbone=cfg[\"adaptation\"] == \"finetune\",",
       "new": "trainable_backbone=False,",
       "tests": [
@@ -155,7 +155,7 @@
     },
     {
       "label": "train autocast",
-      "file": "downstream/imagenet_execution.py",
+      "file": "downstream/classification_execution.py",
       "old": "with execution.autocast_context(device, plan[\"precision\"]):\n                logits = model(images)",
       "new": "with execution.autocast_context(device, \"fp32\"):\n                logits = model(images)",
       "tests": [
@@ -164,7 +164,7 @@
     },
     {
       "label": "eval autocast",
-      "file": "downstream/imagenet_execution.py",
+      "file": "downstream/classification_execution.py",
       "old": "with execution.autocast_context(device, plan[\"precision\"]):\n                        logits = raw(images.to(device))",
       "new": "with execution.autocast_context(device, \"fp32\"):\n                        logits = raw(images.to(device))",
       "tests": [
@@ -173,7 +173,7 @@
     },
     {
       "label": "FP32 loss",
-      "file": "downstream/imagenet_execution.py",
+      "file": "downstream/classification_execution.py",
       "old": "F.cross_entropy(logits.float(), labels)",
       "new": "F.cross_entropy(logits, labels)",
       "tests": [
@@ -182,7 +182,7 @@
     },
     {
       "label": "FT soft targets",
-      "file": "downstream/imagenet_execution.py",
+      "file": "downstream/classification_execution.py",
       "old": "return -(targets * F.log_softmax(logits.float(), dim=-1)).sum(-1).mean()",
       "new": "return F.cross_entropy(logits.float(), labels)",
       "tests": [
@@ -191,7 +191,7 @@
     },
     {
       "label": "epoch continuation",
-      "file": "downstream/imagenet_execution.py",
+      "file": "downstream/classification_execution.py",
       "old": "continuation.save(epoch + 1)",
       "new": "pass",
       "tests": [

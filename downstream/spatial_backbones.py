@@ -292,6 +292,12 @@ def imagenet_execution_policy(kind):
             if kind in _PROVIDERS else None)
 
 
+def video_recipe_policy(kind):
+    """Source-owned temporal, spatial and clip augmentation policy."""
+    return (getattr(_load_provider(_PROVIDERS[kind]), "VIDEO_RECIPE", None)
+            if kind in _PROVIDERS else None)
+
+
 def supports_adaptation(kind, adaptation):
     """An explicit provider restriction takes precedence over generic readers."""
     if kind not in _PROVIDERS:

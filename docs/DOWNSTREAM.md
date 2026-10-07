@@ -381,8 +381,13 @@ caps do not shorten the clock's full-loader horizon; their truncated accounting
 is recorded. FT group rates retain their relative layer multipliers.
 Other-batch cosine endpoints remain unresolved. The separate
 [ImageNet execution profile](IMAGENET_EXECUTION.md) adds explicit accumulation
-and selected distributed paths; other BasicFive task runners retain their
-single-process boundaries. Existing configurations retain their behavior.
+and selected distributed paths; the SSv2 counterpart is described below.
+Other BasicFive task runners retain their single-process boundaries. Existing configurations retain their behavior.
+
+[BasicFive SSv2 execution and source recipes](SSV2_EXECUTION.md) cover eight families
+across LP/AP/FT with explicit clip augmentation, accumulation and portable resume.
+The shared classification engine preserves the ImageNet execution contract.
+These components do not certify native FSDP, decoder equivalence or paper scores.
 
 ### Online ImageNet components
 

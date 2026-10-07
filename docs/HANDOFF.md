@@ -12,6 +12,22 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-10-07: BasicFive SSv2 execution and source recipes
+
+PR 227 merged as `7bfcc4c`; all 115 checks succeeded. Pulled main was
+tree-identical to the tested head. The unrelated dirty video submodule remains
+preserved. A fresh read-only comparison retrieved 120 source files; 112 matched
+the current capture snapshot byte for byte. Private provenance stays outside Git.
+
+[SSv2 execution](SSV2_EXECUTION.md) adds explicit provider-owned clip sampling,
+augmentation, accumulated LP/AP/FT updates and portable epoch continuation across
+eight families. ImageNet and SSv2 share the classification execution engine.
+Decoded-frame comparisons matched 384 clip cases and 192 batch-mixing cases
+against captured and current source. Decoder/fallback differences, protocol
+conflicts, native FSDP/resume and released-weight/full-data results remain pending.
+Record RED/GREEN, all-route and two-rank tests, mutations, Linux checks and final
+whole-suite/CI outcomes in the PR; implementation coverage is not paper-score parity.
+
 ### 2026-10-07: ImageNet execution and portable continuation
 
 PR 226 merged as `ef5b5e2`; all 115 checks succeeded. Pulled main was
