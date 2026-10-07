@@ -26,6 +26,7 @@ import sys
 from collections import OrderedDict
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import cast
 
 import numpy as np
 import torch
@@ -41,6 +42,7 @@ from torchvision.transforms import functional as TF
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+from downstream import dense_execution
 from downstream.optimization import resolve_optimization, build_optimizer, require_training_batches
 from downstream.optimization import REFERENCE_SCHEDULE, task_schedule_report
 from downstream.optimization import build_coco_scheduler
@@ -84,7 +86,7 @@ def validate_config(cfg: dict) -> None:
         if key in cfg:
             raise ConfigError(
                 f"config: {key} is set; the output location is fixed at --out")
-    _named(TOP_KEYS - set(cfg), set(cfg) - (TOP_KEYS | {"profile", "adaptation", "optimizer_profile", "scheduler_profile", "reader_profile", "detector_profile"}), "config")
+    _named(TOP_KEYS - set(cfg), set(cfg) - (TOP_KEYS | {"execution", "profile", "adaptation", "optimizer_profile", "scheduler_profile", "reader_profile", "detector_profile"}), "config")
     try:
         validate_adaptation(cfg)
         validate_profile(cfg)
@@ -111,6 +113,8 @@ def validate_config(cfg: dict) -> None:
     _named(DETECTOR_KEYS - set(detector), set(detector) - DETECTOR_KEYS,
            "config.detector")
     try:
+        if "execution" in cfg:
+            dense_execution.resolve(cfg)
         resolve_optimization(cfg, TASK)
     except ValueError as exc:
         raise ConfigError(str(exc)) from exc
@@ -363,6 +367,8 @@ def evaluate(model, loader, dataset, device, *, profile: str = "legacy") -> dict
 def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
     validate_config(cfg)
     device = resolve_device(device_override or cfg["device"])
+    if "execution" in cfg:
+        dense_execution.autocast_context(device, dense_execution.resolve(cfg)["precision"])
     seed = int(cfg["seed"])
     make_deterministic(seed)
     detector = cfg["detector"]
@@ -418,15 +424,28 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
                  if "scheduler_profile" in cfg else None)
     if scheduler is not None and epochs < 12:
         subset_mode = True
+    runtime = None
+    if "execution" in cfg:
+        plan, update_scheduler, runtime = dense_execution.prepare(
+            cfg, device, optimizer, scheduler, len(train_loader), cast(dict, optimization)["lr"])
     print(f"COCO det  device={device}  backbone={cfg['backbone']['kind']}"
           f"({'trained' if cfg['backbone'].get('encoder') else 'random (smoke)'})"
           f"  epochs={epochs}")
     metrics = {"bbox_mAP": 0.0, "bbox_mAP_50": 0.0, "detections": 0}
     for epoch in range(epochs):
-        loss = _train_one_epoch(model, train_loader, optimizer, device, max_steps,
-                                adaptation=adaptation, scheduler=scheduler)
+        if runtime is not None:
+            statistics = dense_execution.train_epoch(
+                model, train_loader,
+                lambda batch: dense_execution.batch_loss(model, batch, device, TASK, plan["precision"]),
+                optimizer, update_scheduler, cfg, plan)
+            dense_execution.record_epoch(runtime, statistics)
+            training_summary = f"updates={statistics['updates']}"
+        else:
+            loss = _train_one_epoch(model, train_loader, optimizer, device, max_steps,
+                                    adaptation=adaptation, scheduler=scheduler)
+            training_summary = f"loss={loss:.4f}"
         metrics = evaluate(model, val_loader, val_ds, device, profile=profile)
-        print(f"[{epoch + 1}/{epochs}] loss={loss:.4f} "
+        print(f"[{epoch + 1}/{epochs}] {training_summary} "
               f"mAP={metrics['bbox_mAP']:.4f} mAP50={metrics['bbox_mAP_50']:.4f}")
 
     if cfg.get("scheduler_profile") == REFERENCE_SCHEDULE:
@@ -459,6 +478,7 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
                     "canonical_eligible": False,
                     "metric_units": "ratio; -1 means undefined",
                     "record_value": not subset_mode and profile == "legacy",
+                    **({"execution": runtime} if runtime is not None else {}),
                     **({"optimization": optimization} if optimization is not None else {}),
                     "subset_or_smoke": subset_mode},
                    indent=2, sort_keys=True) + "\n", encoding="utf-8")

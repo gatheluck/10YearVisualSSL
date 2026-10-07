@@ -29,7 +29,7 @@ def resolve_optimization(cfg: dict, task: str) -> dict | None:
 
 The existing numeric lr belongs to the legacy optimizer. Requiring the explicit
 sentinel avoids silently ignoring a caller's requested rate. Without explicit
-ImageNet/video execution, one process and one physical batch per update are required.
+execution, one process and one physical batch per update are required.
 """
     if "scheduler_profile" in cfg:
         if cfg["scheduler_profile"] == REFERENCE_SCHEDULE:
@@ -62,6 +62,8 @@ ImageNet/video execution, one process and one physical batch per update are requ
     if "execution" in cfg:
         if task == "ssv2_video":
             from downstream.video_execution import resolve
+        elif task in ("ade20k_segmentation", "nyuv2_depth", "coco_detection"):
+            from downstream.dense_execution import resolve
         else:
             from downstream.imagenet_execution import resolve
         execution = resolve(cfg)

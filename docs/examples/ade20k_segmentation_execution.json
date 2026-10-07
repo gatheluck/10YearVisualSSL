@@ -1,0 +1,33 @@
+{
+  "task": "ade20k_segmentation",
+  "seed": 0,
+  "device": "cuda",
+  "data_root": "/data/ade20k_segmentation",
+  "backbone": {
+    "kind": "vjepa2_1",
+    "arch": "released",
+    "encoder": "/models/encoder.pt",
+    "img_size": 224,
+    "patch_size": 16
+  },
+  "probe": {
+    "epochs": 20,
+    "batch_size": 1,
+    "lr": "protocol",
+    "num_workers": 4,
+    "image_size": 224,
+    "max_train_samples": 0,
+    "max_val_samples": 0,
+    "max_steps_per_epoch": 0
+  },
+  "profile": "capture_basic5_components",
+  "adaptation": "frozen",
+  "optimizer_profile": "basic5_frozen_v1",
+  "execution": {
+    "profile": "captured_dense_v1",
+    "accumulation_steps": 8,
+    "precision": "bf16",
+    "tail_policy": "discard"
+  },
+  "scheduler_profile": "basic5_reference_schedule_v1"
+}

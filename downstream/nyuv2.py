@@ -27,6 +27,7 @@ import random
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import cast
 
 import h5py
 import numpy as np
@@ -38,6 +39,7 @@ from torch.utils.data import DataLoader, Dataset
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+from downstream import dense_execution
 from downstream.optimization import resolve_optimization, build_optimizer, require_training_batches
 from downstream.optimization import REFERENCE_SCHEDULE, build_task_scheduler, task_schedule_report
 from downstream.optimization import build_dense_ap_scheduler, dense_ap_schedule_report
@@ -86,7 +88,7 @@ def validate_config(cfg: dict) -> None:
         if key in cfg:
             raise ConfigError(
                 f"config: {key} is set; the output location is fixed at --out")
-    _named(TOP_KEYS - set(cfg), set(cfg) - (TOP_KEYS | {"profile", "adaptation", "optimizer_profile", "scheduler_profile", "reader_profile"}), "config")
+    _named(TOP_KEYS - set(cfg), set(cfg) - (TOP_KEYS | {"execution", "profile", "adaptation", "optimizer_profile", "scheduler_profile", "reader_profile"}), "config")
     try:
         validate_adaptation(cfg)
     except ValueError as exc:
@@ -111,6 +113,8 @@ def validate_config(cfg: dict) -> None:
         raise ConfigError("config: probe is not a mapping")
     _named(PROBE_KEYS - set(probe), set(probe) - PROBE_KEYS, "config.probe")
     try:
+        if "execution" in cfg:
+            dense_execution.resolve(cfg)
         resolve_optimization(cfg, TASK)
     except ValueError as exc:
         raise ConfigError(str(exc)) from exc
@@ -376,6 +380,8 @@ def _mat_length(mat_path: Path) -> int:
 def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
     validate_config(cfg)
     device = resolve_device(device_override or cfg["device"])
+    if "execution" in cfg:
+        dense_execution.autocast_context(device, dense_execution.resolve(cfg)["precision"])
     seed = int(cfg["seed"])
     make_deterministic(seed)
     probe = cfg["probe"]
@@ -425,27 +431,38 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
                  if cfg.get("scheduler_profile") == REFERENCE_SCHEDULE else
                  build_dense_ap_scheduler(optimizer, len(train_loader), epochs)
                  if "scheduler_profile" in cfg else None)
+    runtime = None
+    if "execution" in cfg:
+        plan, update_scheduler, runtime = dense_execution.prepare(
+            cfg, device, optimizer, scheduler, len(train_loader), cast(dict, optimization)["lr"])
     print(f"NYUv2 depth  device={device}  backbone={cfg['backbone']['kind']}"
           f"({'trained' if cfg['backbone'].get('encoder') else 'random (smoke)'})"
           f"  epochs={epochs}  train={len(train_ds)} val={len(val_ds)}")
     metrics = {"rmse": 0.0, "abs_rel": 0.0, "valid_pixels": 0}
     for epoch in range(epochs):
-        model.train()
-        for step, (image, depth, valid) in enumerate(train_loader):
-            if max_steps and step >= max_steps:
-                break
-            image, depth, valid = (image.to(device), depth.to(device),
-                                   valid.to(device))
-            pred = model(image)
-            loss = (silog_loss if captured else masked_l1)(pred, depth, valid)
-            if not torch.isfinite(loss):
-                raise RuntimeError("non-finite NYUv2 depth loss")
-            optimizer.zero_grad(set_to_none=True)
-            loss.backward()
-            clip_attentive_gradients(model, adaptation)
-            optimizer.step()
-            if scheduler is not None:
-                scheduler.step()
+        if runtime is not None:
+            statistics = dense_execution.train_epoch(
+                model, train_loader,
+                lambda batch: dense_execution.batch_loss(model, batch, device, TASK, plan["precision"]),
+                optimizer, update_scheduler, cfg, plan)
+            dense_execution.record_epoch(runtime, statistics)
+        else:
+            model.train()
+            for step, (image, depth, valid) in enumerate(train_loader):
+                if max_steps and step >= max_steps:
+                    break
+                image, depth, valid = (image.to(device), depth.to(device),
+                                       valid.to(device))
+                pred = model(image)
+                loss = (silog_loss if captured else masked_l1)(pred, depth, valid)
+                if not torch.isfinite(loss):
+                    raise RuntimeError("non-finite NYUv2 depth loss")
+                optimizer.zero_grad(set_to_none=True)
+                loss.backward()
+                clip_attentive_gradients(model, adaptation)
+                optimizer.step()
+                if scheduler is not None:
+                    scheduler.step()
         metrics = evaluate(model, val_loader, device, profile=profile)
         print(f"[{epoch + 1}/{epochs}] rmse={metrics['rmse']:.4f} "
               f"abs_rel={metrics['abs_rel']:.4f}")
@@ -470,6 +487,7 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
                               "half/half for a smaller hermetic file"),
                     "epochs": epochs, "final": raw,
                     "record_value": not subset_mode and not captured,
+                    **({"execution": runtime} if runtime is not None else {}),
                     **({"optimization": optimization} if optimization is not None else {}),
                     "subset_or_smoke": subset_mode},
                    indent=2, sort_keys=True) + "\n", encoding="utf-8")

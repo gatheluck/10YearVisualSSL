@@ -275,7 +275,9 @@ subject to warmup taking precedence. For a tiny loader whose epoch milestones
 fall inside warmup, the milestones do not interrupt warmup. A smoke step cap
 does not replace the full loader length in this denominator or reset the
 schedule each epoch. This matches the captured single-process, no-accumulation
-portable loop; accumulation and resume have not yet been integrated into it.
+portable loop. The explicit [dense execution block](DENSE_EXECUTION.md) now
+adds accumulation while preserving this update-based formula; some native
+implementations instead use outer-epoch milestones. Resume remains pending.
 
 `optimization.lr` remains the nominal batch-scaled LR. `optimization.schedule`
 records the profile, warmup and decay settings, full loader steps per epoch,
@@ -327,8 +329,9 @@ results remain noncanonical and nonrecordable, even without sample caps.
 
 This is a deliberately bounded component: at effective batch 8 the paper's
 fixed 1e-6 endpoints and the captured batch-scaled endpoints agree. Other
-batches, accumulation, resume, FT grouping and disputed source values remain
-pending. Omitting the schedule keeps the existing constant-LR execution.
+batches and disputed source values remain pending. The separate explicit
+[dense execution block](DENSE_EXECUTION.md) adds accumulation at the same effective
+batch; resume remains pending. FT uses its separate optimizer/reference schedule. Omitting the schedule keeps the existing constant-LR execution.
 Tests exercise actual CPU/CUDA CLIs with synthetic data, numerical AdamW
 updates and frozen state; they do not reproduce released-weight scores.
 
@@ -383,6 +386,11 @@ Other-batch cosine endpoints remain unresolved. The separate
 [ImageNet execution profile](IMAGENET_EXECUTION.md) adds explicit accumulation
 and selected distributed paths; the SSv2 counterpart is described below.
 Other BasicFive task runners retain their single-process boundaries. Existing configurations retain their behavior.
+
+[BasicFive dense-task accumulation](DENSE_EXECUTION.md) adds explicit single-process LP/AP/FT accumulation
+and training precision to ADE20K, NYUv2 and COCO for eight inspected families.
+Native schedule/loss disagreements, distributed dense execution and continuation
+remain separate verification/integration work.
 
 [BasicFive SSv2 execution and source recipes](SSV2_EXECUTION.md) cover eight families
 across LP/AP/FT with explicit clip augmentation, accumulation and portable resume.

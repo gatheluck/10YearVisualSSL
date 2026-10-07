@@ -211,6 +211,7 @@ jobs:
             tests.test_method_imagenet_preprocessing \
             tests.test_method_imagenet_execution \
           tests.test_method_ssv2_execution \
+          tests.test_method_dense_execution \
             tests.test_basic5_attentive_tasks \
             tests.test_basic5_finetune_tasks tests.test_method_vjepa2_1
 

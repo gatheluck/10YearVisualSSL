@@ -12,6 +12,21 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-10-07: BasicFive dense-task accumulated updates
+
+PR 228 merged as `010af4d`; all 115 checks succeeded. Main was pulled and
+confirmed tree-identical to the tested head. The unrelated dirty video submodule
+is preserved. A fresh read-only comparison retrieved 120 original source files;
+112 matched the current capture snapshot. Private source/run details stay outside Git.
+
+[Dense execution](DENSE_EXECUTION.md) adds single-process accumulated LP/AP/FT
+updates for ADE20K/NYUv2/COCO with eight provider policies. Source update-block
+comparisons cover 288 cases; they do not establish complete loss, schedule,
+released-weight or paper-score parity. Dense source schedule/clamp discrepancies,
+distributed execution and continuation remain pending. Record RED/GREEN,
+mutations, regression, Linux and final gate/CI outcomes in the PR. No compute job
+or original source/weight change is implied.
+
 ### 2026-10-07: BasicFive SSv2 execution and source recipes
 
 PR 227 merged as `7bfcc4c`; all 115 checks succeeded. Pulled main was

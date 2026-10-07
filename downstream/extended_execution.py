@@ -47,7 +47,8 @@ def autocast_context(device, precision):
 
 
 def train_epoch(model, loader, loss_for_batch, optimizer, scheduler, *,
-                accumulation_steps, tail_policy, adaptation, trainable_backbone=False):
+                accumulation_steps, tail_policy, adaptation, trainable_backbone=False,
+                clip_gradients=None, frozen_backbone=None):
     """Divide every loss by the full group size, including a flushed short tail.
 
     The captured schedule uses optimizer-update indices against a horizon
@@ -70,10 +71,13 @@ def train_epoch(model, loader, loss_for_batch, optimizer, scheduler, *,
         device=next(model.parameters()).device
         _require_all(not any(p.grad is not None and not torch.isfinite(p.grad).all() for p in model.parameters()),
                      device,'nonfinite accumulated gradients')
-        backbone = getattr(unwrap(model), 'backbone', None)
+        backbone = frozen_backbone if frozen_backbone is not None else getattr(unwrap(model), 'backbone', None)
         _require_all(trainable_backbone or backbone is None or not any(p.requires_grad or p.grad is not None for p in backbone.parameters()),
                      device,'Extended backbone must remain frozen with no gradients')
-        clip_attentive_gradients(model, adaptation)
+        if clip_gradients is None:
+            clip_attentive_gradients(model, adaptation)
+        else:
+            clip_gradients()
         optimizer.step(); scheduler.step(); optimizer.zero_grad(set_to_none=True)
         stats['updates'] += 1
 
