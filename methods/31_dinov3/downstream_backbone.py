@@ -12,6 +12,7 @@ IMAGE_CLASSIFICATION = True
 IMAGENET_FT_RECIPE = "captured_bilinear_plain_torch_v1"
 IMAGENET_PROBE_INTERPOLATION = "bilinear"
 IMAGENET_EXECUTION = dict(tail_policy="discard", rank_seed_stride=17, distributed=True)
+VIDEO_RECIPE = {'interpolation': 'bilinear', 'temporal_rng': 'torch', 'augmentation': 'plain', 'batch_mixing': 'torch'}
 COMPONENT_ONLY = True
 CAPTURE_PYRAMID = True
 SUPPORTED_ADAPTATIONS = ("frozen", "attentive", "finetune")

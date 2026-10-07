@@ -29,7 +29,7 @@ def resolve_optimization(cfg: dict, task: str) -> dict | None:
 
 The existing numeric lr belongs to the legacy optimizer. Requiring the explicit
 sentinel avoids silently ignoring a caller's requested rate. Without explicit
-ImageNet execution, one process and one physical batch per update are required.
+ImageNet/video execution, one process and one physical batch per update are required.
 """
     if "scheduler_profile" in cfg:
         if cfg["scheduler_profile"] == REFERENCE_SCHEDULE:
@@ -60,7 +60,10 @@ ImageNet execution, one process and one physical batch per update are required.
         raise ValueError("optimizer_profile requires the runner's supported task identity")
     execution = None
     if "execution" in cfg:
-        from downstream.imagenet_execution import resolve
+        if task == "ssv2_video":
+            from downstream.video_execution import resolve
+        else:
+            from downstream.imagenet_execution import resolve
         execution = resolve(cfg)
     if execution is None and os.environ.get("WORLD_SIZE", "1") != "1":
         raise ValueError("optimizer_profile requires WORLD_SIZE=1; distributed execution unsupported")

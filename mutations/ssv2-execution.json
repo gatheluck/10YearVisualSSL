@@ -1,0 +1,283 @@
+{
+  "targets": [
+    {
+      "label": "recipe profile",
+      "file": "downstream/video_recipe.py",
+      "old": "cfg.get(\"video_recipe\") != PROFILE",
+      "new": "False",
+      "tests": [
+        "tests.test_method_ssv2_execution.Video.test_twenty_four_video_recipes_and_source_metadata"
+      ]
+    },
+    {
+      "label": "explicit optimizer",
+      "file": "downstream/video_recipe.py",
+      "old": "    if cfg.get(\"adaptation\") not in (\"frozen\", \"attentive\", \"finetune\") or cfg.get(\n        \"optimizer_profile\"\n    ) not in (\"basic5_frozen_v1\", \"basic5_finetune_v1\"):",
+      "new": "    if False:",
+      "tests": [
+        "tests.test_method_ssv2_execution.Video.test_invalid_video_recipe_inputs_fail_before_data_access"
+      ]
+    },
+    {
+      "label": "input integer",
+      "file": "downstream/video_recipe.py",
+      "old": "type(settings[key]) is not int",
+      "new": "False",
+      "tests": [
+        "tests.test_method_ssv2_execution.Video.test_invalid_video_recipe_inputs_fail_before_data_access"
+      ]
+    },
+    {
+      "label": "input range",
+      "file": "downstream/video_recipe.py",
+      "old": "or settings[key] < minimum",
+      "new": "or False",
+      "tests": [
+        "tests.test_method_ssv2_execution.Video.test_invalid_video_recipe_inputs_fail_before_data_access"
+      ]
+    },
+    {
+      "label": "complete epoch",
+      "file": "downstream/video_recipe.py",
+      "old": "if settings[\"max_steps_per_epoch\"] or not 1 <= settings[\"epochs\"] <= 50:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_ssv2_execution.Video.test_invalid_video_recipe_inputs_fail_before_data_access"
+      ]
+    },
+    {
+      "label": "released geometry",
+      "file": "downstream/video_recipe.py",
+      "old": "cfg[\"backbone\"].get(\"arch\") == \"released\"",
+      "new": "False",
+      "tests": [
+        "tests.test_method_ssv2_execution.Video.test_twenty_four_video_recipes_and_source_metadata"
+      ]
+    },
+    {
+      "label": "segment bounds",
+      "file": "downstream/video_recipe.py",
+      "old": "if any(type(x) is not int or x <= 0 for x in (count, segments)):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_ssv2_execution.Video.test_invalid_execution_and_collectives_are_refused"
+      ]
+    },
+    {
+      "label": "temporal RNG",
+      "file": "downstream/video_recipe.py",
+      "old": "elif recipe[\"temporal_rng\"] == \"python\":",
+      "new": "elif False:",
+      "tests": [
+        "tests.test_method_ssv2_execution.Video.test_temporal_rng_and_clip_wide_mixing_match_reference_operations"
+      ]
+    },
+    {
+      "label": "evaluation centers",
+      "file": "downstream/video_recipe.py",
+      "old": "index = (start + end - 1) // 2",
+      "new": "index = start",
+      "tests": [
+        "tests.test_method_ssv2_execution.Video.test_temporal_rng_and_clip_wide_mixing_match_reference_operations"
+      ]
+    },
+    {
+      "label": "frame dimensions",
+      "file": "downstream/video_recipe.py",
+      "old": "if clips.ndim != 5:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_ssv2_execution.Video.test_invalid_execution_and_collectives_are_refused"
+      ]
+    },
+    {
+      "label": "FT mixing guard",
+      "file": "downstream/video_recipe.py",
+      "old": "if recipe[\"batch_mixing\"] == \"none\":",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_ssv2_execution.Video.test_invalid_execution_and_collectives_are_refused"
+      ]
+    },
+    {
+      "label": "clip interpolation",
+      "file": "downstream/video_recipe.py",
+      "old": "if recipe[\"interpolation\"] == \"bicubic\"",
+      "new": "if False",
+      "tests": [
+        "tests.test_method_ssv2_execution.Video.test_clip_augmentation_and_validation_keep_provider_semantics"
+      ]
+    },
+    {
+      "label": "VJEPA independent erasing",
+      "file": "downstream/video_recipe.py",
+      "old": "if mode == \"independent_zero\" and torch.rand(1).item() < 0.25:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_ssv2_execution.Video.test_clip_augmentation_and_validation_keep_provider_semantics"
+      ]
+    },
+    {
+      "label": "execution fields",
+      "file": "downstream/video_execution.py",
+      "old": "or set(settings)\n        != {\"profile\", \"accumulation_steps\", \"precision\", \"tail_policy\"}",
+      "new": "or False",
+      "tests": [
+        "tests.test_method_ssv2_execution.Video.test_invalid_execution_and_collectives_are_refused"
+      ]
+    },
+    {
+      "label": "execution profile",
+      "file": "downstream/video_execution.py",
+      "old": "or settings[\"profile\"] != \"captured_video_v1\"",
+      "new": "or False",
+      "tests": [
+        "tests.test_method_ssv2_execution.Video.test_invalid_execution_and_collectives_are_refused"
+      ]
+    },
+    {
+      "label": "integer accumulation",
+      "file": "downstream/video_execution.py",
+      "old": "type(settings[\"accumulation_steps\"]) is not int",
+      "new": "False",
+      "tests": [
+        "tests.test_method_ssv2_execution.Video.test_invalid_execution_and_collectives_are_refused"
+      ]
+    },
+    {
+      "label": "positive accumulation",
+      "file": "downstream/video_execution.py",
+      "old": "or settings[\"accumulation_steps\"] < 1",
+      "new": "or False",
+      "tests": [
+        "tests.test_method_ssv2_execution.Video.test_invalid_execution_and_collectives_are_refused"
+      ]
+    },
+    {
+      "label": "precision",
+      "file": "downstream/video_execution.py",
+      "old": "or settings[\"precision\"] not in (\"fp32\", \"bf16\")",
+      "new": "or False",
+      "tests": [
+        "tests.test_method_ssv2_execution.Video.test_invalid_execution_and_collectives_are_refused"
+      ]
+    },
+    {
+      "label": "tail policy",
+      "file": "downstream/video_execution.py",
+      "old": "or settings[\"tail_policy\"] != policy[\"tail_policy\"]",
+      "new": "or False",
+      "tests": [
+        "tests.test_method_ssv2_execution.Video.test_invalid_execution_and_collectives_are_refused"
+      ]
+    },
+    {
+      "label": "Omega distributed",
+      "file": "downstream/video_execution.py",
+      "old": "if world > 1 and not policy[\"distributed\"]:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_ssv2_execution.Video.test_invalid_execution_and_collectives_are_refused"
+      ]
+    },
+    {
+      "label": "resume path",
+      "file": "downstream/video_execution.py",
+      "old": "not isinstance(cfg[\"resume\"], str) or not cfg[\"resume\"].strip()",
+      "new": "False",
+      "tests": [
+        "tests.test_method_ssv2_execution.Video.test_invalid_execution_and_collectives_are_refused"
+      ]
+    },
+    {
+      "label": "effective world",
+      "file": "downstream/video_execution.py",
+      "old": "* world\n",
+      "new": "* 1\n",
+      "tests": [
+        "tests.test_method_ssv2_execution.Video.test_invalid_execution_and_collectives_are_refused"
+      ]
+    },
+    {
+      "label": "effective accumulation",
+      "file": "downstream/video_execution.py",
+      "old": "* settings[\"accumulation_steps\"],",
+      "new": "* 1,",
+      "tests": [
+        "tests.test_method_ssv2_execution.Video.test_execution_has_effective_batch_and_fifty_epoch_horizon"
+      ]
+    },
+    {
+      "label": "format",
+      "file": "downstream/video_execution.py",
+      "old": "format_name = \"ssv2_epoch_v1\"",
+      "new": "format_name = \"imagenet_epoch_v1\"",
+      "tests": [
+        "tests.test_method_ssv2_execution.Video.test_actual_video_lp_ap_ft_resume_and_exports"
+      ]
+    },
+    {
+      "label": "video byte identity",
+      "file": "downstream/video_execution.py",
+      "old": "content.update(chunk)",
+      "new": "pass",
+      "tests": [
+        "tests.test_method_ssv2_execution.Video.test_resume_identity_and_invalid_labels_fail_closed"
+      ]
+    },
+    {
+      "label": "valid labels",
+      "file": "downstream/video_execution.py",
+      "old": "or any(not 0 <= n < api.NUM_CLASSES for n in labels.values())",
+      "new": "or False",
+      "tests": [
+        "tests.test_method_ssv2_execution.Video.test_resume_identity_and_invalid_labels_fail_closed"
+      ]
+    },
+    {
+      "label": "video dispatch",
+      "file": "downstream/ssv2.py",
+      "old": "if \"video_recipe\" in cfg:\n        from downstream.video_execution import run",
+      "new": "if False:\n        from downstream.video_execution import run",
+      "tests": [
+        "tests.test_method_ssv2_execution.Video.test_actual_video_lp_ap_ft_resume_and_exports"
+      ]
+    },
+    {
+      "label": "CI video",
+      "file": ".github/workflows/tests.yml",
+      "old": "          tests.test_method_ssv2_execution \\\n",
+      "new": "",
+      "tests": [
+        "tests.test_method_ssv2_execution.Delivery.test_ci_runs_video_execution"
+      ]
+    },
+    {
+      "label": "video horizon",
+      "file": "downstream/video_execution.py",
+      "old": "HORIZON = 50",
+      "new": "HORIZON = 100",
+      "tests": [
+        "tests.test_method_ssv2_execution.Video.test_actual_video_lp_ap_ft_resume_and_exports"
+      ]
+    },
+    {
+      "label": "recipe task",
+      "file": "downstream/video_recipe.py",
+      "old": "or cfg.get(\"task\") != \"ssv2_video\"",
+      "new": "or False",
+      "tests": [
+        "tests.test_method_ssv2_execution.Video.test_twenty_four_video_recipes_and_source_metadata"
+      ]
+    },
+    {
+      "label": "inspected provider",
+      "file": "downstream/video_recipe.py",
+      "old": "or policy is None",
+      "new": "or False",
+      "tests": [
+        "tests.test_method_ssv2_execution.Video.test_twenty_four_video_recipes_and_source_metadata"
+      ]
+    }
+  ]
+}

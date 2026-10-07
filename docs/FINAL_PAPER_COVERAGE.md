@@ -7,7 +7,7 @@ research history. See [terminology](PAPER_TERMINOLOGY.md) and
 [submission scope](SUBMISSION_SCOPE.md). Private manuscript/source fingerprints
 and run evidence remain outside Git.
 
-Updated 2026-10-07 for explicit ImageNet execution and continuation. Remaining priorities
+Updated 2026-10-07 for explicit ImageNet and SSv2 execution and continuation. Remaining priorities
 below distinguish executable component support from actual result reproduction.
 
 **The portable package does not yet reproduce the entire paper.** Original
@@ -15,6 +15,11 @@ experimental implementations exist for many remaining gaps. A provider, extracte
 feature file, test fixture score, or tracked protocol is not proof of a complete
 training/evaluation port or a reproduced table cell. Workbook values predate
 some final manuscript revisions and must be matched by actual run identity.
+
+[BasicFive SSv2 execution and source recipes](SSV2_EXECUTION.md) cover eight families
+across LP/AP/FT with explicit clip augmentation, accumulation and portable resume.
+The shared classification engine preserves the ImageNet execution contract.
+These components do not certify native FSDP, decoder equivalence or paper scores.
 
 ## Coverage by final appendix
 
@@ -48,7 +53,8 @@ FSDP and historical run attribution remain pending. The October 7
 [execution profile](IMAGENET_EXECUTION.md) adds accumulation, CUDA BF16 selection
 and portable epoch continuation for all eight ImageNet families, with replicated
 DDP for seven. Omega distributed source equivalence, released-weight CUDA parity,
-native checkpoint import and other BasicFive tasks' execution remain pending.
+native checkpoint import and dense BasicFive tasks' execution remain pending.
+The SSv2 counterpart now adds source-specific video recipes and 24 execution routes.
 Explicit [LP/AP preprocessing](IMAGENET_PROBE_PREPROCESSING.md) now
 selects provider-owned bicubic/bilinear geometry across all eight families;
 legacy configurations retain common-bilinear inputs. This closes a source
@@ -66,8 +72,9 @@ availability does not establish complete native-video or paper-score coverage.
    six provider-bound source profiles across eight families. Augmentation and
    unsmoothed targets preserve inspected behavior, not one inferred protocol.
    ImageNet's explicit execution profile now preserves the inspected accumulation
-   and schedule clock and adds portable continuation. Other BasicFive task runners,
-   FSDP and native checkpoint import still require integration. Final-table
+   and schedule clock and adds portable continuation. SSv2 now has corresponding
+   LP/AP/FT execution and clip recipes. Dense BasicFive task execution, FSDP and
+   native checkpoint import still require integration. Final-table
    attribution requires per-run reconciliation and released-weight validation.
 2. Integrate Extended task trainers and metrics for the **45 actually reported
    datasets**, retaining each of the five model/readout identities. The image

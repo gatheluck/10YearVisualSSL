@@ -94,6 +94,11 @@ The [vision-provider matrix](docs/BASIC5_VISION_PROVIDERS.md) lists the
 additional local vision models, task coverage and unresolved recipe boundaries;
 these integrations do not certify full-scale paper or workbook scores.
 
+[BasicFive SSv2 execution and source recipes](docs/SSV2_EXECUTION.md) cover eight families
+across LP/AP/FT with explicit clip augmentation, accumulation and portable resume.
+The shared classification engine preserves the ImageNet execution contract.
+These components do not certify native FSDP, decoder equivalence or paper scores.
+
 | Directory | Method | Stages | Notes |
 |---|---|---|---|
 | `01_context_prediction` | Context Prediction — Doersch, Gupta & Efros, ICCV 2015 | step 1 + linear eval | the first pilot; verified on a CPU end to end |
