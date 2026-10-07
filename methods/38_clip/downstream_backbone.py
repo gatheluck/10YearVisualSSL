@@ -8,6 +8,7 @@ IMAGE_CLASSIFICATION = True
 IMAGENET_FT_RECIPE = "captured_bicubic_random_python_v1"
 IMAGENET_PROBE_INTERPOLATION = "bicubic"
 IMAGENET_EXECUTION = dict(tail_policy="discard", rank_seed_stride=1000, distributed=True)
+DENSE_EXECUTION = {"tail_policy": "discard", "clip_frozen_detection": False}
 VIDEO_RECIPE = {'interpolation': 'bicubic', 'temporal_rng': 'python', 'augmentation': 'shared_random', 'batch_mixing': 'python'}
 COMPONENT_ONLY = True
 CAPTURE_PYRAMID = False

@@ -94,6 +94,11 @@ The [vision-provider matrix](docs/BASIC5_VISION_PROVIDERS.md) lists the
 additional local vision models, task coverage and unresolved recipe boundaries;
 these integrations do not certify full-scale paper or workbook scores.
 
+[BasicFive dense-task accumulation](docs/DENSE_EXECUTION.md) adds explicit single-process LP/AP/FT accumulation
+and training precision to ADE20K, NYUv2 and COCO for eight inspected families.
+Native schedule/loss disagreements, distributed dense execution and continuation
+remain separate verification/integration work.
+
 [BasicFive SSv2 execution and source recipes](docs/SSV2_EXECUTION.md) cover eight families
 across LP/AP/FT with explicit clip augmentation, accumulation and portable resume.
 The shared classification engine preserves the ImageNet execution contract.

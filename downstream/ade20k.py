@@ -24,6 +24,7 @@ import random
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import cast
 
 import numpy as np
 import torch
@@ -36,6 +37,7 @@ from torchvision.transforms import functional as TF
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+from downstream import dense_execution
 from downstream.optimization import resolve_optimization, build_optimizer, require_training_batches
 from downstream.optimization import REFERENCE_SCHEDULE, build_task_scheduler, task_schedule_report
 from downstream.optimization import build_dense_ap_scheduler, dense_ap_schedule_report
@@ -80,7 +82,7 @@ def validate_config(cfg: dict) -> None:
         if key in cfg:
             raise ConfigError(
                 f"config: {key} is set; the output location is fixed at --out")
-    _named(TOP_KEYS - set(cfg), set(cfg) - (TOP_KEYS | {"profile", "adaptation", "optimizer_profile", "scheduler_profile", "reader_profile"}), "config")
+    _named(TOP_KEYS - set(cfg), set(cfg) - (TOP_KEYS | {"execution", "profile", "adaptation", "optimizer_profile", "scheduler_profile", "reader_profile"}), "config")
     try:
         validate_adaptation(cfg)
     except ValueError as exc:
@@ -105,6 +107,8 @@ def validate_config(cfg: dict) -> None:
         raise ConfigError("config: probe is not a mapping")
     _named(PROBE_KEYS - set(probe), set(probe) - PROBE_KEYS, "config.probe")
     try:
+        if "execution" in cfg:
+            dense_execution.resolve(cfg)
         resolve_optimization(cfg, TASK)
     except ValueError as exc:
         raise ConfigError(str(exc)) from exc
@@ -261,6 +265,8 @@ def evaluate(model, loader, device) -> dict:
 def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
     validate_config(cfg)
     device = resolve_device(device_override or cfg["device"])
+    if "execution" in cfg:
+        dense_execution.autocast_context(device, dense_execution.resolve(cfg)["precision"])
     seed = int(cfg["seed"])
     make_deterministic(seed)
     probe = cfg["probe"]
@@ -300,15 +306,28 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
                  if cfg.get("scheduler_profile") == REFERENCE_SCHEDULE else
                  build_dense_ap_scheduler(optimizer, len(train_loader), epochs)
                  if "scheduler_profile" in cfg else None)
+    runtime = None
+    if "execution" in cfg:
+        plan, update_scheduler, runtime = dense_execution.prepare(
+            cfg, device, optimizer, scheduler, len(train_loader), cast(dict, optimization)["lr"])
     print(f"ADE20k seg  device={device}  backbone={cfg['backbone']['kind']}"
           f"({'trained' if cfg['backbone'].get('encoder') else 'random (smoke)'})"
           f"  epochs={epochs}  out_channels={backbone.out_channels}")
     metrics = {"miou": 0.0, "pacc": 0.0}
     for epoch in range(epochs):
-        loss = _train_one_epoch(model, train_loader, optimizer, device, max_steps,
-                                adaptation=adaptation, scheduler=scheduler)
+        if runtime is not None:
+            statistics = dense_execution.train_epoch(
+                model, train_loader,
+                lambda batch: dense_execution.batch_loss(model, batch, device, TASK, plan["precision"]),
+                optimizer, update_scheduler, cfg, plan)
+            dense_execution.record_epoch(runtime, statistics)
+            training_summary = f"updates={statistics['updates']}"
+        else:
+            loss = _train_one_epoch(model, train_loader, optimizer, device, max_steps,
+                                    adaptation=adaptation, scheduler=scheduler)
+            training_summary = f"loss={loss:.4f}"
         metrics = evaluate(model, val_loader, device)
-        print(f"[{epoch + 1}/{epochs}] loss={loss:.4f} "
+        print(f"[{epoch + 1}/{epochs}] {training_summary} "
               f"mIoU={metrics['miou']:.3f} pACC={metrics['pacc']:.3f}")
 
     raw = {"miou": float(metrics["miou"]), "pacc": float(metrics["pacc"]),
@@ -326,6 +345,7 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
                     "training_color_jitter": getattr(train_ds, "dataset", train_ds).color_jitter,
                     "canonical_eligible": False,
                     "record_value": not subset_mode and profile == "legacy",
+                    **({"execution": runtime} if runtime is not None else {}),
                     **({"optimization": optimization} if optimization is not None else {}),
                     "subset_or_smoke": subset_mode},
                    indent=2, sort_keys=True) + "\n", encoding="utf-8")

@@ -298,6 +298,12 @@ def video_recipe_policy(kind):
             if kind in _PROVIDERS else None)
 
 
+def dense_execution_policy(kind):
+    """Inspected dense-task update policy, owned by the provider."""
+    return (getattr(_load_provider(_PROVIDERS[kind]), "DENSE_EXECUTION", None)
+            if kind in _PROVIDERS else None)
+
+
 def supports_adaptation(kind, adaptation):
     """An explicit provider restriction takes precedence over generic readers."""
     if kind not in _PROVIDERS:

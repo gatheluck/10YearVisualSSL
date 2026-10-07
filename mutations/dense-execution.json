@@ -1,0 +1,319 @@
+{
+  "targets": [
+    {
+      "label": "execution keys",
+      "file": "downstream/dense_execution.py",
+      "old": "or set(settings)\n        != {\"profile\", \"accumulation_steps\", \"precision\", \"tail_policy\"}",
+      "new": "or False",
+      "tests": [
+        "tests.test_method_dense_execution.Dense.test_invalid_and_unsupported_settings_refused_before_data"
+      ]
+    },
+    {
+      "label": "execution profile",
+      "file": "downstream/dense_execution.py",
+      "old": "or settings[\"profile\"] != \"captured_dense_v1\"",
+      "new": "or False",
+      "tests": [
+        "tests.test_method_dense_execution.Dense.test_invalid_and_unsupported_settings_refused_before_data"
+      ]
+    },
+    {
+      "label": "component profile",
+      "file": "downstream/dense_execution.py",
+      "old": "or cfg.get(\"profile\") != \"capture_basic5_components\"",
+      "new": "or False",
+      "tests": [
+        "tests.test_method_dense_execution.Dense.test_invalid_and_unsupported_settings_refused_before_data"
+      ]
+    },
+    {
+      "label": "explicit optimizer",
+      "file": "downstream/dense_execution.py",
+      "old": "or cfg.get(\"optimizer_profile\")\n        not in (\"basic5_frozen_v1\", \"basic5_finetune_v1\")",
+      "new": "or False",
+      "tests": [
+        "tests.test_method_dense_execution.Dense.test_invalid_and_unsupported_settings_refused_before_data"
+      ]
+    },
+    {
+      "label": "accumulation integer",
+      "file": "downstream/dense_execution.py",
+      "old": "type(settings[\"accumulation_steps\"]) is not int",
+      "new": "False",
+      "tests": [
+        "tests.test_method_dense_execution.Dense.test_invalid_and_unsupported_settings_refused_before_data"
+      ]
+    },
+    {
+      "label": "accumulation positive",
+      "file": "downstream/dense_execution.py",
+      "old": "or settings[\"accumulation_steps\"] < 1",
+      "new": "or False",
+      "tests": [
+        "tests.test_method_dense_execution.Dense.test_invalid_and_unsupported_settings_refused_before_data"
+      ]
+    },
+    {
+      "label": "precision policy",
+      "file": "downstream/dense_execution.py",
+      "old": "or settings[\"precision\"] not in (\"fp32\", \"bf16\")",
+      "new": "or False",
+      "tests": [
+        "tests.test_method_dense_execution.Dense.test_invalid_and_unsupported_settings_refused_before_data"
+      ]
+    },
+    {
+      "label": "discarded tails only",
+      "file": "downstream/dense_execution.py",
+      "old": "or settings[\"tail_policy\"] != policy[\"tail_policy\"]",
+      "new": "or False",
+      "tests": [
+        "tests.test_method_dense_execution.Dense.test_invalid_and_unsupported_settings_refused_before_data"
+      ]
+    },
+    {
+      "label": "single process",
+      "file": "downstream/dense_execution.py",
+      "old": "if launch()[2] != 1:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_dense_execution.Dense.test_invalid_and_unsupported_settings_refused_before_data"
+      ]
+    },
+    {
+      "label": "input types",
+      "file": "downstream/dense_execution.py",
+      "old": "type(probe[key]) is not int",
+      "new": "False",
+      "tests": [
+        "tests.test_method_dense_execution.Dense.test_invalid_and_unsupported_settings_refused_before_data"
+      ]
+    },
+    {
+      "label": "input minimum",
+      "file": "downstream/dense_execution.py",
+      "old": "or probe[key] < minimum",
+      "new": "or False",
+      "tests": [
+        "tests.test_method_dense_execution.Dense.test_invalid_and_unsupported_settings_refused_before_data"
+      ]
+    },
+    {
+      "label": "complete epochs",
+      "file": "downstream/dense_execution.py",
+      "old": "probe[\"max_steps_per_epoch\"]\n        or not",
+      "new": "False\n        or not",
+      "tests": [
+        "tests.test_method_dense_execution.Dense.test_invalid_and_unsupported_settings_refused_before_data"
+      ]
+    },
+    {
+      "label": "epoch horizon",
+      "file": "downstream/dense_execution.py",
+      "old": "or not 1 <= probe[\"epochs\"] <= HORIZONS[cfg[\"task\"]]",
+      "new": "or False",
+      "tests": [
+        "tests.test_method_dense_execution.Dense.test_invalid_and_unsupported_settings_refused_before_data"
+      ]
+    },
+    {
+      "label": "short epochs",
+      "file": "downstream/dense_execution.py",
+      "old": "if steps_per_epoch < plan[\"accumulation_steps\"]:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_dense_execution.Dense.test_precision_and_short_epochs_fail_before_any_update"
+      ]
+    },
+    {
+      "label": "effective learning rate",
+      "file": "downstream/dense_execution.py",
+      "old": "effective_batch=probe[\"batch_size\"] * settings[\"accumulation_steps\"]",
+      "new": "effective_batch=probe[\"batch_size\"]",
+      "tests": [
+        "tests.test_method_dense_execution.Dense.test_all_seventy_two_selections_and_effective_learning_rates"
+      ]
+    },
+    {
+      "label": "clip AP and FT",
+      "file": "downstream/dense_execution.py",
+      "old": "clipping = cfg.get(\"adaptation\", \"frozen\") != \"frozen\" or (",
+      "new": "clipping = False or (",
+      "tests": [
+        "tests.test_method_dense_execution.Dense.test_accumulated_updates_tail_and_clipping_match_independent_loop"
+      ]
+    },
+    {
+      "label": "clip at update",
+      "file": "downstream/dense_execution.py",
+      "old": "clip_gradients=clip,",
+      "new": "clip_gradients=lambda: None,",
+      "tests": [
+        "tests.test_method_dense_execution.Dense.test_accumulated_updates_tail_and_clipping_match_independent_loop"
+      ]
+    },
+    {
+      "label": "detection body",
+      "file": "downstream/dense_execution.py",
+      "old": "backbone = getattr(backbone, \"body\", backbone)",
+      "new": "backbone = backbone",
+      "tests": [
+        "tests.test_method_dense_execution.Dense.test_detection_body_guard_does_not_freeze_trainable_pyramid"
+      ]
+    },
+    {
+      "label": "segmentation float reduction",
+      "file": "downstream/dense_execution.py",
+      "old": "prediction.float(), targets[0], ignore_index=255",
+      "new": "prediction, targets[0], ignore_index=255",
+      "tests": [
+        "tests.test_method_dense_execution.Dense.test_batch_losses_keep_dense_reductions_in_float32"
+      ]
+    },
+    {
+      "label": "segmentation ignore mask",
+      "file": "downstream/dense_execution.py",
+      "old": "ignore_index=255",
+      "new": "ignore_index=-100",
+      "tests": [
+        "tests.test_method_dense_execution.Dense.test_batch_losses_keep_dense_reductions_in_float32"
+      ]
+    },
+    {
+      "label": "all detector loss terms",
+      "file": "downstream/dense_execution.py",
+      "old": "return sum(losses.values())",
+      "new": "return next(iter(losses.values()))",
+      "tests": [
+        "tests.test_method_dense_execution.Dense.test_batch_losses_keep_dense_reductions_in_float32"
+      ]
+    },
+    {
+      "label": "31_dinov3 LP detection clipping",
+      "file": "methods/31_dinov3/downstream_backbone.py",
+      "old": "DENSE_EXECUTION = {\"tail_policy\": \"discard\", \"clip_frozen_detection\": False}",
+      "new": "DENSE_EXECUTION = {\"tail_policy\": \"discard\", \"clip_frozen_detection\": True}",
+      "tests": [
+        "tests.test_method_dense_execution.Dense.test_accumulated_updates_tail_and_clipping_match_independent_loop"
+      ]
+    },
+    {
+      "label": "38_clip LP detection clipping",
+      "file": "methods/38_clip/downstream_backbone.py",
+      "old": "DENSE_EXECUTION = {\"tail_policy\": \"discard\", \"clip_frozen_detection\": False}",
+      "new": "DENSE_EXECUTION = {\"tail_policy\": \"discard\", \"clip_frozen_detection\": True}",
+      "tests": [
+        "tests.test_method_dense_execution.Dense.test_accumulated_updates_tail_and_clipping_match_independent_loop"
+      ]
+    },
+    {
+      "label": "cosmos3_super LP detection clipping",
+      "file": "methods/cosmos3_super/downstream_backbone.py",
+      "old": "DENSE_EXECUTION = {\"tail_policy\": \"discard\", \"clip_frozen_detection\": False}",
+      "new": "DENSE_EXECUTION = {\"tail_policy\": \"discard\", \"clip_frozen_detection\": True}",
+      "tests": [
+        "tests.test_method_dense_execution.Dense.test_accumulated_updates_tail_and_clipping_match_independent_loop"
+      ]
+    },
+    {
+      "label": "cradiov4_h LP detection clipping",
+      "file": "methods/cradiov4_h/downstream_backbone.py",
+      "old": "DENSE_EXECUTION = {\"tail_policy\": \"discard\", \"clip_frozen_detection\": False}",
+      "new": "DENSE_EXECUTION = {\"tail_policy\": \"discard\", \"clip_frozen_detection\": True}",
+      "tests": [
+        "tests.test_method_dense_execution.Dense.test_accumulated_updates_tail_and_clipping_match_independent_loop"
+      ]
+    },
+    {
+      "label": "raev2 LP detection clipping",
+      "file": "methods/raev2/downstream_backbone.py",
+      "old": "DENSE_EXECUTION = {\"tail_policy\": \"discard\", \"clip_frozen_detection\": False}",
+      "new": "DENSE_EXECUTION = {\"tail_policy\": \"discard\", \"clip_frozen_detection\": True}",
+      "tests": [
+        "tests.test_method_dense_execution.Dense.test_accumulated_updates_tail_and_clipping_match_independent_loop"
+      ]
+    },
+    {
+      "label": "siglip LP detection clipping",
+      "file": "methods/siglip/downstream_backbone.py",
+      "old": "DENSE_EXECUTION = {\"tail_policy\": \"discard\", \"clip_frozen_detection\": True}",
+      "new": "DENSE_EXECUTION = {\"tail_policy\": \"discard\", \"clip_frozen_detection\": False}",
+      "tests": [
+        "tests.test_method_dense_execution.Dense.test_accumulated_updates_tail_and_clipping_match_independent_loop"
+      ]
+    },
+    {
+      "label": "vggt_omega LP detection clipping",
+      "file": "methods/vggt_omega/downstream_backbone.py",
+      "old": "DENSE_EXECUTION = {\"tail_policy\": \"discard\", \"clip_frozen_detection\": False}",
+      "new": "DENSE_EXECUTION = {\"tail_policy\": \"discard\", \"clip_frozen_detection\": True}",
+      "tests": [
+        "tests.test_method_dense_execution.Dense.test_accumulated_updates_tail_and_clipping_match_independent_loop"
+      ]
+    },
+    {
+      "label": "vjepa2_1 LP detection clipping",
+      "file": "methods/vjepa2_1/downstream_backbone.py",
+      "old": "DENSE_EXECUTION = {\"tail_policy\": \"discard\", \"clip_frozen_detection\": False}",
+      "new": "DENSE_EXECUTION = {\"tail_policy\": \"discard\", \"clip_frozen_detection\": True}",
+      "tests": [
+        "tests.test_method_dense_execution.Dense.test_accumulated_updates_tail_and_clipping_match_independent_loop"
+      ]
+    },
+    {
+      "label": "ade20k runtime integration",
+      "file": "downstream/ade20k.py",
+      "old": "        if runtime is not None:\n",
+      "new": "        if False:\n",
+      "tests": [
+        "tests.test_method_dense_execution.Dense.test_real_runners_accumulate_and_report_without_promoting_scores"
+      ]
+    },
+    {
+      "label": "ade20k GPU preflight",
+      "file": "downstream/ade20k.py",
+      "old": "        dense_execution.autocast_context(device, dense_execution.resolve(cfg)[\"precision\"])",
+      "new": "        pass",
+      "tests": [
+        "tests.test_method_dense_execution.Dense.test_precision_and_short_epochs_fail_before_any_update"
+      ]
+    },
+    {
+      "label": "nyuv2 runtime integration",
+      "file": "downstream/nyuv2.py",
+      "old": "        if runtime is not None:\n",
+      "new": "        if False:\n",
+      "tests": [
+        "tests.test_method_dense_execution.Dense.test_real_runners_accumulate_and_report_without_promoting_scores"
+      ]
+    },
+    {
+      "label": "nyuv2 GPU preflight",
+      "file": "downstream/nyuv2.py",
+      "old": "        dense_execution.autocast_context(device, dense_execution.resolve(cfg)[\"precision\"])",
+      "new": "        pass",
+      "tests": [
+        "tests.test_method_dense_execution.Dense.test_precision_and_short_epochs_fail_before_any_update"
+      ]
+    },
+    {
+      "label": "coco runtime integration",
+      "file": "downstream/coco.py",
+      "old": "        if runtime is not None:\n",
+      "new": "        if False:\n",
+      "tests": [
+        "tests.test_method_dense_execution.Dense.test_real_runners_accumulate_and_report_without_promoting_scores"
+      ]
+    },
+    {
+      "label": "coco GPU preflight",
+      "file": "downstream/coco.py",
+      "old": "        dense_execution.autocast_context(device, dense_execution.resolve(cfg)[\"precision\"])",
+      "new": "        pass",
+      "tests": [
+        "tests.test_method_dense_execution.Dense.test_precision_and_short_epochs_fail_before_any_update"
+      ]
+    }
+  ]
+}
