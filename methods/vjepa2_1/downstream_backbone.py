@@ -28,6 +28,7 @@ FINETUNE_GROUPS = True
 IMAGE_CLASSIFICATION = True
 IMAGENET_FT_RECIPE = "captured_bilinear_normalized_zero_torch_v1"
 IMAGENET_PROBE_INTERPOLATION = "bilinear"
+IMAGENET_EXECUTION = dict(tail_policy="discard", rank_seed_stride=17, distributed=True)
 _VARIANTS = {"vit_large": "ema_encoder", "vit_giant_xformers": "target_encoder"}
 
 

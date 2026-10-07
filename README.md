@@ -85,7 +85,10 @@ tasks (ADE20K segmentation, COCO detection, NYUv2 depth, SSv2 video) — see
 Explicit Basic5 components also support provider-owned FT and online ImageNet
 probing, including [provider-specific ImageNet LP/AP preprocessing](docs/IMAGENET_PROBE_PREPROCESSING.md)
 and [explicit ImageNet FT source profiles](docs/IMAGENET_FINETUNE.md)
-for eight families. Source/protocol conflicts remain disclosed. The [paper reproduction gap ledger](docs/PAPER_REPRODUCTION_GAPS.md)
+for eight families. [ImageNet execution and continuation](docs/IMAGENET_EXECUTION.md)
+add explicit accumulation, CUDA BF16 and portable epoch checkpoints; replicated
+distributed execution excludes the unresolved Omega source path.
+Source/protocol conflicts remain disclosed. The [paper reproduction gap ledger](docs/PAPER_REPRODUCTION_GAPS.md)
 records current Step-4 porting coverage and remaining package validation.
 The [vision-provider matrix](docs/BASIC5_VISION_PROVIDERS.md) lists the
 additional local vision models, task coverage and unresolved recipe boundaries;

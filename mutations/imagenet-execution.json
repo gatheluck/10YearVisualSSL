@@ -1,0 +1,283 @@
+{
+  "targets": [
+    {
+      "label": "exact fields",
+      "file": "downstream/imagenet_execution.py",
+      "old": "or set(settings) != keys",
+      "new": "or False",
+      "tests": [
+        "tests.test_method_imagenet_execution.Execution.test_invalid_execution_and_ambiguous_distributed_source_are_refused"
+      ]
+    },
+    {
+      "label": "profile",
+      "file": "downstream/imagenet_execution.py",
+      "old": "or settings[\"profile\"] != PROFILE",
+      "new": "or False",
+      "tests": [
+        "tests.test_method_imagenet_execution.Execution.test_invalid_execution_and_ambiguous_distributed_source_are_refused"
+      ]
+    },
+    {
+      "label": "inspected provider",
+      "file": "downstream/imagenet_execution.py",
+      "old": "or policy is None",
+      "new": "or False",
+      "tests": [
+        "tests.test_method_imagenet_execution.Execution.test_invalid_execution_and_ambiguous_distributed_source_are_refused"
+      ]
+    },
+    {
+      "label": "integer accumulation",
+      "file": "downstream/imagenet_execution.py",
+      "old": "type(settings[\"accumulation_steps\"]) is not int",
+      "new": "False",
+      "tests": [
+        "tests.test_method_imagenet_execution.Execution.test_invalid_execution_and_ambiguous_distributed_source_are_refused"
+      ]
+    },
+    {
+      "label": "positive accumulation",
+      "file": "downstream/imagenet_execution.py",
+      "old": "or settings[\"accumulation_steps\"] < 1",
+      "new": "or False",
+      "tests": [
+        "tests.test_method_imagenet_execution.Execution.test_invalid_execution_and_ambiguous_distributed_source_are_refused"
+      ]
+    },
+    {
+      "label": "precision",
+      "file": "downstream/imagenet_execution.py",
+      "old": "or settings[\"precision\"] not in (\"fp32\", \"bf16\")",
+      "new": "or False",
+      "tests": [
+        "tests.test_method_imagenet_execution.Execution.test_invalid_execution_and_ambiguous_distributed_source_are_refused"
+      ]
+    },
+    {
+      "label": "tail policy",
+      "file": "downstream/imagenet_execution.py",
+      "old": "or settings[\"tail_policy\"] != policy[\"tail_policy\"]",
+      "new": "or False",
+      "tests": [
+        "tests.test_method_imagenet_execution.Execution.test_invalid_execution_and_ambiguous_distributed_source_are_refused"
+      ]
+    },
+    {
+      "label": "Omega collective refusal",
+      "file": "downstream/imagenet_execution.py",
+      "old": "if world > 1 and not policy[\"distributed\"]:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_imagenet_execution.Execution.test_invalid_execution_and_ambiguous_distributed_source_are_refused"
+      ]
+    },
+    {
+      "label": "complete epochs",
+      "file": "downstream/imagenet_execution.py",
+      "old": "if cfg[\"probe\"][\"max_steps_per_epoch\"] or not 1 <= cfg[\"probe\"][\"epochs\"] <= 100:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_imagenet_execution.Execution.test_invalid_execution_and_ambiguous_distributed_source_are_refused"
+      ]
+    },
+    {
+      "label": "resume path",
+      "file": "downstream/imagenet_execution.py",
+      "old": "not isinstance(cfg[\"resume\"], str) or not cfg[\"resume\"].strip()",
+      "new": "False",
+      "tests": [
+        "tests.test_method_imagenet_execution.Execution.test_invalid_execution_and_ambiguous_distributed_source_are_refused"
+      ]
+    },
+    {
+      "label": "effective accumulation",
+      "file": "downstream/imagenet_execution.py",
+      "old": "* settings[\"accumulation_steps\"],",
+      "new": "* 1,",
+      "tests": [
+        "tests.test_method_imagenet_execution.Execution.test_twenty_four_routes_and_effective_batch_are_explicit"
+      ]
+    },
+    {
+      "label": "effective world",
+      "file": "downstream/imagenet_execution.py",
+      "old": "* world\n",
+      "new": "* 1\n",
+      "tests": [
+        "tests.test_method_imagenet_execution.Execution.test_invalid_execution_and_ambiguous_distributed_source_are_refused"
+      ]
+    },
+    {
+      "label": "full FT checkpoint",
+      "file": "downstream/imagenet_execution.py",
+      "old": "if self.model.adaptation == \"finetune\":",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_imagenet_execution.Execution.test_lp_ap_ft_resume_matches_uninterrupted_model_optimizer_and_rng"
+      ]
+    },
+    {
+      "label": "input byte identity",
+      "file": "downstream/imagenet_execution.py",
+      "old": "digest.update(chunk)",
+      "new": "pass",
+      "tests": [
+        "tests.test_method_imagenet_execution.Execution.test_identity_corruption_bf16_and_existing_output_fail_closed"
+      ]
+    },
+    {
+      "label": "class membership",
+      "file": "downstream/imagenet_execution.py",
+      "old": "if train.class_to_idx != val.class_to_idx or len(train.classes) > api.NUM_CLASSES:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_imagenet_execution.Execution.test_execution_ft_uses_soft_targets_and_rejects_invalid_membership"
+      ]
+    },
+    {
+      "label": "existing output preservation",
+      "file": "downstream/imagenet_execution.py",
+      "old": "if out.exists() and any(out.iterdir()):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_imagenet_execution.Execution.test_direct_execution_preserves_existing_output_bytes"
+      ]
+    },
+    {
+      "label": "FT gradient opt in",
+      "file": "downstream/imagenet_execution.py",
+      "old": "trainable_backbone=cfg[\"adaptation\"] == \"finetune\",",
+      "new": "trainable_backbone=False,",
+      "tests": [
+        "tests.test_method_imagenet_execution.Execution.test_all_real_model_routes_keep_expected_training_scope"
+      ]
+    },
+    {
+      "label": "train autocast",
+      "file": "downstream/imagenet_execution.py",
+      "old": "with execution.autocast_context(device, plan[\"precision\"]):\n                logits = model(images)",
+      "new": "with execution.autocast_context(device, \"fp32\"):\n                logits = model(images)",
+      "tests": [
+        "tests.test_method_imagenet_execution.Execution.test_device_override_and_autocast_cover_train_and_evaluation"
+      ]
+    },
+    {
+      "label": "eval autocast",
+      "file": "downstream/imagenet_execution.py",
+      "old": "with execution.autocast_context(device, plan[\"precision\"]):\n                        logits = raw(images.to(device))",
+      "new": "with execution.autocast_context(device, \"fp32\"):\n                        logits = raw(images.to(device))",
+      "tests": [
+        "tests.test_method_imagenet_execution.Execution.test_device_override_and_autocast_cover_train_and_evaluation"
+      ]
+    },
+    {
+      "label": "FP32 loss",
+      "file": "downstream/imagenet_execution.py",
+      "old": "F.cross_entropy(logits.float(), labels)",
+      "new": "F.cross_entropy(logits, labels)",
+      "tests": [
+        "tests.test_method_imagenet_execution.Execution.test_device_override_and_autocast_cover_train_and_evaluation"
+      ]
+    },
+    {
+      "label": "FT soft targets",
+      "file": "downstream/imagenet_execution.py",
+      "old": "return -(targets * F.log_softmax(logits.float(), dim=-1)).sum(-1).mean()",
+      "new": "return F.cross_entropy(logits.float(), labels)",
+      "tests": [
+        "tests.test_method_imagenet_execution.Execution.test_execution_ft_uses_soft_targets_and_rejects_invalid_membership"
+      ]
+    },
+    {
+      "label": "epoch continuation",
+      "file": "downstream/imagenet_execution.py",
+      "old": "continuation.save(epoch + 1)",
+      "new": "pass",
+      "tests": [
+        "tests.test_method_imagenet_execution.Execution.test_lp_ap_ft_resume_matches_uninterrupted_model_optimizer_and_rng"
+      ]
+    },
+    {
+      "label": "38_clip rank policy",
+      "file": "methods/38_clip/downstream_backbone.py",
+      "old": "rank_seed_stride=1000",
+      "new": "rank_seed_stride=1001",
+      "tests": [
+        "tests.test_method_imagenet_execution.Execution.test_twenty_four_routes_and_effective_batch_are_explicit"
+      ]
+    },
+    {
+      "label": "siglip rank policy",
+      "file": "methods/siglip/downstream_backbone.py",
+      "old": "rank_seed_stride=1000",
+      "new": "rank_seed_stride=1001",
+      "tests": [
+        "tests.test_method_imagenet_execution.Execution.test_twenty_four_routes_and_effective_batch_are_explicit"
+      ]
+    },
+    {
+      "label": "cradiov4_h rank policy",
+      "file": "methods/cradiov4_h/downstream_backbone.py",
+      "old": "rank_seed_stride=1000",
+      "new": "rank_seed_stride=1001",
+      "tests": [
+        "tests.test_method_imagenet_execution.Execution.test_twenty_four_routes_and_effective_batch_are_explicit"
+      ]
+    },
+    {
+      "label": "cosmos3_super rank policy",
+      "file": "methods/cosmos3_super/downstream_backbone.py",
+      "old": "rank_seed_stride=1000",
+      "new": "rank_seed_stride=1001",
+      "tests": [
+        "tests.test_method_imagenet_execution.Execution.test_twenty_four_routes_and_effective_batch_are_explicit"
+      ]
+    },
+    {
+      "label": "31_dinov3 rank policy",
+      "file": "methods/31_dinov3/downstream_backbone.py",
+      "old": "rank_seed_stride=17",
+      "new": "rank_seed_stride=18",
+      "tests": [
+        "tests.test_method_imagenet_execution.Execution.test_twenty_four_routes_and_effective_batch_are_explicit"
+      ]
+    },
+    {
+      "label": "raev2 rank policy",
+      "file": "methods/raev2/downstream_backbone.py",
+      "old": "rank_seed_stride=17",
+      "new": "rank_seed_stride=18",
+      "tests": [
+        "tests.test_method_imagenet_execution.Execution.test_twenty_four_routes_and_effective_batch_are_explicit"
+      ]
+    },
+    {
+      "label": "vjepa2_1 rank policy",
+      "file": "methods/vjepa2_1/downstream_backbone.py",
+      "old": "rank_seed_stride=17",
+      "new": "rank_seed_stride=18",
+      "tests": [
+        "tests.test_method_imagenet_execution.Execution.test_twenty_four_routes_and_effective_batch_are_explicit"
+      ]
+    },
+    {
+      "label": "vggt_omega rank policy",
+      "file": "methods/vggt_omega/downstream_backbone.py",
+      "old": "rank_seed_stride=1",
+      "new": "rank_seed_stride=2",
+      "tests": [
+        "tests.test_method_imagenet_execution.Execution.test_twenty_four_routes_and_effective_batch_are_explicit"
+      ]
+    },
+    {
+      "label": "CI execution",
+      "file": ".github/workflows/tests.yml",
+      "old": "          tests.test_method_imagenet_execution \\\n",
+      "new": "",
+      "tests": [
+        "tests.test_method_imagenet_execution.Delivery.test_ci_runs_execution"
+      ]
+    }
+  ]
+}

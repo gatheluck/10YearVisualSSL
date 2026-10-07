@@ -64,19 +64,23 @@ Top-5 and the actual evaluated image count.
 warm up from 1e-6, then cosine to 1e-6, preserving each group's layer scale.
 Omitting the scheduler uses a constant-LR component, not the full reference
 schedule. The example describes a reference-batch component and may exceed
-available memory. This BasicFive runner still requires one process and a full
-physical batch per update; accumulation, BF16/FSDP and distributed execution
-are **not** added here. Source microbatch/accumulation clocks and nonreference
-batch endpoints remain to be reconciled. Do not claim the reference effective
-batch by merely reducing `batch_size`.
+available memory. Without the separate [execution profile](IMAGENET_EXECUTION.md),
+the runner requires one process and a full physical batch per update. The explicit
+profile adds accumulation, CUDA BF16 and portable continuation for all eight
+families, plus replicated DDP for seven. Its reference schedule requires effective
+batch 1024 and retains the 100-epoch horizon during partial-epoch-count runs.
+Omega distributed equivalence, FSDP, nonreference schedule endpoints and
+released-weight GPU parity remain unverified. Merely reducing `batch_size`
+does not preserve the reference effective batch.
 
-Alongside the existing `metrics.jsonl`, `results.json` and `manifest.json`, FT
+Alongside the existing `metrics.json`, `results.json` and `run_manifest.json`, FT
 writes `finetune_model.pt` containing the full model state, selected recipe and
 completed epoch count. Load trusted local output with
 `torch.load(path, map_location="cpu", weights_only=True)`. This is a final-state
 export, **not** a resumable optimizer/RNG checkpoint or an inference loader.
 It includes encoder weights and can be large; it is generated output outside Git.
-LP/AP output files are unchanged.
+The explicit execution profile separately writes resumable `resume.pt`; LP/AP
+also exports `probe.pt`. Without that profile, LP/AP output files are unchanged.
 
 `results.json` retains the recipe, the protocol conflict, unverified historical
 run attribution, and `canonical_eligible: false` / `record_value: false`.

@@ -37,6 +37,9 @@ fixtures may use smaller crops for component tests. Existing configurations
 without `preprocessing_profile` retain the older common-bilinear component;
 absence must not be interpreted as verified provider-specific preprocessing.
 For [FT](IMAGENET_FINETUNE.md), continue using `finetune_recipe` instead.
+The separate [execution profile](IMAGENET_EXECUTION.md) adds accumulation,
+portable epoch continuation and selected distributed paths without selecting
+or replacing the preprocessing profile.
 
 Selected runs record `preprocessing.profile`, `preprocessing.interpolation` and
 `preprocessing.historical_run_verified: false` in `results.json`, while retaining

@@ -12,7 +12,7 @@
     {
       "file": "downstream/extended_resume.py",
       "label": "format",
-      "old": "blob['format']!=FORMAT",
+      "old": "blob['format']!=self.format_name",
       "new": "False",
       "tests": [
         "tests.test_method_extended_resume.TestResume.test_incomplete_legacy_or_corrupt_state_never_silently_restarts"

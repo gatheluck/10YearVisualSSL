@@ -138,7 +138,7 @@
     {
       "label": "Accept invalid adaptation",
       "file": "downstream/extended_execution.py",
-      "old": "adaptation not in ('frozen','attentive')",
+      "old": "adaptation not in ('frozen','attentive','finetune') or\n        type(trainable_backbone) is not bool or trainable_backbone != (adaptation=='finetune')",
       "new": "False",
       "tests": [
         "tests.test_method_extended_execution.TestExecution.test_invalid_epoch_settings_and_accidental_encoder_training_are_refused"

@@ -379,14 +379,19 @@ Dense tasks warm up for one epoch; SSv2 for five. Cosine ends at 1e-6, except
 SSv2 LP at zero. COCO retains 500-update warmup and epoch-8/11 decay. Smoke step
 caps do not shorten the clock's full-loader horizon; their truncated accounting
 is recorded. FT group rates retain their relative layer multipliers.
-Other-batch cosine endpoints, accumulation and distributed execution remain
-unresolved. The existing schedule/profile names retain their original behavior.
+Other-batch cosine endpoints remain unresolved. The separate
+[ImageNet execution profile](IMAGENET_EXECUTION.md) adds explicit accumulation
+and selected distributed paths; other BasicFive task runners retain their
+single-process boundaries. Existing configurations retain their behavior.
 
 ### Online ImageNet components
 
 For inspected model-specific LP/AP geometry, use the explicit
 [ImageNet preprocessing profile](IMAGENET_PROBE_PREPROCESSING.md).
 Existing configurations retain legacy common-bilinear geometry.
+For physical microbatches, CUDA BF16, replicated DDP and portable epoch
+continuation, select the separate [execution profile](IMAGENET_EXECUTION.md).
+It covers LP/AP/FT, with Omega distributed execution explicitly refused.
 
 `python -m downstream.imagenet --config <config.json> --out <new-output>` runs
 online LP or AP, including training augmentation, a frozen encoder, a zero

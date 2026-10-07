@@ -286,6 +286,12 @@ def imagenet_probe_interpolation(kind):
             if kind in _PROVIDERS else None)
 
 
+def imagenet_execution_policy(kind):
+    """Inspected ImageNet execution policy, owned by the provider."""
+    return (getattr(_load_provider(_PROVIDERS[kind]), "IMAGENET_EXECUTION", None)
+            if kind in _PROVIDERS else None)
+
+
 def supports_adaptation(kind, adaptation):
     """An explicit provider restriction takes precedence over generic readers."""
     if kind not in _PROVIDERS:

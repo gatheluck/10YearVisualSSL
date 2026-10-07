@@ -11,6 +11,7 @@ FINETUNE_GROUPS = True
 IMAGE_CLASSIFICATION = True
 IMAGENET_FT_RECIPE = "captured_bicubic_random_python_v1"
 IMAGENET_PROBE_INTERPOLATION = "bicubic"
+IMAGENET_EXECUTION = dict(tail_policy="discard", rank_seed_stride=1000, distributed=True)
 COMPONENT_ONLY = True
 # Detection pads after normalization; the shared transform must be reconciled.
 CAPTURE_PYRAMID = False

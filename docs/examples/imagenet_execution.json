@@ -1,0 +1,34 @@
+{
+  "task": "imagenet_classification",
+  "profile": "capture_basic5_components",
+  "adaptation": "finetune",
+  "finetune_recipe": "captured_bicubic_random_python_v1",
+  "optimizer_profile": "basic5_finetune_v1",
+  "scheduler_profile": "basic5_reference_schedule_v1",
+  "seed": 0,
+  "device": "cuda",
+  "data_root": "/data/imagenet",
+  "backbone": {
+    "kind": "siglip2_g",
+    "arch": "released",
+    "encoder": "/models/local-vision-snapshot",
+    "img_size": 384,
+    "patch_size": 16
+  },
+  "probe": {
+    "epochs": 100,
+    "batch_size": 16,
+    "lr": "protocol",
+    "num_workers": 4,
+    "image_size": 224,
+    "max_train_samples": 0,
+    "max_val_samples": 0,
+    "max_steps_per_epoch": 0
+  },
+  "execution": {
+    "profile": "captured_imagenet_v1",
+    "accumulation_steps": 64,
+    "precision": "bf16",
+    "tail_policy": "discard"
+  }
+}
