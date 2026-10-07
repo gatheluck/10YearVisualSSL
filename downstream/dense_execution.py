@@ -1,7 +1,8 @@
 """Opt-in single-process accumulated BasicFive dense-task training.
 
 This preserves the inspected per-provider clipping and discarded-tail policy.
-It does not provide distributed training or native/portable continuation.
+Portable continuation is separate; native checkpoints and distributed training
+remain outside this execution profile.
 """
 
 import torch
@@ -35,6 +36,10 @@ def resolve(cfg):
         or settings["tail_policy"] != policy["tail_policy"]
     ):
         raise ValueError("invalid dense accumulation or precision policy")
+    if "resume" in cfg and (
+        not isinstance(cfg["resume"], str) or not cfg["resume"].strip()
+    ):
+        raise ValueError("resume requires a checkpoint path")
     if launch()[2] != 1:
         raise ValueError("dense execution supports one process only")
     probe = cfg["detector" if cfg["task"] == "coco_detection" else "probe"]

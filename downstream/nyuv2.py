@@ -39,7 +39,7 @@ from torch.utils.data import DataLoader, Dataset
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
-from downstream import dense_execution
+from downstream import dense_execution, dense_resume
 from downstream.optimization import resolve_optimization, build_optimizer, require_training_batches
 from downstream.optimization import REFERENCE_SCHEDULE, build_task_scheduler, task_schedule_report
 from downstream.optimization import build_dense_ap_scheduler, dense_ap_schedule_report
@@ -88,7 +88,7 @@ def validate_config(cfg: dict) -> None:
         if key in cfg:
             raise ConfigError(
                 f"config: {key} is set; the output location is fixed at --out")
-    _named(TOP_KEYS - set(cfg), set(cfg) - (TOP_KEYS | {"execution", "profile", "adaptation", "optimizer_profile", "scheduler_profile", "reader_profile"}), "config")
+    _named(TOP_KEYS - set(cfg), set(cfg) - (TOP_KEYS | {"resume", "execution", "profile", "adaptation", "optimizer_profile", "scheduler_profile", "reader_profile"}), "config")
     try:
         validate_adaptation(cfg)
     except ValueError as exc:
@@ -113,6 +113,8 @@ def validate_config(cfg: dict) -> None:
         raise ConfigError("config: probe is not a mapping")
     _named(PROBE_KEYS - set(probe), set(probe) - PROBE_KEYS, "config.probe")
     try:
+        if "resume" in cfg and "execution" not in cfg:
+            raise ValueError("resume requires explicit dense execution")
         if "execution" in cfg:
             dense_execution.resolve(cfg)
         resolve_optimization(cfg, TASK)
@@ -382,6 +384,7 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
     device = resolve_device(device_override or cfg["device"])
     if "execution" in cfg:
         dense_execution.autocast_context(device, dense_execution.resolve(cfg)["precision"])
+        dense_resume.output_directory(out)
     seed = int(cfg["seed"])
     make_deterministic(seed)
     probe = cfg["probe"]
@@ -432,14 +435,17 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
                  build_dense_ap_scheduler(optimizer, len(train_loader), epochs)
                  if "scheduler_profile" in cfg else None)
     runtime = None
+    continuation = None
     if "execution" in cfg:
         plan, update_scheduler, runtime = dense_execution.prepare(
             cfg, device, optimizer, scheduler, len(train_loader), cast(dict, optimization)["lr"])
+        continuation = dense_resume.DenseContinuation(
+            cfg, train_ds, val_ds, model, optimizer, update_scheduler, runtime, train_loader, device, out)
     print(f"NYUv2 depth  device={device}  backbone={cfg['backbone']['kind']}"
           f"({'trained' if cfg['backbone'].get('encoder') else 'random (smoke)'})"
           f"  epochs={epochs}  train={len(train_ds)} val={len(val_ds)}")
     metrics = {"rmse": 0.0, "abs_rel": 0.0, "valid_pixels": 0}
-    for epoch in range(epochs):
+    for epoch in range(continuation.start_epoch if continuation else 0, epochs):
         if runtime is not None:
             statistics = dense_execution.train_epoch(
                 model, train_loader,
@@ -464,8 +470,13 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
                 if scheduler is not None:
                     scheduler.step()
         metrics = evaluate(model, val_loader, device, profile=profile)
+        if continuation is not None:
+            continuation.save(epoch + 1)
         print(f"[{epoch + 1}/{epochs}] rmse={metrics['rmse']:.4f} "
               f"abs_rel={metrics['abs_rel']:.4f}")
+
+    if continuation is not None and continuation.start_epoch == epochs:
+        metrics = evaluate(model, val_loader, device, profile=profile)
 
     raw = {"rmse": float(metrics["rmse"]), "abs_rel": float(metrics["abs_rel"]),
            "valid_pixels": int(metrics["valid_pixels"]), "epochs": epochs}
@@ -487,7 +498,8 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
                               "half/half for a smaller hermetic file"),
                     "epochs": epochs, "final": raw,
                     "record_value": not subset_mode and not captured,
-                    **({"execution": runtime} if runtime is not None else {}),
+                    **({"execution": runtime, "continuation": continuation.report(),
+                        "membership": continuation.membership} if continuation is not None else {}),
                     **({"optimization": optimization} if optimization is not None else {}),
                     "subset_or_smoke": subset_mode},
                    indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -512,6 +524,12 @@ def main(argv: "list[str] | None" = None) -> int:
     out.mkdir(parents=True, exist_ok=True)
     config_bytes = Path(args.config).read_bytes()
     cfg = json.loads(config_bytes)
+    if "execution" in cfg:
+        try:
+            dense_resume.output_directory(out)
+        except FileExistsError as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
     method_ref = str(cfg.get("backbone", {}).get("encoder") or "random-smoke")
     started = _now()
     error = None

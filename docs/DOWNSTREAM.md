@@ -389,7 +389,8 @@ Other BasicFive task runners retain their single-process boundaries. Existing co
 
 [BasicFive dense-task accumulation](DENSE_EXECUTION.md) adds explicit single-process LP/AP/FT accumulation
 and training precision to ADE20K, NYUv2 and COCO for eight inspected families.
-Native schedule/loss disagreements, distributed dense execution and continuation
+Portable epoch continuation now preserves trained state and input identity.
+Native schedule/loss disagreements, distributed dense execution and native continuation
 remain separate verification/integration work.
 
 [BasicFive SSv2 execution and source recipes](SSV2_EXECUTION.md) cover eight families
