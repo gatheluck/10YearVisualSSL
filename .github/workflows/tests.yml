@@ -208,6 +208,7 @@ jobs:
             tests.test_basic5_optimization \
             tests.test_method_vjepa2_1_training tests.test_basic5_imagenet \
             tests.test_method_imagenet_finetune \
+            tests.test_method_imagenet_preprocessing \
             tests.test_basic5_attentive_tasks \
             tests.test_basic5_finetune_tasks tests.test_method_vjepa2_1
 

@@ -4,6 +4,7 @@ See [package scope](SUBMISSION_SCOPE.md). The eight BasicFive families now have
 explicit ImageNet FT component execution. This ports inspected experimental
 behavior; it does **not** reconcile the supplied protocol with historical runs
 or reproduce Table 38 scores. LP/AP defaults are unchanged.
+LP/AP can separately select [provider-specific preprocessing](IMAGENET_PROBE_PREPROCESSING.md).
 
 Use the [downstream environment](DOWNSTREAM.md) and complete local weights.
 Start from [the configuration example](examples/imagenet_finetune.json):

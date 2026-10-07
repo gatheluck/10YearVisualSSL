@@ -1,0 +1,211 @@
+{
+  "targets": [
+    {
+      "label": "38_clip geometry ownership",
+      "file": "methods/38_clip/downstream_backbone.py",
+      "old": "IMAGENET_PROBE_INTERPOLATION = \"bicubic\"",
+      "new": "IMAGENET_PROBE_INTERPOLATION = \"bilinear\"",
+      "tests": [
+        "tests.test_method_imagenet_preprocessing.Preprocessing.test_all_sixteen_explicit_selections_and_metadata"
+      ]
+    },
+    {
+      "label": "siglip geometry ownership",
+      "file": "methods/siglip/downstream_backbone.py",
+      "old": "IMAGENET_PROBE_INTERPOLATION = \"bicubic\"",
+      "new": "IMAGENET_PROBE_INTERPOLATION = \"bilinear\"",
+      "tests": [
+        "tests.test_method_imagenet_preprocessing.Preprocessing.test_all_sixteen_explicit_selections_and_metadata"
+      ]
+    },
+    {
+      "label": "cradiov4_h geometry ownership",
+      "file": "methods/cradiov4_h/downstream_backbone.py",
+      "old": "IMAGENET_PROBE_INTERPOLATION = \"bicubic\"",
+      "new": "IMAGENET_PROBE_INTERPOLATION = \"bilinear\"",
+      "tests": [
+        "tests.test_method_imagenet_preprocessing.Preprocessing.test_all_sixteen_explicit_selections_and_metadata"
+      ]
+    },
+    {
+      "label": "cosmos3_super geometry ownership",
+      "file": "methods/cosmos3_super/downstream_backbone.py",
+      "old": "IMAGENET_PROBE_INTERPOLATION = \"bicubic\"",
+      "new": "IMAGENET_PROBE_INTERPOLATION = \"bilinear\"",
+      "tests": [
+        "tests.test_method_imagenet_preprocessing.Preprocessing.test_all_sixteen_explicit_selections_and_metadata"
+      ]
+    },
+    {
+      "label": "31_dinov3 geometry ownership",
+      "file": "methods/31_dinov3/downstream_backbone.py",
+      "old": "IMAGENET_PROBE_INTERPOLATION = \"bilinear\"",
+      "new": "IMAGENET_PROBE_INTERPOLATION = \"bicubic\"",
+      "tests": [
+        "tests.test_method_imagenet_preprocessing.Preprocessing.test_all_sixteen_explicit_selections_and_metadata"
+      ]
+    },
+    {
+      "label": "raev2 geometry ownership",
+      "file": "methods/raev2/downstream_backbone.py",
+      "old": "IMAGENET_PROBE_INTERPOLATION = \"bilinear\"",
+      "new": "IMAGENET_PROBE_INTERPOLATION = \"bicubic\"",
+      "tests": [
+        "tests.test_method_imagenet_preprocessing.Preprocessing.test_all_sixteen_explicit_selections_and_metadata"
+      ]
+    },
+    {
+      "label": "vjepa2_1 geometry ownership",
+      "file": "methods/vjepa2_1/downstream_backbone.py",
+      "old": "IMAGENET_PROBE_INTERPOLATION = \"bilinear\"",
+      "new": "IMAGENET_PROBE_INTERPOLATION = \"bicubic\"",
+      "tests": [
+        "tests.test_method_imagenet_preprocessing.Preprocessing.test_all_sixteen_explicit_selections_and_metadata"
+      ]
+    },
+    {
+      "label": "vggt_omega geometry ownership",
+      "file": "methods/vggt_omega/downstream_backbone.py",
+      "old": "IMAGENET_PROBE_INTERPOLATION = \"bicubic\"",
+      "new": "IMAGENET_PROBE_INTERPOLATION = \"bilinear\"",
+      "tests": [
+        "tests.test_method_imagenet_preprocessing.Preprocessing.test_all_sixteen_explicit_selections_and_metadata"
+      ]
+    },
+    {
+      "label": "profile selection",
+      "file": "downstream/imagenet.py",
+      "old": "cfg[\"preprocessing_profile\"] != \"captured_provider_v1\"",
+      "new": "False",
+      "tests": [
+        "tests.test_method_imagenet_preprocessing.Preprocessing.test_invalid_profile_provider_adaptation_and_released_size_are_refused"
+      ]
+    },
+    {
+      "label": "LP/AP only",
+      "file": "downstream/imagenet.py",
+      "old": "or cfg[\"adaptation\"] not in (\"frozen\", \"attentive\")",
+      "new": "or False",
+      "tests": [
+        "tests.test_method_imagenet_preprocessing.Preprocessing.test_invalid_profile_provider_adaptation_and_released_size_are_refused"
+      ]
+    },
+    {
+      "label": "inspected provider required",
+      "file": "downstream/imagenet.py",
+      "old": "or interpolation not in (\"bilinear\", \"bicubic\")",
+      "new": "or False",
+      "tests": [
+        "tests.test_method_imagenet_preprocessing.Preprocessing.test_invalid_profile_provider_adaptation_and_released_size_are_refused"
+      ]
+    },
+    {
+      "label": "released crop size",
+      "file": "downstream/imagenet.py",
+      "old": "if cfg[\"backbone\"].get(\"arch\") == \"released\" and cfg[\"probe\"][\"image_size\"] != 224:\n        raise ValueError(\"released ImageNet LP/AP requires 224 input\")",
+      "new": "if False:\n        raise ValueError(\"released ImageNet LP/AP requires 224 input\")",
+      "tests": [
+        "tests.test_method_imagenet_preprocessing.Preprocessing.test_invalid_profile_provider_adaptation_and_released_size_are_refused"
+      ]
+    },
+    {
+      "label": "unverified history",
+      "file": "downstream/imagenet.py",
+      "old": "historical_run_verified=False",
+      "new": "historical_run_verified=True",
+      "tests": [
+        "tests.test_method_imagenet_preprocessing.Preprocessing.test_all_sixteen_explicit_selections_and_metadata"
+      ]
+    },
+    {
+      "label": "training pixels",
+      "file": "downstream/imagenet.py",
+      "old": "[self.image_size]*2, interpolation)",
+      "new": "[self.image_size]*2, InterpolationMode.BILINEAR)",
+      "tests": [
+        "tests.test_method_imagenet_preprocessing.Preprocessing.test_training_and_validation_match_source_geometry_and_rng"
+      ]
+    },
+    {
+      "label": "evaluation pixels",
+      "file": "downstream/imagenet.py",
+      "old": "TF.resize(image, 256, interpolation)",
+      "new": "TF.resize(image, 256, InterpolationMode.BILINEAR)",
+      "tests": [
+        "tests.test_method_imagenet_preprocessing.Preprocessing.test_training_and_validation_match_source_geometry_and_rng"
+      ]
+    },
+    {
+      "label": "legacy remains bilinear",
+      "file": "downstream/imagenet.py",
+      "old": "else InterpolationMode.BILINEAR)",
+      "new": "else InterpolationMode.BICUBIC)",
+      "tests": [
+        "tests.test_basic5_imagenet.TestImageNet.test_dataset_geometry_and_normalization_match_reference_operations"
+      ]
+    },
+    {
+      "label": "FT separation",
+      "file": "downstream/imagenet.py",
+      "old": "if finetune_recipe is not None and preprocessing is not None:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_imagenet_preprocessing.Preprocessing.test_legacy_and_finetune_remain_separate"
+      ]
+    },
+    {
+      "label": "train runner wiring",
+      "file": "downstream/imagenet.py",
+      "old": "train = ImageNetImages(cfg[\"data_root\"], \"train\", settings[\"image_size\"], finetune_recipe=ft_recipe, preprocessing=preprocessing)",
+      "new": "train = ImageNetImages(cfg[\"data_root\"], \"train\", settings[\"image_size\"], finetune_recipe=ft_recipe, preprocessing=None)",
+      "tests": [
+        "tests.test_method_imagenet_preprocessing.Preprocessing.test_all_sixteen_real_routes_use_profile_and_keep_frozen_encoder"
+      ]
+    },
+    {
+      "label": "val runner wiring",
+      "file": "downstream/imagenet.py",
+      "old": "val = ImageNetImages(cfg[\"data_root\"], \"val\", settings[\"image_size\"], finetune_recipe=ft_recipe, preprocessing=preprocessing)",
+      "new": "val = ImageNetImages(cfg[\"data_root\"], \"val\", settings[\"image_size\"], finetune_recipe=ft_recipe, preprocessing=None)",
+      "tests": [
+        "tests.test_method_imagenet_preprocessing.Preprocessing.test_all_sixteen_real_routes_use_profile_and_keep_frozen_encoder"
+      ]
+    },
+    {
+      "label": "output provenance",
+      "file": "downstream/imagenet.py",
+      "old": "**({\"preprocessing\": preprocessing} if preprocessing is not None else {}),",
+      "new": "**{},",
+      "tests": [
+        "tests.test_method_imagenet_preprocessing.Preprocessing.test_all_sixteen_real_routes_use_profile_and_keep_frozen_encoder"
+      ]
+    },
+    {
+      "label": "CI execution",
+      "file": ".github/workflows/tests.yml",
+      "old": "          tests.test_method_imagenet_preprocessing \\\n",
+      "new": "",
+      "tests": [
+        "tests.test_method_imagenet_preprocessing.Delivery.test_ci_runs_preprocessing_suite"
+      ]
+    },
+    {
+      "label": "dependency integration guard",
+      "file": "tests/test_method_imagenet_preprocessing.py",
+      "old": "if not (helpers.HAVE and hf.HAVE and patch.HAVE):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_imagenet_preprocessing.Delivery.test_partial_dependencies_preserve_geometry_checks"
+      ]
+    },
+    {
+      "label": "available pixel checks not skipped",
+      "file": "tests/test_method_imagenet_preprocessing.py",
+      "old": "@unittest.skipUnless(HAVE, \"image dependencies required\")\nclass Preprocessing",
+      "new": "@unittest.skipUnless(HAVE and helpers.HAVE, \"image dependencies required\")\nclass Preprocessing",
+      "tests": [
+        "tests.test_method_imagenet_preprocessing.Delivery.test_partial_dependencies_preserve_geometry_checks"
+      ]
+    }
+  ]
+}

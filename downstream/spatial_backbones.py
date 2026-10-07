@@ -280,6 +280,12 @@ def imagenet_finetune_recipe(kind):
             if kind in _PROVIDERS else None)
 
 
+def imagenet_probe_interpolation(kind):
+    """Provider-owned geometry inspected in the original LP/AP input pipeline."""
+    return (getattr(_load_provider(_PROVIDERS[kind]), "IMAGENET_PROBE_INTERPOLATION", None)
+            if kind in _PROVIDERS else None)
+
+
 def supports_adaptation(kind, adaptation):
     """An explicit provider restriction takes precedence over generic readers."""
     if kind not in _PROVIDERS:

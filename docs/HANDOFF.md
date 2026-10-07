@@ -12,6 +12,20 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-10-06: ImageNet LP/AP source geometry
+
+PR 225 merged as `092ad72`; all 115 checks succeeded. Main was tree-identical
+to the tested head. The existing dirty video submodule was preserved.
+
+[LP/AP preprocessing](IMAGENET_PROBE_PREPROCESSING.md) now offers explicit
+provider-owned geometry for all eight BasicFive families. Five families use
+bicubic and three bilinear; unspecified configurations retain legacy behavior.
+Source comparisons distinguish the shared normalized interface from each
+provider's normalization. No FT recipe, reader, optimizer or score is redefined.
+Record behavioral RED/GREEN, source parity, dependency checks, mutations and
+final gate/CI outcomes in the PR. Full-data/released-weight validation, native
+execution/continuation and historical table attribution remain pending.
+
 ### 2026-10-06: PR 225 CI correction
 
 The initial PR 225 CI run had 53 failed jobs. All reported failures came from

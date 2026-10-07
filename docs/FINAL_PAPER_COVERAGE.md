@@ -45,7 +45,10 @@ The October 6 [ImageNet FT profiles](IMAGENET_FINETUNE.md) add all eight executi
 paths, source-specific augmentation/mixing and final-model export. Single-process
 FP32 component tests do not resolve the supplied protocol conflicts; native
 accumulation/BF16/distributed execution and historical run attribution remain
-pending. Component
+pending. Explicit [LP/AP preprocessing](IMAGENET_PROBE_PREPROCESSING.md) now
+selects provider-owned bicubic/bilinear geometry across all eight families;
+legacy configurations retain common-bilinear inputs. This closes a source
+geometry gap, not historical table attribution. Component
 availability does not establish complete native-video or paper-score coverage.
 
 ## Prioritized next work

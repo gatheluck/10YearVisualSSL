@@ -219,8 +219,8 @@
     {
       "label": "release input boundary",
       "file": "downstream/imagenet.py",
-      "old": "cfg[\"probe\"][\"image_size\"] != 224",
-      "new": "False",
+      "old": "if cfg[\"backbone\"].get(\"arch\") == \"released\" and cfg[\"probe\"][\"image_size\"] != 224:\n            raise ValueError(\"released ImageNet FT requires 224 input\")",
+      "new": "if False:\n            raise ValueError(\"released ImageNet FT requires 224 input\")",
       "tests": [
         "tests.test_method_imagenet_finetune.Profiles"
       ]
