@@ -12,6 +12,23 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-10-07: ImageNet execution and portable continuation
+
+PR 226 merged as `ef5b5e2`; all 115 checks succeeded. Pulled main was
+tree-identical to the tested PR head. The unrelated dirty video submodule was
+preserved. A fresh read-only comparison retrieved 120 source files, with 112
+byte-identical to the current capture snapshot; private provenance remains
+outside Git.
+
+[ImageNet execution](IMAGENET_EXECUTION.md) adds explicit physical microbatches,
+accumulation, CUDA BF16 selection and portable epoch checkpoints for eight
+families across LP/AP/FT. Seven permit replicated DDP; Omega's unwrapped source
+forwards leave distributed equivalence unresolved. Shared Extended execution and
+continuation machinery retain their existing defaults. Record RED/GREEN,
+24-route tests, two-rank continuation, source comparisons, mutations and all
+gate/CI outcomes in the PR. Do not equate fixture parity with native FSDP,
+historical resume compatibility, released-weight CUDA or reproduced table scores.
+
 ### 2026-10-06: ImageNet LP/AP source geometry
 
 PR 225 merged as `092ad72`; all 115 checks succeeded. Main was tree-identical

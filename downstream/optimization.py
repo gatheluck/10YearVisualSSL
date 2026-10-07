@@ -28,8 +28,8 @@ def resolve_optimization(cfg: dict, task: str) -> dict | None:
     """Validate an opt-in selection and describe exactly what will execute.
 
 The existing numeric lr belongs to the legacy optimizer. Requiring the explicit
-sentinel avoids silently ignoring a caller's requested rate. This component
-only supports one process and one full physical batch per optimizer update.
+sentinel avoids silently ignoring a caller's requested rate. Without explicit
+ImageNet execution, one process and one physical batch per update are required.
 """
     if "scheduler_profile" in cfg:
         if cfg["scheduler_profile"] == REFERENCE_SCHEDULE:
@@ -58,14 +58,20 @@ only supports one process and one full physical batch per optimizer update.
         raise ValueError("basic5_frozen_v1 supports frozen/attentive only; select basic5_finetune_v1 for FT")
     if cfg.get("task") != task or task not in _RECIPES:
         raise ValueError("optimizer_profile requires the runner's supported task identity")
-    if os.environ.get("WORLD_SIZE", "1") != "1":
+    execution = None
+    if "execution" in cfg:
+        from downstream.imagenet_execution import resolve
+        execution = resolve(cfg)
+    if execution is None and os.environ.get("WORLD_SIZE", "1") != "1":
         raise ValueError("optimizer_profile requires WORLD_SIZE=1; distributed execution unsupported")
-    if torch.distributed.is_initialized() and torch.distributed.get_world_size() != 1:
+    if execution is None and torch.distributed.is_initialized() and torch.distributed.get_world_size() != 1:
         raise ValueError("optimizer_profile does not support a distributed process group")
     settings = cfg["detector" if task == "coco_detection" else "probe"]
     batch = settings["batch_size"]
     if type(batch) is not int or batch <= 0:
         raise ValueError("optimizer_profile requires a positive integer batch_size")
+    if execution is not None:
+        batch = execution['effective_batch']
     for field, minimum in (("epochs", 1), ("max_steps_per_epoch", 0)):
         value = settings[field]
         if type(value) is not int or value < minimum:
@@ -103,12 +109,14 @@ only supports one process and one full physical batch per optimizer update.
         "drop_last": True, "schedule": "none",
     }
     report.update({"momentum": .9} if algorithm == "SGD" else {"betas": [.9, .999]})
+    if execution is not None:
+        report.update(world_size=execution['world_size'], accumulation_steps=execution['accumulation_steps'])
     if finetune:
         report["layer_decay"] = layer_decay
     if cfg.get("scheduler_profile") == REFERENCE_SCHEDULE:
         epochs = {"ade20k_segmentation": 20, "nyuv2_depth": 30,
                   "coco_detection": 12, "ssv2_video": 50, "imagenet_classification": 100}[task]
-        if batch != reference_batch or settings["epochs"] != epochs:
+        if batch != reference_batch or (execution is None and settings["epochs"] != epochs):
             raise ValueError("reference schedule requires the reference batch and full epoch horizon")
         report.update(scheduler_profile=REFERENCE_SCHEDULE, task=task,
                       adaptation=adaptation, epochs=epochs)

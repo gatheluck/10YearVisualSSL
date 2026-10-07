@@ -7,7 +7,7 @@ research history. See [terminology](PAPER_TERMINOLOGY.md) and
 [submission scope](SUBMISSION_SCOPE.md). Private manuscript/source fingerprints
 and run evidence remain outside Git.
 
-Updated 2026-10-06 for explicit ImageNet FT source profiles. Remaining priorities
+Updated 2026-10-07 for explicit ImageNet execution and continuation. Remaining priorities
 below distinguish executable component support from actual result reproduction.
 
 **The portable package does not yet reproduce the entire paper.** Original
@@ -44,8 +44,12 @@ complete recipe and released-weight/result validation, not an absent provider.
 The October 6 [ImageNet FT profiles](IMAGENET_FINETUNE.md) add all eight execution
 paths, source-specific augmentation/mixing and final-model export. Single-process
 FP32 component tests do not resolve the supplied protocol conflicts; native
-accumulation/BF16/distributed execution and historical run attribution remain
-pending. Explicit [LP/AP preprocessing](IMAGENET_PROBE_PREPROCESSING.md) now
+FSDP and historical run attribution remain pending. The October 7
+[execution profile](IMAGENET_EXECUTION.md) adds accumulation, CUDA BF16 selection
+and portable epoch continuation for all eight ImageNet families, with replicated
+DDP for seven. Omega distributed source equivalence, released-weight CUDA parity,
+native checkpoint import and other BasicFive tasks' execution remain pending.
+Explicit [LP/AP preprocessing](IMAGENET_PROBE_PREPROCESSING.md) now
 selects provider-owned bicubic/bilinear geometry across all eight families;
 legacy configurations retain common-bilinear inputs. This closes a source
 geometry gap, not historical table attribution. Component
@@ -61,8 +65,10 @@ availability does not establish complete native-video or paper-score coverage.
    Full-scale result reproduction is separate. ImageNet FT now requires one of
    six provider-bound source profiles across eight families. Augmentation and
    unsmoothed targets preserve inspected behavior, not one inferred protocol.
-   Full-run scheduling, accumulation and final-table attribution still require
-   per-run reconciliation and released-weight validation.
+   ImageNet's explicit execution profile now preserves the inspected accumulation
+   and schedule clock and adds portable continuation. Other BasicFive task runners,
+   FSDP and native checkpoint import still require integration. Final-table
+   attribution requires per-run reconciliation and released-weight validation.
 2. Integrate Extended task trainers and metrics for the **45 actually reported
    datasets**, retaining each of the five model/readout identities. The image
    LP/AP execution path now exists, with explicit sample manifests and native

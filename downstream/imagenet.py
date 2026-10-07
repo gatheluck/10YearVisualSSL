@@ -50,8 +50,10 @@ def resolve_preprocessing(cfg):
 def validate_config(cfg):
     required = {"task", "seed", "device", "data_root", "profile", "adaptation",
                 "optimizer_profile", "backbone", "probe"}
-    if set(cfg) - (required | {"scheduler_profile", "reader_profile", "finetune_recipe", "preprocessing_profile"}) or required - set(cfg):
+    if set(cfg) - (required | {"scheduler_profile", "reader_profile", "finetune_recipe", "preprocessing_profile", "execution", "resume"}) or required - set(cfg):
         raise ValueError("ImageNet config has missing or unknown fields")
+    if "resume" in cfg and "execution" not in cfg:
+        raise ValueError("resume requires explicit ImageNet execution")
     if cfg["profile"] != "capture_basic5_components" or cfg["adaptation"] not in ("frozen", "attentive", "finetune"):
         raise ValueError("ImageNet requires an explicit component adaptation")
     if not supports_image_classification(cfg["backbone"].get("kind")):
@@ -137,6 +139,9 @@ class ImageClassifier(nn.Module):
 
 def run(cfg, out, *, device_override=None):
     validate_config(cfg)
+    if "execution" in cfg:
+        from downstream.imagenet_execution import run as execute
+        return execute(cfg,out,device_override=device_override)
     device = resolve_device(device_override or cfg["device"])
     make_deterministic(cfg["seed"])
     settings, adaptation = cfg["probe"], cfg["adaptation"]
@@ -218,6 +223,10 @@ def main(argv=None):
     args = parser.parse_args(argv)
     config_bytes = Path(args.config).read_bytes()
     cfg = json.loads(config_bytes)
+    if "execution" in cfg:
+        from downstream.extended_distributed import cli
+        return cli(config_bytes,args.out,lambda c,o:run(c,o,device_override=args.device),TASK,
+                   device_override=args.device)
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     now = lambda: datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")

@@ -47,7 +47,7 @@ def autocast_context(device, precision):
 
 
 def train_epoch(model, loader, loss_for_batch, optimizer, scheduler, *,
-                accumulation_steps, tail_policy, adaptation):
+                accumulation_steps, tail_policy, adaptation, trainable_backbone=False):
     """Divide every loss by the full group size, including a flushed short tail.
 
     The captured schedule uses optimizer-update indices against a horizon
@@ -57,7 +57,9 @@ def train_epoch(model, loader, loss_for_batch, optimizer, scheduler, *,
     """
     if type(accumulation_steps) is not int or accumulation_steps < 1:
         raise ValueError('invalid accumulation_steps')
-    if tail_policy not in ('discard','flush_scaled') or adaptation not in ('frozen','attentive'):
+    if (tail_policy not in ('discard','flush_scaled') or
+        adaptation not in ('frozen','attentive','finetune') or
+        type(trainable_backbone) is not bool or trainable_backbone != (adaptation=='finetune')):
         raise ValueError('invalid accumulation policy or adaptation')
     if not len(loader) or (tail_policy == 'discard' and len(loader) < accumulation_steps):
         raise ValueError('epoch cannot produce an optimizer update')
@@ -69,7 +71,7 @@ def train_epoch(model, loader, loss_for_batch, optimizer, scheduler, *,
         _require_all(not any(p.grad is not None and not torch.isfinite(p.grad).all() for p in model.parameters()),
                      device,'nonfinite accumulated gradients')
         backbone = getattr(unwrap(model), 'backbone', None)
-        _require_all(backbone is None or not any(p.requires_grad or p.grad is not None for p in backbone.parameters()),
+        _require_all(trainable_backbone or backbone is None or not any(p.requires_grad or p.grad is not None for p in backbone.parameters()),
                      device,'Extended backbone must remain frozen with no gradients')
         clip_attentive_gradients(model, adaptation)
         optimizer.step(); scheduler.step(); optimizer.zero_grad(set_to_none=True)

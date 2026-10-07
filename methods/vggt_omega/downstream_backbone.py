@@ -21,6 +21,7 @@ FINETUNE_GROUPS = True
 IMAGE_CLASSIFICATION = True
 IMAGENET_FT_RECIPE = "captured_bicubic_unit_mixup_v1"
 IMAGENET_PROBE_INTERPOLATION = "bicubic"
+IMAGENET_EXECUTION = dict(tail_policy="discard", rank_seed_stride=1, distributed=False)
 COMPONENT_ONLY = True
 CAPTURE_PYRAMID = False
 NATIVE_DETECTION = True

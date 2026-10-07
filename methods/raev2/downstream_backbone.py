@@ -23,6 +23,7 @@ FINETUNE_GROUPS = True
 IMAGE_CLASSIFICATION = True
 IMAGENET_FT_RECIPE = "captured_bilinear_raw_zero_torch_v1"
 IMAGENET_PROBE_INTERPOLATION = "bilinear"
+IMAGENET_EXECUTION = dict(tail_policy="discard", rank_seed_stride=17, distributed=True)
 COMPONENT_ONLY = True
 CAPTURE_PYRAMID = False
 NATIVE_DETECTION = True

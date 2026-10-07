@@ -98,9 +98,9 @@ def session(device_spec):
         if owned: dist.destroy_process_group()
 
 
-def cli(data,out,run,task):
+def cli(data,out,run,task,*,device_override=None):
     cfg=json.loads(data); out=Path(out)
-    with session(cfg['device']) as context:
+    with session(device_override or cfg['device']) as context:
         context.agree(contract.sha256_bytes(data))
         # Existing directories are never converted into failed run directories.
         try: context.call(lambda:out.mkdir(parents=True,exist_ok=False),leader=True)

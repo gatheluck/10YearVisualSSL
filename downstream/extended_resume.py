@@ -60,6 +60,11 @@ class Continuation:
     No data paths, membership, batch, precision, world size or frozen weights
     may change. Checkpoints contain probe state only, never encoder weights.
     """
+    format_name = FORMAT
+
+    def model_state(self):
+        return _probe(self.model)
+
     def __init__(self,cfg,membership,model,opt,scheduler,runtime,loader,context,out):
         self.model,self.opt,self.scheduler=model,opt,scheduler
         self.runtime,self.loader,self.context=runtime,loader,context
@@ -85,7 +90,7 @@ class Continuation:
 
     def _restore(self,blob,target):
         required={'format','identity','epoch','model','optimizer','scheduler','runtime','rng'}
-        if not isinstance(blob,dict) or set(blob)!=required or blob['format']!=FORMAT:
+        if not isinstance(blob,dict) or set(blob)!=required or blob['format']!=self.format_name:
             raise ValueError('unsupported or incomplete portable epoch checkpoint')
         if blob['identity']!=self.identity: raise ValueError('checkpoint training identity mismatch')
         epoch=blob['epoch']
@@ -106,7 +111,7 @@ class Continuation:
         if (schedule['base_lrs']!=self.scheduler.base_lrs or schedule['_last_lr']!=rates or
             schedule['_step_count']!=expected['updates']+1):
             raise ValueError('checkpoint schedule differs from the unchanged recipe')
-        current=_probe(self.model)
+        current=self.model_state()
         if set(blob['model'])!=set(current): raise ValueError('checkpoint probe keys disagree')
         for name,value in blob['model'].items():
             if (not isinstance(value,torch.Tensor) or value.shape!=current[name].shape or
@@ -135,7 +140,7 @@ class Continuation:
             states=[None]*context.world
             torch.distributed.all_gather_object(states,local)
         def publish():
-            blob=dict(format=FORMAT,identity=self.identity,epoch=epoch,model=_cpu(_probe(self.model)),
+            blob=dict(format=self.format_name,identity=self.identity,epoch=epoch,model=_cpu(self.model_state()),
                       optimizer=_cpu(self.opt.state_dict()),scheduler=_cpu(self.scheduler.state_dict()),
                       runtime=copy.deepcopy(self.runtime),rng=states)
             temporary=self.path.with_suffix('.tmp')
@@ -147,5 +152,5 @@ class Continuation:
         context.call(publish,leader=True)
 
     def report(self):
-        return dict(format=FORMAT,start_epoch=self.start_epoch,source_sha256=self.source_sha256,
+        return dict(format=self.format_name,start_epoch=self.start_epoch,source_sha256=self.source_sha256,
                     checkpoint='resume.pt',boundary='completed_epoch',legacy_native_compatible=False)
