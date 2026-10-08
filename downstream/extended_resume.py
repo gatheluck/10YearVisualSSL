@@ -3,11 +3,13 @@ import copy
 import hashlib
 import io
 import json
-from pathlib import Path
 import random
+from pathlib import Path
 
 import numpy as np
 import torch
+
+from downstream import continuation_validation
 
 FORMAT = 'extended_epoch_v1'
 COUNTERS = ('microbatches','updates','tail_updates','discarded_microbatches')
@@ -45,11 +47,7 @@ def _restore_rng(state,loader,device):
     random.setstate(state['python'])
     value=state['numpy']; np.random.set_state((value[0],np.asarray(value[1],dtype=np.uint32),*value[2:]))
     torch.set_rng_state(state['torch'])
-    if (state['cuda'] is None)!=(device.type!='cuda'):
-        raise ValueError('checkpoint CUDA RNG identity mismatch')
     if device.type=='cuda': torch.cuda.set_rng_state(state['cuda'],device)
-    if (state['loader'] is None)!=(loader.generator is None):
-        raise ValueError('checkpoint loader RNG identity mismatch')
     if loader.generator is not None: loader.generator.set_state(state['loader'])
 
 
@@ -120,11 +118,13 @@ class Continuation:
         if (not isinstance(blob['optimizer'],dict) or set(blob['optimizer'])!={'state','param_groups'} or
             not blob['optimizer']['state']):
             raise ValueError('checkpoint optimizer state is incomplete')
+        continuation_validation.optimizer_state(self.opt,blob['optimizer'],expected['updates'])
         if [group['lr'] for group in blob['optimizer']['param_groups']]!=rates:
             raise ValueError('checkpoint optimizer and schedule learning rates disagree')
         for state in blob['optimizer']['state'].values():
             if any(isinstance(value,torch.Tensor) and not torch.isfinite(value).all() for value in state.values()):
                 raise ValueError('nonfinite checkpoint optimizer tensor')
+        continuation_validation.rng_states(blob['rng'],self.loader,self.context.device)
         self.model.load_state_dict({**self.model.state_dict(),**blob['model']},strict=True)
         self.opt.load_state_dict(blob['optimizer'])
         self.scheduler.load_state_dict(blob['scheduler'])

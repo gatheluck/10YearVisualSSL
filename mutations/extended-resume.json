@@ -281,21 +281,22 @@
       ]
     },
     {
-      "file": "downstream/extended_resume.py",
+      "file": "downstream/continuation_validation.py",
       "label": "CUDA state identity",
-      "old": "(state['cuda'] is None)!=(device.type!='cuda')",
+      "old": "(state[\"cuda\"] is None) != (device.type != \"cuda\")",
       "new": "False",
       "tests": [
         "tests.test_method_extended_resume.TestResume.test_incomplete_legacy_or_corrupt_state_never_silently_restarts"
       ]
     },
     {
-      "file": "downstream/extended_resume.py",
+      "file": "downstream/continuation_validation.py",
       "label": "loader state identity",
-      "old": "(state['loader'] is None)!=(loader.generator is None)",
+      "old": "(state[\"loader\"] is None) != (loader.generator is None)",
       "new": "False",
       "tests": [
-        "tests.test_method_extended_resume.TestResume.test_incomplete_legacy_or_corrupt_state_never_silently_restarts"
+        "tests.test_method_extended_resume.TestResume.test_incomplete_legacy_or_corrupt_state_never_silently_restarts",
+        "tests.test_continuation_integrity.Integrity.test_loader_generator_presence_is_checked_in_both_directions"
       ]
     },
     {

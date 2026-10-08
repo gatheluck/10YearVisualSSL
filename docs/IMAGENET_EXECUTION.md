@@ -1,5 +1,8 @@
 # ImageNet execution and portable continuation
 
+See the [shared continuation validation contract](CONTINUATION_INTEGRITY.md)
+for optimizer recipe/state and RNG preflight checks and their limits.
+
 This opt-in component adds physical microbatches, gradient accumulation,
 FP32/CUDA BF16, replicated distributed execution and completed-epoch continuation
 to the eight BasicFive ImageNet LP/AP/FT families. It does not certify historical

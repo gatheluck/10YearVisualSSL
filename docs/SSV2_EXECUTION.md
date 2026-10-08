@@ -66,6 +66,9 @@ fallback frames. Codec equality and historical fallback populations are unverifi
 
 ## Distributed execution and continuation
 
+The [shared continuation validation contract](CONTINUATION_INTEGRITY.md) applies
+to optimizer recipes, state tensors and RNG records before live restoration.
+
 For example:
 
 `torchrun --standalone --nproc-per-node=2 -m downstream.ssv2 --config /data/two-rank-video.json --out /results/video-01`

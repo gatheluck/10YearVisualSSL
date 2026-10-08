@@ -26,6 +26,12 @@ LP/AP/FT components to single-process accumulation, training BF16 selection and
 portable epoch continuation with input identity verification.
 Native schedule/loss disagreements remain explicit; this is not complete-run parity.
 
+The [shared continuation integrity checks](CONTINUATION_INTEGRITY.md) now
+preflight optimizer recipes, parameter mappings, moments and all saved RNG
+records across portable task runners. This corrects acceptance of incompatible
+resume state; it does not add native formats, distributed dense execution or
+new measured results.
+
 ## Coverage by final appendix
 
 | Final location | Portable basis | Remaining verification or integration |
