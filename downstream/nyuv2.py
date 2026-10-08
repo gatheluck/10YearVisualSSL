@@ -39,7 +39,7 @@ from torch.utils.data import DataLoader, Dataset
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
-from downstream import dense_execution, dense_resume
+from downstream import dense_execution, dense_resume, dense_distributed
 from downstream.optimization import resolve_optimization, build_optimizer, require_training_batches
 from downstream.optimization import REFERENCE_SCHEDULE, build_task_scheduler, task_schedule_report
 from downstream.optimization import build_dense_ap_scheduler, dense_ap_schedule_report
@@ -379,77 +379,76 @@ def _mat_length(mat_path: Path) -> int:
         return int(handle["images"].shape[0])
 
 
-def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
-    validate_config(cfg)
-    device = resolve_device(device_override or cfg["device"])
-    if "execution" in cfg:
-        dense_execution.autocast_context(device, dense_execution.resolve(cfg)["precision"])
-        dense_resume.output_directory(out)
-    seed = int(cfg["seed"])
-    make_deterministic(seed)
-    probe = cfg["probe"]
-    profile = cfg.get("profile", "legacy")
-    adaptation = validate_adaptation(cfg)
-    optimization = resolve_optimization(cfg, TASK)
-    captured = profile == CAPTURE_PROFILE
-    image_size = int(probe["image_size"])
+@dense_distributed.with_execution(validate_config)
+def run(cfg: dict, out: Path, device_override: str | None = None, *, context=None) -> dict:
+    with dense_distributed.setup(context):
+        validate_config(cfg)
+        device = context.device if context is not None else resolve_device(device_override or cfg["device"])
+        seed = int(cfg["seed"])
+        make_deterministic(dense_distributed.seed(cfg, context))
+        probe = cfg["probe"]
+        profile = cfg.get("profile", "legacy")
+        adaptation = validate_adaptation(cfg)
+        optimization = resolve_optimization(cfg, TASK)
+        captured = profile == CAPTURE_PROFILE
+        image_size = int(probe["image_size"])
 
-    mat_path = Path(cfg["data_root"]) / "labeled/nyu_depth_v2_labeled.mat"
-    if not mat_path.is_file():
-        raise FileNotFoundError(f"NYUv2 labelled file not found: {mat_path}")
-    split_path = mat_path.parent / "splits.mat"
-    train_idx, val_idx = (load_official_splits(split_path, _mat_length(mat_path))
-                          if captured else split_indices(_mat_length(mat_path)))
-    if int(probe["max_train_samples"]):
-        train_idx = train_idx[:int(probe["max_train_samples"])]
-    if int(probe["max_val_samples"]):
-        val_idx = val_idx[:int(probe["max_val_samples"])]
+        mat_path = Path(cfg["data_root"]) / "labeled/nyu_depth_v2_labeled.mat"
+        if not mat_path.is_file():
+            raise FileNotFoundError(f"NYUv2 labelled file not found: {mat_path}")
+        split_path = mat_path.parent / "splits.mat"
+        train_idx, val_idx = (load_official_splits(split_path, _mat_length(mat_path))
+                              if captured else split_indices(_mat_length(mat_path)))
+        if int(probe["max_train_samples"]):
+            train_idx = train_idx[:int(probe["max_train_samples"])]
+        if int(probe["max_val_samples"]):
+            val_idx = val_idx[:int(probe["max_val_samples"])]
 
-    bs, nw = int(probe["batch_size"]), int(probe["num_workers"])
-    train_ds = NYUv2Depth(mat_path, train_idx, image_size, profile=profile, train=True, adaptation=adaptation)
-    val_ds = NYUv2Depth(mat_path, val_idx, image_size, profile=profile, adaptation=adaptation)
-    train_loader = DataLoader(train_ds, batch_size=bs, shuffle=True, num_workers=nw,
-                              drop_last=optimization is not None,
-                              generator=torch.Generator().manual_seed(seed))
-    val_loader = DataLoader(val_ds, batch_size=bs, shuffle=False, num_workers=nw)
+        bs, nw = int(probe["batch_size"]), int(probe["num_workers"])
+        train_ds = NYUv2Depth(mat_path, train_idx, image_size, profile=profile, train=True, adaptation=adaptation)
+        val_ds = NYUv2Depth(mat_path, val_idx, image_size, profile=profile, adaptation=adaptation)
+        train_loader = dense_distributed.loader(context, train_ds, probe, seed, optimization)
+        val_loader = DataLoader(val_ds, batch_size=bs, shuffle=False, num_workers=nw)
 
-    require_training_batches(train_loader, optimization)
-    builder = build_trainable_backbone if adaptation == "finetune" else build_frozen_backbone
-    backbone = builder(cfg["backbone"], device)
-    model = FrozenDepthModel(backbone, hidden_dim=int(probe["head_hidden_dim"]),
-                             profile=profile, adaptation=adaptation, reader_profile=cfg.get("reader_profile")).to(device)
-    if adaptation != "finetune" and any(p.requires_grad for p in model.backbone.parameters()):
-        raise RuntimeError("backbone is not frozen")
-    if optimization is not None:
-        optimizer = build_optimizer(model, optimization)
-    else:
-        optimizer = torch.optim.AdamW([p for p in model.parameters() if p.requires_grad], lr=float(probe["lr"]),
-                                      weight_decay=0.01)
+        require_training_batches(train_loader, optimization)
+        builder = build_trainable_backbone if adaptation == "finetune" else build_frozen_backbone
+        backbone = builder(cfg["backbone"], device)
+        model = FrozenDepthModel(backbone, hidden_dim=int(probe["head_hidden_dim"]),
+                                 profile=profile, adaptation=adaptation, reader_profile=cfg.get("reader_profile")).to(device)
+        if adaptation != "finetune" and any(p.requires_grad for p in model.backbone.parameters()):
+            raise RuntimeError("backbone is not frozen")
+        if optimization is not None:
+            optimizer = build_optimizer(model, optimization)
+        else:
+            optimizer = torch.optim.AdamW([p for p in model.parameters() if p.requires_grad], lr=float(probe["lr"]),
+                                          weight_decay=0.01)
 
-    subset_mode = bool(probe["max_train_samples"] or probe["max_val_samples"]
-                       or probe["max_steps_per_epoch"])
-    epochs = int(probe["epochs"])
-    max_steps = int(probe["max_steps_per_epoch"]) or None
-    scheduler = (build_task_scheduler(optimizer, optimization, len(train_loader))
-                 if cfg.get("scheduler_profile") == REFERENCE_SCHEDULE else
-                 build_dense_ap_scheduler(optimizer, len(train_loader), epochs)
-                 if "scheduler_profile" in cfg else None)
+        subset_mode = bool(probe["max_train_samples"] or probe["max_val_samples"]
+                           or probe["max_steps_per_epoch"])
+        epochs = int(probe["epochs"])
+        max_steps = int(probe["max_steps_per_epoch"]) or None
+        scheduler = (build_task_scheduler(optimizer, optimization, len(train_loader))
+                     if cfg.get("scheduler_profile") == REFERENCE_SCHEDULE else
+                     build_dense_ap_scheduler(optimizer, len(train_loader), epochs)
+                     if "scheduler_profile" in cfg else None)
+    training_model = dense_distributed.wrap(context, model)
     runtime = None
     continuation = None
     if "execution" in cfg:
-        plan, update_scheduler, runtime = dense_execution.prepare(
-            cfg, device, optimizer, scheduler, len(train_loader), cast(dict, optimization)["lr"])
+        plan, update_scheduler, runtime = dense_distributed.call(context, lambda: dense_execution.prepare(
+            cfg, device, optimizer, scheduler, len(train_loader), cast(dict, optimization)["lr"]))
         continuation = dense_resume.DenseContinuation(
-            cfg, train_ds, val_ds, model, optimizer, update_scheduler, runtime, train_loader, device, out)
+            cfg, train_ds, val_ds, model, optimizer, update_scheduler, runtime, train_loader, device, out, context=context)
     print(f"NYUv2 depth  device={device}  backbone={cfg['backbone']['kind']}"
           f"({'trained' if cfg['backbone'].get('encoder') else 'random (smoke)'})"
           f"  epochs={epochs}  train={len(train_ds)} val={len(val_ds)}")
     metrics = {"rmse": 0.0, "abs_rel": 0.0, "valid_pixels": 0}
     for epoch in range(continuation.start_epoch if continuation else 0, epochs):
+        dense_distributed.set_epoch(context, train_loader, epoch)
         if runtime is not None:
             statistics = dense_execution.train_epoch(
-                model, train_loader,
-                lambda batch: dense_execution.batch_loss(model, batch, device, TASK, plan["precision"]),
+                training_model, train_loader,
+                lambda batch: dense_execution.batch_loss(training_model, batch, device, TASK, plan["precision"]),
                 optimizer, update_scheduler, cfg, plan)
             dense_execution.record_epoch(runtime, statistics)
         else:
@@ -469,41 +468,44 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
                 optimizer.step()
                 if scheduler is not None:
                     scheduler.step()
-        metrics = evaluate(model, val_loader, device, profile=profile)
+        metrics = dense_distributed.call(context, lambda: evaluate(model, val_loader, device, profile=profile), leader=True)
         if continuation is not None:
             continuation.save(epoch + 1)
         print(f"[{epoch + 1}/{epochs}] rmse={metrics['rmse']:.4f} "
               f"abs_rel={metrics['abs_rel']:.4f}")
 
     if continuation is not None and continuation.start_epoch == epochs:
-        metrics = evaluate(model, val_loader, device, profile=profile)
+        metrics = dense_distributed.call(context, lambda: evaluate(model, val_loader, device, profile=profile), leader=True)
 
-    raw = {"rmse": float(metrics["rmse"]), "abs_rel": float(metrics["abs_rel"]),
-           "valid_pixels": int(metrics["valid_pixels"]), "epochs": epochs}
-    if captured:
-        raw.update({k: float(metrics[k]) for k in ("delta1", "delta2", "delta3")})
-    if scheduler is not None:
-        optimization["schedule"] = (task_schedule_report(scheduler, optimization, len(train_loader), max_steps)
-                                    if cfg.get("scheduler_profile") == REFERENCE_SCHEDULE else
-                                    dense_ap_schedule_report(scheduler, len(train_loader), epochs, max_steps))
-    contract.write_metrics(out, raw, METRIC_NAMES)
-    (Path(out) / "results.json").write_text(
-        json.dumps({"task": TASK, "backbone": cfg["backbone"],
-                    "profile": profile, "adaptation": adaptation, "reader_profile": cfg.get("reader_profile"), "canonical_eligible": False,
-                    "training_color_jitter": train_ds.color_jitter,
-                    "split_sha256": contract.sha256_file(split_path) if captured else None,
-                    "metric_aggregation": "batch_mean" if captured else "global_valid_pixels",
-                    "split": ("official splits.mat IDs" if captured else
-                              "labelled: first 795 train / remaining val (full); "
-                              "half/half for a smaller hermetic file"),
-                    "epochs": epochs, "final": raw,
-                    "record_value": not subset_mode and not captured,
-                    **({"execution": runtime, "continuation": continuation.report(),
-                        "membership": continuation.membership} if continuation is not None else {}),
-                    **({"optimization": optimization} if optimization is not None else {}),
-                    "subset_or_smoke": subset_mode},
-                   indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    return raw
+    def finish():
+        raw = {"rmse": float(metrics["rmse"]), "abs_rel": float(metrics["abs_rel"]),
+               "valid_pixels": int(metrics["valid_pixels"]), "epochs": epochs}
+        if captured:
+            raw.update({k: float(metrics[k]) for k in ("delta1", "delta2", "delta3")})
+        if scheduler is not None:
+            optimization["schedule"] = (task_schedule_report(scheduler, optimization, len(train_loader), max_steps)
+                                        if cfg.get("scheduler_profile") == REFERENCE_SCHEDULE else
+                                        dense_ap_schedule_report(scheduler, len(train_loader), epochs, max_steps))
+        contract.write_metrics(out, raw, METRIC_NAMES)
+        (Path(out) / "results.json").write_text(
+            json.dumps({"task": TASK, "backbone": cfg["backbone"],
+                        "profile": profile, "adaptation": adaptation, "reader_profile": cfg.get("reader_profile"), "canonical_eligible": False,
+                        "training_color_jitter": train_ds.color_jitter,
+                        "split_sha256": contract.sha256_file(split_path) if captured else None,
+                        "metric_aggregation": "batch_mean" if captured else "global_valid_pixels",
+                        "split": ("official splits.mat IDs" if captured else
+                                  "labelled: first 795 train / remaining val (full); "
+                                  "half/half for a smaller hermetic file"),
+                        "epochs": epochs, "final": raw,
+                        "record_value": not subset_mode and not captured,
+                        **({"execution": runtime, "continuation": continuation.report(),
+                            "membership": continuation.membership} if continuation is not None else {}),
+                        **({"optimization": optimization} if optimization is not None else {}),
+                        "subset_or_smoke": subset_mode},
+                       indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        return raw
+
+    return dense_distributed.call(context, finish, leader=True)
 
 
 def _now() -> str:
@@ -521,9 +523,11 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: "list[str] | None" = None) -> int:
     args = build_parser().parse_args(argv)
     out = Path(args.out)
-    out.mkdir(parents=True, exist_ok=True)
     config_bytes = Path(args.config).read_bytes()
     cfg = json.loads(config_bytes)
+    if dense_distributed.requested(cfg):
+        return dense_distributed.cli(config_bytes, out, run, TASK, args.device)
+    out.mkdir(parents=True, exist_ok=True)
     if "execution" in cfg:
         try:
             dense_resume.output_directory(out)

@@ -66,8 +66,8 @@
     {
       "label": "ade20k runner wiring",
       "file": "downstream/ade20k.py",
-      "old": "profile=profile, adaptation=adaptation),\n                       int(probe[\"max_train_samples\"])",
-      "new": "profile=profile, adaptation=\"frozen\"),\n                       int(probe[\"max_train_samples\"])",
+      "old": "profile=profile, adaptation=adaptation),\n                           int(probe[\"max_train_samples\"])",
+      "new": "profile=profile, adaptation=\"frozen\"),\n                           int(probe[\"max_train_samples\"])",
       "tests": [
         "tests.test_dense_ft_augmentation.TestDenseFTAugmentation.test_cli_reports_actual_training_jitter"
       ]

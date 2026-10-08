@@ -12,6 +12,24 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-10-08: source-supported dense replicated DDP
+
+PR 231 merged as `cd50873`; all 115 checks succeeded. Main was pulled and
+confirmed tree-identical to the tested head. Existing video-submodule edits
+remain preserved. Fresh read-only source and protocol inspection distinguishes
+four native DDP families from explicit gradient reductions, FSDP and unwrapped
+forwards. Private source identities and execution evidence stay outside Git.
+
+[Dense execution](DENSE_EXECUTION.md) adds optional replicated DDP for CLIP,
+SigLIP2, C-RADIOv4-H and Cosmos3 Super across ADE20K/NYUv2/COCO LP/AP/FT.
+Shared helpers own sampler epochs, rank seeds, model wrapping, coordinated setup
+failures and leader-only evaluation/delivery. Portable continuation retains every
+rank's RNG and rejects world-size changes. Single-process formats are preserved.
+Record RED/GREEN, independent update comparisons, exact resumed-state checks,
+mutations and local/CI results in the PR. Source schedule/loss conflicts, the
+other four dense distributed families, native checkpoint imports and actual
+released-weight/GPU/score reproduction remain pending. No compute job is implied.
+
 ### 2026-10-08: shared continuation state integrity
 
 PR 230 merged as `69e049e`; all 115 checks succeeded. Main was pulled and

@@ -42,7 +42,7 @@ from torchvision.transforms import functional as TF
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
-from downstream import dense_execution, dense_resume
+from downstream import dense_execution, dense_resume, dense_distributed
 from downstream.optimization import resolve_optimization, build_optimizer, require_training_batches
 from downstream.optimization import REFERENCE_SCHEDULE, task_schedule_report
 from downstream.optimization import build_coco_scheduler
@@ -366,83 +366,81 @@ def evaluate(model, loader, dataset, device, *, profile: str = "legacy") -> dict
             "detections": len(results)}
 
 
-def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
-    validate_config(cfg)
-    device = resolve_device(device_override or cfg["device"])
-    if "execution" in cfg:
-        dense_execution.autocast_context(device, dense_execution.resolve(cfg)["precision"])
-        dense_resume.output_directory(out)
-    seed = int(cfg["seed"])
-    make_deterministic(seed)
-    detector = cfg["detector"]
-    profile = cfg.get("profile", "legacy")
-    adaptation = validate_adaptation(cfg)
-    optimization = resolve_optimization(cfg, TASK)
+@dense_distributed.with_execution(validate_config)
+def run(cfg: dict, out: Path, device_override: str | None = None, *, context=None) -> dict:
+    with dense_distributed.setup(context):
+        validate_config(cfg)
+        device = context.device if context is not None else resolve_device(device_override or cfg["device"])
+        seed = int(cfg["seed"])
+        make_deterministic(dense_distributed.seed(cfg, context))
+        detector = cfg["detector"]
+        profile = cfg.get("profile", "legacy")
+        adaptation = validate_adaptation(cfg)
+        optimization = resolve_optimization(cfg, TASK)
 
-    from downstream.spatial_backbones import detection_label_space
-    label_space = (detection_label_space(cfg["backbone"]["kind"])
-                   if cfg.get("detector_profile") == NATIVE_PROFILE else "category_id")
+        from downstream.spatial_backbones import detection_label_space
+        label_space = (detection_label_space(cfg["backbone"]["kind"])
+                       if cfg.get("detector_profile") == NATIVE_PROFILE else "category_id")
 
-    root = Path(cfg["data_root"])
-    train_ds = _subset(CocoDetectionForFRCNN(
-        str(root / "images/train2017"),
-        str(root / "annotations/instances_train2017.json"), train=True, profile=profile,
-        label_space=label_space),
-        int(detector["max_train_samples"]))
-    val_ds = _subset(CocoDetectionForFRCNN(
-        str(root / "images/val2017"),
-        str(root / "annotations/instances_val2017.json"), profile=profile, label_space=label_space),
-        int(detector["max_val_samples"]))
-    train_source = train_ds.dataset if isinstance(train_ds, Subset) else train_ds
-    val_source = val_ds.dataset if isinstance(val_ds, Subset) else val_ds
-    if label_space == "contiguous" and train_source.category_to_label != val_source.category_to_label:
-        raise ValueError("training and validation category mappings differ")
-    bs, nw = int(detector["batch_size"]), int(detector["num_workers"])
-    train_loader = DataLoader(train_ds, batch_size=bs, shuffle=True, num_workers=nw,
-                              drop_last=optimization is not None,
-                              collate_fn=collate,
-                              generator=torch.Generator().manual_seed(seed))
-    val_loader = DataLoader(val_ds, batch_size=1, shuffle=False, num_workers=nw,
-                            collate_fn=collate)
+        root = Path(cfg["data_root"])
+        train_ds = _subset(CocoDetectionForFRCNN(
+            str(root / "images/train2017"),
+            str(root / "annotations/instances_train2017.json"), train=True, profile=profile,
+            label_space=label_space),
+            int(detector["max_train_samples"]))
+        val_ds = _subset(CocoDetectionForFRCNN(
+            str(root / "images/val2017"),
+            str(root / "annotations/instances_val2017.json"), profile=profile, label_space=label_space),
+            int(detector["max_val_samples"]))
+        train_source = train_ds.dataset if isinstance(train_ds, Subset) else train_ds
+        val_source = val_ds.dataset if isinstance(val_ds, Subset) else val_ds
+        if label_space == "contiguous" and train_source.category_to_label != val_source.category_to_label:
+            raise ValueError("training and validation category mappings differ")
+        nw = int(detector["num_workers"])
+        train_loader = dense_distributed.loader(context, train_ds, detector, seed, optimization, collate_fn=collate)
+        val_loader = DataLoader(val_ds, batch_size=1, shuffle=False, num_workers=nw,
+                                collate_fn=collate)
 
-    require_training_batches(train_loader, optimization)
-    model = build_frozen_detector(cfg["backbone"], detector, device, profile=profile,
-                                  adaptation=adaptation, reader_profile=cfg.get("reader_profile"),
-                                  detector_profile=cfg.get("detector_profile"))
-    encoder = model.backbone.body if profile == CAPTURE_PROFILE else model.backbone
-    if adaptation != "finetune" and any(p.requires_grad for p in encoder.parameters()):
-        raise RuntimeError("backbone is not frozen")
-    trainable = [p for p in model.parameters() if p.requires_grad]
-    if optimization is not None:
-        optimizer = build_optimizer(model, optimization)
-    else:
-        optimizer = torch.optim.SGD(trainable, lr=float(detector["lr"]), momentum=0.9,
-                                    weight_decay=0.0005)
+        require_training_batches(train_loader, optimization)
+        model = build_frozen_detector(cfg["backbone"], detector, device, profile=profile,
+                                      adaptation=adaptation, reader_profile=cfg.get("reader_profile"),
+                                      detector_profile=cfg.get("detector_profile"))
+        encoder = model.backbone.body if profile == CAPTURE_PROFILE else model.backbone
+        if adaptation != "finetune" and any(p.requires_grad for p in encoder.parameters()):
+            raise RuntimeError("backbone is not frozen")
+        trainable = [p for p in model.parameters() if p.requires_grad]
+        if optimization is not None:
+            optimizer = build_optimizer(model, optimization)
+        else:
+            optimizer = torch.optim.SGD(trainable, lr=float(detector["lr"]), momentum=0.9,
+                                        weight_decay=0.0005)
 
-    subset_mode = bool(detector["max_train_samples"] or detector["max_val_samples"]
-                       or detector["max_steps_per_epoch"])
-    epochs = int(detector["epochs"])
-    max_steps = int(detector["max_steps_per_epoch"]) or None
-    scheduler = (build_coco_scheduler(optimizer, len(train_loader))
-                 if "scheduler_profile" in cfg else None)
-    if scheduler is not None and epochs < 12:
-        subset_mode = True
+        subset_mode = bool(detector["max_train_samples"] or detector["max_val_samples"]
+                           or detector["max_steps_per_epoch"])
+        epochs = int(detector["epochs"])
+        max_steps = int(detector["max_steps_per_epoch"]) or None
+        scheduler = (build_coco_scheduler(optimizer, len(train_loader))
+                     if "scheduler_profile" in cfg else None)
+        if scheduler is not None and epochs < 12:
+            subset_mode = True
+    training_model = dense_distributed.wrap(context, model)
     runtime = None
     continuation = None
     if "execution" in cfg:
-        plan, update_scheduler, runtime = dense_execution.prepare(
-            cfg, device, optimizer, scheduler, len(train_loader), cast(dict, optimization)["lr"])
+        plan, update_scheduler, runtime = dense_distributed.call(context, lambda: dense_execution.prepare(
+            cfg, device, optimizer, scheduler, len(train_loader), cast(dict, optimization)["lr"]))
         continuation = dense_resume.DenseContinuation(
-            cfg, train_ds, val_ds, model, optimizer, update_scheduler, runtime, train_loader, device, out)
+            cfg, train_ds, val_ds, model, optimizer, update_scheduler, runtime, train_loader, device, out, context=context)
     print(f"COCO det  device={device}  backbone={cfg['backbone']['kind']}"
           f"({'trained' if cfg['backbone'].get('encoder') else 'random (smoke)'})"
           f"  epochs={epochs}")
     metrics = {"bbox_mAP": 0.0, "bbox_mAP_50": 0.0, "detections": 0}
     for epoch in range(continuation.start_epoch if continuation else 0, epochs):
+        dense_distributed.set_epoch(context, train_loader, epoch)
         if runtime is not None:
             statistics = dense_execution.train_epoch(
-                model, train_loader,
-                lambda batch: dense_execution.batch_loss(model, batch, device, TASK, plan["precision"]),
+                training_model, train_loader,
+                lambda batch: dense_execution.batch_loss(training_model, batch, device, TASK, plan["precision"]),
                 optimizer, update_scheduler, cfg, plan)
             dense_execution.record_epoch(runtime, statistics)
             training_summary = f"updates={statistics['updates']}"
@@ -450,51 +448,54 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
             loss = _train_one_epoch(model, train_loader, optimizer, device, max_steps,
                                     adaptation=adaptation, scheduler=scheduler)
             training_summary = f"loss={loss:.4f}"
-        metrics = evaluate(model, val_loader, val_ds, device, profile=profile)
+        metrics = dense_distributed.call(context, lambda: evaluate(model, val_loader, val_ds, device, profile=profile), leader=True)
         if continuation is not None:
             continuation.save(epoch + 1)
         print(f"[{epoch + 1}/{epochs}] {training_summary} "
               f"mAP={metrics['bbox_mAP']:.4f} mAP50={metrics['bbox_mAP_50']:.4f}")
 
     if continuation is not None and continuation.start_epoch == epochs:
-        metrics = evaluate(model, val_loader, val_ds, device, profile=profile)
+        metrics = dense_distributed.call(context, lambda: evaluate(model, val_loader, val_ds, device, profile=profile), leader=True)
 
-    if cfg.get("scheduler_profile") == REFERENCE_SCHEDULE:
-        optimization["schedule"] = task_schedule_report(scheduler, optimization, len(train_loader), max_steps)
-    elif scheduler is not None:
-        optimization["schedule"] = {
-            "profile": cfg["scheduler_profile"], "warmup_updates": 500,
-            "warmup_start_factor": .001, "milestone_epochs": [8, 11],
-            "decay_factor": .1, "reference_epochs": 12,
-            "steps_per_epoch": len(train_loader),
-            "updates_completed": scheduler.last_epoch,
-            "next_update_lr": optimizer.param_groups[0]["lr"],
-            "truncated": epochs < 12 or bool(max_steps and max_steps < len(train_loader)),
-        }
-    raw = {"bbox_mAP": float(metrics["bbox_mAP"]),
-           "bbox_mAP_50": float(metrics["bbox_mAP_50"]),
-           "detections": int(metrics["detections"]), "epochs": epochs}
-    if profile == CAPTURE_PROFILE:
-        for key in ("bbox_mAP_75", "bbox_mAP_small", "bbox_mAP_medium", "bbox_mAP_large"):
-            raw[key] = float(metrics.get(key, 0.0))
-    contract.write_metrics(out, raw, METRIC_NAMES)
-    (Path(out) / "results.json").write_text(
-        json.dumps({"task": TASK, "backbone": cfg["backbone"],
-                    "num_classes": model.roi_heads.box_predictor.cls_score.out_features,
-                    "label_space": label_space, "label_to_category": val_source.label_to_category,
-                    "epochs": epochs, "final": raw,
-                    "profile": profile, "adaptation": adaptation,
-                    "reader_profile": cfg.get("reader_profile"),
-                    "detector_profile": cfg.get("detector_profile"),
-                    "canonical_eligible": False,
-                    "metric_units": "ratio; -1 means undefined",
-                    "record_value": not subset_mode and profile == "legacy",
-                    **({"execution": runtime, "continuation": continuation.report(),
-                        "membership": continuation.membership} if continuation is not None else {}),
-                    **({"optimization": optimization} if optimization is not None else {}),
-                    "subset_or_smoke": subset_mode},
-                   indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    return raw
+    def finish():
+        if cfg.get("scheduler_profile") == REFERENCE_SCHEDULE:
+            optimization["schedule"] = task_schedule_report(scheduler, optimization, len(train_loader), max_steps)
+        elif scheduler is not None:
+            optimization["schedule"] = {
+                "profile": cfg["scheduler_profile"], "warmup_updates": 500,
+                "warmup_start_factor": .001, "milestone_epochs": [8, 11],
+                "decay_factor": .1, "reference_epochs": 12,
+                "steps_per_epoch": len(train_loader),
+                "updates_completed": scheduler.last_epoch,
+                "next_update_lr": optimizer.param_groups[0]["lr"],
+                "truncated": epochs < 12 or bool(max_steps and max_steps < len(train_loader)),
+            }
+        raw = {"bbox_mAP": float(metrics["bbox_mAP"]),
+               "bbox_mAP_50": float(metrics["bbox_mAP_50"]),
+               "detections": int(metrics["detections"]), "epochs": epochs}
+        if profile == CAPTURE_PROFILE:
+            for key in ("bbox_mAP_75", "bbox_mAP_small", "bbox_mAP_medium", "bbox_mAP_large"):
+                raw[key] = float(metrics.get(key, 0.0))
+        contract.write_metrics(out, raw, METRIC_NAMES)
+        (Path(out) / "results.json").write_text(
+            json.dumps({"task": TASK, "backbone": cfg["backbone"],
+                        "num_classes": model.roi_heads.box_predictor.cls_score.out_features,
+                        "label_space": label_space, "label_to_category": val_source.label_to_category,
+                        "epochs": epochs, "final": raw,
+                        "profile": profile, "adaptation": adaptation,
+                        "reader_profile": cfg.get("reader_profile"),
+                        "detector_profile": cfg.get("detector_profile"),
+                        "canonical_eligible": False,
+                        "metric_units": "ratio; -1 means undefined",
+                        "record_value": not subset_mode and profile == "legacy",
+                        **({"execution": runtime, "continuation": continuation.report(),
+                            "membership": continuation.membership} if continuation is not None else {}),
+                        **({"optimization": optimization} if optimization is not None else {}),
+                        "subset_or_smoke": subset_mode},
+                       indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        return raw
+
+    return dense_distributed.call(context, finish, leader=True)
 
 
 def _now() -> str:
@@ -512,9 +513,11 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: "list[str] | None" = None) -> int:
     args = build_parser().parse_args(argv)
     out = Path(args.out)
-    out.mkdir(parents=True, exist_ok=True)
     config_bytes = Path(args.config).read_bytes()
     cfg = json.loads(config_bytes)
+    if dense_distributed.requested(cfg):
+        return dense_distributed.cli(config_bytes, out, run, TASK, args.device)
+    out.mkdir(parents=True, exist_ok=True)
     if "execution" in cfg:
         try:
             dense_resume.output_directory(out)

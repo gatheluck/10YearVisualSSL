@@ -21,16 +21,15 @@ across LP/AP/FT with explicit clip augmentation, accumulation and portable resum
 The shared classification engine preserves the ImageNet execution contract.
 These components do not certify native FSDP, decoder equivalence or paper scores.
 
-[Dense-task accumulation](DENSE_EXECUTION.md) now connects ADE20K/NYUv2/COCO
-LP/AP/FT components to single-process accumulation, training BF16 selection and
+[Dense-task execution](DENSE_EXECUTION.md) now connects ADE20K/NYUv2/COCO
+LP/AP/FT components to accumulation, training BF16 selection, four-family DDP and
 portable epoch continuation with input identity verification.
 Native schedule/loss disagreements remain explicit; this is not complete-run parity.
 
 The [shared continuation integrity checks](CONTINUATION_INTEGRITY.md) now
 preflight optimizer recipes, parameter mappings, moments and all saved RNG
 records across portable task runners. This corrects acceptance of incompatible
-resume state; it does not add native formats, distributed dense execution or
-new measured results.
+resume state; it does not add native formats or new measured results.
 
 ## Coverage by final appendix
 
@@ -64,7 +63,7 @@ FSDP and historical run attribution remain pending. The October 7
 [execution profile](IMAGENET_EXECUTION.md) adds accumulation, CUDA BF16 selection
 and portable epoch continuation for all eight ImageNet families, with replicated
 DDP for seven. Omega distributed source equivalence, released-weight CUDA parity,
-native checkpoint import and distributed dense execution remain pending.
+native checkpoint import and the four remaining dense distributed families remain pending.
 The SSv2 counterpart now adds source-specific video recipes and 24 execution routes.
 Explicit [LP/AP preprocessing](IMAGENET_PROBE_PREPROCESSING.md) now
 selects provider-owned bicubic/bilinear geometry across all eight families;
@@ -84,8 +83,10 @@ availability does not establish complete native-video or paper-score coverage.
    unsmoothed targets preserve inspected behavior, not one inferred protocol.
    ImageNet's explicit execution profile now preserves the inspected accumulation
    and schedule clock and adds portable continuation. SSv2 now has corresponding
-   LP/AP/FT execution and clip recipes. Distributed dense BasicFive execution, FSDP and
-   native checkpoint import still require integration. Final-table
+   LP/AP/FT execution and clip recipes. Dense BasicFive DDP now covers CLIP, SigLIP2,
+   C-RADIOv4-H and Cosmos3 Super across ADE20K/NYUv2/COCO LP/AP/FT, with portable
+   multi-rank continuation. The other four dense-family synchronization paths,
+   FSDP and native checkpoint import still require integration. Final-table
    attribution requires per-run reconciliation and released-weight validation.
 2. Integrate Extended task trainers and metrics for the **45 actually reported
    datasets**, retaining each of the five model/readout identities. The image

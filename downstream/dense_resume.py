@@ -70,13 +70,26 @@ class DenseContinuation(Continuation):
     format_name = "basic5_dense_epoch_v1"
 
     def __init__(
-        self, cfg, train, val, model, opt, scheduler, runtime, loader, device, out
+        self,
+        cfg,
+        train,
+        val,
+        model,
+        opt,
+        scheduler,
+        runtime,
+        loader,
+        device,
+        out,
+        *,
+        context=None,
     ):
         self.finetune = cfg.get("adaptation") == "finetune"
         self.encoder_prefix = (
             "backbone.body." if cfg["task"] == "coco_detection" else "backbone."
         )
-        self.membership = membership(cfg, train, val)
+        context = context or Session(device)
+        self.membership = context.call(lambda: membership(cfg, train, val))
         normalized = copy.deepcopy(cfg)
         if "detector" in normalized:
             normalized["probe"] = normalized.pop("detector")
@@ -88,7 +101,7 @@ class DenseContinuation(Continuation):
             scheduler,
             runtime,
             loader,
-            Session(device),
+            context,
             out,
         )
 

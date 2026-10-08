@@ -1,7 +1,7 @@
-# BasicFive dense-task accumulation
+# BasicFive dense-task execution
 
 The explicit `captured_dense_v1` execution block connects the existing ADE20K,
-NYUv2 and COCO component runners to accumulated single-process LP/AP/FT updates.
+NYUv2 and COCO component runners to accumulated LP/AP/FT updates.
 Eight inspected provider families expose this policy: CLIP, SigLIP2, C-RADIOv4-H,
 Cosmos3 Super, DINOv3, RAEv2 K7, V-JEPA2.1 and VGGT-Omega. This is execution
 component coverage, not evidence that their complete experiments or table scores
@@ -37,7 +37,7 @@ and this explicit block:
 ```
 
 `batch_size` is the physical microbatch. Effective batch is physical batch times
-accumulation; optimizer learning rates use that effective batch. The examples
+accumulation times world size; optimizer learning rates use that effective batch. The single-process examples
 use effective batch 8 for ADE20K/NYUv2 and 16 for COCO. Select `fp32` explicitly
 for CPU verification. BF16 requires native CUDA support and is refused before
 data/model loading on CPU; there is no silent precision fallback.
@@ -48,6 +48,42 @@ applicable, and `basic5_frozen_v1`. FT requires `adaptation: finetune` and
 provider-specific readout and native detection contracts described in
 [downstream tasks](DOWNSTREAM.md). The execution block does not select or replace
 an encoder, detector, augmentation, loss or evaluation recipe.
+
+## Distributed execution
+
+CLIP, SigLIP2, C-RADIOv4-H and Cosmos3 Super additionally permit replicated DDP
+for all three tasks and LP/AP/FT. Launch, for example,
+`torchrun --standalone --nproc-per-node=2 -m downstream.ade20k --config resolved.json --out output`.
+Use `device: cuda` for GPUs; the launcher selects each local device. CPU Gloo
+is for verification. Every rank must see the same resolved configuration,
+input files, encoder and shared output directory. Multi-node launch and resource
+allocation remain the operator's responsibility; use only authorized resources.
+
+Ranks use base seed plus 1000 times rank. The shuffled distributed sampler uses
+the common base seed, advances each epoch, and pads the population when needed;
+the loader drops incomplete local batches. The effective batch includes every
+rank. DDP averages gradients for every microbatch, followed by the existing
+accumulation, clipping and update schedule. The shared wrapper conservatively
+uses `find_unused_parameters=True`; the inspected C-RADIO source uses it only
+for COCO. Validation runs the full selected
+validation population on rank zero in FP32. Only rank zero writes results and
+atomic checkpoints, with all rank RNG streams retained. Resume requires the
+same world size. Existing single-process checkpoint identities remain unchanged.
+
+Local setup, membership, validation and delivery errors are communicated to peers.
+This is not recovery from arbitrary process loss or accelerator failure during
+collectives. Distributed output directories must be new. Tests compare actual
+two-rank updates with an independent mean-over-ranks loop and exercise all nine
+task/adaptation paths through uninterrupted, resumed and evaluation-only runs,
+including setup failures and protection against overwriting prior artifacts.
+These tiny CPU tests do not certify released encoders, CUDA or multi-node runs.
+
+DINOv3, RAEv2 K7, V-JEPA2.1 and VGGT-Omega remain single-process under this profile.
+Their inspected sources use different synchronization/FSDP paths or unwrapped
+forwards whose equivalence is unresolved. ImageNet's support does not imply dense
+support. Those configurations fail closed instead of silently running independent
+models. Original experimental implementations exist; their distributed behavior
+has not yet been reconciled into this package.
 
 ## Update behavior and evidence
 
@@ -124,8 +160,8 @@ RNG streams. It does not run all released encoders or establish paper-score pari
 
 ## Remaining boundaries
 
-Distributed dense execution, FSDP and native checkpoint import are not
-provided by this block. Released-weight CUDA/BF16 execution, complete datasets,
+The four remaining dense-family distributed paths, FSDP and native checkpoint
+import are not provided by this block. Released-weight CUDA/BF16 execution, complete datasets,
 and correspondence to the paper's recorded scores remain unverified.
 
 Source/protocol disagreements remain pending. In particular, some original

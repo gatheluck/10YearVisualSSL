@@ -214,6 +214,7 @@ jobs:
           tests.test_method_dense_execution \
           tests.test_dense_continuation \
           tests.test_continuation_integrity \
+          tests.test_method_dense_distributed \
             tests.test_basic5_attentive_tasks \
             tests.test_basic5_finetune_tasks tests.test_method_vjepa2_1
 

@@ -1,14 +1,14 @@
-"""Opt-in single-process accumulated BasicFive dense-task training.
+"""Opt-in accumulated BasicFive dense-task training.
 
 This preserves the inspected per-provider clipping and discarded-tail policy.
-Portable continuation is separate; native checkpoints and distributed training
-remain outside this execution profile.
+Portable continuation is separate; native checkpoints remain outside this
+execution profile. Replicated DDP requires an inspected provider policy.
 """
 
 import torch
 
 from downstream import extended_execution as execution
-from downstream.extended_distributed import launch
+from downstream.extended_distributed import launch, unwrap
 from downstream.spatial_backbones import dense_execution_policy
 
 HORIZONS = {"ade20k_segmentation": 20, "nyuv2_depth": 30, "coco_detection": 12}
@@ -40,8 +40,9 @@ def resolve(cfg):
         not isinstance(cfg["resume"], str) or not cfg["resume"].strip()
     ):
         raise ValueError("resume requires a checkpoint path")
-    if launch()[2] != 1:
-        raise ValueError("dense execution supports one process only")
+    world = launch()[2]
+    if world > 1 and not policy.get("distributed", False):
+        raise ValueError("provider dense distributed source behavior remains unverified")
     probe = cfg["detector" if cfg["task"] == "coco_detection" else "probe"]
     for key, minimum in (("batch_size", 1), ("epochs", 1), ("max_steps_per_epoch", 0)):
         if type(probe[key]) is not int or probe[key] < minimum:
@@ -58,8 +59,8 @@ def resolve(cfg):
     )
     return dict(
         settings,
-        effective_batch=probe["batch_size"] * settings["accumulation_steps"],
-        world_size=1,
+        effective_batch=probe["batch_size"] * settings["accumulation_steps"] * world,
+        world_size=world,
         clip_norm=1.0 if clipping else None,
         schedule_clock="optimizer_updates_with_microbatch_horizon",
     )
@@ -88,7 +89,7 @@ def train_epoch(model, loader, loss_for_batch, optimizer, scheduler, cfg, plan):
                 [p for p in model.parameters() if p.requires_grad], plan["clip_norm"]
             )
 
-    backbone = getattr(model, "backbone", None)
+    backbone = getattr(unwrap(model), "backbone", None)
     if cfg["task"] == "coco_detection":
         backbone = getattr(backbone, "body", backbone)
     return execution.train_epoch(
