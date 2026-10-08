@@ -1,0 +1,175 @@
+{
+  "targets": [
+    {
+      "label": "wrap every training forward",
+      "file": "downstream/dense_distributed.py",
+      "old": "return model if context is None else context.wrap(model)",
+      "new": "return model",
+      "tests": [
+        "tests.test_method_dense_distributed.Integration"
+      ]
+    },
+    {
+      "label": "advance sampler per epoch",
+      "file": "downstream/dense_distributed.py",
+      "old": "loader.sampler.set_epoch(epoch)",
+      "new": "loader.sampler.set_epoch(0)",
+      "tests": [
+        "tests.test_method_dense_distributed.Integration"
+      ]
+    },
+    {
+      "label": "rank-dependent random streams",
+      "file": "downstream/dense_distributed.py",
+      "old": "(policy[\"rank_seed_stride\"] * rank if policy else 0)",
+      "new": "0",
+      "tests": [
+        "tests.test_method_dense_distributed.Policy"
+      ]
+    },
+    {
+      "label": "coordinated local setup failure",
+      "file": "downstream/dense_distributed.py",
+      "old": "raise error",
+      "new": "pass",
+      "tests": [
+        "tests.test_method_dense_distributed.Integration"
+      ]
+    },
+    {
+      "label": "validation and delivery leader routing",
+      "file": "downstream/dense_distributed.py",
+      "old": "context.call(fn, leader=leader)",
+      "new": "context.call(fn, leader=False)",
+      "tests": [
+        "tests.test_method_dense_distributed.Integration"
+      ]
+    },
+    {
+      "label": "distributed input sharding",
+      "file": "downstream/dense_distributed.py",
+      "old": "return context.loader(data, settings, seed_value, collate_fn=collate_fn)",
+      "new": "return DataLoader(data, batch_size=settings[\"batch_size\"], collate_fn=collate_fn)",
+      "tests": [
+        "tests.test_method_dense_distributed.Integration"
+      ]
+    },
+    {
+      "label": "effective batch includes ranks",
+      "file": "downstream/dense_execution.py",
+      "old": "* settings[\"accumulation_steps\"] * world",
+      "new": "* settings[\"accumulation_steps\"]",
+      "tests": [
+        "tests.test_method_dense_distributed.Policy"
+      ]
+    },
+    {
+      "label": "unsupported providers refused",
+      "file": "downstream/dense_execution.py",
+      "old": "if world > 1 and not policy.get(\"distributed\", False):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_dense_distributed.Policy"
+      ]
+    },
+    {
+      "label": "supported providers accepted",
+      "file": "downstream/dense_execution.py",
+      "old": "if world > 1 and not policy.get(\"distributed\", False):",
+      "new": "if world > 1:",
+      "tests": [
+        "tests.test_method_dense_distributed.Policy"
+      ]
+    },
+    {
+      "label": "ade20k DDP loss forward",
+      "file": "downstream/ade20k.py",
+      "old": "dense_execution.batch_loss(training_model, batch",
+      "new": "dense_execution.batch_loss(model, batch",
+      "tests": [
+        "tests.test_method_dense_distributed.Integration"
+      ]
+    },
+    {
+      "label": "nyuv2 DDP loss forward",
+      "file": "downstream/nyuv2.py",
+      "old": "dense_execution.batch_loss(training_model, batch",
+      "new": "dense_execution.batch_loss(model, batch",
+      "tests": [
+        "tests.test_method_dense_distributed.Integration"
+      ]
+    },
+    {
+      "label": "coco DDP loss forward",
+      "file": "downstream/coco.py",
+      "old": "dense_execution.batch_loss(training_model, batch",
+      "new": "dense_execution.batch_loss(model, batch",
+      "tests": [
+        "tests.test_method_dense_distributed.Integration"
+      ]
+    },
+    {
+      "label": "38_clip dense DDP policy",
+      "file": "methods/38_clip/downstream_backbone.py",
+      "old": "\"distributed\": True",
+      "new": "\"distributed\": False",
+      "tests": [
+        "tests.test_method_dense_distributed.Policy"
+      ]
+    },
+    {
+      "label": "siglip dense DDP policy",
+      "file": "methods/siglip/downstream_backbone.py",
+      "old": "\"distributed\": True",
+      "new": "\"distributed\": False",
+      "tests": [
+        "tests.test_method_dense_distributed.Policy"
+      ]
+    },
+    {
+      "label": "cradiov4_h dense DDP policy",
+      "file": "methods/cradiov4_h/downstream_backbone.py",
+      "old": "\"distributed\": True",
+      "new": "\"distributed\": False",
+      "tests": [
+        "tests.test_method_dense_distributed.Policy"
+      ]
+    },
+    {
+      "label": "cosmos3_super dense DDP policy",
+      "file": "methods/cosmos3_super/downstream_backbone.py",
+      "old": "\"distributed\": True",
+      "new": "\"distributed\": False",
+      "tests": [
+        "tests.test_method_dense_distributed.Policy"
+      ]
+    },
+    {
+      "label": "DDP frozen detection body guard",
+      "file": "downstream/dense_execution.py",
+      "old": "getattr(unwrap(model), \"backbone\", None)",
+      "new": "getattr(model, \"backbone\", None)",
+      "tests": [
+        "tests.test_method_dense_distributed.Integration"
+      ]
+    },
+    {
+      "label": "legacy batch_size conversion",
+      "file": "downstream/dense_distributed.py",
+      "old": "int(settings[\"batch_size\"])",
+      "new": "settings[\"batch_size\"]",
+      "tests": [
+        "tests.test_method_dense_distributed.Policy.test_legacy_loader_preserves_numeric_conversion_shuffle_and_tail"
+      ]
+    },
+    {
+      "label": "legacy num_workers conversion",
+      "file": "downstream/dense_distributed.py",
+      "old": "int(settings[\"num_workers\"])",
+      "new": "settings[\"num_workers\"]",
+      "tests": [
+        "tests.test_method_dense_distributed.Policy.test_legacy_loader_preserves_numeric_conversion_shuffle_and_tail"
+      ]
+    }
+  ]
+}

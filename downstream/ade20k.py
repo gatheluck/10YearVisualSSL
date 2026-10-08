@@ -37,7 +37,7 @@ from torchvision.transforms import functional as TF
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
-from downstream import dense_execution, dense_resume
+from downstream import dense_execution, dense_resume, dense_distributed
 from downstream.optimization import resolve_optimization, build_optimizer, require_training_batches
 from downstream.optimization import REFERENCE_SCHEDULE, build_task_scheduler, task_schedule_report
 from downstream.optimization import build_dense_ap_scheduler, dense_ap_schedule_report
@@ -264,67 +264,66 @@ def evaluate(model, loader, device) -> dict:
     return {"miou": miou * 100.0, "pacc": (correct / max(total, 1)) * 100.0}
 
 
-def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
-    validate_config(cfg)
-    device = resolve_device(device_override or cfg["device"])
-    if "execution" in cfg:
-        dense_execution.autocast_context(device, dense_execution.resolve(cfg)["precision"])
-        dense_resume.output_directory(out)
-    seed = int(cfg["seed"])
-    make_deterministic(seed)
-    probe = cfg["probe"]
-    image_size = int(probe["image_size"])
-    profile = cfg.get("profile", "legacy")
-    adaptation = validate_adaptation(cfg)
-    optimization = resolve_optimization(cfg, TASK)
+@dense_distributed.with_execution(validate_config)
+def run(cfg: dict, out: Path, device_override: str | None = None, *, context=None) -> dict:
+    with dense_distributed.setup(context):
+        validate_config(cfg)
+        device = context.device if context is not None else resolve_device(device_override or cfg["device"])
+        seed = int(cfg["seed"])
+        make_deterministic(dense_distributed.seed(cfg, context))
+        probe = cfg["probe"]
+        image_size = int(probe["image_size"])
+        profile = cfg.get("profile", "legacy")
+        adaptation = validate_adaptation(cfg)
+        optimization = resolve_optimization(cfg, TASK)
 
-    root = Path(cfg["data_root"])
-    train_ds = _subset(ADE20kSegmentation(root, "training", image_size, profile=profile, adaptation=adaptation),
-                       int(probe["max_train_samples"]))
-    val_ds = _subset(ADE20kSegmentation(root, "validation", image_size, profile=profile, adaptation=adaptation),
-                     int(probe["max_val_samples"]))
-    bs, nw = int(probe["batch_size"]), int(probe["num_workers"])
-    train_loader = DataLoader(train_ds, batch_size=bs, shuffle=True, num_workers=nw,
-                              drop_last=optimization is not None,
-                              generator=torch.Generator().manual_seed(seed))
-    val_loader = DataLoader(val_ds, batch_size=bs, shuffle=False, num_workers=nw)
+        root = Path(cfg["data_root"])
+        train_ds = _subset(ADE20kSegmentation(root, "training", image_size, profile=profile, adaptation=adaptation),
+                           int(probe["max_train_samples"]))
+        val_ds = _subset(ADE20kSegmentation(root, "validation", image_size, profile=profile, adaptation=adaptation),
+                         int(probe["max_val_samples"]))
+        bs, nw = int(probe["batch_size"]), int(probe["num_workers"])
+        train_loader = dense_distributed.loader(context, train_ds, probe, seed, optimization)
+        val_loader = DataLoader(val_ds, batch_size=bs, shuffle=False, num_workers=nw)
 
-    require_training_batches(train_loader, optimization)
-    builder = build_trainable_backbone if adaptation == "finetune" else build_frozen_backbone
-    backbone = builder(cfg["backbone"], device)
-    model = FrozenSegModel(backbone, adaptation=adaptation, reader_profile=cfg.get("reader_profile")).to(device)
-    if adaptation != "finetune" and any(p.requires_grad for p in model.backbone.parameters()):
-        raise RuntimeError("backbone is not frozen")
-    if optimization is not None:
-        optimizer = build_optimizer(model, optimization)
-    else:
-        optimizer = torch.optim.AdamW([p for p in model.parameters() if p.requires_grad], lr=float(probe["lr"]),
-                                      weight_decay=0.01)
+        require_training_batches(train_loader, optimization)
+        builder = build_trainable_backbone if adaptation == "finetune" else build_frozen_backbone
+        backbone = builder(cfg["backbone"], device)
+        model = FrozenSegModel(backbone, adaptation=adaptation, reader_profile=cfg.get("reader_profile")).to(device)
+        if adaptation != "finetune" and any(p.requires_grad for p in model.backbone.parameters()):
+            raise RuntimeError("backbone is not frozen")
+        if optimization is not None:
+            optimizer = build_optimizer(model, optimization)
+        else:
+            optimizer = torch.optim.AdamW([p for p in model.parameters() if p.requires_grad], lr=float(probe["lr"]),
+                                          weight_decay=0.01)
 
-    subset_mode = bool(probe["max_train_samples"] or probe["max_val_samples"]
-                       or probe["max_steps_per_epoch"])
-    epochs = int(probe["epochs"])
-    max_steps = int(probe["max_steps_per_epoch"]) or None
-    scheduler = (build_task_scheduler(optimizer, optimization, len(train_loader))
-                 if cfg.get("scheduler_profile") == REFERENCE_SCHEDULE else
-                 build_dense_ap_scheduler(optimizer, len(train_loader), epochs)
-                 if "scheduler_profile" in cfg else None)
+        subset_mode = bool(probe["max_train_samples"] or probe["max_val_samples"]
+                           or probe["max_steps_per_epoch"])
+        epochs = int(probe["epochs"])
+        max_steps = int(probe["max_steps_per_epoch"]) or None
+        scheduler = (build_task_scheduler(optimizer, optimization, len(train_loader))
+                     if cfg.get("scheduler_profile") == REFERENCE_SCHEDULE else
+                     build_dense_ap_scheduler(optimizer, len(train_loader), epochs)
+                     if "scheduler_profile" in cfg else None)
+    training_model = dense_distributed.wrap(context, model)
     runtime = None
     continuation = None
     if "execution" in cfg:
-        plan, update_scheduler, runtime = dense_execution.prepare(
-            cfg, device, optimizer, scheduler, len(train_loader), cast(dict, optimization)["lr"])
+        plan, update_scheduler, runtime = dense_distributed.call(context, lambda: dense_execution.prepare(
+            cfg, device, optimizer, scheduler, len(train_loader), cast(dict, optimization)["lr"]))
         continuation = dense_resume.DenseContinuation(
-            cfg, train_ds, val_ds, model, optimizer, update_scheduler, runtime, train_loader, device, out)
+            cfg, train_ds, val_ds, model, optimizer, update_scheduler, runtime, train_loader, device, out, context=context)
     print(f"ADE20k seg  device={device}  backbone={cfg['backbone']['kind']}"
           f"({'trained' if cfg['backbone'].get('encoder') else 'random (smoke)'})"
           f"  epochs={epochs}  out_channels={backbone.out_channels}")
     metrics = {"miou": 0.0, "pacc": 0.0}
     for epoch in range(continuation.start_epoch if continuation else 0, epochs):
+        dense_distributed.set_epoch(context, train_loader, epoch)
         if runtime is not None:
             statistics = dense_execution.train_epoch(
-                model, train_loader,
-                lambda batch: dense_execution.batch_loss(model, batch, device, TASK, plan["precision"]),
+                training_model, train_loader,
+                lambda batch: dense_execution.batch_loss(training_model, batch, device, TASK, plan["precision"]),
                 optimizer, update_scheduler, cfg, plan)
             dense_execution.record_epoch(runtime, statistics)
             training_summary = f"updates={statistics['updates']}"
@@ -332,36 +331,39 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
             loss = _train_one_epoch(model, train_loader, optimizer, device, max_steps,
                                     adaptation=adaptation, scheduler=scheduler)
             training_summary = f"loss={loss:.4f}"
-        metrics = evaluate(model, val_loader, device)
+        metrics = dense_distributed.call(context, lambda: evaluate(model, val_loader, device), leader=True)
         if continuation is not None:
             continuation.save(epoch + 1)
         print(f"[{epoch + 1}/{epochs}] {training_summary} "
               f"mIoU={metrics['miou']:.3f} pACC={metrics['pacc']:.3f}")
 
     if continuation is not None and continuation.start_epoch == epochs:
-        metrics = evaluate(model, val_loader, device)
+        metrics = dense_distributed.call(context, lambda: evaluate(model, val_loader, device), leader=True)
 
-    raw = {"miou": float(metrics["miou"]), "pacc": float(metrics["pacc"]),
-           "epochs": epochs}
-    if scheduler is not None:
-        optimization["schedule"] = (task_schedule_report(scheduler, optimization, len(train_loader), max_steps)
-                                    if cfg.get("scheduler_profile") == REFERENCE_SCHEDULE else
-                                    dense_ap_schedule_report(scheduler, len(train_loader), epochs, max_steps))
-    contract.write_metrics(out, raw, METRIC_NAMES)
-    (Path(out) / "results.json").write_text(
-        json.dumps({"task": TASK, "backbone": cfg["backbone"],
-                    "num_classes": NUM_CLASSES, "ignore_index": IGNORE_INDEX,
-                    "epochs": epochs, "final": raw,
-                    "profile": profile, "adaptation": adaptation, "reader_profile": cfg.get("reader_profile"),
-                    "training_color_jitter": getattr(train_ds, "dataset", train_ds).color_jitter,
-                    "canonical_eligible": False,
-                    "record_value": not subset_mode and profile == "legacy",
-                    **({"execution": runtime, "continuation": continuation.report(),
-                        "membership": continuation.membership} if continuation is not None else {}),
-                    **({"optimization": optimization} if optimization is not None else {}),
-                    "subset_or_smoke": subset_mode},
-                   indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    return raw
+    def finish():
+        raw = {"miou": float(metrics["miou"]), "pacc": float(metrics["pacc"]),
+               "epochs": epochs}
+        if scheduler is not None:
+            optimization["schedule"] = (task_schedule_report(scheduler, optimization, len(train_loader), max_steps)
+                                        if cfg.get("scheduler_profile") == REFERENCE_SCHEDULE else
+                                        dense_ap_schedule_report(scheduler, len(train_loader), epochs, max_steps))
+        contract.write_metrics(out, raw, METRIC_NAMES)
+        (Path(out) / "results.json").write_text(
+            json.dumps({"task": TASK, "backbone": cfg["backbone"],
+                        "num_classes": NUM_CLASSES, "ignore_index": IGNORE_INDEX,
+                        "epochs": epochs, "final": raw,
+                        "profile": profile, "adaptation": adaptation, "reader_profile": cfg.get("reader_profile"),
+                        "training_color_jitter": getattr(train_ds, "dataset", train_ds).color_jitter,
+                        "canonical_eligible": False,
+                        "record_value": not subset_mode and profile == "legacy",
+                        **({"execution": runtime, "continuation": continuation.report(),
+                            "membership": continuation.membership} if continuation is not None else {}),
+                        **({"optimization": optimization} if optimization is not None else {}),
+                        "subset_or_smoke": subset_mode},
+                       indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        return raw
+
+    return dense_distributed.call(context, finish, leader=True)
 
 
 def _now() -> str:
@@ -379,9 +381,11 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: "list[str] | None" = None) -> int:
     args = build_parser().parse_args(argv)
     out = Path(args.out)
-    out.mkdir(parents=True, exist_ok=True)
     config_bytes = Path(args.config).read_bytes()
     cfg = json.loads(config_bytes)
+    if dense_distributed.requested(cfg):
+        return dense_distributed.cli(config_bytes, out, run, TASK, args.device)
+    out.mkdir(parents=True, exist_ok=True)
     if "execution" in cfg:
         try:
             dense_resume.output_directory(out)

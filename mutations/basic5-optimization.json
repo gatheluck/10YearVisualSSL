@@ -156,15 +156,15 @@
     {
       "label": "ade20k ignores optimizer choice",
       "file": "downstream/ade20k.py",
-      "old": "if optimization is not None:\n        optimizer = build_optimizer",
-      "new": "if False:\n        optimizer = build_optimizer",
+      "old": "if optimization is not None:\n            optimizer = build_optimizer",
+      "new": "if False:\n            optimizer = build_optimizer",
       "tests": [
         "tests.test_basic5_optimization.TestOptimization.test_real_clis_use_scaled_optimizer_and_preserve_frozen_state"
       ]
     },
     {
       "label": "ade20k wrong tail batch",
-      "file": "downstream/ade20k.py",
+      "file": "downstream/dense_distributed.py",
       "old": "drop_last=optimization is not None,",
       "new": "drop_last=False,",
       "tests": [
@@ -183,15 +183,15 @@
     {
       "label": "nyuv2 ignores optimizer choice",
       "file": "downstream/nyuv2.py",
-      "old": "if optimization is not None:\n        optimizer = build_optimizer",
-      "new": "if False:\n        optimizer = build_optimizer",
+      "old": "if optimization is not None:\n            optimizer = build_optimizer",
+      "new": "if False:\n            optimizer = build_optimizer",
       "tests": [
         "tests.test_basic5_optimization.TestOptimization.test_real_clis_use_scaled_optimizer_and_preserve_frozen_state"
       ]
     },
     {
       "label": "nyuv2 wrong tail batch",
-      "file": "downstream/nyuv2.py",
+      "file": "downstream/dense_distributed.py",
       "old": "drop_last=optimization is not None,",
       "new": "drop_last=False,",
       "tests": [
@@ -210,15 +210,15 @@
     {
       "label": "coco ignores optimizer choice",
       "file": "downstream/coco.py",
-      "old": "if optimization is not None:\n        optimizer = build_optimizer",
-      "new": "if False:\n        optimizer = build_optimizer",
+      "old": "if optimization is not None:\n            optimizer = build_optimizer",
+      "new": "if False:\n            optimizer = build_optimizer",
       "tests": [
         "tests.test_basic5_optimization.TestOptimization.test_real_clis_use_scaled_optimizer_and_preserve_frozen_state"
       ]
     },
     {
       "label": "coco wrong tail batch",
-      "file": "downstream/coco.py",
+      "file": "downstream/dense_distributed.py",
       "old": "drop_last=optimization is not None,",
       "new": "drop_last=False,",
       "tests": [

@@ -182,9 +182,9 @@
     },
     {
       "label": "ade20k runner output protection",
-      "file": "downstream/ade20k.py",
-      "old": "        dense_resume.output_directory(out)\n    seed =",
-      "new": "        pass\n    seed =",
+      "file": "downstream/dense_distributed.py",
+      "old": "context.call(lambda: dense_resume.output_directory(out), leader=True)",
+      "new": "pass",
       "tests": [
         "tests.test_dense_continuation.Continuation.test_existing_output_is_preserved_by_runner_and_cli"
       ]
@@ -192,17 +192,17 @@
     {
       "label": "ade20k post-validation RNG boundary",
       "file": "downstream/ade20k.py",
-      "old": "        metrics = evaluate(model, val_loader, device)\n        if continuation is not None:\n            continuation.save(epoch + 1)",
-      "new": "        if continuation is not None:\n            continuation.save(epoch + 1)\n        metrics = evaluate(model, val_loader, device)",
+      "old": "        metrics = dense_distributed.call(context, lambda: evaluate(model, val_loader, device), leader=True)\n        if continuation is not None:\n            continuation.save(epoch + 1)",
+      "new": "        if continuation is not None:\n            continuation.save(epoch + 1)\n        metrics = dense_distributed.call(context, lambda: evaluate(model, val_loader, device), leader=True)",
       "tests": [
         "tests.test_dense_continuation.Continuation.test_all_three_tasks_and_adaptations_resume_exactly"
       ]
     },
     {
       "label": "nyuv2 runner output protection",
-      "file": "downstream/nyuv2.py",
-      "old": "        dense_resume.output_directory(out)\n    seed =",
-      "new": "        pass\n    seed =",
+      "file": "downstream/dense_distributed.py",
+      "old": "context.call(lambda: dense_resume.output_directory(out), leader=True)",
+      "new": "pass",
       "tests": [
         "tests.test_dense_continuation.Continuation.test_existing_output_is_preserved_by_runner_and_cli"
       ]
@@ -210,17 +210,17 @@
     {
       "label": "nyuv2 post-validation RNG boundary",
       "file": "downstream/nyuv2.py",
-      "old": "        metrics = evaluate(model, val_loader, device, profile=profile)\n        if continuation is not None:\n            continuation.save(epoch + 1)",
-      "new": "        if continuation is not None:\n            continuation.save(epoch + 1)\n        metrics = evaluate(model, val_loader, device, profile=profile)",
+      "old": "        metrics = dense_distributed.call(context, lambda: evaluate(model, val_loader, device, profile=profile), leader=True)\n        if continuation is not None:\n            continuation.save(epoch + 1)",
+      "new": "        if continuation is not None:\n            continuation.save(epoch + 1)\n        metrics = dense_distributed.call(context, lambda: evaluate(model, val_loader, device, profile=profile), leader=True)",
       "tests": [
         "tests.test_dense_continuation.Continuation.test_all_three_tasks_and_adaptations_resume_exactly"
       ]
     },
     {
       "label": "coco runner output protection",
-      "file": "downstream/coco.py",
-      "old": "        dense_resume.output_directory(out)\n    seed =",
-      "new": "        pass\n    seed =",
+      "file": "downstream/dense_distributed.py",
+      "old": "context.call(lambda: dense_resume.output_directory(out), leader=True)",
+      "new": "pass",
       "tests": [
         "tests.test_dense_continuation.Continuation.test_existing_output_is_preserved_by_runner_and_cli"
       ]
@@ -228,8 +228,8 @@
     {
       "label": "coco post-validation RNG boundary",
       "file": "downstream/coco.py",
-      "old": "        metrics = evaluate(model, val_loader, val_ds, device, profile=profile)\n        if continuation is not None:\n            continuation.save(epoch + 1)",
-      "new": "        if continuation is not None:\n            continuation.save(epoch + 1)\n        metrics = evaluate(model, val_loader, val_ds, device, profile=profile)",
+      "old": "        metrics = dense_distributed.call(context, lambda: evaluate(model, val_loader, val_ds, device, profile=profile), leader=True)\n        if continuation is not None:\n            continuation.save(epoch + 1)",
+      "new": "        if continuation is not None:\n            continuation.save(epoch + 1)\n        metrics = dense_distributed.call(context, lambda: evaluate(model, val_loader, val_ds, device, profile=profile), leader=True)",
       "tests": [
         "tests.test_dense_continuation.Continuation.test_all_three_tasks_and_adaptations_resume_exactly"
       ]

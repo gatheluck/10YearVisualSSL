@@ -385,13 +385,14 @@ is recorded. FT group rates retain their relative layer multipliers.
 Other-batch cosine endpoints remain unresolved. The separate
 [ImageNet execution profile](IMAGENET_EXECUTION.md) adds explicit accumulation
 and selected distributed paths; the SSv2 counterpart is described below.
-Other BasicFive task runners retain their single-process boundaries. Existing configurations retain their behavior.
+Dense-task execution is described below. Existing configurations retain their behavior.
 
-[BasicFive dense-task accumulation](DENSE_EXECUTION.md) adds explicit single-process LP/AP/FT accumulation
-and training precision to ADE20K, NYUv2 and COCO for eight inspected families.
+[BasicFive dense-task execution](DENSE_EXECUTION.md) adds explicit LP/AP/FT accumulation
+and training precision to ADE20K, NYUv2 and COCO for eight inspected families,
+with replicated DDP for four source-supported families.
 Portable epoch continuation now preserves trained state and input identity.
-Native schedule/loss disagreements, distributed dense execution and native continuation
-remain separate verification/integration work.
+Native schedule/loss disagreements, the other four dense distributed paths and
+native continuation remain separate verification/integration work.
 
 [BasicFive SSv2 execution and source recipes](SSV2_EXECUTION.md) cover eight families
 across LP/AP/FT with explicit clip augmentation, accumulation and portable resume.

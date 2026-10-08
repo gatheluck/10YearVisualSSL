@@ -12,6 +12,36 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-10-08: archive fixture cleanup and automatic Git maintenance
+
+PR 232's Git 2.55 CI reported `Directory not empty` while removing a temporary
+archive-test repository's `.git`. The log does not identify the concurrent
+writer. Trace2 reproduction confirms that fixture commits can detach automatic
+maintenance; repeating the original test did not reproduce the cleanup error.
+Fixture Git invocations now finish maintenance synchronously, with invocation-only
+settings for current maintenance and older GC behavior. Maintenance stays enabled;
+the regression checks actual object packing and absence of a detached maintenance
+region. Git 2.55 and host Git 2.39 archive tests pass. Record mutation, whole-suite
+and final CI results in the PR; no experiment or archive implementation changes.
+
+### 2026-10-08: source-supported dense replicated DDP
+
+PR 231 merged as `cd50873`; all 115 checks succeeded. Main was pulled and
+confirmed tree-identical to the tested head. Existing video-submodule edits
+remain preserved. Fresh read-only source and protocol inspection distinguishes
+four native DDP families from explicit gradient reductions, FSDP and unwrapped
+forwards. Private source identities and execution evidence stay outside Git.
+
+[Dense execution](DENSE_EXECUTION.md) adds optional replicated DDP for CLIP,
+SigLIP2, C-RADIOv4-H and Cosmos3 Super across ADE20K/NYUv2/COCO LP/AP/FT.
+Shared helpers own sampler epochs, rank seeds, model wrapping, coordinated setup
+failures and leader-only evaluation/delivery. Portable continuation retains every
+rank's RNG and rejects world-size changes. Single-process formats are preserved.
+Record RED/GREEN, independent update comparisons, exact resumed-state checks,
+mutations and local/CI results in the PR. Source schedule/loss conflicts, the
+other four dense distributed families, native checkpoint imports and actual
+released-weight/GPU/score reproduction remain pending. No compute job is implied.
+
 ### 2026-10-08: shared continuation state integrity
 
 PR 230 merged as `69e049e`; all 115 checks succeeded. Main was pulled and

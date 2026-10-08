@@ -38,7 +38,10 @@ class TestSubmissionArchive(unittest.TestCase):
         self.out = self.base / 'submission.zip'
 
     def git(self, *args, cwd=None):
-        return subprocess.check_output(['git', '-C', str(cwd or self.repo), *args], stderr=subprocess.PIPE).decode().strip()
+        # Complete automatic maintenance before TemporaryDirectory removes .git.
+        # Command-scoped settings also cover upstream fixtures without changing user config.
+        return subprocess.check_output(['git', '-c', 'maintenance.autoDetach=false', '-c', 'gc.autoDetach=false',
+                                        '-C', str(cwd or self.repo), *args], stderr=subprocess.PIPE).decode().strip()
 
     def write(self, name, text):
         p = self.repo / name
@@ -67,6 +70,31 @@ class TestSubmissionArchive(unittest.TestCase):
         self.assertFalse(self.run_build())
         self.assertFalse(self.out.exists())
         self.assertIn(rule, self.findings())
+
+    def test_fixture_commit_finishes_automatic_maintenance_before_cleanup(self):
+        import os
+        from unittest import mock
+
+        # Exercise real automatic work, including an inherited preference to detach.
+        self.git('config', 'maintenance.auto', 'true')
+        self.git('config', 'maintenance.autoDetach', 'true')
+        self.git('config', 'gc.autoDetach', 'true')
+        self.git('config', 'maintenance.strategy', 'incremental')
+        self.git('config', 'maintenance.loose-objects.enabled', 'true')
+        self.git('config', 'maintenance.loose-objects.auto', '1')
+        trace = self.base / 'trace.jsonl'
+        self.write('second.py', 'print("second")\n')
+        with mock.patch.dict(os.environ, GIT_TRACE2_EVENT=str(trace)):
+            self.commit()
+        events = [json.loads(line) for line in trace.read_text().splitlines()]
+        detached = [event for event in events
+                    if event.get('event') == 'region_enter'
+                    and event.get('category') == 'maintenance'
+                    and event.get('label') == 'detach']
+        self.assertEqual(detached, [], 'fixture Git left maintenance running during cleanup')
+        counts = dict(line.split(': ', 1) for line in self.git('count-objects', '-v').splitlines())
+        self.assertGreater(int(counts['in-pack']), 0, 'automatic maintenance must actually run')
+        self.assertTrue(self.run_build())
 
     def test_committed_export_is_deterministic_and_runs_without_checkout(self):
         self.write('main.py', 'raise RuntimeError("uncommitted must not ship")\n')

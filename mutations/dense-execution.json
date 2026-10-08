@@ -73,9 +73,9 @@
       ]
     },
     {
-      "label": "single process",
+      "label": "source-supported distributed execution",
       "file": "downstream/dense_execution.py",
-      "old": "if launch()[2] != 1:",
+      "old": "if world > 1 and not policy.get(\"distributed\", False):",
       "new": "if False:",
       "tests": [
         "tests.test_method_dense_execution.Dense.test_invalid_and_unsupported_settings_refused_before_data"
@@ -201,8 +201,8 @@
     {
       "label": "38_clip LP detection clipping",
       "file": "methods/38_clip/downstream_backbone.py",
-      "old": "DENSE_EXECUTION = {\"tail_policy\": \"discard\", \"clip_frozen_detection\": False}",
-      "new": "DENSE_EXECUTION = {\"tail_policy\": \"discard\", \"clip_frozen_detection\": True}",
+      "old": "\"clip_frozen_detection\": False",
+      "new": "\"clip_frozen_detection\": True",
       "tests": [
         "tests.test_method_dense_execution.Dense.test_accumulated_updates_tail_and_clipping_match_independent_loop"
       ]
@@ -210,8 +210,8 @@
     {
       "label": "cosmos3_super LP detection clipping",
       "file": "methods/cosmos3_super/downstream_backbone.py",
-      "old": "DENSE_EXECUTION = {\"tail_policy\": \"discard\", \"clip_frozen_detection\": False}",
-      "new": "DENSE_EXECUTION = {\"tail_policy\": \"discard\", \"clip_frozen_detection\": True}",
+      "old": "\"clip_frozen_detection\": False",
+      "new": "\"clip_frozen_detection\": True",
       "tests": [
         "tests.test_method_dense_execution.Dense.test_accumulated_updates_tail_and_clipping_match_independent_loop"
       ]
@@ -219,8 +219,8 @@
     {
       "label": "cradiov4_h LP detection clipping",
       "file": "methods/cradiov4_h/downstream_backbone.py",
-      "old": "DENSE_EXECUTION = {\"tail_policy\": \"discard\", \"clip_frozen_detection\": False}",
-      "new": "DENSE_EXECUTION = {\"tail_policy\": \"discard\", \"clip_frozen_detection\": True}",
+      "old": "\"clip_frozen_detection\": False",
+      "new": "\"clip_frozen_detection\": True",
       "tests": [
         "tests.test_method_dense_execution.Dense.test_accumulated_updates_tail_and_clipping_match_independent_loop"
       ]
@@ -237,8 +237,8 @@
     {
       "label": "siglip LP detection clipping",
       "file": "methods/siglip/downstream_backbone.py",
-      "old": "DENSE_EXECUTION = {\"tail_policy\": \"discard\", \"clip_frozen_detection\": True}",
-      "new": "DENSE_EXECUTION = {\"tail_policy\": \"discard\", \"clip_frozen_detection\": False}",
+      "old": "\"clip_frozen_detection\": True",
+      "new": "\"clip_frozen_detection\": False",
       "tests": [
         "tests.test_method_dense_execution.Dense.test_accumulated_updates_tail_and_clipping_match_independent_loop"
       ]
@@ -272,9 +272,9 @@
     },
     {
       "label": "ade20k GPU preflight",
-      "file": "downstream/ade20k.py",
-      "old": "        dense_execution.autocast_context(device, dense_execution.resolve(cfg)[\"precision\"])",
-      "new": "        pass",
+      "file": "downstream/dense_distributed.py",
+      "old": "lambda: dense_execution.autocast_context(\n                        context.device, dense_execution.resolve(cfg)[\"precision\"]\n                    )",
+      "new": "lambda: None",
       "tests": [
         "tests.test_method_dense_execution.Dense.test_precision_and_short_epochs_fail_before_any_update"
       ]
@@ -290,9 +290,9 @@
     },
     {
       "label": "nyuv2 GPU preflight",
-      "file": "downstream/nyuv2.py",
-      "old": "        dense_execution.autocast_context(device, dense_execution.resolve(cfg)[\"precision\"])",
-      "new": "        pass",
+      "file": "downstream/dense_distributed.py",
+      "old": "lambda: dense_execution.autocast_context(\n                        context.device, dense_execution.resolve(cfg)[\"precision\"]\n                    )",
+      "new": "lambda: None",
       "tests": [
         "tests.test_method_dense_execution.Dense.test_precision_and_short_epochs_fail_before_any_update"
       ]
@@ -308,9 +308,9 @@
     },
     {
       "label": "coco GPU preflight",
-      "file": "downstream/coco.py",
-      "old": "        dense_execution.autocast_context(device, dense_execution.resolve(cfg)[\"precision\"])",
-      "new": "        pass",
+      "file": "downstream/dense_distributed.py",
+      "old": "lambda: dense_execution.autocast_context(\n                        context.device, dense_execution.resolve(cfg)[\"precision\"]\n                    )",
+      "new": "lambda: None",
       "tests": [
         "tests.test_method_dense_execution.Dense.test_precision_and_short_epochs_fail_before_any_update"
       ]
