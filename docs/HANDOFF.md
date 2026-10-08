@@ -12,6 +12,18 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-10-08: archive fixture cleanup and automatic Git maintenance
+
+PR 232's Git 2.55 CI reported `Directory not empty` while removing a temporary
+archive-test repository's `.git`. The log does not identify the concurrent
+writer. Trace2 reproduction confirms that fixture commits can detach automatic
+maintenance; repeating the original test did not reproduce the cleanup error.
+Fixture Git invocations now finish maintenance synchronously, with invocation-only
+settings for current maintenance and older GC behavior. Maintenance stays enabled;
+the regression checks actual object packing and absence of a detached maintenance
+region. Git 2.55 and host Git 2.39 archive tests pass. Record mutation, whole-suite
+and final CI results in the PR; no experiment or archive implementation changes.
+
 ### 2026-10-08: source-supported dense replicated DDP
 
 PR 231 merged as `cd50873`; all 115 checks succeeded. Main was pulled and
