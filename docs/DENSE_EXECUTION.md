@@ -109,6 +109,9 @@ unchanged during a run. Missing files or mismatches are errors, not warnings.
 Nonempty output directories are refused by both the runner and CLI before they
 can replace existing results. Checkpoint format, epoch, counters, model tensors,
 optimizer and scheduler are checked by the shared continuation machinery.
+The [shared state-integrity contract](CONTINUATION_INTEGRITY.md) also validates
+optimizer group recipes, moment tensors and every saved RNG record before
+restoring live state; it documents the remaining corruption-detection limits.
 
 `results.json` includes content-digest membership and continuation provenance.
 Private paths and actual checkpoint contents are runtime artifacts, not files to

@@ -12,6 +12,23 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-10-08: shared continuation state integrity
+
+PR 230 merged as `69e049e`; all 115 checks succeeded. Main was pulled and
+confirmed tree-identical to the tested head. Existing video-submodule edits
+remain preserved. Fresh read-only inspection retrieved 120 original source
+files, 112 matching the current snapshot. No original file or job was modified.
+
+The distributed dense audit remains pending integration: native DDP, explicit
+gradient reductions/FSDP and unwrapped forwards must not be conflated. A prior
+correctness gap in the shared portable resume reader takes priority:
+[optimizer and RNG preflight](CONTINUATION_INTEGRITY.md) now rejects changed
+recipes, invalid mappings/moments and malformed random streams before live
+restoration. Valid portable formats and lazy optimizer state remain supported.
+Record behavioral RED/GREEN, mutation controls, task/multi-rank regression and
+final gate/CI outcomes in the PR. This does not establish native checkpoint or
+historical score parity; whole missing lazy-state entries remain undetectable.
+
 ### 2026-10-08: BasicFive dense portable continuation
 
 PR 229 merged as `4680d91`; all 115 checks succeeded. Main was pulled and

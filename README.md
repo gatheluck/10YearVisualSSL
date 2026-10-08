@@ -97,6 +97,8 @@ these integrations do not certify full-scale paper or workbook scores.
 [BasicFive dense-task accumulation](docs/DENSE_EXECUTION.md) adds explicit single-process LP/AP/FT accumulation
 and training precision to ADE20K, NYUv2 and COCO for eight inspected families.
 Portable epoch continuation now preserves trained state and input identity.
+The [shared continuation checks](docs/CONTINUATION_INTEGRITY.md) validate
+optimizer recipes, state tensors and RNG records before live restoration.
 Native schedule/loss disagreements, distributed dense execution and native continuation
 remain separate verification/integration work.
 

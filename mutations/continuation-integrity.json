@@ -1,0 +1,211 @@
+{
+  "targets": [
+    {
+      "label": "group count",
+      "file": "downstream/continuation_validation.py",
+      "old": "len(groups) != len(current[\"param_groups\"])",
+      "new": "False",
+      "tests": [
+        "tests.test_continuation_integrity.Integrity.test_group_count_preflight_does_not_truncate_zip"
+      ]
+    },
+    {
+      "label": "group options",
+      "file": "downstream/continuation_validation.py",
+      "old": "set(actual) != set(expected)",
+      "new": "False",
+      "tests": [
+        "tests.test_continuation_integrity.Integrity.test_optimizer_parameter_mapping_and_group_schema_are_strict"
+      ]
+    },
+    {
+      "label": "parameter order",
+      "file": "downstream/continuation_validation.py",
+      "old": "actual[\"params\"] != expected[\"params\"]",
+      "new": "False",
+      "tests": [
+        "tests.test_continuation_integrity.Integrity.test_optimizer_parameter_mapping_and_group_schema_are_strict"
+      ]
+    },
+    {
+      "label": "parameter id type",
+      "file": "downstream/continuation_validation.py",
+      "old": "any(type(index) is not int for index in actual[\"params\"])",
+      "new": "False",
+      "tests": [
+        "tests.test_continuation_integrity.Integrity.test_malformed_optimizer_containers_are_refused"
+      ]
+    },
+    {
+      "label": "recipe equality",
+      "file": "downstream/continuation_validation.py",
+      "old": "actual[key] != expected[key]",
+      "new": "False",
+      "tests": [
+        "tests.test_continuation_integrity.Integrity.test_changed_optimizer_recipe_is_rejected_before_restore"
+      ]
+    },
+    {
+      "label": "state id type",
+      "file": "downstream/continuation_validation.py",
+      "old": "type(index) is not int or index not in parameters",
+      "new": "index not in parameters",
+      "tests": [
+        "tests.test_continuation_integrity.Integrity.test_malformed_optimizer_containers_are_refused"
+      ]
+    },
+    {
+      "label": "unknown state",
+      "file": "downstream/continuation_validation.py",
+      "old": "type(index) is not int or index not in parameters",
+      "new": "type(index) is not int",
+      "tests": [
+        "tests.test_continuation_integrity.Integrity.test_optimizer_parameter_mapping_and_group_schema_are_strict"
+      ]
+    },
+    {
+      "label": "slot schema",
+      "file": "downstream/continuation_validation.py",
+      "old": "set(state) != keys:\n            raise ValueError(\"checkpoint optimizer slots",
+      "new": "False:\n            raise ValueError(\"checkpoint optimizer slots",
+      "tests": [
+        "tests.test_continuation_integrity.Integrity.test_optimizer_moments_are_checked_before_model_mutation"
+      ]
+    },
+    {
+      "label": "moment shape",
+      "file": "downstream/continuation_validation.py",
+      "old": "value.shape != parameter.shape",
+      "new": "False",
+      "tests": [
+        "tests.test_continuation_integrity.Integrity.test_optimizer_moments_are_checked_before_model_mutation"
+      ]
+    },
+    {
+      "label": "moment dtype",
+      "file": "downstream/continuation_validation.py",
+      "old": "value.dtype != parameter.dtype",
+      "new": "False",
+      "tests": [
+        "tests.test_continuation_integrity.Integrity.test_optimizer_moments_are_checked_before_model_mutation"
+      ]
+    },
+    {
+      "label": "second moment sign",
+      "file": "downstream/continuation_validation.py",
+      "old": "(value < 0).any()",
+      "new": "False",
+      "tests": [
+        "tests.test_continuation_integrity.Integrity.test_optimizer_moments_are_checked_before_model_mutation"
+      ]
+    },
+    {
+      "label": "step dtype",
+      "file": "downstream/continuation_validation.py",
+      "old": "not value.is_floating_point()",
+      "new": "False",
+      "tests": [
+        "tests.test_continuation_integrity.Integrity.test_adam_step_and_amsgrad_state_are_validated"
+      ]
+    },
+    {
+      "label": "step range",
+      "file": "downstream/continuation_validation.py",
+      "old": "not 1 <= value.item() <= updates",
+      "new": "False",
+      "tests": [
+        "tests.test_continuation_integrity.Integrity.test_adam_step_and_amsgrad_state_are_validated"
+      ]
+    },
+    {
+      "label": "step integer",
+      "file": "downstream/continuation_validation.py",
+      "old": "value.item() != int(value.item())",
+      "new": "False",
+      "tests": [
+        "tests.test_continuation_integrity.Integrity.test_adam_step_and_amsgrad_state_are_validated"
+      ]
+    },
+    {
+      "label": "supported algorithms",
+      "file": "downstream/continuation_validation.py",
+      "old": "not isinstance(optimizer, (torch.optim.SGD, torch.optim.AdamW))",
+      "new": "False",
+      "tests": [
+        "tests.test_continuation_integrity.Integrity.test_unsupported_optimizer_is_not_guessed"
+      ]
+    },
+    {
+      "label": "all rank RNG preflight",
+      "file": "downstream/continuation_validation.py",
+      "old": "for state in states:",
+      "new": "for state in states[:1]:",
+      "tests": [
+        "tests.test_continuation_integrity.Integrity.test_nonlocal_rank_rng_and_schema_are_checked_before_restore"
+      ]
+    },
+    {
+      "label": "RNG schema",
+      "file": "downstream/continuation_validation.py",
+      "old": "set(state) != keys:\n            raise ValueError(\"checkpoint RNG schema",
+      "new": "False:\n            raise ValueError(\"checkpoint RNG schema",
+      "tests": [
+        "tests.test_continuation_integrity.Integrity.test_nonlocal_rank_rng_and_schema_are_checked_before_restore"
+      ]
+    },
+    {
+      "label": "python RNG preflight",
+      "file": "downstream/continuation_validation.py",
+      "old": "random.Random().setstate(state[\"python\"])",
+      "new": "None",
+      "tests": [
+        "tests.test_continuation_integrity.Integrity.test_invalid_rng_is_rejected_without_partially_restoring_training"
+      ]
+    },
+    {
+      "label": "numpy RNG preflight",
+      "file": "downstream/continuation_validation.py",
+      "old": "np.random.RandomState().set_state(\n                (value[0], np.asarray(value[1], dtype=np.uint32), *value[2:])\n            )",
+      "new": "None",
+      "tests": [
+        "tests.test_continuation_integrity.Integrity.test_invalid_rng_is_rejected_without_partially_restoring_training"
+      ]
+    },
+    {
+      "label": "torch RNG preflight",
+      "file": "downstream/continuation_validation.py",
+      "old": "torch.Generator().set_state(state[\"torch\"])",
+      "new": "None",
+      "tests": [
+        "tests.test_continuation_integrity.Integrity.test_invalid_rng_is_rejected_without_partially_restoring_training"
+      ]
+    },
+    {
+      "label": "loader RNG preflight",
+      "file": "downstream/continuation_validation.py",
+      "old": "torch.Generator(device=loader.generator.device).set_state(\n                    state[\"loader\"]\n                )",
+      "new": "None",
+      "tests": [
+        "tests.test_continuation_integrity.Integrity.test_invalid_rng_is_rejected_without_partially_restoring_training"
+      ]
+    },
+    {
+      "label": "optimizer integration",
+      "file": "downstream/extended_resume.py",
+      "old": "continuation_validation.optimizer_state(self.opt,blob['optimizer'],expected['updates'])",
+      "new": "None",
+      "tests": [
+        "tests.test_continuation_integrity.Integrity.test_changed_optimizer_recipe_is_rejected_before_restore"
+      ]
+    },
+    {
+      "label": "RNG integration",
+      "file": "downstream/extended_resume.py",
+      "old": "continuation_validation.rng_states(blob['rng'],self.loader,self.context.device)",
+      "new": "None",
+      "tests": [
+        "tests.test_continuation_integrity.Integrity.test_invalid_rng_is_rejected_without_partially_restoring_training"
+      ]
+    }
+  ]
+}

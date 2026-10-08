@@ -129,6 +129,10 @@ group can be borrowed, but the runner does not destroy a group owned by its call
 
 ## Epoch checkpoints and continuation
 
+The [shared state-integrity contract](CONTINUATION_INTEGRITY.md) validates
+optimizer recipes, parameter mappings, state tensors and all saved RNG records
+before restoring live state. Its corruption-detection limits remain explicit.
+
 Both runners atomically publish `resume.pt` after every **completed training
 epoch**, before final evaluation. The file contains head/adapter tensors,
 optimizer and scheduler state, execution counters, and each rank's Python,
@@ -167,8 +171,9 @@ earlier checkpoint but still has `status: failed`, not a successful experiment.
 Only `resume`, the output directory, and the requested epoch count may change.
 Configuration, membership manifest, class vocabulary, loader length, world
 size, execution settings, recipe-derived learning rates, Torch version and
-frozen encoder state must agree. Missing/corrupt states and optimizer restore
-errors fail; there is no silent fresh start. Checkpoints are loaded with
+frozen encoder state must agree. Detected missing/corrupt states and optimizer
+restore errors fail; there is no silent fresh start. The linked integrity
+contract describes which omissions the current format cannot detect. Checkpoints are loaded with
 `weights_only=True`. Use the same code and dependency environment and immutable
 input assets: identity checks hash the membership manifest and encoder, **not
 every image/mask file or every dependency/source file**. They do not certify
