@@ -22,7 +22,7 @@ The shared classification engine preserves the ImageNet execution contract.
 These components do not certify native FSDP, decoder equivalence or paper scores.
 
 [Dense-task execution](DENSE_EXECUTION.md) now connects ADE20K/NYUv2/COCO
-LP/AP/FT components to accumulation, training BF16 selection, four-family DDP and
+LP/AP/FT components to accumulation, training BF16 selection, four-family DDP, seven V-JEPA2.1 accumulated-reduction routes and
 portable epoch continuation with input identity verification.
 Native schedule/loss disagreements remain explicit; this is not complete-run parity.
 
@@ -63,7 +63,7 @@ FSDP and historical run attribution remain pending. The October 7
 [execution profile](IMAGENET_EXECUTION.md) adds accumulation, CUDA BF16 selection
 and portable epoch continuation for all eight ImageNet families, with replicated
 DDP for seven. Omega distributed source equivalence, released-weight CUDA parity,
-native checkpoint import and the four remaining dense distributed families remain pending.
+native checkpoint import and the remaining dense distributed/FSDP routes remain pending.
 The SSv2 counterpart now adds source-specific video recipes and 24 execution routes.
 Explicit [LP/AP preprocessing](IMAGENET_PROBE_PREPROCESSING.md) now
 selects provider-owned bicubic/bilinear geometry across all eight families;
@@ -85,8 +85,11 @@ availability does not establish complete native-video or paper-score coverage.
    and schedule clock and adds portable continuation. SSv2 now has corresponding
    LP/AP/FT execution and clip recipes. Dense BasicFive DDP now covers CLIP, SigLIP2,
    C-RADIOv4-H and Cosmos3 Super across ADE20K/NYUv2/COCO LP/AP/FT, with portable
-   multi-rank continuation. The other four dense-family synchronization paths,
-   FSDP and native checkpoint import still require integration. Final-table
+   multi-rank continuation. V-JEPA2.1 now adds accumulated gradient averaging for
+   all three dense LP/AP tasks and COCO FT (seven routes), preserving initial
+   trainable-parameter broadcast and zero gradients for unused parameters.
+   DINOv3/RAEv2 initialization, Omega synchronization, the two V-JEPA dense FT
+   FSDP routes and native checkpoint import still require integration. Final-table
    attribution requires per-run reconciliation and released-weight validation.
 2. Integrate Extended task trainers and metrics for the **45 actually reported
    datasets**, retaining each of the five model/readout identities. The image

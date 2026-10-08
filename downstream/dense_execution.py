@@ -42,7 +42,16 @@ def resolve(cfg):
         raise ValueError("resume requires a checkpoint path")
     world = launch()[2]
     if world > 1 and not policy.get("distributed", False):
-        raise ValueError("provider dense distributed source behavior remains unverified")
+        raise ValueError(
+            "provider dense distributed source behavior remains unverified"
+        )
+    if (
+        world > 1
+        and cfg.get("adaptation") == "finetune"
+        and "distributed_finetune_tasks" in policy
+        and cfg["task"] not in policy["distributed_finetune_tasks"]
+    ):
+        raise ValueError("provider dense distributed finetuning requires native FSDP")
     probe = cfg["detector" if cfg["task"] == "coco_detection" else "probe"]
     for key, minimum in (("batch_size", 1), ("epochs", 1), ("max_steps_per_epoch", 0)):
         if type(probe[key]) is not int or probe[key] < minimum:
@@ -57,13 +66,31 @@ def resolve(cfg):
     clipping = cfg.get("adaptation", "frozen") != "frozen" or (
         cfg["task"] == "coco_detection" and policy["clip_frozen_detection"]
     )
-    return dict(
+    plan = dict(
         settings,
         effective_batch=probe["batch_size"] * settings["accumulation_steps"] * world,
         world_size=world,
         clip_norm=1.0 if clipping else None,
         schedule_clock="optimizer_updates_with_microbatch_horizon",
     )
+    if world > 1 and policy.get("gradient_sync") == "accumulated_mean":
+        plan["gradient_sync"] = "accumulated_mean"
+    return plan
+
+
+def average_gradients(model):
+    """Source-style sum/mean at update boundaries, with identical collectives.
+
+    Missing gradients are zeros even when absent on every rank. This preserves
+    the inspected optimizer behavior for unused trainable parameters.
+    """
+    for parameter in model.parameters():
+        if not parameter.requires_grad:
+            continue
+        if parameter.grad is None:
+            parameter.grad = torch.zeros_like(parameter)
+        torch.distributed.all_reduce(parameter.grad, op=torch.distributed.ReduceOp.SUM)
+        parameter.grad.div_(torch.distributed.get_world_size())
 
 
 def prepare(cfg, device, optimizer, scheduler, steps_per_epoch, scaled_lr):
@@ -104,6 +131,9 @@ def train_epoch(model, loader, loss_for_batch, optimizer, scheduler, cfg, plan):
         trainable_backbone=cfg.get("adaptation") == "finetune",
         clip_gradients=clip,
         frozen_backbone=backbone,
+        synchronize_gradients=(lambda: average_gradients(model))
+        if plan.get("gradient_sync") == "accumulated_mean"
+        else None,
     )
 
 

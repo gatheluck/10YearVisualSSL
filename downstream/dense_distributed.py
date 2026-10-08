@@ -90,7 +90,19 @@ def set_epoch(context, loader, epoch):
         loader.sampler.set_epoch(epoch)
 
 
-def wrap(context, model):
+def wrap(context, model, cfg=None):
+    if (
+        context is not None
+        and context.world > 1
+        and cfg is not None
+        and "execution" in cfg
+        and dense_execution.resolve(cfg).get("gradient_sync") == "accumulated_mean"
+    ):
+        # The inspected reducer synchronizes trainable initialization only.
+        for parameter in model.parameters():
+            if parameter.requires_grad:
+                torch.distributed.broadcast(parameter.data, src=0)
+        return model
     return model if context is None else context.wrap(model)
 
 

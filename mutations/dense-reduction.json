@@ -1,0 +1,103 @@
+{
+  "targets": [
+    {
+      "label": "broadcast initial trainable state",
+      "file": "downstream/dense_distributed.py",
+      "old": "torch.distributed.broadcast(parameter.data, src=0)",
+      "new": "pass",
+      "tests": [
+        "tests.test_method_dense_distributed.Integration.test_manual_reduction_training_continuation_and_unused_parameters"
+      ]
+    },
+    {
+      "label": "keep frozen state rank local",
+      "file": "downstream/dense_distributed.py",
+      "old": "if parameter.requires_grad:\n                torch.distributed.broadcast",
+      "new": "if True:\n                torch.distributed.broadcast",
+      "tests": [
+        "tests.test_method_dense_distributed.Integration.test_manual_reduction_training_continuation_and_unused_parameters"
+      ]
+    },
+    {
+      "label": "source reduction is not DDP",
+      "file": "downstream/dense_distributed.py",
+      "old": "        return model\n    return model if context",
+      "new": "        return context.wrap(model)\n    return model if context",
+      "tests": [
+        "tests.test_method_dense_distributed.Integration.test_manual_reduction_training_continuation_and_unused_parameters"
+      ]
+    },
+    {
+      "label": "average rather than sum",
+      "file": "downstream/dense_execution.py",
+      "old": "parameter.grad.div_(torch.distributed.get_world_size())",
+      "new": "parameter.grad.div_(1)",
+      "tests": [
+        "tests.test_method_dense_distributed.Integration.test_manual_reduction_training_continuation_and_unused_parameters"
+      ]
+    },
+    {
+      "label": "materialize absent gradient",
+      "file": "downstream/dense_execution.py",
+      "old": "parameter.grad = torch.zeros_like(parameter)",
+      "new": "continue",
+      "tests": [
+        "tests.test_method_dense_distributed.Integration.test_manual_reduction_training_continuation_and_unused_parameters"
+      ]
+    },
+    {
+      "label": "synchronize before optimizer update",
+      "file": "downstream/extended_execution.py",
+      "old": "            synchronize_gradients()",
+      "new": "            pass",
+      "tests": [
+        "tests.test_method_dense_distributed.Integration.test_manual_reduction_training_continuation_and_unused_parameters"
+      ]
+    },
+    {
+      "label": "retain native FSDP refusal",
+      "file": "downstream/dense_execution.py",
+      "old": "and cfg[\"task\"] not in policy[\"distributed_finetune_tasks\"]",
+      "new": "and False",
+      "tests": [
+        "tests.test_method_dense_distributed.Policy"
+      ]
+    },
+    {
+      "label": "source rank seed stride",
+      "file": "methods/vjepa2_1/downstream_backbone.py",
+      "old": "\"distributed\": True, \"rank_seed_stride\": 17,",
+      "new": "\"distributed\": True, \"rank_seed_stride\": 1000,",
+      "tests": [
+        "tests.test_method_dense_distributed.Policy"
+      ]
+    },
+    {
+      "label": "activate update reduction",
+      "file": "downstream/dense_execution.py",
+      "old": "plan[\"gradient_sync\"] = \"accumulated_mean\"",
+      "new": "plan[\"gradient_sync\"] = \"ddp\"",
+      "tests": [
+        "tests.test_method_dense_distributed.Integration.test_manual_reduction_training_continuation_and_unused_parameters"
+      ]
+    },
+    {
+      "label": "record actual gradient policy",
+      "file": "downstream/dense_execution.py",
+      "old": "    return plan, scheduler, runtime",
+      "new": "    runtime.pop(\"gradient_sync\", None)\n    return plan, scheduler, runtime",
+      "tests": [
+        "tests.test_method_dense_distributed.Integration.test_manual_reduction_training_continuation_and_unused_parameters"
+      ]
+    },
+    {
+      "label": "single-process format unchanged",
+      "file": "downstream/dense_execution.py",
+      "old": "if world > 1 and policy.get(\"gradient_sync\") == \"accumulated_mean\":",
+      "new": "if policy.get(\"gradient_sync\") == \"accumulated_mean\":",
+      "tests": [
+        "tests.test_method_dense_distributed.Policy.test_single_process_reduction_provider_keeps_existing_plan"
+      ]
+    }
+  ]
+}

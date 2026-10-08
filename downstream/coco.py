@@ -423,7 +423,7 @@ def run(cfg: dict, out: Path, device_override: str | None = None, *, context=Non
                      if "scheduler_profile" in cfg else None)
         if scheduler is not None and epochs < 12:
             subset_mode = True
-    training_model = dense_distributed.wrap(context, model)
+    training_model = dense_distributed.wrap(context, model, cfg)
     runtime = None
     continuation = None
     if "execution" in cfg:

@@ -389,9 +389,10 @@ Dense-task execution is described below. Existing configurations retain their be
 
 [BasicFive dense-task execution](DENSE_EXECUTION.md) adds explicit LP/AP/FT accumulation
 and training precision to ADE20K, NYUv2 and COCO for eight inspected families,
-with replicated DDP for four source-supported families.
+with replicated DDP for four source-supported families and accumulated gradient
+reduction for seven V-JEPA2.1 task/adaptation routes.
 Portable epoch continuation now preserves trained state and input identity.
-Native schedule/loss disagreements, the other four dense distributed paths and
+Native schedule/loss disagreements, the remaining dense distributed/FSDP paths and
 native continuation remain separate verification/integration work.
 
 [BasicFive SSv2 execution and source recipes](SSV2_EXECUTION.md) cover eight families
