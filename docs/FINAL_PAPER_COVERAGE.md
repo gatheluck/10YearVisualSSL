@@ -7,7 +7,7 @@ research history. See [terminology](PAPER_TERMINOLOGY.md) and
 [submission scope](SUBMISSION_SCOPE.md). Private manuscript/source fingerprints
 and run evidence remain outside Git.
 
-Updated 2026-10-07 for ImageNet/SSv2 execution and dense-task accumulation. Remaining priorities
+Updated 2026-10-08 for ImageNet/SSv2 execution and dense-task accumulation/continuation. Remaining priorities
 below distinguish executable component support from actual result reproduction.
 
 **The portable package does not yet reproduce the entire paper.** Original
@@ -22,7 +22,8 @@ The shared classification engine preserves the ImageNet execution contract.
 These components do not certify native FSDP, decoder equivalence or paper scores.
 
 [Dense-task accumulation](DENSE_EXECUTION.md) now connects ADE20K/NYUv2/COCO
-LP/AP/FT components to single-process accumulation and training BF16 selection.
+LP/AP/FT components to single-process accumulation, training BF16 selection and
+portable epoch continuation with input identity verification.
 Native schedule/loss disagreements remain explicit; this is not complete-run parity.
 
 ## Coverage by final appendix
@@ -57,7 +58,7 @@ FSDP and historical run attribution remain pending. The October 7
 [execution profile](IMAGENET_EXECUTION.md) adds accumulation, CUDA BF16 selection
 and portable epoch continuation for all eight ImageNet families, with replicated
 DDP for seven. Omega distributed source equivalence, released-weight CUDA parity,
-native checkpoint import and distributed dense execution/continuation remain pending.
+native checkpoint import and distributed dense execution remain pending.
 The SSv2 counterpart now adds source-specific video recipes and 24 execution routes.
 Explicit [LP/AP preprocessing](IMAGENET_PROBE_PREPROCESSING.md) now
 selects provider-owned bicubic/bilinear geometry across all eight families;

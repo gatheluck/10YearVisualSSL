@@ -61,8 +61,8 @@ pyramid remains trainable while the frozen-encoder guard checks its body.
 Explicit schedules retain the existing portable schedule formulas and full
 loader microbatch horizons; scheduler steps occur only on optimizer updates.
 The reference schedule still requires its reference effective batch. This port
-allows complete, shorter runs up to 20/30/12 epochs respectively, but does not
-provide continuation. `max_steps_per_epoch` is refused with this execution
+allows complete, shorter runs up to 20/30/12 epochs respectively, with portable
+epoch continuation described below. `max_steps_per_epoch` is refused with this execution
 block. Without a schedule selection, the existing constant-rate component
 behavior is preserved.
 
@@ -82,9 +82,46 @@ Public tests exercise all 72 configuration combinations, independent update
 loops, real tiny-backbone task runners and failure paths. Local, mutation and
 CI outcomes are recorded in the PR; skips are not validated routes.
 
+## Portable epoch continuation
+
+Each explicit execution run writes `resume.pt` atomically after every completed
+training epoch **and its existing validation pass**. The checkpoint contains
+optimizer/scheduler state, update counters, Python/NumPy/Torch/CUDA and loader
+RNG state. LP/AP retain the trained head/adapter and, for detection, the pyramid
+and detector state; the frozen encoder is excluded. FT includes the full model.
+Checkpoints can therefore be large, especially for FT.
+
+To continue, keep the original resolved configuration, add
+`"resume": "/local/previous-output/resume.pt"`, increase `probe.epochs` (or
+`detector.epochs` for COCO) to the total desired count, and run the same module
+with a **new, empty** output directory. The target must remain within the same
+protocol horizon. Constant-rate and reference-horizon schedules retain their
+original clocks; the separate dense AP schedule still requires its full horizon.
+A target equal to the saved epoch evaluates without further training. The saved
+checkpoint retains the original post-validation RNG boundary in that case.
+
+Configuration (except the target epoch and resume path), Torch version, initial
+encoder state, selected ordered samples, input bytes and annotations must match.
+ADE20K hashes selected images/masks, COCO hashes selected images and complete
+annotation files, and NYUv2 hashes its complete MAT container and split file plus
+selected indices. Hashing can take time on full datasets; inputs must remain
+unchanged during a run. Missing files or mismatches are errors, not warnings.
+Nonempty output directories are refused by both the runner and CLI before they
+can replace existing results. Checkpoint format, epoch, counters, model tensors,
+optimizer and scheduler are checked by the shared continuation machinery.
+
+`results.json` includes content-digest membership and continuation provenance.
+Private paths and actual checkpoint contents are runtime artifacts, not files to
+commit or include in an anonymized submission. `basic5_dense_epoch_v1` is a
+portable format: it does **not** import native/FSDP checkpoints, certify native
+validation/RNG trajectories, or resolve the scientific differences below.
+Fixture integration compares uninterrupted and interrupted LP/AP/FT runs for all
+three tasks, including exact checkpoint tensors, optimizer/scheduler states and
+RNG streams. It does not run all released encoders or establish paper-score parity.
+
 ## Remaining boundaries
 
-Distributed dense execution, FSDP and native/portable continuation are not
+Distributed dense execution, FSDP and native checkpoint import are not
 provided by this block. Released-weight CUDA/BF16 execution, complete datasets,
 and correspondence to the paper's recorded scores remain unverified.
 

@@ -12,6 +12,23 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-10-08: BasicFive dense portable continuation
+
+PR 229 merged as `4680d91`; all 115 checks succeeded. Main was pulled and
+confirmed tree-identical to the tested head. Existing video-submodule edits
+remain preserved. Fresh read-only inspection retrieved 120 source files and
+three protocol files; 112 source files match the current snapshot. Private
+source/configuration details stay outside Git.
+
+[Dense execution](DENSE_EXECUTION.md) now saves portable epoch checkpoints after
+validation for ADE20K/NYUv2/COCO LP/AP/FT. Frozen detection checkpoints retain the
+trainable pyramid; FT checkpoints retain the encoder. Input bytes, membership,
+configuration, state and RNG verification prevent incompatible continuation.
+Record RED/GREEN, exact uninterrupted/resumed comparisons, mutations and all
+validation/CI outcomes in the PR. Native checkpoint import, dense distributed
+execution, released-weight/GPU verification and historical score attribution
+remain pending. No original source, weight or compute job is modified.
+
 ### 2026-10-07: BasicFive dense-task accumulated updates
 
 PR 228 merged as `010af4d`; all 115 checks succeeded. Main was pulled and

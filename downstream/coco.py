@@ -42,7 +42,7 @@ from torchvision.transforms import functional as TF
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
-from downstream import dense_execution
+from downstream import dense_execution, dense_resume
 from downstream.optimization import resolve_optimization, build_optimizer, require_training_batches
 from downstream.optimization import REFERENCE_SCHEDULE, task_schedule_report
 from downstream.optimization import build_coco_scheduler
@@ -86,7 +86,7 @@ def validate_config(cfg: dict) -> None:
         if key in cfg:
             raise ConfigError(
                 f"config: {key} is set; the output location is fixed at --out")
-    _named(TOP_KEYS - set(cfg), set(cfg) - (TOP_KEYS | {"execution", "profile", "adaptation", "optimizer_profile", "scheduler_profile", "reader_profile", "detector_profile"}), "config")
+    _named(TOP_KEYS - set(cfg), set(cfg) - (TOP_KEYS | {"resume", "execution", "profile", "adaptation", "optimizer_profile", "scheduler_profile", "reader_profile", "detector_profile"}), "config")
     try:
         validate_adaptation(cfg)
         validate_profile(cfg)
@@ -113,6 +113,8 @@ def validate_config(cfg: dict) -> None:
     _named(DETECTOR_KEYS - set(detector), set(detector) - DETECTOR_KEYS,
            "config.detector")
     try:
+        if "resume" in cfg and "execution" not in cfg:
+            raise ValueError("resume requires explicit dense execution")
         if "execution" in cfg:
             dense_execution.resolve(cfg)
         resolve_optimization(cfg, TASK)
@@ -369,6 +371,7 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
     device = resolve_device(device_override or cfg["device"])
     if "execution" in cfg:
         dense_execution.autocast_context(device, dense_execution.resolve(cfg)["precision"])
+        dense_resume.output_directory(out)
     seed = int(cfg["seed"])
     make_deterministic(seed)
     detector = cfg["detector"]
@@ -425,14 +428,17 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
     if scheduler is not None and epochs < 12:
         subset_mode = True
     runtime = None
+    continuation = None
     if "execution" in cfg:
         plan, update_scheduler, runtime = dense_execution.prepare(
             cfg, device, optimizer, scheduler, len(train_loader), cast(dict, optimization)["lr"])
+        continuation = dense_resume.DenseContinuation(
+            cfg, train_ds, val_ds, model, optimizer, update_scheduler, runtime, train_loader, device, out)
     print(f"COCO det  device={device}  backbone={cfg['backbone']['kind']}"
           f"({'trained' if cfg['backbone'].get('encoder') else 'random (smoke)'})"
           f"  epochs={epochs}")
     metrics = {"bbox_mAP": 0.0, "bbox_mAP_50": 0.0, "detections": 0}
-    for epoch in range(epochs):
+    for epoch in range(continuation.start_epoch if continuation else 0, epochs):
         if runtime is not None:
             statistics = dense_execution.train_epoch(
                 model, train_loader,
@@ -445,8 +451,13 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
                                     adaptation=adaptation, scheduler=scheduler)
             training_summary = f"loss={loss:.4f}"
         metrics = evaluate(model, val_loader, val_ds, device, profile=profile)
+        if continuation is not None:
+            continuation.save(epoch + 1)
         print(f"[{epoch + 1}/{epochs}] {training_summary} "
               f"mAP={metrics['bbox_mAP']:.4f} mAP50={metrics['bbox_mAP_50']:.4f}")
+
+    if continuation is not None and continuation.start_epoch == epochs:
+        metrics = evaluate(model, val_loader, val_ds, device, profile=profile)
 
     if cfg.get("scheduler_profile") == REFERENCE_SCHEDULE:
         optimization["schedule"] = task_schedule_report(scheduler, optimization, len(train_loader), max_steps)
@@ -478,7 +489,8 @@ def run(cfg: dict, out: Path, device_override: str | None = None) -> dict:
                     "canonical_eligible": False,
                     "metric_units": "ratio; -1 means undefined",
                     "record_value": not subset_mode and profile == "legacy",
-                    **({"execution": runtime} if runtime is not None else {}),
+                    **({"execution": runtime, "continuation": continuation.report(),
+                        "membership": continuation.membership} if continuation is not None else {}),
                     **({"optimization": optimization} if optimization is not None else {}),
                     "subset_or_smoke": subset_mode},
                    indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -503,6 +515,12 @@ def main(argv: "list[str] | None" = None) -> int:
     out.mkdir(parents=True, exist_ok=True)
     config_bytes = Path(args.config).read_bytes()
     cfg = json.loads(config_bytes)
+    if "execution" in cfg:
+        try:
+            dense_resume.output_directory(out)
+        except FileExistsError as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
     method_ref = str(cfg.get("backbone", {}).get("encoder") or "random-smoke")
     started = _now()
     error = None
