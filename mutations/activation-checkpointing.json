@@ -141,7 +141,7 @@
       "old": ", \"activation_checkpointing\"",
       "new": "",
       "tests": [
-        "tests.test_method_activation_checkpointing.TestActivationCheckpointing.test_all_dense_and_video_configs_accept_the_explicit_option"
+        "tests.test_method_activation_checkpointing.TestActivationCheckpointing.test_other_dense_and_video_configs_accept_the_explicit_option"
       ]
     },
     {
@@ -150,7 +150,7 @@
       "old": ", \"activation_checkpointing\"",
       "new": "",
       "tests": [
-        "tests.test_method_activation_checkpointing.TestActivationCheckpointing.test_all_dense_and_video_configs_accept_the_explicit_option"
+        "tests.test_method_activation_checkpointing.TestActivationCheckpointing.test_depth_config_accepts_the_explicit_option"
       ]
     },
     {
@@ -159,7 +159,7 @@
       "old": ", \"activation_checkpointing\"",
       "new": "",
       "tests": [
-        "tests.test_method_activation_checkpointing.TestActivationCheckpointing.test_all_dense_and_video_configs_accept_the_explicit_option"
+        "tests.test_method_activation_checkpointing.TestActivationCheckpointing.test_other_dense_and_video_configs_accept_the_explicit_option"
       ]
     },
     {
@@ -168,7 +168,43 @@
       "old": ", \"activation_checkpointing\"",
       "new": "",
       "tests": [
-        "tests.test_method_activation_checkpointing.TestActivationCheckpointing.test_all_dense_and_video_configs_accept_the_explicit_option"
+        "tests.test_method_activation_checkpointing.TestActivationCheckpointing.test_other_dense_and_video_configs_accept_the_explicit_option"
+      ]
+    },
+    {
+      "label": "require task dependency boundary",
+      "file": "tests/test_method_activation_checkpointing.py",
+      "old": "self.skipTest(\"NYUv2 config import requires h5py\")",
+      "new": "pass",
+      "tests": [
+        "tests.test_method_activation_checkpointing.TestActivationEnvironments.test_missing_h5py_keeps_encoder_and_other_task_checks_running"
+      ]
+    },
+    {
+      "label": "keep depth enabled when installed",
+      "file": "tests/test_method_activation_checkpointing.py",
+      "old": "        from downstream import nyuv2\n",
+      "new": "        self.skipTest(\"unconditional skip\")\n        from downstream import nyuv2\n",
+      "tests": [
+        "tests.test_method_activation_checkpointing.TestActivationEnvironments.test_complete_environment_runs_all_checks_without_skipping"
+      ]
+    },
+    {
+      "label": "propagate broken dependency import",
+      "file": "tests/test_method_activation_checkpointing.py",
+      "old": "            if exc.name != \"h5py\":\n                raise\n            self.skipTest(\"NYUv2 config import requires h5py\")",
+      "new": "            self.skipTest(\"NYUv2 config import requires h5py\")",
+      "tests": [
+        "tests.test_method_activation_checkpointing.TestActivationEnvironments.test_depth_import_errors_are_not_silenced"
+      ]
+    },
+    {
+      "label": "keep other task checks active",
+      "file": "tests/test_method_activation_checkpointing.py",
+      "old": "        from downstream import ade20k, coco, ssv2\n",
+      "new": "        self.skipTest(\"unconditional skip\")\n        from downstream import ade20k, coco, ssv2\n",
+      "tests": [
+        "tests.test_method_activation_checkpointing.TestActivationEnvironments.test_missing_h5py_keeps_encoder_and_other_task_checks_running"
       ]
     }
   ]

@@ -41,6 +41,13 @@ unsupported backend. This is component support, not native FSDP integration.
 
 ## Verification and limits
 
+Method locks can contain encoder dependencies without NYUv2's `h5py`. The
+NYUv2 configuration contract is tested separately and skips explicitly only
+when `h5py` is absent. Encoder recomputation and ADE20K/COCO/SSv2 configuration
+checks remain active. Fresh-process regressions verify both this partial
+environment and complete execution without skips; broken dependency imports
+are propagated. The downstream CI job executes the full module.
+
 `tests.test_method_activation_checkpointing` verifies actual backward recomputation on
 six small real encoder implementations, equal outputs, parameter gradients,
 optimizer updates, state keys and evaluation outputs. A private comparison also

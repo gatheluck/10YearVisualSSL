@@ -12,6 +12,17 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-10-09: activation-checkpointing CI dependency boundary
+
+PR 234's C-RADIO locked job failed because the new combined task-configuration
+test imported NYUv2 without its optional `h5py` dependency. The encoder tests
+passed; the task import caused the sole reported CI error. Separate the depth
+contract and retain all other checks in the partial environment. Fresh-process
+regressions verify missing and complete dependencies and propagate unrelated
+import errors. See [activation checkpointing](ACTIVATION_CHECKPOINTING.md);
+record final gates and CI separately. No scientific implementation or method
+lock change is needed. Existing video-submodule edits remain untouched.
+
 ### 2026-10-09: explicit FT activation checkpointing
 
 PR 233 merged as `3933577`; all 115 checks succeeded. Main was pulled and

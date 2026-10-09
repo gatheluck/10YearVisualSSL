@@ -63,7 +63,9 @@ class TestActivationCheckpointing(unittest.TestCase):
                 expected = plain_forward(x)
                 actual = checked_forward(x)
                 forward_calls = counts[0]
-                assert isinstance(expected, torch.Tensor) and isinstance(actual, torch.Tensor)
+                assert isinstance(expected, torch.Tensor) and isinstance(
+                    actual, torch.Tensor
+                )
                 target = torch.randn_like(expected)
                 ((expected - target) ** 2).mean().backward()
                 ((actual - target) ** 2).mean().backward()
@@ -156,18 +158,16 @@ class TestActivationCheckpointing(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "nonempty"):
             enable(model, ("blocks", "model"))
 
-    def test_all_dense_and_video_configs_accept_the_explicit_option(self):
+    def test_other_dense_and_video_configs_accept_the_explicit_option(self):
         from pathlib import Path
 
-        from downstream import ade20k, coco, nyuv2, ssv2
+        from downstream import ade20k, coco, ssv2
         from tests.test_downstream_ade20k import smoke_config as ade_config
         from tests.test_downstream_coco import smoke_config as coco_config
-        from tests.test_downstream_nyuv2 import smoke_config as nyu_config
         from tests.test_downstream_ssv2 import smoke_config as video_config
 
         for module, factory in (
             (ade20k, ade_config),
-            (nyuv2, nyu_config),
             (coco, coco_config),
             (ssv2, video_config),
         ):
@@ -176,6 +176,24 @@ class TestActivationCheckpointing(unittest.TestCase):
             cfg["backbone"].update(kind="vjepa2_1", activation_checkpointing=True)
             with self.subTest(task=module.__name__):
                 module.validate_config(cfg)
+
+    def test_depth_config_accepts_the_explicit_option(self):
+        from importlib import import_module
+        from pathlib import Path
+
+        try:
+            import_module("h5py")
+        except ModuleNotFoundError as exc:
+            if exc.name != "h5py":
+                raise
+            self.skipTest("NYUv2 config import requires h5py")
+        from downstream import nyuv2
+        from tests.test_downstream_nyuv2 import smoke_config
+
+        cfg = smoke_config(Path("/unused"))
+        cfg.update(profile="capture_basic5_components", adaptation="finetune")
+        cfg["backbone"].update(kind="vjepa2_1", activation_checkpointing=True)
+        nyuv2.validate_config(cfg)
 
     def test_block_recomputation_preserves_dropout_rng_and_gradients(self):
         import copy
@@ -205,3 +223,97 @@ class TestActivationCheckpointing(unittest.TestCase):
         self.assertTrue(torch.equal(rng, torch.get_rng_state()))
         for left, right in zip(plain.parameters(), model.parameters(), strict=True):
             torch.testing.assert_close(left.grad, right.grad, rtol=0, atol=0)
+
+
+@unittest.skipUnless(HAVE, "Torch and vision dependencies required")
+class TestActivationEnvironments(unittest.TestCase):
+    def run_environment(self, missing_depth_dependency):
+        import json
+        import subprocess
+        import sys
+        from pathlib import Path
+
+        script = r"""
+import json, sys, unittest
+if sys.argv[1] == 'missing':
+    sys.modules['h5py'] = None
+    try:
+        import h5py
+    except ModuleNotFoundError as exc:
+        assert exc.name == 'h5py'
+    else:
+        raise AssertionError('h5py must actually be unavailable')
+else:
+    import h5py
+from tests.test_method_activation_checkpointing import TestActivationCheckpointing, HAVE
+assert HAVE, 'encoder dependencies must be present'
+suite = unittest.defaultTestLoader.loadTestsFromTestCase(TestActivationCheckpointing)
+result = unittest.TestResult()
+suite.run(result)
+print('RESULT=' + json.dumps({
+    'run': result.testsRun,
+    'skipped': [(test.id().rsplit('.', 1)[1], reason) for test, reason in result.skipped],
+    'errors': [text for _, text in result.errors],
+    'failures': [text for _, text in result.failures],
+}))
+"""
+        proc = subprocess.run(
+            [
+                sys.executable,
+                "-c",
+                script,
+                "missing" if missing_depth_dependency else "complete",
+            ],
+            cwd=Path(__file__).resolve().parents[1],
+            capture_output=True,
+            text=True,
+            timeout=120,
+            check=False,
+        )
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        reports = [
+            json.loads(line.removeprefix("RESULT="))
+            for line in proc.stdout.splitlines()
+            if line.startswith("RESULT=")
+        ]
+        self.assertEqual(len(reports), 1, proc.stdout + proc.stderr)
+        report = reports[0]
+        self.assertEqual(report["errors"], [])
+        self.assertEqual(report["failures"], [])
+        return report
+
+    def test_missing_h5py_keeps_encoder_and_other_task_checks_running(self):
+        report = self.run_environment(True)
+        self.assertEqual(
+            [name for name, _ in report["skipped"]],
+            ["test_depth_config_accepts_the_explicit_option"],
+        )
+        self.assertIn("h5py", report["skipped"][0][1])
+        self.assertEqual(report["run"] - len(report["skipped"]), 6)
+
+    def test_complete_environment_runs_all_checks_without_skipping(self):
+        try:
+            __import__("h5py")
+        except ModuleNotFoundError as exc:
+            if exc.name != "h5py":
+                raise
+            self.skipTest("complete environment requires h5py")
+        report = self.run_environment(False)
+        self.assertEqual(report["run"], 7)
+        self.assertEqual(report["skipped"], [])
+
+    def test_depth_import_errors_are_not_silenced(self):
+        from unittest import mock
+
+        failure = ModuleNotFoundError(
+            "broken HDF5 dependency", name="broken_hdf5_dependency"
+        )
+        test = TestActivationCheckpointing(
+            "test_depth_config_accepts_the_explicit_option"
+        )
+        result = unittest.TestResult()
+        with mock.patch("importlib.import_module", side_effect=failure):
+            test.run(result)
+        self.assertEqual(result.skipped, [])
+        self.assertEqual(len(result.errors), 1)
+        self.assertIn("broken HDF5 dependency", result.errors[0][1])
