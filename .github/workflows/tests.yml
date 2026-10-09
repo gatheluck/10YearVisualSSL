@@ -177,6 +177,7 @@ jobs:
           .venv/bin/python -c 'from transformers import CLIPVisionModelWithProjection, SiglipVisionModel, DINOv3ViTModel, Sam3ViTModel, Qwen3VLVisionModel'
           PYTHONPATH=. .venv/bin/python -m unittest -v \
             tests.test_method_hf_basic5 \
+            tests.test_method_activation_checkpointing \
             tests.test_method_patch_basic5 \
             tests.test_native_basic5_paths \
             tests.test_captured_reader_reference \

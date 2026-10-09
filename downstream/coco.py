@@ -58,7 +58,7 @@ NUM_CLASSES = 91          # COCO category ids run 1..90; index 0 is background.
 TOP_KEYS = frozenset({"task", "seed", "device", "data_root", "backbone", "detector"})
 CAPTURE_PROFILE = "capture_basic5_components"
 BACKBONE_REQUIRED = frozenset({"kind", "encoder", "arch", "img_size", "patch_size"})
-BACKBONE_OPTIONAL = frozenset({"embed_dim", "depth", "num_heads"})
+BACKBONE_OPTIONAL = frozenset({"embed_dim", "depth", "num_heads", "activation_checkpointing"})
 DETECTOR_KEYS = frozenset({"epochs", "batch_size", "lr", "num_workers", "min_size",
                            "max_size", "anchor_sizes", "max_train_samples",
                            "max_val_samples", "max_steps_per_epoch"})

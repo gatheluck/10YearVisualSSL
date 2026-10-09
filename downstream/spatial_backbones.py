@@ -196,6 +196,8 @@ def _build_vit(spec: dict, *, trainable: bool = False) -> ViTSpatialBackbone:
 
 def build_frozen_backbone(spec: dict, device: "torch.device") -> nn.Module:
     """Build the frozen spatial backbone named by `spec['kind']`."""
+    from downstream.activation_checkpointing import validate
+    validate(spec, trainable=False)
     kind = spec.get("kind")
     if kind == VIT:
         model = _build_vit(spec)
@@ -224,11 +226,16 @@ def build_trainable_backbone(spec: dict, device: "torch.device") -> nn.Module:
     select this builder only for explicit finetune component adaptation.
     Never toggle requires_grad on a provider that internally disables autograd.
     """
+    from downstream.activation_checkpointing import enable, validate
+    policy = validate(spec, trainable=True)
     kind = spec.get("kind")
     if kind == VIT:
         return _build_vit(spec, trainable=True).to(device)
     if supports_trainable(kind):
-        return _load_provider(_PROVIDERS[kind]).build_trainable(spec).to(device)
+        model = _load_provider(_PROVIDERS[kind]).build_trainable(spec).to(device)
+        if policy is not None:
+            enable(model, policy)
+        return model
     raise NotImplementedError(f"trainable spatial provider is not implemented for {kind!r}")
 
 
