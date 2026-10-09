@@ -431,7 +431,7 @@ def run(cfg: dict, out: Path, device_override: str | None = None, *, context=Non
                      if cfg.get("scheduler_profile") == REFERENCE_SCHEDULE else
                      build_dense_ap_scheduler(optimizer, len(train_loader), epochs)
                      if "scheduler_profile" in cfg else None)
-    training_model = dense_distributed.wrap(context, model)
+    training_model = dense_distributed.wrap(context, model, cfg)
     runtime = None
     continuation = None
     if "execution" in cfg:

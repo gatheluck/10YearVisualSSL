@@ -12,6 +12,23 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-10-08: dense accumulated gradient synchronization
+
+PR 232 merged as `87a674c`; all 115 checks succeeded. Main was pulled and
+confirmed tree-identical to the tested head. Existing video-submodule edits
+remain preserved. Fresh read-only inspection compared 123 original files with
+the capture snapshot; 115 match, including the three gradient helper modules.
+Private source identities and execution evidence stay outside Git.
+
+[Dense execution](DENSE_EXECUTION.md) adds V-JEPA2.1 LP/AP on ADE20K/NYUv2/COCO
+and COCO FT with trainable initialization broadcast and accumulated mean gradients,
+including source-style zeros for absent gradients. CPU source/update comparisons
+and seven-route resume tests are component evidence, not released-weight or score
+reproduction. DINOv3/RAEv2 initialization, Omega synchronization, native FSDP,
+schedule/loss conflicts and historical result attribution remain unresolved.
+Record RED/GREEN, mutation, full-gate and CI results in the PR. No compute job or
+change to original files, weights or existing artifacts is implied.
+
 ### 2026-10-08: archive fixture cleanup and automatic Git maintenance
 
 PR 232's Git 2.55 CI reported `Directory not empty` while removing a temporary

@@ -21,6 +21,24 @@ SUPPORTED = {"clip_hf", "siglip2_g", "cradiov4_h", "cosmos3_super_vm"}
 
 @unittest.skipUnless(fixtures.HAVE, "dense dependencies required")
 class Policy(unittest.TestCase):
+    def test_single_process_reduction_provider_keeps_existing_plan(self):
+        import torch
+
+        from downstream import dense_distributed, dense_execution
+        from downstream.extended_distributed import Session
+
+        with mock.patch.dict(os.environ, WORLD_SIZE="1", RANK="0", LOCAL_RANK="0"):
+            cfg = fixtures.Dense().config(fixtures.ade20k, fixtures.ade_config)
+            self.assertNotIn("gradient_sync", dense_execution.resolve(cfg))
+            model = torch.nn.Linear(2, 1)
+            with mock.patch.object(torch.distributed, "broadcast") as broadcast:
+                self.assertIs(dense_distributed.wrap(None, model, cfg), model)
+                self.assertIs(
+                    dense_distributed.wrap(Session(torch.device("cpu")), model, cfg),
+                    model,
+                )
+                broadcast.assert_not_called()
+
     def test_legacy_loader_preserves_numeric_conversion_shuffle_and_tail(self):
         import torch
         from torch.utils.data import DataLoader, TensorDataset
@@ -65,7 +83,10 @@ class Policy(unittest.TestCase):
                         with self.subTest(
                             task=api.TASK, kind=kind, adaptation=adaptation
                         ):
-                            if kind not in SUPPORTED:
+                            supported_reduction = kind == "vjepa2_1" and (
+                                adaptation != "finetune" or api is fixtures.coco
+                            )
+                            if kind not in SUPPORTED and not supported_reduction:
                                 with self.assertRaisesRegex(
                                     ValueError, "distributed|one process"
                                 ):
@@ -77,7 +98,7 @@ class Policy(unittest.TestCase):
                                     dense_distributed.seed(
                                         cfg, SimpleNamespace(rank=rank)
                                     ),
-                                    19 + 1000 * rank,
+                                    19 + (17 if supported_reduction else 1000) * rank,
                                 )
                             api.validate_config(cfg)
                             plan = dense_execution.resolve(cfg)
@@ -94,7 +115,13 @@ class Policy(unittest.TestCase):
 
 @unittest.skipUnless(HAVE, "dense runner and tiny encoder dependencies required")
 class Integration(unittest.TestCase):
+    def test_manual_reduction_training_continuation_and_unused_parameters(self):
+        self.run_workers("--manual-worker")
+
     def test_two_rank_training_validation_continuation_and_failure_delivery(self):
+        self.run_workers("--worker")
+
+    def run_workers(self, mode):
         with tempfile.TemporaryDirectory() as directory, socket.socket() as sock:
             sock.bind(("127.0.0.1", 0))
             port = sock.getsockname()[1]
@@ -108,7 +135,7 @@ class Integration(unittest.TestCase):
                 "--nproc-per-node=2",
                 "--module",
                 "tests.test_method_dense_distributed",
-                "--worker",
+                mode,
                 directory,
             ]
             proc = subprocess.Popen(
@@ -221,7 +248,108 @@ def update_oracle(context):
         assert list(loader.sampler) == list(reference)
 
 
-def worker(directory):
+def reduction_oracle(context):
+    """Mean accumulated gradients, including rank-local and globally unused tensors."""
+    import torch
+
+    from downstream import dense_distributed, dense_execution
+
+    class Model(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.linear = torch.nn.Linear(3, 2)
+            self.local = torch.nn.Parameter(torch.randn(2))
+            self.unused = torch.nn.Parameter(torch.ones(2))
+            self.frozen = torch.nn.Parameter(
+                torch.tensor(float(context.rank)), requires_grad=False
+            )
+            self.register_buffer("marker", torch.tensor(float(context.rank)))
+
+        def forward(self, x, rank):
+            return self.linear(x) + (self.local if rank == 0 else 0)
+
+    for adaptation in ("frozen", "attentive", "finetune"):
+        torch.manual_seed(123)
+        expected = Model().double()
+        torch.manual_seed(123 + context.rank)
+        model = Model().double()
+        cfg = fixtures.Dense().config(
+            fixtures.coco, fixtures.coco_config, kind="vjepa2_1", adaptation=adaptation
+        )
+        plan = dense_execution.resolve(cfg)
+        wrapped = dense_distributed.wrap(context, model, cfg)
+        assert wrapped is model, "manual reduction must not be replaced by DDP"
+        for name, value in model.named_parameters():
+            if value.requires_grad:
+                torch.testing.assert_close(
+                    value, dict(expected.named_parameters())[name], rtol=0, atol=0
+                )
+        assert (
+            model.frozen.item() == context.rank and model.marker.item() == context.rank
+        )
+        opt = torch.optim.SGD(
+            model.parameters(), lr=0.13, momentum=0.8, weight_decay=0.1
+        )
+        ref_opt = torch.optim.SGD(
+            expected.parameters(), lr=0.13, momentum=0.8, weight_decay=0.1
+        )
+        scheduler = torch.optim.lr_scheduler.LambdaLR(opt, lambda _: 1.0)
+        inputs = [
+            [
+                torch.full((2, 3), (rank + 1) * (step + 1) / 7, dtype=torch.float64)
+                for step in range(5)
+            ]
+            for rank in range(context.world)
+        ]
+        real_reduce = torch.distributed.all_reduce
+        reduced = []
+
+        def reduce(value, *args, reduced=reduced, real_reduce=real_reduce, **kwargs):
+            if value.ndim > 0:
+                reduced.append(value.clone())
+            return real_reduce(value, *args, **kwargs)
+
+        with mock.patch.object(torch.distributed, "all_reduce", reduce):
+            stats = dense_execution.train_epoch(
+                model,
+                inputs[context.rank],
+                lambda x, model=model: model(x, context.rank).square().mean(),
+                opt,
+                scheduler,
+                cfg,
+                plan,
+            )
+        assert len(reduced) == 2 * sum(p.requires_grad for p in model.parameters())
+        for start in (0, 2):
+            ref_opt.zero_grad(set_to_none=True)
+            for rank in range(context.world):
+                for step in range(start, start + 2):
+                    (
+                        expected(inputs[rank][step], rank).square().mean()
+                        / (2 * context.world)
+                    ).backward()
+            for parameter in expected.parameters():
+                if parameter.requires_grad and parameter.grad is None:
+                    parameter.grad = torch.zeros_like(parameter)
+            if adaptation != "frozen":
+                torch.nn.utils.clip_grad_norm_(expected.parameters(), 1.0)
+            ref_opt.step()
+        assert stats["updates"] == 2 and stats["discarded_microbatches"] == 1
+        assert scheduler.last_epoch == 2
+        for name, actual in model.named_parameters():
+            if actual.requires_grad:
+                reference = dict(expected.named_parameters())[name]
+                torch.testing.assert_close(actual, reference, rtol=1e-12, atol=1e-12)
+                torch.testing.assert_close(
+                    opt.state[actual]["momentum_buffer"],
+                    ref_opt.state[reference]["momentum_buffer"],
+                    rtol=1e-12,
+                    atol=1e-12,
+                )
+            assert actual.grad is None
+
+
+def worker(directory, kind="clip_hf"):
     import torch
     from scipy.io import savemat
 
@@ -233,7 +361,10 @@ def worker(directory):
     helper = Continuation()
     root = Path(directory)
     with distributed.session("cpu") as context:
-        update_oracle(context)
+        if kind == "vjepa2_1":
+            reduction_oracle(context)
+        else:
+            update_oracle(context)
         for api, factory, fixture in fixtures.Dense().cases():
             data = root / api.TASK
 
@@ -249,11 +380,17 @@ def worker(directory):
 
             context.call(make_data, leader=True)
             for adaptation in ("frozen", "attentive", "finetune"):
+                if (
+                    kind == "vjepa2_1"
+                    and adaptation == "finetune"
+                    and api is not fixtures.coco
+                ):
+                    continue  # Native FSDP routes remain explicitly refused by Policy.
                 cfg = fixtures.Dense().config(
-                    api, factory, data, kind="clip_hf", adaptation=adaptation
+                    api, factory, data, kind=kind, adaptation=adaptation
                 )
                 settings = "detector" if api is fixtures.coco else "probe"
-                if api is fixtures.coco:
+                if api is fixtures.coco and kind == "clip_hf":
                     cfg["detector_profile"] = "captured_native_detection_v1"
                 spec = dict(cfg["backbone"], kind="vit")
                 name = (
@@ -266,8 +403,12 @@ def worker(directory):
                 def build(
                     _spec, device, builder=builder, spec=spec, adaptation=adaptation
                 ):
-                    body = builder(spec, device)
-                    body.reader_profile = spatial_backbones.attentive_profile("clip_hf")
+                    # A released frozen encoder has identical bytes on all ranks.
+                    # Keep rank-local head initialization and RNG outside this fixture.
+                    with torch.random.fork_rng():
+                        torch.manual_seed(42)
+                        body = builder(spec, device)
+                    body.reader_profile = spatial_backbones.attentive_profile(kind)
                     body.native_pyramid_style = "bilinear"
                     body.detection_normalization = lambda: (
                         (0.0, 0.0, 0.0),
@@ -346,6 +487,11 @@ def worker(directory):
                         report = json.loads((base / mode / "results.json").read_text())
                         assert report["execution"]["world_size"] == 2
                         assert report["execution"]["effective_batch"] == 4
+                        if kind == "vjepa2_1":
+                            assert (
+                                report["execution"]["gradient_sync"]
+                                == "accumulated_mean"
+                            )
                         assert (
                             not report["canonical_eligible"]
                             and not report["record_value"]
@@ -424,7 +570,9 @@ def worker(directory):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) == 3 and sys.argv[1] == "--worker":
-        worker(sys.argv[2])
+    if len(sys.argv) == 3 and sys.argv[1] in ("--worker", "--manual-worker"):
+        worker(
+            sys.argv[2], "vjepa2_1" if sys.argv[1] == "--manual-worker" else "clip_hf"
+        )
     else:
         unittest.main()

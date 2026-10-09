@@ -194,7 +194,7 @@ class Dense(unittest.TestCase):
                 mock.patch.dict(os.environ, WORLD_SIZE="2", RANK="0", LOCAL_RANK="0"),
                 self.assertRaises(api.ConfigError),
             ):
-                api.validate_config(original)
+                api.validate_config(self.config(api, factory, kind="raev2_k7"))
             with (
                 mock.patch.object(
                     torch.distributed, "is_initialized", return_value=True

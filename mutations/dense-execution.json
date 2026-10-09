@@ -255,8 +255,8 @@
     {
       "label": "vjepa2_1 LP detection clipping",
       "file": "methods/vjepa2_1/downstream_backbone.py",
-      "old": "DENSE_EXECUTION = {\"tail_policy\": \"discard\", \"clip_frozen_detection\": False}",
-      "new": "DENSE_EXECUTION = {\"tail_policy\": \"discard\", \"clip_frozen_detection\": True}",
+      "old": "DENSE_EXECUTION = {\n    \"tail_policy\": \"discard\", \"clip_frozen_detection\": False,\n    \"distributed\": True, \"rank_seed_stride\": 17,\n    \"gradient_sync\": \"accumulated_mean\",\n    \"distributed_finetune_tasks\": (\"coco_detection\",),\n}",
+      "new": "DENSE_EXECUTION = {\n    \"tail_policy\": \"discard\", \"clip_frozen_detection\": True,\n    \"distributed\": True, \"rank_seed_stride\": 17,\n    \"gradient_sync\": \"accumulated_mean\",\n    \"distributed_finetune_tasks\": (\"coco_detection\",),\n}",
       "tests": [
         "tests.test_method_dense_execution.Dense.test_accumulated_updates_tail_and_clipping_match_independent_loop"
       ]

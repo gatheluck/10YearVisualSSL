@@ -51,6 +51,8 @@ an encoder, detector, augmentation, loss or evaluation recipe.
 
 ## Distributed execution
 
+Two synchronization policies are supported; the selected provider owns the policy.
+
 CLIP, SigLIP2, C-RADIOv4-H and Cosmos3 Super additionally permit replicated DDP
 for all three tasks and LP/AP/FT. Launch, for example,
 `torchrun --standalone --nproc-per-node=2 -m downstream.ade20k --config resolved.json --out output`.
@@ -59,7 +61,7 @@ is for verification. Every rank must see the same resolved configuration,
 input files, encoder and shared output directory. Multi-node launch and resource
 allocation remain the operator's responsibility; use only authorized resources.
 
-Ranks use base seed plus 1000 times rank. The shuffled distributed sampler uses
+The four DDP families use base seed plus 1000 times rank. The shuffled distributed sampler uses
 the common base seed, advances each epoch, and pads the population when needed;
 the loader drops incomplete local batches. The effective batch includes every
 rank. DDP averages gradients for every microbatch, followed by the existing
@@ -78,12 +80,38 @@ task/adaptation paths through uninterrupted, resumed and evaluation-only runs,
 including setup failures and protection against overwriting prior artifacts.
 These tiny CPU tests do not certify released encoders, CUDA or multi-node runs.
 
-DINOv3, RAEv2 K7, V-JEPA2.1 and VGGT-Omega remain single-process under this profile.
-Their inspected sources use different synchronization/FSDP paths or unwrapped
-forwards whose equivalence is unresolved. ImageNet's support does not imply dense
-support. Those configurations fail closed instead of silently running independent
-models. Original experimental implementations exist; their distributed behavior
-has not yet been reconciled into this package.
+### Accumulated gradient reduction
+
+V-JEPA2.1 additionally supports ADE20K, NYUv2 and COCO LP/AP plus COCO FT using
+the same launcher and execution configuration. These seven routes do not wrap
+the model in DDP. The rank seed is base seed plus 17 times rank. Trainable initial
+parameters are broadcast from rank zero; frozen pretrained weights must already
+match. Buffers are not broadcast. After each complete accumulation group, each
+trainable gradient is summed and divided by world size before clipping and the
+optimizer update. Missing gradients become zero, even for parameters unused on
+all ranks; this affects optimizer momentum/weight decay and is intentionally
+preserved. A discarded tail performs no parameter-gradient reduction or update.
+Results explicitly record `gradient_sync: accumulated_mean` for these multi-rank
+runs. Single-process execution and checkpoint identities remain unchanged.
+
+Both inspected source revisions agree on these helpers and exclude COCO FT from
+FSDP. The 27 inspected run configurations (three seeds per task/adaptation) agree:
+all use world size eight; the six ADE20K/NYUv2 FT configurations enable FSDP,
+and the other 21 do not. Configuration presence does not prove run completion.
+Isolated two-rank CPU comparisons match the source's gradients, parameter
+updates and SGD momentum exactly. Tiny task integration also checks all seven
+routes, full leader validation, coordinated failures, and exact portable resume.
+This is not full encoder/GPU, native RNG trajectory or table-score parity.
+
+V-JEPA2.1 ADE20K/NYUv2 FT remains refused in multi-rank execution because its
+source uses FSDP. DINOv3 and RAEv2 K7 remain single-process here: their inspected
+manual reducers lack the V-JEPA initialization broadcast and skip absent gradients,
+so synchronized initialization and collective ordering are unresolved. Omega's
+engine calls unwrapped forwards despite constructing DDP. These source concerns
+must be reconciled against actual runs, not silently converted to another policy.
+ImageNet component support does not establish dense source parity. Original
+experimental implementations exist; these remaining distributed paths have not
+been reconciled into this package.
 
 ## Update behavior and evidence
 
@@ -160,7 +188,7 @@ RNG streams. It does not run all released encoders or establish paper-score pari
 
 ## Remaining boundaries
 
-The four remaining dense-family distributed paths, FSDP and native checkpoint
+The remaining dense-family distributed/FSDP paths and native checkpoint
 import are not provided by this block. Released-weight CUDA/BF16 execution, complete datasets,
 and correspondence to the paper's recorded scores remain unverified.
 
