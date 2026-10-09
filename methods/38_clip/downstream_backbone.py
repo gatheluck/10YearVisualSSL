@@ -3,6 +3,7 @@ from downstream.hf_vision import build_vision
 
 KIND = 'clip_hf'
 TRAINABLE = True
+ACTIVATION_CHECKPOINTING = ('hf', 'model')
 FINETUNE_GROUPS = True
 IMAGE_CLASSIFICATION = True
 IMAGENET_FT_RECIPE = "captured_bicubic_random_python_v1"

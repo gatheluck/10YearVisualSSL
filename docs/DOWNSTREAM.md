@@ -507,3 +507,10 @@ membership limits and unresolved small-image recipe conflicts. Its CLUE/SUN397
 profiles connect six reported
 dataset inputs to Extended image LP/AP, preserving source membership and overlap
 disclosures. Staging and component tests do not certify paper scores.
+
+## Fine-tuning memory option
+
+See [activation checkpointing](ACTIVATION_CHECKPOINTING.md) for explicit
+`backbone.activation_checkpointing` on six inspected providers. This option
+recomputes activations during backward; it does not replace portable resume
+checkpoints or establish GPU/full-run reproduction.

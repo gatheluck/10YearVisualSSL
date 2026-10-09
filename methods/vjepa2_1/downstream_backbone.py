@@ -22,6 +22,7 @@ EXTENDED_DENSE_READER = "captured_single_block_v1"
 EXTENDED_ACCUMULATION_TAILS = {"frozen": "discard", "attentive": "discard"}
 UPSTREAM = "https://github.com/facebookresearch/vjepa2"
 TRAINABLE = True
+ACTIVATION_CHECKPOINTING = ('native_flag', 'encoder')
 CAPTURE_PYRAMID = True
 COMPONENT_ONLY = True
 FINETUNE_GROUPS = True

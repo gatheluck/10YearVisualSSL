@@ -7,6 +7,7 @@ EXTENDED_VIDEO_READER = "captured_single_block_v1"
 EXTENDED_DENSE_READER = "captured_single_block_v1"
 EXTENDED_ACCUMULATION_TAILS = {"frozen": "discard", "attentive": "flush_scaled"}
 TRAINABLE = True
+ACTIVATION_CHECKPOINTING = ('hf', 'model')
 FINETUNE_GROUPS = True
 IMAGE_CLASSIFICATION = True
 IMAGENET_FT_RECIPE = "captured_bilinear_plain_torch_v1"

@@ -12,6 +12,21 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-10-09: explicit FT activation checkpointing
+
+PR 233 merged as `3933577`; all 115 checks succeeded. Main was pulled and
+confirmed tree-identical to its tested head. Unrelated video-submodule edits
+remain preserved. Read-only refresh retrieved 139 original files, 127 matching
+the capture snapshot, and re-read 27 video-family dense resolved configurations.
+Private source/run identities remain outside Git; no compute job was submitted.
+
+[Activation checkpointing](ACTIVATION_CHECKPOINTING.md) connects six provider
+policies to the shared trainable builder. Explicit selection preserves previous
+defaults; invalid and frozen/AP selection fails closed. CPU component tests check
+real recomputation, gradients, updates, state keys and RNG. Record RED/GREEN,
+mutations, required gates and CI in the PR. Native FSDP, remaining provider
+policies, released-weight/GPU verification and paper scores remain pending.
+
 ### 2026-10-08: dense accumulated gradient synchronization
 
 PR 232 merged as `87a674c`; all 115 checks succeeded. Main was pulled and

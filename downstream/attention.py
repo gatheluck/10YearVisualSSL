@@ -12,6 +12,8 @@ from torch import nn
 
 def validate_adaptation(cfg):
     """Keep experimental readers out of legacy/table-producing task recipes."""
+    from downstream.activation_checkpointing import validate
+    validate(cfg.get("backbone", {}), trainable=cfg.get("adaptation") == "finetune")
     from downstream.spatial_backbones import requires_component_profile
     if (requires_component_profile(cfg.get("backbone", {}).get("kind"))
             and cfg.get("profile") != "capture_basic5_components"):

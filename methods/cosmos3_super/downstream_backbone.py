@@ -9,6 +9,7 @@ from downstream.patch_vision import PatchVisionBackbone, load_local
 
 KIND = "cosmos3_super_vm"
 TRAINABLE = True
+ACTIVATION_CHECKPOINTING = ('hf', 'model')
 FINETUNE_GROUPS = True
 IMAGE_CLASSIFICATION = True
 IMAGENET_FT_RECIPE = "captured_bicubic_half_python_v1"

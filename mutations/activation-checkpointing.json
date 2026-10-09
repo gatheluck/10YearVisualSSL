@@ -1,0 +1,175 @@
+{
+  "targets": [
+    {
+      "label": "reject truthy non-booleans",
+      "file": "downstream/activation_checkpointing.py",
+      "old": "if type(enabled) is not bool:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_activation_checkpointing.TestActivationCheckpointing.test_invalid_selection_is_rejected_before_loading_weights"
+      ]
+    },
+    {
+      "label": "reject frozen checkpoint requests",
+      "file": "downstream/activation_checkpointing.py",
+      "old": "if not trainable or policy is None:",
+      "new": "if policy is None:",
+      "tests": [
+        "tests.test_method_activation_checkpointing.TestActivationCheckpointing.test_task_validation_refuses_checkpointing_for_frozen_or_attentive"
+      ]
+    },
+    {
+      "label": "reject unsupported providers",
+      "file": "downstream/activation_checkpointing.py",
+      "old": "if not trainable or policy is None:",
+      "new": "if not trainable:",
+      "tests": [
+        "tests.test_method_activation_checkpointing.TestActivationCheckpointing.test_invalid_selection_is_rejected_before_loading_weights"
+      ]
+    },
+    {
+      "label": "preserve explicit false",
+      "file": "downstream/activation_checkpointing.py",
+      "old": "if not enabled:",
+      "new": "if enabled is None:",
+      "tests": [
+        "tests.test_method_activation_checkpointing.TestActivationCheckpointing.test_disabled_setting_preserves_default_and_enable_is_idempotent"
+      ]
+    },
+    {
+      "label": "reject absent native flag",
+      "file": "downstream/activation_checkpointing.py",
+      "old": "if not hasattr(target, \"use_activation_checkpointing\"):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_activation_checkpointing.TestActivationCheckpointing.test_disabled_setting_preserves_default_and_enable_is_idempotent"
+      ]
+    },
+    {
+      "label": "reject empty blocks",
+      "file": "downstream/activation_checkpointing.py",
+      "old": "if not len(target.blocks):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_activation_checkpointing.TestActivationCheckpointing.test_disabled_setting_preserves_default_and_enable_is_idempotent"
+      ]
+    },
+    {
+      "label": "do not double wrap blocks",
+      "file": "downstream/activation_checkpointing.py",
+      "old": "if getattr(block, \"_portable_checkpointed\", False):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_activation_checkpointing.TestActivationCheckpointing.test_disabled_setting_preserves_default_and_enable_is_idempotent"
+      ]
+    },
+    {
+      "label": "preserve recomputation random stream",
+      "file": "downstream/activation_checkpointing.py",
+      "old": "return checkpoint(forward, *args, use_reentrant=False, **kwargs)",
+      "new": "return checkpoint(forward, *args, use_reentrant=False, preserve_rng_state=False, **kwargs)",
+      "tests": [
+        "tests.test_method_activation_checkpointing.TestActivationCheckpointing.test_block_recomputation_preserves_dropout_rng_and_gradients"
+      ]
+    },
+    {
+      "label": "enable requested runtime",
+      "file": "downstream/spatial_backbones.py",
+      "old": "if policy is not None:\n            enable(model, policy)",
+      "new": "if False:\n            enable(model, policy)",
+      "tests": [
+        "tests.test_method_activation_checkpointing.TestActivationCheckpointing.test_recomputation_preserves_outputs_gradients_updates_and_state_keys"
+      ]
+    },
+    {
+      "label": "provider 38_clip",
+      "file": "methods/38_clip/downstream_backbone.py",
+      "old": "ACTIVATION_CHECKPOINTING = ('hf', 'model')",
+      "new": "ACTIVATION_CHECKPOINTING = None",
+      "tests": [
+        "tests.test_method_activation_checkpointing.TestActivationCheckpointing.test_recomputation_preserves_outputs_gradients_updates_and_state_keys"
+      ]
+    },
+    {
+      "label": "provider siglip",
+      "file": "methods/siglip/downstream_backbone.py",
+      "old": "ACTIVATION_CHECKPOINTING = ('hf', 'model')",
+      "new": "ACTIVATION_CHECKPOINTING = None",
+      "tests": [
+        "tests.test_method_activation_checkpointing.TestActivationCheckpointing.test_recomputation_preserves_outputs_gradients_updates_and_state_keys"
+      ]
+    },
+    {
+      "label": "provider 31_dinov3",
+      "file": "methods/31_dinov3/downstream_backbone.py",
+      "old": "ACTIVATION_CHECKPOINTING = ('hf', 'model')",
+      "new": "ACTIVATION_CHECKPOINTING = None",
+      "tests": [
+        "tests.test_method_activation_checkpointing.TestActivationCheckpointing.test_recomputation_preserves_outputs_gradients_updates_and_state_keys"
+      ]
+    },
+    {
+      "label": "provider cosmos3_super",
+      "file": "methods/cosmos3_super/downstream_backbone.py",
+      "old": "ACTIVATION_CHECKPOINTING = ('hf', 'model')",
+      "new": "ACTIVATION_CHECKPOINTING = None",
+      "tests": [
+        "tests.test_method_activation_checkpointing.TestActivationCheckpointing.test_recomputation_preserves_outputs_gradients_updates_and_state_keys"
+      ]
+    },
+    {
+      "label": "provider raev2",
+      "file": "methods/raev2/downstream_backbone.py",
+      "old": "ACTIVATION_CHECKPOINTING = ('blocks', 'model')",
+      "new": "ACTIVATION_CHECKPOINTING = None",
+      "tests": [
+        "tests.test_method_activation_checkpointing.TestActivationCheckpointing.test_recomputation_preserves_outputs_gradients_updates_and_state_keys"
+      ]
+    },
+    {
+      "label": "provider vjepa2_1",
+      "file": "methods/vjepa2_1/downstream_backbone.py",
+      "old": "ACTIVATION_CHECKPOINTING = ('native_flag', 'encoder')",
+      "new": "ACTIVATION_CHECKPOINTING = None",
+      "tests": [
+        "tests.test_method_activation_checkpointing.TestActivationCheckpointing.test_recomputation_preserves_outputs_gradients_updates_and_state_keys"
+      ]
+    },
+    {
+      "label": "task accepts explicit option ade20k",
+      "file": "downstream/ade20k.py",
+      "old": ", \"activation_checkpointing\"",
+      "new": "",
+      "tests": [
+        "tests.test_method_activation_checkpointing.TestActivationCheckpointing.test_all_dense_and_video_configs_accept_the_explicit_option"
+      ]
+    },
+    {
+      "label": "task accepts explicit option nyuv2",
+      "file": "downstream/nyuv2.py",
+      "old": ", \"activation_checkpointing\"",
+      "new": "",
+      "tests": [
+        "tests.test_method_activation_checkpointing.TestActivationCheckpointing.test_all_dense_and_video_configs_accept_the_explicit_option"
+      ]
+    },
+    {
+      "label": "task accepts explicit option coco",
+      "file": "downstream/coco.py",
+      "old": ", \"activation_checkpointing\"",
+      "new": "",
+      "tests": [
+        "tests.test_method_activation_checkpointing.TestActivationCheckpointing.test_all_dense_and_video_configs_accept_the_explicit_option"
+      ]
+    },
+    {
+      "label": "task accepts explicit option ssv2",
+      "file": "downstream/ssv2.py",
+      "old": ", \"activation_checkpointing\"",
+      "new": "",
+      "tests": [
+        "tests.test_method_activation_checkpointing.TestActivationCheckpointing.test_all_dense_and_video_configs_accept_the_explicit_option"
+      ]
+    }
+  ]
+}

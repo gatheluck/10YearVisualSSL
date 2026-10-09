@@ -57,7 +57,7 @@ IMAGENET_STD = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1)
 TOP_KEYS = frozenset({"task", "seed", "device", "data_root", "backbone", "probe"})
 CAPTURE_PROFILE = "capture_basic5_components"
 BACKBONE_REQUIRED = frozenset({"kind", "encoder", "arch", "img_size", "patch_size"})
-BACKBONE_OPTIONAL = frozenset({"embed_dim", "depth", "num_heads"})
+BACKBONE_OPTIONAL = frozenset({"embed_dim", "depth", "num_heads", "activation_checkpointing"})
 PROBE_KEYS = frozenset({"epochs", "batch_size", "lr", "num_workers", "image_size",
                         "max_train_samples", "max_val_samples",
                         "max_steps_per_epoch"})
