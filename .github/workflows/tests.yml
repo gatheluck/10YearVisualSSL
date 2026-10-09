@@ -178,6 +178,7 @@ jobs:
           PYTHONPATH=. .venv/bin/python -m unittest -v \
             tests.test_method_hf_basic5 \
             tests.test_method_activation_checkpointing \
+            tests.test_method_remaining_checkpointing \
             tests.test_method_patch_basic5 \
             tests.test_native_basic5_paths \
             tests.test_captured_reader_reference \

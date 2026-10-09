@@ -10,6 +10,7 @@ from torch.nn import functional as F
 
 KIND = 'cradiov4_h'
 TRAINABLE = True
+ACTIVATION_CHECKPOINTING = ('timm', 'model.radio_model.model')
 FINETUNE_GROUPS = True
 COMPONENT_ONLY = True
 IMAGE_CLASSIFICATION = True

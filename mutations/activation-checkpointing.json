@@ -206,6 +206,69 @@
       "tests": [
         "tests.test_method_activation_checkpointing.TestActivationEnvironments.test_missing_h5py_keeps_encoder_and_other_task_checks_running"
       ]
+    },
+    {
+      "label": "C-RADIO policy",
+      "file": "methods/cradiov4_h/downstream_backbone.py",
+      "old": "ACTIVATION_CHECKPOINTING = ('timm', 'model.radio_model.model')",
+      "new": "ACTIVATION_CHECKPOINTING = None",
+      "tests": [
+        "tests.test_method_remaining_checkpointing.TestRemainingCheckpointing.test_native_image_video_and_detection_recompute_with_equal_updates"
+      ]
+    },
+    {
+      "label": "Omega policy",
+      "file": "methods/vggt_omega/downstream_backbone.py",
+      "old": "ACTIVATION_CHECKPOINTING = ('native_flag', '')",
+      "new": "ACTIVATION_CHECKPOINTING = None",
+      "tests": [
+        "tests.test_method_remaining_checkpointing.TestRemainingCheckpointing.test_native_image_video_and_detection_recompute_with_equal_updates"
+      ]
+    },
+    {
+      "label": "native ViT recomputation",
+      "file": "downstream/activation_checkpointing.py",
+      "old": "target.set_grad_checkpointing(True)",
+      "new": "target.set_grad_checkpointing(False)",
+      "tests": [
+        "tests.test_method_remaining_checkpointing.TestRemainingCheckpointing.test_native_image_video_and_detection_recompute_with_equal_updates"
+      ]
+    },
+    {
+      "label": "Omega recomputation",
+      "file": "methods/vggt_omega/downstream_backbone.py",
+      "old": "if self.use_activation_checkpointing and self.training:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_remaining_checkpointing.TestRemainingCheckpointing.test_native_image_video_and_detection_recompute_with_equal_updates"
+      ]
+    },
+    {
+      "label": "Omega evaluation bypass",
+      "file": "methods/vggt_omega/downstream_backbone.py",
+      "old": "if self.use_activation_checkpointing and self.training:",
+      "new": "if self.use_activation_checkpointing:",
+      "tests": [
+        "tests.test_method_remaining_checkpointing.TestRemainingCheckpointing.test_whole_module_preserves_registration_and_eval_bypasses_checkpoint"
+      ]
+    },
+    {
+      "label": "Omega non-reentrant backend",
+      "file": "methods/vggt_omega/downstream_backbone.py",
+      "old": "checkpoint(self.aggregator, views, use_reentrant=False)",
+      "new": "checkpoint(self.aggregator, views, use_reentrant=True)",
+      "tests": [
+        "tests.test_method_remaining_checkpointing.TestRemainingCheckpointing.test_whole_module_preserves_registration_and_eval_bypasses_checkpoint"
+      ]
+    },
+    {
+      "label": "Omega default remains disabled",
+      "file": "methods/vggt_omega/downstream_backbone.py",
+      "old": "self.use_activation_checkpointing = False",
+      "new": "self.use_activation_checkpointing = True",
+      "tests": [
+        "tests.test_method_remaining_checkpointing.TestRemainingCheckpointing.test_whole_module_preserves_registration_and_eval_bypasses_checkpoint"
+      ]
     }
   ]
 }

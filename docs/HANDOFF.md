@@ -12,6 +12,21 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-10-09: remaining BasicFive checkpointing policies
+
+PR 234 merged as `9c98c5e`; all 115 checks succeeded. Main was pulled and
+confirmed tree-identical to its tested head. Existing video-submodule changes
+remain preserved. Read-only source refresh and six original FT result/metadata
+records support the C-RADIO native ViT and Omega whole-aggregator policies.
+All eight BasicFive providers now have explicit checkpointing policies; see
+[activation checkpointing](ACTIVATION_CHECKPOINTING.md). Ten reduced CPU routes
+match the inspected experimental wrappers for outputs, gradients and two SGD
+updates. Omega model copying preserves independent parameter gradients.
+Private source identities and execution evidence remain outside Git. No compute
+job was submitted. Released weights, GPU memory, BF16, native FSDP, full-data
+execution and paper-score reproduction remain unverified by this change.
+Record final gates and CI separately in the PR.
+
 ### 2026-10-09: activation-checkpointing CI dependency boundary
 
 PR 234's C-RADIO locked job failed because the new combined task-configuration

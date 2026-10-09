@@ -56,5 +56,7 @@ def enable(model, policy):
 
             block.forward = wrap(original)
             block._portable_checkpointed = True
+    elif strategy == "timm":
+        target.set_grad_checkpointing(True)
     else:
         raise ValueError("unknown activation_checkpointing strategy")

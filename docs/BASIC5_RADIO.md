@@ -73,3 +73,9 @@ observed spatial output difference was `2.4e-7`. CPE training randomness used
 identical RNG states. This FP32 reduced-model check does not establish BF16 or
 released-weight equivalence. Private source copies and test checkpoints are
 excluded from Git.
+
+## Explicit activation checkpointing
+
+Fine-tuning supports `backbone.activation_checkpointing: true`; omission
+preserves previous execution. See [activation checkpointing](ACTIVATION_CHECKPOINTING.md)
+for the inspected mechanism, image/video verification and GPU/full-run limits.
