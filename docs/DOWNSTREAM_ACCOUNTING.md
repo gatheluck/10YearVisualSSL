@@ -44,8 +44,8 @@ their status. This tool verifies stored output consistency, not the authenticity
 of a claimed execution, immutable checkpoint contents, or correspondence with a
 paper table. Historical experimental result schemas need explicit conversion
 and run mapping before this checker can accept them. The separate
-[historical Extended auditor](REFERENCE_ACCOUNTING.md) checks pinned native
-LP/AP records without fabricating portable manifests. It requires final-epoch
+[historical downstream auditor](REFERENCE_ACCOUNTING.md) checks pinned native
+Extended LP/AP and selected BasicFive LP/AP/FT records without fabricating portable manifests. It requires final-epoch
 evidence, explicit identity/population and a recorded successful exit. Neither
 auditor establishes historical score authenticity. The tool does not infer
 missing experiments or perform frontier/Extended evaluations.
