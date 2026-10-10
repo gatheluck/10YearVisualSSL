@@ -511,6 +511,6 @@ disclosures. Staging and component tests do not certify paper scores.
 ## Fine-tuning memory option
 
 See [activation checkpointing](ACTIVATION_CHECKPOINTING.md) for explicit
-`backbone.activation_checkpointing` on six inspected providers. This option
+`backbone.activation_checkpointing` on eight inspected providers. This option
 recomputes activations during backward; it does not replace portable resume
 checkpoints or establish GPU/full-run reproduction.

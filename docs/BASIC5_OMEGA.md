@@ -70,3 +70,9 @@ result-to-paper identity still require run-level verification. See the
 
 See [scope and terminology](SUBMISSION_SCOPE.md) for experimental versus portable
 implementation status and the separate evidence required for reproduced results.
+
+## Explicit activation checkpointing
+
+Fine-tuning supports `backbone.activation_checkpointing: true`; omission
+preserves previous execution. See [activation checkpointing](ACTIVATION_CHECKPOINTING.md)
+for the inspected mechanism, image/video verification and GPU/full-run limits.

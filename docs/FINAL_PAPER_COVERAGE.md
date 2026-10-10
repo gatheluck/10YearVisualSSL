@@ -32,7 +32,7 @@ records across portable task runners. This corrects acceptance of incompatible
 resume state; it does not add native formats or new measured results.
 
 [Activation checkpointing](ACTIVATION_CHECKPOINTING.md) adds explicit FT recomputation
-for six BasicFive providers, with CPU output/gradient/update comparisons. Native
+for all eight BasicFive providers, with CPU output/gradient/update comparisons. Native
 FSDP, GPU memory behavior and full-run measurements remain unverified.
 
 ## Coverage by final appendix

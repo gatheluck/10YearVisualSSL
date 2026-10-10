@@ -17,6 +17,7 @@ EXTENDED_VIDEO_READER = "captured_cross_self_v1"
 EXTENDED_DENSE_READER = "captured_cross_self_v1"
 EXTENDED_ACCUMULATION_TAILS = {"frozen": "discard", "attentive": "discard"}
 TRAINABLE = True
+ACTIVATION_CHECKPOINTING = ('native_flag', '')
 FINETUNE_GROUPS = True
 IMAGE_CLASSIFICATION = True
 IMAGENET_FT_RECIPE = "captured_bicubic_unit_mixup_v1"
@@ -84,6 +85,7 @@ class Backbone(nn.Module):
         self.aggregator = aggregator
         self.out_channels = self.global_channels = 2 * aggregator.camera_token.shape[-1]
         self.trainable = trainable
+        self.use_activation_checkpointing = False
         self.requires_grad_(trainable)
         self.train(trainable)
 
@@ -102,7 +104,12 @@ class Backbone(nn.Module):
             images = images * std + mean
         param = next(self.aggregator.parameters())
         with nullcontext() if self.trainable else torch.no_grad():
-            cached, start = self.aggregator(images.to(device=param.device, dtype=param.dtype))
+            views = images.to(device=param.device, dtype=param.dtype)
+            if self.use_activation_checkpointing and self.training:
+                from torch.utils.checkpoint import checkpoint
+                cached, start = checkpoint(self.aggregator, views, use_reentrant=False)
+            else:
+                cached, start = self.aggregator(views)
             last = next((x for x in reversed(cached) if x is not None), None)
             if last is None or start != 17:
                 raise ValueError("aggregator must return cached layers and the expected prefix")
