@@ -7,7 +7,7 @@ research history. See [terminology](PAPER_TERMINOLOGY.md) and
 [submission scope](SUBMISSION_SCOPE.md). Private manuscript/source fingerprints
 and run evidence remain outside Git.
 
-Updated 2026-10-08 for ImageNet/SSv2 execution and dense-task accumulation/continuation. Remaining priorities
+Updated 2026-10-10 for execution, continuation and native BasicFive result accounting. Remaining priorities
 below distinguish executable component support from actual result reproduction.
 
 **The portable package does not yet reproduce the entire paper.** Original
@@ -177,6 +177,12 @@ availability does not establish complete native-video or paper-score coverage.
    evaluated population, recorded exit and identity before summarizing repeats.
    It does not create portable run manifests or authenticate historical execution.
    Missing source artifacts/exit evidence and paper-to-run mapping remain pending.
+   The October 10 [BasicFive native schema adapters](REFERENCE_ACCOUNTING.md)
+   add common and scheduled-result LP/AP/FT accounting, retaining native
+   protocol IDs, epoch metadata, smoke/canonical flags and population checks.
+   Some historical dense records lack population counts, and Omega's different
+   marker format remains outside the auditor. Unknown exits and missing metadata
+   are not inferred from a completed status. This does not reproduce scores.
    The existing method linear-evaluation three-seed aggregator does not cover
    all downstream LP/AP/FT accounting described by E.1.
 5. Port frontier response parsing/scoring and matched-subset provenance, then

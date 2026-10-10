@@ -1,0 +1,117 @@
+{
+  "schema_version": 1,
+  "cells": [
+    {
+      "cell_id": "basic5_epoch_v1-LINEAR",
+      "source_schema": "basic5_epoch_v1",
+      "track": "LINEAR",
+      "identity": {
+        "dataset": "imagenet1k",
+        "method_id": "replace-with-recorded-method",
+        "protocol_id": "BASIC5_FAIR_v1",
+        "checkpoint_identity": {
+          "sha256": "replace-with-recorded-checkpoint-identity"
+        },
+        "feature_layer": "replace-with-recorded-readout",
+        "effective_batch": 1024,
+        "realized_lr": 0.001,
+        "world_size": 8,
+        "track": "LINEAR",
+        "campaign": "example_campaign",
+        "protocol_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "input_size": 224,
+        "eval_views": 1,
+        "per_gpu_batch": 32,
+        "accumulation": 4
+      },
+      "expected_seeds": [
+        0,
+        1,
+        2
+      ],
+      "epochs": 100,
+      "evaluation_count": 50000,
+      "metric": {
+        "field": "top1",
+        "name": "top1",
+        "unit": "percent",
+        "direction": "higher"
+      },
+      "runs": []
+    },
+    {
+      "cell_id": "basic5_scheduled_v1-ATTENTIVE",
+      "source_schema": "basic5_scheduled_v1",
+      "track": "ATTENTIVE",
+      "identity": {
+        "dataset": "imagenet1k",
+        "method_id": "replace-with-recorded-method",
+        "protocol_id": "BASIC5_ATTENTIVE_v1",
+        "checkpoint_identity": {
+          "sha256": "replace-with-recorded-checkpoint-identity"
+        },
+        "feature_layer": "replace-with-recorded-readout",
+        "effective_batch": 1024,
+        "realized_lr": 0.001,
+        "world_size": 8,
+        "protocol_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+        "input_resolution": 224,
+        "evaluation_views": 1,
+        "micro_batch_per_gpu": 32,
+        "grad_accum": 4
+      },
+      "expected_seeds": [
+        0,
+        1,
+        2
+      ],
+      "epochs": 100,
+      "evaluation_count": 50000,
+      "metric": {
+        "field": "top1",
+        "name": "top1",
+        "unit": "percent",
+        "direction": "higher"
+      },
+      "runs": []
+    },
+    {
+      "cell_id": "basic5_epoch_v1-FINETUNE",
+      "source_schema": "basic5_epoch_v1",
+      "track": "FINETUNE",
+      "identity": {
+        "dataset": "imagenet1k",
+        "method_id": "replace-with-recorded-method",
+        "protocol_id": "BASIC5_FINETUNE_v1",
+        "checkpoint_identity": {
+          "sha256": "replace-with-recorded-checkpoint-identity"
+        },
+        "feature_layer": "replace-with-recorded-readout",
+        "effective_batch": 1024,
+        "realized_lr": 0.001,
+        "world_size": 8,
+        "track": "FINETUNE",
+        "campaign": "example_campaign",
+        "protocol_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "input_size": 224,
+        "eval_views": 1,
+        "per_gpu_batch": 32,
+        "accumulation": 4
+      },
+      "expected_seeds": [
+        0,
+        1,
+        2
+      ],
+      "epochs": 100,
+      "evaluation_count": 50000,
+      "metric": {
+        "field": "top1",
+        "name": "top1",
+        "unit": "percent",
+        "direction": "higher"
+      },
+      "runs": []
+    }
+  ]
+}

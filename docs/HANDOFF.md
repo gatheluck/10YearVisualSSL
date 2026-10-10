@@ -12,6 +12,19 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-10-10: native BasicFive result accounting
+
+PR 235 merged as `00058cb`; all 115 checks succeeded. Main was pulled and
+confirmed tree-identical to its tested head. Existing video-submodule changes
+remain preserved. Read-only source and historical-record inspection confirms
+two additional result formats for [native accounting](REFERENCE_ACCOUNTING.md).
+Common and scheduled BasicFive LP/AP/FT records retain distinct artifact,
+protocol-ID, final-epoch and population rules. Scheduled smoke records can say
+completed; status alone is insufficient. Missing epoch/count/exit evidence and
+Omega's different schema remain unresolved, not fabricated. Private record
+identities and detailed evidence stay outside Git. No compute job was submitted.
+Record RED/GREEN, mutations, final gates and CI separately in the PR.
+
 ### 2026-10-09: remaining BasicFive checkpointing policies
 
 PR 234 merged as `9c98c5e`; all 115 checks succeeded. Main was pulled and

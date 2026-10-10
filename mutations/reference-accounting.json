@@ -57,7 +57,7 @@
     {
       "label": "reference fields",
       "file": "downstream/reference_accounting.py",
-      "old": "if not isinstance(identity, dict) or not IDENTITY <= identity.keys():",
+      "old": "if not isinstance(identity, dict) or not fields <= identity.keys():",
       "new": "if False:",
       "tests": [
         "tests.test_reference_accounting.ReferenceAccounting"
@@ -75,7 +75,7 @@
     {
       "label": "null identity",
       "file": "downstream/reference_accounting.py",
-      "old": "if any(identity[k] is None for k in IDENTITY):",
+      "old": "if any(identity[k] is None for k in fields):",
       "new": "if False:",
       "tests": [
         "tests.test_reference_accounting.ReferenceAccounting"
@@ -129,7 +129,7 @@
     {
       "label": "protocol aliases",
       "file": "downstream/reference_accounting.py",
-      "old": "if result.get(\"protocol\") != cell[\"identity\"][\"protocol_id\"]:",
+      "old": "if (\n        schema == \"extended_lp_ap_v1\"\n        and result.get(\"protocol\") != cell[\"identity\"][\"protocol_id\"]\n    ):",
       "new": "if False:",
       "tests": [
         "tests.test_reference_accounting.ReferenceAccounting"
@@ -147,7 +147,7 @@
     {
       "label": "final selection",
       "file": "downstream/reference_accounting.py",
-      "old": "if result.get(\"final_epoch_only\") is not True:",
+      "old": "if result.get(final_flag) is not True:",
       "new": "if False:",
       "tests": [
         "tests.test_reference_accounting.ReferenceAccounting"
@@ -273,7 +273,7 @@
     {
       "label": "validate_cell schema 0",
       "file": "downstream/reference_accounting.py",
-      "old": "    if not isinstance(cell, dict) or set(cell) != required:",
+      "old": "    if set(cell) != required:",
       "new": "    if False:",
       "tests": [
         "tests.test_reference_accounting.ReferenceAccounting"
@@ -291,7 +291,7 @@
     {
       "label": "validate_cell schema 7",
       "file": "downstream/reference_accounting.py",
-      "old": "    if re.fullmatch(r\"[0-9a-f]{64}\", str(identity[\"protocol_sha256\"])) is None:",
+      "old": "    if re.fullmatch(r\"[0-9a-f]{64}\", str(identity[hash_field])) is None:",
       "new": "    if False:",
       "tests": [
         "tests.test_reference_accounting.ReferenceAccounting"
@@ -349,6 +349,159 @@
       "new": "if False and (",
       "tests": [
         "tests.test_reference_accounting.ReferenceAccounting"
+      ]
+    },
+    {
+      "label": "native schema selection",
+      "file": "downstream/reference_accounting.py",
+      "old": "if value not in (\"basic5_epoch_v1\", \"basic5_scheduled_v1\"):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_basic5_reference_accounting.BasicFiveAccounting.test_plan_requires_recognized_schema_track_identity_and_artifacts"
+      ]
+    },
+    {
+      "label": "native protocol identity",
+      "file": "downstream/reference_accounting.py",
+      "old": "if identity[\"protocol_id\"] != BASIC5_PROTOCOLS[cell[\"track\"]]:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_basic5_reference_accounting.BasicFiveAccounting.test_linear_filename_label_is_not_the_recorded_protocol_identity"
+      ]
+    },
+    {
+      "label": "native track identity",
+      "file": "downstream/reference_accounting.py",
+      "old": "if schema == \"basic5_epoch_v1\" and identity[\"track\"] != cell[\"track\"]:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_basic5_reference_accounting.BasicFiveAccounting.test_linear_filename_label_is_not_the_recorded_protocol_identity"
+      ]
+    },
+    {
+      "label": "native source smoke",
+      "file": "downstream/reference_accounting.py",
+      "old": "result.get(\"smoke\") is not False or result.get(\"canonical\", True) is not True",
+      "new": "result.get(\"canonical\", True) is not True",
+      "tests": [
+        "tests.test_basic5_reference_accounting.BasicFiveAccounting.test_nonfinal_smoke_partial_and_noncanonical_records_are_invalid"
+      ]
+    },
+    {
+      "label": "native source canonical",
+      "file": "downstream/reference_accounting.py",
+      "old": "result.get(\"smoke\") is not False or result.get(\"canonical\", True) is not True",
+      "new": "result.get(\"smoke\") is not False",
+      "tests": [
+        "tests.test_basic5_reference_accounting.BasicFiveAccounting.test_nonfinal_smoke_partial_and_noncanonical_records_are_invalid"
+      ]
+    },
+    {
+      "label": "required native canonical",
+      "file": "downstream/reference_accounting.py",
+      "old": "if result.get(\"canonical\") is not True:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_basic5_reference_accounting.BasicFiveAccounting.test_missing_scheduled_canonical_flag_and_metadata_are_not_inferred"
+      ]
+    },
+    {
+      "label": "native epoch metadata identity",
+      "file": "downstream/reference_accounting.py",
+      "old": "if canonical(meta.get(key)) != canonical(expected):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_basic5_reference_accounting.BasicFiveAccounting.test_all_identity_fields_and_scheduled_metadata_are_bound"
+      ]
+    },
+    {
+      "label": "scheduled population float support",
+      "file": "downstream/reference_accounting.py",
+      "old": "count_types = (int, float) if schema == \"basic5_scheduled_v1\" else (int,)",
+      "new": "count_types = (int,)",
+      "tests": [
+        "tests.test_basic5_reference_accounting.BasicFiveAccounting.test_native_population_type_is_explicit_not_rounded_or_guessed"
+      ]
+    },
+    {
+      "label": "native strict population",
+      "file": "downstream/reference_accounting.py",
+      "old": "or type(metrics.get(\"n\")) not in count_types",
+      "new": "or False",
+      "tests": [
+        "tests.test_basic5_reference_accounting.BasicFiveAccounting.test_native_population_type_is_explicit_not_rounded_or_guessed"
+      ]
+    },
+    {
+      "label": "native population equality",
+      "file": "downstream/reference_accounting.py",
+      "old": "or metrics[\"n\"] != cell[\"evaluation_count\"]",
+      "new": "or False",
+      "tests": [
+        "tests.test_basic5_reference_accounting.BasicFiveAccounting.test_native_population_type_is_explicit_not_rounded_or_guessed"
+      ]
+    },
+    {
+      "label": "native final epoch evidence",
+      "file": "downstream/reference_accounting.py",
+      "old": "\"basic5_scheduled_v1\": (\"epochs_scheduled\", \"epochs_run\"),",
+      "new": "\"basic5_scheduled_v1\": (\"epochs_scheduled\",),",
+      "tests": [
+        "tests.test_basic5_reference_accounting.BasicFiveAccounting.test_nonfinal_smoke_partial_and_noncanonical_records_are_invalid"
+      ]
+    },
+    {
+      "label": "native final scheduled epoch",
+      "file": "downstream/reference_accounting.py",
+      "old": "\"basic5_scheduled_v1\": (\"epochs_scheduled\", \"epochs_run\"),",
+      "new": "\"basic5_scheduled_v1\": (\"epochs_run\",),",
+      "tests": [
+        "tests.test_basic5_reference_accounting.BasicFiveAccounting.test_nonfinal_smoke_partial_and_noncanonical_records_are_invalid"
+      ]
+    },
+    {
+      "label": "common final epoch evidence",
+      "file": "downstream/reference_accounting.py",
+      "old": "\"basic5_epoch_v1\": (\"epochs\",),",
+      "new": "\"basic5_epoch_v1\": (),",
+      "tests": [
+        "tests.test_basic5_reference_accounting.BasicFiveAccounting.test_nonfinal_smoke_partial_and_noncanonical_records_are_invalid"
+      ]
+    },
+    {
+      "label": "native final selection",
+      "file": "downstream/reference_accounting.py",
+      "old": "if result.get(final_flag) is not True:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_basic5_reference_accounting.BasicFiveAccounting.test_nonfinal_smoke_partial_and_noncanonical_records_are_invalid"
+      ]
+    },
+    {
+      "label": "native protocol identifier not filename",
+      "file": "downstream/reference_accounting.py",
+      "old": "\"LINEAR\": \"BASIC5_FAIR_v1\",",
+      "new": "\"LINEAR\": \"BASIC5_LINEAR_v1\",",
+      "tests": [
+        "tests.test_basic5_reference_accounting.BasicFiveAccounting.test_both_native_schemas_cover_lp_ap_ft_and_preserve_repeat_accounting"
+      ]
+    },
+    {
+      "label": "scheduled artifacts",
+      "file": "downstream/reference_accounting.py",
+      "old": "return (\"result\", \"resume_meta\")",
+      "new": "return (\"result\", \"completion\", \"resume_meta\")",
+      "tests": [
+        "tests.test_basic5_reference_accounting.BasicFiveAccounting.test_both_native_schemas_cover_lp_ap_ft_and_preserve_repeat_accounting"
+      ]
+    },
+    {
+      "label": "native cell object",
+      "file": "downstream/reference_accounting.py",
+      "old": "if not isinstance(cell, dict) or not cell:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_basic5_reference_accounting.BasicFiveAccounting.test_plan_requires_recognized_schema_track_identity_and_artifacts"
       ]
     }
   ]
