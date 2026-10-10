@@ -12,6 +12,22 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-10-10: frontier prediction evaluation; FSDP on hold
+
+PR 236 merged as `b518ed2`; all 115 checks succeeded and main matched the
+validated tree. The user deferred the native FSDP behavior discrepancy pending
+confirmation from the original experiment owner. Do not silently fix or port
+that behavior as a reproduced recipe. Private two-process evidence is retained
+outside Git. No new compute job was submitted.
+
+[Frontier evaluation](FRONTIER_EVALUATION.md) implements the unambiguous five-task
+prediction interfaces from final Table 42/E.6 and the supplied prompts: fixed
+500-sample populations, five ordered response batches, explicit targets and
+task-specific metrics. Historical scorer code was not located in inspected
+sources. Full-size synthetic populations test this specification, not original
+outputs or paper scores. Raw provenance and dense-output conversion remain
+unverified. Record RED/GREEN, mutations, final gates and CI separately.
+
 ### 2026-10-10: native BasicFive result accounting
 
 PR 235 merged as `00058cb`; all 115 checks succeeded. Main was pulled and
