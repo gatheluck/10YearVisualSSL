@@ -229,7 +229,7 @@
     {
       "label": "version check absent",
       "file": "methods/10_inst_disc/idv2_components.py",
-      "old": "state.get(\"component_version\") != 1",
+      "old": "state.get(\"component_version\") != version",
       "new": "False",
       "tests": [
         "tests.test_idv2_components.Training.test_resume_rejects_changed_profile_data_clock_or_incomplete_state"
@@ -346,8 +346,8 @@
     {
       "label": "KoLeo coefficient wrong",
       "file": "methods/10_inst_disc/idv2_components.py",
-      "old": "total + .1 * .5 * sum(koleo(z)",
-      "new": "total + .2 * .5 * sum(koleo(z)",
+      "old": "total + .1 * .5 * sum(koleo(z, bank.distributed)",
+      "new": "total + .2 * .5 * sum(koleo(z, bank.distributed)",
       "tests": [
         "tests.test_idv2_components.Components.test_view_objectives_match_gradients_and_three_adamw_updates"
       ]
@@ -409,8 +409,8 @@
     {
       "label": "nonfinite multicrop accepted",
       "file": "methods/10_inst_disc/idv2_components.py",
-      "old": "\n            if not torch.isfinite(loss):",
-      "new": "\n            if False and not torch.isfinite(loss):",
+      "old": "require_finite(loss, bank.distributed)",
+      "new": "pass",
       "tests": [
         "tests.test_idv2_components.Components.test_nonfinite_loss_prevents_optimizer_update"
       ]
@@ -418,8 +418,8 @@
     {
       "label": "nonfinite dense loss accepted",
       "file": "methods/10_inst_disc/idv2_components.py",
-      "old": "total = dense_loss(bank, embeddings, patches, indices)\n        if not torch.isfinite(total):",
-      "new": "total = dense_loss(bank, embeddings, patches, indices)\n        if False and not torch.isfinite(total):",
+      "old": "total = dense_loss(bank, embeddings, patches, indices)\n        require_finite(total, bank.distributed)",
+      "new": "total = dense_loss(bank, embeddings, patches, indices)",
       "tests": [
         "tests.test_idv2_components.Components.test_nonfinite_loss_prevents_optimizer_update"
       ]
@@ -427,8 +427,8 @@
     {
       "label": "nonfinite two-view loss accepted",
       "file": "methods/10_inst_disc/idv2_components.py",
-      "old": "total = total + .1 * .5 * sum(koleo(z) for z in embeddings)\n        if not torch.isfinite(total):",
-      "new": "total = total + .1 * .5 * sum(koleo(z) for z in embeddings)\n        if False and not torch.isfinite(total):",
+      "old": "total = total + .1 * .5 * sum(koleo(z, bank.distributed) for z in embeddings)\n        require_finite(total, bank.distributed)",
+      "new": "total = total + .1 * .5 * sum(koleo(z, bank.distributed) for z in embeddings)",
       "tests": [
         "tests.test_idv2_components.Components.test_nonfinite_loss_prevents_optimizer_update"
       ]

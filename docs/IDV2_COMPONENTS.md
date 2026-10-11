@@ -10,8 +10,9 @@ for the distinction from original experimental implementations and results.
 
 Added 2026-09-25. Seven explicit profiles extend the existing Instance
 Discrimination ViT adapter. The default single-view and ResNet paths remain
-unchanged. These profiles implement single-process FP32 components, not a claim
-of canonical ImageNet training or reproduction of any paper/workbook score.
+unchanged. These profiles implement FP32 components, with an explicit DDP entry
+added on 2026-10-11. Neither entry claims canonical ImageNet training or
+reproduction of any paper/workbook score.
 
 | Profile suffix (between `idv2_` and `_components`) | Behavior |
 | --- | --- |
@@ -296,7 +297,7 @@ Set `train.resume_checkpoint` to another run's full
 continuation restores model, AdamW, the complete NCE state (memory, Z, and all
 prototype masks/counters), and Python/NumPy/Torch/loader-generator RNG state.
 CUDA RNG state is saved/restored on CUDA, but GPU continuation has not been
-empirically verified in this change. Version-1 component checkpoints only:
+empirically verified in this change. The ordinary single-process adapter accepts only version-1 component checkpoints:
 legacy checkpoints, native distributed checkpoints and encoder-only files are
 not supported inputs. A missing source, incompatible configuration/device/loader
 length, incomplete optimizer, or source within the output directory is refused.
@@ -304,11 +305,60 @@ Checkpoint loading is for trusted local inputs only.
 
 The dataset configuration and loader length must match. Data content hashes
 are not authenticated; keep the input files and their ordering immutable.
-Distributed launches are refused. There is no native DDP/BF16 pipeline, run
-aggregation, or paper-score validation here. Checkpoints explicitly carry
+The ordinary adapter still refuses distributed launches; use the explicit entry
+below. Native historical-checkpoint import, BF16, full-data run aggregation and
+paper-score validation remain outside this port's verified coverage. Checkpoints explicitly carry
 `canonical_eligible: false`. Do not use an output-contract pass as evidence of
 canonical experimental equivalence. The default legacy single-view checkpoint
 format is unchanged and does not acquire this component resume guarantee.
+
+## Explicit distributed FP32 execution
+
+From `methods/10_inst_disc`, use the same resolved profile configuration, an
+explicit `device` of `cpu` or `cuda`, and a new output directory:
+
+`PYTHONPATH=../.. python -m torch.distributed.run --master-addr=127.0.0.1 --master-port=29500 --nproc-per-node=2 --module idv2_distributed --config /path/to/resolved.json --out /path/to/new-run`
+
+This example is for one host; choose a free local port. Multi-node rendezvous
+and cluster allocation must be configured separately. No queue or allocation
+is selected by this entry. CUDA uses NCCL and `LOCAL_RANK`; CPU uses Gloo.
+`train.batch_size` is the **global source-image batch**, must divide evenly by
+the world size, and is not multiplied by the number of views. The source
+DistributedSampler shuffles with seed 0 and advances its epoch; padding and
+per-rank `drop_last=True` retain its behavior. Each rank must have the same
+immutable image membership and ordering. Dataset content is not hashed.
+
+All seven profiles synchronize initial bank buffers, compute the partition
+estimate from global sums/counts, and gather observations before coalescing
+repeated image IDs. Multi-prototype updates retain separate view observations
+and broadcast touched slots/masks and counters. KoLeo searches the global
+per-view batch but retains only the local tensor's gradient, as in the inspected
+implementation; no extra world-size gradient multiplier is inserted. Multicrop
+uses `no_sync` for the first five views. Dense token forward calls pass through
+DDP so their gradients participate in reduction.
+
+The entry writes `work/checkpoint_latest.pth`, requested epoch checkpoints,
+`encoder.pt`, requested epoch encoder exports, raw-only `metrics.json`, `results.json`, and a downstream
+`run_manifest.json`. The latter describes component execution, not the ordinary
+method adapter's `contract-test` artifact schema. Only rank zero writes. Existing
+CLI output directories are refused. Results retain `canonical_eligible: false`.
+Configuration/source disagreement, setup/read/save errors and nonfinite losses
+are propagated across ranks; an arbitrary process/network failure still depends
+on the launcher/backend's failure handling.
+
+Distributed checkpoints have `component_version: 2`, world size and every
+rank's Python/NumPy/Torch/CUDA/loader-generator RNG state. Resume requires the same
+configuration, device type, world size, complete optimizer state and loader
+length, with a larger epoch endpoint and a fresh output location. The ordinary
+single-process version-1 checkpoints and native historical checkpoints are not
+interchangeable with version 2. Both modes preserve the fixed 300-epoch horizon;
+this does not port a distinct 90-epoch scaling recipe.
+
+Portability differences remain explicit: this entry is deterministic FP32,
+seeds Python/NumPy and a dedicated loader generator, uses the package's dataset
+root layout and checkpoint schema, and omits native telemetry. Reduced CPU
+comparisons do not establish original GPU trajectories, released-weight results,
+CUDA resume, multi-node operation, or paper/workbook score reproduction.
 
 ## Verification boundary
 
@@ -321,3 +371,12 @@ Mutation and full-suite results are recorded in the task PR. Private sources,
 run paths and comparison artifacts remain outside Git. Matching this package's outputs to paper/workbook results remains unverified,
 and source protocol contradictions remain unresolved. No reported score is
 rewritten; these statements concern the port and its evidence review.
+
+The distributed extension compares seven captured objectives with two CPU ranks
+and three optimizer updates per profile (loss, gradients, AdamW and bank state).
+Repository tests independently compare DDP with explicit mean-gradient reduction
+and exercise actual tiny-ViT training, rank-local failure propagation, output
+protection and exact interrupted continuation across all seven profiles. Run
+`OMP_NUM_THREADS=1 PYTHONPATH=. python -m unittest tests.test_idv2_distributed`.
+Capture/current source identities and numerical comparison evidence stay outside
+Git. Record Linux, mutations, whole-suite and CI outcomes separately in the PR.

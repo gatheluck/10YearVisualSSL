@@ -12,6 +12,24 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-10-11: distributed IDv2 components
+
+PR 237 merged as `e544e5a`; all 115 checks succeeded and main matched the
+validated tree. Existing video-submodule changes remain preserved. The user-held
+FSDP discrepancy remains pending original-owner confirmation.
+
+Read-only refresh found all 57 inspected IDv2 source/configuration files identical
+between Capture and the current original workspace. [IDv2 components](IDV2_COMPONENTS.md)
+now have an explicit FP32 torchrun entry for all seven profiles, global NCE and
+bank synchronization, dense/multicrop gradient reduction, rank-zero delivery and
+same-world-size component continuation. Two-rank CPU tests compare three updates
+against original objective implementations and independently verify DDP gradients,
+exact continuation and failure handling. Private sources and evidence remain
+outside Git. No new cluster job was submitted. GPU/multi-node execution,
+native historical-checkpoint import, the separate 90-epoch scaling recipe and
+paper-score reproduction remain unverified by this change. Record final local
+gates and CI separately in the PR; implementation is not score reproduction.
+
 ### 2026-10-10: frontier prediction evaluation; FSDP on hold
 
 PR 236 merged as `b518ed2`; all 115 checks succeeded and main matched the

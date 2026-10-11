@@ -98,7 +98,7 @@ def session(device_spec):
         if owned: dist.destroy_process_group()
 
 
-def cli(data,out,run,task,*,device_override=None):
+def cli(data,out,run,task,*,device_override=None,method_ref=None):
     cfg=json.loads(data); out=Path(out)
     with session(device_override or cfg['device']) as context:
         context.agree(contract.sha256_bytes(data))
@@ -113,7 +113,7 @@ def cli(data,out,run,task,*,device_override=None):
         except Exception:
             status='failed'; error=traceback.format_exc(limit=8)
         context.call(lambda:contract.write_manifest(out,task=task,
-            method_ref=str(cfg.get('backbone',{}).get('encoder') or 'fixture'),
+            method_ref=str(method_ref or cfg.get('backbone',{}).get('encoder') or 'fixture'),
             status=status,config_sha256=contract.sha256_bytes(data),started_at=started,finished_at=now(),
             seed=cfg.get('seed',0),backbone=cfg.get('backbone',{}),error=error),leader=True)
         return 0 if status=='ok' else 1
