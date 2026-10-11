@@ -1,0 +1,328 @@
+{
+  "targets": [
+    {
+      "label": "exact object keys",
+      "file": "downstream/frontier.py",
+      "old": "set(value) != set(keys)",
+      "new": "False",
+      "tests": [
+        "tests.test_frontier.FrontierEvaluation"
+      ]
+    },
+    {
+      "label": "list population",
+      "file": "downstream/frontier.py",
+      "old": "count is not None and len(value) != count",
+      "new": "False",
+      "tests": [
+        "tests.test_frontier.FrontierEvaluation"
+      ]
+    },
+    {
+      "label": "integer labels",
+      "file": "downstream/frontier.py",
+      "old": "type(v) is not int or v not in allowed",
+      "new": "v not in allowed",
+      "tests": [
+        "tests.test_frontier.FrontierEvaluation"
+      ]
+    },
+    {
+      "label": "allowed labels",
+      "file": "downstream/frontier.py",
+      "old": "type(v) is not int or v not in allowed",
+      "new": "type(v) is not int",
+      "tests": [
+        "tests.test_frontier.FrontierEvaluation"
+      ]
+    },
+    {
+      "label": "category uniqueness",
+      "file": "downstream/frontier.py",
+      "old": "if unique and len(set(values)) != len(values):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_frontier.FrontierEvaluation"
+      ]
+    },
+    {
+      "label": "coordinate type",
+      "file": "downstream/frontier.py",
+      "old": "type(coordinate) not in (int, float)",
+      "new": "False",
+      "tests": [
+        "tests.test_frontier.FrontierEvaluation"
+      ]
+    },
+    {
+      "label": "coordinate range",
+      "file": "downstream/frontier.py",
+      "old": "or not 0 <= coordinate <= 1",
+      "new": "or False",
+      "tests": [
+        "tests.test_frontier.FrontierEvaluation"
+      ]
+    },
+    {
+      "label": "input hash syntax",
+      "file": "downstream/frontier.py",
+      "old": "re.fullmatch(r\"[0-9a-f]{64}\", value) is None",
+      "new": "False",
+      "tests": [
+        "tests.test_frontier.FrontierEvaluation"
+      ]
+    },
+    {
+      "label": "depth target abstention",
+      "file": "downstream/frontier.py",
+      "old": "{0, 1, 2} if target else {0, 1, 2, 3}",
+      "new": "{0, 1, 2, 3}",
+      "tests": [
+        "tests.test_frontier.FrontierEvaluation"
+      ]
+    },
+    {
+      "label": "schema version type",
+      "file": "downstream/frontier.py",
+      "old": "type(manifest[\"schema_version\"]) is not int",
+      "new": "False",
+      "tests": [
+        "tests.test_frontier.FrontierEvaluation"
+      ]
+    },
+    {
+      "label": "schema version value",
+      "file": "downstream/frontier.py",
+      "old": "or manifest[\"schema_version\"] != 1",
+      "new": "or False",
+      "tests": [
+        "tests.test_frontier.FrontierEvaluation"
+      ]
+    },
+    {
+      "label": "vocabulary integer",
+      "file": "downstream/frontier.py",
+      "old": "type(v) is not int or v < 0",
+      "new": "v < 0",
+      "tests": [
+        "tests.test_frontier.FrontierEvaluation"
+      ]
+    },
+    {
+      "label": "vocabulary positive",
+      "file": "downstream/frontier.py",
+      "old": "type(v) is not int or v < 0",
+      "new": "type(v) is not int",
+      "tests": [
+        "tests.test_frontier.FrontierEvaluation"
+      ]
+    },
+    {
+      "label": "vocabulary uniqueness",
+      "file": "downstream/frontier.py",
+      "old": "or len(set(vocabulary)) != size",
+      "new": "or False",
+      "tests": [
+        "tests.test_frontier.FrontierEvaluation"
+      ]
+    },
+    {
+      "label": "sample uniqueness",
+      "file": "downstream/frontier.py",
+      "old": "or identifier in seen",
+      "new": "or False",
+      "tests": [
+        "tests.test_frontier.FrontierEvaluation"
+      ]
+    },
+    {
+      "label": "sample nonempty",
+      "file": "downstream/frontier.py",
+      "old": "or not identifier.strip()",
+      "new": "or False",
+      "tests": [
+        "tests.test_frontier.FrontierEvaluation"
+      ]
+    },
+    {
+      "label": "frame population",
+      "file": "downstream/frontier.py",
+      "old": "_list(sample[\"frame_sha256\"], 16)",
+      "new": "_list(sample[\"frame_sha256\"])",
+      "tests": [
+        "tests.test_frontier.FrontierEvaluation"
+      ]
+    },
+    {
+      "label": "point population",
+      "file": "downstream/frontier.py",
+      "old": "_list(sample[\"points\"], 32)",
+      "new": "_list(sample[\"points\"])",
+      "tests": [
+        "tests.test_frontier.FrontierEvaluation"
+      ]
+    },
+    {
+      "label": "pair population",
+      "file": "downstream/frontier.py",
+      "old": "_list(sample[\"pairs\"], 20)",
+      "new": "_list(sample[\"pairs\"])",
+      "tests": [
+        "tests.test_frontier.FrontierEvaluation"
+      ]
+    },
+    {
+      "label": "pair geometry",
+      "file": "downstream/frontier.py",
+      "old": "_list(pair, 2)",
+      "new": "_list(pair)",
+      "tests": [
+        "tests.test_frontier.FrontierEvaluation"
+      ]
+    },
+    {
+      "label": "response dataset",
+      "file": "downstream/frontier.py",
+      "old": "if response[\"dataset\"] != dataset:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_frontier.FrontierEvaluation"
+      ]
+    },
+    {
+      "label": "ordered identifiers",
+      "file": "downstream/frontier.py",
+      "old": "prediction[\"sample_id\"]\n                != samples[batch_index * 100 + offset][\"sample_id\"]",
+      "new": "False",
+      "tests": [
+        "tests.test_frontier.FrontierEvaluation"
+      ]
+    },
+    {
+      "label": "micro true positives",
+      "file": "downstream/frontier.py",
+      "old": "len(set(t) & set(p))",
+      "new": "len(set(t) | set(p))",
+      "tests": [
+        "tests.test_frontier.FrontierEvaluation"
+      ]
+    },
+    {
+      "label": "micro false positives",
+      "file": "downstream/frontier.py",
+      "old": "len(set(p) - set(t))",
+      "new": "0",
+      "tests": [
+        "tests.test_frontier.FrontierEvaluation"
+      ]
+    },
+    {
+      "label": "micro false negatives",
+      "file": "downstream/frontier.py",
+      "old": "len(set(t) - set(p))",
+      "new": "0",
+      "tests": [
+        "tests.test_frontier.FrontierEvaluation"
+      ]
+    },
+    {
+      "label": "micro weighting",
+      "file": "downstream/frontier.py",
+      "old": "2 * tp + fp + fn",
+      "new": "tp + fp + fn",
+      "tests": [
+        "tests.test_frontier.FrontierEvaluation"
+      ]
+    },
+    {
+      "label": "empty micro denominator",
+      "file": "downstream/frontier.py",
+      "old": "if denominator == 0:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_frontier.FrontierEvaluation"
+      ]
+    },
+    {
+      "label": "micro percent",
+      "file": "downstream/frontier.py",
+      "old": "score = 100 * 2 * tp / denominator",
+      "new": "score = 2 * tp / denominator",
+      "tests": [
+        "tests.test_frontier.FrontierEvaluation"
+      ]
+    },
+    {
+      "label": "accuracy correctness",
+      "file": "downstream/frontier.py",
+      "old": "a == b for t, p in zip(targets, predictions)",
+      "new": "a != b for t, p in zip(targets, predictions)",
+      "tests": [
+        "tests.test_frontier.FrontierEvaluation"
+      ]
+    },
+    {
+      "label": "accuracy denominator",
+      "file": "downstream/frontier.py",
+      "old": "decisions = sum(len(t) for t in targets)",
+      "new": "decisions = 500",
+      "tests": [
+        "tests.test_frontier.FrontierEvaluation"
+      ]
+    },
+    {
+      "label": "accuracy percent",
+      "file": "downstream/frontier.py",
+      "old": "score = 100 * correct / decisions",
+      "new": "score = correct / decisions",
+      "tests": [
+        "tests.test_frontier.FrontierEvaluation"
+      ]
+    },
+    {
+      "label": "manifest fingerprint",
+      "file": "downstream/frontier.py",
+      "old": "hashlib.sha256(canonical(manifest)).hexdigest()",
+      "new": "\"0\" * 64",
+      "tests": [
+        "tests.test_frontier.FrontierEvaluation"
+      ]
+    },
+    {
+      "label": "response fingerprints",
+      "file": "downstream/frontier.py",
+      "old": "hashlib.sha256(canonical(r)).hexdigest() for r in responses",
+      "new": "\"0\" * 64 for r in responses",
+      "tests": [
+        "tests.test_frontier.FrontierEvaluation"
+      ]
+    },
+    {
+      "label": "protect output",
+      "file": "downstream/frontier.py",
+      "old": "Path(args.out).open(\"x\", encoding=\"utf-8\")",
+      "new": "Path(args.out).open(\"w\", encoding=\"utf-8\")",
+      "tests": [
+        "tests.test_frontier.FrontierEvaluation"
+      ]
+    },
+    {
+      "label": "raw manifest fingerprint",
+      "file": "downstream/frontier.py",
+      "old": "hashlib.sha256(raw_manifest).hexdigest()",
+      "new": "\"0\" * 64",
+      "tests": [
+        "tests.test_frontier.FrontierEvaluation"
+      ]
+    },
+    {
+      "label": "raw response fingerprint",
+      "file": "downstream/frontier.py",
+      "old": "hashlib.sha256(raw).hexdigest() for raw in raw_responses",
+      "new": "\"0\" * 64 for raw in raw_responses",
+      "tests": [
+        "tests.test_frontier.FrontierEvaluation"
+      ]
+    }
+  ]
+}

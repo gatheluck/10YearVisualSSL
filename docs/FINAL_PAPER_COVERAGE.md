@@ -49,7 +49,7 @@ FSDP, GPU memory behavior and full-run measurements remain unverified.
 | C.12 Tables 36-38: BasicFive LP/AP/FT | Existing task runners, [five-family readers/native detection](BASIC5_NATIVE_PATHS.md), [K7](BASIC5_K7.md), [Omega](BASIC5_OMEGA.md) and [C-RADIO](BASIC5_RADIO.md) | Remaining recipes, full-size checkpoint/GPU validation and actual full-data measurements; blank/incomplete FT cells must stay distinct from completed runs |
 | C.13 Tables 39-40: Extended LP/AP, 45 datasets and five models | Tracked registries, protocol companions, [image](EXTENDED_CLASSIFICATION.md), [semantic](EXTENDED_SEGMENTATION.md), [video](EXTENDED_VIDEO.md), [detection](EXTENDED_DETECTION.md), [depth](EXTENDED_DEPTH.md), [flow](EXTENDED_FLOW.md), [structured](EXTENDED_STRUCTURED.md) and [DAVIS](EXTENDED_VOS.md) components for five providers, with explicit [accumulation/precision](EXTENDED_EXECUTION.md) | Remaining task families, native input builders, conflicting task/metric identities, legacy checkpoint import, released-weight distributed/CUDA parity and measured-run manifests; 81 catalog entries do not mean 81 measured datasets |
 | C.14 Table 41: six representative configurations | Per-method adapters and protocol documents | Different original protocols require separate recipe identities, not one inferred common leaderboard |
-| C.15 Table 42: frontier matched subsets | Supplied system prompts and protocol | Matched 500-sample manifests, raw outputs/retries, parsing, scoring and recomputation |
+| C.15 Table 42: frontier matched subsets | Supplied prompts and [five-task prediction evaluation](FRONTIER_EVALUATION.md) | Authentic matched manifests, model settings/raw outputs/retries, dense-output conversion and historical scorer/score equivalence |
 | D.1-D.3: pairplots, CTRL progress and DINO scaling | Selected extraction/training artifacts | Complete provenance-linked analysis inputs and plot regeneration |
 | E: scope, run accounting and protocols | Eight current companions, separate historical companions and registries | Final-epoch results, actual per-cell run counts, sample standard deviations and task-specific run-to-table evidence |
 
@@ -185,8 +185,14 @@ availability does not establish complete native-video or paper-score coverage.
    are not inferred from a completed status. This does not reproduce scores.
    The existing method linear-evaluation three-seed aggregator does not cover
    all downstream LP/AP/FT accounting described by E.1.
-5. Port frontier response parsing/scoring and matched-subset provenance, then
-   regenerate plots and table inputs from verified manifests.
+5. Reconcile frontier matched-subset provenance and original output conversion,
+   then regenerate plots and table inputs from verified manifests. The October 10
+   [frontier evaluator](FRONTIER_EVALUATION.md) now validates five 100-sample
+   response batches and scores all five manuscript interfaces against explicit
+   supplied targets. Original scoring code was not located in the inspected
+   sources; this implements the manuscript specification, not proven historical
+   scorer equivalence. It does not generate ground truth, call model APIs,
+   select retries, or certify the reported scores.
 
 ## Do not resolve these differences by guessing
 
