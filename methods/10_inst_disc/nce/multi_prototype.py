@@ -1,5 +1,6 @@
 """Four-slot instance bank, sharing the baseline NCE and coalescing rules."""
 import math
+
 import torch
 import torch.nn.functional as F
 
@@ -7,6 +8,10 @@ from .nce_loss import NCELoss
 
 
 class MultiPrototypeBank(NCELoss):
+    slot_initialized: torch.Tensor
+    assignment_counts: torch.Tensor
+    fill_counts: torch.Tensor
+
     def __init__(self, num_samples, feature_dim, temperature, momentum, num_negatives):
         torch.nn.Module.__init__(self)
         self.num_samples, self.feature_dim = num_samples, feature_dim
@@ -34,6 +39,8 @@ class MultiPrototypeBank(NCELoss):
 
     @torch.no_grad()
     def update_memory(self, z1, z2, indices):
+        packed, indices = self.gather_observations(torch.stack((z1.detach(), z2.detach()), dim=1), indices)
+        z1, z2 = packed.unbind(1)
         for z in (z1, z2):
             ids, features = self.unique_mean(z.detach(), indices)
             counts = self.slot_initialized[ids].sum(1)
@@ -49,3 +56,11 @@ class MultiPrototypeBank(NCELoss):
                 self.memory[rows, slots] = F.normalize(self.momentum * self.memory[rows, slots]
                     + (1 - self.momentum) * features, dim=1)
                 self.assignment_counts += torch.bincount(slots, minlength=4)
+        if self.distributed:
+            touched = torch.unique(indices, sorted=True)
+            for buffer in (self.memory, self.slot_initialized):
+                updated = buffer[touched]
+                torch.distributed.broadcast(updated, src=0)
+                buffer[touched] = updated
+            torch.distributed.broadcast(self.assignment_counts, src=0)
+            torch.distributed.broadcast(self.fill_counts, src=0)

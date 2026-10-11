@@ -7,9 +7,9 @@ L2-normalised embedding per training instance (Section 3.3):
     L = -log h(i, v_i) - sum_j log(1 - h(j, v_i))
 
 with Z a running estimate of the partition function. The lab wrapper carries
-DistributedDataParallel all-reduce/all-gather branches for multi-GPU training;
-they are dropped here for the single-process port, so the memory bank and its
-momentum update run on one device.
+DistributedDataParallel all-reduce/all-gather branches for multi-GPU training.
+They are explicitly enabled by the IDv2 distributed entry; legacy single-process
+callers retain local partition estimates and memory updates.
 """
 
 from __future__ import annotations
@@ -17,8 +17,9 @@ from __future__ import annotations
 import math
 
 import torch
-import torch.nn as nn
+import torch.distributed as dist
 import torch.nn.functional as F
+from torch import nn
 
 
 class NCELoss(nn.Module):
@@ -31,6 +32,10 @@ class NCELoss(nn.Module):
         momentum:      memory-bank update momentum (default 0.5).
         num_negatives: noise samples m per positive (default 4096).
     """
+
+    memory: torch.Tensor
+    Z: torch.Tensor
+    distributed = False
 
     def __init__(self, num_samples: int, feature_dim: int = 128,
                  temperature: float = 0.07, momentum: float = 0.5,
@@ -81,7 +86,14 @@ class NCELoss(nn.Module):
 
     def update_partition(self, out):
         with torch.no_grad():
-            batch_Z = out.detach().float().mean().mul(self.num_samples)
+            if self.distributed:
+                total = out.detach().float().sum()
+                count = total.new_tensor(out.numel())
+                dist.all_reduce(total)
+                dist.all_reduce(count)
+                batch_Z = (total / count).mul(self.num_samples)
+            else:
+                batch_Z = out.detach().float().mean().mul(self.num_samples)
             if self.Z.item() < 0:
                 self.Z.copy_(batch_Z)
             else:
@@ -91,11 +103,30 @@ class NCELoss(nn.Module):
     def update_memory(self, features: torch.Tensor,
                       indices: torch.Tensor) -> None:
         """Momentum-update the memory bank rows for the batch's instances."""
-        unique_idx, mean_features = self.unique_mean(features.detach(), indices)
+        features, indices = self.gather_observations(features.detach(), indices)
+        unique_idx, mean_features = self.unique_mean(features, indices)
         updated = F.normalize(
             self.momentum * self.memory[unique_idx]
             + (1 - self.momentum) * mean_features, dim=1)
+        if self.distributed:
+            dist.broadcast(updated, src=0)
         self.memory[unique_idx] = updated
+
+    def gather_observations(self, features, indices):
+        if not self.distributed:
+            return features, indices
+        gathered = []
+        for tensor in (features, indices):
+            peers = [torch.empty_like(tensor) for _ in range(dist.get_world_size())]
+            dist.all_gather(peers, tensor.contiguous())
+            gathered.append(torch.cat(peers))
+        return gathered
+
+    @torch.no_grad()
+    def synchronize_state(self):
+        if self.distributed:
+            for buffer in self.buffers():
+                dist.broadcast(buffer, src=0)
 
     @staticmethod
     def unique_mean(feats, indices):

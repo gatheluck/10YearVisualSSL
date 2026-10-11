@@ -72,7 +72,8 @@ L2-normalised, a single linear layer trained with SGD under a cosine schedule).
 The optional [IDv2 Step-4 profiles](../../docs/IDV2_COMPONENTS.md) add two-view,
 false-negative, EMA-bank, KoLeo, multicrop, multi-prototype and dense-ID component
 training through `arch: vit`. They include complete component checkpoint resume
-and backbone export. These are single-process FP32 paths, not verified full
+and backbone export. The explicit torchrun entry also supports FP32 DDP and
+same-world-size component continuation for all seven profiles. These are not verified full
 ImageNet scores or the native distributed recipes. The default path is unchanged.
 
 torch / torchvision / numpy / PyYAML — the self-contained methods' stack, no

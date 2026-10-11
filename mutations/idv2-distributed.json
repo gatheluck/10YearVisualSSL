@@ -1,0 +1,301 @@
+{
+  "targets": [
+    {
+      "label": "global partition sum",
+      "file": "methods/10_inst_disc/nce/nce_loss.py",
+      "old": "dist.all_reduce(total)",
+      "new": "pass",
+      "tests": [
+        "tests.test_idv2_distributed.Distributed"
+      ]
+    },
+    {
+      "label": "global partition population",
+      "file": "methods/10_inst_disc/nce/nce_loss.py",
+      "old": "dist.all_reduce(count)",
+      "new": "pass",
+      "tests": [
+        "tests.test_idv2_distributed.Distributed"
+      ]
+    },
+    {
+      "label": "gather before coalescing",
+      "file": "methods/10_inst_disc/nce/nce_loss.py",
+      "old": "features, indices = self.gather_observations(features.detach(), indices)",
+      "new": "features, indices = features.detach(), indices",
+      "tests": [
+        "tests.test_idv2_distributed.Distributed"
+      ]
+    },
+    {
+      "label": "rank-zero memory rows",
+      "file": "methods/10_inst_disc/nce/nce_loss.py",
+      "old": "dist.broadcast(updated, src=0)",
+      "new": "pass",
+      "tests": [
+        "tests.test_idv2_distributed.Distributed"
+      ]
+    },
+    {
+      "label": "initial buffer sync",
+      "file": "methods/10_inst_disc/nce/nce_loss.py",
+      "old": "dist.broadcast(buffer, src=0)",
+      "new": "pass",
+      "tests": [
+        "tests.test_idv2_distributed.Distributed"
+      ]
+    },
+    {
+      "label": "gather both prototype views",
+      "file": "methods/10_inst_disc/nce/multi_prototype.py",
+      "old": "packed, indices = self.gather_observations(torch.stack((z1.detach(), z2.detach()), dim=1), indices)",
+      "new": "packed = torch.stack((z1.detach(), z2.detach()), dim=1)",
+      "tests": [
+        "tests.test_idv2_distributed.Distributed"
+      ]
+    },
+    {
+      "label": "publish prototype rows and masks",
+      "file": "methods/10_inst_disc/nce/multi_prototype.py",
+      "old": "torch.distributed.broadcast(updated, src=0)",
+      "new": "pass",
+      "tests": [
+        "tests.test_idv2_distributed.Distributed"
+      ]
+    },
+    {
+      "label": "publish assignment counts",
+      "file": "methods/10_inst_disc/nce/multi_prototype.py",
+      "old": "torch.distributed.broadcast(self.assignment_counts, src=0)",
+      "new": "pass",
+      "tests": [
+        "tests.test_idv2_distributed.Distributed"
+      ]
+    },
+    {
+      "label": "publish fill counts",
+      "file": "methods/10_inst_disc/nce/multi_prototype.py",
+      "old": "torch.distributed.broadcast(self.fill_counts, src=0)",
+      "new": "pass",
+      "tests": [
+        "tests.test_idv2_distributed.Distributed"
+      ]
+    },
+    {
+      "label": "global neighbor gathering",
+      "file": "methods/10_inst_disc/idv2_components.py",
+      "old": "features = torch.cat(peers)",
+      "new": "features = features",
+      "tests": [
+        "tests.test_idv2_distributed.Distributed"
+      ]
+    },
+    {
+      "label": "keep local neighbor gradient",
+      "file": "methods/10_inst_disc/idv2_components.py",
+      "old": "peers[torch.distributed.get_rank()] = features",
+      "new": "peers[torch.distributed.get_rank()] = features.detach()",
+      "tests": [
+        "tests.test_idv2_distributed.Distributed"
+      ]
+    },
+    {
+      "label": "activate global KoLeo",
+      "file": "methods/10_inst_disc/idv2_components.py",
+      "old": "sum(koleo(z, bank.distributed) for z in embeddings)",
+      "new": "sum(koleo(z) for z in embeddings)",
+      "tests": [
+        "tests.test_idv2_distributed.Distributed"
+      ]
+    },
+    {
+      "label": "same resume source",
+      "file": "methods/10_inst_disc/idv2_components.py",
+      "old": "context.agree((cfg, args.resume))",
+      "new": "context.agree(cfg)",
+      "tests": [
+        "tests.test_idv2_distributed.Distributed"
+      ]
+    },
+    {
+      "label": "global batch divisibility",
+      "file": "methods/10_inst_disc/idv2_components.py",
+      "old": "if tr[\"batch_size\"] % world:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_idv2_distributed.Distributed"
+      ]
+    },
+    {
+      "label": "per-rank source batch",
+      "file": "methods/10_inst_disc/idv2_components.py",
+      "old": "batch_size=tr[\"batch_size\"] // world",
+      "new": "batch_size=tr[\"batch_size\"]",
+      "tests": [
+        "tests.test_idv2_distributed.Distributed"
+      ]
+    },
+    {
+      "label": "native sampler seed",
+      "file": "methods/10_inst_disc/idv2_components.py",
+      "old": "shuffle=True, seed=0",
+      "new": "shuffle=True, seed=cfg[\"seed\"]",
+      "tests": [
+        "tests.test_idv2_distributed.Distributed"
+      ]
+    },
+    {
+      "label": "epoch sampler advance",
+      "file": "methods/10_inst_disc/idv2_components.py",
+      "old": "sampler.set_epoch(epoch)",
+      "new": "sampler.set_epoch(0)",
+      "tests": [
+        "tests.test_idv2_distributed.Distributed"
+      ]
+    },
+    {
+      "label": "rank-specific torch seed",
+      "file": "methods/10_inst_disc/idv2_components.py",
+      "old": "make_deterministic(cfg[\"seed\"] + local)",
+      "new": "make_deterministic(cfg[\"seed\"])",
+      "tests": [
+        "tests.test_idv2_distributed.Distributed"
+      ]
+    },
+    {
+      "label": "resume membership",
+      "file": "methods/10_inst_disc/idv2_components.py",
+      "old": "state.get(\"world_size\") != world",
+      "new": "False",
+      "tests": [
+        "tests.test_idv2_distributed.Distributed"
+      ]
+    },
+    {
+      "label": "resume RNG completeness",
+      "file": "methods/10_inst_disc/idv2_components.py",
+      "old": "len(state.get(\"rank_rng\", [])) != world",
+      "new": "False",
+      "tests": [
+        "tests.test_idv2_distributed.Distributed"
+      ]
+    },
+    {
+      "label": "restore own rank RNG",
+      "file": "methods/10_inst_disc/idv2_components.py",
+      "old": "state[\"rank_rng\"][context.rank]",
+      "new": "state[\"rank_rng\"][0]",
+      "tests": [
+        "tests.test_idv2_distributed.Distributed"
+      ]
+    },
+    {
+      "label": "collective setup errors",
+      "file": "methods/10_inst_disc/idv2_components.py",
+      "old": "prepared = call(context, lambda: _prepare_components(args, cfg, context))",
+      "new": "prepared = _prepare_components(args, cfg, context)",
+      "tests": [
+        "tests.test_idv2_distributed.Distributed"
+      ]
+    },
+    {
+      "label": "enable bank collectives",
+      "file": "methods/10_inst_disc/idv2_components.py",
+      "old": "bank.distributed = True",
+      "new": "bank.distributed = False",
+      "tests": [
+        "tests.test_idv2_distributed.Distributed"
+      ]
+    },
+    {
+      "label": "mean reported global loss",
+      "file": "methods/10_inst_disc/idv2_components.py",
+      "old": "final_loss = mean.item() / world",
+      "new": "final_loss = mean.item()",
+      "tests": [
+        "tests.test_idv2_distributed.Distributed"
+      ]
+    },
+    {
+      "label": "reduce reported global loss",
+      "file": "methods/10_inst_disc/idv2_components.py",
+      "old": "torch.distributed.all_reduce(mean)",
+      "new": "pass",
+      "tests": [
+        "tests.test_idv2_distributed.Distributed"
+      ]
+    },
+    {
+      "label": "finite peer loss",
+      "file": "methods/10_inst_disc/idv2_distributed.py",
+      "old": "dist.all_reduce(flag, op=dist.ReduceOp.MIN)",
+      "new": "pass",
+      "tests": [
+        "tests.test_idv2_distributed.Distributed"
+      ]
+    },
+    {
+      "label": "finite loss refusal",
+      "file": "methods/10_inst_disc/idv2_distributed.py",
+      "old": "if not flag.item():",
+      "new": "if False:",
+      "tests": [
+        "tests.test_idv2_distributed.Distributed"
+      ]
+    },
+    {
+      "label": "one multicrop backward reduction",
+      "file": "methods/10_inst_disc/idv2_distributed.py",
+      "old": "return model.no_sync() if isinstance(model, DDP) and not last else nullcontext()",
+      "new": "return nullcontext()",
+      "tests": [
+        "tests.test_idv2_distributed.Distributed"
+      ]
+    },
+    {
+      "label": "explicit component profile",
+      "file": "methods/10_inst_disc/idv2_distributed.py",
+      "old": "if not cfg.get(\"profile\"):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_idv2_distributed.Distributed"
+      ]
+    },
+    {
+      "label": "rank-zero artifact delivery",
+      "file": "methods/10_inst_disc/idv2_distributed.py",
+      "old": "context.call(deliver, leader=True)",
+      "new": "context.call(lambda: None, leader=True)",
+      "tests": [
+        "tests.test_idv2_distributed.Distributed"
+      ]
+    },
+    {
+      "label": "required latest checkpoint",
+      "file": "methods/10_inst_disc/idv2_distributed.py",
+      "old": "if epoch is not None and not source.is_file():",
+      "new": "if not source.is_file():",
+      "tests": [
+        "tests.test_idv2_distributed.Distributed"
+      ]
+    },
+    {
+      "label": "truthful method reference",
+      "file": "downstream/extended_distributed.py",
+      "old": "method_ref=str(method_ref or cfg.get('backbone',{}).get('encoder') or 'fixture')",
+      "new": "method_ref=str(cfg.get('backbone',{}).get('encoder') or 'fixture')",
+      "tests": [
+        "tests.test_idv2_distributed.Distributed"
+      ]
+    },
+    {
+      "label": "complete output contract",
+      "file": "methods/10_inst_disc/idv2_distributed.py",
+      "old": "write_metrics(out, metrics, {\"epochs\": None, \"final_loss\": None})",
+      "new": "pass",
+      "tests": [
+        "tests.test_idv2_distributed.Distributed"
+      ]
+    }
+  ]
+}
