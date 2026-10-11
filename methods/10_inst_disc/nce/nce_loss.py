@@ -36,6 +36,7 @@ class NCELoss(nn.Module):
     memory: torch.Tensor
     Z: torch.Tensor
     distributed = False
+    partition_cap = None
 
     def __init__(self, num_samples: int, feature_dim: int = 128,
                  temperature: float = 0.07, momentum: float = 0.5,
@@ -94,10 +95,16 @@ class NCELoss(nn.Module):
                 batch_Z = (total / count).mul(self.num_samples)
             else:
                 batch_Z = out.detach().float().mean().mul(self.num_samples)
+            if self.partition_cap is not None:
+                batch_Z.clamp_(max=self.partition_cap)
+                if not torch.isfinite(self.Z).all():
+                    self.Z.fill_(-1)
             if self.Z.item() < 0:
                 self.Z.copy_(batch_Z)
             else:
                 self.Z.mul_(0.5).add_(batch_Z, alpha=0.5)
+            if self.partition_cap is not None:
+                self.Z.clamp_(max=self.partition_cap)
 
     @torch.no_grad()
     def update_memory(self, features: torch.Tensor,

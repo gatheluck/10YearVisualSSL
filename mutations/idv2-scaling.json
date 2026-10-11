@@ -1,0 +1,544 @@
+{
+  "targets": [
+    {
+      "label": "warmup clock",
+      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "old": "if step < 10000:",
+      "new": "if step < 1000:",
+      "tests": [
+        "tests.test_idv2_scaling.UpdateTests"
+      ]
+    },
+    {
+      "label": "fixed schedule",
+      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "old": "schedule(global_step, 90 * steps)",
+      "new": "schedule(global_step, config[\"epochs\"] * steps)",
+      "tests": [
+        "tests.test_idv2_scaling.UpdateTests"
+      ]
+    },
+    {
+      "label": "warmup first update",
+      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "old": "(step + 1) / 10000",
+      "new": "step / 10000",
+      "tests": [
+        "tests.test_idv2_scaling.UpdateTests"
+      ]
+    },
+    {
+      "label": "cosine",
+      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "old": "math.cos(math.pi * progress)",
+      "new": "math.cos(progress)",
+      "tests": [
+        "tests.test_idv2_scaling.UpdateTests"
+      ]
+    },
+    {
+      "label": "empty accumulation",
+      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "old": "if not batches or precision not in (\"float32\", \"bfloat16\"):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_idv2_scaling.UpdateTests"
+      ]
+    },
+    {
+      "label": "six views",
+      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "old": "if len(views) != 6:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_idv2_scaling.UpdateTests"
+      ]
+    },
+    {
+      "label": "CPU BF16 refusal",
+      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "old": "if precision == \"bfloat16\" and views[0].device.type != \"cuda\":",
+      "new": "if False:",
+      "tests": [
+        "tests.test_idv2_scaling.UpdateTests"
+      ]
+    },
+    {
+      "label": "average accumulated loss",
+      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "old": "(loss / len(batches)).backward()",
+      "new": "loss.backward()",
+      "tests": [
+        "tests.test_idv2_scaling.UpdateTests"
+      ]
+    },
+    {
+      "label": "mean six views",
+      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "old": "loss = torch.stack(terms).mean()",
+      "new": "loss = torch.stack(terms).sum()",
+      "tests": [
+        "tests.test_idv2_scaling.UpdateTests"
+      ]
+    },
+    {
+      "label": "global-only bank observation",
+      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "old": ".5 * (globals_[0].detach() + globals_[1].detach())",
+      "new": "globals_[0].detach()",
+      "tests": [
+        "tests.test_idv2_scaling.UpdateTests"
+      ]
+    },
+    {
+      "label": "single bank update",
+      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "old": "bank.update_memory(torch.cat(features), torch.cat(indices))",
+      "new": "bank.update_memory(features[-1], indices[-1])",
+      "tests": [
+        "tests.test_idv2_scaling.UpdateTests"
+      ]
+    },
+    {
+      "label": "dynamic resolutions",
+      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "old": "dynamic_img_size=True",
+      "new": "dynamic_img_size=False",
+      "tests": [
+        "tests.test_idv2_scaling.UpdateTests"
+      ]
+    },
+    {
+      "label": "checkpointing",
+      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "old": "self.encoder.set_grad_checkpointing(True)",
+      "new": "self.encoder.set_grad_checkpointing(False)",
+      "tests": [
+        "tests.test_idv2_scaling.UpdateTests"
+      ]
+    },
+    {
+      "label": "CLS readout",
+      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "old": "self.encoder.forward_features(x)[:, 0]",
+      "new": "self.encoder.forward_features(x).mean(1)",
+      "tests": [
+        "tests.test_idv2_scaling.UpdateTests"
+      ]
+    },
+    {
+      "label": "config key set",
+      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "old": "if set(config) != keys:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_idv2_scaling.UpdateTests"
+      ]
+    },
+    {
+      "label": "positive recipe settings",
+      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "old": "if type(config[key]) is not int or config[key] < minimum:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_idv2_scaling.UpdateTests"
+      ]
+    },
+    {
+      "label": "90 epoch endpoint",
+      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "old": "if config[\"epochs\"] > 90:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_idv2_scaling.UpdateTests"
+      ]
+    },
+    {
+      "label": "preset validation",
+      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "old": "if config[\"model\"] not in (\"vit_base_patch16_224\", \"vit_large_patch16_224\"):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_idv2_scaling.UpdateTests"
+      ]
+    },
+    {
+      "label": "explicit device",
+      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "old": "if config[\"device\"] not in (\"cpu\", \"cuda\") or config[\"precision\"] not in (\"float32\", \"bfloat16\"):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_idv2_scaling.UpdateTests"
+      ]
+    },
+    {
+      "label": "precision device coupling",
+      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "old": "if config[\"precision\"] == \"bfloat16\" and config[\"device\"] != \"cuda\":",
+      "new": "if False:",
+      "tests": [
+        "tests.test_idv2_scaling.UpdateTests"
+      ]
+    },
+    {
+      "label": "complete accumulation only",
+      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "old": "steps = len(loader) // config[\"accum\"]",
+      "new": "steps = len(loader)",
+      "tests": [
+        "tests.test_idv2_scaling.UpdateTests"
+      ]
+    },
+    {
+      "label": "empty update population",
+      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "old": "if not steps:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_idv2_scaling.UpdateTests"
+      ]
+    },
+    {
+      "label": "fixed NCE settings",
+      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "old": "ScalingBank(len(dataset), 128, .07, .5, 4096)",
+      "new": "ScalingBank(len(dataset), 128, .1, .5, 4096)",
+      "tests": [
+        "tests.test_idv2_scaling.UpdateTests"
+      ]
+    },
+    {
+      "label": "fixed AdamW decay",
+      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "old": "lr=.0006, weight_decay=.05",
+      "new": "lr=.0006, weight_decay=0.",
+      "tests": [
+        "tests.test_idv2_scaling.UpdateTests"
+      ]
+    },
+    {
+      "label": "resume version",
+      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "old": "state.get(\"scaling_version\") != 1",
+      "new": "False",
+      "tests": [
+        "tests.test_idv2_scaling.UpdateTests"
+      ]
+    },
+    {
+      "label": "resume contract",
+      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "old": "state.get(\"contract\") != contract",
+      "new": "False",
+      "tests": [
+        "tests.test_idv2_scaling.UpdateTests"
+      ]
+    },
+    {
+      "label": "resume endpoint",
+      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "old": "not 0 <= state[\"epoch\"] < epochs - 1",
+      "new": "False",
+      "tests": [
+        "tests.test_idv2_scaling.UpdateTests"
+      ]
+    },
+    {
+      "label": "resume step clock",
+      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "old": "state.get(\"global_step\") != (state[\"epoch\"] + 1) * steps",
+      "new": "False",
+      "tests": [
+        "tests.test_idv2_scaling.UpdateTests"
+      ]
+    },
+    {
+      "label": "resume rank RNG",
+      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "old": "len(state.get(\"rank_rng\", [])) != context.world",
+      "new": "False",
+      "tests": [
+        "tests.test_idv2_scaling.UpdateTests"
+      ]
+    },
+    {
+      "label": "resume complete AdamW",
+      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "old": "len(adam.get(\"state\", {})) != len(list(model.parameters()))",
+      "new": "False",
+      "tests": [
+        "tests.test_idv2_scaling.UpdateTests"
+      ]
+    },
+    {
+      "label": "restore optimizer",
+      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "old": "optimizer.load_state_dict(adam)",
+      "new": "pass",
+      "tests": [
+        "tests.test_idv2_scaling.UpdateTests"
+      ]
+    },
+    {
+      "label": "restore bank",
+      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "old": "bank.load_state_dict(state[\"bank\"])",
+      "new": "pass",
+      "tests": [
+        "tests.test_idv2_scaling.UpdateTests"
+      ]
+    },
+    {
+      "label": "restore RNG",
+      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "old": "restore_rng(state[\"rank_rng\"][context.rank], generator, context.device)",
+      "new": "pass",
+      "tests": [
+        "tests.test_idv2_scaling.UpdateTests"
+      ]
+    },
+    {
+      "label": "health before publish",
+      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "old": "0.0 if healthy else float(\"nan\")",
+      "new": "0.0",
+      "tests": [
+        "tests.test_idv2_scaling.UpdateTests"
+      ]
+    },
+    {
+      "label": "milestone retention",
+      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "old": "if epoch + 1 in (30, 60, 90):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_idv2_scaling.UpdateTests"
+      ]
+    },
+    {
+      "label": "metrics delivery",
+      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "old": "write_metrics(out, metrics, {k: None for k in metrics})",
+      "new": "pass",
+      "tests": [
+        "tests.test_idv2_scaling.UpdateTests"
+      ]
+    },
+    {
+      "label": "method identity",
+      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "old": "method_ref=\"idv2_scaling\"",
+      "new": "method_ref=\"fixture\"",
+      "tests": [
+        "tests.test_idv2_scaling.UpdateTests"
+      ]
+    },
+    {
+      "label": "one gradient reduction per group",
+      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "old": "with view_context(model, micro == len(batches) - 1):",
+      "new": "with nullcontext():",
+      "tests": [
+        "tests.test_idv2_scaling.DistributedTests"
+      ]
+    },
+    {
+      "label": "drop sampler tail",
+      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "old": "seed=config[\"seed\"], drop_last=True",
+      "new": "seed=config[\"seed\"], drop_last=False",
+      "tests": [
+        "tests.test_idv2_scaling.DistributedTests"
+      ]
+    },
+    {
+      "label": "bank collectives",
+      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "old": "bank.distributed = context.world > 1",
+      "new": "bank.distributed = False",
+      "tests": [
+        "tests.test_idv2_scaling.DistributedTests"
+      ]
+    },
+    {
+      "label": "rank RNG ownership",
+      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "old": "state[\"rank_rng\"][context.rank]",
+      "new": "state[\"rank_rng\"][0]",
+      "tests": [
+        "tests.test_idv2_scaling.DistributedTests"
+      ]
+    },
+    {
+      "label": "collective read failure",
+      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "old": "batches = context.call(read)",
+      "new": "batches = read()",
+      "tests": [
+        "tests.test_idv2_scaling.DistributedTests"
+      ]
+    },
+    {
+      "label": "cap observation before EMA",
+      "file": "methods/10_inst_disc/nce/nce_loss.py",
+      "old": "batch_Z.clamp_(max=self.partition_cap)",
+      "new": "pass",
+      "tests": [
+        "tests.test_idv2_scaling.UpdateTests"
+      ]
+    },
+    {
+      "label": "repair invalid partition",
+      "file": "methods/10_inst_disc/nce/nce_loss.py",
+      "old": "self.Z.fill_(-1)",
+      "new": "pass",
+      "tests": [
+        "tests.test_idv2_scaling.UpdateTests"
+      ]
+    },
+    {
+      "label": "required identity",
+      "file": "methods/10_inst_disc/data/indexed_tar.py",
+      "old": "if not isinstance(row.get(key), str) or not row[key]:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_idv2_scaling.InputTests"
+      ]
+    },
+    {
+      "label": "relative tar path",
+      "file": "methods/10_inst_disc/data/indexed_tar.py",
+      "old": "if path.is_absolute() or \"..\" in path.parts:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_idv2_scaling.InputTests"
+      ]
+    },
+    {
+      "label": "integer byte bounds",
+      "file": "methods/10_inst_disc/data/indexed_tar.py",
+      "old": "if type(row.get(key)) is not int or row[key] < minimum:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_idv2_scaling.InputTests"
+      ]
+    },
+    {
+      "label": "contiguous bank identity",
+      "file": "methods/10_inst_disc/data/indexed_tar.py",
+      "old": "if \"instance_id\" in row and (type(row[\"instance_id\"]) is not int or row[\"instance_id\"] != index):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_idv2_scaling.InputTests"
+      ]
+    },
+    {
+      "label": "frozen manifest ordering",
+      "file": "methods/10_inst_disc/data/indexed_tar.py",
+      "old": "row[\"instance_id\"] = count",
+      "new": "row[\"instance_id\"] = count + 1",
+      "tests": [
+        "tests.test_idv2_scaling.InputTests"
+      ]
+    },
+    {
+      "label": "validation prefix exclusion",
+      "file": "methods/10_inst_disc/data/indexed_tar.py",
+      "old": "name.startswith(\"ILSVRC2012_val_\")",
+      "new": "False",
+      "tests": [
+        "tests.test_idv2_scaling.InputTests"
+      ]
+    },
+    {
+      "label": "validation stem exclusion",
+      "file": "methods/10_inst_disc/data/indexed_tar.py",
+      "old": "Path(name).stem in names",
+      "new": "False",
+      "tests": [
+        "tests.test_idv2_scaling.InputTests"
+      ]
+    },
+    {
+      "label": "empty population",
+      "file": "methods/10_inst_disc/data/indexed_tar.py",
+      "old": "if not count:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_idv2_scaling.InputTests"
+      ]
+    },
+    {
+      "label": "payload gzip decoding",
+      "file": "methods/10_inst_disc/data/indexed_tar.py",
+      "old": "payload = gzip.decompress(payload)",
+      "new": "payload = payload",
+      "tests": [
+        "tests.test_idv2_scaling.InputTests"
+      ]
+    },
+    {
+      "label": "input untouched",
+      "file": "methods/10_inst_disc/data/indexed_tar.py",
+      "old": "output.mkdir(parents=True, exist_ok=False)",
+      "new": "output.mkdir(parents=True, exist_ok=True)",
+      "tests": [
+        "tests.test_idv2_scaling.InputTests"
+      ]
+    },
+    {
+      "label": "empty manifest",
+      "file": "methods/10_inst_disc/data/indexed_tar.py",
+      "old": "if not self.entries:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_idv2_scaling.InputTests"
+      ]
+    },
+    {
+      "label": "input output overlap",
+      "file": "methods/10_inst_disc/data/indexed_tar.py",
+      "old": "if output.is_relative_to(source) or source.is_relative_to(output):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_idv2_scaling.UpdateTests"
+      ]
+    },
+    {
+      "label": "encoder version",
+      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "old": "export.get(\"scaling_encoder_version\") != 1",
+      "new": "False",
+      "tests": [
+        "tests.test_idv2_scaling.UpdateTests"
+      ]
+    },
+    {
+      "label": "encoder readout identity",
+      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "old": "export.get(\"readout\") != \"cls\"",
+      "new": "False",
+      "tests": [
+        "tests.test_idv2_scaling.UpdateTests"
+      ]
+    },
+    {
+      "label": "strict exported weights",
+      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "old": "model.encoder.load_state_dict(export[\"state_dict\"], strict=True)",
+      "new": "model.encoder.load_state_dict(export[\"state_dict\"], strict=False)",
+      "tests": [
+        "tests.test_idv2_scaling.UpdateTests"
+      ]
+    },
+    {
+      "label": "restore exported weights",
+      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "old": "model.encoder.load_state_dict(export[\"state_dict\"], strict=True)",
+      "new": "pass",
+      "tests": [
+        "tests.test_idv2_scaling.UpdateTests"
+      ]
+    }
+  ]
+}

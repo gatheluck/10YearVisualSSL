@@ -12,6 +12,23 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-10-11: IDv2 ImageNet-21k scaling execution
+
+PR 238 merged as `8a7b62e`; all 115 checks succeeded, and pulled main matched
+the previously validated tree. Existing video-submodule edits are preserved.
+The owner-confirmation-dependent FSDP issue remains on hold.
+
+All 13 inspected scaling source/configuration files match Capture and the
+current original workspace. The separate [90-epoch scaling entry](IDV2_SCALING.md)
+adds indexed-tar membership/exclusions, accumulated six-view training, the
+optimizer-step schedule, explicit precision, DDP, epoch continuation and delivery.
+Reduced original-source comparisons match inputs, model wrappers and three
+optimizer updates. Source gray-image fallback and nonfinite continuation are
+explicitly refused; native mid-epoch resume is not claimed. No cluster job was
+submitted. Private evidence remains outside Git. GPU/full-data/multi-host runs,
+native checkpoint import and score correspondence remain unverified. Record
+final gates and CI separately in the PR and stop for review.
+
 ### 2026-10-11: distributed IDv2 components
 
 PR 237 merged as `e544e5a`; all 115 checks succeeded and main matched the

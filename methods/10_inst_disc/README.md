@@ -105,3 +105,8 @@ closure as `14_simclrv1`: identical floors, identical resolution).
 Success is exit status 0 and `status: "ok"` in `out/run_manifest.json`. The
 linear_eval stage writes `metrics.json` and **no** `encoder.pt`; the manifest
 carries `encoder_absent_reason`.
+
+The separate [ImageNet-21k scaling entry](../../docs/IDV2_SCALING.md) supports
+indexed-tar inputs and the 90-epoch accumulated multicrop recipe for ViT-B/L,
+with explicit precision and portable epoch continuation. Full-data/GPU score
+reproduction remains unverified.

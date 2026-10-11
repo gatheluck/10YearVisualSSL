@@ -352,7 +352,8 @@ configuration, device type, world size, complete optimizer state and loader
 length, with a larger epoch endpoint and a fresh output location. The ordinary
 single-process version-1 checkpoints and native historical checkpoints are not
 interchangeable with version 2. Both modes preserve the fixed 300-epoch horizon;
-this does not port a distinct 90-epoch scaling recipe.
+use the separate [90-epoch scaling entry](IDV2_SCALING.md) for its indexed inputs,
+accumulation and optimizer-step schedule.
 
 Portability differences remain explicit: this entry is deterministic FP32,
 seeds Python/NumPy and a dedicated loader generator, uses the package's dataset
