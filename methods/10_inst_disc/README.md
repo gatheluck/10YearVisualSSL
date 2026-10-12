@@ -110,3 +110,8 @@ The separate [ImageNet-21k scaling entry](../../docs/IDV2_SCALING.md) supports
 indexed-tar inputs and the 90-epoch accumulated multicrop recipe for ViT-B/L,
 with explicit precision and portable epoch continuation. Full-data/GPU score
 reproduction remains unverified.
+
+The separate [ImageNet-1k ViT-L scaling profile](../../docs/IDV2_SCALING.md#imagenet-1k-vit-l-300-epoch-profile)
+uses frozen ImageFolder inputs, a 300-epoch schedule and retained 100/200/300
+exports. It reuses the scaling entry; BasicFive integration and score reproduction
+remain distinct work.

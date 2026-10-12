@@ -134,5 +134,54 @@ Private provenance and original paths remain outside Git.
 
 CUDA BF16 numerics, CUDA continuation, 32-rank/multi-host operation, full prepared
 data, native historical-checkpoint import and paper-score correspondence remain
-unverified. This component does not port the separate 300-epoch ViT-L scaling
-campaign, DINO scaling or visualization/result-accounting pipelines.
+unverified. The later section adds the separate 300-epoch ViT-L training profile.
+DINO scaling and visualization/result-accounting pipelines remain separate.
+
+## ImageNet-1k ViT-L, 300-epoch profile
+
+Added 2026-10-12 for the separate Table 19 IN-1K ViT-L rows at epochs
+100/200/300. Original experimental code and configuration exist and were
+compared read-only with the current workspace (14 files matched the capture).
+Use [the IN-1K configuration](../methods/10_inst_disc/configs/idv2_scaling_in1k_vitl.json)
+with the same module invocation above. This profile requires
+`profile: in1k300_vitl` and `model: vit_large_patch16_224`. Here `prepared_root`
+is the ImageFolder **training split**, not an indexed-tar root;
+`validation_root` is the validation split. Labels are retained for provenance,
+not used in the self-supervised loss.
+
+The source order is torchvision ImageFolder order. Freeze relative filenames,
+class indices/names and contiguous instance IDs in a fresh membership directory.
+Exclude validation **basenames** and names beginning `ILSVRC2012_val_`; a matching
+stem with a different extension is not excluded by this recipe. This differs
+from the 21k input rule. Neither rule proves content-level deduplication. The
+portable reader rejects corrupt images and escaping paths rather than using the
+source's gray-image fallback. Keep image bytes immutable: membership hashes
+identify the list, not every image's content. No dataset download is performed.
+
+Model/readout, six views, negative sampling, partition cap, delayed global-only
+bank update and AdamW reuse the preceding scaling execution. The differences are
+an immutable **300-epoch optimizer-update horizon**, **10 epochs of warmup**
+(`10 * complete_updates_per_epoch`, not 10,000 updates), and checkpoint/export
+retention at **100/200/300**. A lower `epochs` value stops early without shortening
+the schedule. Source configuration uses seed 0, microbatch 8, accumulation 4 and
+32 ranks (global batch 1024). Other explicit component launch sizes record their
+actual batch; they do not reproduce that physical allocation. The runner never
+selects a cluster queue.
+
+Same-world-size portable epoch continuation includes the profile, membership
+and 300-epoch clock in its compatibility check. Existing 21k configurations
+without `profile` continue to select `in21k90` and retain their previous schedule,
+checkpoint contract and export format. Explicitly adding/removing a profile key
+changes the exact continuation configuration and requires a new run. Native
+checkpoint import and mid-epoch continuation remain outside this interface.
+
+Tests first exposed absent folder input and refusal of the new recipe. Native
+comparisons match frozen manifest bytes, all six augmented tensors, schedule
+boundaries, reduced-model initialization/outputs/gradients, and three accumulated
+AdamW/bank updates. Tests also compare uninterrupted and resumed model, bank and
+optimizer state, exercise two CPU ranks with collective read-error handling, and
+verify delivery and retention at all three milestones. Milestone tests use
+synthetic epoch counters; they are **not** 100/200/300-epoch training evidence.
+Record mutation, Linux, whole-suite and CI results in the PR. This closes the
+training-entry gap, not BasicFive evaluation integration, native checkpoint
+conversion, CUDA/full-data training or reproduction of any reported table value.

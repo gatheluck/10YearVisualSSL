@@ -1,4 +1,4 @@
-"""Separate 90-epoch IDv2 multicrop scaling execution, not a score assertion."""
+"""Explicit IDv2 multicrop scaling recipes, not a score assertion."""
 import argparse
 import json
 import math
@@ -17,10 +17,10 @@ from downstream.contract import write_metrics
 from downstream.extended_distributed import cli, session
 
 
-def schedule(step, total_steps):
-    if step < 10000:
-        return max(.0006 * (step + 1) / 10000, 1e-8)
-    progress = min(max((step - 10000) / max(total_steps - 10000, 1), 0), 1)
+def schedule(step, total_steps, warmup_steps=10000):
+    if step < warmup_steps:
+        return max(.0006 * (step + 1) / warmup_steps, 1e-8)
+    progress = min(max((step - warmup_steps) / max(total_steps - warmup_steps, 1), 0), 1)
     return .0003 * (1 + math.cos(math.pi * progress))
 
 
@@ -89,16 +89,26 @@ def load_encoder(path):
     return _ClsFeature(model.encoder)
 
 
+def recipe(config):
+    profile = config.get("profile", "in21k90")
+    if profile not in ("in21k90", "in1k300_vitl"):
+        raise ValueError("unknown scaling profile")
+    return profile, 300 if profile == "in1k300_vitl" else 90
+
+
 def validate(config):
     keys = {"device", "seed", "model", "precision", "prepared_root", "validation_root",
             "epochs", "microbatch", "accum", "num_workers", "resume"}
-    if set(config) != keys:
+    profile, horizon = recipe(config)
+    if set(config) - {"profile"} != keys:
         raise ValueError("scaling requires exactly the documented configuration keys")
     for key, minimum in (("seed", 0), ("epochs", 1), ("microbatch", 1), ("accum", 1), ("num_workers", 0)):
         if type(config[key]) is not int or config[key] < minimum:
             raise ValueError(f"invalid scaling {key}")
-    if config["epochs"] > 90:
-        raise ValueError("scaling endpoint must not exceed 90 epochs")
+    if config["epochs"] > horizon:
+        raise ValueError("scaling endpoint exceeds recipe horizon")
+    if profile == "in1k300_vitl" and config["model"] != "vit_large_patch16_224":
+        raise ValueError("ImageNet-1k scaling requires ViT-L/16")
     if config["model"] not in ("vit_base_patch16_224", "vit_large_patch16_224"):
         raise ValueError("scaling requires the ViT-B/16 or ViT-L/16 preset")
     if config["device"] not in ("cpu", "cuda") or config["precision"] not in ("float32", "bfloat16"):
@@ -114,7 +124,9 @@ def _setup(config, out, context):
     if context.device.type == "cuda":
         torch.cuda.manual_seed(seed)
     generator = torch.Generator().manual_seed(seed)
-    dataset = IndexedTarDataset(out / "membership/TRAIN_MANIFEST.jsonl", config["prepared_root"], Views(224, 96))
+    from data.imagefolder_scaling import FrozenImageFolder
+    reader = FrozenImageFolder if recipe(config)[0] == "in1k300_vitl" else IndexedTarDataset
+    dataset = reader(out / "membership/TRAIN_MANIFEST.jsonl", config["prepared_root"], Views(224, 96))
     sampler = torch.utils.data.DistributedSampler(dataset, num_replicas=context.world,
         rank=context.rank, shuffle=True, seed=config["seed"], drop_last=True) if context.world > 1 else None
     loader = torch.utils.data.DataLoader(dataset, batch_size=config["microbatch"], sampler=sampler,
@@ -149,7 +161,11 @@ def _restore(source, contract, model, bank, optimizer, generator, context, epoch
 
 
 def run(config, out):
+    from data.imagefolder_scaling import freeze as freeze_folder
     from data.indexed_tar import freeze, validate_output
+    profile, horizon = recipe(config)
+    if profile == "in1k300_vitl":
+        freeze = freeze_folder
     out = Path(out).resolve()
     with session(config["device"]) as context:
         context.agree(config)
@@ -162,7 +178,7 @@ def run(config, out):
         model, bank, optimizer, loader, sampler, generator, steps = context.call(lambda: _setup(config, out, context))
         contract = {k: v for k, v in config.items() if k not in ("epochs", "resume")}
         contract.update(manifest_sha256=meta["manifest_sha256"], world_size=context.world,
-                        steps_per_epoch=steps, schedule_epochs=90)
+                        steps_per_epoch=steps, schedule_epochs=horizon)
         context.agree(contract)
         start, global_step = context.call(lambda: _restore(source, contract, model, bank, optimizer,
                                                           generator, context, config["epochs"], steps))
@@ -185,7 +201,8 @@ def run(config, out):
                     return batches
                 batches = context.call(read)
                 for group in optimizer.param_groups:
-                    group["lr"] = schedule(global_step, 90 * steps)
+                    group["lr"] = (schedule(global_step, 300 * steps, warmup_steps=10 * steps)
+                                   if profile == "in1k300_vitl" else schedule(global_step, 90 * steps))
                 losses.append(train_step(model, bank, optimizer, batches, config["precision"]))
                 global_step += 1
             healthy = all(bool(torch.isfinite(value).all()) for module in (raw, bank)
@@ -210,7 +227,8 @@ def run(config, out):
                 export = {"scaling_encoder_version": 1, "model": config["model"],
                           "readout": "cls", "state_dict": encoder, "canonical_eligible": False}
                 torch.save(export, out / "encoder.pt")
-                if epoch + 1 in (30, 60, 90):
+                milestones = (100, 200, 300) if profile == "in1k300_vitl" else (30, 60, 90)
+                if epoch + 1 in milestones:
                     torch.save(state, out / f"checkpoint_epoch_{epoch + 1}.pth")
                     torch.save(export, out / f"encoder_epoch{epoch + 1}.pt")
             context.call(save, leader=True)
@@ -220,7 +238,8 @@ def run(config, out):
             (out / "results.json").write_text(json.dumps({**metrics, "canonical_eligible": False,
                 "global_batch_size": context.world * config["microbatch"] * config["accum"],
                 "optimizer_steps_per_epoch": steps, "dropped_microbatches_per_rank": len(loader) % config["accum"],
-                "precision": config["precision"], "manifest_sha256": meta["manifest_sha256"]}, indent=2) + "\n")
+                "precision": config["precision"], "manifest_sha256": meta["manifest_sha256"],
+                "profile": profile, "schedule_epochs": horizon}, indent=2) + "\n")
         context.call(deliver, leader=True)
 
 

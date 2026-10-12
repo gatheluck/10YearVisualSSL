@@ -12,6 +12,21 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-10-12: IDv2 ImageNet-1k ViT-L scaling execution
+
+PR 239 merged as `ee9b2fc`; all 115 checks passed after the one disconnected
+runner was rerun unchanged. Pulled main matched the validated tree. Existing
+video-submodule changes and the owner-held FSDP discrepancy remain untouched.
+
+The [separate 300-epoch recipe](IDV2_SCALING.md#imagenet-1k-vit-l-300-epoch-profile)
+now uses frozen ImageFolder membership, its own exclusion rule, ten-epoch update
+warmup, retained 100/200/300 exports and portable distributed continuation.
+Fourteen source/configuration files match refreshed original inputs. Reduced
+reference comparisons match inputs, model behavior and updates. Corrupt-image
+fallback is explicitly refused. No cluster job was submitted. BasicFive export
+integration, native checkpoint import and full-data/GPU score reproduction remain
+separate. Record final gates and CI in the PR; private evidence stays outside Git.
+
 ### 2026-10-11: IDv2 ImageNet-21k scaling execution
 
 PR 238 merged as `8a7b62e`; all 115 checks succeeded, and pulled main matched
