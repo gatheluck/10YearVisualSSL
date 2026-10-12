@@ -3,7 +3,7 @@
     {
       "label": "warmup clock",
       "file": "methods/10_inst_disc/idv2_scaling.py",
-      "old": "if step < 10000:",
+      "old": "if step < warmup_steps:",
       "new": "if step < 1000:",
       "tests": [
         "tests.test_idv2_scaling.UpdateTests"
@@ -21,8 +21,8 @@
     {
       "label": "warmup first update",
       "file": "methods/10_inst_disc/idv2_scaling.py",
-      "old": "(step + 1) / 10000",
-      "new": "step / 10000",
+      "old": "(step + 1) / warmup_steps",
+      "new": "step / warmup_steps",
       "tests": [
         "tests.test_idv2_scaling.UpdateTests"
       ]
@@ -129,7 +129,7 @@
     {
       "label": "config key set",
       "file": "methods/10_inst_disc/idv2_scaling.py",
-      "old": "if set(config) != keys:",
+      "old": "if set(config) - {\"profile\"} != keys:",
       "new": "if False:",
       "tests": [
         "tests.test_idv2_scaling.UpdateTests"
@@ -147,7 +147,7 @@
     {
       "label": "90 epoch endpoint",
       "file": "methods/10_inst_disc/idv2_scaling.py",
-      "old": "if config[\"epochs\"] > 90:",
+      "old": "if config[\"epochs\"] > horizon:",
       "new": "if False:",
       "tests": [
         "tests.test_idv2_scaling.UpdateTests"
@@ -309,7 +309,7 @@
     {
       "label": "milestone retention",
       "file": "methods/10_inst_disc/idv2_scaling.py",
-      "old": "if epoch + 1 in (30, 60, 90):",
+      "old": "if epoch + 1 in milestones:",
       "new": "if False:",
       "tests": [
         "tests.test_idv2_scaling.UpdateTests"

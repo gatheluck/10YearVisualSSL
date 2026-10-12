@@ -358,7 +358,7 @@ class UpdateTests(unittest.TestCase):
             self.assertFalse((out / "checkpoint_latest.pth").exists())
 
 
-def distributed_worker(root):
+def distributed_worker(root, in1k=False):
     from datetime import timedelta
 
     import torch as t
@@ -368,6 +368,8 @@ def distributed_worker(root):
     root = Path(root); rank = int(os.environ["RANK"])
     t.distributed.init_process_group("gloo", timeout=timedelta(seconds=20))
     cfg = tiny_config(root)
+    if in1k:
+        cfg.update(profile="in1k300_vitl", model="vit_large_patch16_224")
     with session("cpu") as context, mock.patch.object(mod, "build_model", side_effect=tiny_model):
         # Compare DDP's accumulated gradient to explicit per-parameter averaging.
         from idv2_components import Normalize
@@ -421,12 +423,14 @@ def distributed_worker(root):
         # Source read errors must reach every rank before gradient collectives.
         out = root / "read-failure"; context.call(lambda out=out: out.mkdir(), leader=True)
         import data.indexed_tar as indexed
-        original = indexed.IndexedTarDataset.__getitem__
+        from data.imagefolder_scaling import FrozenImageFolder
+        reader = FrozenImageFolder if in1k else indexed.IndexedTarDataset
+        original = reader.__getitem__
         def fail(self, index):
             if rank == 1:
                 raise ValueError("rank-local unreadable sample")
             return original(self, index)
-        with mock.patch.object(indexed.IndexedTarDataset, "__getitem__", fail):
+        with mock.patch.object(reader, "__getitem__", fail):
             try:
                 mod.run(cfg, out)
             except RuntimeError as exc:
@@ -460,4 +464,4 @@ class DistributedTests(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    distributed_worker(sys.argv[1])
+    distributed_worker(sys.argv[1], in1k=len(sys.argv) > 2)

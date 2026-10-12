@@ -1,0 +1,14 @@
+{
+  "device": "cuda",
+  "seed": 0,
+  "model": "vit_large_patch16_224",
+  "precision": "bfloat16",
+  "prepared_root": "/path/to/imagenet/train",
+  "validation_root": "/path/to/imagenet1k/val",
+  "epochs": 300,
+  "microbatch": 8,
+  "accum": 4,
+  "num_workers": 8,
+  "resume": null,
+  "profile": "in1k300_vitl"
+}
