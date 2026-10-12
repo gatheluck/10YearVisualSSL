@@ -101,7 +101,7 @@
     },
     {
       "label": "dynamic resolutions",
-      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "file": "methods/10_inst_disc/models/scaling_encoder.py",
       "old": "dynamic_img_size=True",
       "new": "dynamic_img_size=False",
       "tests": [
@@ -506,8 +506,8 @@
     },
     {
       "label": "encoder version",
-      "file": "methods/10_inst_disc/idv2_scaling.py",
-      "old": "export.get(\"scaling_encoder_version\") != 1",
+      "file": "methods/10_inst_disc/models/scaling_encoder.py",
+      "old": "export[\"scaling_encoder_version\"] != 1",
       "new": "False",
       "tests": [
         "tests.test_idv2_scaling.UpdateTests"
@@ -515,7 +515,7 @@
     },
     {
       "label": "encoder readout identity",
-      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "file": "methods/10_inst_disc/models/scaling_encoder.py",
       "old": "export.get(\"readout\") != \"cls\"",
       "new": "False",
       "tests": [

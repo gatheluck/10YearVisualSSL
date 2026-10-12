@@ -35,6 +35,12 @@ resume state; it does not add native formats or new measured results.
 for all eight BasicFive providers, with CPU output/gradient/update comparisons. Native
 FSDP, GPU memory behavior and full-run measurements remain unverified.
 
+The October 12 [IDv2 frozen evaluation integration](IDV2_EVALUATION.md) connects
+both scaling presets' versioned exports to five BasicFive LINEAR task components.
+It does not cover AP/FT, historical checkpoint conversion or full-score validation.
+The refreshed shared depth-loss coefficient differs from Capture; its historical
+selection remains unresolved and the portable loss is unchanged.
+
 ## Coverage by final appendix
 
 | Final location | Portable basis | Remaining verification or integration |

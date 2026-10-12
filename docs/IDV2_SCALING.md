@@ -93,9 +93,10 @@ from the method environment and call `.eval()` for raw CLS features. This preser
 the native preset's LayerNorm epsilon of 1e-6. The ordinary ViT adapter uses a
 different normalization setting and rejects this envelope; it must not silently
 load these weights as a generic ablation encoder. The projector and bank are not
-part of the exported representation. Callers requiring spatial features must
-explicitly adapt the returned encoder's token interface; BasicFive evaluation
-integration and historical score correspondence are separate work.
+part of the exported representation. The explicit
+[frozen BasicFive provider](IDV2_EVALUATION.md) now supplies CLS, spatial and
+frame-average readouts for these exports. Historical score correspondence remains
+separate; do not substitute the generic ViT adapter.
 
 Set `resume` to another run's full `checkpoint_latest.pth`, increase `epochs`,
 and choose a fresh output directory. Portable epoch-boundary continuation requires
@@ -183,5 +184,6 @@ optimizer state, exercise two CPU ranks with collective read-error handling, and
 verify delivery and retention at all three milestones. Milestone tests use
 synthetic epoch counters; they are **not** 100/200/300-epoch training evidence.
 Record mutation, Linux, whole-suite and CI results in the PR. This closes the
-training-entry gap, not BasicFive evaluation integration, native checkpoint
-conversion, CUDA/full-data training or reproduction of any reported table value.
+training-entry gap. The later [frozen evaluation integration](IDV2_EVALUATION.md)
+connects these exports to five task components; native checkpoint conversion,
+CUDA/full-data training and reproduction of reported table values remain separate.

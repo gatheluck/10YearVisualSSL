@@ -1,0 +1,82 @@
+# Frozen evaluation of IDv2 scaling exports
+
+Support and validation statements describe this portable package. See
+[scope and terminology](SUBMISSION_SCOPE.md) for its distinction from the
+original experimental implementations and reported results.
+
+This integrates existing experimental evaluation code into the portable package.
+It does not establish reproduced paper scores. The scope is the LINEAR evaluation
+of ViT-B/16 and ViT-L/16 from the [scaling entries](IDV2_SCALING.md), including the
+separate ImageNet-1k 300-epoch profile. AP and FT are deliberately refused: the
+inspected evaluation campaign is LINEAR-only.
+
+## Loading and readouts
+
+Use backbone kind `idv2_scaling`, `img_size: 224`, `patch_size: 16`, and `arch`
+equal to the export's `vit_base_patch16_224` or `vit_large_patch16_224` preset.
+`encoder` must name a local version-1 scaling `encoder.pt` (or retained epoch
+export). There is no download, random fallback or dimension override. Missing or
+extra encoder weights and mismatched identity fail. Generic ablation exports and
+native historical training checkpoints are not accepted. The file's preset
+identity is not evidence of its historical training epoch or paper-row provenance.
+
+Training and evaluation share native timm preset construction: final LayerNorm
+epsilon is 1e-6, with dynamic bicubic/antialiased positional interpolation.
+Task inputs are already ImageNet-normalized. The provider does not normalize
+them twice, resize images, pad incompatible inputs, use the projector, or use
+the memory bank. Both spatial dimensions must be positive multiples of 16.
+The encoder stays in eval mode with gradients disabled, even under `train()`.
+
+| Task | Frozen representation and connection |
+| --- | --- |
+| ImageNet | Final CLS, L2-normalized; `downstream.imagenet`, explicit `preprocessing_profile: captured_provider_v1` for bicubic geometry |
+| SSv2 | Final CLS per frame, then temporal mean without L2; `downstream.ssv2`, explicit `video_recipe: captured_provider_video_v1` for Python temporal sampling, shared bicubic crop, no horizontal flip |
+| ADE20K | Final patch tokens without CLS, reshaped to the actual rectangular grid; `downstream.ade20k` |
+| NYUv2 | Same spatial grid; `downstream.nyuv2`; depth-loss version remains a separate unresolved question below |
+| COCO | Same grid after detector-owned ImageNet normalization, learned transposed-convolution pyramid and 91-class Faster R-CNN; `downstream.coco` with `detector_profile: captured_native_detection_v1` |
+
+All routes require `profile: capture_basic5_components`, `adaptation: frozen`
+and an explicit task configuration. Classification heads retain the inspected
+normal initialization (standard deviation 0.01) and zero bias. Image/video
+execution exposes the existing single-process accumulation/epoch-continuation
+machinery, discarding incomplete accumulation groups. Distributed execution is
+refused for this provider until independently verified. Dense distributed
+execution is not added. CUDA/BF16 behavior is not established by CPU tests.
+
+## Invocation
+
+Copy the [validated ImageNet example](examples/idv2_scaling_linear.json), replace
+the dataset and export paths, and run from the repository root:
+
+`python -m downstream.imagenet --config /path/to/idv2-linear.json --out /path/to/new-evaluation`
+
+The example describes a full 100-epoch linear-probe configuration; it is not a
+record of an executed run. Use the environment in `downstream/requirements.txt`
+and its platform lock. For a smoke, explicitly reduce sample counts and epochs.
+All results remain `canonical_eligible: false`; a smoke additionally remains
+`record_value: false`. For the other task schemas, see [downstream tasks](DOWNSTREAM.md),
+[native BasicFive paths](BASIC5_NATIVE_PATHS.md), and the existing task examples.
+Only substitute the backbone and explicit profiles above; do not infer completed
+experiments from these connections or silently substitute the generic ViT kind.
+
+## Evidence and unresolved scope
+
+Read-only refresh on 2026-10-12 found all five inspected campaign Python files
+and the shared data/protocol files identical to the capture (seven of nine files).
+Shared modules and training code had a later depth-loss/diagnostic change:
+the log-residual mean-square coefficient changed from 1.0 to 0.5, and evaluation
+added clamp-fraction diagnostics. Neither version is silently selected as the
+paper's historical run. This change leaves existing depth loss/metrics untouched.
+Original paths, source copies and detailed comparison records stay outside Git.
+
+Reduced CPU comparisons against the captured wrapper and heads cover normalized
+inputs, native and rectangular spatial features, image CLS/L2, frame mean,
+pyramid outputs, gradients and two optimizer updates. Tests first failed on the
+missing provider, missing explicit video recipe, missing CI execution and missing
+documented example. Five real task entrypoints train/evaluate small fixtures and
+verify output manifests; this is integration evidence, not full-size training.
+
+Historical checkpoint import, epoch/result attribution, full-size released-weight
+validation, distributed/CUDA/BF16 parity and full-data paper-score reproduction
+remain unfinished. The owner-held FSDP discrepancy is unrelated and unchanged.
+Record mutation, local whole-suite, Linux and CI results separately in the PR.

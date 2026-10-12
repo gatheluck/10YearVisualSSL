@@ -11,6 +11,7 @@ import torch
 import torch.nn.functional as F
 from idv2_components import Views, restore_rng, rng_state, shared_rows
 from idv2_distributed import require_finite, view_context
+from models.scaling_encoder import build_encoder, read_export
 from nce import NCELoss
 
 from downstream.contract import write_metrics
@@ -60,12 +61,7 @@ def train_step(model, bank, optimizer, batches, precision):
 class ScalingModel(torch.nn.Module):
     def __init__(self, arch):
         super().__init__()
-        import timm
-        from timm.models.vision_transformer import VisionTransformer
-        encoder = timm.create_model(arch, pretrained=False, num_classes=0, global_pool="", dynamic_img_size=True)
-        if not isinstance(encoder, VisionTransformer):
-            raise TypeError("scaling preset must construct a VisionTransformer")
-        self.encoder = encoder
+        self.encoder = build_encoder(arch)
         self.fc = torch.nn.Linear(self.encoder.embed_dim, 128)
         self.encoder.set_grad_checkpointing(True)
 
@@ -80,10 +76,7 @@ def build_model(arch):
 def load_encoder(path):
     """Restore the native preset and return raw CLS features, not projections."""
     from models.vit_instdisc import _ClsFeature
-    export = torch.load(path, map_location="cpu", weights_only=True)
-    if (export.get("scaling_encoder_version") != 1 or export.get("readout") != "cls"
-            or export.get("model") not in ("vit_base_patch16_224", "vit_large_patch16_224")):
-        raise ValueError("incompatible scaling encoder identity")
+    export = read_export(path)
     model = build_model(export["model"])
     model.encoder.load_state_dict(export["state_dict"], strict=True)
     return _ClsFeature(model.encoder)

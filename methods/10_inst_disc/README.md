@@ -39,6 +39,11 @@ multi-GPU all-reduce / all-gather branches are dropped.
 
 ## `encoder.pt`, and a linear evaluation that reads it
 
+IDv2 scaling exports use their own versioned envelope and
+[frozen BasicFive provider](../../docs/IDV2_EVALUATION.md). They are not the
+ordinary adapter exports described below. The separate provider preserves native
+ViT-B/L normalization and CLS/spatial/frame readouts; paper scores remain unverified.
+
 `encoder.pt` is the **ResNet-50 backbone** (`encoder.*`) — up to the global
 average pool, giving one 2048-d feature per image. The 128-d projection head
 (`fc.*`) and the memory bank are instance-discrimination machinery and are
