@@ -6,7 +6,7 @@
 #       -r methods/10_inst_disc/requirements.lock.txt -r requirements-tools.lock.txt
 #
 # Wheels for CPython 3.12 on linux x86_64, linux aarch64 and macOS arm64. This
-# closes over requirements.txt (torch, torchvision, numpy, PyYAML, timm). timm
+# closes over requirements.txt (torch, torchvision, numpy, PyYAML, timm, Pillow). timm
 # (the unified ViT-B/16 Step-2 backbone) adds the huggingface-hub / safetensors
 # closure; the native ResNet-50 path imports no timm.
 #
