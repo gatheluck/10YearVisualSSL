@@ -1,0 +1,373 @@
+{
+  "targets": [
+    {
+      "label": "native image geometry",
+      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "old": "spec.get(\"img_size\") != 224",
+      "new": "False",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_identity_geometry_and_complete_state_are_required"
+      ]
+    },
+    {
+      "label": "native patch geometry",
+      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "old": "spec.get(\"patch_size\") != 16",
+      "new": "False",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_identity_geometry_and_complete_state_are_required"
+      ]
+    },
+    {
+      "label": "no dimension overrides",
+      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "old": "any(key in spec for key in (\"embed_dim\", \"depth\", \"num_heads\"))",
+      "new": "False",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_identity_geometry_and_complete_state_are_required"
+      ]
+    },
+    {
+      "label": "local file required",
+      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "old": "if not spec.get(\"encoder\") or not Path(spec[\"encoder\"]).is_file():",
+      "new": "if False:",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_identity_geometry_and_complete_state_are_required"
+      ]
+    },
+    {
+      "label": "matching preset",
+      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "old": "if spec.get(\"arch\") != export[\"model\"]:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_identity_geometry_and_complete_state_are_required"
+      ]
+    },
+    {
+      "label": "strict state",
+      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "old": "strict=True",
+      "new": "strict=False",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_identity_geometry_and_complete_state_are_required"
+      ]
+    },
+    {
+      "label": "intrinsic frozen params",
+      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "old": "self.requires_grad_(False)",
+      "new": "self.requires_grad_(True)",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_loader_identity_and_intrinsic_freezing_precede_shared_dispatch"
+      ]
+    },
+    {
+      "label": "remain eval",
+      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "old": "return super().train(False)",
+      "new": "return super().train(mode)",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_cls_patches_rectangles_and_video_use_exact_export_weights"
+      ]
+    },
+    {
+      "label": "spatial excludes cls",
+      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "old": "self.tokens(images)[:, 1:]",
+      "new": "self.tokens(images)[:, :-1]",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_cls_patches_rectangles_and_video_use_exact_export_weights"
+      ]
+    },
+    {
+      "label": "global cls readout",
+      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "old": "F.normalize(self.tokens(images)[:, 0], dim=-1)",
+      "new": "F.normalize(self.tokens(images)[:, 1], dim=-1)",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_cls_patches_rectangles_and_video_use_exact_export_weights"
+      ]
+    },
+    {
+      "label": "global normalization",
+      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "old": "return F.normalize(self.tokens(images)[:, 0], dim=-1)",
+      "new": "return self.tokens(images)[:, 0]",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_cls_patches_rectangles_and_video_use_exact_export_weights"
+      ]
+    },
+    {
+      "label": "video average",
+      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "old": "return cls.reshape(images.shape[0], images.shape[1], -1).mean(1)",
+      "new": "return cls.reshape(images.shape[0], images.shape[1], -1)[:, 0]",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_cls_patches_rectangles_and_video_use_exact_export_weights"
+      ]
+    },
+    {
+      "label": "video no normalization",
+      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "old": "return cls.reshape(images.shape[0], images.shape[1], -1).mean(1)",
+      "new": "return F.normalize(cls.reshape(images.shape[0], images.shape[1], -1).mean(1), dim=-1)",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_cls_patches_rectangles_and_video_use_exact_export_weights"
+      ]
+    },
+    {
+      "label": "already normalized inputs",
+      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "old": "return self.encoder.forward_features(images.to(device=param.device, dtype=param.dtype)).float()",
+      "new": "return self.encoder.forward_features(images.to(device=param.device, dtype=param.dtype) + 1).float()",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_cls_patches_rectangles_and_video_use_exact_export_weights"
+      ]
+    },
+    {
+      "label": "nonempty batch",
+      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "old": "images.shape[0] == 0",
+      "new": "False",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_invalid_pixels_and_unverified_adaptations_fail_closed"
+      ]
+    },
+    {
+      "label": "image rank",
+      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "old": "images.ndim != 4",
+      "new": "False",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_invalid_pixels_and_unverified_adaptations_fail_closed"
+      ]
+    },
+    {
+      "label": "channels",
+      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "old": "images.shape[1] != 3",
+      "new": "False",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_invalid_pixels_and_unverified_adaptations_fail_closed"
+      ]
+    },
+    {
+      "label": "positive grid",
+      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "old": "min(images.shape[-2:]) < 16",
+      "new": "False",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_invalid_pixels_and_unverified_adaptations_fail_closed"
+      ]
+    },
+    {
+      "label": "divisible grid",
+      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "old": "any(size % 16 for size in images.shape[-2:])",
+      "new": "False",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_invalid_pixels_and_unverified_adaptations_fail_closed"
+      ]
+    },
+    {
+      "label": "video rank",
+      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "old": "images.ndim != 5",
+      "new": "False",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_invalid_pixels_and_unverified_adaptations_fail_closed"
+      ]
+    },
+    {
+      "label": "video frames",
+      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "old": "images.shape[1] == 0",
+      "new": "False",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_invalid_pixels_and_unverified_adaptations_fail_closed"
+      ]
+    },
+    {
+      "label": "frozen only",
+      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "old": "if adaptation != \"frozen\":",
+      "new": "if False:",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_invalid_pixels_and_unverified_adaptations_fail_closed"
+      ]
+    },
+    {
+      "label": "explicit component",
+      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "old": "COMPONENT_ONLY = True",
+      "new": "COMPONENT_ONLY = False",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_invalid_pixels_and_unverified_adaptations_fail_closed"
+      ]
+    },
+    {
+      "label": "reject finetune",
+      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "old": "SUPPORTED_ADAPTATIONS = (\"frozen\",)",
+      "new": "SUPPORTED_ADAPTATIONS = (\"frozen\", \"finetune\")",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_invalid_pixels_and_unverified_adaptations_fail_closed"
+      ]
+    },
+    {
+      "label": "temporal rng",
+      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "old": "\"temporal_rng\": \"python\"",
+      "new": "\"temporal_rng\": \"torch\"",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_explicit_video_recipe_preserves_sampling_and_bicubic_inputs"
+      ]
+    },
+    {
+      "label": "video interpolation",
+      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "old": "VIDEO_RECIPE = {\"interpolation\": \"bicubic\"",
+      "new": "VIDEO_RECIPE = {\"interpolation\": \"bilinear\"",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_explicit_video_recipe_preserves_sampling_and_bicubic_inputs"
+      ]
+    },
+    {
+      "label": "distributed deferred",
+      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "old": "\"distributed\": False",
+      "new": "\"distributed\": True",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_explicit_video_recipe_preserves_sampling_and_bicubic_inputs"
+      ]
+    },
+    {
+      "label": "discard tail",
+      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "old": "\"tail_policy\": \"discard\"",
+      "new": "\"tail_policy\": \"flush\"",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_explicit_video_recipe_preserves_sampling_and_bicubic_inputs"
+      ]
+    },
+    {
+      "label": "rank seed policy",
+      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "old": "\"rank_seed_stride\": 1000",
+      "new": "\"rank_seed_stride\": 1",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_explicit_video_recipe_preserves_sampling_and_bicubic_inputs"
+      ]
+    },
+    {
+      "label": "head initialization",
+      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "old": "classifier_init_std = .01",
+      "new": "classifier_init_std = 0.",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_source_head_initialization_and_two_updates_preserve_encoder"
+      ]
+    },
+    {
+      "label": "preset allowlist",
+      "file": "methods/10_inst_disc/models/scaling_encoder.py",
+      "old": "if arch not in PRESETS:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_invalid_pixels_and_unverified_adaptations_fail_closed"
+      ]
+    },
+    {
+      "label": "export mapping",
+      "file": "methods/10_inst_disc/models/scaling_encoder.py",
+      "old": "not isinstance(export, dict)",
+      "new": "False",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_loader_identity_and_intrinsic_freezing_precede_shared_dispatch"
+      ]
+    },
+    {
+      "label": "integer version",
+      "file": "methods/10_inst_disc/models/scaling_encoder.py",
+      "old": "type(export.get(\"scaling_encoder_version\")) is not int",
+      "new": "False",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_identity_geometry_and_complete_state_are_required"
+      ]
+    },
+    {
+      "label": "export version",
+      "file": "methods/10_inst_disc/models/scaling_encoder.py",
+      "old": "export[\"scaling_encoder_version\"] != 1",
+      "new": "False",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_loader_identity_and_intrinsic_freezing_precede_shared_dispatch"
+      ]
+    },
+    {
+      "label": "cls identity",
+      "file": "methods/10_inst_disc/models/scaling_encoder.py",
+      "old": "export.get(\"readout\") != \"cls\"",
+      "new": "False",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_loader_identity_and_intrinsic_freezing_precede_shared_dispatch"
+      ]
+    },
+    {
+      "label": "model identity",
+      "file": "methods/10_inst_disc/models/scaling_encoder.py",
+      "old": "export.get(\"model\") not in PRESETS",
+      "new": "False",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_loader_identity_and_intrinsic_freezing_precede_shared_dispatch"
+      ]
+    },
+    {
+      "label": "image capability",
+      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "old": "IMAGE_CLASSIFICATION = True",
+      "new": "IMAGE_CLASSIFICATION = False",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_five_real_task_entries_verify_exports_and_noncanonical_results"
+      ]
+    },
+    {
+      "label": "native detector capability",
+      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "old": "NATIVE_DETECTION = True",
+      "new": "NATIVE_DETECTION = False",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_five_real_task_entries_verify_exports_and_noncanonical_results"
+      ]
+    },
+    {
+      "label": "native learned pyramid",
+      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "old": "native_pyramid_style = \"transposed\"",
+      "new": "native_pyramid_style = \"bilinear\"",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_detector_uses_native_transposed_pyramid_on_normalized_grid"
+      ]
+    },
+    {
+      "label": "gradient barrier",
+      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "old": "@torch.no_grad()",
+      "new": "",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_cls_patches_rectangles_and_video_use_exact_export_weights"
+      ]
+    },
+    {
+      "label": "preset module type",
+      "file": "methods/10_inst_disc/models/scaling_encoder.py",
+      "old": "not isinstance(encoder, VisionTransformer)",
+      "new": "False",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_loader_identity_and_intrinsic_freezing_precede_shared_dispatch"
+      ]
+    }
+  ]
+}

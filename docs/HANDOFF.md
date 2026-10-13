@@ -12,6 +12,24 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-10-12: frozen IDv2 scaling evaluation
+
+PR 240 merged as `2ec5530`; all 115 checks succeeded. Pulled main matches the
+previously validated tree. Existing video-submodule edits remain preserved.
+The [frozen scaling provider](IDV2_EVALUATION.md) connects versioned exports to
+five BasicFive component tasks, with explicit image/video geometry and native
+detection readout. AP/FT and distributed evaluation are refused. Shared encoder
+construction preserves the native preset; generic ablation loading is unchanged.
+
+Seven of nine refreshed evaluation files match Capture. The two differing shared
+files change the depth-loss coefficient and add clamp diagnostics; historical
+loss selection remains unresolved and is not changed here. Reduced CPU output,
+gradient and update comparisons pass against captured code. Five fixture task
+entries verify artifact delivery, not paper scores. Native checkpoint import,
+full-weight/GPU/full-data validation and score attribution remain separate. No
+cluster job was submitted. Keep private evidence outside Git, record final gates
+and CI in the PR, and stop for review. The owner-held FSDP issue stays pending.
+
 ### 2026-10-12: IDv2 ImageNet-1k ViT-L scaling execution
 
 PR 239 merged as `ee9b2fc`; all 115 checks passed after the one disconnected
