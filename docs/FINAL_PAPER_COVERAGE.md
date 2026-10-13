@@ -37,7 +37,11 @@ FSDP, GPU memory behavior and full-run measurements remain unverified.
 
 The October 12 [IDv2 frozen evaluation integration](IDV2_EVALUATION.md) connects
 both scaling presets' versioned exports to five BasicFive LINEAR task components.
-It does not cover AP/FT, historical checkpoint conversion or full-score validation.
+It does not cover AP/FT or full-score validation. The October 13 explicit native
+converter adds hash-checked, strict epoch-boundary encoder import; it does not
+restore native training state. Three inspected ImageNet-21k artifacts have
+nonzero step metadata and remain refused pending historical interpretation.
+Physical full-weight conversion and GPU validation remain unexecuted.
 The refreshed shared depth-loss coefficient differs from Capture; its historical
 selection remains unresolved and the portable loss is unchanged.
 

@@ -120,3 +120,10 @@ The separate [ImageNet-1k ViT-L scaling profile](../../docs/IDV2_SCALING.md#imag
 uses frozen ImageFolder inputs, a 300-epoch schedule and retained 100/200/300
 exports. It reuses the scaling entry; BasicFive integration and score reproduction
 remain distinct work.
+
+## Native scaling checkpoint import
+
+The [scaling evaluation guide](../../docs/IDV2_EVALUATION.md#importing-a-native-epoch-boundary-checkpoint)
+documents explicit, hash-checked conversion of native epoch-boundary weights
+into the scaling export. This does not convert training continuation state or
+establish historical score correspondence.
