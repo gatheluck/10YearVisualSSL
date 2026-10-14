@@ -141,3 +141,10 @@ documents H1S200 splitting, H1CORE continuation, H1JA joint assignment and
 version-1 full-checkpoint resume via `train.resume_checkpoint`. Use a new output
 directory. These remain single-process FP32 components; native distributed
 checkpoints, CUDA BF16 and reproduced paper scores are not covered.
+
+## Native teacher downstream evaluation
+
+The [frozen evaluation integration](../../docs/DINO_ABLATION_EVALUATION.md)
+connects compatible base/large teacher exports to all five BasicFive LINEAR
+components. It is separate from the released HF provider and does not certify
+full experiment reproduction or paper scores.

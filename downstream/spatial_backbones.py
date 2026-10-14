@@ -23,7 +23,8 @@ tasks are ported. `vit` (timm) is built here; `resnet50` / `clip_vit` are not ye
 `tests/test_no_hard_coded_methods.py` guards). A Step-1&2 method whose own model
 must be reused as a frozen backbone -- MAE is the first, Step-3 item A3:mae --
 declares a provider in *its own* directory (`methods/<m>/downstream_backbone.py`,
-a module-level `KIND` string and a `build(spec)` function). This shared layer
+a module-level `KIND` string and a `build(spec)` function). Additional distinct
+providers in the same method use `downstream_backbone_<suffix>.py`. This shared layer
 discovers those providers by structure and dispatches to them, so a new lineage
 method registers a backbone kind with no edit here.
 """
@@ -81,7 +82,9 @@ def discover_providers(methods_dir: Path = METHODS_DIR) -> "dict[str, Path]":
     no edit here. Two methods claiming the same kind is a hard error, never a
     silent last-wins overwrite."""
     found: dict[str, Path] = {}
-    for path in sorted(Path(methods_dir).glob("*/" + PROVIDER_FILE)):
+    paths = set(Path(methods_dir).glob("*/" + PROVIDER_FILE))
+    paths.update(Path(methods_dir).glob("*/downstream_backbone_*.py"))
+    for path in sorted(paths):
         kind = _provider_kind(path)
         if kind is None:
             continue
@@ -101,7 +104,7 @@ def _load_provider(path: Path):
     """Import a provider module by file path, under a unique per-method name so it
     cannot collide with another method's top-level ``models`` package (the
     cross-method import bug this repo has hit before)."""
-    name = "_downstream_provider_" + path.parent.name
+    name = "_downstream_provider_" + path.parent.name + "_" + path.stem
     if name in sys.modules:
         return sys.modules[name]
     spec = importlib.util.spec_from_file_location(name, path)

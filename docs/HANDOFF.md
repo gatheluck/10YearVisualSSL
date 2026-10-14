@@ -12,6 +12,19 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-10-14: native DINO teacher evaluation
+
+PR 242 merged as `fe56885`; all 115 checks succeeded. Pulled main matches
+the validated tree. Existing video-submodule edits remain preserved.
+[Native teacher evaluation](DINO_ABLATION_EVALUATION.md) connects base/large
+exports to five frozen task components; released HF evaluation remains separate.
+All 19 inspected evaluation/model files and both manifest/protocol JSON files
+match Capture and current originals.
+Reduced source-output comparisons are exact. This does not certify historical
+configuration, native checkpoint conversion, distributed/GPU execution or scores.
+Eight existing one-node jobs were observed; no additional job was submitted.
+Private evidence stays outside Git. Record final gates and CI in the PR.
+
 ### 2026-10-13: explicit native IDv2 scaling encoder conversion
 
 PR 241 merged as `4a1dcbe`; all 115 checks succeeded after the unchanged
