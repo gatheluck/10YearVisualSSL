@@ -12,6 +12,22 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-10-14: distributed DINO component execution
+
+PR 244 merged as `3f56ff2`; main was refreshed before this change. The existing
+video-submodule edits remain untouched. Twenty refreshed source/configuration
+files match Capture and the current originals. The explicit
+[DINO distributed entry](DINOV3_STEP4.md#explicit-distributed-execution) integrates
+five projection layouts, four profiles, DDP, global assignment, rank RNG resume
+and leader-only delivery. CPU two-rank tests and reduced source comparisons
+cover initialization, gradients, updates, continuation and stage boundaries.
+An empty-patch collective correction intentionally differs from the original
+local early return. No original code or weights were changed. Eight occupied
+nodes were observed; no new cluster job was submitted. GPU BF16, multi-node
+transport, native full-state continuation and paper-score reproduction remain
+unverified. Consult the PR for final validation and CI; private evidence stays
+outside Git. This checkpoint is historical evidence, not a live queue report.
+
 ### 2026-10-14: native DINO teacher evaluation
 
 Follow-up: PR 243 merged as `2c9ee6b`, with all 115 checks successful; pulled

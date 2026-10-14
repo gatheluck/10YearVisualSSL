@@ -177,9 +177,6 @@ class IBOTLoss(nn.Module):
     ) -> torch.Tensor:
         if student_patch_logits.shape != teacher_patch_logits.shape:
             raise ValueError("student and teacher patch logits must have equal shape")
-        if not masks.any():
-            return student_patch_logits.sum() * 0.0
-
         if student_patch_logits.ndim == 2:
             if student_patch_logits.shape[0] != int(masks.sum().item()):
                 raise ValueError("masked logits count does not match masks")

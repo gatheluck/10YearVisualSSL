@@ -16,8 +16,8 @@ training machinery and are excluded).
 The default `core` profile preserves the original single-process schedules.
 The explicit `step4_gram_components` profile wires the fixed 300-epoch clock,
 frozen clean-crop Gram teacher and sparse refreshes; selectable heads implement
-four Step-4 sharing designs. See docs/DINOV3_STEP4.md. Both profiles remain
-single-process float32 components, not canonical distributed reproduction.
+four Step-4 sharing designs. See docs/DINOV3_STEP4.md. The separate distributed
+entry coordinates DDP and precision; neither entry certifies canonical scores.
 
 """
 
@@ -29,7 +29,9 @@ import math
 import os
 import random
 import sys
+from contextlib import nullcontext
 from pathlib import Path
+from typing import cast
 
 import numpy as np
 import torch
@@ -247,11 +249,11 @@ def validate_gram_schedule(cfg):
 
 
 def training_rng(loader):
-    numpy_state = np.random.get_state()
+    numpy_state = cast(tuple, np.random.get_state())
     return dict(python=random.getstate(), torch_cpu=torch.get_rng_state(),
                 torch_cuda=torch.cuda.get_rng_state_all() if torch.cuda.is_available() else [],
                 numpy=(numpy_state[0], numpy_state[1].tolist(), *numpy_state[2:]),
-                loader=loader.generator.get_state())
+                loader=loader.generator.get_state() if loader.generator is not None else None)
 
 
 def restore_training_rng(state, loader):
@@ -261,7 +263,8 @@ def restore_training_rng(state, loader):
         torch.cuda.set_rng_state_all(state['torch_cuda'])
     ns = state['numpy']
     np.random.set_state((ns[0], np.array(ns[1], dtype=np.uint32), *ns[2:]))
-    loader.generator.set_state(state['loader'])
+    if loader.generator is not None:
+        loader.generator.set_state(state['loader'])
 
 
 def validate_resume(checkpoint, cfg, profile, steps_per_epoch, device):
@@ -312,6 +315,11 @@ def validate_resume(checkpoint, cfg, profile, steps_per_epoch, device):
     return completed, transition
 
 
+def require_batches(loader):
+    if len(loader) == 0:
+        raise ValueError("physical batch exceeds the per-rank training population")
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="DINOv3 step 2 (core objective)")
     parser.add_argument("--config", default="configs/pretrain.yaml")
@@ -323,6 +331,12 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def run(args, config: "dict | None" = None) -> dict:
+    from downstream.extended_distributed import launch
+    execution = getattr(args, "execution", None)
+    if launch()[2] > 1 and execution is None:
+        raise ValueError("use the explicit DINO distributed entry under torchrun")
+    call = execution.context.call if execution else lambda fn, **kw: fn()
+    autocast = execution.autocast if execution else nullcontext
     if config is not None:
         cfg = config
     else:
@@ -349,19 +363,21 @@ def run(args, config: "dict | None" = None) -> dict:
     if profile in component_profiles - {'step4_gram_components'} and cfg['model'].get('head_layout') != 'shared':
         raise ValueError('continuation and joint profiles require shared initial heads')
 
-    device = resolve_device(getattr(args, "device", "auto"))
+    device = execution.device if execution else resolve_device(getattr(args, "device", "auto"))
     seed = int(cfg.get("seed", 42))
-    make_deterministic(seed)
+    make_deterministic(seed + (execution.rank if execution else 0))
 
     save_dir = cfg["output"]["checkpoint_dir"]
     if resume_path and Path(resume_path).resolve().is_relative_to(Path(save_dir).resolve()):
         raise ValueError('resume requires a separate output directory')
-    os.makedirs(save_dir, exist_ok=True)
+    call(lambda: os.makedirs(save_dir, exist_ok=True), leader=True)
 
     m, d, t, ls = cfg["model"], cfg["data"], cfg["training"], cfg["loss"]
 
     student = DINOv3Model(m).to(device)
     student.train()
+    if execution:
+        execution.synchronize(student)
     teacher = copy.deepcopy(student)
     teacher.requires_grad_(False)
     teacher.eval()
@@ -374,7 +390,9 @@ def run(args, config: "dict | None" = None) -> dict:
         n_global=n_global, n_local=n_local, return_gram_teacher_crops=use_gram)
     loader = get_multicrop_dataloader(
         d["data_root"], aug, batch_size=int(t["batch_size"]),
-        num_workers=int(d["num_workers"]), distributed=False, seed=seed)
+        num_workers=int(d["num_workers"]),
+        distributed=bool(execution and execution.world > 1), seed=seed)
+    call(lambda: require_batches(loader))
 
     dino_loss = DINOLoss(n_crops_global=n_global, n_crops_local=n_local,
                          student_temp=float(ls["student_temp"]),
@@ -403,7 +421,13 @@ def run(args, config: "dict | None" = None) -> dict:
 
     start_epoch, global_step = 0, 0
     if resume_path:
-        checkpoint = torch.load(resume_path, map_location='cpu', weights_only=True)
+        checkpoint = call(lambda: torch.load(resume_path, map_location='cpu', weights_only=True))
+        if execution:
+            rank_rng = call(lambda: execution.resume_rng(checkpoint))
+        elif 'distributed_execution' in checkpoint:
+            raise ValueError('resume requires the matching distributed entry')
+        else:
+            rank_rng = checkpoint.get('rng_state')
         start_epoch, transition = validate_resume(checkpoint, cfg, profile, steps_per_epoch, device)
         if checkpoint['head_layout'] == 'separate' and student.head_layout == 'shared':
             student.ibot_head = copy.deepcopy(student.dino_head)
@@ -419,7 +443,9 @@ def run(args, config: "dict | None" = None) -> dict:
             gram_teacher = copy.deepcopy(teacher.backbone).requires_grad_(False).eval()
             gram_teacher.load_state_dict(checkpoint['gram_teacher_state_dict'], strict=True)
         global_step = checkpoint['optimizer_step']
-        restore_training_rng(checkpoint['rng_state'], loader)
+        restore_training_rng(rank_rng, loader)
+
+    forward_student = execution.wrap(student) if execution else student
 
     print("=" * 72)
     print("DINOv3: ViT + DINO + iBOT + KoLeo  (arXiv:2508.10104)")
@@ -435,6 +461,8 @@ def run(args, config: "dict | None" = None) -> dict:
 
     final_loss = None
     for epoch in range(start_epoch, total_epochs):
+        if execution and execution.world > 1:
+            loader.sampler.set_epoch(epoch)
         running, count = 0.0, 0
         for batch in loader:
             views, gram_views, _labels = batch if use_gram else (batch[0], None, batch[1])
@@ -472,13 +500,14 @@ def run(args, config: "dict | None" = None) -> dict:
                 mask_probability=float(t["ibot_mask_sample_probability"]),
                 device=device)
 
-            with torch.no_grad():
-                t_dino, t_ibot, _, _ = teacher(
-                    views[:n_global], n_global=n_global, masks_global=None,
+            with autocast():
+                with torch.no_grad():
+                    t_dino, t_ibot, _, _ = teacher(
+                        views[:n_global], n_global=n_global, masks_global=None,
+                        ibot_selection_masks=masks_global)
+                s_dino, s_ibot, s_cls, s_patch = forward_student(
+                    views, n_global=n_global, masks_global=masks_global,
                     ibot_selection_masks=masks_global)
-            s_dino, s_ibot, s_cls, s_patch = student(
-                views, n_global=n_global, masks_global=masks_global,
-                ibot_selection_masks=masks_global)
 
             if profile == 'step4_joint_components':
                 cls_probs, patch_probs = joint_teacher_assignments(
@@ -495,12 +524,14 @@ def run(args, config: "dict | None" = None) -> dict:
             if use_gram and epoch >= step_protocol.CORE_EPOCHS:
                 if gram_teacher is None or gram_views is None:
                     raise RuntimeError("Gram stage requires a frozen teacher and clean crops")
-                with torch.no_grad():
+                with torch.no_grad(), autocast():
                     gram_targets = torch.cat([
                         gram_teacher(v.to(device), mask=None, is_global=True)[1]
                         for v in gram_views], dim=0)
                 loss = loss + schedule.gram_weight * gram_loss(s_patch, gram_targets)
-            if not math.isfinite(loss.item()):
+            if execution:
+                execution.require_finite(loss)
+            elif not math.isfinite(loss.item()):
                 raise FloatingPointError(f"DINOv3 loss became non-finite: {loss.item()}")
 
             optimizer.zero_grad(set_to_none=True)
@@ -513,7 +544,7 @@ def run(args, config: "dict | None" = None) -> dict:
             running += loss.item() * B
             count += B
             global_step += 1
-        final_loss = running / count if count else None
+        final_loss = execution.mean(running, count) if execution else running / count
         print(f"  [{epoch}] dinov3_loss={final_loss}  dino={loss_dino.item():.4f}"
               f"  ibot={loss_ibot.item():.4f}  koleo={loss_koleo.item():.4f}"
               f"  lr={lr:.3g}  m={momentum:.4f}")
@@ -525,6 +556,8 @@ def run(args, config: "dict | None" = None) -> dict:
             gram_teacher.load_state_dict(teacher.backbone.state_dict())
         if profile == 'step4_split_components' and epoch + 1 == HEAD_SPLIT_AFTER_EPOCH:
             apply_head_split(student, teacher, optimizer)
+            if execution:
+                forward_student = execution.wrap(student)
         ckpt = {"epoch": epoch, "teacher_state_dict": teacher.state_dict(),
                 "student_state_dict": student.state_dict(),
                 "loss": final_loss, "config": cfg}
@@ -536,10 +569,13 @@ def run(args, config: "dict | None" = None) -> dict:
                         device_type=device.type, rng_state=training_rng(loader))
             if gram_teacher is not None:
                 ckpt["gram_teacher_state_dict"] = gram_teacher.state_dict()
-        torch.save(ckpt, os.path.join(save_dir, "checkpoint_latest.pth"))
-        if (epoch + 1) in save_at:
-            torch.save(ckpt, os.path.join(
-                save_dir, f"checkpoint_epoch_{epoch + 1}.pth"))
+        if execution:
+            execution.checkpoint(ckpt)
+        def save():
+            torch.save(ckpt, os.path.join(save_dir, "checkpoint_latest.pth"))
+            if (epoch + 1) in save_at:
+                torch.save(ckpt, os.path.join(save_dir, f"checkpoint_epoch_{epoch + 1}.pth"))
+        call(save, leader=True)
 
     print(f"\nDINOv3 training complete (profile={profile})!")
     ran = total_epochs > 0 and final_loss is not None

@@ -8,8 +8,8 @@ Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](SUBMISSION_SCOPE.md)
 for the distinction from original experimental implementations and results.
 
-Status: 2026-09-25. This implements selectable projection layouts and a
-single-process Gram-stage training path. It does **not** establish canonical
+Status: 2026-10-14. This implements selectable projection layouts, Gram-stage
+training and an explicit distributed component entry. It does **not** establish canonical
 paper scores or complete distributed reproduction. The default remains the
 previous `core` training profile and independent heads.
 
@@ -119,13 +119,14 @@ not the entire distributed training pipeline.
 An actual three-epoch tiny run compresses only the stage boundaries in the test
 and verifies snapshot, refresh, frozen state, clean-crop targets and Gram's
 contribution to the total loss. It does not execute 300 epochs or use ImageNet.
-The runner uses float32; the captured CUDA BF16 path, 8-rank physical batch and
-global Sinkhorn scope remain unverified/unintegrated here. No new GPU or paper
+The legacy adapter uses float32. The explicit distributed entry below integrates
+global Sinkhorn and CUDA BF16 execution; the 8-GPU physical batch and CUDA
+numerics have not been measured in this change. No new GPU or paper
 accuracy result is claimed.
 
 ## Continuation and joint assignment components
 
-The following overrides select three additional single-process profiles. Merge
+The following overrides select three additional profiles. Merge
 one object into `train`, together with the fixed schedule settings above:
 
 ```json
@@ -146,7 +147,7 @@ one object into `train`, together with the fixed schedule settings above:
   and uniform prototype mass. Per-token probabilities feed the existing losses
   without a second Sinkhorn. An empty group transfers its mass to the other.
   Unequal/empty ranks are covered by a real three-process CPU Gloo test, although
-  the training entry point itself remains single-process.
+  integrated multi-rank training is described below.
 
 All component profiles now save version-1 full checkpoints, including AdamW,
 epoch/step, head layout, frozen Gram teacher when applicable, Python/NumPy/Torch
@@ -180,7 +181,71 @@ checkpoints only: legacy core, earlier incomplete component checkpoints,
 `encoder.pt` and native distributed checkpoints remain unsupported inputs to
 this portable resume interface.
 
-Not yet integrated or validated in this port: the full native distributed/CUDA
-BF16 pipeline and full-scale canonical evaluation. The inspected experimental
-implementations are distinct from this portable component path.
+Not yet validated in this port: full-scale CUDA BF16 training and canonical
+evaluation. Native full training-checkpoint continuation remains separate from
+the portable continuation format. The inspected experimental implementations
+are distinct from this portable component path.
 See the [prioritized gap ledger](PAPER_REPRODUCTION_GAPS.md).
+
+
+## Explicit distributed execution
+
+The final submitted manuscript's Table 15 head-design experiments can use the
+same five projection layouts and Gram, H1CORE, H1S200 and H1JA component profiles
+through a dedicated `torchrun` entry. This closes the execution integration gap;
+it does not establish the table's accuracy values or certify a canonical recipe.
+The legacy adapter remains single-process FP32 and refuses multi-rank launches.
+
+Add this top-level object to the resolved JSON (alongside `train`, not inside it):
+
+```json
+{"execution": {"precision": "float32"}}
+```
+
+For the captured GPU precision, explicitly change `precision` to `bfloat16` and
+`device` to `cuda`. BF16 requires a capable CUDA device; CPU BF16 and FP16 are
+refused. Model forwards, including the frozen Gram teacher, run under autocast;
+objectives, stored parameters and AdamW state remain FP32. No gradient scaler
+or accumulation is introduced. A single-node example from the repository root:
+
+```bash
+PYTHONPATH=. python -m torch.distributed.run --nproc_per_node=8 --master_addr=127.0.0.1 --master_port=29500 methods/31_dinov3/dinov3_distributed.py --config /path/to/resolved-distributed.json --out /path/to/new-run
+```
+
+Use a free rendezvous port and only allocated compute resources. Multi-node
+launches must supply the usual matching node count, node rank and rendezvous
+address. `train.batch_size` is **per rank**: the captured physical batch of 1024
+uses 8 ranks of 128. Smaller explicit batches test components, not the original
+experimental condition. The entry requires a Step-4 component profile; legacy
+`core` is refused. All ranks must see the same immutable dataset and config.
+
+Rank seeds are `seed + rank`. Student parameters and buffers synchronize before
+the teacher is copied. DDP averages gradients; the distributed sampler uses its
+reference default seed and advances each epoch. Class and patch Sinkhorn run
+across ranks, while KoLeo remains local to each global crop on each rank.
+An empty patch rank still participates in patch Sinkhorn: this deliberately
+corrects an early-return deadlock risk in the inspected reference without
+changing nonempty-rank loss semantics. Empty loaders and nonfinite rank losses
+fail; no ordinary-queue fallback or remote submission is performed by this CLI.
+
+Rank zero writes checkpoints, teacher encoder exports, metrics and a hashed
+manifest. Existing output directories are refused. Checkpoints additionally
+record world size, precision and each rank's RNG state. Resume requires this
+same execution entry, world size, precision, data and configuration; it refuses
+legacy single-process and native training checkpoints. Existing portable
+single-process continuation remains unchanged. The H1S200 boundary reconstructs
+DDP after adding the independent head and preserves cloned optimizer moments.
+Matching dataset paths and batch counts do not authenticate dataset contents.
+
+Validation: bounded two-rank CPU tests exercise all five layouts and four
+profiles, live student/teacher synchronization, explicit mean-gradient parity,
+rank-zero delivery, empty patch ranks, and exact uninterrupted/resumed weights
+across compressed split and Gram boundaries. CLI artifacts pass the downstream
+contract, and a second invocation leaves existing output bytes unchanged.
+Two-rank comparisons against the refreshed original loss and initialization
+functions match teacher state, losses, gradients and three AdamW updates exactly,
+including unequal positive patch counts. The 20 inspected original source/config
+files matched the Capture snapshot. Private evidence remains outside Git.
+CUDA BF16, an 8-rank full-size run, multi-node transport and paper-score
+reproduction remain unverified. CPU autocast instrumentation checks placement
+only and is not GPU numerical validation.

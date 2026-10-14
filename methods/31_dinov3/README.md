@@ -35,7 +35,8 @@ The default profile remains `core`, excluding Gram. As of 2026-09-25,
 [Step-4 components](../../docs/DINOV3_STEP4.md) add four selectable sharing
 layouts, weighted DINO/iBOT objectives and an explicit frozen-teacher Gram
 profile. This supersedes the earlier blanket Gram-exclusion statement.
-The opt-in profile is single-process float32 and is not a canonical paper run.
+The adapter uses single-process float32; an explicit distributed component
+entry is also available. Neither entry alone certifies a canonical paper run.
 
 ## Licence
 
@@ -139,8 +140,10 @@ identity and the newly pinned implementation do not recover that historical pin.
 The [Step-4 guide](../../docs/DINOV3_STEP4.md#continuation-and-joint-assignment-components)
 documents H1S200 splitting, H1CORE continuation, H1JA joint assignment and
 version-1 full-checkpoint resume via `train.resume_checkpoint`. Use a new output
-directory. These remain single-process FP32 components; native distributed
-checkpoints, CUDA BF16 and reproduced paper scores are not covered.
+directory. The [distributed entry](../../docs/DINOV3_STEP4.md#explicit-distributed-execution)
+adds DDP, global assignments, explicit CUDA BF16 and per-rank continuation.
+Native training-checkpoint resume, GPU numerical parity and reproduced paper
+scores remain unverified or outside this portable continuation format.
 
 ## Native teacher downstream evaluation
 
