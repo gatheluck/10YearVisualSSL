@@ -12,6 +12,24 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-10-13: explicit native IDv2 scaling encoder conversion
+
+PR 241 merged as `4a1dcbe`; all 115 checks succeeded after the unchanged
+downstream job rerun. Main matches the validated tree. The earlier distributed
+test timed out once; its underlying stall cause remains unconfirmed. Existing
+video-submodule edits are preserved.
+
+[Native scaling conversion](IDV2_EVALUATION.md#importing-a-native-epoch-boundary-checkpoint)
+adds explicit hash, preset, namespace and epoch-boundary checks before publishing
+an evaluation export. Original training state and private metadata are excluded.
+Read-only inspection found three ImageNet-1k retained archives consistent with
+the required boundary metadata, while three ImageNet-21k archives have nonzero
+step metadata and remain refused pending attribution. No original checkpoint
+was modified or compute job submitted. Reduced fixtures are not full-weight or
+GPU validation. Depth-loss and owner-held FSDP discrepancies remain pending.
+Record tests, mutation results and CI separately in the PR; private source and
+archive metadata evidence stays outside Git.
+
 ### 2026-10-12: frozen IDv2 scaling evaluation
 
 PR 240 merged as `2ec5530`; all 115 checks succeeded. Pulled main matches the

@@ -25,3 +25,89 @@ def read_export(path):
             or export.get("model") not in PRESETS):
         raise ValueError("incompatible scaling encoder identity")
     return export
+
+
+def _sha256(path):
+    import hashlib
+    digest = hashlib.sha256()
+    with open(path, "rb") as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def import_native(*, source, sha256, arch, completed_epoch, state_key, prefix, out):
+    """Convert explicit native encoder weights; never restore training state."""
+    import importlib
+    import json
+    from pathlib import Path
+
+    import numpy as np
+
+    out = Path(out)
+    if out.exists():
+        raise FileExistsError("output already exists; choose a new directory")
+    if arch not in PRESETS or type(completed_epoch) is not int or completed_epoch < 1:
+        raise ValueError("explicit supported architecture and positive completed epoch required")
+    if state_key not in ("state_dict", "model") or prefix not in (
+        "vit.", "module.vit.", "encoder.vit.", "module.encoder.vit."
+    ):
+        raise ValueError("explicit native state key and encoder prefix required")
+    if _sha256(source) != sha256:
+        raise ValueError("source sha256 mismatch")
+    # Native payloads contain NumPy MT19937 state. Allow only its concrete
+    # array/dtype constructors, including the NumPy 1.x spelling, not arbitrary
+    # checkpoint classes or an unrestricted pickle fallback.
+    reconstruct = importlib.import_module("numpy.core.multiarray")._reconstruct
+    with torch.serialization.safe_globals([
+        np.ndarray, np.dtype, type(np.dtype("uint32")), reconstruct,
+        (reconstruct, "numpy.core.multiarray._reconstruct"),
+        torch.torch_version.TorchVersion,
+    ]):
+        blob = torch.load(source, map_location="cpu", weights_only=True, mmap=True)
+    if (not isinstance(blob, dict)
+            or type(blob.get("completed_epoch")) is not int
+            or blob["completed_epoch"] != completed_epoch
+            or type(blob.get("step_in_epoch")) is not int
+            or blob["step_in_epoch"] != 0):
+        raise ValueError("native checkpoint must match the explicit completed epoch boundary")
+    raw = blob.get(state_key)
+    if not isinstance(raw, dict) or any(not isinstance(k, str) for k in raw):
+        raise ValueError("native state must be an explicit string-keyed mapping")
+    state = {k[len(prefix):]: v for k, v in raw.items() if k.startswith(prefix)}
+    encoder = build_encoder(arch)
+    expected = encoder.state_dict()
+    if set(state) != set(expected):
+        raise ValueError("native encoder keys do not exactly match the preset")
+    for key, value in state.items():
+        target = expected[key]
+        if (not isinstance(value, torch.Tensor) or value.shape != target.shape
+                or value.dtype != target.dtype or not torch.isfinite(value).all()):
+            raise ValueError("native encoder tensor shape, dtype or finiteness mismatch")
+    encoder.load_state_dict(state, strict=True)
+    if _sha256(source) != sha256:
+        raise ValueError("source changed during import")
+    out.mkdir(parents=True, exist_ok=False)
+    dest = out / "encoder.pt"
+    torch.save({"scaling_encoder_version": 1, "model": arch, "readout": "cls",
+                "state_dict": encoder.state_dict()}, dest)
+    record = {"source_sha256": sha256, "encoder_sha256": _sha256(dest),
+              "model": arch, "completed_epoch": completed_epoch,
+              "state_key": state_key, "prefix": prefix, "tensor_count": len(state),
+              "validation": "strict native encoder import; historical score attribution unverified"}
+    (out / "export.json").write_text(json.dumps(record, indent=2) + "\n")
+    return record
+
+
+def main(argv=None):
+    import argparse
+    parser = argparse.ArgumentParser(description="Import native IDv2 scaling encoder weights")
+    for name in ("source", "sha256", "arch", "state-key", "prefix", "out"):
+        parser.add_argument("--" + name, required=True)
+    parser.add_argument("--completed-epoch", required=True, type=int)
+    import_native(**vars(parser.parse_args(argv)))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

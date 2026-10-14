@@ -92,6 +92,120 @@ class TestScalingEvaluation(unittest.TestCase):
         with torch.no_grad():
             return model.forward_features(pixels)
 
+    def native_fixture(self):
+        import hashlib
+
+        import numpy as np
+
+        from downstream import spatial_backbones as sb
+
+        spec = self.fixture()
+        module = sb._load_provider(sb.discover_providers()["idv2_scaling"]).encoder_module()
+        source = self.root / "native.pth"
+        blob = {"completed_epoch": 30, "step_in_epoch": 0,
+                "state_dict": {"module.vit." + k: v for k, v in self.reference.state_dict().items()},
+                "rng_state": {"numpy": np.random.get_state()},
+                "config": {"private_path": "/private/original"},
+                "memory": torch.randn(3, 8), "Z": torch.tensor(7.)}
+        blob["state_dict"]["module.fc.weight"] = torch.randn(8, 16)
+        torch.save(blob, source)
+        args = {"source": source, "sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
+                "arch": spec["arch"], "completed_epoch": 30, "state_key": "state_dict",
+                "prefix": "module.vit.", "out": self.root / "converted"}
+        return module, blob, args, spec
+
+    def test_native_scaling_import_preserves_readouts_and_excludes_private_payload(self):
+        import hashlib
+        module, _blob, args, spec = self.native_fixture()
+        before = args["source"].read_bytes()
+        with mock.patch("timm.create_model", side_effect=self.tiny_factory):
+            record = module.import_native(**args)
+        self.assertEqual(args["source"].read_bytes(), before)
+        export = torch.load(args["out"] / "encoder.pt", weights_only=True)
+        self.assertEqual(set(export), {"scaling_encoder_version", "model", "readout", "state_dict"})
+        self.assertEqual(set(export["state_dict"]), set(self.reference.state_dict()))
+        for key, value in export["state_dict"].items():
+            torch.testing.assert_close(value, self.reference.state_dict()[key], atol=0, rtol=0)
+        self.assertEqual(record["source_sha256"], args["sha256"])
+        self.assertEqual(record["completed_epoch"], 30)
+        self.assertEqual(record["encoder_sha256"], hashlib.sha256((args["out"] / "encoder.pt").read_bytes()).hexdigest())
+        self.assertEqual(json.loads((args["out"] / "export.json").read_text()), record)
+        self.assertNotIn("/private/original", json.dumps(record))
+        self.assertNotIn(str(args["source"]), json.dumps(record))
+        spec["encoder"] = str(args["out"] / "encoder.pt")
+        bb = self.build(spec)
+        x = torch.randn(2, 3, 32, 48)
+        torch.testing.assert_close(bb.classification_features(x, adaptation="frozen"),
+            F.normalize(self.expected_tokens(x)[:, 0], dim=-1), atol=1e-6, rtol=1e-6)
+        original = (args["out"] / "encoder.pt").read_bytes()
+        with self.assertRaises(FileExistsError):
+            module.import_native(**args)
+        self.assertEqual((args["out"] / "encoder.pt").read_bytes(), original)
+
+    def test_native_scaling_import_rejects_identity_tensor_and_epoch_errors(self):
+        import hashlib
+        from contextlib import nullcontext
+        module, blob, args, _spec = self.native_fixture()
+        for case in ("hash", "epoch", "bool_epoch", "float_epoch", "float_step", "partial", "missing", "extra", "shape", "nan", "dtype", "prefix", "arch", "mapping", "tensor_type", "state_key", "requested_epoch", "requested_bool"):
+            bad = copy.deepcopy(blob)
+            options = dict(args)
+            key = "module.vit.cls_token"
+            if case == "epoch": bad["completed_epoch"] = 29
+            if case == "bool_epoch": bad["completed_epoch"] = True
+            if case == "float_epoch": bad["completed_epoch"] = 30.0
+            if case == "float_step": bad["step_in_epoch"] = 0.0
+            if case == "partial": bad["step_in_epoch"] = 1
+            if case == "missing": del bad["state_dict"][key]
+            if case == "extra": bad["state_dict"]["module.vit.decoy"] = torch.zeros(1)
+            if case == "shape": bad["state_dict"][key] = torch.zeros(3)
+            if case == "nan": bad["state_dict"][key].fill_(float("nan"))
+            if case == "dtype": bad["state_dict"][key] = bad["state_dict"][key].double()
+            if case == "prefix": options["prefix"] = "module."
+            if case == "arch": options["arch"] = "unverified"
+            if case == "mapping": bad["state_dict"] = []
+            if case == "tensor_type": bad["state_dict"][key] = "not a tensor"
+            if case == "state_key": options["state_key"] = "config"
+            if case == "requested_epoch": options["completed_epoch"] = 0
+            if case == "requested_bool": options["completed_epoch"] = True
+            torch.save(bad, args["source"])
+            options["sha256"] = "0" * 64 if case == "hash" else hashlib.sha256(args["source"].read_bytes()).hexdigest()
+            loading = mock.patch.object(module.torch, "load", side_effect=AssertionError("unverified bytes deserialized")) if case == "hash" else nullcontext()
+            with self.subTest(case=case), loading, mock.patch("timm.create_model", side_effect=self.tiny_factory):
+                with self.assertRaises(ValueError):
+                    module.import_native(**options)
+                self.assertFalse(args["out"].exists())
+
+    def test_native_scaling_import_cli_layouts_and_safe_loading(self):
+        import hashlib
+        import pickle
+        module, blob, args, _spec = self.native_fixture()
+        for index, prefix in enumerate(("vit.", "module.vit.", "encoder.vit.", "module.encoder.vit.")):
+            native = dict(blob, model={prefix + k: v for k, v in self.reference.state_dict().items()})
+            del native["state_dict"]
+            torch.save(native, args["source"])
+            options = dict(args, arch=module.PRESETS[index % 2], state_key="model", prefix=prefix,
+                           out=self.root / str(index), sha256=hashlib.sha256(args["source"].read_bytes()).hexdigest())
+            argv = [item for key, value in options.items() for item in ("--" + key.replace("_", "-"), str(value))]
+            with mock.patch("timm.create_model", side_effect=self.tiny_factory):
+                self.assertEqual(module.main(argv), 0)
+            export = module.read_export(self.root / str(index) / "encoder.pt")
+            self.assertEqual(export["model"], options["arch"])
+            for key, value in export["state_dict"].items():
+                torch.testing.assert_close(value, self.reference.state_dict()[key], rtol=0, atol=0)
+        bad = dict(blob, unapproved_object=Path("unapproved"))
+        torch.save(bad, args["source"])
+        args["sha256"] = hashlib.sha256(args["source"].read_bytes()).hexdigest()
+        with self.assertRaises(pickle.UnpicklingError):
+            module.import_native(**args)
+        self.assertFalse(args["out"].exists())
+        torch.save(blob, args["source"])
+        args["sha256"] = hashlib.sha256(args["source"].read_bytes()).hexdigest()
+        with (mock.patch.object(module, "_sha256", side_effect=[args["sha256"], "changed"]),
+              mock.patch("timm.create_model", side_effect=self.tiny_factory),
+              self.assertRaisesRegex(ValueError, "source changed")):
+            module.import_native(**args)
+        self.assertFalse(args["out"].exists())
+
     def test_cls_patches_rectangles_and_video_use_exact_export_weights(self):
         for arch in ("vit_base_patch16_224", "vit_large_patch16_224"):
             spec = self.fixture(arch)

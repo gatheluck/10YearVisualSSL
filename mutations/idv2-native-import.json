@@ -1,0 +1,121 @@
+{
+  "targets": [
+    {
+      "label": "source digest",
+      "file": "methods/10_inst_disc/models/scaling_encoder.py",
+      "old": "if _sha256(source) != sha256:\n        raise ValueError(\"source sha256 mismatch\")",
+      "new": "if False:\n        raise ValueError(\"source sha256 mismatch\")",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_native_scaling_import_rejects_identity_tensor_and_epoch_errors"
+      ]
+    },
+    {
+      "label": "epoch identity",
+      "file": "methods/10_inst_disc/models/scaling_encoder.py",
+      "old": "or blob[\"completed_epoch\"] != completed_epoch",
+      "new": "or False",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_native_scaling_import_rejects_identity_tensor_and_epoch_errors"
+      ]
+    },
+    {
+      "label": "boundary",
+      "file": "methods/10_inst_disc/models/scaling_encoder.py",
+      "old": "or blob[\"step_in_epoch\"] != 0",
+      "new": "or False",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_native_scaling_import_rejects_identity_tensor_and_epoch_errors"
+      ]
+    },
+    {
+      "label": "tensor shape",
+      "file": "methods/10_inst_disc/models/scaling_encoder.py",
+      "old": "value.shape != target.shape",
+      "new": "False",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_native_scaling_import_rejects_identity_tensor_and_epoch_errors"
+      ]
+    },
+    {
+      "label": "tensor dtype",
+      "file": "methods/10_inst_disc/models/scaling_encoder.py",
+      "old": "value.dtype != target.dtype",
+      "new": "False",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_native_scaling_import_rejects_identity_tensor_and_epoch_errors"
+      ]
+    },
+    {
+      "label": "finite weights",
+      "file": "methods/10_inst_disc/models/scaling_encoder.py",
+      "old": "not torch.isfinite(value).all()",
+      "new": "False",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_native_scaling_import_rejects_identity_tensor_and_epoch_errors"
+      ]
+    },
+    {
+      "label": "hash stability",
+      "file": "methods/10_inst_disc/models/scaling_encoder.py",
+      "old": "if _sha256(source) != sha256:\n        raise ValueError(\"source changed during import\")",
+      "new": "if False:\n        raise ValueError(\"source changed during import\")",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_native_scaling_import_cli_layouts_and_safe_loading"
+      ]
+    },
+    {
+      "label": "safe deserialization",
+      "file": "methods/10_inst_disc/models/scaling_encoder.py",
+      "old": "weights_only=True, mmap=True",
+      "new": "weights_only=False, mmap=True",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_native_scaling_import_cli_layouts_and_safe_loading"
+      ]
+    },
+    {
+      "label": "tensor identity",
+      "file": "methods/10_inst_disc/models/scaling_encoder.py",
+      "old": "encoder.load_state_dict(state, strict=True)",
+      "new": "pass",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_native_scaling_import_preserves_readouts_and_excludes_private_payload"
+      ]
+    },
+    {
+      "label": "no private config",
+      "file": "methods/10_inst_disc/models/scaling_encoder.py",
+      "old": "\"tensor_count\": len(state),",
+      "new": "\"tensor_count\": len(state), \"config\": blob.get(\"config\"),",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_native_scaling_import_preserves_readouts_and_excludes_private_payload"
+      ]
+    },
+    {
+      "label": "source evidence",
+      "file": "methods/10_inst_disc/models/scaling_encoder.py",
+      "old": "\"source_sha256\": sha256,",
+      "new": "\"source_sha256\": \"wrong\",",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_native_scaling_import_preserves_readouts_and_excludes_private_payload"
+      ]
+    },
+    {
+      "label": "export evidence",
+      "file": "methods/10_inst_disc/models/scaling_encoder.py",
+      "old": "\"encoder_sha256\": _sha256(dest)",
+      "new": "\"encoder_sha256\": \"wrong\"",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_native_scaling_import_preserves_readouts_and_excludes_private_payload"
+      ]
+    },
+    {
+      "label": "cli invokes conversion",
+      "file": "methods/10_inst_disc/models/scaling_encoder.py",
+      "old": "import_native(**vars(parser.parse_args(argv)))",
+      "new": "parser.parse_args(argv)",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_native_scaling_import_cli_layouts_and_safe_loading"
+      ]
+    }
+  ]
+}

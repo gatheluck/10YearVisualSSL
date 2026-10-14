@@ -17,7 +17,8 @@ equal to the export's `vit_base_patch16_224` or `vit_large_patch16_224` preset.
 `encoder` must name a local version-1 scaling `encoder.pt` (or retained epoch
 export). There is no download, random fallback or dimension override. Missing or
 extra encoder weights and mismatched identity fail. Generic ablation exports and
-native historical training checkpoints are not accepted. The file's preset
+native historical training checkpoints are not accepted directly. Use the
+explicit conversion below for verified epoch-boundary checkpoints. The file's preset
 identity is not evidence of its historical training epoch or paper-row provenance.
 
 Training and evaluation share native timm preset construction: final LayerNorm
@@ -61,6 +62,38 @@ experiments from these connections or silently substitute the generic ViT kind.
 
 ## Evidence and unresolved scope
 
+### Importing a native epoch-boundary checkpoint
+
+Run `python methods/10_inst_disc/models/scaling_encoder.py --source /path/to/native.pth --sha256 SOURCE_SHA256 --arch vit_large_patch16_224 --completed-epoch 100 --state-key state_dict --prefix vit. --out /path/to/new-export`.
+
+The source hash must be independently recorded before conversion. Choose the
+architecture, mapping and epoch from inspected checkpoint metadata, not its
+filename. The converter verifies the hash before and after reading, requires
+an exact integer `completed_epoch` and `step_in_epoch: 0`, and strictly checks
+encoder keys, shapes, FP32 dtypes and finite values against the native preset.
+It supports explicit `state_dict` or `model` mappings and `vit.` or
+`encoder.vit.` prefixes, optionally preceded by `module.`. No automatic prefix,
+architecture or epoch correction is performed. Unknown pickle classes fail;
+the restricted loader permits the native NumPy RNG array metadata but never
+falls back to unrestricted loading.
+
+The new directory contains `encoder.pt` for the five evaluation routes and
+`export.json` with hashes, mapping and literal epoch metadata. Original paths,
+configuration, optimizer, RNG, projector and memory bank are not exported.
+Existing output directories are refused. A failed filesystem write can leave
+an incomplete directory; do not use it as a completed export. This is encoder
+conversion, not native training continuation or certification of a paper row.
+
+Read-only archive metadata inspection on 2026-10-13 found the three ImageNet-1k
+retained checkpoints at 100/200/300 consistent with the boundary requirement.
+The three inspected ImageNet-21k retained checkpoints have nonzero
+`step_in_epoch`; their historical epoch interpretation remains pending and
+this converter deliberately refuses them. Full-weight conversion and GPU
+evaluation have not been executed. Reduced fixtures verify exact encoder
+weights and readout preservation; they do not validate the physical artifacts.
+
+### Earlier evaluation evidence
+
 Read-only refresh on 2026-10-12 found all five inspected campaign Python files
 and the shared data/protocol files identical to the capture (seven of nine files).
 Shared modules and training code had a later depth-loss/diagnostic change:
@@ -76,7 +109,7 @@ missing provider, missing explicit video recipe, missing CI execution and missin
 documented example. Five real task entrypoints train/evaluate small fixtures and
 verify output manifests; this is integration evidence, not full-size training.
 
-Historical checkpoint import, epoch/result attribution, full-size released-weight
+Import of historical non-boundary checkpoints, epoch/result attribution, full-size released-weight
 validation, distributed/CUDA/BF16 parity and full-data paper-score reproduction
 remain unfinished. The owner-held FSDP discrepancy is unrelated and unchanged.
 Record mutation, local whole-suite, Linux and CI results separately in the PR.
