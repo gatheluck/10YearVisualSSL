@@ -1,0 +1,184 @@
+{
+  "targets": [
+    {
+      "label": "image readout",
+      "file": "methods/31_dinov3/downstream_backbone_ablation.py",
+      "old": "return F.normalize(cls, dim=-1)",
+      "new": "return cls",
+      "tests": [
+        "tests.test_dino_ablation_evaluation.TestAblationEvaluation.test_image_spatial_video_and_head_updates_preserve_native_teacher"
+      ]
+    },
+    {
+      "label": "video readout",
+      "file": "methods/31_dinov3/downstream_backbone_ablation.py",
+      "old": "return patches.mean(1).reshape",
+      "new": "return self.tokens(images.flatten(0, 1))[0].reshape",
+      "tests": [
+        "tests.test_dino_ablation_evaluation.TestAblationEvaluation.test_image_spatial_video_and_head_updates_preserve_native_teacher"
+      ]
+    },
+    {
+      "label": "freeze",
+      "file": "methods/31_dinov3/downstream_backbone_ablation.py",
+      "old": "self.requires_grad_(False)",
+      "new": "self.requires_grad_(True)",
+      "tests": [
+        "tests.test_dino_ablation_evaluation.TestAblationEvaluation.test_image_spatial_video_and_head_updates_preserve_native_teacher"
+      ]
+    },
+    {
+      "label": "eval",
+      "file": "methods/31_dinov3/downstream_backbone_ablation.py",
+      "old": "return super().train(False)",
+      "new": "return super().train(mode)",
+      "tests": [
+        "tests.test_dino_ablation_evaluation.TestAblationEvaluation.test_image_spatial_video_and_head_updates_preserve_native_teacher"
+      ]
+    },
+    {
+      "label": "strict state",
+      "file": "methods/31_dinov3/downstream_backbone_ablation.py",
+      "old": "encoder.load_state_dict(state, strict=True)",
+      "new": "encoder.load_state_dict(state, strict=False)",
+      "tests": [
+        "tests.test_dino_ablation_evaluation.TestAblationEvaluation.test_invalid_geometry_weights_and_adaptations_are_refused"
+      ]
+    },
+    {
+      "label": "geometry",
+      "file": "methods/31_dinov3/downstream_backbone_ablation.py",
+      "old": "spec.get(\"img_size\") != 224",
+      "new": "False",
+      "tests": [
+        "tests.test_dino_ablation_evaluation.TestAblationEvaluation.test_invalid_geometry_weights_and_adaptations_are_refused"
+      ]
+    },
+    {
+      "label": "override",
+      "file": "methods/31_dinov3/downstream_backbone_ablation.py",
+      "old": "any(key in spec for key in (\"embed_dim\", \"depth\", \"num_heads\"))",
+      "new": "False",
+      "tests": [
+        "tests.test_dino_ablation_evaluation.TestAblationEvaluation.test_invalid_geometry_weights_and_adaptations_are_refused"
+      ]
+    },
+    {
+      "label": "adaptation",
+      "file": "methods/31_dinov3/downstream_backbone_ablation.py",
+      "old": "if adaptation != \"frozen\":",
+      "new": "if False:",
+      "tests": [
+        "tests.test_dino_ablation_evaluation.TestAblationEvaluation.test_invalid_geometry_weights_and_adaptations_are_refused"
+      ]
+    },
+    {
+      "label": "registers",
+      "file": "methods/31_dinov3/downstream_backbone_ablation.py",
+      "old": "patch_size=16, n_register_tokens=4",
+      "new": "patch_size=16, n_register_tokens=0",
+      "tests": [
+        "tests.test_dino_ablation_evaluation.TestAblationEvaluation.test_native_presets_use_matching_model_geometry"
+      ]
+    },
+    {
+      "label": "preset depth",
+      "file": "methods/31_dinov3/downstream_backbone_ablation.py",
+      "old": "\"vit_large_patch16\": (1024, 24, 16)",
+      "new": "\"vit_large_patch16\": (1024, 12, 16)",
+      "tests": [
+        "tests.test_dino_ablation_evaluation.TestAblationEvaluation.test_native_presets_use_matching_model_geometry"
+      ]
+    },
+    {
+      "label": "discover variants",
+      "file": "downstream/spatial_backbones.py",
+      "old": "paths.update(Path(methods_dir).glob(\"*/downstream_backbone_*.py\"))",
+      "new": "pass",
+      "tests": [
+        "tests.test_dino_ablation_evaluation.TestAblationEvaluation.test_discovery_separates_multiple_providers_and_ignores_decoys"
+      ]
+    },
+    {
+      "label": "separate caches",
+      "file": "downstream/spatial_backbones.py",
+      "old": " + \"_\" + path.stem",
+      "new": "",
+      "tests": [
+        "tests.test_dino_ablation_evaluation.TestAblationEvaluation.test_discovery_separates_multiple_providers_and_ignores_decoys"
+      ]
+    },
+    {
+      "label": "patch geometry",
+      "file": "methods/31_dinov3/downstream_backbone_ablation.py",
+      "old": "spec.get(\"patch_size\") != 16",
+      "new": "False",
+      "tests": [
+        "tests.test_dino_ablation_evaluation.TestAblationEvaluation.test_invalid_geometry_weights_and_adaptations_are_refused"
+      ]
+    },
+    {
+      "label": "preset",
+      "file": "methods/31_dinov3/downstream_backbone_ablation.py",
+      "old": "spec.get(\"arch\") not in PRESETS",
+      "new": "False",
+      "tests": [
+        "tests.test_dino_ablation_evaluation.TestAblationEvaluation.test_invalid_geometry_weights_and_adaptations_are_refused"
+      ]
+    },
+    {
+      "label": "supported adaptation",
+      "file": "methods/31_dinov3/downstream_backbone_ablation.py",
+      "old": "SUPPORTED_ADAPTATIONS = (\"frozen\",)",
+      "new": "SUPPORTED_ADAPTATIONS = (\"frozen\", \"attentive\")",
+      "tests": [
+        "tests.test_dino_ablation_evaluation.TestAblationEvaluation.test_invalid_geometry_weights_and_adaptations_are_refused"
+      ]
+    },
+    {
+      "label": "video empty",
+      "file": "methods/31_dinov3/downstream_backbone_ablation.py",
+      "old": "if images.ndim != 5 or images.shape[1] == 0:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_dino_ablation_evaluation.TestAblationEvaluation.test_invalid_geometry_weights_and_adaptations_are_refused"
+      ]
+    },
+    {
+      "label": "normalization",
+      "file": "methods/31_dinov3/downstream_backbone_ablation.py",
+      "old": "return (.485, .456, .406), (.229, .224, .225)",
+      "new": "return (0., 0., 0.), (1., 1., 1.)",
+      "tests": [
+        "tests.test_dino_ablation_evaluation.TestAblationEvaluation.test_image_spatial_video_and_head_updates_preserve_native_teacher"
+      ]
+    },
+    {
+      "label": "constructor preset guard",
+      "file": "methods/31_dinov3/downstream_backbone_ablation.py",
+      "old": "if arch not in PRESETS:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_dino_ablation_evaluation.TestAblationEvaluation.test_native_presets_use_matching_model_geometry"
+      ]
+    },
+    {
+      "label": "local export guard",
+      "file": "methods/31_dinov3/downstream_backbone_ablation.py",
+      "old": "if not spec.get(\"encoder\") or not Path(spec[\"encoder\"]).is_file():",
+      "new": "if False:",
+      "tests": [
+        "tests.test_dino_ablation_evaluation.TestAblationEvaluation.test_invalid_geometry_weights_and_adaptations_are_refused"
+      ]
+    },
+    {
+      "label": "pixel geometry guard",
+      "file": "methods/31_dinov3/downstream_backbone_ablation.py",
+      "old": "if (images.ndim != 4 or images.shape[0] == 0 or images.shape[1] != 3\n                or min(images.shape[-2:]) < 16 or any(s % 16 for s in images.shape[-2:])):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_dino_ablation_evaluation.TestAblationEvaluation.test_invalid_geometry_weights_and_adaptations_are_refused"
+      ]
+    }
+  ]
+}

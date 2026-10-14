@@ -45,6 +45,11 @@ Physical full-weight conversion and GPU validation remain unexecuted.
 The refreshed shared depth-loss coefficient differs from Capture; its historical
 selection remains unresolved and the portable loss is unchanged.
 
+The October 14 [native DINO teacher evaluation](DINO_ABLATION_EVALUATION.md)
+connects base/large teacher exports to five frozen BasicFive task components,
+including the source-specific patch-mean video representation. Full native
+checkpoint conversion, distributed/GPU execution and scores remain unverified.
+
 ## Coverage by final appendix
 
 | Final location | Portable basis | Remaining verification or integration |
