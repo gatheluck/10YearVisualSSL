@@ -7,6 +7,8 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
+from downstream.contract import sha256_file
+
 KIND = "dinov3_ablation"
 COMPONENT_ONLY = True
 IMAGE_CLASSIFICATION = True
@@ -92,3 +94,77 @@ def build(spec):
     encoder = build_encoder(spec["arch"])
     encoder.load_state_dict(state, strict=True)
     return TeacherBackbone(encoder)
+
+
+def import_native(*, source, sha256, arch, epoch, out):
+    """Export a verified native teacher without carrying private training metadata."""
+    import json
+
+    out = Path(out)
+    if out.exists():
+        raise FileExistsError("output already exists; choose a new directory")
+    if arch not in PRESETS or type(epoch) is not int or epoch < 1:
+        raise ValueError("explicit supported architecture and positive native epoch required")
+    if sha256_file(source) != sha256:
+        raise ValueError("source sha256 mismatch")
+    blob = torch.load(source, map_location="cpu", weights_only=True, mmap=True)
+    if (not isinstance(blob, dict) or type(blob.get("epoch")) is not int
+            or blob["epoch"] != epoch):
+        raise ValueError("native checkpoint epoch does not match the explicit epoch")
+    cfg = blob.get("cfg")
+    model = cfg.get("model") if isinstance(cfg, dict) else None
+    if not isinstance(model, dict) or model.get("arch") != arch:
+        raise ValueError("native checkpoint must declare the matching model architecture")
+    dim, depth, heads = PRESETS[arch]
+    expected_config = {"embed_dim": dim, "depth": depth, "num_heads": heads, "patch_size": 16,
+                       "mlp_ratio": 4., "n_register_tokens": 4, "use_rope": True,
+                       "rope_base": 100., "rope_rescale_coords": 2.}
+    if any(model.get(key, value) != value for key, value in expected_config.items()):
+        raise ValueError("native model configuration differs from the evaluation preset")
+    raw = blob.get("teacher_state_dict")
+    if not isinstance(raw, dict) or any(not isinstance(key, str) for key in raw):
+        raise ValueError("native teacher must be a string-keyed mapping")
+    head_names = ("dino_head", "ibot_head", "prototypes", "dino_prototypes",
+                  "ibot_prototypes", "shared_mlp", "token_affine_cls",
+                  "token_affine_patch", "gram_head")
+    state = {}
+    for key, value in raw.items():
+        if key.startswith("backbone."):
+            state[key[len("backbone."):]] = value
+        elif not any(key == head or key.startswith(head + ".") for head in head_names):
+            raise ValueError("unknown non-backbone teacher namespace")
+    encoder = build_encoder(arch)
+    expected = encoder.state_dict()
+    if set(state) != set(expected):
+        raise ValueError("native teacher keys do not exactly match the preset")
+    for key, value in state.items():
+        target = expected[key]
+        if (not isinstance(value, torch.Tensor) or value.shape != target.shape
+                or value.dtype != target.dtype or not torch.isfinite(value).all()):
+            raise ValueError("native teacher tensor shape, dtype or finiteness mismatch")
+    encoder.load_state_dict(state, strict=True)
+    if sha256_file(source) != sha256:
+        raise ValueError("source changed during import")
+    out.mkdir(parents=True, exist_ok=False)
+    dest = out / "encoder.pt"
+    torch.save(encoder.state_dict(), dest)
+    record = {"source_sha256": sha256, "encoder_sha256": sha256_file(dest), "arch": arch,
+              "epoch": epoch, "teacher_key": "teacher_state_dict", "tensor_count": len(state),
+              "validation": "strict teacher export; historical score attribution unverified"}
+    (out / "export.json").write_text(json.dumps(record, indent=2) + "\n")
+    return record
+
+
+def main(argv=None):
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Export native DINO teacher weights for frozen evaluation")
+    for name in ("source", "sha256", "arch", "out"):
+        parser.add_argument("--" + name, required=True)
+    parser.add_argument("--epoch", required=True, type=int)
+    import_native(**vars(parser.parse_args(argv)))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

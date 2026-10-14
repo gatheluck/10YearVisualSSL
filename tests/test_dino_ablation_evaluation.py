@@ -191,3 +191,151 @@ class TestAblationEvaluation(unittest.TestCase):
                               model.n_register_tokens), (dim, depth, 16, 4))
             self.assertEqual(model.blocks[0].attn.num_heads, heads)
         with self.assertRaises(ValueError): provider.build_encoder("unknown")
+
+
+class _UntrustedCheckpointObject:
+    def __reduce__(self):
+        return eval, ("'unexpected-deserialization'",)
+
+
+@unittest.skipUnless(HAVE, "torch required")
+class TestNativeTeacherImport(unittest.TestCase):
+    root: Path
+    model: "nn.Module"
+    setUp = TestAblationEvaluation.setUp
+    provider = TestAblationEvaluation.provider
+    fixture = TestAblationEvaluation.fixture
+
+    def native(self, arch="vit_base_patch16"):
+        self.fixture()
+        dim, depth, heads = self.provider().PRESETS[arch]
+        return {"epoch": 300, "cfg": {"model": {"arch": arch, "embed_dim": dim,
+            "depth": depth, "num_heads": heads, "n_register_tokens": 4,
+            "use_rope": True, "rope_base": 100., "rope_rescale_coords": 2.},
+            "data": {"train_path": "private-input-location"}},
+            "teacher_state_dict": {**{"backbone."+k: v for k,v in self.model.state_dict().items()},
+                                   "dino_head.weight": torch.randn(3, 3)},
+            "student_state_dict": {"decoy": torch.ones(1)},
+            "experiment_name": "private-experiment-identity", "optimizer_state_dict": {}}
+
+    def convert(self, blob, **overrides):
+        from downstream.contract import sha256_file
+        source = self.root / "native.pth"
+        torch.save(blob, source)
+        args = {"source": source, "sha256": sha256_file(source), "arch": "vit_base_patch16",
+                "epoch": 300, "out": self.root / "converted"}
+        args.update(overrides)
+        provider = self.provider()
+        self.assertTrue(callable(getattr(provider, "import_native", None)), "native teacher importer missing")
+        empty = copy.deepcopy(self.model)
+        with torch.no_grad():
+            for param in empty.parameters(): param.zero_()
+        with mock.patch.object(provider, "build_encoder", return_value=empty):
+            return provider.import_native(**args)
+
+    def test_both_presets_export_only_teacher_and_preserve_readouts(self):
+        from downstream.contract import sha256_file
+        for arch in self.provider().PRESETS:
+            with self.subTest(arch=arch):
+                blob = self.native(arch)
+                for head in ("ibot_head", "prototypes", "dino_prototypes", "ibot_prototypes",
+                             "shared_mlp", "token_affine_cls", "token_affine_patch", "gram_head"):
+                    blob["teacher_state_dict"][head] = torch.ones(1)
+                    blob["teacher_state_dict"][head+".weight"] = torch.ones(1)
+                out = self.root / arch
+                record = self.convert(blob, arch=arch, out=out)
+                state = torch.load(out/"encoder.pt", weights_only=True)
+                self.assertEqual(set(state), set(self.model.state_dict()))
+                for key, expected in self.model.state_dict().items():
+                    torch.testing.assert_close(state[key], expected, rtol=0, atol=0)
+                self.assertEqual({p.name for p in out.iterdir()}, {"encoder.pt", "export.json"})
+                self.assertEqual(record, json.loads((out/"export.json").read_text()))
+                self.assertEqual(set(record), {"source_sha256", "encoder_sha256", "arch", "epoch",
+                                              "teacher_key", "tensor_count", "validation"})
+                self.assertEqual(record["encoder_sha256"], sha256_file(out/"encoder.pt"))
+                self.assertEqual(record["source_sha256"], sha256_file(self.root/"native.pth"))
+                self.assertEqual((record["epoch"], record["arch"]), (300, arch))
+                self.assertNotIn("private-", (out/"export.json").read_text())
+                spec = {"kind": "dinov3_ablation", "arch": arch, "encoder": str(out/"encoder.pt"),
+                        "img_size": 224, "patch_size": 16}
+                with mock.patch.object(self.provider(), "build_encoder", return_value=copy.deepcopy(self.model)):
+                    bb = self.provider().build(spec)
+                images = torch.randn(2, 3, 32, 48)
+                with torch.no_grad():
+                    cls, patches = self.model(images, is_global=True)
+                torch.testing.assert_close(bb.classification_features(images, adaptation="frozen"), F.normalize(cls, dim=-1))
+                torch.testing.assert_close(bb.forward_features(images), patches.transpose(1,2).reshape(2,16,2,3))
+                video = images[:, None].repeat(1,3,1,1,1)
+                torch.testing.assert_close(bb.classification_features(video, adaptation="frozen", video=True), patches.mean(1))
+
+    def test_identity_config_and_namespace_fail_closed(self):
+        changes = [({"epoch": 299}, {}), ({"epoch": True}, {}), ({"epoch": "300"}, {}),
+                   ({"epoch": 300.0}, {}), ({}, {"epoch": 300.0}),
+                   ({}, {"sha256": "0"*64}), ({}, {"arch": "unknown"}), ({}, {"epoch": 0}),
+                   ({}, {"epoch": True}), ({"cfg": {}}, {}), ({"cfg": None}, {}),
+                   ({"teacher_state_dict": {}}, {}), ({"teacher_state_dict": []}, {}),
+                   ({"teacher_state_dict": {7: torch.ones(1)}}, {})]
+        for updates, kwargs in changes:
+            with self.subTest(updates=list(updates), kwargs=kwargs):
+                blob = self.native(); blob.update(updates)
+                with self.assertRaises(ValueError): self.convert(blob, **kwargs)
+                self.assertFalse((self.root/"converted").exists())
+        for key, value in {"arch": "vit_large_patch16", "embed_dim": 1024, "depth": 24,
+                           "num_heads": 16, "patch_size": 14, "mlp_ratio": 3.,
+                           "n_register_tokens": 0, "use_rope": False, "rope_base": 10.,
+                           "rope_rescale_coords": None}.items():
+            with self.subTest(key=key):
+                blob = self.native(); blob["cfg"]["model"][key] = value
+                with self.assertRaises(ValueError): self.convert(blob)
+                self.assertFalse((self.root/"converted").exists())
+        for decoy in ("dino_head_decoy.weight", "student.backbone.weight", "module.backbone.weight"):
+            blob = self.native(); blob["teacher_state_dict"][decoy] = torch.ones(1)
+            with self.assertRaises(ValueError): self.convert(blob)
+        blob = self.native()
+        with mock.patch.object(torch, "load") as load:
+            with self.assertRaises(ValueError): self.convert(blob, sha256="0"*64)
+            load.assert_not_called()
+
+    def test_bad_tensors_are_not_cast_or_partially_loaded(self):
+        for defect in ("missing", "extra", "shape", "dtype", "nan", "inf", "non_tensor"):
+            with self.subTest(defect=defect):
+                blob = self.native(); state = blob["teacher_state_dict"]
+                key = next(k for k in state if k.startswith("backbone."))
+                if defect == "missing": del state[key]
+                elif defect == "extra": state["backbone.decoy"] = torch.ones(1)
+                elif defect == "shape": state[key] = torch.ones(1)
+                elif defect == "dtype": state[key] = state[key].double()
+                elif defect in ("nan", "inf"): state[key] = torch.full_like(state[key], float(defect))
+                else: state[key] = "not-a-tensor"
+                with self.assertRaises(ValueError): self.convert(blob)
+                self.assertFalse((self.root/"converted").exists())
+
+    def test_existing_output_source_change_and_unsafe_pickle_are_refused(self):
+        import pickle
+        blob = self.native()
+        out = self.root/"occupied"; out.mkdir(); (out/"sentinel").write_text("preserve")
+        with self.assertRaises(FileExistsError): self.convert(blob, out=out)
+        self.assertEqual((out/"sentinel").read_text(), "preserve")
+        provider = self.provider()
+        self.assertTrue(callable(getattr(provider, "import_native", None)), "native teacher importer missing")
+        from downstream.contract import sha256_file
+        source = self.root/"native.pth"; torch.save(blob, source)
+        digest = sha256_file(source)
+        with (mock.patch.object(provider, "sha256_file", side_effect=[digest, "changed"]),
+              self.assertRaisesRegex(ValueError, "changed")):
+            self.convert(blob)
+        self.assertFalse((self.root/"converted").exists())
+        blob["untrusted"] = _UntrustedCheckpointObject()
+        with self.assertRaises(pickle.UnpicklingError): self.convert(blob)
+        self.assertFalse((self.root/"converted").exists())
+
+    def test_cli_requires_explicit_identity_and_uses_importer(self):
+        provider = self.provider()
+        self.assertTrue(callable(getattr(provider, "main", None)), "native teacher CLI missing")
+        args = ["--source", "input.pth", "--sha256", "a"*64, "--arch", "vit_base_patch16",
+                "--epoch", "300", "--out", "new-output"]
+        with mock.patch.object(provider, "import_native") as importer:
+            self.assertEqual(provider.main(args), 0)
+            importer.assert_called_once_with(source="input.pth", sha256="a"*64,
+                arch="vit_base_patch16", epoch=300, out="new-output")
+        with self.assertRaises(SystemExit): provider.main(args[:-2])

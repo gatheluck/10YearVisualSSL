@@ -14,6 +14,16 @@ delivery status and permission assumptions do not describe today's workflow.
 
 ### 2026-10-14: native DINO teacher evaluation
 
+Follow-up: PR 243 merged as `2c9ee6b`, with all 115 checks successful; pulled
+main matches the validated tree. The native teacher importer now bridges
+explicitly verified checkpoints to the frozen evaluation format, rejecting
+incompatible identity, configuration, namespaces and tensors. Original inputs
+and existing video-submodule edits are preserved. Four refreshed source/config
+files match Capture; one actual base archive's metadata matches the preset.
+Reduced conversion/readout and reference-selection checks do not establish
+full-weight loading, GPU execution or score reproduction. No job was submitted.
+Keep private evidence outside Git and record final validation in the PR.
+
 PR 242 merged as `fe56885`; all 115 checks succeeded. Pulled main matches
 the validated tree. Existing video-submodule edits remain preserved.
 [Native teacher evaluation](DINO_ABLATION_EVALUATION.md) connects base/large

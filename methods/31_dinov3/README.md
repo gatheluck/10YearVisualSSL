@@ -148,3 +148,6 @@ The [frozen evaluation integration](../../docs/DINO_ABLATION_EVALUATION.md)
 connects compatible base/large teacher exports to all five BasicFive LINEAR
 components. It is separate from the released HF provider and does not certify
 full experiment reproduction or paper scores.
+Its native importer verifies source hash, saved epoch, model configuration and
+teacher tensors before producing a separate encoder-only export. Original
+training metadata is excluded; see the same guide for commands and limits.
