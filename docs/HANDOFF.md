@@ -12,6 +12,29 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-10-15: CUDA launcher correction and DINO GPU validation
+
+PR 245 merged as `57fc5a1`; all 115 checks succeeded and the pulled main tree
+matches the tested parent. Existing video-submodule edits remain untouched.
+Twenty refreshed source/config files still match Capture. H200 two-rank BF16
+tests pass reduced five-layout/four-profile training and exact continuation.
+One actual base epoch-300 teacher passes strict import and 12 exact original
+image/spatial/video readout comparisons in FP32/BF16. These are not paper scores.
+
+A full-size public-CLI probe exposed shared CUDA selection passing indexed names
+to a resolver accepting only generic devices. The correction validates the
+device first, then selects LOCAL_RANK before NCCL, preserving CPU behavior and
+unavailable-CUDA refusal. New behavioral tests reproduce the failure; six
+mutations are detected. The correction applies to all consumers of this shared
+launcher, not only DINO. A subsequent eight-rank physical-batch-1024 probe
+completed forward/backward but failed saving to a quota-exhausted home.
+Repeating on node-local storage completed two steps over 2,048 synthetic images,
+full checkpoint reload, teacher/export equality and the artifact contract.
+Large smoke artifacts were transient. Final gates are recorded separately in
+the PR. Original inputs and weights remain unchanged. GPU numerical validation of
+other task families, multi-node transport and full-data scores remain pending.
+Private evidence, job identities and source paths stay outside Git.
+
 ### 2026-10-14: distributed DINO component execution
 
 PR 244 merged as `3f56ff2`; main was refreshed before this change. The existing

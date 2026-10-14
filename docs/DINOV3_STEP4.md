@@ -121,8 +121,9 @@ and verifies snapshot, refresh, frozen state, clean-crop targets and Gram's
 contribution to the total loss. It does not execute 300 epochs or use ImageNet.
 The legacy adapter uses float32. The explicit distributed entry below integrates
 global Sinkhorn and CUDA BF16 execution; the 8-GPU physical batch and CUDA
-numerics have not been measured in this change. No new GPU or paper
-accuracy result is claimed.
+numerics were not measured in the initial implementation. The dated GPU
+validation below supersedes that limitation only for its stated scope. No
+paper accuracy result is claimed.
 
 ## Continuation and joint assignment components
 
@@ -246,6 +247,22 @@ Two-rank comparisons against the refreshed original loss and initialization
 functions match teacher state, losses, gradients and three AdamW updates exactly,
 including unequal positive patch counts. The 20 inspected original source/config
 files matched the Capture snapshot. Private evidence remains outside Git.
-CUDA BF16, an 8-rank full-size run, multi-node transport and paper-score
-reproduction remain unverified. CPU autocast instrumentation checks placement
-only and is not GPU numerical validation.
+On October 15, H200 two-rank BF16 validation passed all five reduced layouts
+and four profiles, live synchronization and exact interrupted/uninterrupted
+weights across compressed split/Gram boundaries. This used reduced synthetic
+data and dimensions, not full ImageNet training. A subsequent public-CLI GPU
+probe exposed shared launcher rejection of indexed CUDA devices; the launcher
+now validates availability before assigning LOCAL_RANK. The earlier direct
+worker tests had not exercised that entry-point failure.
+With that correction, the public CLI completed two BF16 steps on eight H200s
+at the physical global batch of 1024 (128/rank), with the full base architecture,
+65,536 prototypes and 2 global 224/8 local 96 crops. The run used 2,048 synthetic
+images and the separate-head Gram profile's initial core epoch; it did not reach
+the full-size Gram stage. Node-local checkpoint reload, teacher/export equality
+and the hashed artifact contract passed. Large smoke artifacts were transient;
+private logs/manifests retain the evidence. An initial home-directory run failed
+at checkpoint saving with the user's storage quota exhausted. Use adequate
+allocated scratch/output capacity; a passed compute step is not saved delivery.
+Multi-node transport and paper-score reproduction remain unverified. CPU
+autocast instrumentation checks placement only; it is separate from these
+measured GPU experiments.
