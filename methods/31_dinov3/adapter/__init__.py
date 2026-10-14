@@ -14,7 +14,7 @@ from-scratch data, LVD-1689M, is not public) -- that download is excluded. What 
 ported is the capture's step 2, the from-scratch **unified SSL comparison** on
 ImageNet, which trains a genuine DINOv3 representation. The default keeps the core objective. Optional Step-4 head
 layouts and `step4_gram_components` select a frozen-teacher Gram stage; see
-`docs/DINOV3_STEP4.md` for scope and remaining distributed/precision gaps.
+`docs/DINOV3_STEP4.md` for the separate distributed entry and validation limits.
 
 `encoder.pt` is the EMA teacher's ViT backbone (`backbone.*` from
 `teacher_state_dict`, the prefix stripped so it loads into a plain ViT); the DINO
