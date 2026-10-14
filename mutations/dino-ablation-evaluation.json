@@ -39,8 +39,8 @@
     {
       "label": "strict state",
       "file": "methods/31_dinov3/downstream_backbone_ablation.py",
-      "old": "encoder.load_state_dict(state, strict=True)",
-      "new": "encoder.load_state_dict(state, strict=False)",
+      "old": "encoder.load_state_dict(state, strict=True)\n    return TeacherBackbone(encoder)",
+      "new": "encoder.load_state_dict(state, strict=False)\n    return TeacherBackbone(encoder)",
       "tests": [
         "tests.test_dino_ablation_evaluation.TestAblationEvaluation.test_invalid_geometry_weights_and_adaptations_are_refused"
       ]

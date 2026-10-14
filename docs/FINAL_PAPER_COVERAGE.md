@@ -47,8 +47,10 @@ selection remains unresolved and the portable loss is unchanged.
 
 The October 14 [native DINO teacher evaluation](DINO_ABLATION_EVALUATION.md)
 connects base/large teacher exports to five frozen BasicFive task components,
-including the source-specific patch-mean video representation. Full native
-checkpoint conversion, distributed/GPU execution and scores remain unverified.
+including the source-specific patch-mean video representation. An explicit
+hash/configuration-checked native teacher importer now supplies these exports;
+reduced tests cover both presets. Actual full-weight conversion, distributed/GPU
+execution and scores remain unverified.
 
 ## Coverage by final appendix
 
