@@ -36,9 +36,19 @@ def _sha256(path):
     return digest.hexdigest()
 
 
+def _numpy_reconstruct_alias(namespace):
+    # Older Torch accepts callables only, not (callable, qualified-name) pairs.
+    # Give the same narrow NumPy constructor both historical pickle names.
+    def reconstruct(*args):
+        from numpy.core.multiarray import _reconstruct
+        return _reconstruct(*args)
+    reconstruct.__module__ = namespace
+    reconstruct.__name__ = reconstruct.__qualname__ = "_reconstruct"
+    return reconstruct
+
+
 def import_native(*, source, sha256, arch, completed_epoch, state_key, prefix, out):
     """Convert explicit native encoder weights; never restore training state."""
-    import importlib
     import json
     from pathlib import Path
 
@@ -58,10 +68,10 @@ def import_native(*, source, sha256, arch, completed_epoch, state_key, prefix, o
     # Native payloads contain NumPy MT19937 state. Allow only its concrete
     # array/dtype constructors, including the NumPy 1.x spelling, not arbitrary
     # checkpoint classes or an unrestricted pickle fallback.
-    reconstruct = importlib.import_module("numpy.core.multiarray")._reconstruct
     with torch.serialization.safe_globals([
-        np.ndarray, np.dtype, type(np.dtype("uint32")), reconstruct,
-        (reconstruct, "numpy.core.multiarray._reconstruct"),
+        np.ndarray, np.dtype, type(np.dtype("uint32")),
+        _numpy_reconstruct_alias("numpy.core.multiarray"),
+        _numpy_reconstruct_alias("numpy._core.multiarray"),
         torch.torch_version.TorchVersion,
     ]):
         blob = torch.load(source, map_location="cpu", weights_only=True, mmap=True)

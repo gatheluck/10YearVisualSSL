@@ -7,7 +7,7 @@ research history. See [terminology](PAPER_TERMINOLOGY.md) and
 [submission scope](SUBMISSION_SCOPE.md). Private manuscript/source fingerprints
 and run evidence remain outside Git.
 
-Updated 2026-10-15 for CUDA launch and measured DINO GPU validation, following
+Updated 2026-10-15 for CUDA launch and measured DINO/IDv2 GPU validation, following
 execution, continuation and native BasicFive result accounting. Remaining priorities
 below distinguish executable component support from actual result reproduction.
 
@@ -42,7 +42,12 @@ It does not cover AP/FT or full-score validation. The October 13 explicit native
 converter adds hash-checked, strict epoch-boundary encoder import; it does not
 restore native training state. Three inspected ImageNet-21k artifacts have
 nonzero step metadata and remain refused pending historical interpretation.
-Physical full-weight conversion and GPU validation remain unexecuted.
+October 15 verification converts all three ImageNet-1k ViT-L retained checkpoints
+(100/200/300) and passes 54 exact H200 FP32/BF16 image, spatial and video
+readout comparisons against the original wrapper. The observed Torch 2.5
+restricted-loader compatibility defect is corrected without unsafe pickle fallback.
+This does not validate other scaling checkpoints, distributed/downstream full
+training, historical result attribution or paper scores.
 The refreshed shared depth-loss coefficient differs from Capture; its historical
 selection remains unresolved and the portable loss is unchanged.
 

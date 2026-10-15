@@ -88,9 +88,27 @@ Read-only archive metadata inspection on 2026-10-13 found the three ImageNet-1k
 retained checkpoints at 100/200/300 consistent with the boundary requirement.
 The three inspected ImageNet-21k retained checkpoints have nonzero
 `step_in_epoch`; their historical epoch interpretation remains pending and
-this converter deliberately refuses them. Full-weight conversion and GPU
-evaluation have not been executed. Reduced fixtures verify exact encoder
-weights and readout preservation; they do not validate the physical artifacts.
+this converter deliberately refuses them.
+
+### Full-weight GPU validation (2026-10-15)
+
+All three ImageNet-1k ViT-L retained checkpoints (100/200/300) now pass physical
+conversion with 294 strict encoder tensors each and unchanged source hashes.
+On an H200 with Torch 2.5.1, 54 original-wrapper/portable comparisons are exact:
+three checkpoints, FP32/BF16, 224-square and both 224-by-320 orientations, and
+image CLS/L2, spatial patch grid and temporal-mean frame CLS readouts. Original
+LayerNorm/position tensors remain unchanged. Four refreshed campaign sources
+match Capture and current originals. Large exports were tested on transient
+node-local storage; this is not persistent artifact delivery or paper-score reproduction.
+
+The initial import exposed Torch 2.5's callable-only safe-global API rejecting
+tuple aliases. The converter now provides narrow callable aliases for both
+NumPy pickle namespaces while retaining restricted loading, hash/epoch checks
+and rejection of unapproved objects. Four importer tests pass in that runtime.
+The broader detector test requires newer Python APIs and failed in the existing
+Python 3.10 GPU environment; it passes in the local Python 3.12 regression suite.
+Do not infer that the complete downstream CLI supports Python 3.10 from this
+isolated encoder experiment. Use the documented task environment for full runs.
 
 ### Earlier evaluation evidence
 
@@ -109,7 +127,8 @@ missing provider, missing explicit video recipe, missing CI execution and missin
 documented example. Five real task entrypoints train/evaluate small fixtures and
 verify output manifests; this is integration evidence, not full-size training.
 
-Import of historical non-boundary checkpoints, epoch/result attribution, full-size released-weight
-validation, distributed/CUDA/BF16 parity and full-data paper-score reproduction
+Import of historical non-boundary checkpoints, epoch/result attribution,
+full-weight validation of other scaling artifacts, distributed evaluation,
+full-size downstream training/continuation and full-data paper-score reproduction
 remain unfinished. The owner-held FSDP discrepancy is unrelated and unchanged.
 Record mutation, local whole-suite, Linux and CI results separately in the PR.
