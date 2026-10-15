@@ -160,6 +160,51 @@ def _worker(root):
 
 @unittest.skipUnless(HAVE,'requires downstream distributed dependencies')
 class TestDistributed(unittest.TestCase):
+    def test_cuda_session_selects_local_rank_before_nccl_initialization(self):
+        from downstream import extended_distributed as distributed
+        for rank, local, world in ((0, 0, 2), (9, 1, 16), (7, 7, 8)):
+            with self.subTest(rank=rank, local=local), \
+                 patch.dict(os.environ, {'WORLD_SIZE':str(world), 'RANK':str(rank),
+                                        'LOCAL_RANK':str(local)}, clear=True), \
+                 patch.object(torch.cuda, 'is_available', return_value=True), \
+                 patch.object(torch.cuda, 'set_device') as select, \
+                 patch.object(torch.distributed, 'is_initialized', return_value=False), \
+                 patch.object(torch.distributed, 'init_process_group') as initialize, \
+                 patch.object(torch.distributed, 'destroy_process_group') as destroy:
+                device = torch.device('cuda', local)
+                initialize.side_effect = lambda *a, expected=device, **kw: select.assert_called_once_with(expected)
+                with distributed.session('cuda') as context:
+                    self.assertEqual(context.device, device)
+                    self.assertEqual((context.rank, context.local, context.world), (rank, local, world))
+                    destroy.assert_not_called()
+                initialize.assert_called_once_with('nccl', timeout=timedelta(seconds=10800))
+                destroy.assert_called_once_with()
+
+    def test_cuda_unavailable_fails_before_device_selection_or_group_creation(self):
+        from downstream import extended_distributed as distributed
+        with patch.dict(os.environ, {'WORLD_SIZE':'2', 'RANK':'1', 'LOCAL_RANK':'1'}, clear=True), \
+             patch.object(torch.cuda, 'is_available', return_value=False), \
+             patch.object(torch.cuda, 'set_device') as select, \
+             patch.object(torch.distributed, 'is_initialized', return_value=False), \
+             patch.object(torch.distributed, 'init_process_group') as initialize:
+            with self.assertRaisesRegex(RuntimeError, 'no CUDA device'), distributed.session('cuda'):
+                self.fail('must refuse unavailable CUDA')
+            select.assert_not_called()
+            initialize.assert_not_called()
+
+    def test_cpu_session_never_selects_a_cuda_device(self):
+        from downstream import extended_distributed as distributed
+        with patch.dict(os.environ, {'WORLD_SIZE':'2', 'RANK':'1', 'LOCAL_RANK':'1'}, clear=True), \
+             patch.object(torch.cuda, 'is_available', return_value=True), \
+             patch.object(torch.cuda, 'set_device') as select, \
+             patch.object(torch.distributed, 'is_initialized', return_value=False), \
+             patch.object(torch.distributed, 'init_process_group') as initialize, \
+             patch.object(torch.distributed, 'destroy_process_group'):
+            with distributed.session('cpu') as context:
+                self.assertEqual(context.device, torch.device('cpu'))
+            select.assert_not_called()
+            initialize.assert_called_once_with('gloo', timeout=timedelta(seconds=10800))
+
     def test_distributed_loader_retains_reference_global_rng_clock(self):
         from downstream import extended_distributed as distributed
         for world in (1,2):

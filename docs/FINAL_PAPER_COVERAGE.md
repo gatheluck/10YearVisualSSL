@@ -7,7 +7,8 @@ research history. See [terminology](PAPER_TERMINOLOGY.md) and
 [submission scope](SUBMISSION_SCOPE.md). Private manuscript/source fingerprints
 and run evidence remain outside Git.
 
-Updated 2026-10-10 for execution, continuation and native BasicFive result accounting. Remaining priorities
+Updated 2026-10-15 for CUDA launch and measured DINO GPU validation, following
+execution, continuation and native BasicFive result accounting. Remaining priorities
 below distinguish executable component support from actual result reproduction.
 
 **The portable package does not yet reproduce the entire paper.** Original
@@ -49,8 +50,14 @@ The October 14 [native DINO teacher evaluation](DINO_ABLATION_EVALUATION.md)
 connects base/large teacher exports to five frozen BasicFive task components,
 including the source-specific patch-mean video representation. An explicit
 hash/configuration-checked native teacher importer now supplies these exports;
-reduced tests cover both presets. Actual full-weight conversion, distributed/GPU
-execution and scores remain unverified.
+reduced tests cover both presets. October 15 validation adds actual base-model
+epoch-300 conversion and 12 exact H200 source readout comparisons in FP32/BF16.
+Reduced two-rank BF16 DINO training also passes layout/profile continuation
+checks. A public-CLI probe identified and corrected the shared CUDA device
+selection failure. The corrected CLI passed an eight-H200 full-base physical
+batch-1024 two-step synthetic run, including checkpoint/artifact validation.
+These checks do not certify large-model loading, complete
+downstream training, multi-node execution or paper scores.
 
 ## Coverage by final appendix
 

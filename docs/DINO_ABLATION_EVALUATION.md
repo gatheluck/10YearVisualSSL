@@ -79,11 +79,17 @@ exactly on a reduced teacher fixture, including all nine head namespaces.
 Four refreshed loader/trainer/manifest/configuration files match the current
 original workspace. Read-only archive-metadata inspection confirms epoch 300
 and the supported configuration for one actual base-model checkpoint. It did
-not deserialize full weights or execute that checkpoint. Both presets have
-reduced conversion/readout tests; no actual large archive was verified here.
+not deserialize full weights or execute that checkpoint during the initial audit.
+On October 15, an actual base-model epoch-300 teacher passed strict full-weight
+conversion (190 backbone tensors) and H200 readout comparisons against the
+original backbone. Image CLS normalization, spatial patch grids and video
+patch/time means matched exactly for 224-square and 224-by-320 inputs, in FP32
+and BF16 (12 comparisons). The source hash was unchanged after the experiment.
+Both presets have reduced conversion/readout tests; no actual large archive
+was verified here.
 
-This does not verify full-size checkpoint loading, GPU/BF16 behavior, native
-DDP, complete recipes, historical continuation or final scores. The existing
+This does not verify large-model full-weight loading, downstream head training,
+native DDP, complete recipes, historical continuation or final scores. The existing
 shared depth-loss and schedule attribution conflicts remain unresolved; this
 integration does not silently select an original run's version. Portable results
 remain noncanonical; fixture results cannot be recorded as paper measurements.

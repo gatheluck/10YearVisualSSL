@@ -82,6 +82,12 @@ excludes backbone weights and never overwrites an existing CLI output directory.
 Use the same configuration on every rank, with `device: cuda` for NCCL or
 `device: cpu` for Gloo. The launcher chooses each CUDA device through
 `LOCAL_RANK`; an explicit `cuda:0` is refused in a multi-process launch.
+The shared launcher validates CUDA availability before selecting that index and
+selects the device before NCCL initialization. The October 15 correction fixes
+an indexed-device rejection that previously prevented the CUDA CLI from starting;
+CPU process tests alone had not exercised this path. This launcher is also used
+by BasicFive execution and the explicit DINO/instance-discrimination entries.
+Device-selection checks do not establish numerical parity for all these tasks.
 For example, after preparing the image configuration and its sample manifest:
 
 ```bash

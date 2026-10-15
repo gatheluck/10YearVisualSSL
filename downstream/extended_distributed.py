@@ -87,7 +87,9 @@ def session(device_spec):
     rank,local,world=launch()
     if world>1 and device_spec not in ('cpu','cuda'):
         raise ValueError('distributed device must be cpu or cuda; torchrun selects LOCAL_RANK')
-    device=resolve_device(f'cuda:{local}' if world>1 and device_spec=='cuda' else device_spec)
+    device=resolve_device(device_spec)
+    if world>1 and device.type=='cuda':
+        device=torch.device('cuda',local)
     if world>1 and device.type=='cuda': torch.cuda.set_device(device)
     owned=world>1 and not dist.is_initialized()
     if owned:
