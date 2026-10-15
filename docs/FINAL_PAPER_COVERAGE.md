@@ -61,6 +61,11 @@ Reduced two-rank BF16 DINO training also passes layout/profile continuation
 checks. A public-CLI probe identified and corrected the shared CUDA device
 selection failure. The corrected CLI passed an eight-H200 full-base physical
 batch-1024 two-step synthetic run, including checkpoint/artifact validation.
+Subsequent full-base BF16 checks cover five Gram layouts and the core/split/joint
+profiles: eight configurations, 16 entry-point invocations, exact same-profile
+continuation of weights/AdamW/rank RNG/final loss, differentiable Gram losses and
+valid artifact contracts. Synthetic data and test-only compressed stage boundaries
+keep these distinct from full-data 300-epoch training and historical branching.
 These checks do not certify large-model loading, complete
 downstream training, multi-node execution or paper scores.
 

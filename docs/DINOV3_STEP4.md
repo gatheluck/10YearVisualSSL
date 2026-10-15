@@ -8,7 +8,7 @@ Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](SUBMISSION_SCOPE.md)
 for the distinction from original experimental implementations and results.
 
-Status: 2026-10-14. This implements selectable projection layouts, Gram-stage
+Status: 2026-10-15. This implements selectable projection layouts, Gram-stage
 training and an explicit distributed component entry. It does **not** establish canonical
 paper scores or complete distributed reproduction. The default remains the
 previous `core` training profile and independent heads.
@@ -182,8 +182,8 @@ checkpoints only: legacy core, earlier incomplete component checkpoints,
 `encoder.pt` and native distributed checkpoints remain unsupported inputs to
 this portable resume interface.
 
-Not yet validated in this port: full-scale CUDA BF16 training and canonical
-evaluation. Native full training-checkpoint continuation remains separate from
+Not yet validated in this port: full-data 300-epoch CUDA BF16 training and
+canonical evaluation. Native full training-checkpoint continuation remains separate from
 the portable continuation format. The inspected experimental implementations
 are distinct from this portable component path.
 See the [prioritized gap ledger](PAPER_REPRODUCTION_GAPS.md).
@@ -266,3 +266,32 @@ allocated scratch/output capacity; a passed compute step is not saved delivery.
 Multi-node transport and paper-score reproduction remain unverified. CPU
 autocast instrumentation checks placement only; it is separate from these
 measured GPU experiments.
+
+### Full-size stage and continuation verification (2026-10-15)
+
+A subsequent one-node/eight-H200 experiment exercises five Gram head layouts
+and the shared-head core, split and joint profiles: eight configurations and
+16 entry-point invocations. Each uninterrupted run completes three epochs/six
+updates; its paired invocation resumes the epoch-one checkpoint and completes
+the remaining two epochs/four updates. These use the full base architecture,
+65,536 prototypes, physical batch 1024, two global 224/eight local 96 crops,
+BF16 and two data-loader workers per rank on 2,048 synthetic images.
+
+Only the private test harness shortens the core/split boundary to epoch one and
+the Gram refresh to epoch two. The production schedule remains unchanged. These
+are full-size component checks, not 300-epoch training or historical epoch-200
+branch reproduction. All eight same-profile continuation comparisons are exact
+for student/teacher weights, AdamW state, rank RNG records, final loss and, where
+applicable, the frozen Gram teacher. Gram-active runs produce finite positive
+Gram losses connected to the student graph on every rank; the core profile
+never invokes that loss. Split runs save independent heads after the boundary.
+All 16 output contracts pass and every exported encoder matches its checkpoint's
+teacher backbone exactly. The job exits successfully. No production defect or
+scientific-behavior change was required for these checks.
+
+Twenty refreshed source/configuration files still match Capture and current
+originals. Originals remain untouched; large synthetic checkpoints are transient
+node-local outputs, not persistent delivered models. This supersedes the earlier
+initial-core-only GPU coverage for the tested components. Full-data training,
+full-size cross-profile branching, native full-training checkpoint import,
+multi-node transport and canonical score reproduction remain unverified.

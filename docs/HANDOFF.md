@@ -12,6 +12,30 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-10-15: full-size DINO stages and continuation verification
+
+PR 247 merged as `a1b43d7`; all 115 CI checks succeeded and pulled main matches
+the validated tree. Existing video-submodule edits remain untouched. Twenty
+DINO source/config files still match Capture and current originals.
+
+Reserved one-node/eight-H200 BF16 validation covers all five Gram head layouts
+and shared-head core/split/joint profiles at physical batch 1024, full base
+architecture, 65,536 prototypes and two data-loader workers per rank. Eight
+three-epoch uninterrupted runs and their epoch-one resumes match exactly in
+weights, AdamW, per-rank RNG, final loss and applicable Gram teacher state.
+Gram loss is positive and differentiable on every rank of the active profiles;
+core omits it. Sixteen artifact contracts and encoder/teacher checks pass;
+the final job exits zero. No production-code correction was needed.
+
+This uses 2,048 synthetic images and test-only compressed stage boundaries,
+not full data, 300 epochs, full-size cross-profile branches or paper scores.
+Large checkpoints were transient node-local artifacts. An initial private
+harness job was canceled to move audit files outside manifest-governed outputs;
+contract checks were preserved. Detailed scripts, failed/canceled attempt state,
+logs and results remain outside Git. Native full-training checkpoint conversion,
+multi-node execution and historical source conflicts remain pending. Record
+final repository gates and CI separately in the PR.
+
 ### 2026-10-15: IDv2 native conversion compatibility and full-weight parity
 
 PR 246 merged as `1cbff84`; main matches the tested parent tree. Existing dirty
