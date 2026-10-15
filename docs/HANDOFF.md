@@ -12,6 +12,25 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-10-15: IDv2 native conversion compatibility and full-weight parity
+
+PR 246 merged as `1cbff84`; main matches the tested parent tree. Existing dirty
+video-submodule edits are preserved. Four refreshed IDv2 campaign sources match
+Capture and current originals. The first actual native import failed because
+Torch 2.5 does not accept tuple safe-global aliases. A behavioral regression
+reproduces both NumPy pickle namespaces before the callable-alias correction;
+restricted loading and all identity checks remain enforced.
+
+Three ImageNet-1k ViT-L epoch-boundary archives (100/200/300) now pass strict
+294-tensor imports and 54 exact H200 FP32/BF16 native readout comparisons.
+Original hashes remain unchanged. Exports were transient node-local artifacts,
+not new persistent model deliveries. Four importer tests pass in the GPU runtime;
+a broader test hit an unrelated Python 3.10/newer-datetime API incompatibility.
+Local Python 3.12 regression covers the broader entrypoints. Non-boundary
+ImageNet-21k identity, historical depth loss, full downstream training and score
+reproduction remain pending. Keep detailed evidence outside Git and consult the
+PR for final gates and CI. No original code or weights were modified.
+
 ### 2026-10-15: CUDA launcher correction and DINO GPU validation
 
 PR 245 merged as `57fc5a1`; all 115 checks succeeded and the pulled main tree

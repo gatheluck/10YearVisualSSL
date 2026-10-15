@@ -114,6 +114,51 @@ class TestScalingEvaluation(unittest.TestCase):
                 "prefix": "module.vit.", "out": self.root / "converted"}
         return module, blob, args, spec
 
+    def test_native_scaling_import_numpy_namespaces_with_callable_only_allowlist(self):
+        import hashlib
+        import io
+        import zipfile
+
+        import torch._weights_only_unpickler as unpickler
+
+        # PyTorch 2.5 resolves each allowlisted callable by module/name. Exercise
+        # real restricted deserialization, including NumPy 1.x archive names.
+        def callable_globals():
+            result = {}
+            for item in torch.serialization.get_safe_globals():
+                if isinstance(item, tuple):
+                    raise TypeError("PyTorch 2.5 requires callable globals")
+                name = getattr(item, "__name__", None)
+                if name is None:
+                    raise TypeError("PyTorch 2.5 requires named globals")
+                result[f"{item.__module__}.{name}"] = item
+            return result
+
+        module, _blob, args, _spec = self.native_fixture()
+        original = args["source"].read_bytes()
+        for namespace in ("numpy.core.multiarray", "numpy._core.multiarray"):
+            with self.subTest(namespace=namespace):
+                with (zipfile.ZipFile(io.BytesIO(original)) as src,
+                      zipfile.ZipFile(args["source"], "w") as dst):
+                    for member in src.infolist():
+                        data = src.read(member)
+                        if member.filename.endswith("/data.pkl"):
+                            modern = b"numpy._core.multiarray\n_reconstruct\n"
+                            legacy = b"numpy.core.multiarray\n_reconstruct\n"
+                            self.assertEqual(data.count(modern) + data.count(legacy), 1)
+                            data = data.replace(modern, legacy).replace(
+                                legacy, namespace.encode() + b"\n_reconstruct\n")
+                        dst.writestr(member, data)
+                options = dict(args, out=self.root / namespace,
+                               sha256=hashlib.sha256(args["source"].read_bytes()).hexdigest())
+                with (mock.patch.object(unpickler,
+                                        "_get_user_allowed_globals", callable_globals),
+                      mock.patch("timm.create_model", side_effect=self.tiny_factory)):
+                    module.import_native(**options)
+                export = module.read_export(self.root / namespace / "encoder.pt")
+                for key, value in export["state_dict"].items():
+                    torch.testing.assert_close(value, self.reference.state_dict()[key], rtol=0, atol=0)
+
     def test_native_scaling_import_preserves_readouts_and_excludes_private_payload(self):
         import hashlib
         module, _blob, args, spec = self.native_fixture()
