@@ -12,6 +12,24 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-10-15: three-family frozen scaling integrations
+
+After PR 248 merged, code/source inspection identified a real integration gap:
+colorization, rotation and split-brain scaling lacked dedicated BasicFive
+providers. The grouped implementation adds native base/large construction,
+strict hash/literal-epoch encoder import, source-specific color inputs and
+readouts, and five frozen task connections per family. Existing dirty video
+submodule contents are preserved. No original weights or source were modified.
+
+See [scope, commands and validation](SCALING_BASIC5_EVALUATION.md). Fifty of 52
+refreshed source/configuration files match; shared historical depth disagreement
+remains pending. Reduced tests execute fifteen task entries, while private
+original-source comparisons cover six family/geometry cases and two head
+updates each. This is not full-size checkpoint, GPU, full-data or score evidence.
+Check the PR for final repository gates and CI; do not infer them from this
+handoff. Native pretraining/continuation and historical result attribution
+remain separate tasks. Private evidence is outside Git.
+
 ### 2026-10-15: full-size DINO stages and continuation verification
 
 PR 247 merged as `a1b43d7`; all 115 CI checks succeeded and pulled main matches

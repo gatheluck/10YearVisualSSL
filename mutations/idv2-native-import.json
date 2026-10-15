@@ -65,7 +65,7 @@
     },
     {
       "label": "safe deserialization",
-      "file": "methods/10_inst_disc/models/scaling_encoder.py",
+      "file": "downstream/native_checkpoint.py",
       "old": "weights_only=True, mmap=True",
       "new": "weights_only=False, mmap=True",
       "tests": [

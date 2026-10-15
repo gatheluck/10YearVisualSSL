@@ -69,13 +69,20 @@ keep these distinct from full-data 300-epoch training and historical branching.
 These checks do not certify large-model loading, complete
 downstream training, multi-node execution or paper scores.
 
+The October 15 [three-family scaling evaluation](SCALING_BASIC5_EVALUATION.md)
+adds source-specific colorization, rotation and split-brain frozen providers,
+strict native encoder imports and fifteen BasicFive task-entry checks. Source
+readouts and two head updates match at reduced dimensions; full-size weights,
+GPU/full-data evaluation and historical table attribution remain unverified.
+Table 20 has three reported task columns, not five completed colorization runs.
+
 ## Coverage by final appendix
 
 | Final location | Portable basis | Remaining verification or integration |
 | --- | --- | --- |
 | C.2 Table 10: ASIS, 37 methods | Method adapters, checkpoint/readout and extraction components | Per-row checkpoint/preprocessing, released-weight evaluation and score/run matching; extraction counts are not table coverage |
 | C.3 Tables 11-14: CTRL, 32 methods | Controlled training adapters and checkpoint interfaces | Native distributed settings, 100/200/300-epoch checkpoint identities and full-run parity |
-| C.4 Tables 15-22: DINO design/scaling, InstDisc, colorization, rotation, SplitBrain | [DINO components](DINOV3_STEP4.md), [instance-discrimination components](IDV2_COMPONENTS.md), including seven explicit FP32 DDP routes with component continuation and [90-epoch indexed-tar / 300-epoch ViT-L ImageFolder scaling entries](IDV2_SCALING.md), and existing method code | Full native training, conversion/continuation and each ablation's result-to-run evidence |
+| C.4 Tables 15-22: DINO design/scaling, InstDisc, colorization, rotation, SplitBrain | [DINO components](DINOV3_STEP4.md), [instance-discrimination components](IDV2_COMPONENTS.md), including seven explicit FP32 DDP routes with component continuation and [90-epoch indexed-tar / 300-epoch ViT-L ImageFolder scaling entries](IDV2_SCALING.md), and [three-family frozen scaling providers](SCALING_BASIC5_EVALUATION.md) | Full native training, conversion/continuation and each ablation's result-to-run evidence |
 | C.5 Table 23: supervised references | Existing supervised adapters | Exact reference training/evaluation recipes and score parity |
 | C.6 Tables 24-25: 3D; C.7 Table 26: 4D | Existing inference/extraction providers where available | Variant/readout identity, task-specific wrappers, gradients and native metrics |
 | C.8 Tables 27-28: generative; C.9 Table 29: VideoSSL | Existing providers and selected native video components | RAEv2 K7 versus other readouts; distinct video checkpoints/pipelines and task integrations |
