@@ -139,12 +139,13 @@ class TestEvaluation(unittest.TestCase):
             )
             self.assertEqual(len(branches), 2 if kind == "split_brain_scaling" else 1)
             for branch in branches:
+                norm, cls_token = branch.norm, branch.cls_token
+                assert isinstance(norm, nn.LayerNorm)
+                assert isinstance(cls_token, torch.Tensor)
                 self.assertEqual(
-                    branch.norm.eps, 1e-6 if kind == "split_brain_scaling" else 1e-5
+                    norm.eps, 1e-6 if kind == "split_brain_scaling" else 1e-5
                 )
-                self.assertEqual(
-                    branch.cls_token.shape[-1], 8 if len(branches) == 2 else 16
-                )
+                self.assertEqual(cls_token.shape[-1], 8 if len(branches) == 2 else 16)
             self.assertEqual(p.SUPPORTED_ADAPTATIONS, ("frozen",))
 
     def test_readouts_frozen_state_and_rectangular_positions(self):
@@ -367,7 +368,8 @@ class TestEvaluation(unittest.TestCase):
             with self.assertRaises(FileExistsError):
                 import_native(**args)
             for case in ("sha256", "epoch_value", "state_key", "module_prefix"):
-                options = dict(args, out=self.root / (kind + "-" + case))
+                out = self.root / (kind + "-" + case)
+                options = dict(args, out=out)
                 options[case] = {
                     "sha256": "0" * 64,
                     "epoch_value": 100,
@@ -376,7 +378,7 @@ class TestEvaluation(unittest.TestCase):
                 }[case]
                 with self.subTest(case=case), self.assertRaises(ValueError):
                     import_native(**options)
-                self.assertFalse(options["out"].exists())
+                self.assertFalse(out.exists())
 
     def test_hash_is_verified_before_deserialization(self):
         from downstream.frozen_vit import import_native
@@ -430,22 +432,120 @@ class TestEvaluation(unittest.TestCase):
                     out=self.root / (kind + "-bad"),
                 )
 
-    def test_fifteen_real_task_entries(self):
-        from scipy.io import savemat
+    def test_task_dependencies_are_isolated(self):
+        import subprocess
+        import sys
 
-        from downstream import contract, imagenet
-        from tests import test_basic5_imagenet as image
-        from tests import test_basic5_optimization as opt
+        try:
+            import av  # noqa: F401
+            import h5py  # noqa: F401
+            import pycocotools  # noqa: F401
+            import scipy.io  # noqa: F401
+        except ImportError:
+            self.skipTest(
+                "dependency-isolation controls require downstream environment"
+            )
 
-        helper = opt.TestOptimization()
-        cases = list(helper.cases()) + [
-            (imagenet, image.TestImageNet().fixture, image.TestImageNet().config)
-        ]
-        self.assertEqual(len(cases), 5)
+        # Each real task remains executable when an unrelated reader is absent.
+        # The complete downstream environment must execute all fifteen entries.
+        for missing, skipped in (
+            ("", 0),
+            ("scipy", 1),
+            ("h5py", 1),
+            ("av", 1),
+            ("pycocotools", 1),
+            ("scipy,h5py,av,pycocotools", 3),
+        ):
+            with self.subTest(missing=missing):
+                script = r"""
+import importlib.util
+import sys
+import unittest
+missing, expected = sys.argv[1], int(sys.argv[2])
+for reader in filter(None, missing.split(",")):
+    sys.modules[reader] = None
+    assert importlib.util.find_spec(reader) is None
+    try:
+        __import__(reader)
+    except ModuleNotFoundError:
+        pass
+    else:
+        raise AssertionError("dependency isolation was not effective")
+from tests.test_three_scaling_evaluation import TestEvaluation
+names = ["test_real_task_entries_" + task
+         for task in ("imagenet", "ade20k", "coco", "nyuv2", "ssv2")]
+result = unittest.TextTestRunner(verbosity=2).run(
+    unittest.TestSuite(TestEvaluation(n) for n in names))
+assert result.wasSuccessful(), (result.errors, result.failures)
+assert result.testsRun == 5, result.testsRun
+assert len(result.skipped) == expected, result.skipped
+"""
+                result = subprocess.run(
+                    [sys.executable, "-c", script, missing, str(skipped)],
+                    cwd=Path(__file__).resolve().parents[1],
+                    capture_output=True,
+                    check=False,
+                    text=True,
+                    timeout=180,
+                )
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_real_task_entries_imagenet(self):
+        from downstream import imagenet
+        from tests.test_basic5_imagenet import TestImageNet
+
+        self._task_entries(imagenet, TestImageNet().fixture, TestImageNet().config)
+
+    def test_real_task_entries_ade20k(self):
+        from downstream import ade20k
+        from tests.test_downstream_ade20k import smoke_config, tiny_ade
+
+        self._task_entries(ade20k, tiny_ade, smoke_config)
+
+    def test_real_task_entries_coco(self):
+        try:
+            import pycocotools  # noqa: F401
+        except ImportError:
+            self.skipTest("COCO entries require pycocotools")
+        from downstream import coco
+        from tests.test_downstream_coco import smoke_config, tiny_coco
+
+        self._task_entries(coco, tiny_coco, smoke_config)
+
+    def test_real_task_entries_nyuv2(self):
+        try:
+            import h5py  # noqa: F401
+            from scipy.io import savemat
+        except ImportError:
+            self.skipTest("NYUv2 entries require h5py and scipy")
+        from downstream import nyuv2
+        from tests.test_downstream_nyuv2 import smoke_config, tiny_nyuv2
+
+        def fixture(root):
+            tiny_nyuv2(root)
+            savemat(
+                root / "labeled/splits.mat",
+                {"trainNdxs": [[1], [2], [3]], "testNdxs": [[4], [5], [6]]},
+            )
+
+        self._task_entries(nyuv2, fixture, smoke_config)
+
+    def test_real_task_entries_ssv2(self):
+        try:
+            import av  # noqa: F401
+        except ImportError:
+            self.skipTest("SSv2 entries require av")
+        from downstream import ssv2
+        from tests.test_downstream_ssv2 import smoke_config, tiny_ssv2
+
+        self._task_entries(ssv2, tiny_ssv2, smoke_config)
+
+    def _task_entries(self, module, fixture, factory):
+        from downstream import contract
+        from downstream import spatial_backbones as sb
+
         for kind in KINDS:
             p, _, _, spec = self.fixture(kind)
-            from downstream import spatial_backbones as sb
-
             original = sb._load_provider
             with mock.patch.object(
                 sb,
@@ -454,36 +554,44 @@ class TestEvaluation(unittest.TestCase):
                     p if sb._provider_kind(path) == kind else original(path)
                 ),
             ):
-                for module, fixture, factory in cases:
-                    root = self.root / kind / module.TASK / "data"
-                    fixture(root)
-                    if module is opt.nyuv2:
-                        savemat(
-                            root / "labeled/splits.mat",
-                            {"trainNdxs": [[1], [2], [3]], "testNdxs": [[4], [5], [6]]},
-                        )
-                    cfg = (
-                        factory(root)
-                        if module is imagenet
-                        else helper.config(module, factory, root, "frozen")
+                root = self.root / kind / module.TASK / "data"
+                fixture(root)
+                cfg = factory(root)
+                detection = module.TASK == "coco_detection"
+                classification = module.TASK == "imagenet_classification"
+                if not classification:
+                    cfg.update(
+                        profile="capture_basic5_components",
+                        adaptation="frozen",
+                        optimizer_profile="basic5_frozen_v1",
                     )
-                    cfg["backbone"] = spec
-                    if module is opt.coco:
-                        cfg["detector_profile"] = "captured_native_detection_v1"
-                    if module is imagenet:
-                        cfg["preprocessing_profile"] = "captured_provider_v1"
-                    if module is opt.ssv2:
-                        cfg["video_recipe"] = "captured_provider_video_v1"
-                    cfg["detector" if module is opt.coco else "probe"].update(
-                        epochs=1, max_val_samples=2
+                    settings = cfg["detector" if detection else "probe"]
+                    settings.update(
+                        lr="protocol",
+                        batch_size=2,
+                        max_train_samples=0,
+                        max_val_samples=0,
+                        max_steps_per_epoch=0,
                     )
-                    path, out = root.parent / "config.json", root.parent / "out"
-                    path.write_text(json.dumps(cfg))
-                    with self.subTest(kind=kind, task=module.TASK):
-                        self.assertEqual(
-                            module.main(["--config", str(path), "--out", str(out)]), 0
-                        )
-                        self.assertTrue(contract.verify(out, path, 0)[0])
-                        result = json.loads((out / "results.json").read_text())
-                        self.assertFalse(result["canonical_eligible"])
-                        self.assertFalse(result["record_value"])
+                    if detection:
+                        settings["anchor_sizes"] = [8, 16, 32, 64]
+                cfg["backbone"] = spec
+                if detection:
+                    cfg["detector_profile"] = "captured_native_detection_v1"
+                if classification:
+                    cfg["preprocessing_profile"] = "captured_provider_v1"
+                if module.TASK == "ssv2_video":
+                    cfg["video_recipe"] = "captured_provider_video_v1"
+                cfg["detector" if detection else "probe"].update(
+                    epochs=1, max_val_samples=2
+                )
+                path, out = root.parent / "config.json", root.parent / "out"
+                path.write_text(json.dumps(cfg))
+                with self.subTest(kind=kind, task=module.TASK):
+                    self.assertEqual(
+                        module.main(["--config", str(path), "--out", str(out)]), 0
+                    )
+                    self.assertTrue(contract.verify(out, path, 0)[0])
+                    result = json.loads((out / "results.json").read_text())
+                    self.assertFalse(result["canonical_eligible"])
+                    self.assertFalse(result["record_value"])

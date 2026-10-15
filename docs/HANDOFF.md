@@ -12,6 +12,23 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-10-15: scaling integration CI dependency correction
+
+PR 249's first run failed in 22 inspected method-lock jobs at the same
+unconditional SciPy import in the new grouped task test. Core, downstream and
+container checks passed; the local full-downstream suite had not represented
+method environments without reader packages. Production behavior was not the
+cause identified in those logs.
+
+The task checks are now separated by reader requirement. ImageNet and ADE20K
+remain executable without unrelated readers; COCO, NYUv2 and SSv2 report their
+own missing dependencies explicitly. Fresh-process regression controls remove
+each optional reader independently, assert exactly one affected task, and
+require all five tasks (three families each) with zero skips in the complete
+environment. Existing dedicated downstream CI installs those dependencies.
+See the PR for final gates and replacement CI results; these local checks are
+not evidence that all CI jobs have completed.
+
 ### 2026-10-15: three-family frozen scaling integrations
 
 After PR 248 merged, code/source inspection identified a real integration gap:

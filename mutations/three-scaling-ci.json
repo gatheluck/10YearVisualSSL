@@ -1,0 +1,40 @@
+{
+  "targets": [
+    {
+      "label": "NYUv2 missing reader guard removed",
+      "file": "tests/test_three_scaling_evaluation.py",
+      "old": "self.skipTest(\"NYUv2 entries require h5py and scipy\")",
+      "new": "raise",
+      "tests": [
+        "tests.test_three_scaling_evaluation.TestEvaluation.test_task_dependencies_are_isolated"
+      ]
+    },
+    {
+      "label": "COCO missing reader guard removed",
+      "file": "tests/test_three_scaling_evaluation.py",
+      "old": "self.skipTest(\"COCO entries require pycocotools\")",
+      "new": "raise",
+      "tests": [
+        "tests.test_three_scaling_evaluation.TestEvaluation.test_task_dependencies_are_isolated"
+      ]
+    },
+    {
+      "label": "SSv2 missing reader guard removed",
+      "file": "tests/test_three_scaling_evaluation.py",
+      "old": "self.skipTest(\"SSv2 entries require av\")",
+      "new": "raise",
+      "tests": [
+        "tests.test_three_scaling_evaluation.TestEvaluation.test_task_dependencies_are_isolated"
+      ]
+    },
+    {
+      "label": "available NYUv2 task silently skipped",
+      "file": "tests/test_three_scaling_evaluation.py",
+      "old": "self._task_entries(nyuv2, fixture, smoke_config)",
+      "new": "self.skipTest(\"incorrect unconditional skip\")",
+      "tests": [
+        "tests.test_three_scaling_evaluation.TestEvaluation.test_task_dependencies_are_isolated"
+      ]
+    }
+  ]
+}

@@ -87,6 +87,14 @@ private source comparisons use identical weights for all three families at
 224x224 and 32x48, checking image/spatial/video features and two classifier-head
 gradient/update steps against original functions. Evidence stays outside Git.
 
+Task-entry tests are separated by task-specific reader dependencies. The
+complete downstream environment runs all fifteen combinations. Method-only
+environments still run the image and segmentation checks; unavailable COCO,
+NYUv2 or video readers produce explicit task-specific skips, not a claim of
+coverage. Fresh-process controls test each missing reader and require zero
+skips with the complete environment. This corrects the initial CI regression
+where the grouped test imported SciPy unconditionally in method-only locks.
+
 These are frozen **component integrations**, not a claim that all table scores
 have been reproduced. AP/FT, full native pretraining/continuation, historical
 checkpoint-to-row attribution, full-size native checkpoint loading, GPU and
