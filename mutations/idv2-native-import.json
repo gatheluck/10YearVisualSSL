@@ -65,7 +65,7 @@
     },
     {
       "label": "safe deserialization",
-      "file": "methods/10_inst_disc/models/scaling_encoder.py",
+      "file": "downstream/native_checkpoint.py",
       "old": "weights_only=True, mmap=True",
       "new": "weights_only=False, mmap=True",
       "tests": [
@@ -115,6 +115,15 @@
       "new": "parser.parse_args(argv)",
       "tests": [
         "tests.test_idv2_evaluation.TestScalingEvaluation.test_native_scaling_import_cli_layouts_and_safe_loading"
+      ]
+    },
+    {
+      "label": "direct CLI package bootstrap",
+      "file": "methods/10_inst_disc/models/scaling_encoder.py",
+      "old": "sys.path.insert(0, str(Path(__file__).resolve().parents[3]))",
+      "new": "pass",
+      "tests": [
+        "tests.test_idv2_evaluation.TestScalingEvaluation.test_native_import_cli_without_repository_on_pythonpath"
       ]
     }
   ]

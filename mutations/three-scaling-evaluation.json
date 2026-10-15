@@ -1,0 +1,139 @@
+{
+  "targets": [
+    {
+      "label": "nonfinite tensor admitted",
+      "file": "downstream/frozen_vit.py",
+      "old": "or not torch.isfinite(value).all()",
+      "new": "or False",
+      "tests": [
+        "tests.test_three_scaling_evaluation.TestEvaluation.test_export_rejects_wrong_identity_and_corrupt_tensors"
+      ]
+    },
+    {
+      "label": "dtype silently converted",
+      "file": "downstream/frozen_vit.py",
+      "old": "or value.dtype != expected[key].dtype",
+      "new": "or False",
+      "tests": [
+        "tests.test_three_scaling_evaluation.TestEvaluation.test_export_rejects_wrong_identity_and_corrupt_tensors"
+      ]
+    },
+    {
+      "label": "wrong export family admitted",
+      "file": "downstream/frozen_vit.py",
+      "old": "or blob.get(\"kind\") != kind",
+      "new": "or False",
+      "tests": [
+        "tests.test_three_scaling_evaluation.TestEvaluation.test_export_rejects_wrong_identity_and_corrupt_tensors"
+      ]
+    },
+    {
+      "label": "boolean export version admitted",
+      "file": "downstream/frozen_vit.py",
+      "old": "or type(blob.get(\"frozen_encoder_version\")) is not int",
+      "new": "or False",
+      "tests": [
+        "tests.test_three_scaling_evaluation.TestEvaluation.test_export_rejects_wrong_identity_and_corrupt_tensors"
+      ]
+    },
+    {
+      "label": "architecture override admitted",
+      "file": "downstream/frozen_vit.py",
+      "old": "or any(k in spec for k in (\"embed_dim\", \"depth\", \"num_heads\"))",
+      "new": "or False",
+      "tests": [
+        "tests.test_three_scaling_evaluation.TestEvaluation.test_export_rejects_wrong_identity_and_corrupt_tensors"
+      ]
+    },
+    {
+      "label": "hash ignored",
+      "file": "downstream/frozen_vit.py",
+      "old": "if digest(source) != sha256:\n        raise ValueError(\"source sha256 mismatch\")",
+      "new": "if False:\n        raise ValueError(\"source sha256 mismatch\")",
+      "tests": [
+        "tests.test_three_scaling_evaluation.TestEvaluation.test_hash_is_verified_before_deserialization"
+      ]
+    },
+    {
+      "label": "literal epoch ignored",
+      "file": "downstream/frozen_vit.py",
+      "old": "or blob[epoch_key] != epoch_value",
+      "new": "or False",
+      "tests": [
+        "tests.test_three_scaling_evaluation.TestEvaluation.test_native_import_explicit_identity_and_readonly_source"
+      ]
+    },
+    {
+      "label": "unexpected native key ignored",
+      "file": "downstream/frozen_vit.py",
+      "old": "if any(key not in selected and not key.startswith(discarded) for key in raw):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_three_scaling_evaluation.TestEvaluation.test_native_import_rejects_unexpected_encoder_parameters"
+      ]
+    },
+    {
+      "label": "train mode unfreezes dropout",
+      "file": "downstream/frozen_vit.py",
+      "old": "return super().train(False)",
+      "new": "return super().train(mode)",
+      "tests": [
+        "tests.test_three_scaling_evaluation.TestEvaluation.test_readouts_frozen_state_and_rectangular_positions"
+      ]
+    },
+    {
+      "label": "wrong classifier readout",
+      "file": "downstream/frozen_vit.py",
+      "old": "return F.normalize(self._tokens(images)[:, 0], dim=-1)",
+      "new": "return self._tokens(images)[:, 0]",
+      "tests": [
+        "tests.test_three_scaling_evaluation.TestEvaluation.test_readouts_frozen_state_and_rectangular_positions"
+      ]
+    },
+    {
+      "label": "wrong temporal aggregation",
+      "file": "downstream/frozen_vit.py",
+      "old": "return cls.reshape(images.shape[0], images.shape[1], -1).mean(1)",
+      "new": "return cls.reshape(images.shape[0], images.shape[1], -1)[:, 0]",
+      "tests": [
+        "tests.test_three_scaling_evaluation.TestEvaluation.test_readouts_frozen_state_and_rectangular_positions"
+      ]
+    },
+    {
+      "label": "wrong spatial readout",
+      "file": "downstream/frozen_vit.py",
+      "old": "patches = self._tokens(images, detection=detection)[:, 1:]",
+      "new": "patches = self._tokens(images, detection=detection)[:, :-1]",
+      "tests": [
+        "tests.test_three_scaling_evaluation.TestEvaluation.test_readouts_frozen_state_and_rectangular_positions"
+      ]
+    },
+    {
+      "label": "missing Lab inverse normalization",
+      "file": "downstream/frozen_vit.py",
+      "old": "if not detection:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_three_scaling_evaluation.TestEvaluation.test_readouts_frozen_state_and_rectangular_positions"
+      ]
+    },
+    {
+      "label": "wrong lightness scaling",
+      "file": "downstream/frozen_vit.py",
+      "old": "return ((116 * fy - 16) / 100).unsqueeze(1)",
+      "new": "return ((116 * fy - 16) / 50).unsqueeze(1)",
+      "tests": [
+        "tests.test_three_scaling_evaluation.TestEvaluation.test_lab_primary_colors_and_boundary_values"
+      ]
+    },
+    {
+      "label": "trainable adaptation admitted",
+      "file": "downstream/frozen_vit.py",
+      "old": "if adaptation != \"frozen\":",
+      "new": "if False:",
+      "tests": [
+        "tests.test_three_scaling_evaluation.TestEvaluation.test_readouts_frozen_state_and_rectangular_positions"
+      ]
+    }
+  ]
+}
