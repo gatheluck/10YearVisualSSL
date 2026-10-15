@@ -114,6 +114,41 @@ class TestScalingEvaluation(unittest.TestCase):
                 "prefix": "module.vit.", "out": self.root / "converted"}
         return module, blob, args, spec
 
+    def test_native_import_cli_without_repository_on_pythonpath(self):
+        import os
+        import subprocess
+        import sys
+
+        from downstream import spatial_backbones as sb
+
+        _, _, args, _ = self.native_fixture()
+        script = sb.discover_providers()["idv2_scaling"].parent / "models/scaling_encoder.py"
+        command = [str(script), "--source", str(args["source"]), "--sha256", args["sha256"],
+                   "--arch", args["arch"], "--completed-epoch", "30", "--state-key", "state_dict",
+                   "--prefix", "module.vit.", "--out", str(args["out"])]
+        # Faithful direct-script search path, tiny real encoder to keep this bounded.
+        code = """import importlib.util, runpy, sys
+from unittest import mock
+import timm
+from timm.models.vision_transformer import VisionTransformer
+from torch import nn
+sys.path[0] = sys.argv[1]
+assert importlib.util.find_spec('downstream') is None, 'repository unexpectedly importable'
+def factory(*args, **kwargs):
+    return VisionTransformer(img_size=224, patch_size=16, embed_dim=16, depth=2,
+        num_heads=2, num_classes=0, global_pool='', dynamic_img_size=True,
+        norm_layer=lambda dim, **kw: nn.LayerNorm(dim, eps=1e-6, **kw))
+sys.argv = sys.argv[2:]
+with mock.patch.object(timm, 'create_model', side_effect=factory):
+    runpy.run_path(sys.argv[0], run_name='__main__')
+"""
+        env = dict(os.environ)
+        env.pop("PYTHONPATH", None)
+        result = subprocess.run([sys.executable, "-c", code, str(script.parent), *command],
+            cwd=self.root, env=env, capture_output=True, text=True, timeout=120, check=False)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertTrue((args["out"] / "encoder.pt").is_file())
+
     def test_native_scaling_import_numpy_namespaces_with_callable_only_allowlist(self):
         import hashlib
         import io

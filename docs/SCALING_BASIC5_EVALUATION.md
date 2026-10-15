@@ -44,6 +44,8 @@ flat keys for colorization, `vit.` for rotation, and `net1.encoder.` /
 `net2.encoder.` for split-brain. Only the known pretext decoder/head keys are
 discarded. Missing or unexpected encoder keys, wrong tensor shapes/dtypes,
 nonfinite values, wrong hashes and existing output directories are rejected.
+The existing standalone scaling conversion CLI also remains usable without a
+repository `PYTHONPATH`; a separate-process import/export test covers it.
 Loading remains restricted (`weights_only=True`), with the same narrow NumPy
 RNG constructor allowlist used by the existing scaling importer. Arbitrary
 pickle classes are not accepted. Training state is not restored.
