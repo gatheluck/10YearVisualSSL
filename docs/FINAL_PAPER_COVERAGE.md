@@ -87,8 +87,10 @@ fresh ViT-B/L indexed training, source-specific class weights and epoch
 scheduling, DDP and 30/60/90 frozen exports, plus strict portable epoch
 continuation. The [SplitBrain scaling entry](SPLITBRAIN_SCALING.md) adds B/L
 cross-channel indexed training, explicit Lab backend, deferred targets, BF16,
-accumulation and frozen exports. SplitBrain continuation, historical worker
-ordering and full-data score reproduction remain separate work.
+accumulation, frozen exports and strict portable epoch continuation, including
+two-rank and spawned-loader-worker CPU state comparisons. Native historical
+checkpoint continuation, historical worker ordering and full-data score
+reproduction remain separate work.
 
 ## Coverage by final appendix
 

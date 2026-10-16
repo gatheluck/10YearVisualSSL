@@ -12,6 +12,19 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-10-16: portable SplitBrain continuation
+
+PR 252 merged as `9edbd52`; all 115 PR checks succeeded. Main was pulled and
+the unrelated video-submodule changes remain untouched. The next change adds
+strict portable epoch continuation to the [SplitBrain trainer](SPLITBRAIN_SCALING.md),
+superseding the fresh-only statement below. The current original trainer and
+base configuration still match the Capture snapshot. New checkpoints bind the
+portable recipe and rank layout; legacy/native state remains explicitly refused.
+CPU tests compare complete uninterrupted/resumed states, discarded accumulation
+tails, spawned loader workers and two ranks, and reject malformed state before
+training. Record GPU, mutation and final gate results separately in the PR and
+private evidence; do not equate diagnostics with Table 22 score reproduction.
+
 ### 2026-10-16: portable color continuation and SplitBrain scaling
 
 PR 251 merged at `cda4859`; main matched its tested tree. The next grouped change

@@ -53,9 +53,23 @@ configuration, optimizer state, metrics and a hashed contract manifest. Epochs
 30/60/90 retain checkpoints and head-free exports. `encoder.pt` uses the existing
 frozen provider's ModuleList keys and supports its BasicFive evaluation routes.
 
-This is a fresh-run entry: native or portable checkpoint continuation is not
-implemented, and `resume` is rejected. A stored optimizer/RNG record does not
-imply a tested continuation loader. The portable loader uses a dedicated
+Optional `resume` accepts an explicit portable `splitbrain_scaling_epoch_v2`
+checkpoint; omit it or set it to null for fresh training. Set `epochs` to the
+total desired epoch count, greater than the saved epoch and at most 90, and
+use a new output directory. The source checkpoint remains unchanged. The loader
+restores model, AdamW moments, update-clock learning rate and each rank's RNG,
+including the dedicated data-loader generator. Accumulation and discarded tails
+retain their original update clock; BF16 does not use a gradient scaler.
+
+Continuation requires the same recipe, paths, frozen membership, world size,
+loader length, model geometry, Torch and NumPy versions. Malformed counters,
+optimizer state, RNG or model tensors are rejected before loading live state.
+The identity does not hash complete tar payload contents or certify equivalence
+across different machines or dependency builds. Native historical checkpoints
+and earlier portable `splitbrain_scaling_training_v1` files lack this identity
+and are refused; they are not silently reinterpreted as resumable checkpoints.
+
+The portable loader uses a dedicated
 sampler generator and restarts workers each epoch; historical persistent-worker
 sample ordering has not been reproduced. All runs report
 `canonical_eligible: false`.
@@ -66,9 +80,15 @@ match initialization, fallback preprocessing, deferred targets, gradients and
 three accumulated FP32 parameter updates exactly. Seven schedule points agree
 within 1e-15 relative error. Scikit-image numerical parity has not been verified.
 Tests additionally cover real indexed training/export loading, retained epochs,
-partial tails, invalid inputs and two-rank gradient/read-error behavior. A
+partial tails, invalid inputs and two-rank gradient/read-error behavior.
+Uninterrupted and resumed CPU runs match complete model, optimizer and per-rank
+RNG state, including two-rank and spawned-loader-worker cases. A
 separate reserved-node CUDA BF16 diagnostic ran both full-size presets for four
 updates on a four-image synthetic indexed fixture with finite model state.
+A subsequent full-size BF16 check for both presets compared three uninterrupted
+epochs with one epoch plus continuation. Model, optimizer, rank RNG and counters
+matched exactly with accumulation and discarded tails; the input checkpoint's
+SHA-256 remained unchanged. These are synthetic four-image diagnostics.
 These checks do not establish complete-data scores, multi-node behavior, historical
 checkpoint identity or full-paper reproduction. Consult the PR for separately
 recorded GPU and final test-gate results; private paths and evidence stay outside

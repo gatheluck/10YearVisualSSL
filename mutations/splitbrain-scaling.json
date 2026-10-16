@@ -120,8 +120,8 @@
     {
       "label": "config exact keys",
       "file": "methods/08_split_brain/splitbrain_scaling.py",
-      "old": "if set(cfg) != {",
-      "new": "if False and set(cfg) != {",
+      "old": "if set(cfg) - {\"resume\"} != {",
+      "new": "if False and set(cfg) - {\"resume\"} != {",
       "tests": [
         "tests.test_method_splitbrain_scaling.TestSplitScaling.test_indexed_run_and_export"
       ]
@@ -138,8 +138,8 @@
     {
       "label": "schedule advance",
       "file": "methods/08_split_brain/splitbrain_scaling.py",
-      "old": "schedule(updates, 90 * steps)",
-      "new": "schedule(0, 90 * steps)",
+      "old": "group[\"lr\"] = schedule(updates, 90 * steps)",
+      "new": "group[\"lr\"] = schedule(0, 90 * steps)",
       "tests": [
         "tests.test_method_splitbrain_scaling.TestSplitScaling.test_retention_tail_clock_and_schedule"
       ]

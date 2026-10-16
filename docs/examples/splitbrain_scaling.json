@@ -9,5 +9,6 @@
   "microbatch": 32,
   "accum": 1,
   "num_workers": 4,
-  "lab_backend": "fallback"
+  "lab_backend": "fallback",
+  "resume": null
 }

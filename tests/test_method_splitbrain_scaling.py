@@ -162,7 +162,8 @@ class TestSplitScaling(unittest.TestCase):
                 ("microbatch", 0),
                 ("lab_backend", "auto"),
                 ("precision", "float16"),
-                ("resume", "native.pth"),
+                ("resume", ""),
+                ("unexpected", 1),
             ]:
                 with self.subTest(key=key), self.assertRaises(ValueError):
                     m.validate(dict(cfg, **{key: value}))
@@ -370,6 +371,260 @@ class TestSplitScaling(unittest.TestCase):
             self.assertAlmostEqual(m.schedule(step, 90000), expected, places=15)
 
 
+def assert_exact(left, right):
+    """Compare complete nested training state, including scalar RNG metadata."""
+    if isinstance(left, torch.Tensor):
+        torch.testing.assert_close(left, right, rtol=0, atol=0)
+    elif isinstance(left, dict):
+        assert left.keys() == right.keys()
+        for key in left:
+            assert_exact(left[key], right[key])
+    elif isinstance(left, (list, tuple)):
+        assert type(left) is type(right) and len(left) == len(right)
+        for a, b in zip(left, right):
+            assert_exact(a, b)
+    else:
+        assert left == right, (left, right)
+
+
+@unittest.skipUnless(HAVE, "torch and timm required")
+class TestContinuation(unittest.TestCase):
+    def test_identity_binds_runtime_and_membership(self):
+        import tempfile
+        from types import SimpleNamespace
+        from unittest import mock
+
+        from tests.test_method_color_scaling import TestColorScaling
+
+        m = importlib.import_module("methods.08_split_brain.splitbrain_scaling")
+        with tempfile.TemporaryDirectory() as tmp:
+            cfg = dict(
+                TestColorScaling().fixture(Path(tmp)), accum=1, lab_backend="fallback"
+            )
+            context = SimpleNamespace(world=1)
+            membership = {"manifest_sha256": "original"}
+            expected = m.continuation_identity(cfg, membership, [0, 1], context)
+            self.assertEqual(
+                expected,
+                m.continuation_identity(
+                    dict(cfg, resume="file", epochs=90), membership, [0, 1], context
+                ),
+            )
+            for meta, loader, ctx in (
+                ({"manifest_sha256": "other"}, [0, 1], context),
+                (membership, [0], context),
+                (membership, [0, 1], SimpleNamespace(world=2)),
+            ):
+                self.assertNotEqual(
+                    expected, m.continuation_identity(cfg, meta, loader, ctx)
+                )
+            with mock.patch.object(m, "CROP", 16):
+                self.assertNotEqual(
+                    expected, m.continuation_identity(cfg, membership, [0, 1], context)
+                )
+            with mock.patch.dict(m.PRESETS, {cfg["model"]: (16, 1, 2)}):
+                self.assertNotEqual(
+                    expected, m.continuation_identity(cfg, membership, [0, 1], context)
+                )
+
+    def test_epoch_continuation_and_rejections(self):
+        import copy
+        import hashlib
+        import tempfile
+        from unittest import mock
+
+        from tests.test_method_color_scaling import TestColorScaling
+
+        m = importlib.import_module("methods.08_split_brain.splitbrain_scaling")
+        torch.set_num_threads(1)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cfg = dict(
+                TestColorScaling().fixture(root),
+                accum=3,
+                microbatch=1,
+                lab_backend="fallback",
+                epochs=3,
+            )
+            with (
+                mock.patch.dict(m.PRESETS, {cfg["model"]: (16, 1, 2)}),
+                mock.patch.object(m, "CROP", 16),
+            ):
+                m.run(cfg, root / "whole")
+                m.run(dict(cfg, epochs=1), root / "first")
+                path = root / "first/checkpoint_latest.pth"
+                digest = hashlib.sha256(path.read_bytes()).hexdigest()
+                resumed = dict(cfg, resume=str(path))
+                # RED: an explicit portable checkpoint must be accepted.
+                m.validate(resumed)
+                m.run(resumed, root / "resumed")
+                whole = torch.load(
+                    root / "whole/checkpoint_latest.pth", weights_only=True
+                )
+                other = torch.load(
+                    root / "resumed/checkpoint_latest.pth", weights_only=True
+                )
+                for key in (
+                    "model",
+                    "optimizer",
+                    "rng",
+                    "global_step",
+                    "epoch",
+                    "identity",
+                ):
+                    assert_exact(whole[key], other[key])
+                self.assertEqual(other["global_step"], 3)
+                assert_exact(
+                    torch.load(root / "whole/encoder.pt", weights_only=True),
+                    torch.load(root / "resumed/encoder.pt", weights_only=True),
+                )
+                self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(), digest)
+                saved = torch.load(path, weights_only=True)
+                cases = []
+
+                def altered(label, change):
+                    value = copy.deepcopy(saved)
+                    change(value)
+                    cases.append((label, value))
+
+                altered(
+                    "legacy",
+                    lambda s: s.update(format="splitbrain_scaling_training_v1"),
+                )
+                altered("identity", lambda s: s.update(identity="wrong"))
+                altered("extra-key", lambda s: s.update(unexpected=True))
+                altered("epoch", lambda s: s.update(epoch=3))
+
+                def at_target(s):
+                    s.update(epoch=3, global_step=3)
+                    s["optimizer"]["param_groups"][0]["lr"] = m.schedule(3, 90)
+                    for slot in s["optimizer"]["state"].values():
+                        slot["step"].fill_(3)
+
+                altered("epoch-at-target", at_target)
+                altered("epoch-type", lambda s: s.update(epoch=True))
+                altered("counter", lambda s: s.update(global_step=0))
+
+                # Every optimizer field is coherent with two updates, but one
+                # epoch of this loader can only have completed one update.
+                def excess_updates(s):
+                    s["global_step"] = 2
+                    s["optimizer"]["param_groups"][0]["lr"] = m.schedule(2, 90)
+                    for slot in s["optimizer"]["state"].values():
+                        slot["step"].fill_(2)
+
+                altered("counter-coherent-optimizer", excess_updates)
+                altered("counter-type", lambda s: s.update(global_step=True))
+                altered("recorded-config", lambda s: s["config"].update(seed=99))
+                altered(
+                    "membership",
+                    lambda s: s["membership"].update(manifest_sha256="wrong"),
+                )
+                altered("rank-count", lambda s: s.update(rng=[]))
+                altered("rng", lambda s: s["rng"][0].update(torch=torch.zeros(3)))
+                altered("optimizer-slots", lambda s: s["optimizer"]["state"].clear())
+                altered("optimizer-schema", lambda s: s["optimizer"].update(extra=0))
+                altered(
+                    "optimizer-step",
+                    lambda s: next(iter(s["optimizer"]["state"].values()))[
+                        "step"
+                    ].fill_(0),
+                )
+                altered(
+                    "optimizer-policy",
+                    lambda s: s["optimizer"]["param_groups"][0].update(
+                        weight_decay=0.1
+                    ),
+                )
+                altered(
+                    "rate", lambda s: s["optimizer"]["param_groups"][0].update(lr=1.0)
+                )
+                altered(
+                    "model",
+                    lambda s: next(iter(s["model"].values())).fill_(float("nan")),
+                )
+                altered(
+                    "moment",
+                    lambda s: next(iter(s["optimizer"]["state"].values()))[
+                        "exp_avg"
+                    ].fill_(float("nan")),
+                )
+                for label, value in cases:
+                    bad = root / (label + ".pth")
+                    torch.save(value, bad)
+                    raw = m.build_model(cfg["model"])
+                    original = copy.deepcopy(raw.state_dict())
+                    opt = torch.optim.AdamW(
+                        raw.parameters(), lr=m.schedule(0, 90), weight_decay=0.05
+                    )
+                    loader = torch.utils.data.DataLoader(
+                        torch.arange(4),
+                        batch_size=1,
+                        generator=torch.Generator().manual_seed(123),
+                    )
+                    context = m.Session(torch.device("cpu"))
+                    rng = m._rng(loader, context.device)
+                    with (
+                        self.subTest(preflight=label),
+                        self.assertRaises((ValueError, RuntimeError)),
+                    ):
+                        m.restore(
+                            str(bad), saved["identity"], raw, opt, loader, context, 1, 3
+                        )
+                    assert_exact(raw.state_dict(), original)
+                    self.assertFalse(opt.state)
+                    assert_exact(m._rng(loader, context.device), rng)
+                    with (
+                        self.subTest(label=label),
+                        mock.patch.object(m, "train_step") as step,
+                    ):
+                        with self.assertRaises((ValueError, RuntimeError)):
+                            m.run(dict(resumed, resume=str(bad)), root / label)
+                        step.assert_not_called()
+                for key, value in (("seed", 7), ("accum", 2), ("microbatch", 2)):
+                    with (
+                        self.subTest(recipe=key),
+                        self.assertRaises((ValueError, RuntimeError)),
+                    ):
+                        m.run(dict(resumed, **{key: value}), root / ("changed-" + key))
+
+    def test_worker_continuation_cli(self):
+        import json
+        import tempfile
+        from unittest import mock
+
+        from tests.test_method_color_scaling import TestColorScaling
+
+        m = importlib.import_module("methods.08_split_brain.splitbrain_scaling")
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cfg = dict(
+                TestColorScaling().fixture(root),
+                accum=1,
+                lab_backend="fallback",
+                num_workers=1,
+            )
+            with mock.patch.dict(m.PRESETS, {cfg["model"]: (16, 1, 2)}):
+                # Keep crop unpatched: spawn workers import the original module.
+                def run(name, **changes):
+                    config = root / (name + ".json")
+                    config.write_text(json.dumps(dict(cfg, **changes)))
+                    self.assertEqual(
+                        m.main(["--config", str(config), "--out", str(root / name)]), 0
+                    )
+                    return torch.load(
+                        root / name / "checkpoint_latest.pth", weights_only=True
+                    )
+
+                whole = run("whole")
+                run("first", epochs=1)
+                resumed = run(
+                    "resumed", resume=str(root / "first/checkpoint_latest.pth")
+                )
+                for key in ("model", "optimizer", "rng", "global_step", "identity"):
+                    assert_exact(whole[key], resumed[key])
+
+
 class TestCI(unittest.TestCase):
     def test_registered(self):
         from tests._checkout import is_checkout
@@ -481,6 +736,14 @@ def worker(root):
             torch.testing.assert_close(value, states[1][key], rtol=0, atol=0)
         saved = torch.load(root / "out/checkpoint_latest.pth", weights_only=True)
         assert len(saved["rng"]) == 2
+        m.run(dict(cfg, epochs=1), root / "first")
+        m.run(
+            dict(cfg, resume=str(root / "first/checkpoint_latest.pth")),
+            root / "resumed",
+        )
+        resumed = torch.load(root / "resumed/checkpoint_latest.pth", weights_only=True)
+        for key in ("model", "optimizer", "rng", "global_step", "epoch", "identity"):
+            assert_exact(saved[key], resumed[key])
         get = IndexedTarDataset.__getitem__
 
         def broken(self, index):
