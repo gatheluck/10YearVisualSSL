@@ -12,6 +12,23 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-10-16: portable color continuation and SplitBrain scaling
+
+PR 251 merged at `cda4859`; main matched its tested tree. The next grouped change
+adds [strict color epoch continuation](COLORIZATION_SCALING.md) and the separate
+[indexed SplitBrain B/L trainer](SPLITBRAIN_SCALING.md). This supersedes the
+fresh-only color and absent SplitBrain-training statements in older checkpoints.
+Original/Capture inputs remain unchanged; unrelated video-submodule edits remain
+excluded. Source comparison, CPU RED/GREEN, distributed and GPU diagnostics are
+recorded separately in private evidence; check the PR for final gate/CI status.
+
+SplitBrain checkpoint continuation, historical worker ordering, complete-data
+runs and paper-score attribution remain unverified. Do not infer those from
+short training diagnostics. New cluster logs, weights, caches and temporary
+files belong in a fresh run directory under the user's private experiment root.
+Historical migrated locations retain compatibility links. Private execution
+state records the actual paths; never put them in this repository or the PR.
+
 ### 2026-10-16: fresh colorization scaling integration
 
 PR 250 merged as `5f1d0c3`; all 115 checks passed. Pulled main matches the

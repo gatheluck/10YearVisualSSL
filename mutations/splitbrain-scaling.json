@@ -1,0 +1,175 @@
+{
+  "targets": [
+    {
+      "label": "light normalization",
+      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "old": "(lab[..., 0] - 50) / 50",
+      "new": "lab[..., 0] / 100",
+      "tests": [
+        "tests.test_method_splitbrain_scaling.TestSplitScaling.test_inputs_and_pickling"
+      ]
+    },
+    {
+      "label": "ab normalization",
+      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "old": "lab[..., 1:] / 128",
+      "new": "lab[..., 1:] / 127",
+      "tests": [
+        "tests.test_method_splitbrain_scaling.TestSplitScaling.test_inputs_and_pickling"
+      ]
+    },
+    {
+      "label": "Lab finite",
+      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "old": "if not np.isfinite(lab).all():",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_splitbrain_scaling.TestSplitScaling.test_inputs_and_pickling"
+      ]
+    },
+    {
+      "label": "target finite",
+      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "old": "if not torch.isfinite(light).all() or not torch.isfinite(ab).all():",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_splitbrain_scaling.TestSplitScaling.test_quantization_and_resize"
+      ]
+    },
+    {
+      "label": "quantization input",
+      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "old": "* 128",
+      "new": "* 127",
+      "tests": [
+        "tests.test_method_splitbrain_scaling.TestSplitScaling.test_quantization_and_resize"
+      ]
+    },
+    {
+      "label": "L bins",
+      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "old": ".div(2)",
+      "new": ".div(3)",
+      "tests": [
+        "tests.test_method_splitbrain_scaling.TestSplitScaling.test_quantization_and_resize"
+      ]
+    },
+    {
+      "label": "target resize",
+      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "old": "mode=\"nearest\"",
+      "new": "mode=\"bilinear\"",
+      "tests": [
+        "tests.test_method_splitbrain_scaling.TestSplitScaling.test_quantization_and_resize"
+      ]
+    },
+    {
+      "label": "gradient averaging",
+      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "old": "(loss / accumulation).backward()",
+      "new": "loss.backward()",
+      "tests": [
+        "tests.test_method_splitbrain_scaling.TestSplitScaling.test_two_loss_update_and_discarded_tail"
+      ]
+    },
+    {
+      "label": "tail update",
+      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "old": "if len(batches) == accumulation:",
+      "new": "if True:",
+      "tests": [
+        "tests.test_method_splitbrain_scaling.TestSplitScaling.test_two_loss_update_and_discarded_tail"
+      ]
+    },
+    {
+      "label": "update finite",
+      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "old": "if not torch.isfinite(value).all():",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_splitbrain_scaling.TestSplitScaling.test_invalid_steps_and_gradient_guard"
+      ]
+    },
+    {
+      "label": "precision guard",
+      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "old": "precision not in (\"float32\", \"bfloat16\")",
+      "new": "False",
+      "tests": [
+        "tests.test_method_splitbrain_scaling.TestSplitScaling.test_invalid_steps_and_gradient_guard"
+      ]
+    },
+    {
+      "label": "BF16 device",
+      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "old": "if precision == \"bfloat16\" and context.device.type != \"cuda\":",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_splitbrain_scaling.TestSplitScaling.test_invalid_steps_and_gradient_guard"
+      ]
+    },
+    {
+      "label": "epoch range",
+      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "old": "cfg[\"epochs\"] > 90",
+      "new": "False",
+      "tests": [
+        "tests.test_method_splitbrain_scaling.TestSplitScaling.test_indexed_run_and_export"
+      ]
+    },
+    {
+      "label": "config exact keys",
+      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "old": "if set(cfg) != {",
+      "new": "if False and set(cfg) != {",
+      "tests": [
+        "tests.test_method_splitbrain_scaling.TestSplitScaling.test_indexed_run_and_export"
+      ]
+    },
+    {
+      "label": "config Lab backend",
+      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "old": "if cfg[\"lab_backend\"] not in (\"fallback\", \"skimage\"):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_splitbrain_scaling.TestSplitScaling.test_indexed_run_and_export"
+      ]
+    },
+    {
+      "label": "schedule advance",
+      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "old": "schedule(updates, 90 * steps)",
+      "new": "schedule(0, 90 * steps)",
+      "tests": [
+        "tests.test_method_splitbrain_scaling.TestSplitScaling.test_retention_tail_clock_and_schedule"
+      ]
+    },
+    {
+      "label": "source factory selection",
+      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "old": "native_scaling=True",
+      "new": "native_scaling=False",
+      "tests": [
+        "tests.test_method_splitbrain_scaling.TestSplitScaling.test_presets_and_native_norm"
+      ]
+    },
+    {
+      "label": "source contiguous layout",
+      "file": "methods/08_split_brain/models/vit_split_brain.py",
+      "old": "return self.decoder(spatial.contiguous()).contiguous()",
+      "new": "return self.decoder(spatial)",
+      "tests": [
+        "tests.test_method_splitbrain_scaling.TestSplitScaling.test_native_factory_initialization_and_contiguous_forward"
+      ]
+    },
+    {
+      "label": "distributed model synchronization",
+      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "old": "            if context.world > 1\n            else raw",
+      "new": "            if False\n            else raw",
+      "tests": [
+        "tests.test_method_splitbrain_scaling.TestDistributed.test_two_rank_update_and_read_failure"
+      ]
+    }
+  ]
+}

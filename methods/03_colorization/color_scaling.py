@@ -1,8 +1,10 @@
-"""Fresh indexed colorization scaling runs; original continuation is not inferred."""
+"""Indexed colorization training and explicit portable epoch continuation."""
 
 import argparse
+import hashlib
 import importlib
 import json
+import math
 import random
 from contextlib import nullcontext
 from pathlib import Path
@@ -12,9 +14,11 @@ import torch
 from torch import nn
 from torchvision import transforms
 
+from downstream import continuation_validation
 from downstream.contract import write_metrics
 from downstream.extended_distributed import cli, session
-from downstream.extended_resume import _cpu, _rng
+from downstream.extended_resume import _cpu, _restore_rng, _rng
+from downstream.frozen_vit import validate_state
 from downstream.indexed_tar import IndexedTarDataset, freeze, validate_output
 
 _model = importlib.import_module("methods.03_colorization.models.vit_colorization")
@@ -116,7 +120,7 @@ def train_step(model, optimizer, images, targets, weights, scaler):
 
 
 def validate(cfg):
-    if set(cfg) != {
+    if set(cfg) - {"resume"} != {
         "device",
         "seed",
         "model",
@@ -127,7 +131,7 @@ def validate(cfg):
         "microbatch",
         "num_workers",
     }:
-        raise ValueError("color scaling requires exactly the documented fresh-run keys")
+        raise ValueError("color scaling requires exactly the documented keys")
     for key, minimum in (
         ("seed", 0),
         ("epochs", 1),
@@ -145,9 +149,150 @@ def validate(cfg):
         raise ValueError("explicit color device and precision required")
     if cfg["precision"] == "float16" and cfg["device"] != "cuda":
         raise ValueError("float16 requires CUDA")
+    if cfg.get("resume") is not None and (
+        not isinstance(cfg["resume"], str) or not cfg["resume"].strip()
+    ):
+        raise ValueError("resume requires a checkpoint path or null")
     for key in ("prepared_root", "validation_root"):
         if not isinstance(cfg[key], str) or not cfg[key].strip():
             raise ValueError("explicit input root required")
+
+
+def continuation_identity(cfg, membership, loader, context):
+    config = {k: v for k, v in cfg.items() if k not in ("resume", "epochs")}
+    return hashlib.sha256(
+        json.dumps(
+            {
+                "config": config,
+                "membership": membership,
+                "world": context.world,
+                "steps": len(loader),
+                "preset": PRESETS[cfg["model"]],
+                "crop": CROP,
+                "resize": RESIZE,
+                "torch": str(torch.__version__),
+                "numpy": np.__version__,
+            },
+            sort_keys=True,
+        ).encode()
+    ).hexdigest()
+
+
+def restore(path, identity, model, optimizer, scaler, loader, context, weights, target):
+    if path is None:
+        return 0, 0, 0
+    state = torch.load(path, map_location="cpu", weights_only=True)
+    keys = {
+        "format",
+        "identity",
+        "epoch",
+        "global_step",
+        "optimizer_attempts",
+        "model",
+        "optimizer",
+        "scaler",
+        "rng",
+        "rank_buffers",
+        "config",
+        "membership",
+        "class_weights",
+    }
+    if (
+        not isinstance(state, dict)
+        or set(state) != keys
+        or state["format"] != "color_scaling_epoch_v2"
+        or state["identity"] != identity
+    ):
+        raise ValueError("color continuation schema or identity differs")
+    validate(state["config"])
+    if (
+        continuation_identity(state["config"], state["membership"], loader, context)
+        != identity
+    ):
+        raise ValueError("color continuation recorded recipe differs")
+    epoch, updates, attempts = (
+        state[k] for k in ("epoch", "global_step", "optimizer_attempts")
+    )
+    if (
+        any(type(v) is not int for v in (epoch, updates, attempts))
+        or not 1 <= epoch < target
+        or attempts != epoch * len(loader)
+        or not 0 <= updates <= attempts
+    ):
+        raise ValueError("color continuation counters differ")
+    if scaler is None and updates != attempts:
+        raise ValueError("FP32 continuation cannot have skipped updates")
+    if not isinstance(state["class_weights"], torch.Tensor) or not torch.equal(
+        state["class_weights"], weights.cpu()
+    ):
+        raise ValueError("color continuation class weights differ")
+    saved = state["optimizer"]
+    if not isinstance(saved, dict) or set(saved) != {"state", "param_groups"}:
+        raise ValueError("invalid color optimizer state")
+    continuation_validation.optimizer_state(optimizer, saved, updates)
+    expected_slots = len(list(model.parameters())) if updates else 0
+    if len(saved["state"]) != expected_slots:
+        raise ValueError("incomplete color optimizer state")
+    for item in saved["state"].values():
+        if item["step"].item() != updates or any(
+            not torch.isfinite(v).all() for v in item.values()
+        ):
+            raise ValueError("color optimizer state is nonfinite or inconsistent")
+    batch = loader.batch_size * context.world
+    if any(g["lr"] != schedule(epoch - 1, batch) for g in saved["param_groups"]):
+        raise ValueError("color continuation learning rate differs")
+    if scaler is None:
+        if state["scaler"] is not None:
+            raise ValueError("unexpected color scaler state")
+    else:
+        value = state["scaler"]
+        expected = scaler.state_dict()
+        if (
+            not isinstance(value, dict)
+            or set(value) != set(expected)
+            or any(
+                value[k] != expected[k]
+                for k in ("growth_factor", "backoff_factor", "growth_interval")
+            )
+        ):
+            raise ValueError("color scaler policy differs")
+        scale = value["scale"]
+        if (
+            type(scale) not in (int, float)
+            or not math.isfinite(scale)
+            or not 0 < scale <= torch.finfo(torch.float32).max
+            or type(value["_growth_tracker"]) is not int
+            or not 0 <= value["_growth_tracker"] < value["growth_interval"]
+        ):
+            raise ValueError("invalid color scaler state")
+    if not isinstance(state["rng"], list) or len(state["rng"]) != context.world:
+        raise ValueError("color continuation rank count differs")
+    continuation_validation.rng_states(state["rng"], loader, context.device)
+    buffers = state["rank_buffers"]
+    expected_buffers = dict(model.named_buffers())
+    if not isinstance(buffers, list) or len(buffers) != context.world:
+        raise ValueError("color buffer rank count differs")
+    for rank in buffers:
+        if not isinstance(rank, dict) or set(rank) != set(expected_buffers):
+            raise ValueError("color buffer keys differ")
+        for key, tensor in rank.items():
+            expected = expected_buffers[key]
+            if (
+                not isinstance(tensor, torch.Tensor)
+                or tensor.shape != expected.shape
+                or tensor.dtype != expected.dtype
+                or not torch.isfinite(tensor).all()
+            ):
+                raise ValueError("invalid color buffer state")
+    validate_state(model, state["model"])
+    with torch.no_grad():
+        for key, tensor in buffers[context.rank].items():
+            expected_buffers[key].copy_(tensor)
+    optimizer.load_state_dict(saved)
+    if scaler is not None:
+        scaler.load_state_dict(state["scaler"])
+    _restore_rng(state["rng"][context.rank], loader, context.device)
+    return epoch, updates, attempts
 
 
 def run(cfg, out):
@@ -227,7 +372,21 @@ def run(cfg, out):
             weight_decay=0.05,
         )
         scaler = torch.amp.GradScaler("cuda") if cfg["precision"] == "float16" else None
-        updates = attempts = 0
+        identity = continuation_identity(cfg, meta, loader, context)
+        context.agree(identity)
+        start, updates, attempts = context.call(
+            lambda: restore(
+                cfg.get("resume"),
+                identity,
+                raw,
+                optimizer,
+                scaler,
+                loader,
+                context,
+                weights,
+                cfg["epochs"],
+            )
+        )
 
         def count_update(_optimizer, _args, _kwargs):
             nonlocal updates
@@ -235,7 +394,7 @@ def run(cfg, out):
 
         update_hook = optimizer.register_step_post_hook(count_update)
         model.train()
-        for epoch in range(cfg["epochs"]):
+        for epoch in range(start, cfg["epochs"]):
             if sampler is not None:
                 sampler.set_epoch(epoch)
             for group in optimizer.param_groups:
@@ -255,6 +414,8 @@ def run(cfg, out):
                 total / len(loader), dtype=torch.float64, device=context.device
             )
             states = [_rng(loader, context.device)]
+            buffers = [_cpu(dict(raw.named_buffers()))]
+            context.agree((updates, attempts, scaler.state_dict() if scaler else None))
             if context.world > 1:
                 torch.distributed.all_reduce(loss)
                 loss /= context.world
@@ -262,10 +423,22 @@ def run(cfg, out):
                 torch.distributed.all_gather_object(
                     states, _rng(loader, context.device)
                 )
+                buffers = [None] * context.world
+                torch.distributed.all_gather_object(
+                    buffers, _cpu(dict(raw.named_buffers()))
+                )
 
-            def save(epoch=epoch, updates=updates, attempts=attempts, states=states):
+            def save(
+                epoch=epoch,
+                updates=updates,
+                attempts=attempts,
+                states=states,
+                buffers=buffers,
+            ):
                 blob = {
-                    "format": "color_scaling_training_v1",
+                    "format": "color_scaling_epoch_v2",
+                    "identity": identity,
+                    "rank_buffers": buffers,
                     "epoch": epoch + 1,
                     "global_step": updates,
                     "optimizer_attempts": attempts,

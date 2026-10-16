@@ -181,6 +181,7 @@ jobs:
             tests.test_three_scaling_evaluation \
             tests.test_method_rotation_scaling \
             tests.test_method_color_scaling \
+            tests.test_method_splitbrain_scaling \
             tests.test_dino_ablation_evaluation \
             tests.test_dinov3_distributed \
             tests.test_method_activation_checkpointing \

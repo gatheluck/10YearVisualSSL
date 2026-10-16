@@ -2,7 +2,7 @@
 
 See [submission scope](SUBMISSION_SCOPE.md), [paper terminology](PAPER_TERMINOLOGY.md)
 and the [frozen scaling evaluation providers](SCALING_BASIC5_EVALUATION.md).
-This entry implements fresh ImageNet-21K Winter 2021 colorization training for
+This entry implements fresh and portable-continuation ImageNet-21K Winter 2021 colorization training for
 the 30/60/90-epoch trajectories in Appendix B.9 and Table 20. The original
 experimental implementation exists; this is its separate portable integration,
 not a claim that the paper's numerical results have been reproduced here.
@@ -60,10 +60,20 @@ model/optimizer/scaler state, per-rank RNG, configuration and membership.
 `global_step` counts actual optimizer updates; `optimizer_attempts` also includes
 AMP-overflow attempts skipped by GradScaler.
 
-This is a **fresh-run entry**. A checkpoint continuation loader is not yet
-integrated; `resume` and other undocumented configuration keys are rejected.
-Stored checkpoint state alone is not evidence of supported continuation. Do not
-discard an original training checkpoint or substitute a component export for it.
+For portable epoch-boundary continuation, set optional `resume` to an immutable
+`checkpoint_latest.pth` produced by this entry and choose a new output directory.
+`epochs` is the total target epoch, strictly greater than the saved epoch. The
+`color_scaling_epoch_v2` format binds the resolved recipe, frozen membership,
+world size, steps, geometry and Torch/NumPy versions. Model, optimizer, scaler,
+per-rank RNG and rank-local BatchNorm buffers are restored. Malformed counters,
+nonfinite state, altered class weights or changed recipes are rejected before
+training. All-overflow AMP epochs can resume with zero optimizer updates.
+
+Legacy v1 and native historical checkpoints are deliberately rejected: their
+saved fields do not establish the required identity. Do not discard those
+originals. Identity covers manifest metadata, not every byte in indexed tar
+payloads, and does not certify cross-version/platform equivalence. Worker
+scheduling and historical sample order remain separate from portable resume.
 
 ## Evidence and limits
 
@@ -78,9 +88,11 @@ Tests exercise fresh training contracts, retained 30/60/90 exports, frozen
 feature equivalence, rejection of invalid configuration and unreadable input,
 and two-rank CPU updates against a rank-weighted oracle. AMP sequencing is
 tested with both a simulated scaler and real CPU GradScaler overflow/recovery,
-including two ranks. These checks are not CUDA FP16 numerical validation.
-Full-size models, CUDA/FP16, multi-node execution, full-data runs, paper scores
-and historical run attribution are not established by these tests.
+including two ranks. A separate reserved-node CUDA FP16 diagnostic ran full-size
+B/L models on four synthetic indexed images: continuous two-epoch training and
+one epoch plus continuation matched model, optimizer, scaler, RNG, buffers and
+counters exactly. This does not establish historical numerical parity,
+multi-node execution, full-data runs, paper scores or historical run attribution.
 
 The portable loader uses a dedicated generator and restarts workers each epoch;
 historical persistent-worker sample order is not established. Bad images and
@@ -91,5 +103,7 @@ actual size; the original diagnostic smaller-world invocation could retain the
 configured 1,024-image learning rate. Only matching original geometry is a
 recipe comparison. All outputs remain `canonical_eligible: false`.
 
-SplitBrain scaling training and colorization checkpoint continuation remain
-separate integration tasks.
+[SplitBrain scaling training](SPLITBRAIN_SCALING.md) now has its own explicit
+recipe. Colorization portable continuation is tested for exact model, optimizer,
+RNG and final-loss equality in single-process CPU runs and model/buffer equality
+in two-rank CPU runs. These results do not imply native historical continuation.

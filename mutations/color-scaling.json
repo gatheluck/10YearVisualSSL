@@ -136,10 +136,10 @@
       ]
     },
     {
-      "label": "explicit fresh-run schema",
+      "label": "explicit resolved schema",
       "file": "methods/03_colorization/color_scaling.py",
-      "old": "if set(cfg) != {",
-      "new": "if False and set(cfg) != {",
+      "old": "if set(cfg) - {\"resume\"} != {",
+      "new": "if False and set(cfg) - {\"resume\"} != {",
       "tests": [
         "tests.test_method_color_scaling.TestColorScaling.test_invalid_configs_and_nonfinite_gradient"
       ]
