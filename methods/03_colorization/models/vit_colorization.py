@@ -20,7 +20,7 @@ The ViT dimensions are configurable so a tiny model can run a CPU smoke.
 from __future__ import annotations
 
 import torch
-import torch.nn as nn
+from torch import nn
 
 
 class PatchEmbed(nn.Module):
@@ -101,7 +101,8 @@ class _ViTTrunk(nn.Module):
     def __init__(self, img_size: int = 224, patch_size: int = 16,
                  in_chans: int = 1, embed_dim: int = 768, depth: int = 12,
                  num_heads: int = 12, mlp_ratio: float = 4.0,
-                 drop_rate: float = 0.1, attn_drop_rate: float = 0.1) -> None:
+                 drop_rate: float = 0.1, attn_drop_rate: float = 0.1,
+                 initialize_tokens: bool = True) -> None:
         super().__init__()
         self.patch_embed = PatchEmbed(img_size, patch_size, in_chans, embed_dim)
         n_patches = self.patch_embed.n_patches
@@ -113,8 +114,9 @@ class _ViTTrunk(nn.Module):
                   drop=drop_rate, attn_drop=attn_drop_rate)
             for _ in range(depth)])
         self.norm = nn.LayerNorm(embed_dim)
-        nn.init.trunc_normal_(self.cls_token, std=0.02)
-        nn.init.trunc_normal_(self.pos_embed, std=0.02)
+        if initialize_tokens:
+            nn.init.trunc_normal_(self.cls_token, std=0.02)
+            nn.init.trunc_normal_(self.pos_embed, std=0.02)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         B = x.shape[0]
@@ -139,10 +141,17 @@ class _ClsFeature(nn.Module):
 
 
 class ColorizationViT(nn.Module):
+    """Existing Step-2 defaults, with explicit native scaling RNG ordering.
+
+    Scaling initializes the tokens after constructing the decoder. Opting into
+    that order must not silently change previously published Step-2 defaults.
+    """
+
     def __init__(self, img_size: int = 224, patch_size: int = 16,
                  num_bins: int = 313, embed_dim: int = 768, depth: int = 12,
                  num_heads: int = 12, mlp_ratio: float = 4.0,
-                 drop_rate: float = 0.1, attn_drop_rate: float = 0.1) -> None:
+                 drop_rate: float = 0.1, attn_drop_rate: float = 0.1,
+                 native_initialization: bool = False) -> None:
         super().__init__()
         self.img_size = img_size
         self.patch_size = patch_size
@@ -151,8 +160,12 @@ class ColorizationViT(nn.Module):
             img_size=img_size, patch_size=patch_size, in_chans=1,
             embed_dim=embed_dim, depth=depth, num_heads=num_heads,
             mlp_ratio=mlp_ratio, drop_rate=drop_rate,
-            attn_drop_rate=attn_drop_rate)
+            attn_drop_rate=attn_drop_rate,
+            initialize_tokens=not native_initialization)
         self.decoder = self._build_decoder(embed_dim, num_bins)
+        if native_initialization:
+            nn.init.trunc_normal_(self.encoder.cls_token, std=0.02)
+            nn.init.trunc_normal_(self.encoder.pos_embed, std=0.02)
         self.apply(self._init_weights)
 
     @staticmethod
