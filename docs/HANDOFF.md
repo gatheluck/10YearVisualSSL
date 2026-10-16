@@ -21,7 +21,9 @@ The [colorization scaling entry](COLORIZATION_SCALING.md) connects native B/L
 initialization, indexed membership, Lab/313-bin targets, class balancing,
 90-epoch scheduling, FP32/CUDA-FP16 selection, DDP and retained evaluation
 exports. Original source comparisons match reduced initialization, inputs,
-weights and two updates exactly. Fresh-run keys reject unsupported resume;
+weights and two updates exactly. CPU GradScaler overflow/recovery checks cover
+native skipped updates, scale backoff and distinct attempt/update counters.
+Fresh-run keys reject unsupported resume;
 checkpoint continuation, historical worker ordering, full-size/GPU/full-data
 reproduction and SplitBrain scaling training remain separate work. Originals
 and Capture snapshots are unchanged. Check the PR for final gate/CI evidence;

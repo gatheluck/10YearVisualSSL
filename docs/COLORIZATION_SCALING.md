@@ -27,9 +27,10 @@ not a claim that the paper's numerical results have been reproduced here.
   `1e-6 * global_batch / 256`. At the original batch of 1,024 these are 0.0006
   and 0.000004. An early stop does not shorten the horizon.
 - Explicit FP32 or CUDA FP16 autocast plus GradScaler. This is not the BF16
-  rotation recipe. One optimizer update per batch, with no accumulation option.
+  rotation recipe. One update attempt per batch, with no accumulation option.
+  AMP overflow skips the update and backs off the scale through GradScaler.
 - Single process or DDP, distributed sampler with dropped tail, rank-local
-  BatchNorm as in the source, and propagation of read/nonfinite failures before
+  BatchNorm as in the source, and propagation of read/nonfinite-loss failures before
   gradient collectives. DDP averages each rank's weighted mean loss gradient;
   this differs from globally normalizing a concatenated weighted batch.
 
@@ -56,6 +57,8 @@ and `results.json`. At completed epochs 30, 60 and 90 it also retains
 `checkpoint_epoch_<epoch>.pth` and `encoder_epoch<epoch>.pt`. Encoder files load
 through the existing frozen colorization scaling provider. Checkpoints include
 model/optimizer/scaler state, per-rank RNG, configuration and membership.
+`global_step` counts actual optimizer updates; `optimizer_attempts` also includes
+AMP-overflow attempts skipped by GradScaler.
 
 This is a **fresh-run entry**. A checkpoint continuation loader is not yet
 integrated; `resume` and other undocumented configuration keys are rejected.
@@ -74,14 +77,16 @@ gradients exactly; eight schedule points also match.
 Tests exercise fresh training contracts, retained 30/60/90 exports, frozen
 feature equivalence, rejection of invalid configuration and unreadable input,
 and two-rank CPU updates against a rank-weighted oracle. AMP sequencing is
-tested with a simulated scaler; it is not real FP16 numerical validation.
+tested with both a simulated scaler and real CPU GradScaler overflow/recovery,
+including two ranks. These checks are not CUDA FP16 numerical validation.
 Full-size models, CUDA/FP16, multi-node execution, full-data runs, paper scores
 and historical run attribution are not established by these tests.
 
 The portable loader uses a dedicated generator and restarts workers each epoch;
 historical persistent-worker sample order is not established. Bad images and
-nonfinite training states fail rather than silently producing gray substitutes
-or skipped updates. Reduced physical batches scale the learning rate by their
+nonfinite losses or FP32 gradients fail rather than silently producing gray
+substitutes or skipped batches. AMP gradient overflow retains native GradScaler
+skipping and scale backoff. Reduced physical batches scale the learning rate by their
 actual size; the original diagnostic smaller-world invocation could retain the
 configured 1,024-image learning rate. Only matching original geometry is a
 recipe comparison. All outputs remain `canonical_eligible: false`.

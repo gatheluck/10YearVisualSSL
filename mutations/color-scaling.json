@@ -197,6 +197,33 @@
       "tests": [
         "tests.test_method_color_scaling.TestColorScaling.test_full_preset_geometry_and_documented_config"
       ]
+    },
+    {
+      "label": "AMP overflow preserves scaler handling",
+      "file": "methods/03_colorization/color_scaling.py",
+      "old": "if scaler is None:\n        context.call(lambda: finite(norm))",
+      "new": "if True:\n        context.call(lambda: finite(norm))",
+      "tests": [
+        "tests.test_method_color_scaling.TestColorScaling.test_amp_overflow_backs_off_without_updating_parameters"
+      ]
+    },
+    {
+      "label": "actual optimizer update accounting",
+      "file": "methods/03_colorization/color_scaling.py",
+      "old": "optimizer.register_step_post_hook(count_update)",
+      "new": "optimizer.register_step_post_hook(lambda *args: None)",
+      "tests": [
+        "tests.test_method_color_scaling.TestColorScaling.test_amp_attempts_and_updates_are_distinct"
+      ]
+    },
+    {
+      "label": "optimizer attempt accounting",
+      "file": "methods/03_colorization/color_scaling.py",
+      "old": "attempts += 1",
+      "new": "attempts += 2",
+      "tests": [
+        "tests.test_method_color_scaling.TestColorScaling.test_amp_attempts_and_updates_are_distinct"
+      ]
     }
   ]
 }

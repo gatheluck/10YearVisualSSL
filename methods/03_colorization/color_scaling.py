@@ -106,8 +106,8 @@ def train_step(model, optimizer, images, targets, weights, scaler):
         scaler.scale(loss).backward()
         scaler.unscale_(optimizer)
     norm = nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-    context.call(lambda: finite(norm))
     if scaler is None:
+        context.call(lambda: finite(norm))
         optimizer.step()
     else:
         scaler.step(optimizer)
@@ -227,7 +227,13 @@ def run(cfg, out):
             weight_decay=0.05,
         )
         scaler = torch.amp.GradScaler("cuda") if cfg["precision"] == "float16" else None
-        updates = 0
+        updates = attempts = 0
+
+        def count_update(_optimizer, _args, _kwargs):
+            nonlocal updates
+            updates += 1
+
+        update_hook = optimizer.register_step_post_hook(count_update)
         model.train()
         for epoch in range(cfg["epochs"]):
             if sampler is not None:
@@ -244,7 +250,7 @@ def run(cfg, out):
 
                 images, targets = context.call(read)
                 total += train_step(model, optimizer, images, targets, weights, scaler)
-                updates += 1
+                attempts += 1
             loss = torch.tensor(
                 total / len(loader), dtype=torch.float64, device=context.device
             )
@@ -257,11 +263,12 @@ def run(cfg, out):
                     states, _rng(loader, context.device)
                 )
 
-            def save(epoch=epoch, updates=updates, states=states):
+            def save(epoch=epoch, updates=updates, attempts=attempts, states=states):
                 blob = {
                     "format": "color_scaling_training_v1",
                     "epoch": epoch + 1,
                     "global_step": updates,
+                    "optimizer_attempts": attempts,
                     "model": _cpu(raw.state_dict()),
                     "optimizer": _cpu(optimizer.state_dict()),
                     "scaler": scaler.state_dict() if scaler else None,
@@ -286,10 +293,13 @@ def run(cfg, out):
 
             context.call(save, leader=True)
 
+        update_hook.remove()
+
         def deliver():
             metrics = {
                 "epochs_completed": cfg["epochs"],
                 "global_step": updates,
+                "optimizer_attempts": attempts,
                 "final_loss": loss.item(),
             }
             write_metrics(out, metrics, {k: None for k in metrics})

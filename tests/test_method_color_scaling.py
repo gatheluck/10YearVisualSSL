@@ -511,6 +511,113 @@ class TestColorScaling(unittest.TestCase):
         autocast.assert_called_once_with("cuda", dtype=torch.float16)
         self.assertEqual(calls, ["scale", "unscale", "clip", "step", "update"])
 
+    def test_amp_overflow_backs_off_without_updating_parameters(self):
+        import copy
+        from contextlib import nullcontext
+        from unittest import mock
+
+        m = self.entry()
+        torch.manual_seed(3)
+        model = torch.nn.Conv2d(1, 3, 1)
+        reference = copy.deepcopy(model)
+        initial = copy.deepcopy(model.state_dict())
+        optimizer = torch.optim.AdamW(model.parameters())
+        other = torch.optim.AdamW(reference.parameters())
+        scaler = torch.amp.GradScaler("cpu", init_scale=1e38)
+        oracle = torch.amp.GradScaler("cpu", init_scale=1e38)
+        images = torch.full((2, 1, 4, 4), 100.0)
+        labels = torch.ones(2, 4, 4, dtype=torch.long)
+        weights = torch.ones(3)
+        loss = torch.nn.functional.cross_entropy(
+            reference(images), labels, weight=weights
+        )
+        self.assertTrue(torch.isfinite(loss))
+        oracle.scale(loss).backward()
+        oracle.unscale_(other)
+        norm = torch.nn.utils.clip_grad_norm_(reference.parameters(), 1.0)
+        self.assertFalse(torch.isfinite(norm))
+        oracle.step(other)
+        oracle.update()
+        with mock.patch.object(torch, "autocast", return_value=nullcontext()):
+            actual = m.train_step(model, optimizer, images, labels, weights, scaler)
+        self.assertEqual(actual, loss.item())
+        self.assertEqual(scaler.state_dict(), oracle.state_dict())
+        self.assertLess(scaler.get_scale(), 1e38)
+        self.assertFalse(optimizer.state)
+        for key, value in model.state_dict().items():
+            torch.testing.assert_close(value, initial[key], rtol=0, atol=0)
+        # A subsequent finite step must recover rather than reuse overflow grads.
+        scaler.update(new_scale=1.0)
+        oracle.update(new_scale=1.0)
+        other.zero_grad(set_to_none=True)
+        loss = torch.nn.functional.cross_entropy(
+            reference(images), labels, weight=weights
+        )
+        oracle.scale(loss).backward()
+        oracle.unscale_(other)
+        torch.nn.utils.clip_grad_norm_(reference.parameters(), 1.0)
+        oracle.step(other)
+        oracle.update()
+        with mock.patch.object(torch, "autocast", return_value=nullcontext()):
+            m.train_step(model, optimizer, images, labels, weights, scaler)
+        for p, q in zip(model.parameters(), reference.parameters()):
+            torch.testing.assert_close(p, q, rtol=0, atol=0)
+
+    def test_amp_attempts_and_updates_are_distinct(self):
+        import json
+        import tempfile
+        from pathlib import Path
+        from unittest import mock
+
+        from downstream.extended_distributed import session
+
+        m = self.entry()
+
+        class Scaler:
+            def __init__(self):
+                self.value = 0.0
+
+            def get_scale(self):
+                return self.value
+
+            def state_dict(self):
+                return {"scale": self.value}
+
+        scaler = Scaler()
+        seen = []
+
+        def step(*args):
+            seen.append(1)
+            if len(seen) % 2:
+                scaler.value /= 2
+            else:
+                args[1].step()
+            return 2.0
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cfg = self.fixture(root)
+            out = root / "out"
+            out.mkdir()
+            cfg.update(device="cuda", precision="float16")
+            with (
+                mock.patch.object(
+                    m, "session", side_effect=lambda device: session("cpu")
+                ),
+                mock.patch.object(torch.amp, "GradScaler", return_value=scaler),
+                mock.patch.object(m, "build_model", side_effect=lambda arch: tiny()),
+                mock.patch.object(m, "train_step", side_effect=step),
+                mock.patch.object(m, "CROP", 4),
+                mock.patch.object(m, "RESIZE", 8),
+            ):
+                m.run(cfg, out)
+            result = json.loads((out / "results.json").read_text())
+            checkpoint = torch.load(out / "checkpoint_latest.pth", weights_only=True)
+            for value in (result, checkpoint):
+                self.assertEqual(value["global_step"], 2)
+                self.assertEqual(value["optimizer_attempts"], 4)
+            self.assertEqual(checkpoint["scaler"], {"scale": 0.0})
+
 
 def tiny():
     class Model(torch.nn.Module):
@@ -612,6 +719,32 @@ def worker(root):
             for p, q in zip(raw.parameters(), reference.parameters()):
                 torch.testing.assert_close(p, q, rtol=1e-6, atol=1e-7)
                 torch.testing.assert_close(p.grad, q.grad, rtol=1e-6, atol=1e-7)
+        # Real CPU GradScaler reproduces overflow control flow without claiming
+        # CUDA/FP16 numerical coverage. All ranks must skip and then recover.
+        from contextlib import nullcontext
+
+        torch.manual_seed(3)
+        amp_raw = torch.nn.Conv2d(1, 3, 1)
+        amp_initial = copy.deepcopy(amp_raw.state_dict())
+        amp_ddp = torch.nn.parallel.DistributedDataParallel(amp_raw)
+        amp_opt = torch.optim.AdamW(amp_raw.parameters())
+        amp_scaler = torch.amp.GradScaler("cpu", init_scale=1e38)
+        amp_x = torch.full((2, 1, 4, 4), 100.0)
+        amp_y = torch.ones(2, 4, 4, dtype=torch.long)
+        with mock.patch.object(torch, "autocast", return_value=nullcontext()):
+            m.train_step(amp_ddp, amp_opt, amp_x, amp_y, torch.ones(3), amp_scaler)
+        assert not amp_opt.state
+        assert amp_scaler.get_scale() < 1e38
+        for key, value in amp_raw.state_dict().items():
+            torch.testing.assert_close(value, amp_initial[key], rtol=0, atol=0)
+        amp_scaler.update(new_scale=1.0)
+        with mock.patch.object(torch, "autocast", return_value=nullcontext()):
+            m.train_step(amp_ddp, amp_opt, amp_x, amp_y, torch.ones(3), amp_scaler)
+        assert len(amp_opt.state) == 2
+        amp_states = [None] * context.world
+        torch.distributed.all_gather_object(amp_states, amp_raw.state_dict())
+        for key, value in amp_states[0].items():
+            torch.testing.assert_close(value, amp_states[1][key], rtol=0, atol=0)
         out = root / "full"
         context.call(lambda: out.mkdir(), leader=True)
         built = []
