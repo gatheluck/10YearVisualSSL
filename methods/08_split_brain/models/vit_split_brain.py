@@ -21,8 +21,11 @@ smoke.
 
 from __future__ import annotations
 
+from functools import partial
+from typing import cast
+
 import torch
-import torch.nn as nn
+from torch import nn
 
 AB_TARGET_CLASSES = 313
 L_TARGET_CLASSES = 50
@@ -34,14 +37,24 @@ class SplitBrainViT(nn.Module):
 
     def __init__(self, in_channels: int, out_classes: int, img_size: int = 224,
                  patch_size: int = 16, embed_dim: int = 384, depth: int = 12,
-                 num_heads: int = 6, mlp_ratio: float = 4.0) -> None:
+                 num_heads: int = 6, mlp_ratio: float = 4.0,
+                 native_scaling: bool = False) -> None:
         super().__init__()
         from timm.models.vision_transformer import VisionTransformer
-        self.encoder = VisionTransformer(
-            img_size=img_size, patch_size=patch_size, in_chans=in_channels,
-            embed_dim=embed_dim, depth=depth, num_heads=num_heads,
-            mlp_ratio=mlp_ratio, num_classes=0, qkv_bias=True,
-            norm_layer=nn.LayerNorm)
+        self.native_scaling = native_scaling
+        if native_scaling:
+            import timm
+            self.encoder = cast(VisionTransformer, timm.create_model(
+                "vit_base_patch16_224", pretrained=False, num_classes=0,
+                img_size=img_size, patch_size=patch_size, in_chans=in_channels,
+                embed_dim=embed_dim, depth=depth, num_heads=num_heads,
+                mlp_ratio=mlp_ratio))
+        else:
+            self.encoder = VisionTransformer(
+                img_size=img_size, patch_size=patch_size, in_chans=in_channels,
+                embed_dim=embed_dim, depth=depth, num_heads=num_heads,
+                mlp_ratio=mlp_ratio, num_classes=0, qkv_bias=True,
+                norm_layer=nn.LayerNorm)
         self.embed_dim = embed_dim
         self.grid = img_size // patch_size
         self.decoder = nn.Sequential(
@@ -62,6 +75,8 @@ class SplitBrainViT(nn.Module):
         B = x.shape[0]
         spatial = patch.transpose(1, 2).reshape(B, self.embed_dim,
                                                 self.grid, self.grid)
+        if self.native_scaling:
+            return self.decoder(spatial.contiguous()).contiguous()
         return self.decoder(spatial)                     # [B, out, grid*4, grid*4]
 
     def extract_features(self, x: torch.Tensor) -> torch.Tensor:
@@ -73,15 +88,16 @@ class SplitBrainViTModel(nn.Module):
 
     def __init__(self, img_size: int = 224, patch_size: int = 16,
                  embed_dim: int = 384, depth: int = 12, num_heads: int = 6,
-                 mlp_ratio: float = 4.0) -> None:
+                 mlp_ratio: float = 4.0, native_scaling: bool = False) -> None:
         super().__init__()
-        kw = dict(img_size=img_size, patch_size=patch_size, embed_dim=embed_dim,
-                  depth=depth, num_heads=num_heads, mlp_ratio=mlp_ratio)
-        self.net1 = SplitBrainViT(1, AB_TARGET_CLASSES, **kw)   # L  -> ab bins
-        self.net2 = SplitBrainViT(2, L_TARGET_CLASSES, **kw)    # ab -> L bins
+        branch = partial(SplitBrainViT, img_size=img_size, patch_size=patch_size,
+                         embed_dim=embed_dim, depth=depth, num_heads=num_heads,
+                         mlp_ratio=mlp_ratio, native_scaling=native_scaling)
+        self.net1 = branch(1, AB_TARGET_CLASSES)
+        self.net2 = branch(2, L_TARGET_CLASSES)
 
     def forward(self, l_input: torch.Tensor, ab_input: torch.Tensor
-                ) -> "tuple[torch.Tensor, torch.Tensor]":
+                ) -> tuple[torch.Tensor, torch.Tensor]:
         return self.net1(l_input), self.net2(ab_input)
 
     def extract_features(self, l_input: torch.Tensor, ab_input: torch.Tensor

@@ -185,6 +185,361 @@ class TestColorScaling(unittest.TestCase):
             )
             self.assertEqual((root / "out/encoder.pt").read_bytes(), before)
 
+    def test_epoch_continuation_matches_uninterrupted_training(self):
+        import io
+        import json
+        import tempfile
+        from pathlib import Path
+        from unittest import mock
+
+        import numpy as np
+        from PIL import Image
+
+        m = self.entry()
+        torch.set_num_threads(1)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cfg = self.fixture(root)
+            rows = [
+                json.loads(line)
+                for line in (root / "source/MANIFEST.jsonl").read_text().splitlines()
+            ]
+            payload = bytearray()
+            for index, row in enumerate(rows):
+                image = Image.fromarray(
+                    np.random.RandomState(index).randint(
+                        0, 256, (32, 32, 3), dtype=np.uint8
+                    )
+                )
+                stream = io.BytesIO()
+                image.save(stream, format="PNG")
+                data = stream.getvalue()
+                row.update(offset=len(payload), size=len(data))
+                payload.extend(data)
+            (root / "source/samples.tar").write_bytes(payload)
+            (root / "source/MANIFEST.jsonl").write_text(
+                "".join(json.dumps(row) + "\n" for row in rows)
+            )
+            with (
+                mock.patch.dict(m.PRESETS, {cfg["model"]: (16, 1, 2)}),
+                mock.patch.object(m, "CROP", 16),
+                mock.patch.object(m, "RESIZE", 20),
+            ):
+                m.run(cfg, root / "whole")
+                m.run(dict(cfg, epochs=1), root / "first")
+                source = root / "first/checkpoint_latest.pth"
+                original = source.read_bytes()
+                m.run(dict(cfg, resume=str(source)), root / "continued")
+                self.assertEqual(source.read_bytes(), original)
+            whole = torch.load(root / "whole/checkpoint_latest.pth", weights_only=True)
+            continued = torch.load(
+                root / "continued/checkpoint_latest.pth", weights_only=True
+            )
+
+            def equal(a, b):
+                if isinstance(a, torch.Tensor):
+                    torch.testing.assert_close(a, b, rtol=0, atol=0)
+                elif isinstance(a, dict):
+                    self.assertEqual(set(a), set(b))
+                    for key in a:
+                        equal(a[key], b[key])
+                elif isinstance(a, (list, tuple)):
+                    self.assertEqual(len(a), len(b))
+                    for x, y in zip(a, b):
+                        equal(x, y)
+                else:
+                    self.assertEqual(a, b)
+
+            for key in (
+                "model",
+                "optimizer",
+                "scaler",
+                "rng",
+                "class_weights",
+                "epoch",
+                "global_step",
+                "optimizer_attempts",
+            ):
+                equal(whole[key], continued[key])
+            a = json.loads((root / "whole/results.json").read_text())
+            b = json.loads((root / "continued/results.json").read_text())
+            self.assertEqual(a["final_loss"], b["final_loss"])
+
+    def test_continuation_rejects_corrupt_state_and_changed_recipe(self):
+        import copy
+        import tempfile
+        from pathlib import Path
+        from unittest import mock
+
+        m = self.entry()
+        torch.set_num_threads(1)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cfg = self.fixture(root)
+            with (
+                mock.patch.dict(m.PRESETS, {cfg["model"]: (16, 1, 2)}),
+                mock.patch.object(m, "CROP", 16),
+                mock.patch.object(m, "RESIZE", 20),
+            ):
+                m.run(dict(cfg, epochs=1), root / "first")
+                source = root / "first/checkpoint_latest.pth"
+                m.run(dict(cfg, resume=str(source)), root / "valid")
+                original = torch.load(source, weights_only=True)
+                from downstream.extended_distributed import Session
+
+                loader = torch.utils.data.DataLoader(
+                    torch.zeros(4),
+                    batch_size=2,
+                    generator=torch.Generator().manual_seed(42),
+                )
+                context = Session(torch.device("cpu"))
+                raw = m.build_model(cfg["model"])
+                optimizer = torch.optim.AdamW(
+                    raw.parameters(),
+                    lr=m.schedule(0, 2),
+                    betas=(0.9, 0.999),
+                    weight_decay=0.05,
+                )
+                cases = [
+                    ("format", lambda b: b.update(format="color_scaling_training_v1")),
+                    ("identity", lambda b: b.update(identity="changed")),
+                    ("config", lambda b: b["config"].update(seed=999)),
+                    ("membership", lambda b: b["membership"].update(n_train=999)),
+                    ("epoch", lambda b: b.update(epoch=True)),
+                    ("attempts", lambda b: b.update(optimizer_attempts=99)),
+                    ("updates", lambda b: b.update(global_step=0)),
+                    (
+                        "empty_update",
+                        lambda b: (
+                            b.update(global_step=0),
+                            b["optimizer"].update(state={}),
+                        ),
+                    ),
+                    ("rng", lambda b: b["rng"][0].update(loader=torch.tensor([1]))),
+                    ("weights", lambda b: b["class_weights"].fill_(1)),
+                    ("rng_count", lambda b: b.update(rng=[])),
+                    ("buffers_count", lambda b: b.update(rank_buffers=[])),
+                    ("buffers_keys", lambda b: b.update(rank_buffers=[{}])),
+                    (
+                        "buffers_value",
+                        lambda b: next(iter(b["rank_buffers"][0].values())).fill_(
+                            float("nan")
+                        ),
+                    ),
+                    (
+                        "buffers_dtype",
+                        lambda b: b["rank_buffers"][0].update(
+                            {
+                                next(iter(b["rank_buffers"][0])): next(
+                                    iter(b["rank_buffers"][0].values())
+                                ).double()
+                            }
+                        ),
+                    ),
+                    (
+                        "model",
+                        lambda b: next(iter(b["model"].values())).fill_(float("nan")),
+                    ),
+                    ("scaler", lambda b: b.update(scaler={"scale": 1})),
+                    (
+                        "missing_slots",
+                        lambda b: b["optimizer"]["state"].pop(
+                            next(iter(b["optimizer"]["state"]))
+                        ),
+                    ),
+                    (
+                        "moments",
+                        lambda b: next(iter(b["optimizer"]["state"].values()))[
+                            "exp_avg"
+                        ].fill_(float("nan")),
+                    ),
+                    ("rate", lambda b: b["optimizer"]["param_groups"][0].update(lr=1)),
+                ]
+                for name, damage in cases:
+                    with self.subTest(name=name):
+                        blob = copy.deepcopy(original)
+                        damage(blob)
+                        path = root / (name + ".pth")
+                        torch.save(blob, path)
+                        before = path.read_bytes()
+                        with self.assertRaises((ValueError, RuntimeError)):
+                            m.restore(
+                                path,
+                                original["identity"],
+                                raw,
+                                optimizer,
+                                None,
+                                loader,
+                                context,
+                                original["class_weights"],
+                                2,
+                            )
+                        self.assertEqual(path.read_bytes(), before)
+                with self.assertRaises((ValueError, RuntimeError)):
+                    m.run(dict(cfg, microbatch=1, resume=str(source)), root / "recipe")
+
+    def test_rank_local_buffers_restore_before_forward(self):
+        import tempfile
+        from pathlib import Path
+        from types import SimpleNamespace
+        from unittest import mock
+
+        m = self.entry()
+        torch.set_num_threads(1)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cfg = self.fixture(root)
+            with (
+                mock.patch.dict(m.PRESETS, {cfg["model"]: (16, 1, 2)}),
+                mock.patch.object(m, "CROP", 16),
+                mock.patch.object(m, "RESIZE", 20),
+            ):
+                m.run(dict(cfg, epochs=1), root / "first")
+                blob = torch.load(
+                    root / "first/checkpoint_latest.pth", weights_only=True
+                )
+                context = SimpleNamespace(world=2, rank=1, device=torch.device("cpu"))
+                loader = torch.utils.data.DataLoader(
+                    torch.zeros(4),
+                    batch_size=2,
+                    generator=torch.Generator().manual_seed(42),
+                )
+                blob["identity"] = m.continuation_identity(
+                    cfg, blob["membership"], loader, context
+                )
+                blob["rng"] *= 2
+                blob["rank_buffers"].append(
+                    {k: v + 1 for k, v in blob["rank_buffers"][0].items()}
+                )
+                blob["optimizer"]["param_groups"][0]["lr"] = m.schedule(0, 4)
+                path = root / "rank.pth"
+                torch.save(blob, path)
+                raw = m.build_model(cfg["model"])
+                optimizer = torch.optim.AdamW(
+                    raw.parameters(), lr=m.schedule(0, 4), weight_decay=0.05
+                )
+                m.restore(
+                    path,
+                    blob["identity"],
+                    raw,
+                    optimizer,
+                    None,
+                    loader,
+                    context,
+                    blob["class_weights"],
+                    2,
+                )
+                for k, v in raw.named_buffers():
+                    torch.testing.assert_close(
+                        v, blob["rank_buffers"][1][k], rtol=0, atol=0
+                    )
+
+    def test_scaler_continuation_after_all_updates_overflowed(self):
+        import copy
+        import tempfile
+        from contextlib import nullcontext
+        from pathlib import Path
+        from unittest import mock
+
+        from downstream.extended_distributed import Session
+        from downstream.extended_resume import _rng
+
+        m = self.entry()
+        torch.set_num_threads(1)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cfg = self.fixture(root)
+            loader = torch.utils.data.DataLoader(
+                torch.zeros(4),
+                batch_size=2,
+                generator=torch.Generator().manual_seed(42),
+            )
+            context = Session(torch.device("cpu"))
+            torch.manual_seed(3)
+            model = torch.nn.Conv2d(1, 3, 1)
+            optimizer = torch.optim.AdamW(
+                model.parameters(), lr=m.schedule(0, 2), weight_decay=0.05
+            )
+            scaler = torch.amp.GradScaler("cpu", init_scale=1e38)
+            images = torch.full((2, 1, 4, 4), 100.0)
+            targets = torch.ones(2, 4, 4, dtype=torch.long)
+            weights = torch.ones(3)
+            with mock.patch.object(torch, "autocast", return_value=nullcontext()):
+                for _ in range(2):
+                    m.train_step(model, optimizer, images, targets, weights, scaler)
+            self.assertFalse(optimizer.state)
+            identity = m.continuation_identity(cfg, {}, loader, context)
+            blob = {
+                "format": "color_scaling_epoch_v2",
+                "identity": identity,
+                "epoch": 1,
+                "global_step": 0,
+                "optimizer_attempts": 2,
+                "model": model.state_dict(),
+                "optimizer": optimizer.state_dict(),
+                "scaler": scaler.state_dict(),
+                "rng": [_rng(loader, context.device)],
+                "rank_buffers": [{}],
+                "config": cfg,
+                "membership": {},
+                "class_weights": weights,
+            }
+            checkpoint = root / "state.pth"
+            torch.save(blob, checkpoint)
+            restored_scaler = torch.amp.GradScaler("cpu")
+            self.assertEqual(
+                m.restore(
+                    checkpoint,
+                    identity,
+                    model,
+                    optimizer,
+                    restored_scaler,
+                    loader,
+                    context,
+                    weights,
+                    2,
+                ),
+                (1, 0, 2),
+            )
+            self.assertEqual(restored_scaler.state_dict(), scaler.state_dict())
+            self.assertFalse(optimizer.state)
+            damaged = copy.deepcopy(blob)
+            damaged["optimizer_attempts"] = 99
+            torch.save(damaged, checkpoint)
+            with self.assertRaises(ValueError):
+                m.restore(
+                    checkpoint,
+                    identity,
+                    model,
+                    optimizer,
+                    restored_scaler,
+                    loader,
+                    context,
+                    weights,
+                    2,
+                )
+            for key, value in (
+                ("scale", 0),
+                ("scale", float("nan")),
+                ("growth_interval", 2),
+                ("_growth_tracker", -1),
+            ):
+                damaged = copy.deepcopy(blob)
+                damaged["scaler"][key] = value
+                torch.save(damaged, checkpoint)
+                with self.subTest(key=key, value=value), self.assertRaises(ValueError):
+                    m.restore(
+                        checkpoint,
+                        identity,
+                        model,
+                        optimizer,
+                        restored_scaler,
+                        loader,
+                        context,
+                        weights,
+                        2,
+                    )
+
     def test_invalid_configs_and_nonfinite_gradient(self):
         import tempfile
         from pathlib import Path
@@ -204,7 +559,8 @@ class TestColorScaling(unittest.TestCase):
                 ("precision", "bfloat16"),
                 ("precision", "float16"),
                 ("device", "auto"),
-                ("resume", "guess.pth"),
+                ("resume", False),
+                ("unknown", 1),
                 ("prepared_root", ""),
             ]:
                 with self.subTest(key=k, value=v), self.assertRaises(ValueError):
@@ -646,6 +1002,31 @@ class TestDistributed(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             cfg = TestColorScaling().fixture(root)
+            # Different rank-local images make BatchNorm buffers observably distinct.
+            import io
+
+            import numpy as np
+            from PIL import Image
+
+            rows = [
+                json.loads(line)
+                for line in (root / "source/MANIFEST.jsonl").read_text().splitlines()
+            ]
+            payload = bytearray()
+            for index, row in enumerate(rows):
+                stream = io.BytesIO()
+                Image.fromarray(
+                    np.random.RandomState(index).randint(
+                        0, 256, (32, 32, 3), dtype=np.uint8
+                    )
+                ).save(stream, format="PNG")
+                data = stream.getvalue()
+                row.update(offset=len(payload), size=len(data))
+                payload.extend(data)
+            (root / "source/samples.tar").write_bytes(payload)
+            (root / "source/MANIFEST.jsonl").write_text(
+                "".join(json.dumps(row) + "\n" for row in rows)
+            )
             (root / "config.json").write_text(json.dumps(cfg))
             with socket.socket() as sock:
                 sock.bind(("127.0.0.1", 0))
@@ -763,6 +1144,36 @@ def worker(root):
             torch.testing.assert_close(v, states[1][k], rtol=0, atol=0)
         saved = torch.load(out / "checkpoint_latest.pth", weights_only=True)
         assert len(saved["rng"]) == 2
+        m.run(dict(cfg, epochs=1), root / "first")
+        m.run(
+            dict(cfg, resume=str(root / "first/checkpoint_latest.pth")),
+            root / "continued",
+        )
+        continued = torch.load(
+            root / "continued/checkpoint_latest.pth", weights_only=True
+        )
+        for key in saved["model"]:
+            torch.testing.assert_close(
+                saved["model"][key], continued["model"][key], rtol=0, atol=0
+            )
+        for rank in range(context.world):
+            for key in saved["rank_buffers"][rank]:
+                torch.testing.assert_close(
+                    saved["rank_buffers"][rank][key],
+                    continued["rank_buffers"][rank][key],
+                    rtol=0,
+                    atol=0,
+                )
+            torch.testing.assert_close(
+                saved["rng"][rank]["loader"],
+                continued["rng"][rank]["loader"],
+                rtol=0,
+                atol=0,
+            )
+        assert any(
+            not torch.equal(saved["rank_buffers"][0][k], saved["rank_buffers"][1][k])
+            for k in saved["rank_buffers"][0]
+        )
         out = root / "bad"
         context.call(lambda: out.mkdir(), leader=True)
         original = IndexedTarDataset.__getitem__

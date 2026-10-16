@@ -1,0 +1,13 @@
+{
+  "device": "cuda",
+  "seed": 42,
+  "model": "vit_base_patch16_224",
+  "precision": "bfloat16",
+  "prepared_root": "/path/to/prepared-indexed-training",
+  "validation_root": "/path/to/imagenet-validation",
+  "epochs": 90,
+  "microbatch": 32,
+  "accum": 1,
+  "num_workers": 4,
+  "lab_backend": "fallback"
+}
