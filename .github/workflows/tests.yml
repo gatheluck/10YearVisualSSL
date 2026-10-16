@@ -179,6 +179,7 @@ jobs:
             tests.test_method_hf_basic5 \
             tests.test_idv2_evaluation \
             tests.test_three_scaling_evaluation \
+            tests.test_method_rotation_scaling \
             tests.test_dino_ablation_evaluation \
             tests.test_dinov3_distributed \
             tests.test_method_activation_checkpointing \

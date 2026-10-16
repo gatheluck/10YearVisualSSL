@@ -398,7 +398,7 @@
     },
     {
       "label": "required identity",
-      "file": "methods/10_inst_disc/data/indexed_tar.py",
+      "file": "downstream/indexed_tar.py",
       "old": "if not isinstance(row.get(key), str) or not row[key]:",
       "new": "if False:",
       "tests": [
@@ -407,7 +407,7 @@
     },
     {
       "label": "relative tar path",
-      "file": "methods/10_inst_disc/data/indexed_tar.py",
+      "file": "downstream/indexed_tar.py",
       "old": "if path.is_absolute() or \"..\" in path.parts:",
       "new": "if False:",
       "tests": [
@@ -416,7 +416,7 @@
     },
     {
       "label": "integer byte bounds",
-      "file": "methods/10_inst_disc/data/indexed_tar.py",
+      "file": "downstream/indexed_tar.py",
       "old": "if type(row.get(key)) is not int or row[key] < minimum:",
       "new": "if False:",
       "tests": [
@@ -425,7 +425,7 @@
     },
     {
       "label": "contiguous bank identity",
-      "file": "methods/10_inst_disc/data/indexed_tar.py",
+      "file": "downstream/indexed_tar.py",
       "old": "if \"instance_id\" in row and (type(row[\"instance_id\"]) is not int or row[\"instance_id\"] != index):",
       "new": "if False:",
       "tests": [
@@ -434,7 +434,7 @@
     },
     {
       "label": "frozen manifest ordering",
-      "file": "methods/10_inst_disc/data/indexed_tar.py",
+      "file": "downstream/indexed_tar.py",
       "old": "row[\"instance_id\"] = count",
       "new": "row[\"instance_id\"] = count + 1",
       "tests": [
@@ -443,7 +443,7 @@
     },
     {
       "label": "validation prefix exclusion",
-      "file": "methods/10_inst_disc/data/indexed_tar.py",
+      "file": "downstream/indexed_tar.py",
       "old": "name.startswith(\"ILSVRC2012_val_\")",
       "new": "False",
       "tests": [
@@ -452,7 +452,7 @@
     },
     {
       "label": "validation stem exclusion",
-      "file": "methods/10_inst_disc/data/indexed_tar.py",
+      "file": "downstream/indexed_tar.py",
       "old": "Path(name).stem in names",
       "new": "False",
       "tests": [
@@ -461,7 +461,7 @@
     },
     {
       "label": "empty population",
-      "file": "methods/10_inst_disc/data/indexed_tar.py",
+      "file": "downstream/indexed_tar.py",
       "old": "if not count:",
       "new": "if False:",
       "tests": [
@@ -470,7 +470,7 @@
     },
     {
       "label": "payload gzip decoding",
-      "file": "methods/10_inst_disc/data/indexed_tar.py",
+      "file": "downstream/indexed_tar.py",
       "old": "payload = gzip.decompress(payload)",
       "new": "payload = payload",
       "tests": [
@@ -479,7 +479,7 @@
     },
     {
       "label": "input untouched",
-      "file": "methods/10_inst_disc/data/indexed_tar.py",
+      "file": "downstream/indexed_tar.py",
       "old": "output.mkdir(parents=True, exist_ok=False)",
       "new": "output.mkdir(parents=True, exist_ok=True)",
       "tests": [
@@ -488,7 +488,7 @@
     },
     {
       "label": "empty manifest",
-      "file": "methods/10_inst_disc/data/indexed_tar.py",
+      "file": "downstream/indexed_tar.py",
       "old": "if not self.entries:",
       "new": "if False:",
       "tests": [
@@ -497,7 +497,7 @@
     },
     {
       "label": "input output overlap",
-      "file": "methods/10_inst_disc/data/indexed_tar.py",
+      "file": "downstream/indexed_tar.py",
       "old": "if output.is_relative_to(source) or source.is_relative_to(output):",
       "new": "if False:",
       "tests": [
