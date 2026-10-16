@@ -6,7 +6,8 @@ al., ICLR 2018).
 Rotation solves a pretext of predicting which of {0, 90, 180, 270} degrees was
 applied to an image (step 1), then a linear probe on the AlexNet-BN encoder
 (linear_eval). A self-contained re-implementation (the lab's own code) -- no
-submodule. The capture's step 2 (ViT) is excluded, as in every port.
+submodule. The explicit `arch: vit` path also supports Step-2 training.
+The separate scaling trainer is documented in docs/ROTATION_SCALING.md.
 
 `encoder.pt` is the AlexNet-BN encoder (`encoder.*`); the 4-class rotation head
 is pretext machinery and is left out. `linear_eval` reads this `encoder.pt`; the

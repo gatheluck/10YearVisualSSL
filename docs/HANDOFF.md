@@ -12,6 +12,26 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-10-16: rotation scaling training integration
+
+PR 249 merged as `0aeacf6`; all 115 PR checks passed, and pulled main matches the
+validated branch tree. The original CI incident ultimately comprised 35 failures
+(34 missing SciPy, one incomplete helper import); its correction is included.
+Unrelated video-submodule changes remain untouched.
+
+The next source-supported gap is the separate 90-epoch rotation scaling trainer.
+See [recipe, commands and limits](ROTATION_SCALING.md). The grouped port connects
+ViT-B/L, indexed membership, four rotations, optimizer-clock scheduling,
+accumulation, DDP, strict portable continuation and frozen evaluation exports.
+The indexed reader is shared without changing its behavior or dropping its
+existing mutation checks. New tests first failed on the absent training entry;
+further RED checks covered CI registration and incomplete-tail loss weighting.
+Private original-source comparisons cover initialization, preprocessing,
+gradients and updates; two-rank CPU tests cover global-batch equivalence,
+continuation and read-error propagation. Full-size/GPU/full-data results and
+historical continuation are not established. Refresh PR/CI state before treating
+this checkpoint as final validation. Private evidence remains outside Git.
+
 ### 2026-10-15: scaling integration CI dependency correction
 
 PR 249's first run failed in 22 inspected method-lock jobs at the same

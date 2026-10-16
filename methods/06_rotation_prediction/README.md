@@ -123,3 +123,11 @@ are the hashed closures.
 Success is exit status 0 and `status: "ok"` in `out/run_manifest.json`. The
 linear_eval stage writes `metrics.json` and **no** `encoder.pt`; the manifest
 carries `encoder_absent_reason`.
+
+## Separate scaling recipe
+
+The [indexed 90-epoch scaling entry](../../docs/ROTATION_SCALING.md) supports
+ViT-B/L with its own optimizer-update schedule, accumulation, DDP and portable
+epoch continuation. It does not change the historical or Step-2 adapters.
+Its exports connect to the frozen BasicFive provider; full-data paper scores
+remain unverified.
