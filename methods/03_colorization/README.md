@@ -109,6 +109,13 @@ timm dependency). `requirements.lock.txt` (CPU) and `requirements.lock.cu130.txt
 
 ## Running
 
+The separate [indexed ImageNet-21K scaling entry](../../docs/COLORIZATION_SCALING.md)
+supports fresh 90-epoch ViT-B/L training and 30/60/90 frozen encoder exports.
+It preserves the original scaling initialization, Lab conversion, class weights
+and epoch schedule; it does not replace the historical or Step-2 paths below.
+Checkpoint continuation and full-data numerical reproduction remain separate
+validation/integration work.
+
     # step 1: DATA_ROOT is an ImageFolder of training images
     python bin/resolve-config.py --config methods/03_colorization/configs/pretrain.yaml \
         --set DATA_ROOT=/path/to/images --out resolved.json

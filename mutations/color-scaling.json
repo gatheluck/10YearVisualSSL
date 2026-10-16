@@ -1,0 +1,202 @@
+{
+  "targets": [
+    {
+      "label": "native initialization order",
+      "file": "methods/03_colorization/color_scaling.py",
+      "old": "native_initialization=True,",
+      "new": "native_initialization=False,",
+      "tests": [
+        "tests.test_method_color_scaling.TestColorScaling.test_native_initialization_order"
+      ]
+    },
+    {
+      "label": "native Lab precision",
+      "file": "methods/03_colorization/color_scaling.py",
+      "old": "native_eval=True",
+      "new": "native_eval=False",
+      "tests": [
+        "tests.test_method_color_scaling.TestColorScaling.test_input_recipe_and_nonfinite_refusal"
+      ]
+    },
+    {
+      "label": "Lab finite guard",
+      "file": "methods/03_colorization/color_scaling.py",
+      "old": "if not np.isfinite(light).all() or not np.isfinite(ab).all():",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_color_scaling.TestColorScaling.test_input_recipe_and_nonfinite_refusal"
+      ]
+    },
+    {
+      "label": "lightness normalization",
+      "file": "methods/03_colorization/color_scaling.py",
+      "old": "light / 100",
+      "new": "light / 50",
+      "tests": [
+        "tests.test_method_color_scaling.TestColorScaling.test_input_recipe_and_nonfinite_refusal"
+      ]
+    },
+    {
+      "label": "native class-weight sampling",
+      "file": "methods/03_colorization/color_scaling.py",
+      "old": "np.random.RandomState(42).choice",
+      "new": "np.random.RandomState(43).choice",
+      "tests": [
+        "tests.test_method_color_scaling.TestColorScaling.test_class_weights_native_sample_and_formula"
+      ]
+    },
+    {
+      "label": "native class-weight population cap",
+      "file": "methods/03_colorization/color_scaling.py",
+      "old": "min(10000, len(dataset))",
+      "new": "min(9999, len(dataset))",
+      "tests": [
+        "tests.test_method_color_scaling.TestColorScaling.test_class_weights_native_sample_and_formula"
+      ]
+    },
+    {
+      "label": "native class balancing",
+      "file": "methods/03_colorization/color_scaling.py",
+      "old": "0.5 * probs + 0.5 / 313",
+      "new": "0.1 * probs + 0.9 / 313",
+      "tests": [
+        "tests.test_method_color_scaling.TestColorScaling.test_class_weights_native_sample_and_formula"
+      ]
+    },
+    {
+      "label": "native schedule warmup",
+      "file": "methods/03_colorization/color_scaling.py",
+      "old": "if epoch < 10",
+      "new": "if epoch < 1",
+      "tests": [
+        "tests.test_method_color_scaling.TestColorScaling.test_native_epoch_schedule"
+      ]
+    },
+    {
+      "label": "native minimum rate scaling",
+      "file": "methods/03_colorization/color_scaling.py",
+      "old": "1e-6 * batch / 256",
+      "new": "1e-6",
+      "tests": [
+        "tests.test_method_color_scaling.TestColorScaling.test_native_epoch_schedule"
+      ]
+    },
+    {
+      "label": "weighted objective",
+      "file": "methods/03_colorization/color_scaling.py",
+      "old": "targets, weight=weights",
+      "new": "targets, weight=None",
+      "tests": [
+        "tests.test_method_color_scaling.TestColorScaling.test_weighted_update_matches_oracle"
+      ]
+    },
+    {
+      "label": "pre-backward finite guard",
+      "file": "methods/03_colorization/color_scaling.py",
+      "old": "context.call(lambda: finite(loss))",
+      "new": "pass",
+      "tests": [
+        "tests.test_method_color_scaling.TestColorScaling.test_nonfinite_refuses_before_backward"
+      ]
+    },
+    {
+      "label": "pre-update finite guard",
+      "file": "methods/03_colorization/color_scaling.py",
+      "old": "context.call(lambda: finite(norm))",
+      "new": "pass",
+      "tests": [
+        "tests.test_method_color_scaling.TestColorScaling.test_invalid_configs_and_nonfinite_gradient"
+      ]
+    },
+    {
+      "label": "gradient clipping",
+      "file": "methods/03_colorization/color_scaling.py",
+      "old": "clip_grad_norm_(model.parameters(), 1.0)",
+      "new": "clip_grad_norm_(model.parameters(), 1e9)",
+      "tests": [
+        "tests.test_method_color_scaling.TestColorScaling.test_weighted_update_matches_oracle"
+      ]
+    },
+    {
+      "label": "AMP unscale before clipping",
+      "file": "methods/03_colorization/color_scaling.py",
+      "old": "scaler.unscale_(optimizer)",
+      "new": "pass",
+      "tests": [
+        "tests.test_method_color_scaling.TestColorScaling.test_amp_scaler_order"
+      ]
+    },
+    {
+      "label": "AMP scale update",
+      "file": "methods/03_colorization/color_scaling.py",
+      "old": "scaler.update()",
+      "new": "pass",
+      "tests": [
+        "tests.test_method_color_scaling.TestColorScaling.test_amp_scaler_order"
+      ]
+    },
+    {
+      "label": "explicit fresh-run schema",
+      "file": "methods/03_colorization/color_scaling.py",
+      "old": "if set(cfg) != {",
+      "new": "if False and set(cfg) != {",
+      "tests": [
+        "tests.test_method_color_scaling.TestColorScaling.test_invalid_configs_and_nonfinite_gradient"
+      ]
+    },
+    {
+      "label": "integer config excludes bool",
+      "file": "methods/03_colorization/color_scaling.py",
+      "old": "type(cfg[key]) is not int",
+      "new": "not isinstance(cfg[key], int)",
+      "tests": [
+        "tests.test_method_color_scaling.TestColorScaling.test_invalid_configs_and_nonfinite_gradient"
+      ]
+    },
+    {
+      "label": "schedule horizon limit",
+      "file": "methods/03_colorization/color_scaling.py",
+      "old": "cfg[\"epochs\"] > 90",
+      "new": "cfg[\"epochs\"] > 900",
+      "tests": [
+        "tests.test_method_color_scaling.TestColorScaling.test_invalid_configs_and_nonfinite_gradient"
+      ]
+    },
+    {
+      "label": "CPU precision refusal",
+      "file": "methods/03_colorization/color_scaling.py",
+      "old": "if cfg[\"precision\"] == \"float16\" and cfg[\"device\"] != \"cuda\":",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_color_scaling.TestColorScaling.test_invalid_configs_and_nonfinite_gradient"
+      ]
+    },
+    {
+      "label": "retained epochs",
+      "file": "methods/03_colorization/color_scaling.py",
+      "old": "if epoch + 1 in (30, 60, 90):",
+      "new": "if epoch + 1 in (30,):",
+      "tests": [
+        "tests.test_method_color_scaling.TestColorScaling.test_retained_epochs_and_invalid_reads"
+      ]
+    },
+    {
+      "label": "head-free export",
+      "file": "methods/03_colorization/color_scaling.py",
+      "old": "\"state_dict\": _cpu(raw.encoder.state_dict()),",
+      "new": "\"state_dict\": _cpu(raw.state_dict()),",
+      "tests": [
+        "tests.test_method_color_scaling.TestColorScaling.test_frozen_export_loads_and_matches_trained_trunk"
+      ]
+    },
+    {
+      "label": "large preset geometry",
+      "file": "methods/03_colorization/color_scaling.py",
+      "old": "\"vit_large_patch16_224\": (1024, 24, 16)",
+      "new": "\"vit_large_patch16_224\": (1024, 23, 16)",
+      "tests": [
+        "tests.test_method_color_scaling.TestColorScaling.test_full_preset_geometry_and_documented_config"
+      ]
+    }
+  ]
+}

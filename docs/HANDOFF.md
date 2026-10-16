@@ -12,6 +12,21 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-10-16: fresh colorization scaling integration
+
+PR 250 merged as `5f1d0c3`; all 115 checks passed. Pulled main matches the
+validated branch tree, and unrelated video-submodule edits remain preserved.
+
+The [colorization scaling entry](COLORIZATION_SCALING.md) connects native B/L
+initialization, indexed membership, Lab/313-bin targets, class balancing,
+90-epoch scheduling, FP32/CUDA-FP16 selection, DDP and retained evaluation
+exports. Original source comparisons match reduced initialization, inputs,
+weights and two updates exactly. Fresh-run keys reject unsupported resume;
+checkpoint continuation, historical worker ordering, full-size/GPU/full-data
+reproduction and SplitBrain scaling training remain separate work. Originals
+and Capture snapshots are unchanged. Check the PR for final gate/CI evidence;
+private source comparisons and execution logs remain outside Git.
+
 ### 2026-10-16: rotation scaling training integration
 
 PR 249 merged as `0aeacf6`; all 115 PR checks passed, and pulled main matches the
