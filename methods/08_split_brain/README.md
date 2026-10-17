@@ -35,8 +35,9 @@ lazily); the native AlexNet path is byte-for-byte unchanged and needs no timm.
 The separate [indexed scaling entry](../../docs/SPLITBRAIN_SCALING.md) adds the
 90-epoch B/L scaling recipe and evaluation-compatible 30/60/90 exports. Its
 source factory, explicit Lab backend and deferred quantization are distinct
-from this older entry. Portable/native continuation and full-data paper scores
-are not established for that scaling entry.
+from this older entry. Strict portable epoch continuation is available for new
+scaling checkpoints; native historical continuation and full-data paper scores
+remain unverified.
 
 ## Why this method, and what is new here
 

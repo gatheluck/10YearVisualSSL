@@ -1,6 +1,7 @@
 """Indexed SplitBrain scaling with explicit Lab backend and source update rules."""
 
 import argparse
+import hashlib
 import importlib
 import json
 import random
@@ -13,9 +14,11 @@ import torch
 from torch import nn
 from torchvision import transforms
 
+from downstream import continuation_validation
 from downstream.contract import write_metrics
 from downstream.extended_distributed import Session, cli, session
-from downstream.extended_resume import _cpu, _rng
+from downstream.extended_resume import _cpu, _restore_rng, _rng
+from downstream.frozen_vit import validate_state
 from downstream.indexed_tar import IndexedTarDataset, freeze, validate_output
 
 _data = importlib.import_module("methods.08_split_brain.data.split_brain_dataset")
@@ -132,7 +135,7 @@ def train_step(model, optimizer, batches, precision, accumulation):
 
 
 def validate(cfg):
-    if set(cfg) != {
+    if set(cfg) - {"resume"} != {
         "device",
         "seed",
         "model",
@@ -169,6 +172,83 @@ def validate(cfg):
     for key in ("prepared_root", "validation_root"):
         if not isinstance(cfg[key], str) or not cfg[key].strip():
             raise ValueError("explicit input root required")
+    if cfg.get("resume") is not None and (
+        not isinstance(cfg["resume"], str) or not cfg["resume"].strip()
+    ):
+        raise ValueError("resume requires a checkpoint path or null")
+
+
+def continuation_identity(cfg, membership, loader, context):
+    """Bind continuation to the portable recipe, rank layout and frozen inputs."""
+    value = {
+        "config": {k: v for k, v in cfg.items() if k not in ("resume", "epochs")},
+        "membership": membership,
+        "world": context.world,
+        "microbatches": len(loader),
+        "preset": PRESETS[cfg["model"]],
+        "crop": CROP,
+        "torch": str(torch.__version__),
+        "numpy": np.__version__,
+    }
+    return hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()
+
+
+def restore(path, identity, model, optimizer, loader, context, steps, target):
+    if path is None:
+        return 0, 0
+    state = torch.load(path, map_location="cpu", weights_only=True)
+    if (
+        not isinstance(state, dict)
+        or set(state)
+        != {
+            "format",
+            "identity",
+            "epoch",
+            "global_step",
+            "model",
+            "optimizer",
+            "rng",
+            "config",
+            "membership",
+        }
+        or state["format"] != "splitbrain_scaling_epoch_v2"
+        or state["identity"] != identity
+    ):
+        raise ValueError("SplitBrain continuation schema or identity differs")
+    validate(state["config"])
+    if (
+        continuation_identity(state["config"], state["membership"], loader, context)
+        != identity
+    ):
+        raise ValueError("SplitBrain continuation recorded recipe differs")
+    epoch, updates = state["epoch"], state["global_step"]
+    if (
+        type(epoch) is not int
+        or not 1 <= epoch < target
+        or type(updates) is not int
+        or updates != epoch * steps
+    ):
+        raise ValueError("SplitBrain continuation counters differ")
+    saved = state["optimizer"]
+    if not isinstance(saved, dict) or set(saved) != {"state", "param_groups"}:
+        raise ValueError("invalid SplitBrain optimizer state")
+    continuation_validation.optimizer_state(optimizer, saved, updates)
+    if len(saved["state"]) != len(list(model.parameters())):
+        raise ValueError("incomplete SplitBrain optimizer state")
+    for item in saved["state"].values():
+        if item["step"].item() != updates or any(
+            not torch.isfinite(v).all() for v in item.values()
+        ):
+            raise ValueError("nonfinite or inconsistent SplitBrain optimizer state")
+    if any(g["lr"] != schedule(updates, 90 * steps) for g in saved["param_groups"]):
+        raise ValueError("SplitBrain continuation learning rate differs")
+    if not isinstance(state["rng"], list) or len(state["rng"]) != context.world:
+        raise ValueError("SplitBrain continuation rank count differs")
+    continuation_validation.rng_states(state["rng"], loader, context.device)
+    validate_state(model, state["model"])
+    optimizer.load_state_dict(saved)
+    _restore_rng(state["rng"][context.rank], loader, context.device)
+    return epoch, updates
 
 
 def run(cfg, out):
@@ -237,9 +317,22 @@ def run(cfg, out):
             betas=(0.9, 0.999),
             weight_decay=0.05,
         )
-        updates = 0
+        identity = continuation_identity(cfg, meta, loader, context)
+        context.agree(identity)
+        start, updates = context.call(
+            lambda: restore(
+                cfg.get("resume"),
+                identity,
+                raw,
+                optimizer,
+                loader,
+                context,
+                steps,
+                cfg["epochs"],
+            )
+        )
         model.train()
-        for epoch in range(cfg["epochs"]):
+        for epoch in range(start, cfg["epochs"]):
             if sampler is not None:
                 sampler.set_epoch(epoch)
             iterator = iter(loader)
@@ -280,7 +373,8 @@ def run(cfg, out):
 
             def save(epoch=epoch, updates=updates, states=states):
                 blob = {
-                    "format": "splitbrain_scaling_training_v1",
+                    "format": "splitbrain_scaling_epoch_v2",
+                    "identity": identity,
                     "epoch": epoch + 1,
                     "global_step": updates,
                     "model": _cpu(raw.state_dict()),
