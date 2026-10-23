@@ -809,3 +809,7 @@ identity and transform attribution remain unverified.
 [Historical Extended accounting](docs/REFERENCE_ACCOUNTING.md) audits pinned
 native LP/AP results across cells, retaining missing/invalid repeats and explicit
 final-epoch evidence. Artifact consistency is separate from paper-score verification.
+
+## Security maintenance
+
+See [the 2026-10-24 dependency update](SECURITY_UPDATE_2026-10-24.md) before rebuilding environments.
