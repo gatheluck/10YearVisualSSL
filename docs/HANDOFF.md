@@ -12,6 +12,14 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-11-02: CI environment selection
+
+The CI cost change adds [conservative path selection](CI_SELECTION.md): prose-only
+PRs retain the core checks, method-local changes select affected environments and
+downstream, and unknown/shared changes retain the full matrix. Local push gates
+are unchanged. Validation and delivery status belong in the corresponding PR;
+this entry does not claim a remote CI pass or modify scientific support status.
+
 ### 2026-10-16: portable SplitBrain continuation
 
 PR 252 merged as `9edbd52`; all 115 PR checks succeeded. Main was pulled and

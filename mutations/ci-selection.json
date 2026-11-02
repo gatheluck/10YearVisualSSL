@@ -1,0 +1,102 @@
+{
+  "targets": [
+    {
+      "label": "default workflow reads uncommitted bytes",
+      "file": "bin/run-ci-locally.py",
+      "old": "source = result.stdout",
+      "new": "source = Path(path).read_text(encoding='utf-8')",
+      "tests": ["tests.test_ci_selection.Selection.test_local_workflow_uses_same_commit_as_export"]
+    },
+    {
+      "label": "prose incorrectly runs every environment",
+      "file": "ci_selection.py",
+      "old": "if prose:\n                continue",
+      "new": "if prose:\n                return full",
+      "tests": ["tests.test_ci_selection.Selection.test_document_only_keeps_core_and_selects_no_heavy_jobs"]
+    },
+    {
+      "label": "method changes incorrectly select every lock",
+      "file": "ci_selection.py",
+      "old": "selected.add(parts[1])",
+      "new": "selected.update(methods)",
+      "tests": ["tests.test_ci_selection.Selection.test_method_changes_match_complete_directory_not_prefix"]
+    },
+    {
+      "label": "unknown paths incorrectly treated as prose",
+      "file": "ci_selection.py",
+      "old": "else:\n                return full",
+      "new": "else:\n                continue",
+      "tests": ["tests.test_ci_selection.Selection.test_shared_and_unknown_paths_run_every_environment"]
+    },
+    {
+      "label": "renames omit old method",
+      "file": "ci_selection.py",
+      "old": "'--no-renames'",
+      "new": "'--find-renames'",
+      "tests": ["tests.test_ci_selection.Selection.test_rename_checks_old_and_new_method"]
+    },
+    {
+      "label": "symlink README incorrectly treated as prose",
+      "file": "ci_selection.py",
+      "old": "if entry.startswith((b'120000 ', b'160000 ')):",
+      "new": "if entry.startswith(b'160000 '):",
+      "tests": ["tests.test_ci_selection.Selection.test_document_named_source_and_symlink_are_not_prose"]
+    },
+    {
+      "label": "fallback incorrectly skips validation",
+      "file": "ci_selection.py",
+      "old": "full = (methods, True)",
+      "new": "full = ([], False)",
+      "tests": ["tests.test_ci_selection.Selection.test_unavailable_base_and_push_use_full_selection"]
+    },
+    {
+      "label": "method configs incorrectly treated as prose",
+      "file": "ci_selection.py",
+      "old": "parts[1] in methods and parts[2] == 'README.md'",
+      "new": "parts[1] in methods",
+      "tests": ["tests.test_ci_selection.Selection.test_method_changes_match_complete_directory_not_prefix"]
+    },
+    {
+      "label": "dependency false ignored by local runner",
+      "file": "bin/run-ci-locally.py",
+      "old": "return value == 'true', f\"selection output",
+      "new": "return True, f\"selection output",
+      "tests": ["tests.test_ci_selection.LocalConditions"]
+    },
+    {
+      "label": "invalid dependency output silently skips",
+      "file": "bin/run-ci-locally.py",
+      "old": "raise CannotReproduce(f\"missing or invalid boolean output {job}.{key}\")",
+      "new": "return False, 'invalid'",
+      "tests": ["tests.test_ci_selection.LocalConditions.test_output_gate_evaluates_both_controls_and_rejects_missing_output"]
+    },
+    {
+      "label": "execution uses unresolved planning condition",
+      "file": "bin/run-ci-locally.py",
+      "old": "enabled, reason = applicable(job.spec, event, outputs)",
+      "new": "enabled, reason = job.applicable, job.reason",
+      "tests": ["tests.test_ci_selection.LocalConditions.test_execution_waits_for_discovery_before_gating"]
+    },
+    {
+      "label": "downstream ignores prose gate",
+      "file": ".github/workflows/tests.yml",
+      "old": "    if: needs.discover.outputs.downstream == 'true'",
+      "new": "    if: github.event_name == 'pull_request'",
+      "tests": ["tests.test_ci_selection.Selection.test_workflow_gates_empty_matrix_and_keeps_base_checks"]
+    },
+    {
+      "label": "locked matrix ignores empty selection",
+      "file": ".github/workflows/tests.yml",
+      "old": "  locked:\n    needs: discover\n    if: github.event_name == 'pull_request' && needs.discover.outputs.heavy == 'true'",
+      "new": "  locked:\n    needs: discover\n    if: github.event_name == 'pull_request'",
+      "tests": ["tests.test_ci_selection.Selection.test_workflow_gates_empty_matrix_and_keeps_base_checks"]
+    },
+    {
+      "label": "container matrix ignores empty selection",
+      "file": ".github/workflows/tests.yml",
+      "old": "  container:\n    needs: discover\n    if: github.event_name == 'pull_request' && needs.discover.outputs.heavy == 'true'",
+      "new": "  container:\n    needs: discover\n    if: github.event_name == 'pull_request'",
+      "tests": ["tests.test_ci_selection.Selection.test_workflow_gates_empty_matrix_and_keeps_base_checks"]
+    }
+  ]
+}

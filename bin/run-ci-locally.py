@@ -75,7 +75,8 @@ CONTAINER_DRIVERS = ("docker", "podman")
 
 EXPRESSION = re.compile(r"\$\{\{([^}]*)\}\}")
 
-# The only condition this workflow uses. Anything else is refused rather than
+# The event-only condition, alongside explicit dependency-output gates below.
+# Anything else is refused rather than
 # guessed: guessing runs a job CI would skip, or skips one CI would run, and
 # either way the local result stops meaning what it claims.
 EVENT_CONDITION = re.compile(
@@ -128,21 +129,46 @@ class Report:
                 "steps": self.steps, "not_reproduced": self.notes}
 
 
-def load_workflow(path: Path) -> dict:
+def load_workflow(path: Path, root: Path | None = None) -> dict:
     try:
         import yaml
     except ImportError:
         raise CannotReproduce(
             "PyYAML is not installed, so the workflow cannot be read. It is "
             "in requirements-tools.lock.txt") from None
-    return yaml.safe_load(Path(path).read_text(encoding="utf-8"))
+    if root is None:
+        source = Path(path).read_text(encoding="utf-8")
+    else:
+        relative = Path(path).relative_to(root).as_posix()
+        result = subprocess.run(['git', 'show', f'HEAD:{relative}'], cwd=root,
+                                capture_output=True, text=True, check=False)
+        if result.returncode:
+            raise CannotReproduce('the default workflow is unavailable in HEAD')
+        source = result.stdout
+    return yaml.safe_load(source)
 
 
-def applicable(spec: dict, event: str) -> tuple:
+def applicable(spec: dict, event: str, outputs: dict | None = None) -> tuple:
     """Whether a job runs for `event`, and why not when it does not."""
     cond = spec.get("if")
     if cond is None:
         return True, ""
+    gate = re.fullmatch(
+        r"(?:github\.event_name == '([a-z_]+)' && )?"
+        r"needs\.([A-Za-z0-9_]+)\.outputs\.([A-Za-z0-9_]+) == 'true'",
+        str(cond),
+    )
+    if gate:
+        wanted, job, key = gate.groups()
+        if wanted and wanted != event:
+            return False, f"the workflow runs it only for {wanted}"
+        # Planning orders dependencies first; execute resolves their outputs.
+        if outputs is None:
+            return True, "pending dependency output"
+        value = outputs.get(job, {}).get(key)
+        if value not in ('true', 'false'):
+            raise CannotReproduce(f"missing or invalid boolean output {job}.{key}")
+        return value == 'true', f"selection output {job}.{key}={value}"
     m = EVENT_CONDITION.match(str(cond))
     if not m:
         raise CannotReproduce(
@@ -368,9 +394,10 @@ def execute(doc: dict, event: str, only: str | None, platform: str,
         export_head(root, tree)
         for job in plan(doc, event):
             print(f"\n=== {job.name}")
-            if not job.applicable:
-                rep.note(f"job {job.name} not run", job.reason)
-                print(f"  -- {job.reason}")
+            enabled, reason = applicable(job.spec, event, outputs)
+            if not enabled:
+                rep.note(f"job {job.name} not run", reason)
+                print(f"  -- {reason}")
                 continue
 
             # A job that publishes outputs is run first and in full, whatever
@@ -467,7 +494,8 @@ def _collect_outputs(job: Job, tree: Path) -> tuple:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--workflow", type=Path, default=DEFAULT_WORKFLOW)
+    ap.add_argument("--workflow", type=Path, default=None,
+                    help="explicit workflow override; default reads HEAD")
     ap.add_argument("--event", default="pull_request", choices=EVENTS)
     ap.add_argument("--job", default=None)
     ap.add_argument("--platform", default="linux/amd64",
@@ -476,7 +504,8 @@ def main() -> int:
     ap.add_argument("--json", type=Path)
     a = ap.parse_args()
     try:
-        doc = load_workflow(a.workflow)
+        doc = (load_workflow(a.workflow) if a.workflow is not None else
+               load_workflow(DEFAULT_WORKFLOW, root=ROOT))
         rep = execute(doc, a.event, a.job, a.platform, a.dry_run, ROOT)
     except CannotReproduce as exc:
         print(f"  *** {exc}", file=sys.stderr)
