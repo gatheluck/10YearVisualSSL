@@ -59,6 +59,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       methods: ${{ steps.find.outputs.methods }}
+      locked_methods: ${{ steps.find.outputs.locked_methods }}
       heavy: ${{ steps.find.outputs.heavy }}
       downstream: ${{ steps.find.outputs.downstream }}
     steps:
@@ -75,17 +76,20 @@ jobs:
                          pathlib.Path("methods").glob("*/requirements.lock.txt"))
           if not found:
               raise SystemExit("no method declares a lock; nothing would run")
-          from ci_selection import select
+          from ci_selection import select, environment_groups
           chosen, downstream = select(found)
+          groups = environment_groups(chosen)
           print("methods=" + json.dumps(chosen))
+          print("locked_methods=" + json.dumps([group[0] for group in groups]))
           print("heavy=" + str(bool(chosen)).lower())
           print("downstream=" + str(downstream).lower())
           PY
 
-  # Each method's locked environment, on the platform it is deployed to, with
-  # that method's own tests actually running rather than skipping.
+  # Every distinct selected locked environment, with the entire suite running.
+  # Only identical supported installation inputs share a job. The discovery log
+  # records all members; every method still has its own container job below.
   #
-  # PRs run selected environments; shared or unknown changes run every lock.
+  # PRs run selected environments; shared or unknown changes select every method.
   # Main retains core and downstream checks. This workflow does not enforce
   # branch protection or an up-to-date requirement; review the tested revision
   # before merging. Keep the full suite inside each selected environment.
@@ -96,12 +100,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        method: ${{ fromJSON(needs.discover.outputs.methods) }}
+        method: ${{ fromJSON(needs.discover.outputs.locked_methods) }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
         with:
           submodules: recursive
-      # Most of this job is downloading torch, once per method per run.
+      # Cache downloads once per representative lock; execution dominates cost.
       # **Keyed on the lock files**, so a changed lock misses the cache: the
       # cache can never hand back something the lock does not describe, which
       # would be a verified environment that was never verified.

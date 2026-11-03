@@ -447,13 +447,14 @@ macOS arm64.
 |---|---|---|
 | `core` | every PR and main push | the suite with **nothing installed** |
 | `discover` | every PR and main push | discover locks and select affected environments |
-| `locked` | PRs with selected methods | install from the lock hash-checked, verify the environment, run the whole suite |
+| `locked` | PRs with selected methods | install hash-checked and run the whole suite once per distinct supported lock input |
 | `container` | PRs with selected methods | build each selected image and run its contract chain |
 | `downstream` | non-prose PRs and every main push | run the downstream task checks |
 
 See [CI selection](docs/CI_SELECTION.md) for the exact prose allowlist,
 method selection, full-matrix fallback and local execution limits. Shared code,
-tests, CI settings and unknown paths retain the full PR matrix.
+tests, CI settings and unknown paths select every method. Identical supported
+lock inputs share a whole-suite job; every selected container remains separate.
 
 The workflow is itself under test (`tests/test_ci.py`): **a CI job that cannot
 fail is worse than no CI**, so `continue-on-error`, `|| true`, `set +e` and

@@ -212,9 +212,12 @@ class TestTheMatrixComesFromTheWorkflow(unittest.TestCase):
         computes this, and computing it twice is how the CI matrix and the
         lock checks once disagreed."""
         doc = yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))
-        got = runner.matrix_of(doc, "locked", {"discover": {
-            "methods": '["a", "b"]'}})
-        self.assertEqual([m["method"] for m in got], ["a", "b"])
+        outputs = {"discover": {"methods": '["a", "b", "c"]',
+                                "locked_methods": '["a", "c"]'}}
+        got = runner.matrix_of(doc, "locked", outputs)
+        self.assertEqual([m["method"] for m in got], ["a", "c"])
+        images = runner.matrix_of(doc, "container", outputs)
+        self.assertEqual([m["method"] for m in images], ["a", "b", "c"])
 
     def test_a_job_with_no_matrix_runs_once(self):
         doc = yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))
