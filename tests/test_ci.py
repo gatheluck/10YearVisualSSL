@@ -197,7 +197,12 @@ class TestWhenItRuns(unittest.TestCase):
                 if "if" not in spec:
                     continue
                 with self.subTest(file=name, job=job):
-                    self.assertIn("event_name", str(spec["if"]))
+                    condition = str(spec["if"])
+                    if "event_name" not in condition:
+                        self.assertEqual(condition, "needs.discover.outputs.downstream == 'true'")
+                        self.assertIn("discover", spec["needs"])
+                    else:
+                        self.assertIn("github.event_name", condition)
 
 
 @needs_checkout
@@ -345,6 +350,7 @@ class TestEveryMethodIsExercised(unittest.TestCase):
         script = discovery_script(doc)
         d = Path(tempfile.mkdtemp(prefix="discover-"))
         self.addCleanup(shutil.rmtree, d, ignore_errors=True)
+        shutil.copy2(ROOT / 'ci_selection.py', d / 'ci_selection.py')
         for m in ("aaa_first", "zzz_second"):
             (d / "methods" / m).mkdir(parents=True)
             (d / "methods" / m / "requirements.lock.txt").write_text("x==1\n")

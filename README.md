@@ -435,7 +435,7 @@ bytes without changing the settings, which would make the hash meaningless.
 
 ## Running the tests
 
-Every push runs them on linux x86_64 as well —
+Pull requests and pushes to `main` run checks on linux x86_64 —
 [`.github/workflows/tests.yml`](.github/workflows/tests.yml). The pre-commit
 hook is machinery, but machinery on one machine: it needs configuring per
 clone, `--no-verify` skips it, and it only ever exercises the platform the
@@ -445,9 +445,15 @@ macOS arm64.
 
 | Job | When | What |
 |---|---|---|
-| `core` | every push | the suite with **nothing installed** |
-| `locked` | every push | install from the lock hash-checked, verify the environment, run everything |
-| `container` | pull requests | build the image and run the contract chain inside it |
+| `core` | every PR and main push | the suite with **nothing installed** |
+| `discover` | every PR and main push | discover locks and select affected environments |
+| `locked` | PRs with selected methods | install from the lock hash-checked, verify the environment, run the whole suite |
+| `container` | PRs with selected methods | build each selected image and run its contract chain |
+| `downstream` | non-prose PRs and every main push | run the downstream task checks |
+
+See [CI selection](docs/CI_SELECTION.md) for the exact prose allowlist,
+method selection, full-matrix fallback and local execution limits. Shared code,
+tests, CI settings and unknown paths retain the full PR matrix.
 
 The workflow is itself under test (`tests/test_ci.py`): **a CI job that cannot
 fail is worse than no CI**, so `continue-on-error`, `|| true`, `set +e` and
@@ -583,7 +589,8 @@ the workflow, and the two would agree until the day one was edited — at which
 point "CI passed locally" would be false with nothing able to notice.
 
 Each matrix job gets its own export of `HEAD`, so a run says something about
-the committed tree rather than about whatever is open in an editor.
+the committed tree rather than about whatever is open in an editor. The default
+workflow also comes from `HEAD`; `--workflow` explicitly overrides it with a file.
 
 What it cannot reproduce, it prints:
 
