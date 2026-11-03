@@ -12,6 +12,16 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-11-03: equivalent CI environments
+
+The follow-up to PR 255 groups only identical supported lock inputs for the
+whole-suite jobs. All selected containers and distinct dependency environments
+remain checked, including for shared-code and test changes. The measured 56
+method locks form 13 groups; counts are discovered, not hard-coded. See
+[CI selection](CI_SELECTION.md) for the conservative parser, workflow assumptions,
+historical cost estimate and validation boundaries. This supersedes the prior
+one-whole-suite-job-per-method count, not the change-selection policy or push gate.
+
 ### 2026-11-02: CI environment selection
 
 The CI cost change adds [conservative path selection](CI_SELECTION.md): prose-only

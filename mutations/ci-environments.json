@@ -1,0 +1,95 @@
+{
+  "targets": [
+    {
+      "label": "equivalent environments are still repeated",
+      "file": "ci_selection.py",
+      "old": "key = (tools, lock) if tools is not None and lock is not None else method",
+      "new": "key = method",
+      "tests": ["tests.test_ci_environments.EnvironmentGroups.test_comments_share_one_environment_but_all_members_remain_visible"]
+    },
+    {
+      "label": "different dependency versions and hashes are merged",
+      "file": "ci_selection.py",
+      "old": "key = (tools, lock) if tools is not None and lock is not None else method",
+      "new": "key = tools if tools is not None and lock is not None else method",
+      "tests": ["tests.test_ci_environments.EnvironmentGroups.test_version_hash_and_requirement_order_are_not_equated", "tests.test_ci_environments.PipReference"]
+    },
+    {
+      "label": "unknown tools input no longer isolates methods",
+      "file": "ci_selection.py",
+      "old": "key = (tools, lock) if tools is not None and lock is not None else method",
+      "new": "key = lock if lock is not None else method",
+      "tests": ["tests.test_ci_environments.EnvironmentGroups.test_unknown_tools_input_disables_grouping"]
+    },
+    {
+      "label": "symlink lock is treated as ordinary input",
+      "file": "ci_selection.py",
+      "old": "if path.is_symlink():",
+      "new": "if False:",
+      "tests": ["tests.test_ci_environments.EnvironmentGroups.test_missing_and_symlinked_locks_are_not_deduplicated"]
+    },
+    {
+      "label": "unsupported lock grammar is accepted",
+      "file": "ci_selection.py",
+      "old": "if not re.fullmatch(pattern, line):",
+      "new": "if False:",
+      "tests": ["tests.test_ci_environments.EnvironmentGroups.test_unsupported_or_incomplete_inputs_keep_separate_jobs"]
+    },
+    {
+      "label": "unfinished and empty locks are grouped",
+      "file": "ci_selection.py",
+      "old": "if pending or not significant:",
+      "new": "if False:",
+      "tests": ["tests.test_ci_environments.EnvironmentGroups.test_unsupported_or_incomplete_inputs_keep_separate_jobs"]
+    },
+    {
+      "label": "comments may interrupt hash continuation",
+      "file": "ci_selection.py",
+      "old": "            if pending:\n                return None\n            continue",
+      "new": "            continue",
+      "tests": ["tests.test_ci_environments.EnvironmentGroups.test_unsupported_or_incomplete_inputs_keep_separate_jobs"]
+    },
+    {
+      "label": "alternate encoding directives are ignored",
+      "file": "ci_selection.py",
+      "old": "if not text.isascii() or re.search(r'coding\\s*[:=]', text):",
+      "new": "if not text.isascii():",
+      "tests": ["tests.test_ci_environments.EnvironmentGroups.test_unsupported_or_incomplete_inputs_keep_separate_jobs"]
+    },
+    {
+      "label": "group aliases disappear from evidence",
+      "file": "ci_selection.py",
+      "old": "groups.setdefault(key, []).append(method)",
+      "new": "groups.setdefault(key, [method])",
+      "tests": ["tests.test_ci_environments.EnvironmentGroups.test_comments_share_one_environment_but_all_members_remain_visible"]
+    },
+    {
+      "label": "container jobs are incorrectly deduplicated",
+      "file": ".github/workflows/tests.yml",
+      "old": "  container:\n    needs: discover\n    if: github.event_name == 'pull_request' && needs.discover.outputs.heavy == 'true'\n    runs-on: ubuntu-latest\n    strategy:\n      fail-fast: false\n      matrix:\n        method: ${{ fromJSON(needs.discover.outputs.methods) }}",
+      "new": "  container:\n    needs: discover\n    if: github.event_name == 'pull_request' && needs.discover.outputs.heavy == 'true'\n    runs-on: ubuntu-latest\n    strategy:\n      fail-fast: false\n      matrix:\n        method: ${{ fromJSON(needs.discover.outputs.locked_methods) }}",
+      "tests": ["tests.test_ci_environments.WorkflowContract"]
+    },
+    {
+      "label": "locked jobs use the ungrouped matrix",
+      "file": ".github/workflows/tests.yml",
+      "old": "method: ${{ fromJSON(needs.discover.outputs.locked_methods) }}",
+      "new": "method: ${{ fromJSON(needs.discover.outputs.methods) }}",
+      "tests": ["tests.test_ci_environments.WorkflowContract"]
+    },
+    {
+      "label": "the grouped job narrows the full suite",
+      "file": ".github/workflows/tests.yml",
+      "old": "run: .venv/bin/python -m unittest discover -s tests -v",
+      "new": "run: .venv/bin/python -m unittest discover -s tests -p 'test_method_*.py' -v",
+      "tests": ["tests.test_ci_environments.WorkflowContract"]
+    },
+    {
+      "label": "method-specific state invalidates grouped jobs",
+      "file": ".github/workflows/tests.yml",
+      "old": "  locked:\n    needs: discover",
+      "new": "  locked:\n    env:\n      METHOD: ${{ matrix.method }}\n    needs: discover",
+      "tests": ["tests.test_ci_environments.WorkflowContract"]
+    }
+  ]
+}

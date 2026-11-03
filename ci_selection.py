@@ -8,6 +8,62 @@ import sys
 from pathlib import Path, PurePosixPath
 
 
+def _lock_input(path):
+    """Exact non-comment input for our narrow hashed-lock grammar, or None.
+
+    This is deliberately not a general pip parser. Includes, markers, options,
+    alternate encodings and interrupted continuations retain separate jobs.
+    Preserve requirement order, spelling, whitespace and every wheel hash.
+    """
+    if path.is_symlink():
+        return None
+    try:
+        text = path.read_text(encoding='utf-8')
+    except (OSError, UnicodeError):
+        return None
+    if not text.isascii() or re.search(r'coding\s*[:=]', text):
+        return None
+    if any(ord(c) < 32 and c not in '\t\n\r' for c in text):
+        return None
+    significant = []
+    pending = False
+    for line in text.splitlines():
+        if not line.strip() or line.lstrip().startswith('#'):
+            if pending:
+                return None
+            continue
+        pattern = (r'[ \t]+--hash=sha256:[0-9a-f]{64}(?: \\)?' if pending else
+                   r'[A-Za-z0-9][A-Za-z0-9_.-]*==[A-Za-z0-9][A-Za-z0-9.!+_-]* \\')
+        if not re.fullmatch(pattern, line):
+            return None
+        significant.append(line)
+        pending = line.endswith('\\')
+    if pending or not significant:
+        return None
+    return tuple(significant)
+
+
+def environment_groups(methods, root=Path('.')):
+    """Group selected methods only when both installation inputs are identical.
+
+    The grouped job's runner, interpreter and test commands are shared. Each
+    method still gets its own container install, environment check and smoke.
+    Unknown inputs are isolated rather than guessed equivalent.
+    """
+    tools = _lock_input(root / 'requirements-tools.lock.txt')
+    groups = {}
+    for method in sorted(methods):
+        lock = _lock_input(root / 'methods' / method / 'requirements.lock.txt')
+        key = (tools, lock) if tools is not None and lock is not None else method
+        groups.setdefault(key, []).append(method)
+        if tools is None or lock is None:
+            print(f'CI environment {method}: unrecognized lock input; keeping its own job',
+                  file=sys.stderr)
+    result = list(groups.values())
+    print('CI environment groups: ' + json.dumps(result), file=sys.stderr)
+    return result
+
+
 def select(methods):
     """Return selected locked environments and whether downstream must run.
 
