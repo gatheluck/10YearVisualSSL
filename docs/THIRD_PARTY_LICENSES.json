@@ -1,0 +1,385 @@
+{
+  "version": 1,
+  "reviewed_at": "2026-11-06",
+  "baseline": "be46be58c104f21f229511c9d3c9bbc122302522",
+  "scope": "Pinned submodules and named notice files, not a full dependency SBOM or legal clearance. See THIRD_PARTY_LICENSES.md.",
+  "modules": [
+    {
+      "path": "third_party/CLIP",
+      "parent": "",
+      "repository": "https://github.com/openai/CLIP",
+      "revision": "d05afc436d78f1c48dc0dbf8e5980a9d471f35f6",
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "987e63b32f6c89ff5160e429458a872ff048e6860b590a3912e938f9da8f14db",
+          "url": "https://github.com/openai/CLIP/blob/d05afc436d78f1c48dc0dbf8e5980a9d471f35f6/LICENSE"
+        }
+      ]
+    },
+    {
+      "path": "third_party/dall_e",
+      "parent": "",
+      "repository": "https://github.com/openai/DALL-E",
+      "revision": "5be4b236bc3ade6943662354117a0e83752cc322",
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "0c6934917db7a46d3b540be58b834baa40824f401aba71f2d6ac7820abf7a27b",
+          "url": "https://github.com/openai/DALL-E/blob/5be4b236bc3ade6943662354117a0e83752cc322/LICENSE"
+        }
+      ]
+    },
+    {
+      "path": "third_party/dinov2",
+      "parent": "",
+      "repository": "https://github.com/facebookresearch/dinov2",
+      "revision": "7764ea0f912e53c92e82eb78a2a1631e92725fc8",
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "600cc67cc4cb2f5ea317dcfc687ad1c74dc4bec8782bbe9db0afd83513b935b7",
+          "url": "https://github.com/facebookresearch/dinov2/blob/7764ea0f912e53c92e82eb78a2a1631e92725fc8/LICENSE"
+        },
+        {
+          "path": "LICENSE_CELL_DINO_CODE",
+          "sha256": "fe7b4ce83b8381cc5b216bbb4af73c570688d1b819c73bbaed8ca401f4677cd6",
+          "url": "https://github.com/facebookresearch/dinov2/blob/7764ea0f912e53c92e82eb78a2a1631e92725fc8/LICENSE_CELL_DINO_CODE"
+        },
+        {
+          "path": "LICENSE_CELL_DINO_MODELS",
+          "sha256": "d779b47a4ef8bbfc6c90d14768fe6a0a2c1c08bbc3712084496058bfd83cef4f",
+          "url": "https://github.com/facebookresearch/dinov2/blob/7764ea0f912e53c92e82eb78a2a1631e92725fc8/LICENSE_CELL_DINO_MODELS"
+        },
+        {
+          "path": "LICENSE_XRAY_DINO_MODEL",
+          "sha256": "ce9efad90c86b5697e1783e56e3c936f6bd23c568c1166ecf07805b65d0891ad",
+          "url": "https://github.com/facebookresearch/dinov2/blob/7764ea0f912e53c92e82eb78a2a1631e92725fc8/LICENSE_XRAY_DINO_MODEL"
+        },
+        {
+          "path": "dinov2/thirdparty/CLIP/LICENSE",
+          "sha256": "893951b3bf94db8df1b13e05da5cdeb499400960e4d44a3962a8b33ed0b4f28e",
+          "url": "https://github.com/facebookresearch/dinov2/blob/7764ea0f912e53c92e82eb78a2a1631e92725fc8/dinov2/thirdparty/CLIP/LICENSE"
+        }
+      ]
+    },
+    {
+      "path": "third_party/dinov3",
+      "parent": "",
+      "repository": "https://github.com/facebookresearch/dinov3",
+      "revision": "6876159a11b4df116f30f667f8c9888617df0751",
+      "notices": [
+        {
+          "path": "LICENSE.md",
+          "sha256": "25d122eb8f5b880fd23c736fb6ea8018ee45c12237e00b8a86d14c653904999e",
+          "url": "https://github.com/facebookresearch/dinov3/blob/6876159a11b4df116f30f667f8c9888617df0751/LICENSE.md"
+        }
+      ]
+    },
+    {
+      "path": "third_party/franca",
+      "parent": "",
+      "repository": "https://github.com/valeoai/Franca",
+      "revision": "52653cdd2f94fc7e4dd12655cf326b181a48091d",
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "url": "https://github.com/valeoai/Franca/blob/52653cdd2f94fc7e4dd12655cf326b181a48091d/LICENSE"
+        },
+        {
+          "path": "LICENSE_DATASET",
+          "sha256": "8b0579f593eb7279b22f7d16737dd54dfb1e4325c0b7343b3abd2ff5f3b85eed",
+          "url": "https://github.com/valeoai/Franca/blob/52653cdd2f94fc7e4dd12655cf326b181a48091d/LICENSE_DATASET"
+        },
+        {
+          "path": "LICENSE_MODEL",
+          "sha256": "620170163a53d408720f679286db6b7be0aa8dc0d98a05f23c4c861db96a140b",
+          "url": "https://github.com/valeoai/Franca/blob/52653cdd2f94fc7e4dd12655cf326b181a48091d/LICENSE_MODEL"
+        }
+      ]
+    },
+    {
+      "path": "third_party/jepa",
+      "parent": "",
+      "repository": "https://github.com/facebookresearch/jepa",
+      "revision": "51c59d518fc63c08464af6de585f78ac0c7ed4d5",
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "1b0556efdc7e72b17b706c041002c6cdc1e0aa257f5e5676ea0f887b2f0854ec",
+          "url": "https://github.com/facebookresearch/jepa/blob/51c59d518fc63c08464af6de585f78ac0c7ed4d5/LICENSE"
+        }
+      ]
+    },
+    {
+      "path": "third_party/mar",
+      "parent": "",
+      "repository": "https://github.com/gatheluck/mar",
+      "revision": "e8d163b7274ce2ef933ee0d40fcc45abaffc42fe",
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "4b430d14668d5458233982e75cfc22fcd8329acf310600d7e29320084bfff662",
+          "url": "https://github.com/gatheluck/mar/blob/e8d163b7274ce2ef933ee0d40fcc45abaffc42fe/LICENSE"
+        }
+      ]
+    },
+    {
+      "path": "third_party/ml-aim",
+      "parent": "",
+      "repository": "https://github.com/apple/ml-aim",
+      "revision": "bd9e06893f3ad68bda56b34ac2158fda2680b7fc",
+      "notices": [
+        {
+          "path": "ACKNOWLEDGEMENTS",
+          "sha256": "03f9af6cc745490afde1aa85a3b09839a35cd136a1c91592528b0d935966c49e",
+          "url": "https://github.com/apple/ml-aim/blob/bd9e06893f3ad68bda56b34ac2158fda2680b7fc/ACKNOWLEDGEMENTS"
+        },
+        {
+          "path": "LICENSE",
+          "sha256": "00ea3ecd045fbcbec412258f34d77b06c1df5aa64954e7bbf726842654fb4d5e",
+          "url": "https://github.com/apple/ml-aim/blob/bd9e06893f3ad68bda56b34ac2158fda2680b7fc/LICENSE"
+        }
+      ]
+    },
+    {
+      "path": "third_party/msn",
+      "parent": "",
+      "repository": "https://github.com/facebookresearch/msn",
+      "revision": "4388dc1eadbe3042b85d3296d41b9b207656e043",
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "1b0556efdc7e72b17b706c041002c6cdc1e0aa257f5e5676ea0f887b2f0854ec",
+          "url": "https://github.com/facebookresearch/msn/blob/4388dc1eadbe3042b85d3296d41b9b207656e043/LICENSE"
+        }
+      ]
+    },
+    {
+      "path": "third_party/unilm",
+      "parent": "",
+      "repository": "https://github.com/microsoft/unilm",
+      "revision": "ca43e4cd19445a536f133bf2bc25b573b2f0c7c5",
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "904dc4d8749877f1dba1cda48200d2462dccbeb7c134d5e4ef6fa75e0198c8fe",
+          "url": "https://github.com/microsoft/unilm/blob/ca43e4cd19445a536f133bf2bc25b573b2f0c7c5/LICENSE"
+        },
+        {
+          "path": "NOTICE.md",
+          "sha256": "356d6916736c03fd62144efb01bc045e69b9d41875a09f04f30ca571951c9459",
+          "url": "https://github.com/microsoft/unilm/blob/ca43e4cd19445a536f133bf2bc25b573b2f0c7c5/NOTICE.md"
+        },
+        {
+          "path": "PFPO/data/qwen25math/LICENSE",
+          "sha256": "fad7c7435d19a4c635225d0d64915c12175608f44c68eedc62eaa5253bf43b79",
+          "url": "https://github.com/microsoft/unilm/blob/ca43e4cd19445a536f133bf2bc25b573b2f0c7c5/PFPO/data/qwen25math/LICENSE"
+        },
+        {
+          "path": "decoding/IAD/fairseq/LICENSE",
+          "sha256": "52412d7bc7ce4157ea628bbaacb8829e0a9cb3c58f57f99176126bc8cf2bfc85",
+          "url": "https://github.com/microsoft/unilm/blob/ca43e4cd19445a536f133bf2bc25b573b2f0c7c5/decoding/IAD/fairseq/LICENSE"
+        },
+        {
+          "path": "edgelm/LICENSE",
+          "sha256": "f08a94bfb0bdc1d7f1cb59badaf0f8c551b10db871185622dbf1fd036affa9cb",
+          "url": "https://github.com/microsoft/unilm/blob/ca43e4cd19445a536f133bf2bc25b573b2f0c7c5/edgelm/LICENSE"
+        },
+        {
+          "path": "infoxlm/fairseq/LICENSE",
+          "sha256": "52412d7bc7ce4157ea628bbaacb8829e0a9cb3c58f57f99176126bc8cf2bfc85",
+          "url": "https://github.com/microsoft/unilm/blob/ca43e4cd19445a536f133bf2bc25b573b2f0c7c5/infoxlm/fairseq/LICENSE"
+        },
+        {
+          "path": "kosmos-2.5/LICENSE",
+          "sha256": "14f39536f5cbdb27e9ae843402d2f207bd2a2cd5113dbe08306b831bd839fc88",
+          "url": "https://github.com/microsoft/unilm/blob/ca43e4cd19445a536f133bf2bc25b573b2f0c7c5/kosmos-2.5/LICENSE"
+        },
+        {
+          "path": "kosmos-2/fairseq/LICENSE",
+          "sha256": "52412d7bc7ce4157ea628bbaacb8829e0a9cb3c58f57f99176126bc8cf2bfc85",
+          "url": "https://github.com/microsoft/unilm/blob/ca43e4cd19445a536f133bf2bc25b573b2f0c7c5/kosmos-2/fairseq/LICENSE"
+        },
+        {
+          "path": "kosmos-2/infinibatch/LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+          "url": "https://github.com/microsoft/unilm/blob/ca43e4cd19445a536f133bf2bc25b573b2f0c7c5/kosmos-2/infinibatch/LICENSE"
+        },
+        {
+          "path": "kosmos-2/open_clip/LICENSE",
+          "sha256": "4a5b4f13ea4792a8211a69f32d2b460b6d520e57cd23c6301e707c76a6e97a55",
+          "url": "https://github.com/microsoft/unilm/blob/ca43e4cd19445a536f133bf2bc25b573b2f0c7c5/kosmos-2/open_clip/LICENSE"
+        },
+        {
+          "path": "kosmos-2/torchscale/LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+          "url": "https://github.com/microsoft/unilm/blob/ca43e4cd19445a536f133bf2bc25b573b2f0c7c5/kosmos-2/torchscale/LICENSE"
+        }
+      ]
+    },
+    {
+      "path": "third_party/unilm/deltalm/fairseq",
+      "parent": "third_party/unilm",
+      "repository": "https://github.com/pytorch/fairseq",
+      "revision": "e3fafbdfc9a39ba8339ebde98aa01c5349ab060d",
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "52412d7bc7ce4157ea628bbaacb8829e0a9cb3c58f57f99176126bc8cf2bfc85",
+          "url": "https://github.com/pytorch/fairseq/blob/e3fafbdfc9a39ba8339ebde98aa01c5349ab060d/LICENSE"
+        }
+      ]
+    },
+    {
+      "path": "third_party/unilm/deltalm/fairseq/fairseq/model_parallel/megatron",
+      "parent": "third_party/unilm/deltalm/fairseq",
+      "repository": "https://github.com/ngoyal2707/Megatron-LM",
+      "revision": "adb23324c222aad0aad89308e70302d996a5eaeb",
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "2161640912a8d18062389ed175727ce0787b5a3a1b7780daf58d81b4cd66e23e",
+          "url": "https://github.com/ngoyal2707/Megatron-LM/blob/adb23324c222aad0aad89308e70302d996a5eaeb/LICENSE"
+        }
+      ]
+    },
+    {
+      "path": "third_party/unilm/speechlm/fairseq",
+      "parent": "third_party/unilm",
+      "repository": "https://github.com/facebookresearch/fairseq",
+      "revision": "272c4c5197250997148fb12c0db6306035f166a4",
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "52412d7bc7ce4157ea628bbaacb8829e0a9cb3c58f57f99176126bc8cf2bfc85",
+          "url": "https://github.com/facebookresearch/fairseq/blob/272c4c5197250997148fb12c0db6306035f166a4/LICENSE"
+        }
+      ]
+    },
+    {
+      "path": "third_party/unilm/speechlm/fairseq/fairseq/model_parallel/megatron",
+      "parent": "third_party/unilm/speechlm/fairseq",
+      "repository": "https://github.com/ngoyal2707/Megatron-LM",
+      "revision": "adb23324c222aad0aad89308e70302d996a5eaeb",
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "2161640912a8d18062389ed175727ce0787b5a3a1b7780daf58d81b4cd66e23e",
+          "url": "https://github.com/ngoyal2707/Megatron-LM/blob/adb23324c222aad0aad89308e70302d996a5eaeb/LICENSE"
+        }
+      ]
+    },
+    {
+      "path": "third_party/unilm/speecht5/fairseq",
+      "parent": "third_party/unilm",
+      "repository": "https://github.com/facebookresearch/fairseq",
+      "revision": "7ca8bc12c09d91187d95117094f6b31b3342cd17",
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "52412d7bc7ce4157ea628bbaacb8829e0a9cb3c58f57f99176126bc8cf2bfc85",
+          "url": "https://github.com/facebookresearch/fairseq/blob/7ca8bc12c09d91187d95117094f6b31b3342cd17/LICENSE"
+        }
+      ]
+    },
+    {
+      "path": "third_party/unilm/speecht5/fairseq/fairseq/model_parallel/megatron",
+      "parent": "third_party/unilm/speecht5/fairseq",
+      "repository": "https://github.com/ngoyal2707/Megatron-LM",
+      "revision": "adb23324c222aad0aad89308e70302d996a5eaeb",
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "2161640912a8d18062389ed175727ce0787b5a3a1b7780daf58d81b4cd66e23e",
+          "url": "https://github.com/ngoyal2707/Megatron-LM/blob/adb23324c222aad0aad89308e70302d996a5eaeb/LICENSE"
+        }
+      ]
+    },
+    {
+      "path": "third_party/var",
+      "parent": "",
+      "repository": "https://github.com/FoundationVision/VAR",
+      "revision": "78b95394fc5896192e3a003e4b295f8ea743c48f",
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "a318f4da9d043e05f535b65774febde7572908c97562cc14e49a2f3687f5a453",
+          "url": "https://github.com/FoundationVision/VAR/blob/78b95394fc5896192e3a003e4b295f8ea743c48f/LICENSE"
+        }
+      ]
+    },
+    {
+      "path": "third_party/vggt-omega",
+      "parent": "",
+      "repository": "https://github.com/facebookresearch/vggt-omega",
+      "revision": "39a0cb8af88554f15ddcb5354cd52bde588fa014",
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "27696e51930daf5d24222e2d9d65339f529153e853de0e2eb457133a1a6f5239",
+          "url": "https://github.com/facebookresearch/vggt-omega/blob/39a0cb8af88554f15ddcb5354cd52bde588fa014/LICENSE"
+        }
+      ]
+    },
+    {
+      "path": "third_party/vjepa2",
+      "parent": "",
+      "repository": "https://github.com/facebookresearch/vjepa2",
+      "revision": "204698b45b3712590f06245fbfba32d3be539812",
+      "notices": [
+        {
+          "path": "APACHE-LICENSE",
+          "sha256": "a41e2fae9915ae56028f8dbd0bf27995f1907613cbcd2d81a61b010ad34e9fe9",
+          "url": "https://github.com/facebookresearch/vjepa2/blob/204698b45b3712590f06245fbfba32d3be539812/APACHE-LICENSE"
+        },
+        {
+          "path": "LICENSE",
+          "sha256": "cf9b17822d1fcd4ff32ccbe14183386fb3adf6f2ff92dc184130823f7fc28173",
+          "url": "https://github.com/facebookresearch/vjepa2/blob/204698b45b3712590f06245fbfba32d3be539812/LICENSE"
+        }
+      ]
+    }
+  ],
+  "historical_findings": [
+    {
+      "id": "pretext-invariant-representations",
+      "repository": "https://github.com/akwasigroch/Pretext-Invariant-Representations",
+      "upstream_revision": "f11c6891505cb826d0238f5be082dc986b8c55bf",
+      "permission_status": "unresolved",
+      "relationship": "No submodule or runtime import of this upstream identified. The local PIRL implementation has separate recorded provenance; this is not proof of independent authorship.",
+      "evidence": [
+        {
+          "path": "methods/33_pirl/provenance.json",
+          "sha256": "b2d33c570479fd56cab6fdc8d57507b522947c4157aaefe4868ecdb3bb1f8b2c"
+        },
+        {
+          "path": "methods/33_pirl/models/resnet_pirl.py",
+          "sha256": "cf678dda3f0dc4427391a49ac085e7229f503fcaa621ecbf9d6ac3b6b60ca3f8"
+        },
+        {
+          "path": "methods/33_pirl/loss/memory_nce.py",
+          "sha256": "cd1a7f67727276f467998ec94aead39c0b1043ead0acc049733e508772370a2b"
+        },
+        {
+          "path": "methods/33_pirl/data/pirl_dataset.py",
+          "sha256": "f0841500004505c1de112dd7e28ef19d7e88a6c802fc08bd0b42eaf6b28fde09"
+        }
+      ]
+    },
+    {
+      "id": "ddust3r",
+      "repository": "https://github.com/cvlab-kaist/DDUSt3R",
+      "upstream_revision": "c900005e48c0f5de2ac6df965100e6bd7d3dd5f1",
+      "permission_status": "unresolved",
+      "relationship": "Initial protocol reference; no dedicated tracked implementation or submodule identified. Nested CroCo notices do not establish a repository-wide license.",
+      "evidence": [
+        {
+          "path": "docs/initial_protocols/INITIAL_STEP3_4DFM_v1.md",
+          "sha256": "ecac0f2cf12655626930dd1530441d7ff3860ad792e5709a6afc1820035843ae"
+        }
+      ]
+    }
+  ]
+}

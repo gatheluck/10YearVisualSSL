@@ -12,6 +12,16 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-11-06: public license inventory
+
+The [public license inventory](THIRD_PARTY_LICENSES.md) supersedes the README's
+private-only license reference and blanket submodule redistribution claim.
+It binds recursive submodules and named notices to pinned commits, reconciles
+the two historical missing-license findings with current source relationships,
+and distinguishes Git references from bundled source, containers and artifacts.
+Ownership, uncertain ancestry and special-license approval remain unresolved;
+this documentation update is not a legal clearance or a change of license.
+
 ### 2026-11-03: equivalent CI environments
 
 The follow-up to PR 255 groups only identical supported lock inputs for the
