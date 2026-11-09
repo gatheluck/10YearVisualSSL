@@ -166,7 +166,7 @@ These components do not certify native FSDP, decoder equivalence or paper scores
 | `videomae` | VideoMAE — Tong et al., NeurIPS 2022 (arXiv:2203.12602) | linear eval | a **pure eval-only** port (a single `linear_eval` stage, no pretraining): freezes the official masked-video pretrained encoder (a hash-pinned download) and probes its **temporally-averaged patch tokens** — a genuine learned SSL representation, so the number is comparable (the "pretrained-backbone reuse" row, analogous to `eva02` / `aimv2` / `data2vec2` / `cae`). Following the capture's ImageNet eval, each still image is replicated `num_frames` times to form the clip VideoMAE expects (no PyAV / video dataset). **No author submodule and no model-carrying pip dependency:** neither timm nor transformers carries a VideoMAE model class, so the encoder is a small self-contained Conv3d-patch-embed ViT in `evaluate_linear_videomae.py` whose module names mirror the checkpoint's `videomae.*` keys, and the weights are a sha256-pinned download (`backbone_artifact`, the authors' official public `MCG-NJU/videomae-base`, **CC-BY-NC-4.0**), so no upstream is recorded. The `videomae.*` encoder tensors load directly (prefix stripped); the `decoder.*` pretext-decoder keys are dropped. Produces no `encoder.pt`; the manifest carries `encoder_absent_reason` (CONTRACT §7, docs/EVAL_DOWNLOAD.md) |
 | `vjepa2` | V-JEPA 2 — Assran et al., Meta FAIR 2025 (arXiv:2506.09985) | linear eval | a **pure eval-only** port (a single `linear_eval` stage, no pretraining): freezes the official latent-prediction pretrained video encoder (a hash-pinned download) and probes its **mean-pooled patch tokens** — a genuine learned SSL representation, so the number is comparable (the "pretrained-backbone reuse" row, analogous to `eva02` / `data2vec2` / `cae` / `videomae`). Following the capture's ImageNet eval, each still image is replicated `num_frames` times to form the clip V-JEPA 2 expects (no PyAV / video dataset). **No author submodule and no model-carrying pip dependency:** neither timm nor transformers carries this V-JEPA 2 model class, so the encoder is a small self-contained Conv3d-patch-embed ViT in `evaluate_linear_vjepa2.py` whose module names mirror the checkpoint's `encoder.*` keys, and the weights are a sha256-pinned download (`backbone_artifact`, the authors' official public `facebook/vjepa2-vitl-fpc64-256`, **MIT** — measured from the model card; the capture's stale `CC BY-NC 4.0` label is corrected in `provenance.json`), so no upstream is recorded. The `encoder.*` tensors load directly (prefix stripped); the `predictor.*` JEPA-predictor keys are dropped. The encoder runs with **plain (non-rotary) attention**, mirroring the capture's wrapper (a stated approximation of V-JEPA 2's rotary forward). Produces no `encoder.pt`; the manifest carries `encoder_absent_reason` (CONTRACT §7, docs/EVAL_DOWNLOAD.md) |
 | `vjepa2_1` | V-JEPA 2.1 | downstream components only | Pinned ViT-L/ViT-g encoder; image grids, native-video tokens, frozen/AP/FT integration for four downstream CLIs. **No complete method adapter or paper-score reproduction yet.** See [scope and validation](methods/vjepa2_1/README.md). |
-| `vjepa2_ac` | V-JEPA 2-AC — Assran et al., Meta FAIR 2025 (arXiv:2506.09985) | linear eval | a **pure eval-only** port (a single `linear_eval` stage, no pretraining), the **action-conditioned** V-JEPA 2 world model: freezes the official latent-prediction pretrained video encoder (a hash-pinned download) and probes its **mean-pooled patch tokens** — a genuine learned SSL representation, so the number is comparable (the "pretrained-backbone reuse" row, analogous to `eva02` / `data2vec2` / `cae` / `videomae` / `vjepa2`). Following the capture's ImageNet eval, each still image is replicated `tubelet_size` times to form the one-temporal-token clip V-JEPA 2 expects (no PyAV / video dataset). **Faithful, where the sibling `vjepa2` approximates:** the ViT is the **pinned `facebookresearch/vjepa2` submodule** (`third_party/vjepa2`, imported not copied), and the forward runs V-JEPA 2's **real rotary-position attention** (`use_rope=True`) — reproducing the capture's number rather than the plain-attention approximation — so an `upstream` **is** recorded (adapter `UPSTREAM` + `provenance.json`, which must agree). The weights are a sha256-pinned download (`backbone_artifact`, the authors' official public `vjepa2-ac-vitg.pt`, **MIT** — measured from the submodule `LICENSE`; the capture's stale `CC BY-NC 4.0` label is corrected in `provenance.json`). The checkpoint is a `.pt` training-state dict; its `encoder.*` tensors (a `module.` prefix stripped) load into the submodule's `vit_giant_xformers` with a **measured-exact** match (484 == 484, any missing/unexpected key a hard error) and the `predictor`/`opt`/`scaler`/`target_encoder` entries are dropped. The submodule loads `einops` and `timm` at import, so both are lock-only pins. Produces no `encoder.pt`; the manifest carries `encoder_absent_reason` (CONTRACT §7, docs/EVAL_DOWNLOAD.md) |
+| `vjepa2_ac` | V-JEPA 2-AC — Assran et al., Meta FAIR 2025 (arXiv:2506.09985) | linear eval | a **pure eval-only** port (a single `linear_eval` stage, no pretraining), the **action-conditioned** V-JEPA 2 world model: freezes the official latent-prediction pretrained video encoder (a hash-pinned download) and probes its **mean-pooled patch tokens** — a genuine learned SSL representation, so the number is comparable (the "pretrained-backbone reuse" row, analogous to `eva02` / `data2vec2` / `cae` / `videomae` / `vjepa2`). Following the capture's ImageNet eval, each still image is replicated `tubelet_size` times to form the one-temporal-token clip V-JEPA 2 expects (no PyAV / video dataset). **Faithful, where the sibling `vjepa2` approximates:** the ViT is the **pinned `facebookresearch/vjepa2` submodule** (`third_party/vjepa2`, imported not copied), and the forward runs V-JEPA 2's **real rotary-position attention** (`use_rope=True`) — reproducing the capture's number rather than the plain-attention approximation — so an `upstream` **is** recorded (adapter `UPSTREAM` + `provenance.json`, which must agree). The weights are a sha256-pinned download (`backbone_artifact`, the authors' official public `vjepa2-ac-vitg.pt`, the provenance records **MIT** from the source repository license; redistribution of the specific weight artifact still requires artifact-level verification (see the public license inventory)). The checkpoint is a `.pt` training-state dict; its `encoder.*` tensors (a `module.` prefix stripped) load into the submodule's `vit_giant_xformers` with a **measured-exact** match (484 == 484, any missing/unexpected key a hard error) and the `predictor`/`opt`/`scaler`/`target_encoder` entries are dropped. The submodule loads `einops` and `timm` at import, so both are lock-only pins. Produces no `encoder.pt`; the manifest carries `encoder_absent_reason` (CONTRACT §7, docs/EVAL_DOWNLOAD.md) |
 
 Forty-nine produce **comparable** `linear_probe` accuracy on a genuinely learned
 representation. `02_vae` is pretext-only and `mar` has no linear eval; `var`'s
@@ -240,7 +240,7 @@ shown so the shape is visible before it is built.
 │   └── VideoGen/                     deferred: needs a GPU            planned
 │       ├── adapter/
 │       └── configs/
-├── third_party/                    authors' code, untouched          exists
+├── third_party/                    pinned upstreams and forks        exists
 │   ├── mar/                          pinned submodule (fork), used by methods/mar
 │   ├── var/                          pinned submodule, used by methods/var
 │   ├── franca/                       pinned submodule, used by methods/36_franca
@@ -306,11 +306,13 @@ something known to pass.
 
 ### Where third-party code goes
 
-**`third_party/<name>/`, one pinned submodule per upstream repository, and
-nothing of ours inside it.**
+**`third_party/<name>/`, one pinned submodule per source repository.**
 
-The authors' tree is never edited. Everything we write about a method lives in
-`methods/<name>/adapter/`, which imports from the submodule:
+Keep integration code outside upstream trees, usually in
+`methods/<name>/adapter/`. Where a pinned public fork contains modifications,
+record that distinction and preserve its original license; see the
+[license inventory](docs/THIRD_PARTY_LICENSES.md). A typical adapter imports
+from a submodule:
 
 ```
 third_party/deepcontext/          <- the authors' repository, at a pinned commit
@@ -720,21 +722,24 @@ The separation is **held by machinery** —
 
 ## License
 
-**The code in this repository is MIT**; see the rights-holder notice and terms
-in [LICENSE](LICENSE).
-
-MIT covers **only the code we wrote**.
+**Our own contributions are offered under MIT**; see the existing rights-holder
+notice and terms in [LICENSE](LICENSE). Third-party code, models and data retain
+their respective terms; the root license does not relicense them.
 
 | Subject | Treatment |
 |---|---|
 | our code | MIT |
-| authors' published code | **never copied.** Referenced as a pinned submodule; each repository's own license applies unchanged |
-| anything judged a derivative work | **not included here** (the 4 entries marked `derivative` in `official-manifest.txt` on the Capture side) |
+| pinned third-party source | separate submodules, including a modified public fork and recursive dependencies; upstream and component licenses apply |
+| ported source | recorded provenance requires review; location outside a submodule alone does not establish independent authorship |
+| weights, datasets and installed libraries | separate artifact and dependency terms; not covered by our MIT grant |
 
-Licenses and treatment for all 31 author repositories are in
-`docs/INVENTORY.md` on the Capture side. **Twelve of them are
-non-commercial.** Referencing by submodule means no redistribution occurs,
-but **whether they may be used is a separate judgement.**
+See the public [third-party license inventory](docs/THIRD_PARTY_LICENSES.md)
+for pinned sources, notice evidence, noncommercial/custom terms, the two
+historical missing-license findings and remaining publication decisions.
+Gitlinks identify upstream repositories without embedding their source, but
+bundled recursive checkouts, ZIPs and container images can include those bytes
+and require redistribution review. Academic intent alone does not establish
+compliance. This inventory is not a blanket legal clearance.
 
 ## Where the design lives
 

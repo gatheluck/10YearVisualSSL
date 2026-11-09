@@ -1,0 +1,76 @@
+{
+  "targets": [
+    {
+      "label": "direct submodule disappears from the index",
+      "file": "docs/THIRD_PARTY_LICENSES.json",
+      "old": "\"path\": \"third_party/CLIP\"",
+      "new": "\"path\": \"third_party/CLIP-missing\"",
+      "tests": [
+        "tests.test_license_inventory.LicenseInventory.test_every_submodule_has_one_record"
+      ]
+    },
+    {
+      "label": "recursive submodule disappears from the index",
+      "file": "docs/THIRD_PARTY_LICENSES.json",
+      "old": "\"path\": \"third_party/unilm/deltalm/fairseq\"",
+      "new": "\"path\": \"third_party/unilm/deltalm/fairseq-missing\"",
+      "tests": [
+        "tests.test_license_inventory.LicenseInventory.test_every_submodule_has_one_record"
+      ]
+    },
+    {
+      "label": "pin changes without updated evidence",
+      "file": "docs/THIRD_PARTY_LICENSES.json",
+      "old": "\"d05afc436d78f1c48dc0dbf8e5980a9d471f35f6\"",
+      "new": "\"0000000000000000000000000000000000000000\"",
+      "tests": [
+        "tests.test_license_inventory.LicenseInventory.test_notice_bytes_and_links_match_checked_out_sources"
+      ]
+    },
+    {
+      "label": "notice digest is stale",
+      "file": "docs/THIRD_PARTY_LICENSES.json",
+      "old": "\"987e63b32f6c89ff5160e429458a872ff048e6860b590a3912e938f9da8f14db\"",
+      "new": "\"0000000000000000000000000000000000000000000000000000000000000000\"",
+      "tests": [
+        "tests.test_license_inventory.LicenseInventory.test_notice_bytes_and_links_match_checked_out_sources"
+      ]
+    },
+    {
+      "label": "notice link points to a moving branch",
+      "file": "docs/THIRD_PARTY_LICENSES.json",
+      "old": "\"https://github.com/openai/CLIP/blob/d05afc436d78f1c48dc0dbf8e5980a9d471f35f6/LICENSE\"",
+      "new": "\"https://github.com/openai/CLIP/blob/main/LICENSE\"",
+      "tests": [
+        "tests.test_license_inventory.LicenseInventory.test_notice_bytes_and_links_match_checked_out_sources"
+      ]
+    },
+    {
+      "label": "historical evidence no longer matches",
+      "file": "docs/THIRD_PARTY_LICENSES.json",
+      "old": "\"b2d33c570479fd56cab6fdc8d57507b522947c4157aaefe4868ecdb3bb1f8b2c\"",
+      "new": "\"0000000000000000000000000000000000000000000000000000000000000000\"",
+      "tests": [
+        "tests.test_license_inventory.LicenseInventory.test_historical_findings_have_current_evidence_not_a_clearance"
+      ]
+    },
+    {
+      "label": "unresolved permission is declared cleared",
+      "file": "docs/THIRD_PARTY_LICENSES.json",
+      "old": "\"upstream_revision\": \"f11c6891505cb826d0238f5be082dc986b8c55bf\",\n      \"permission_status\": \"unresolved\"",
+      "new": "\"upstream_revision\": \"f11c6891505cb826d0238f5be082dc986b8c55bf\",\n      \"permission_status\": \"cleared\"",
+      "tests": [
+        "tests.test_license_inventory.LicenseInventory.test_historical_findings_have_current_evidence_not_a_clearance"
+      ]
+    },
+    {
+      "label": "public license entry is broken",
+      "file": "README.md",
+      "old": "[third-party license inventory](docs/THIRD_PARTY_LICENSES.md)",
+      "new": "[third-party license inventory](docs/MISSING_LICENSES.md)",
+      "tests": [
+        "tests.test_license_inventory.LicenseInventory.test_readme_links_to_public_inventory_and_local_links_resolve"
+      ]
+    }
+  ]
+}
