@@ -1,0 +1,148 @@
+{
+  "targets": [
+    {
+      "label": "rank validation",
+      "file": "downstream/lora.py",
+      "old": "if isinstance(rank, bool) or not isinstance(rank, int) or rank <= 0:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_attention_lora"
+      ]
+    },
+    {
+      "label": "alpha validation",
+      "file": "downstream/lora.py",
+      "old": "if isinstance(alpha, bool) or not isinstance(alpha, Real) or not math.isfinite(alpha) or alpha <= 0:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_attention_lora"
+      ]
+    },
+    {
+      "label": "linear type",
+      "file": "downstream/lora.py",
+      "old": "if not isinstance(base, nn.Linear):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_attention_lora"
+      ]
+    },
+    {
+      "label": "base freeze",
+      "file": "downstream/lora.py",
+      "old": "base.requires_grad_(False)",
+      "new": "base.requires_grad_(True)",
+      "tests": [
+        "tests.test_attention_lora"
+      ]
+    },
+    {
+      "label": "backbone freeze",
+      "file": "downstream/lora.py",
+      "old": "backbone.requires_grad_(False)",
+      "new": "backbone.requires_grad_(True)",
+      "tests": [
+        "tests.test_attention_lora"
+      ]
+    },
+    {
+      "label": "scaling",
+      "file": "downstream/lora.py",
+      "old": "self.scaling = alpha / rank",
+      "new": "self.scaling = 1",
+      "tests": [
+        "tests.test_attention_lora"
+      ]
+    },
+    {
+      "label": "zero initialization",
+      "file": "downstream/lora.py",
+      "old": "torch.zeros(base.out_features, rank,",
+      "new": "torch.ones(base.out_features, rank,",
+      "tests": [
+        "tests.test_attention_lora"
+      ]
+    },
+    {
+      "label": "block membership",
+      "file": "downstream/lora.py",
+      "old": "if id(block) not in paths or id(block) in seen:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_attention_lora"
+      ]
+    },
+    {
+      "label": "projection count",
+      "file": "downstream/lora.py",
+      "old": "if len(targets) not in (2, 4):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_attention_lora"
+      ]
+    },
+    {
+      "label": "empty selection",
+      "file": "downstream/lora.py",
+      "old": "if not selected:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_attention_lora"
+      ]
+    },
+    {
+      "label": "shared projections",
+      "file": "downstream/lora.py",
+      "old": "if len(set(selected_ids)) != len(selected_ids):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_attention_lora"
+      ]
+    },
+    {
+      "label": "empty usage",
+      "file": "downstream/lora.py",
+      "old": "if not adapters:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_attention_lora"
+      ]
+    },
+    {
+      "label": "bypass guard",
+      "file": "downstream/lora.py",
+      "old": "if unused:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_attention_lora"
+      ]
+    },
+    {
+      "label": "reset usage",
+      "file": "downstream/lora.py",
+      "old": "module.calls = 0",
+      "new": "module.calls = 1",
+      "tests": [
+        "tests.test_attention_lora"
+      ]
+    },
+    {
+      "label": "call accounting",
+      "file": "downstream/lora.py",
+      "old": "self.calls += 1",
+      "new": "self.calls += 0",
+      "tests": [
+        "tests.test_attention_lora"
+      ]
+    },
+    {
+      "label": "exclude MLP",
+      "file": "downstream/lora.py",
+      "old": "\"attn\" in part or \"attention\" in part for part in parts[:-1]",
+      "new": "True for part in parts[:-1]",
+      "tests": [
+        "tests.test_attention_lora"
+      ]
+    }
+  ]
+}

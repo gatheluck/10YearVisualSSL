@@ -42,6 +42,11 @@ by an editorial change.
 
 ## Current examples and their evidence boundaries
 
+The [2026-11-18 CVPR adaptation checkpoint](CVPR_ADAPTATION.md) records revised
+manuscript differences and the limited scope of the attention LoRA component.
+Earlier protocol and result statements do not establish support for those new
+experiments.
+
 - **Basic5 readers and model integrations:** inspected experimental wrappers,
   readers and training code provide the references for the components described
   in the provider guides. Some family-specific readers and full recipes remain

@@ -12,6 +12,16 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-11-18: revised manuscript and attention adapters
+
+The revised manuscript introduces LoRA/DPT and changes some readouts and
+analyses. The [CVPR adaptation checkpoint](CVPR_ADAPTATION.md) records confirmed
+source behavior, the attention-adapter component and remaining integration
+boundaries. This supersedes any inference that earlier protocol coverage
+establishes coverage of the revised paper. Capture additions preserve original
+bytes; they are scoped additions, not a full refresh of every cluster run.
+Refer to PR evidence for delivery, mutation, full-suite and CI results.
+
 ### 2026-11-06: public license inventory
 
 The [public license inventory](THIRD_PARTY_LICENSES.md) supersedes the README's
