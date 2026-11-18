@@ -43,7 +43,8 @@ by an editorial change.
 ## Current examples and their evidence boundaries
 
 The [2026-11-18 CVPR adaptation checkpoint](CVPR_ADAPTATION.md) records revised
-manuscript differences and the limited scope of the attention LoRA component.
+manuscript differences and the limited scope of the attention LoRA and four-tap
+dense components.
 Earlier protocol and result statements do not establish support for those new
 experiments.
 

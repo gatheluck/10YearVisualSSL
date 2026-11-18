@@ -15,6 +15,17 @@ except ImportError:
 
 
 class TestDependencyCI(unittest.TestCase):
+    def test_revised_adaptation_runtime_runs_in_downstream_job(self):
+        from tests.test_ci import HAVE_YAML, parsed
+        from tests.test_basic5_finetune_tasks import _runs_finetune_tests
+        if not (ROOT / '.github/workflows/tests.yml').is_file() or not HAVE_YAML:
+            self.skipTest('checkout and YAML parser required')
+        command = next(s['run'] for s in parsed()['tests.yml']['jobs']['downstream']['steps']
+                       if s.get('name') == 'Run Basic5 component contracts with downstream dependencies')
+        for module in ('tests.test_cvpr_adaptation_runtime', 'tests.test_dpt_probe'):
+            with self.subTest(module=module):
+                self.assertTrue(_runs_finetune_tests(command, module=module))
+
     def test_attention_adapters_run_in_downstream_job(self):
         from tests.test_ci import HAVE_YAML, parsed
         from tests.test_basic5_finetune_tasks import _runs_finetune_tests

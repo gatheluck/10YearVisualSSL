@@ -19,6 +19,15 @@ INDEX = ROOT / 'docs/THIRD_PARTY_LICENSES.json'
 
 
 class LicenseInventory(unittest.TestCase):
+    def test_additional_upstream_notices_are_preserved(self):
+        notices = self.inventory().get('additional_upstream_notices', [])
+        self.assertTrue(notices, 'retain the DPT upstream notice as well as the submodule license')
+        for item in notices:
+            path = ROOT / item['path']
+            self.assertTrue(path.is_file())
+            self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(), item['sha256'])
+            self.assertRegex(item['source'], r'^https://github.com/[^/]+/[^/]+/blob/[a-f0-9]{40}/LICENSE$')
+
     def inventory(self):
         self.assertTrue(INDEX.is_file(), 'public license inventory is missing')
         return json.loads(INDEX.read_text())

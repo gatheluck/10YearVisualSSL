@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "reviewed_at": "2026-11-06",
+  "reviewed_at": "2026-11-18",
   "baseline": "be46be58c104f21f229511c9d3c9bbc122302522",
   "scope": "Pinned submodules and named notice files, not a full dependency SBOM or legal clearance. See THIRD_PARTY_LICENSES.md.",
   "modules": [
@@ -96,6 +96,19 @@
           "path": "LICENSE_MODEL",
           "sha256": "620170163a53d408720f679286db6b7be0aa8dc0d98a05f23c4c861db96a140b",
           "url": "https://github.com/valeoai/Franca/blob/52653cdd2f94fc7e4dd12655cf326b181a48091d/LICENSE_MODEL"
+        }
+      ]
+    },
+    {
+      "path": "third_party/geosubprobe",
+      "parent": "",
+      "repository": "https://github.com/Zhou-Weichen/Geosubprobe",
+      "revision": "b2425a724050f5fb7d809f9e2d416e1715072dbe",
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "b6293226ce8dfd29567aa385c6c8108ee26e847fa1d5db1eaf30bff7b0dbec4a",
+          "url": "https://github.com/Zhou-Weichen/Geosubprobe/blob/b2425a724050f5fb7d809f9e2d416e1715072dbe/LICENSE"
         }
       ]
     },
@@ -380,6 +393,14 @@
           "sha256": "ecac0f2cf12655626930dd1530441d7ff3860ad792e5709a6afc1820035843ae"
         }
       ]
+    }
+  ],
+  "additional_upstream_notices": [
+    {
+      "path": "docs/notices/PROBE3D_LICENSE.txt",
+      "sha256": "332671bf60d23f5b36eb1e095ced17b40dd5fc005687baa18a0c157bc473619f",
+      "source": "https://github.com/mbanani/probe3d/blob/a1f14640076e38b8bc07b66d0fe2d01d15691e9d/LICENSE",
+      "reason": "Geosubprobe acknowledges Probe3D as its foundation; retain both notices for the DPT path."
     }
   ]
 }
