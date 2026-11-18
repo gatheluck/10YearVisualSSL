@@ -17,6 +17,15 @@
       "tests": [
         "tests.test_revised_task_distributed.RevisedTaskSetupDistributed.test_rank_local_probe_failure_is_shared"
       ]
+    },
+    {
+      "file": "tests/test_revised_task_distributed.py",
+      "label": "fixture package search collision",
+      "old": "spec = importlib.util.spec_from_file_location(\n        'revised_cli_fixture', Path(__file__).with_name('test_revised_task_cli.py'))\n    fixture_module = importlib.util.module_from_spec(spec)\n    spec.loader.exec_module(fixture_module)",
+      "new": "fixture_module = importlib.import_module('tests.test_revised_task_cli')",
+      "tests": [
+        "tests.test_revised_task_distributed.RevisedTaskSetupDistributed.test_discovery_with_foreign_tests_package"
+      ]
     }
   ]
 }

@@ -2,6 +2,9 @@
 import copy
 import importlib.util
 import json
+import os
+import subprocess
+import sys
 import tempfile
 import time
 import unittest
@@ -21,13 +24,18 @@ def setup_fault_rank(rank, directory, fault):
     from torch.utils.data import Dataset
 
     from downstream import revised_tasks
-    from tests.test_revised_task_cli import RevisedCLI
+    # Dependencies may install their own regular ``tests`` package. Load the
+    # adjacent fixture explicitly, independent of global package search order.
+    spec = importlib.util.spec_from_file_location(
+        'revised_cli_fixture', Path(__file__).with_name('test_revised_task_cli.py'))
+    fixture_module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(fixture_module)
 
     torch.set_num_threads(1)
     dist.init_process_group('gloo', init_method='file://' + directory + '/meeting',
                             rank=rank, world_size=2, timeout=timedelta(seconds=20))
     try:
-        fixture = RevisedCLI()
+        fixture = fixture_module.RevisedCLI()
         cfg = fixture.config()
         train, val = fixture.data('imagenet')
         if fault == 'mapping' and rank == 1:
@@ -65,6 +73,22 @@ def setup_fault_rank(rank, directory, fault):
 
 @unittest.skipUnless(HAVE, 'torch required')
 class RevisedTaskSetupDistributed(unittest.TestCase):
+    def test_discovery_with_foreign_tests_package(self):
+        """A dependency's regular tests package must not shadow our fixture."""
+        with tempfile.TemporaryDirectory() as directory:
+            package = Path(directory, 'tests')
+            package.mkdir()
+            (package / '__init__.py').write_text('FOREIGN_TEST_PACKAGE = True\n')
+            root = Path(__file__).resolve().parents[1]
+            env = dict(os.environ, PYTHONPATH=os.pathsep.join((str(root), directory)))
+            completed = subprocess.run(
+                [sys.executable, '-m', 'unittest', 'discover', '-s', 'tests',
+                 '-p', Path(__file__).name, '-k', 'rank_local'],
+                cwd=root, env=env, text=True, capture_output=True, timeout=90, check=False)
+            self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr)
+            self.assertIn('Ran 2 tests', completed.stderr)
+            self.assertNotIn('skipped=', completed.stderr)
+
     def check_fault(self, fault, expected):
         if not torch.distributed.is_gloo_available():
             self.skipTest('Gloo unavailable')
