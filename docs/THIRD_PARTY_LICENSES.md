@@ -1,6 +1,8 @@
 # Third-party licensing and publication scope
 
 Reviewed 2026-11-06 against main `be46be58c104f21f229511c9d3c9bbc122302522`.
+The 2026-11-18 adaptation update adds the pinned Geosubprobe reference and
+preserves an additional Probe3D notice; earlier inventory findings are unchanged.
 For implementation versus original experimental coverage, see the
 [scope and terminology guide](SUBMISSION_SCOPE.md).
 This is a source inventory, not a declaration that every use or distribution
@@ -33,6 +35,7 @@ research-only terms are not permission for unrestricted downstream commercial us
 | `third_party/dinov2` | [7764ea0f912e](https://github.com/facebookresearch/dinov2/tree/7764ea0f912e53c92e82eb78a2a1631e92725fc8) | Apache-2.0 default; Cell/X-Ray DINO and embedded code have separate notices |
 | `third_party/dinov3` | [6876159a11b4](https://github.com/facebookresearch/dinov3/tree/6876159a11b4df116f30f667f8c9888617df0751) | DINOv3 custom license; distribution and use conditions |
 | `third_party/franca` | [52653cdd2f94](https://github.com/valeoai/Franca/tree/52653cdd2f94fc7e4dd12655cf326b181a48091d) | Apache-2.0 code plus research-only model and dataset terms; scope needs review |
+| `third_party/geosubprobe` | [b2425a724050](https://github.com/Zhou-Weichen/Geosubprobe/tree/b2425a724050f5fb7d809f9e2d416e1715072dbe) | MIT; DPT derives from Probe3D, whose notice is also retained |
 | `third_party/jepa` | [51c59d518fc6](https://github.com/facebookresearch/jepa/tree/51c59d518fc63c08464af6de585f78ac0c7ed4d5) | CC-BY-NC-4.0 |
 | `third_party/mar` | [e8d163b7274c](https://github.com/gatheluck/mar/tree/e8d163b7274ce2ef933ee0d40fcc45abaffc42fe) | MIT; public fork with modifications |
 | `third_party/ml-aim` | [bd9e06893f3a](https://github.com/apple/ml-aim/tree/bd9e06893f3ad68bda56b34ac2158fda2680b7fc) | Apple custom license plus ACKNOWLEDGEMENTS |
@@ -54,6 +57,17 @@ in that repository. Franca's Apache-2.0 code license, `LICENSE_MODEL` and
 being distributed; this inventory does not resolve their scope by selecting
 only the permissive title. Apple AIM's `ACKNOWLEDGEMENTS` and UniLM's `NOTICE.md`
 and nested licenses are part of the evidence, not optional attribution.
+
+The DPT adapter imports Geosubprobe's pinned `evals/models/probes.py`; author
+implementation files are not copied into our Python package. Geosubprobe's
+[acknowledgement](https://github.com/Zhou-Weichen/Geosubprobe/blob/b2425a724050f5fb7d809f9e2d416e1715072dbe/README.md)
+identifies Probe3D as its foundation. In addition to the Geosubprobe MIT license,
+retain the [Probe3D MIT notice](notices/PROBE3D_LICENSE.txt), obtained from its
+[fixed upstream revision](https://github.com/mbanani/probe3d/blob/a1f14640076e38b8bc07b66d0fe2d01d15691e9d/LICENSE).
+The inventory hashes this additional notice. This records the observed DPT
+ancestry and preserves both notices; it is not a clearance of every file in
+either upstream repository or every redistributed artifact. Future source/ZIP
+exports that include this adapter and its upstream must retain these notices.
 
 ## Recursive submodules
 

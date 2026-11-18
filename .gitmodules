@@ -39,3 +39,6 @@
 [submodule "third_party/vggt-omega"]
 	path = third_party/vggt-omega
 	url = https://github.com/facebookresearch/vggt-omega.git
+[submodule "third_party/geosubprobe"]
+	path = third_party/geosubprobe
+	url = https://github.com/Zhou-Weichen/Geosubprobe.git

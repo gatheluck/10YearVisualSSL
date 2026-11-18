@@ -14,6 +14,13 @@ delivery status and permission assumptions do not describe today's workflow.
 
 ### 2026-11-18: revised manuscript and attention adapters
 
+The follow-up adds training-facing LoRA grouping/effect checks, scoped four-tap
+collection and a pinned-upstream DPT adapter, with CPU comparisons against the
+captured implementations. Read the [adaptation checkpoint](CVPR_ADAPTATION.md)
+for its state-restoration improvements, upstream attribution and remaining
+model/task/CLI integration limits. These component checks are not full-paper
+reproduction or a CUDA/distributed validation claim.
+
 The revised manuscript introduces LoRA/DPT and changes some readouts and
 analyses. The [CVPR adaptation checkpoint](CVPR_ADAPTATION.md) records confirmed
 source behavior, the attention-adapter component and remaining integration
