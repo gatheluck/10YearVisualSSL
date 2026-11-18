@@ -22,7 +22,9 @@ class TestDependencyCI(unittest.TestCase):
             self.skipTest('checkout and YAML parser required')
         command = next(s['run'] for s in parsed()['tests.yml']['jobs']['downstream']['steps']
                        if s.get('name') == 'Run Basic5 component contracts with downstream dependencies')
-        for module in ('tests.test_cvpr_adaptation_runtime', 'tests.test_dpt_probe'):
+        for module in ('tests.test_cvpr_adaptation_runtime', 'tests.test_dpt_probe',
+                       'tests.test_cvpr_bound_runtime', 'tests.test_cvpr_hf_bindings',
+                       'tests.test_method_cvpr_native_bindings', 'tests.test_cvpr_rae_bindings'):
             with self.subTest(module=module):
                 self.assertTrue(_runs_finetune_tests(command, module=module))
 

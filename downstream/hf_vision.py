@@ -12,6 +12,8 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
+from downstream.feature_taps import collect_block_taps, even_taps, tokens_to_grid
+
 _IM_MEAN = (.485, .456, .406)
 _IM_STD = (.229, .224, .225)
 
@@ -64,6 +66,7 @@ class VisionBackbone(nn.Module):
     def __init__(self, model, *, family, trainable=False):
         super().__init__()
         self.model, self.family, self.trainable = model, family, trainable
+        self._adaptation_grad = False
         self.out_channels = int(model.config.hidden_size)
         self.global_channels = int(model.config.projection_dim) if family == "projected_cls" else self.out_channels
         self.classifier_init_std = 0. if family == "register_cls" else .01
@@ -74,10 +77,39 @@ class VisionBackbone(nn.Module):
         self.train(trainable)
 
     def train(self, mode=True):
-        super().train(mode if self.trainable else False)
+        super().train(mode if self.trainable and not self._adaptation_grad else False)
         if self.family == "register_cls" and hasattr(self.model, "rope_embeddings"):
             self.model.rope_embeddings.eval()
         return self
+
+    def adaptation_block_groups(self):
+        """Return the unique full-depth tower for the revised probe bindings."""
+        if self.family not in ('map_pool', 'register_cls'):
+            raise ValueError('adaptation binding is not verified for this vision family')
+        depth = int(self.model.config.num_hidden_layers)
+        found = [m for m in self.model.modules()
+                 if isinstance(m, nn.ModuleList) and len(m) == depth]
+        if len(found) != 1:
+            raise ValueError('adaptation requires one unique full-depth list of blocks')
+        return [found[0]]
+
+    def enable_adaptation_grad(self):
+        """Allow adapter gradients in eval mode without unfreezing base weights."""
+        self.adaptation_block_groups()
+        self._adaptation_grad = True
+        self.eval()
+
+    def forward_dpt_features(self, images):
+        """Four raw transformer taps; input retains task ImageNet normalization."""
+        blocks = self.adaptation_block_groups()[0]
+        result = []
+        def forward():
+            result.append(self._forward(images))
+        taps = collect_block_taps(blocks, even_taps(len(blocks)), forward)
+        height, width = result[0][1]
+        prefix = 1 + self.model.config.num_register_tokens if self.family == 'register_cls' else 0
+        return [tokens_to_grid(t, height // self.patch_size, width // self.patch_size,
+                               prefix=prefix) for t in taps]
 
     def _pixels(self, images):
         if images.ndim != 4 or images.shape[1] != 3 or min(images.shape[-2:]) < 1:
@@ -96,7 +128,7 @@ class VisionBackbone(nn.Module):
             pixel = F.pad(pixel, (0, -pixel.shape[-1] % self.patch_size, 0, -pixel.shape[-2] % self.patch_size))
         param = next(self.model.parameters())
         kwargs = {} if self.family == "register_cls" else {"interpolate_pos_encoding": True}
-        with nullcontext() if self.trainable else torch.no_grad():
+        with nullcontext() if self.trainable or self._adaptation_grad else torch.no_grad():
             out = self.model(pixel_values=pixel.to(device=param.device, dtype=param.dtype), **kwargs)
         return out, pixel.shape[-2:]
 

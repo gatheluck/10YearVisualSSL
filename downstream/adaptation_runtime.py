@@ -2,8 +2,53 @@
 import math
 
 import torch
+from torch import nn
 
-from downstream.lora import assert_adapter_usage
+from downstream.lora import assert_adapter_usage, inject_attention_lora
+
+
+def install_backbone_lora(backbone, *, rank=16, alpha=16):
+    """Install adapters using a provider's explicit, validated block binding.
+
+    Load/place the base model first and build the optimizer afterwards. This
+    selects neither a task head nor an experiment recipe. Check adapter effects
+    and gradients using representative task inputs before training.
+    """
+    if not all(callable(getattr(backbone, name, None)) for name in
+               ('adaptation_block_groups', 'enable_adaptation_grad')):
+        raise ValueError('backbone has no explicit adaptation binding')
+    groups = backbone.adaptation_block_groups()
+    adapters = inject_attention_lora(backbone, groups, rank=rank, alpha=alpha)
+    backbone.enable_adaptation_grad()
+    return adapters
+
+
+class FrozenDPTModel(nn.Module):
+    """Frozen model-specific taps plus a trainable dense probe.
+
+    Inputs follow the provider's ImageNet-normalized image convention. Dataset
+    loss, metrics, optimizer, scheduling and distributed execution remain owned
+    by the caller; this composition does not select a canonical task recipe.
+    """
+    def __init__(self, backbone, in_dims, *, out_channels, hidden=512, positive=False):
+        super().__init__()
+        from downstream.dpt_probe import DPTProbe
+        if not callable(getattr(backbone, 'forward_dpt_features', None)):
+            raise TypeError('backbone has no explicit four-tap binding')
+        self.head = DPTProbe(in_dims, out_channels=out_channels, hidden=hidden, positive=positive)
+        self.backbone = backbone
+        self.backbone.requires_grad_(False)
+        self.backbone.eval()
+
+    def train(self, mode=True):
+        super().train(mode)
+        self.backbone.eval()
+        return self
+
+    def forward(self, images, out_hw):
+        with torch.no_grad():
+            features = [f.detach() for f in self.backbone.forward_dpt_features(images)]
+        return self.head(features, out_hw)
 
 
 def adapter_parameter_groups(named, *, weight_decay, head_lr, adapter_lr):

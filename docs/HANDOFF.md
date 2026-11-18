@@ -14,6 +14,16 @@ delivery status and permission assumptions do not describe today's workflow.
 
 ### 2026-11-18: revised manuscript and attention adapters
 
+The subsequent model-binding change exposes frozen-base LoRA gradient paths and
+four-layer DPT features for the inspected vision, video, aggregator and tokenizer
+providers, plus a frozen-backbone/dense-head composition. See the
+[explicit bindings](CVPR_ADAPTATION.md#explicit-model-bindings). This supersedes
+the earlier missing-model-binding boundary only; task recipes/CLI, released
+weights, CUDA/distributed execution and full results remain separate work. The
+RAEv2 tokenizer binding is not the revised generator LP/AP profile. Source
+comparisons, RED/GREEN, mutation and delivery evidence belong to the task/PR;
+do not treat this entry as proof of CI completion or GPU execution.
+
 The follow-up adds training-facing LoRA grouping/effect checks, scoped four-tap
 collection and a pinned-upstream DPT adapter, with CPU comparisons against the
 captured implementations. Read the [adaptation checkpoint](CVPR_ADAPTATION.md)

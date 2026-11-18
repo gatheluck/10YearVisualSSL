@@ -1,15 +1,16 @@
 """Pinned aggregator-only image/native-video components for the Omega profile."""
+import re
 from contextlib import nullcontext
 from pathlib import Path
-import re
 
 import torch
 from torch import nn
 from torch.nn import functional as F
 
-from provider_support import prepare_upstream
-from downstream.hf_vision import vision_no_decay
 from downstream.contract import sha256_file
+from downstream.feature_taps import tokens_to_grid
+from downstream.hf_vision import vision_no_decay
+from provider_support import prepare_upstream
 
 KIND = "vggt_omega"
 EXTENDED_IMAGE_READER = "captured_cross_self_v1"
@@ -85,14 +86,23 @@ class Backbone(nn.Module):
         self.aggregator = aggregator
         self.out_channels = self.global_channels = 2 * aggregator.camera_token.shape[-1]
         self.trainable = trainable
+        self._adaptation_grad = False
         self.use_activation_checkpointing = False
         self.requires_grad_(trainable)
         self.train(trainable)
 
     def train(self, mode=True):
-        return super().train(mode if self.trainable else False)
+        return super().train(mode if self.trainable and not self._adaptation_grad else False)
 
-    def _patches(self, images, *, raw=False):
+    def adaptation_block_groups(self):
+        return [self.aggregator.frame_blocks, self.aggregator.inter_frame_blocks]
+
+    def enable_adaptation_grad(self):
+        """Enable adapter gradients while keeping the frozen base in eval mode."""
+        self._adaptation_grad = True
+        self.eval()
+
+    def _cached(self, images, *, raw=False):
         if images.ndim == 4:
             images = images.unsqueeze(1)
         if (images.ndim != 5 or images.shape[1] < 1 or images.shape[2] != 3
@@ -103,13 +113,20 @@ class Backbone(nn.Module):
             std = images.new_tensor((.229, .224, .225))[None, None, :, None, None]
             images = images * std + mean
         param = next(self.aggregator.parameters())
-        with nullcontext() if self.trainable else torch.no_grad():
+        with nullcontext() if self.trainable or self._adaptation_grad else torch.no_grad():
             views = images.to(device=param.device, dtype=param.dtype)
             if self.use_activation_checkpointing and self.training:
                 from torch.utils.checkpoint import checkpoint
                 cached, start = checkpoint(self.aggregator, views, use_reentrant=False)
             else:
                 cached, start = self.aggregator(views)
+        if start != 17:
+            raise ValueError('aggregator must return the expected prefix')
+        return cached, start, images
+
+    def _patches(self, images, *, raw=False):
+        cached, start, images = self._cached(images, raw=raw)
+        with nullcontext() if self.trainable or self._adaptation_grad else torch.no_grad():
             last = next((x for x in reversed(cached) if x is not None), None)
             if last is None or start != 17:
                 raise ValueError("aggregator must return cached layers and the expected prefix")
@@ -119,6 +136,19 @@ class Backbone(nn.Module):
         if patches.shape != expected:
             raise ValueError("aggregator patches do not match the actual image/frame grid")
         return patches
+
+    def forward_dpt_features(self, images):
+        """Concatenated frame/inter-frame features from the four cached layers."""
+        indices = (4, 11, 17, 23)
+        if images.ndim != 4:
+            raise ValueError('DPT requires single images [B, 3, H, W]')
+        if set(self.aggregator.cached_layer_indices) != set(indices):
+            raise ValueError('DPT requires the captured cached layer set')
+        cached, start, _ = self._cached(images)
+        if len(cached) <= indices[-1] or any(cached[i] is None for i in indices):
+            raise ValueError('DPT cached layer is missing')
+        return [tokens_to_grid(cached[i][:, 0], images.shape[-2] // 16,
+                               images.shape[-1] // 16, prefix=start) for i in indices]
 
     def forward_features(self, images):
         if images.ndim != 4:

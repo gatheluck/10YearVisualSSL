@@ -5,14 +5,15 @@ T=1 for images, preserve native spatiotemporal video tokens. Inputs must already
 be normalized by the task. This is not the separate native-384 extraction
 profile and does not establish complete protocol or score reproduction.
 """
+import re
 from contextlib import nullcontext
 from pathlib import Path
-import re
 
 import torch
 from torch import nn
 from torch.nn import functional as F
 
+from downstream.feature_taps import collect_block_taps, even_taps, tokens_to_grid
 from provider_support import prepare_upstream
 
 KIND = "vjepa2_1"
@@ -81,16 +82,35 @@ class Backbone(nn.Module):
         self.encoder = encoder
         self.out_channels = encoder.embed_dim
         self.trainable = trainable
+        self._adaptation_grad = False
         self.requires_grad_(trainable)
         self.train(trainable)
 
     def train(self, mode=True):
-        return super().train(mode if self.trainable else False)
+        return super().train(mode if self.trainable and not self._adaptation_grad else False)
+
+    def adaptation_block_groups(self):
+        return [self.encoder.blocks]
+
+    def enable_adaptation_grad(self):
+        """Enable adapter gradients without unfreezing or training the base."""
+        self._adaptation_grad = True
+        self.eval()
 
     def _tokens(self, clip):
         param = next(self.encoder.parameters())
-        with nullcontext() if self.trainable else torch.no_grad():
+        with nullcontext() if self.trainable or self._adaptation_grad else torch.no_grad():
             return self.encoder(clip.to(device=param.device, dtype=param.dtype)).float()
+
+    def forward_dpt_features(self, images):
+        """Raw four-block image taps, with no special tokens or temporal repeat."""
+        if (images.ndim != 4 or images.shape[1] != 3 or min(images.shape[-2:]) < 16
+                or any(n % 16 for n in images.shape[-2:])):
+            raise ValueError('DPT requires patch-aligned images [B, 3, H, W]')
+        outputs = collect_block_taps(self.encoder.blocks, even_taps(len(self.encoder.blocks)),
+                                     lambda: self._tokens(images.unsqueeze(2)))
+        return [tokens_to_grid(value, images.shape[-2] // 16, images.shape[-1] // 16)
+                for value in outputs]
 
     def forward_features(self, images):
         if images.ndim != 4 or images.shape[1] != 3 or min(images.shape[-2:]) < 1:

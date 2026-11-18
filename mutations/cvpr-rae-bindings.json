@@ -1,0 +1,76 @@
+{
+  "targets": [
+    {
+      "file": "methods/raev2/downstream_backbone.py",
+      "label": "adapter block selection",
+      "old": "return [self.model.blocks]",
+      "new": "return [self.model.blocks[:-1]]",
+      "tests": [
+        "tests.test_cvpr_rae_bindings"
+      ]
+    },
+    {
+      "file": "methods/raev2/downstream_backbone.py",
+      "label": "adapter gradient enable",
+      "old": "self._adaptation_grad = True",
+      "new": "self._adaptation_grad = False",
+      "tests": [
+        "tests.test_cvpr_rae_bindings"
+      ]
+    },
+    {
+      "file": "methods/raev2/downstream_backbone.py",
+      "label": "adapter eval mode",
+      "old": "mode if self.trainable and not self._adaptation_grad else False",
+      "new": "mode if self.trainable else False",
+      "tests": [
+        "tests.test_cvpr_rae_bindings"
+      ]
+    },
+    {
+      "file": "methods/raev2/downstream_backbone.py",
+      "label": "normalized dense taps",
+      "old": "return_class_token=False, norm=True))",
+      "new": "return_class_token=False, norm=False))",
+      "tests": [
+        "tests.test_cvpr_rae_bindings"
+      ]
+    },
+    {
+      "file": "methods/raev2/downstream_backbone.py",
+      "label": "four dense indices",
+      "old": "n=even_taps(len(self.model.blocks)), reshape=True,",
+      "new": "n=[11, 13, 15, 17], reshape=True,",
+      "tests": [
+        "tests.test_cvpr_rae_bindings"
+      ]
+    },
+    {
+      "file": "methods/raev2/downstream_backbone.py",
+      "label": "image geometry",
+      "old": "if images.ndim != 4 or images.shape[1] != 3 or min(images.shape[-2:]) < 1:\n            raise ValueError(\"images require nonempty [B, 3, H, W]\")\n        pixels = F.pad(images, (0, -images.shape[-1] % 16, 0, -images.shape[-2] % 16))\n        param = next(self.model.parameters())\n        with nullcontext() if self.trainable or self._adaptation_grad else torch.no_grad():\n            outputs",
+      "new": "if False:\n            raise ValueError(\"images require nonempty [B, 3, H, W]\")\n        pixels = F.pad(images, (0, -images.shape[-1] % 16, 0, -images.shape[-2] % 16))\n        param = next(self.model.parameters())\n        with nullcontext() if self.trainable or self._adaptation_grad else torch.no_grad():\n            outputs",
+      "tests": [
+        "tests.test_cvpr_rae_bindings"
+      ]
+    },
+    {
+      "file": "methods/raev2/downstream_backbone.py",
+      "label": "tap contract",
+      "old": "if len(outputs) != 4 or any(output.shape != expected for output in outputs):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_cvpr_rae_bindings"
+      ]
+    },
+    {
+      "file": "methods/raev2/downstream_backbone.py",
+      "label": "frozen dense scope",
+      "old": "with nullcontext() if self.trainable or self._adaptation_grad else torch.no_grad():\n            outputs",
+      "new": "with nullcontext():\n            outputs",
+      "tests": [
+        "tests.test_cvpr_rae_bindings"
+      ]
+    }
+  ]
+}

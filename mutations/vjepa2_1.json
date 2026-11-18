@@ -2,8 +2,8 @@
   "targets": [
     {
       "file": "methods/vjepa2_1/downstream_backbone.py",
-      "old": "images.unsqueeze(2)",
-      "new": "images.unsqueeze(2).repeat(1, 1, 2, 1, 1)",
+      "old": "tokens = self._tokens(images.unsqueeze(2))",
+      "new": "tokens = self._tokens(images.unsqueeze(2).repeat(1, 1, 2, 1, 1))",
       "tests": [
         "tests.test_method_vjepa2_1.TestBackbone.test_image_is_true_single_frame_and_grid_is_padded_without_resize"
       ],
@@ -20,7 +20,7 @@
     },
     {
       "file": "methods/vjepa2_1/downstream_backbone.py",
-      "old": "nullcontext() if self.trainable else torch.no_grad()",
+      "old": "nullcontext() if self.trainable or self._adaptation_grad else torch.no_grad()",
       "new": "torch.no_grad()",
       "tests": [
         "tests.test_method_vjepa2_1.TestBackbone.test_trainable_image_path_preserves_gradients_and_updates"
@@ -29,7 +29,7 @@
     },
     {
       "file": "methods/vjepa2_1/downstream_backbone.py",
-      "old": "super().train(mode if self.trainable else False)",
+      "old": "super().train(mode if self.trainable and not self._adaptation_grad else False)",
       "new": "super().train(mode)",
       "tests": [
         "tests.test_method_vjepa2_1.TestBackbone.test_image_is_true_single_frame_and_grid_is_padded_without_resize"
