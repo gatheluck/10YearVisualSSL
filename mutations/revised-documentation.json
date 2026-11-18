@@ -1,0 +1,13 @@
+{
+  "targets": [
+    {
+      "file": "docs/CVPR_ADAPTATION.md",
+      "label": "executable documented profile",
+      "old": "\"profile\": \"b5x_lora_dpt_v2\",",
+      "new": "\"profile\": \"unconfirmed\",",
+      "tests": [
+        "tests.test_revised_documentation"
+      ]
+    }
+  ]
+}

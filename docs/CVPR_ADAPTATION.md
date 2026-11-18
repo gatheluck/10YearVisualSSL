@@ -43,10 +43,10 @@ exercise the equation, freezing, selection, refusal atomicity, bypass detection
 and checkpoint round trips. CUDA, distributed training and full-model/task
 runs are not validated by these component checks.
 
-**These components are not yet wired into the canonical task CLI.** The explicit
-model bindings below expose block lists and gradient paths, but do not establish
-complete task recipes. Selecting task-specific heads, parameter-group learning
-rates and continuation remains integration work.
+The [revised task CLI](#revised-image-and-semantic-task-cli) connects these
+components to three explicitly versioned task routes. Older task defaults are
+unchanged. Model bindings alone do not establish every task recipe, released
+checkpoint result or continuation behavior.
 
 ## Training-facing checks and four-tap dense probe
 
@@ -103,9 +103,10 @@ the complete original trainer executing locally. Native CUDA autocast was
 disabled by PyTorch in the CPU diagnostic and is not validated here. The
 portable diagnostics additionally restore state and clean up hooks on errors.
 
-Canonical data readers, training CLI/configuration, distributed execution and
-resume integration still need task-level validation. The model-specific tap
-bindings below provide component access, not complete task execution.
+The task CLI below adds inspected image/semantic readers and training schedules.
+Released-weight execution, CUDA and continuation still need further validation.
+The model-specific tap bindings below provide component access, not proof of
+complete execution across every model and task.
 In particular, the generic evenly spaced rule must not override the captured
 VGGT tap selection or RAEv2's normalized intermediate-layer readout.
 
@@ -154,12 +155,124 @@ eval-mode preservation and invalid bindings. These tests do not certify released
 weights, CUDA/BF16, distributed execution or paper scores. Consult the PR for
 the current reference comparison, mutation, whole-suite and CI results.
 
+## Revised image and semantic task CLI
+
+`python -m downstream.revised_tasks --config config.json --out runs/new-run`
+provides a separate `b5x_lora_dpt_v2` profile. It accepts exactly these routes:
+
+| `task` | `track` | Epochs | Effective batch | Head LR | Adapter LR | Warmup epochs |
+| --- | --- | --- | --- | --- | --- | --- |
+| `imagenet` | `lora` | 100 | 256 | 0.001 | 0.000125 | 5 |
+| `ade20k` | `lora` | 20 | 8 | 0.001 | 0.0001 | 1 |
+| `ade20k` | `dpt` | 20 | 8 | 0.0005 | None | 1 |
+
+The portable `imagenet` task name corresponds to `imagenet1k` in the inspected
+source protocol. All routes use AdamW `(0.9, 0.999)`, weight decay `0.05` and
+global trainable-gradient clipping at `1.0`. Bias/one-dimensional parameters
+and names containing `norm` have no decay. LoRA rank and alpha are both `16`;
+DPT uses hidden width `512`. The head and adapters retain float32 parameters.
+Each parameter group has its own absolute linear warmup from `1e-6` followed
+by cosine decay to `1e-6`. Scheduling happens before each zero-based optimizer
+update; the floor is reached at the reference horizon, not one update early.
+Diagnostic truncation does not shorten that reference schedule.
+
+Save this **template** as `config.json`. Replace the provider placeholder and
+local paths before running. The shown backbone fields illustrate a local
+HF-style vision snapshot: `encoder` contains its configuration and weights;
+`img_size` and `patch_size` describe that checkpoint's declared geometry,
+not a configurable task crop. Other providers require their own existing
+checkpoint fields. Pin the local checkpoint and recursive submodules, and
+follow the provider's loading documentation. This template does not download
+weights or grant redistribution rights; see the
+[license inventory](THIRD_PARTY_LICENSES.md).
+
+```json
+{
+  "profile": "b5x_lora_dpt_v2",
+  "task": "imagenet",
+  "track": "lora",
+  "seed": 0,
+  "device": "cuda",
+  "workers": 4,
+  "data_root": "/path/to/dataset",
+  "backbone": {
+    "kind": "<vision-provider>",
+    "arch": "released",
+    "encoder": "/path/to/pinned/local/vision-snapshot",
+    "img_size": 384,
+    "patch_size": 16
+  }
+}
+```
+
+For ADE20K LoRA, change `task` to `ade20k`; for ADE20K DPT, also change `track`
+to `dpt`. Both readers produce fixed 224-pixel task inputs with exactly one
+ImageNet normalization before the provider's own normalization conversion.
+ImageNet expects `train/<class>/` and `val/<class>/` directories with matching
+class mappings. Training uses bicubic random resized crops and horizontal
+flips; validation resizes the short edge to 256 and center-crops 224.
+ADE20K expects `images/training`, `images/validation`, `annotations/training`
+and `annotations/validation`. It uses the inspected Python-RNG scale/crop/flip
+sequence, bicubic images and nearest-neighbor masks; labels 1 through 150 map
+to 0 through 149 and other labels are ignored. Validation is a square 224
+resize. These readers do not inherit interpolation defaults from older task
+routes. `workers` is an explicit nonnegative loader-worker count, defaulting
+to zero.
+
+Without a `diagnostic` object, the entry point requires `arch: released` and
+the reference populations: ImageNet 1,281,167 training / 50,000 validation
+images with 1,000 classes; ADE20K 20,210 / 2,000. These checks are necessary
+input checks, not proof of a paper result. For a reduced test, add an explicit
+`diagnostic` object, for example
+`"diagnostic": {"epochs": 1, "batch_size": 2, "max_steps": 3}`.
+Optional diagnostic fields also include `max_train_samples`, `max_val_samples`
+and `dpt_hidden`. Diagnostic batch changes linearly scale base learning rates
+while preserving absolute warmup/floor rates and reference-batch metadata.
+Top-level epoch/rate overrides are rejected rather than silently changing the
+reference recipe. The output directory must not already exist.
+
+ImageNet can be launched with
+`torchrun --master-addr=127.0.0.1 --master-port=29517 --nproc-per-node=2 -m downstream.revised_tasks --config config.json --out runs/new-distributed-run`.
+This is a **single-host** example; ensure port 29517 is unused or select another
+unused port. The tested local launcher needs explicit IPv4 loopback: automatic
+`--standalone` rendezvous stalled in that environment. Multi-node launch needs
+administrator-approved reachable addresses and network configuration, not a
+loopback address shared across hosts.
+Its effective batch must divide evenly across ranks; training drops incomplete
+batches, and validation partitions samples without duplication. ADE20K follows
+the inspected single-device trainer and rejects multi-rank execution. These
+interfaces are not evidence of released-checkpoint or multi-GPU validation.
+
+Successful execution writes `result.json`, contract metrics/manifest and
+`trainable.pt` containing only trainable parameters. **`trainable.pt` is not a
+resume checkpoint**: optimizer, data-loader and random-stream continuation are
+not implemented by this entry point. `result.json` retains `record_value: false`
+and `historical_run_verified: false` for every run. `checkpoint_sha256` binds
+the local checkpoint input bytes through a digest without retaining their
+filename or path; the digest identifies an input, not a verified correspondence
+to a paper result.
+`status: diagnostic` marks
+an explicit diagnostic configuration; `status: component_complete` records a
+completed non-diagnostic component run, not a certified paper score. Inspect
+`training_complete`, populations, update counts, precision and recipe fields
+as well as the manifest; an `ok` manifest alone is insufficient for reproduction.
+
+CPU execution uses float32. CUDA selects bfloat16 backbone/autocast with
+float32 adapters/head, but this task path has not yet been validated on CUDA.
+The implementation preserves RNG around diagnostic feature checks instead of
+copying their historical random-stream side effects, so an identical historical
+initialization trajectory is not claimed. Initial CLI tests exercise a reduced
+local vision snapshot; the other four providers have bound-component checks,
+not yet a complete released-model CLI validation matrix. Consult the PR's
+executed-test evidence for the actual scope. Score attribution, shortened
+model-specific schedules and the tokenizer/generator distinction remain pending.
+
 ## Confirmed remaining work and boundaries
 
 | Area | Observed difference and next action |
 | --- | --- |
-| LoRA task integration | The inspected revised source uses rank 16, alpha 16 and an LP head, with separate head/adapter learning rates. Explicit model block/gradient bindings are available; task recipes, CLI routes and released-weight validation remain. Earlier LoRA recipes remain historical. |
-| DPT | The four-tap head, model-specific feature bindings and frozen-backbone/head composition are available as components. Full task/CLI integration, scheduling and CUDA/distributed runs remain unvalidated. |
+| LoRA task integration | The revised CLI connects ImageNet and ADE20K with rank 16, alpha 16, an LP head and separate head/adapter rates. SSv2, COCO and NYUv2 revised routes, continuation, all-provider CLI verification and released-weight/GPU validation remain. Earlier LoRA recipes remain historical. |
+| DPT | The revised CLI connects ADE20K to the frozen four-tap head and v2 schedule. NYUv2 task integration and released-weight/GPU validation remain. Dense execution follows the inspected single-device source; distributed dense training is not claimed. |
 | RAEv2 readout | The revised paper's LP/AP generator block 29 at time 0.1 is different from this package's existing tokenizer K7 readout. Keep these identities separate and port the matching generator path. |
 | COCO | Basic5 uses Faster R-CNN bounding-box AP. The existing portable COCO runner already performs detection; historical category-presence scores must not be relabeled as detection AP. New correction metadata is not proof that all corresponding reruns completed. |
 | NYUv2 | The inspected revised source records median-aligned primary depth metrics and unaligned diagnostics. Cross-family alignment correspondence still needs reconciliation; do not silently choose a metric. |

@@ -1,0 +1,121 @@
+{
+  "targets": [
+    {
+      "file": "downstream/revised_recipe.py",
+      "label": "canonical image recipe",
+      "old": "('imagenet', 'lora'): (100, 256, .001, .000125, 5)",
+      "new": "('imagenet', 'lora'): (99, 256, .001, .000125, 5)",
+      "tests": [
+        "tests.test_revised_recipe"
+      ]
+    },
+    {
+      "file": "downstream/revised_recipe.py",
+      "label": "dense adapter rate",
+      "old": "('ade20k', 'lora'): (20, 8, .001, .0001, 1)",
+      "new": "('ade20k', 'lora'): (20, 8, .001, .001, 1)",
+      "tests": [
+        "tests.test_revised_recipe"
+      ]
+    },
+    {
+      "file": "downstream/revised_recipe.py",
+      "label": "DPT v2 learning rate",
+      "old": "('ade20k', 'dpt'): (20, 8, .0005, None, 1)",
+      "new": "('ade20k', 'dpt'): (20, 8, .001, None, 1)",
+      "tests": [
+        "tests.test_revised_recipe"
+      ]
+    },
+    {
+      "file": "downstream/revised_recipe.py",
+      "label": "batch scaling",
+      "old": "scale = batch / reference_batch",
+      "new": "scale = 1.",
+      "tests": [
+        "tests.test_revised_recipe"
+      ]
+    },
+    {
+      "file": "downstream/revised_recipe.py",
+      "label": "immutable recipe",
+      "old": "@dataclass(frozen=True)",
+      "new": "@dataclass(frozen=False)",
+      "tests": [
+        "tests.test_revised_recipe"
+      ]
+    },
+    {
+      "file": "downstream/revised_recipe.py",
+      "label": "unknown route guard",
+      "old": "if (task, track) not in settings:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_revised_recipe"
+      ]
+    },
+    {
+      "file": "downstream/revised_recipe.py",
+      "label": "integer guard",
+      "old": "if isinstance(value, bool) or not isinstance(value, int) or value < minimum:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_revised_recipe"
+      ]
+    },
+    {
+      "file": "downstream/revised_recipe.py",
+      "label": "absolute warmup",
+      "old": "return start_lr + (base_lr - start_lr) * float(step) / warmup",
+      "new": "return base_lr * float(step) / warmup",
+      "tests": [
+        "tests.test_revised_recipe"
+      ]
+    },
+    {
+      "file": "downstream/revised_recipe.py",
+      "label": "update horizon",
+      "old": "total = recipe.epochs * steps_per_epoch",
+      "new": "total = recipe.epochs * steps_per_epoch - 1",
+      "tests": [
+        "tests.test_revised_recipe"
+      ]
+    },
+    {
+      "file": "downstream/revised_recipe.py",
+      "label": "group base rates",
+      "old": "group['base_lr'],",
+      "new": "recipe.head_lr,",
+      "tests": [
+        "tests.test_revised_recipe"
+      ]
+    },
+    {
+      "file": "downstream/revised_recipe.py",
+      "label": "schedule finite guard",
+      "old": "if any(not math.isfinite(value) or value < 0",
+      "new": "if any(False",
+      "tests": [
+        "tests.test_revised_recipe"
+      ]
+    },
+    {
+      "file": "downstream/revised_recipe.py",
+      "label": "warmup boundary",
+      "old": "if warmup >= total:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_revised_recipe"
+      ]
+    },
+    {
+      "file": "downstream/revised_recipe.py",
+      "label": "cosine endpoint clamp",
+      "old": "progress = min(1., (step - warmup) / (total - warmup))",
+      "new": "progress = (step - warmup) / (total - warmup)",
+      "tests": [
+        "tests.test_revised_recipe"
+      ]
+    }
+  ]
+}

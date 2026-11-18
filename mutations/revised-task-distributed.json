@@ -1,0 +1,22 @@
+{
+  "targets": [
+    {
+      "file": "downstream/revised_tasks.py",
+      "label": "dataset validation propagation",
+      "old": "context.call(lambda: prepare_datasets(cfg, recipe))",
+      "new": "prepare_datasets(cfg, recipe)",
+      "tests": [
+        "tests.test_revised_task_distributed.RevisedTaskSetupDistributed.test_rank_local_class_mapping_failure_is_shared"
+      ]
+    },
+    {
+      "file": "downstream/revised_tasks.py",
+      "label": "probe input propagation",
+      "old": "probe = context.call(probe_input)",
+      "new": "probe = probe_input()",
+      "tests": [
+        "tests.test_revised_task_distributed.RevisedTaskSetupDistributed.test_rank_local_probe_failure_is_shared"
+      ]
+    }
+  ]
+}

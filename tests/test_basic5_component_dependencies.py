@@ -24,7 +24,11 @@ class TestDependencyCI(unittest.TestCase):
                        if s.get('name') == 'Run Basic5 component contracts with downstream dependencies')
         for module in ('tests.test_cvpr_adaptation_runtime', 'tests.test_dpt_probe',
                        'tests.test_cvpr_bound_runtime', 'tests.test_cvpr_hf_bindings',
-                       'tests.test_method_cvpr_native_bindings', 'tests.test_cvpr_rae_bindings'):
+                       'tests.test_method_cvpr_native_bindings', 'tests.test_cvpr_rae_bindings',
+                       'tests.test_revised_data', 'tests.test_revised_recipe',
+                       'tests.test_revised_engine', 'tests.test_revised_task_cli',
+                       'tests.test_revised_task_distributed',
+                       'tests.test_method_revised_cli', 'tests.test_revised_documentation'):
             with self.subTest(module=module):
                 self.assertTrue(_runs_finetune_tests(command, module=module))
 
