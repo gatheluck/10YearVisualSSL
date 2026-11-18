@@ -3,14 +3,15 @@
 This is distinct from the historical last-seven sum and final-layer-only RAE
 profiles. The decoder and diffusion transformer are never instantiated.
 """
+import re
 from contextlib import nullcontext
 from pathlib import Path
-import re
 
 import torch
 from torch import nn
 from torch.nn import functional as F
 
+from downstream.feature_taps import even_taps
 from provider_support import prepare_upstream
 
 KIND = "raev2_k7"
@@ -83,21 +84,52 @@ class Backbone(nn.Module):
         self.model = model
         self.out_channels = self.global_channels = model.embed_dim
         self.trainable = trainable
+        self._adaptation_grad = False
         self.requires_grad_(trainable)
         self.train(trainable)
 
     def train(self, mode=True):
-        super().train(mode if self.trainable else False)
+        super().train(mode if self.trainable and not self._adaptation_grad else False)
         # Preserve evaluation geometry even when the complete encoder trains.
         self.model.rope_embed.eval()
         return self
+
+    def adaptation_block_groups(self):
+        """Explicit tokenizer attention blocks, never the diffusion generator."""
+        return [self.model.blocks]
+
+    def enable_adaptation_grad(self):
+        """Allow adapter gradients while retaining frozen base and eval geometry."""
+        self._adaptation_grad = True
+        self.eval()
+
+    def forward_dpt_features(self, images):
+        """Four normalized tokenizer taps for the captured dense probe.
+
+        Inputs use ImageNet normalization, as in forward_features. This is
+        neither the K7 aggregate nor the revised generator representation.
+        """
+        if images.ndim != 4 or images.shape[1] != 3 or min(images.shape[-2:]) < 1:
+            raise ValueError("images require nonempty [B, 3, H, W]")
+        pixels = F.pad(images, (0, -images.shape[-1] % 16, 0, -images.shape[-2] % 16))
+        param = next(self.model.parameters())
+        with nullcontext() if self.trainable or self._adaptation_grad else torch.no_grad():
+            outputs = list(self.model.get_intermediate_layers(
+                pixels.to(device=param.device, dtype=param.dtype),
+                n=even_taps(len(self.model.blocks)), reshape=True,
+                return_class_token=False, norm=True))
+        expected = (images.shape[0], self.out_channels,
+                    pixels.shape[-2] // 16, pixels.shape[-1] // 16)
+        if len(outputs) != 4 or any(output.shape != expected for output in outputs):
+            raise ValueError("four tokenizer taps must match the spatial grid")
+        return outputs
 
     def _tokens(self, images):
         if images.ndim != 4 or images.shape[1] != 3 or min(images.shape[-2:]) < 1:
             raise ValueError("images require nonempty [B, 3, H, W]")
         pixels = F.pad(images, (0, -images.shape[-1] % 16, 0, -images.shape[-2] % 16))
         param = next(self.model.parameters())
-        with nullcontext() if self.trainable else torch.no_grad():
+        with nullcontext() if self.trainable or self._adaptation_grad else torch.no_grad():
             layers = self.model.get_intermediate_layers(
                 pixels.to(device=param.device, dtype=param.dtype), n=list(K7_LAYERS),
                 reshape=False, return_class_token=False, norm=True)

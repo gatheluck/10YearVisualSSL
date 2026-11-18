@@ -39,8 +39,8 @@
     {
       "file": "methods/raev2/downstream_backbone.py",
       "label": "Drop normalized-space padding",
-      "old": "pixels = F.pad(images, (0, -images.shape[-1] % 16, 0, -images.shape[-2] % 16))",
-      "new": "pixels = images",
+      "old": "pixels = F.pad(images, (0, -images.shape[-1] % 16, 0, -images.shape[-2] % 16))\n        param = next(self.model.parameters())\n        with nullcontext() if self.trainable or self._adaptation_grad else torch.no_grad():\n            layers =",
+      "new": "pixels = images\n        param = next(self.model.parameters())\n        with nullcontext() if self.trainable or self._adaptation_grad else torch.no_grad():\n            layers =",
       "tests": [
         "tests.test_method_raev2.TestK7Backbone.test_seven_selected_normalized_layers_global_term_padding_and_gradients"
       ]
@@ -66,8 +66,8 @@
     {
       "file": "methods/raev2/downstream_backbone.py",
       "label": "Permit gradients through frozen encoder",
-      "old": "with nullcontext() if self.trainable else torch.no_grad():",
-      "new": "with nullcontext():",
+      "old": "with nullcontext() if self.trainable or self._adaptation_grad else torch.no_grad():\n            layers =",
+      "new": "with nullcontext():\n            layers =",
       "tests": [
         "tests.test_method_raev2.TestK7Backbone.test_freezing_temporal_readout_and_native_detection_input"
       ]

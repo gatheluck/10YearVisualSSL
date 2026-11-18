@@ -181,6 +181,8 @@ jobs:
           PYTHONPATH=. .venv/bin/python -m unittest -v \
             tests.test_attention_lora \
             tests.test_cvpr_adaptation_runtime tests.test_dpt_probe \
+            tests.test_cvpr_bound_runtime tests.test_cvpr_hf_bindings \
+            tests.test_method_cvpr_native_bindings tests.test_cvpr_rae_bindings \
             tests.test_method_hf_basic5 \
             tests.test_idv2_evaluation \
             tests.test_three_scaling_evaluation \

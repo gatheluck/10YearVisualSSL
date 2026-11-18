@@ -75,7 +75,7 @@
     {
       "label": "frozen eval",
       "file": "downstream/hf_vision.py",
-      "old": "super().train(mode if self.trainable else False)",
+      "old": "super().train(mode if self.trainable and not self._adaptation_grad else False)",
       "new": "super().train(mode)",
       "tests": [
         "tests.test_method_hf_basic5.TestVisionFamilies.test_official_global_and_spatial_readouts_and_normalization"
@@ -111,7 +111,7 @@
     {
       "label": "trainable graph",
       "file": "downstream/hf_vision.py",
-      "old": "with nullcontext() if self.trainable else torch.no_grad():",
+      "old": "with nullcontext() if self.trainable or self._adaptation_grad else torch.no_grad():",
       "new": "with torch.no_grad():",
       "tests": [
         "tests.test_method_hf_basic5.TestVisionFamilies.test_trainable_forward_gradients_and_no_grad_context"

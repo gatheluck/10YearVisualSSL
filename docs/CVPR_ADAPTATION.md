@@ -43,10 +43,10 @@ exercise the equation, freezing, selection, refusal atomicity, bypass detection
 and checkpoint round trips. CUDA, distributed training and full-model/task
 runs are not validated by these component checks.
 
-**These components are not yet wired into the canonical task CLI.** They do not
-claim that all five models or their task recipes now support LoRA training.
-In particular, selecting task-specific heads, parameter-group learning rates,
-model block lists, gradient paths and continuation remains integration work.
+**These components are not yet wired into the canonical task CLI.** The explicit
+model bindings below expose block lists and gradient paths, but do not establish
+complete task recipes. Selecting task-specific heads, parameter-group learning
+rates and continuation remains integration work.
 
 ## Training-facing checks and four-tap dense probe
 
@@ -103,17 +103,63 @@ the complete original trainer executing locally. Native CUDA autocast was
 disabled by PyTorch in the CPU diagnostic and is not validated here. The
 portable diagnostics additionally restore state and clean up hooks on errors.
 
-Canonical data readers, model-specific tap bindings, training CLI/configuration,
-distributed execution and resume integration still need task-level validation.
+Canonical data readers, training CLI/configuration, distributed execution and
+resume integration still need task-level validation. The model-specific tap
+bindings below provide component access, not complete task execution.
 In particular, the generic evenly spaced rule must not override the captured
 VGGT tap selection or RAEv2's normalized intermediate-layer readout.
+
+## Explicit model bindings
+
+The provider APIs `adaptation_block_groups()`, `enable_adaptation_grad()` and
+`forward_dpt_features(images)` bind the inspected source to the existing model
+loaders. Inputs use this package's **ImageNet-normalized BCHW images**, not the
+raw RGB inputs of the experimental adapter. Existing provider conversions apply
+normalization exactly once; loading local checkpoints is unchanged.
+
+| Provider | LoRA blocks | DPT features |
+| --- | --- | --- |
+| SigLIP2 vision tower | Unique full-depth vision block list | Raw outputs of four evenly spaced blocks; no prefix |
+| DINOv3 HF vision tower | Unique full-depth vision block list | Raw evenly spaced block outputs, removing CLS and register tokens |
+| V-JEPA 2.1 | Encoder blocks | Raw evenly spaced blocks, image T=1, no prefix |
+| VGGT-Omega | Both frame and inter-frame block lists | Cached layers 4, 11, 17, 23; concatenate features as returned by the aggregator and remove its prefix |
+| RAEv2 K7 tokenizer | The tokenizer's 24 blocks | Official normalized intermediate-layer maps at evenly spaced indices; not raw hooks or the K7 aggregate |
+
+The RAEv2 row is explicitly the **tokenizer experiment source**, not the revised
+paper's generator block-29/time-0.1 LP/AP representation. No generator weights,
+identity or results are silently substituted. The projected-CLS HF family has
+no new binding in this change.
+
+After building and placing a frozen provider, call
+`install_backbone_lora(backbone, rank=16, alpha=16)` from
+`downstream.adaptation_runtime`. It uses the provider's explicit block groups,
+installs adapters, then enables gradients through the frozen base in eval mode.
+Create the head and optimizer afterwards. Calling `train()` on the parent must
+not turn the adapted backbone's dropout or rotary augmentation back on. Adapter
+weights stay float32; do not cast the complete adapted model afterwards.
+Check representative feature effects and backward gradients separately.
+
+For frozen dense probing, `FrozenDPTModel(backbone, in_dims, out_channels=150)`
+composes those taps with the existing head. For a positive depth output, select
+`out_channels=1, positive=True`. The caller declares all four tap channel sizes;
+use `hidden=512` for the inspected head. Calling `model(images, (height, width))`
+returns dense predictions at the requested resolution. The backbone remains
+frozen and in eval mode when the head trains; feature collection uses no-grad.
+This composition deliberately does not select depth alignment, loss, dataset,
+optimizer, scheduler or a canonical experiment. Those remain task-level work.
+
+The new behavioral tests exercise reduced real upstream/HF models, raw versus
+normalized tap selection, prefix removal, frozen-base updates, gradient flow,
+eval-mode preservation and invalid bindings. These tests do not certify released
+weights, CUDA/BF16, distributed execution or paper scores. Consult the PR for
+the current reference comparison, mutation, whole-suite and CI results.
 
 ## Confirmed remaining work and boundaries
 
 | Area | Observed difference and next action |
 | --- | --- |
-| LoRA task integration | The inspected revised source uses rank 16, alpha 16 and an LP head, with separate head/adapter learning rates. Bind actual model blocks and task recipes, then compare forwards, gradients and updates before enabling a CLI route. Earlier LoRA recipes remain historical. |
-| DPT | The four-tap head is now a pinned-upstream adapter with reduced CPU reference parity. Model-specific taps, full task/CLI integration, scheduling and CUDA/distributed runs remain unvalidated. |
+| LoRA task integration | The inspected revised source uses rank 16, alpha 16 and an LP head, with separate head/adapter learning rates. Explicit model block/gradient bindings are available; task recipes, CLI routes and released-weight validation remain. Earlier LoRA recipes remain historical. |
+| DPT | The four-tap head, model-specific feature bindings and frozen-backbone/head composition are available as components. Full task/CLI integration, scheduling and CUDA/distributed runs remain unvalidated. |
 | RAEv2 readout | The revised paper's LP/AP generator block 29 at time 0.1 is different from this package's existing tokenizer K7 readout. Keep these identities separate and port the matching generator path. |
 | COCO | Basic5 uses Faster R-CNN bounding-box AP. The existing portable COCO runner already performs detection; historical category-presence scores must not be relabeled as detection AP. New correction metadata is not proof that all corresponding reruns completed. |
 | NYUv2 | The inspected revised source records median-aligned primary depth metrics and unaligned diagnostics. Cross-family alignment correspondence still needs reconciliation; do not silently choose a metric. |
@@ -140,3 +186,11 @@ Run deliberate mutations in an isolated source copy:
 
 The downstream CI job explicitly executes the new component tests. Whole-suite
 push validation remains required; focused checks do not replace it.
+
+Run the bound-model contracts in the same downstream environment:
+
+`OMP_NUM_THREADS=1 .venvs/downstream/bin/python -m unittest tests.test_cvpr_bound_runtime tests.test_cvpr_hf_bindings tests.test_method_cvpr_native_bindings tests.test_cvpr_rae_bindings`
+
+The `cvpr-bound-runtime`, `cvpr-hf-bindings`, `cvpr-native-bindings` and
+`cvpr-rae-bindings` mutation specifications cover the new behavior. Run each
+with `bin/mutate.py --spec mutations/<name>.json --python <downstream-python>`.
