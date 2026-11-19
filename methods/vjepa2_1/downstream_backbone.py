@@ -36,6 +36,7 @@ DENSE_EXECUTION = {
     "distributed": True, "rank_seed_stride": 17,
     "gradient_sync": "accumulated_mean",
     "distributed_finetune_tasks": ("coco_detection",),
+    "ade_ap_revision": "dense_ap_fp32_norm_bias_v1",
 }
 VIDEO_RECIPE = {'interpolation': 'bilinear', 'temporal_rng': 'torch', 'augmentation': 'independent_zero', 'batch_mixing': 'torch'}
 _VARIANTS = {"vit_large": "ema_encoder", "vit_giant_xformers": "target_encoder"}

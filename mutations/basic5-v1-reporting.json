@@ -80,6 +80,42 @@
       "tests": [
         "tests.test_basic5_reference_accounting.BasicFiveAccounting.test_pinned_protocol_limits_horizon_and_seed_selection"
       ]
+    },
+    {
+      "label": "fp32 readout",
+      "file": "downstream/ade20k.py",
+      "old": "enabled=False):\n                return self._logits",
+      "new": "enabled=True):\n                return self._logits",
+      "tests": [
+        "tests.test_method_vjepa2_1_training.TestCorrectedDenseProbe"
+      ]
+    },
+    {
+      "label": "norm decay",
+      "file": "downstream/optimization.py",
+      "old": "or \"norm\" in name else decay",
+      "new": "else decay",
+      "tests": [
+        "tests.test_method_vjepa2_1_training.TestCorrectedDenseProbe"
+      ]
+    },
+    {
+      "label": "bias decay",
+      "file": "downstream/optimization.py",
+      "old": "name.endswith(\"bias\") or \"norm\" in name",
+      "new": "\"norm\" in name",
+      "tests": [
+        "tests.test_method_vjepa2_1_training.TestCorrectedDenseProbe"
+      ]
+    },
+    {
+      "label": "revision provider",
+      "file": "methods/vjepa2_1/downstream_backbone.py",
+      "old": "\"ade_ap_revision\": \"dense_ap_fp32_norm_bias_v1\"",
+      "new": "\"ade_ap_revision\": None",
+      "tests": [
+        "tests.test_method_vjepa2_1_training.TestCorrectedDenseProbe"
+      ]
     }
   ]
 }

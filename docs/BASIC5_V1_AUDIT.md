@@ -82,3 +82,21 @@ and [native accounting](REFERENCE_ACCOUNTING.md).
 
 SpaceNet, SUN RGB-D, the revised SSv2 AP reader and Figure 7 reference-free
 dimensionality remain pending. This audit does not change their interpretation.
+
+## Corrected V-JEPA 2.1 ADE20K attentive run
+
+For `downstream.ade20k`, select `training_revision: dense_ap_fp32_norm_bias_v1`
+with `profile: capture_basic5_components`, `adaptation: attentive`,
+`backbone.kind: vjepa2_1` and `optimizer_profile: basic5_frozen_v1`.
+In the corrected runs the frozen encoder can execute under autocast. The
+spatial reader, classification head and output resize execute in float32.
+AdamW applies the recipe weight decay to projection weights and zero decay
+to trainable biases and normalization parameters. The selection is included
+in the optimization report and in the configuration used for continuation.
+The three-seed result above came from the original corrected checkpoints.
+The portable path has component validation; full-data training remains open.
+
+A reduced CPU check used a BF16 feature grid with autocast enabled around the
+model. Against the captured V-JEPA reader and head, the portable path matched
+initialization, logits, clipped gradients and parameters after three AdamW
+updates exactly. This test starts at the feature grid.

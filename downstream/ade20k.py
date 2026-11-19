@@ -38,7 +38,7 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 from downstream import dense_execution, dense_resume, dense_distributed
-from downstream.optimization import resolve_optimization, build_optimizer, require_training_batches
+from downstream.optimization import DENSE_AP_FP32, resolve_optimization, build_optimizer, require_training_batches
 from downstream.optimization import REFERENCE_SCHEDULE, build_task_scheduler, task_schedule_report
 from downstream.optimization import build_dense_ap_scheduler, dense_ap_schedule_report
 from downstream.photometric import captured_color_jitter
@@ -82,7 +82,7 @@ def validate_config(cfg: dict) -> None:
         if key in cfg:
             raise ConfigError(
                 f"config: {key} is set; the output location is fixed at --out")
-    _named(TOP_KEYS - set(cfg), set(cfg) - (TOP_KEYS | {"resume", "execution", "profile", "adaptation", "optimizer_profile", "scheduler_profile", "reader_profile"}), "config")
+    _named(TOP_KEYS - set(cfg), set(cfg) - (TOP_KEYS | {"resume", "execution", "profile", "adaptation", "optimizer_profile", "scheduler_profile", "reader_profile", "training_revision"}), "config")
     try:
         validate_adaptation(cfg)
     except ValueError as exc:
@@ -197,17 +197,25 @@ def _subset(dataset: Dataset, maximum: int):
 
 class FrozenSegModel(nn.Module):
     def __init__(self, backbone: nn.Module, num_classes: int = NUM_CLASSES,
-                 *, adaptation: str = "frozen", reader_profile=None):
+                 *, adaptation: str = "frozen", reader_profile=None, training_revision=None):
         super().__init__()
         self.backbone = backbone
         self.adaptation = adaptation
+        self.training_revision = training_revision
         self.adapter = spatial_adapter(backbone, reader_profile) if adaptation == "attentive" else None
         self.head = nn.Conv2d(backbone.out_channels, num_classes, kernel_size=1)
         nn.init.normal_(self.head.weight, std=0.01)
         nn.init.zeros_(self.head.bias)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        if self.training_revision == DENSE_AP_FP32:
+            feat = task_spatial_features(self.backbone, x)
+            with torch.autocast(device_type=feat.device.type, enabled=False):
+                return self._logits(self.adapter(feat.float()), x)
         feat = task_spatial_features(self.backbone, x, self.adapter, adaptation=self.adaptation)
+        return self._logits(feat, x)
+
+    def _logits(self, feat, x):
         logits = self.head(feat)
         return F.interpolate(logits, size=x.shape[-2:], mode="bilinear",
                              align_corners=False)
@@ -289,7 +297,8 @@ def run(cfg: dict, out: Path, device_override: str | None = None, *, context=Non
         require_training_batches(train_loader, optimization)
         builder = build_trainable_backbone if adaptation == "finetune" else build_frozen_backbone
         backbone = builder(cfg["backbone"], device)
-        model = FrozenSegModel(backbone, adaptation=adaptation, reader_profile=cfg.get("reader_profile")).to(device)
+        model = FrozenSegModel(backbone, adaptation=adaptation, reader_profile=cfg.get("reader_profile"),
+                               training_revision=cfg.get("training_revision")).to(device)
         if adaptation != "finetune" and any(p.requires_grad for p in model.backbone.parameters()):
             raise RuntimeError("backbone is not frozen")
         if optimization is not None:
