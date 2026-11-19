@@ -77,6 +77,8 @@ def _encoder(spec):
 
 
 class Backbone(nn.Module):
+    native_pyramid_style = "bilinear"
+
     def __init__(self, encoder, *, trainable=False):
         super().__init__()
         self.encoder = encoder

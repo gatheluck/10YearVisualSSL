@@ -1,0 +1,76 @@
+{
+  "targets": [
+    {
+      "file": "downstream/revised_tasks.py",
+      "label": "raise ValueError('COCO train/val category mapping differs')",
+      "old": "raise ValueError('COCO train/val category mapping differs')",
+      "new": "pass",
+      "tests": [
+        "tests.test_method_revised_remaining_cli.RemainingCommand.test_coco_category_order_mismatch_is_rejected_even_in_diagnostics"
+      ]
+    },
+    {
+      "file": "downstream/revised_tasks.py",
+      "label": "raw = {key: metrics[key] / 100 for key in names}",
+      "old": "raw = {key: metrics[key] / 100 for key in names}",
+      "new": "raw = {key: metrics[key] for key in names}",
+      "tests": [
+        "tests.test_method_revised_remaining_cli.RemainingCommand.test_nonzero_detection_scores_publish_ratio_units"
+      ]
+    },
+    {
+      "file": "downstream/revised_tasks.py",
+      "label": "min(8, recipe.effective_batch // context.world)",
+      "old": "min(8, recipe.effective_batch // context.world)",
+      "new": "min(2, recipe.effective_batch // context.world)",
+      "tests": [
+        "tests.test_revised_route_loaders"
+      ]
+    },
+    {
+      "file": "downstream/revised_tasks.py",
+      "label": "{'imagenet': 64, 'ssv2': 8, 'coco': 2}",
+      "old": "{'imagenet': 64, 'ssv2': 8, 'coco': 2}",
+      "new": "{'imagenet': 64, 'ssv2': 2, 'coco': 16}",
+      "tests": [
+        "tests.test_revised_route_loaders"
+      ]
+    },
+    {
+      "file": "downstream/revised_tasks.py",
+      "label": "'n_entries', population)",
+      "old": "'n_entries', population)",
+      "new": "'absent_population', population)",
+      "tests": [
+        "tests.test_revised_remaining_cli.RemainingCLI.test_video_run_updates_and_publishes_population_metadata"
+      ]
+    },
+    {
+      "file": "downstream/revised_tasks.py",
+      "label": "reference microbatch requires explicit override",
+      "old": "if 'diagnostic' in cfg else 8",
+      "new": "if True else 8",
+      "tests": [
+        "tests.test_revised_route_loaders"
+      ]
+    },
+    {
+      "file": "downstream/revised_tasks.py",
+      "label": "detector probe uses transformed geometry",
+      "old": "return getattr(model.backbone.body, model.backbone.readout)(images.tensors)",
+      "new": "return getattr(model.backbone.body, model.backbone.readout)(probe)",
+      "tests": [
+        "tests.test_revised_detection_probe"
+      ]
+    },
+    {
+      "file": "downstream/revised_tasks.py",
+      "label": "canonical adapter feature precedes trainable FPN",
+      "old": "return getattr(model.backbone.body, model.backbone.readout)(images.tensors)",
+      "new": "return model.backbone(images.tensors)['0']",
+      "tests": [
+        "tests.test_revised_detection_probe"
+      ]
+    }
+  ]
+}

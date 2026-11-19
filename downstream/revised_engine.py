@@ -14,9 +14,9 @@ def _world():
 
 
 def _task(task):
-    if task not in ("imagenet", "ade20k"):
+    if task not in ("imagenet", "ade20k", "ssv2", "coco", "nyuv2"):
         raise ValueError("unsupported revised task")
-    if task == "ade20k" and _world() > 1:
+    if task in ("ade20k", "nyuv2") and _world() > 1:
         raise ValueError("revised dense source uses a single device")
 
 
@@ -71,19 +71,41 @@ def mean_gradients(model):
         offset += count
 
 
+def _loss(model, batch, task, device):
+    if task == 'coco':
+        images, targets = batch
+        images = [x.to(device) for x in images]
+        targets = [{k: v.to(device) for k, v in target.items()} for target in targets]
+        with _autocast(device):
+            components = model(images, targets)
+        if not isinstance(components, dict) or not components:
+            raise ValueError('detector must return nonempty loss components')
+        return sum(value.float() for value in components.values())
+    images, labels, *extra = (value.to(device) for value in batch)
+    with _autocast(device):
+        logits = model(images) if task in ('imagenet', 'ssv2') else model(images, labels.shape[-2:])
+    if task == 'nyuv2':
+        from downstream.revised_depth import silog_loss
+        return silog_loss(logits.float().squeeze(1), labels, extra[0])
+    return F.cross_entropy(logits.float(), labels, ignore_index=255 if task == 'ade20k' else -100)
+
+
 def train_epoch(model, loader, optimizer, recipe, step, steps_per_epoch, device,
-                max_steps=0, adapters=None):
-    """One source-shaped epoch without accumulation; caps remain diagnostic.
+                max_steps=0, adapters=None, accumulation_steps=1):
+    """Source updates, including video accumulation with discarded tails.
 
     ImageNet callers provide equal physical batches and a drop-last distributed
     sampler. Dense execution is single-device as in the inspected source. The
     schedule always retains the recipe horizon, including diagnostic truncation.
     """
     _task(recipe.task)
+    if (type(accumulation_steps) is not int or accumulation_steps < 1
+            or (accumulation_steps != 1 and recipe.task != 'ssv2')):
+        raise ValueError('only video supports positive integer accumulation')
     if (type(step) is not int or step < 0 or type(steps_per_epoch) is not int
             or steps_per_epoch < 1 or type(max_steps) is not int or max_steps < 0):
         raise ValueError("invalid revised update counters")
-    if not len(loader) or len(loader) != steps_per_epoch:
+    if not len(loader) or len(loader) // accumulation_steps != steps_per_epoch:
         raise ValueError("epoch loader must match the nonempty schedule horizon")
     model.train()
     trainable = [p for p in model.parameters() if p.requires_grad]
@@ -94,25 +116,20 @@ def train_epoch(model, loader, optimizer, recipe, step, steps_per_epoch, device,
     for _ in range(steps_per_epoch):
         if max_steps and step >= max_steps:
             break
-        batch = _stage(lambda: next(iterator), device)
-
-        def forward_loss(batch=batch, step=step):
-            images, labels = (value.to(device) for value in batch)
-            set_learning_rates(optimizer, recipe, step, steps_per_epoch)
-            optimizer.zero_grad(set_to_none=True)
-            with _autocast(device):
-                logits = model(images) if recipe.task == "imagenet" else model(images, labels.shape[-2:])
-            return F.cross_entropy(logits.float(), labels,
-                                   ignore_index=255 if recipe.task == "ade20k" else -100)
-
-        loss = _stage(forward_loss, device)
-        _require_all(torch.isfinite(loss), device, "nonfinite revised training loss")
-        _stage(loss.backward, device)
+        set_learning_rates(optimizer, recipe, step, steps_per_epoch)
+        optimizer.zero_grad(set_to_none=True)
+        group_loss = 0.
+        for _micro in range(accumulation_steps):
+            batch = _stage(lambda: next(iterator), device)
+            loss = _stage(lambda batch=batch: _loss(model, batch, recipe.task, device), device)
+            _require_all(torch.isfinite(loss), device, "nonfinite revised training loss")
+            _stage(lambda loss=loss: (loss / accumulation_steps).backward(), device)
+            group_loss += loss.item() / accumulation_steps
         _require_all(not any(p.grad is not None for p in model.parameters() if not p.requires_grad),
                      device, "frozen parameter received a gradient")
         _require_all(all(p.grad is None or torch.isfinite(p.grad).all() for p in trainable),
                      device, "nonfinite revised gradient")
-        if recipe.task == "ade20k":
+        if recipe.task in ("ade20k", "nyuv2"):
             _require_all(not any(p.grad is None for n, p in model.named_parameters()
                                  if p.requires_grad and not n.endswith("lora_A")),
                          device, "trainable parameter missing gradient")
@@ -125,7 +142,13 @@ def train_epoch(model, loader, optimizer, recipe, step, steps_per_epoch, device,
         optimizer.step()
         step += 1
         updates += 1
-        losses += loss.item()
+        losses += group_loss
+        if recipe.task == 'ssv2':
+            optimizer.zero_grad(set_to_none=True)
+    if recipe.task == 'ssv2' and updates == steps_per_epoch and len(loader) % accumulation_steps:
+        # The source fetches the first unused tail item before breaking. Preserve
+        # its reader/RNG effect without forwarding or updating an incomplete group.
+        _stage(lambda: next(iterator), device)
     if not updates:
         raise ValueError("epoch produced no optimizer updates")
     return step, losses / updates, updates
@@ -135,6 +158,12 @@ def train_epoch(model, loader, optimizer, recipe, step, steps_per_epoch, device,
 def evaluate(model, loader, task, device):
     """Source metrics; distributed image loaders must be rank-strided, unpadded."""
     _task(task)
+    if task == 'nyuv2':
+        from downstream.revised_depth import evaluate_depth
+        return evaluate_depth(model, loader, device)
+    if task == 'coco':
+        from downstream.revised_detection import evaluate_detection
+        return evaluate_detection(model, loader, device)
     model.eval()
     counts = torch.zeros(3, dtype=torch.float64, device=device)
     intersection = torch.zeros(150, device=device)
@@ -145,13 +174,13 @@ def evaluate(model, loader, task, device):
         for images, labels in loader:
             images, labels = images.to(device), labels.to(device)
             with _autocast(device):
-                output = model(images) if task == "imagenet" else model(images, labels.shape[-2:])
+                output = model(images) if task in ("imagenet", "ssv2") else model(images, labels.shape[-2:])
             # No collectives inside uneven validation loops.
             if not torch.isfinite(output).all():
                 counts[0] = float("nan")
                 continue
             images_seen += len(labels)
-            if task == "imagenet":
+            if task in ("imagenet", "ssv2"):
                 top = output.float().topk(5, dim=1).indices
                 counts[0] += (top[:, 0] == labels).sum()
                 counts[1] += (top == labels[:, None]).any(1).sum()
@@ -173,7 +202,7 @@ def evaluate(model, loader, task, device):
         dist.all_reduce(counts)
     if not torch.isfinite(counts).all() or counts[2] <= 0:
         raise ValueError("nonfinite or empty revised evaluation")
-    if task == "imagenet":
+    if task in ("imagenet", "ssv2"):
         return {"top1": 100 * counts[0].item() / counts[2].item(),
                 "top5": 100 * counts[1].item() / counts[2].item(),
                 "n": int(counts[2].item())}

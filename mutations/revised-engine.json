@@ -39,7 +39,7 @@
     {
       "file": "downstream/revised_engine.py",
       "label": "ImageNet class 255",
-      "old": "ignore_index=255 if recipe.task == \"ade20k\" else -100",
+      "old": "ignore_index=255 if task == 'ade20k' else -100",
       "new": "ignore_index=255",
       "tests": [
         "tests.test_revised_engine.RevisedEngine.test_imagenet_class_255_is_not_a_segmentation_ignore_label"
@@ -129,8 +129,8 @@
     {
       "file": "downstream/revised_engine.py",
       "label": "training forward stage",
-      "old": "loss = _stage(forward_loss, device)",
-      "new": "loss = forward_loss()",
+      "old": "loss = _stage(lambda batch=batch: _loss(model, batch, recipe.task, device), device)",
+      "new": "loss = _loss(model, batch, recipe.task, device)",
       "tests": [
         "tests.test_revised_engine.RevisedEngine.test_rank_local_loader_forward_backward_errors_propagate"
       ]
@@ -138,8 +138,8 @@
     {
       "file": "downstream/revised_engine.py",
       "label": "training backward stage",
-      "old": "_stage(loss.backward, device)",
-      "new": "loss.backward()",
+      "old": "_stage(lambda loss=loss: (loss / accumulation_steps).backward(), device)",
+      "new": "(loss / accumulation_steps).backward()",
       "tests": [
         "tests.test_revised_engine.RevisedEngine.test_rank_local_loader_forward_backward_errors_propagate"
       ]
@@ -151,6 +151,33 @@
       "new": "local_evaluation()",
       "tests": [
         "tests.test_revised_engine.RevisedEngine.test_rank_local_loader_forward_backward_errors_propagate"
+      ]
+    },
+    {
+      "file": "downstream/revised_engine.py",
+      "label": "video accumulation divisor",
+      "old": "(loss / accumulation_steps).backward()",
+      "new": "loss.backward()",
+      "tests": [
+        "tests.test_revised_multitask_engine"
+      ]
+    },
+    {
+      "file": "downstream/revised_engine.py",
+      "label": "video tail RNG",
+      "old": "if recipe.task == 'ssv2' and updates == steps_per_epoch and len(loader) % accumulation_steps:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_revised_multitask_engine"
+      ]
+    },
+    {
+      "file": "downstream/revised_engine.py",
+      "label": "detection total loss",
+      "old": "sum(value.float() for value in components.values())",
+      "new": "next(iter(components.values())).float()",
+      "tests": [
+        "tests.test_revised_multitask_engine"
       ]
     }
   ]

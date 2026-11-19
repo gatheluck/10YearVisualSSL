@@ -28,6 +28,13 @@ class TestDependencyCI(unittest.TestCase):
                        'tests.test_revised_data', 'tests.test_revised_recipe',
                        'tests.test_revised_engine', 'tests.test_revised_task_cli',
                        'tests.test_revised_task_distributed',
+                       'tests.test_revised_depth', 'tests.test_revised_video',
+                       'tests.test_revised_detection', 'tests.test_revised_multitask_engine',
+                       'tests.test_revised_multitask_distributed', 'tests.test_revised_remaining_cli',
+                       'tests.test_revised_resume', 'tests.test_revised_cli_resume',
+                       'tests.test_revised_membership', 'tests.test_method_revised_detection_binding',
+                       'tests.test_method_revised_remaining_cli', 'tests.test_revised_route_loaders',
+                       'tests.test_revised_decoder_dependency', 'tests.test_revised_detection_probe',
                        'tests.test_method_revised_cli', 'tests.test_revised_documentation'):
             with self.subTest(module=module):
                 self.assertTrue(_runs_finetune_tests(command, module=module))

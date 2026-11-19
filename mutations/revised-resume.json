@@ -1,0 +1,175 @@
+{
+  "targets": [
+    {
+      "file": "downstream/revised_resume.py",
+      "label": "checkpointbytes",
+      "old": "'source_checkpoint': immutable_identity",
+      "new": "'source_checkpoint': None",
+      "tests": [
+        "tests.test_revised_resume.RevisedResumeTests.test_identity_binds_membership_frozen_weights_and_registered_adapter_exclusion"
+      ]
+    },
+    {
+      "file": "downstream/revised_resume.py",
+      "label": "implementation",
+      "old": "'implementation': _implementation(model)",
+      "new": "'implementation': {}",
+      "tests": [
+        "tests.test_revised_resume.RevisedResumeTests.test_model_implementation_bytes_are_bound_without_persisting_paths"
+      ]
+    },
+    {
+      "file": "downstream/revised_resume.py",
+      "label": "loaderpolicy",
+      "old": "'drop_last': loader.drop_last",
+      "new": "'drop_last': False",
+      "tests": [
+        "tests.test_revised_resume.RevisedResumeTests.test_actual_loader_policy_changes_are_not_hidden_by_identical_config"
+      ]
+    },
+    {
+      "file": "downstream/revised_resume.py",
+      "label": "membership",
+      "old": "'membership': membership",
+      "new": "'membership': None",
+      "tests": [
+        "tests.test_revised_resume.RevisedResumeTests.test_identity_binds_membership_frozen_weights_and_registered_adapter_exclusion"
+      ]
+    },
+    {
+      "file": "downstream/revised_resume.py",
+      "label": "workers",
+      "old": "cfg.get('workers', 0) != 0 or loader.num_workers != 0",
+      "new": "False",
+      "tests": [
+        "tests.test_revised_resume.RevisedResumeTests.test_partial_boundary_workers_and_step_caps_are_rejected"
+      ]
+    },
+    {
+      "file": "downstream/revised_resume.py",
+      "label": "caps",
+      "old": "if cfg.get('diagnostic', {}).get('max_steps', 0):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_revised_resume.RevisedResumeTests.test_partial_boundary_workers_and_step_caps_are_rejected"
+      ]
+    },
+    {
+      "file": "downstream/revised_resume.py",
+      "label": "buffers",
+      "old": "if id(b) not in base_buffers",
+      "new": "if False",
+      "tests": [
+        "tests.test_revised_resume.RevisedResumeTests.test_exact_continuation_preserves_adapters_buffers_optimizer_and_all_rng"
+      ]
+    },
+    {
+      "file": "downstream/revised_resume.py",
+      "label": "frozenstate",
+      "old": "backbone=state_digest(self.backbone.state_dict().items(), exclude=self.exclusions)",
+      "new": "backbone=None",
+      "tests": [
+        "tests.test_revised_resume.RevisedResumeTests.test_identity_binds_membership_frozen_weights_and_registered_adapter_exclusion"
+      ]
+    },
+    {
+      "file": "downstream/revised_resume.py",
+      "label": "schema",
+      "old": "set(blob) != required",
+      "new": "not required.issubset(blob)",
+      "tests": [
+        "tests.test_revised_resume.RevisedResumeTests.test_corrupt_payload_is_rejected_before_any_live_state_mutation"
+      ]
+    },
+    {
+      "file": "downstream/revised_resume.py",
+      "label": "format",
+      "old": "blob['format'] != FORMAT",
+      "new": "False",
+      "tests": [
+        "tests.test_revised_resume.RevisedResumeTests.test_corrupt_payload_is_rejected_before_any_live_state_mutation"
+      ]
+    },
+    {
+      "file": "downstream/revised_resume.py",
+      "label": "counter",
+      "old": "step != epoch * self.steps_per_epoch",
+      "new": "False",
+      "tests": [
+        "tests.test_revised_resume.RevisedResumeTests.test_corrupt_payload_is_rejected_before_any_live_state_mutation"
+      ]
+    },
+    {
+      "file": "downstream/revised_resume.py",
+      "label": "losses",
+      "old": "len(losses) != epoch",
+      "new": "False",
+      "tests": [
+        "tests.test_revised_resume.RevisedResumeTests.test_corrupt_payload_is_rejected_before_any_live_state_mutation"
+      ]
+    },
+    {
+      "file": "downstream/revised_resume.py",
+      "label": "tensorfinite",
+      "old": "or not torch.isfinite(value).all()",
+      "new": "",
+      "tests": [
+        "tests.test_revised_resume.RevisedResumeTests.test_corrupt_payload_is_rejected_before_any_live_state_mutation"
+      ]
+    },
+    {
+      "file": "downstream/revised_resume.py",
+      "label": "optimizer",
+      "old": "continuation_validation.optimizer_state(self.opt, optimizer, step)",
+      "new": "pass",
+      "tests": [
+        "tests.test_revised_resume.RevisedResumeTests.test_corrupt_payload_is_rejected_before_any_live_state_mutation"
+      ]
+    },
+    {
+      "file": "downstream/revised_resume.py",
+      "label": "lrboundary",
+      "old": "self.recipe, step - 1, self.steps_per_epoch",
+      "new": "self.recipe, step, self.steps_per_epoch",
+      "tests": [
+        "tests.test_revised_resume.RevisedResumeTests.test_exact_continuation_preserves_adapters_buffers_optimizer_and_all_rng"
+      ]
+    },
+    {
+      "file": "downstream/revised_resume.py",
+      "label": "rngrank",
+      "old": "item['rank'] != rank",
+      "new": "False",
+      "tests": [
+        "tests.test_revised_resume.RevisedResumeTests.test_corrupt_payload_is_rejected_before_any_live_state_mutation"
+      ]
+    },
+    {
+      "file": "downstream/revised_resume.py",
+      "label": "restoreoptimizer",
+      "old": "self.opt.load_state_dict(blob['optimizer'])",
+      "new": "pass",
+      "tests": [
+        "tests.test_revised_resume.RevisedResumeTests.test_exact_continuation_preserves_adapters_buffers_optimizer_and_all_rng"
+      ]
+    },
+    {
+      "file": "downstream/revised_resume.py",
+      "label": "restorerng",
+      "old": "_restore_rng(blob['rng'][self.context.rank]['state'], self.loader, self.context.device)",
+      "new": "pass",
+      "tests": [
+        "tests.test_revised_resume.RevisedResumeTests.test_exact_continuation_preserves_adapters_buffers_optimizer_and_all_rng"
+      ]
+    },
+    {
+      "file": "downstream/revised_resume.py",
+      "label": "membershipbytes",
+      "old": "cache[path] = sha256_file(path)",
+      "new": "cache[path] = ''",
+      "tests": [
+        "tests.test_revised_resume.RevisedResumeTests.test_ordered_membership_binds_file_bytes_labels_and_membership"
+      ]
+    }
+  ]
+}

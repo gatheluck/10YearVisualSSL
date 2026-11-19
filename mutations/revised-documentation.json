@@ -8,6 +8,33 @@
       "tests": [
         "tests.test_revised_documentation"
       ]
+    },
+    {
+      "file": "docs/CVPR_ADAPTATION.md",
+      "label": "documented revised depth horizon",
+      "old": "| `nyuv2` | `lora` | 30 |",
+      "new": "| `nyuv2` | `lora` | 20 |",
+      "tests": [
+        "tests.test_revised_documentation"
+      ]
+    },
+    {
+      "file": "README.md",
+      "label": "README.md revised discovery",
+      "old": "](docs/CVPR_ADAPTATION.md#revised-image-and-semantic-task-cli)",
+      "new": "](missing.md)",
+      "tests": [
+        "tests.test_revised_documentation"
+      ]
+    },
+    {
+      "file": "docs/DOWNSTREAM.md",
+      "label": "docs/DOWNSTREAM.md revised discovery",
+      "old": "](CVPR_ADAPTATION.md#revised-image-and-semantic-task-cli)",
+      "new": "](missing.md)",
+      "tests": [
+        "tests.test_revised_documentation"
+      ]
     }
   ]
 }

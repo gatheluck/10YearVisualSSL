@@ -28,6 +28,8 @@ class RevisedRecipe:
     min_lr: float = 1e-6
     start_lr: float = 1e-6
     dpt_hidden: int | None = None
+    optimizer: str = 'AdamW'
+    momentum: float = .9
 
 
 def _integer(value, name, minimum):
@@ -45,6 +47,10 @@ def resolve_recipe(task: str, track: str, *, effective_batch=None) -> RevisedRec
         ('imagenet', 'lora'): (100, 256, .001, .000125, 5),
         ('ade20k', 'lora'): (20, 8, .001, .0001, 1),
         ('ade20k', 'dpt'): (20, 8, .0005, None, 1),
+        ('nyuv2', 'lora'): (30, 8, .001, .0001, 1),
+        ('nyuv2', 'dpt'): (30, 8, .0005, None, 1),
+        ('ssv2', 'lora'): (50, 256, .001, .0005, 5),
+        ('coco', 'lora'): (12, 16, .02, .02, 0),
     }
     if (task, track) not in settings:
         raise ValueError(f'Unconfirmed revised task/track: {task}/{track}')
@@ -55,12 +61,15 @@ def resolve_recipe(task: str, track: str, *, effective_batch=None) -> RevisedRec
     dense_probe = track == 'dpt'
     return RevisedRecipe(
         profile='b5x_lora_dpt_v2',
-        source_protocol_id='B5X_DPT_LP_v2' if dense_probe else 'B5X_LORA_LP_v2',
+        source_protocol_id=('B5X_LORA_LP_v1' if task == 'coco' else
+                            'B5X_DPT_LP_v2' if dense_probe else 'B5X_LORA_LP_v2'),
         task=task, track=track, epochs=epochs, effective_batch=batch,
         reference_batch=reference_batch, head_lr=head * scale,
         adapter_lr=None if adapter is None else adapter * scale,
         warmup_epochs=warmup, rank=None if dense_probe else 16,
         alpha=None if dense_probe else 16., dpt_hidden=512 if dense_probe else None,
+        optimizer='SGD' if task == 'coco' else 'AdamW',
+        weight_decay=.0001 if task == 'coco' else .05,
     )
 
 
@@ -85,6 +94,22 @@ def cosine_lr(step: int, total: int, warmup: int, base_lr: float,
     return min_lr + (base_lr - min_lr) * .5 * (1. + math.cos(math.pi * progress))
 
 
+def recipe_learning_rate(recipe, step, steps_per_epoch, base_lr):
+    """Pure pre-update LR, shared with continuation validation at U-1."""
+    _integer(step, 'step', 0)
+    _integer(steps_per_epoch, 'steps_per_epoch', 1)
+    if not math.isfinite(base_lr) or base_lr <= 0:
+        raise ValueError('base_lr must be finite and positive')
+    if recipe.task == 'coco':
+        epoch = step // steps_per_epoch
+        factor = (.001 + .999 * (step / 500) if step < 500 else
+                  .01 if epoch >= 11 else .1 if epoch >= 8 else 1.)
+        return base_lr * factor
+    return cosine_lr(step, recipe.epochs * steps_per_epoch,
+                     recipe.warmup_epochs * steps_per_epoch, base_lr,
+                     recipe.min_lr, recipe.start_lr)
+
+
 def set_learning_rates(optimizer, recipe: RevisedRecipe, step: int,
                        steps_per_epoch: int) -> None:
     """Set absolute per-group rates without changing their original base rates.
@@ -93,10 +118,7 @@ def set_learning_rates(optimizer, recipe: RevisedRecipe, step: int,
     cannot leave an otherwise valid group partially updated.
     """
     _integer(steps_per_epoch, 'steps_per_epoch', 1)
-    total = recipe.epochs * steps_per_epoch
-    warmup = recipe.warmup_epochs * steps_per_epoch
-    rates = [cosine_lr(step, total, warmup, group['base_lr'],
-                       recipe.min_lr, recipe.start_lr)
+    rates = [recipe_learning_rate(recipe, step, steps_per_epoch, group['base_lr'])
              for group in optimizer.param_groups]
     for group, rate in zip(optimizer.param_groups, rates):
         group['lr'] = rate

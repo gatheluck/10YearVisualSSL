@@ -3,9 +3,9 @@
 # One environment for the cross-method downstream tasks (docs/DOWNSTREAM.md):
 # ADE20K segmentation, COCO detection, NYUv2 depth and SSv2 video. It is the fleet
 # timm closure (torch/torchvision/timm at the fleet versions) plus the task
-# dependencies that no method carries: pycocotools (COCO mAP), h5py (NYUv2 .mat)
-# and av / PyAV (SSv2 video decode). Unlike a method lock this is CI-only and
-# single-platform (the downstream job runs on ubuntu-latest); install with hashes:
+# dependencies that no method carries: pycocotools (COCO mAP), h5py (NYUv2 .mat),
+# av / PyAV (legacy video) and Decord (revised SSv2 source decoder). Unlike a
+# method lock this is CI-only and single-platform (ubuntu-latest); install with hashes:
 #
 #   pip install --require-hashes \
 #       --index-url https://download.pytorch.org/whl/cpu \
@@ -54,6 +54,13 @@ click==8.4.2 \
     # via
     #   -c /tmp/ds_constraints_cpu.txt
     #   huggingface-hub
+decord==0.6.0 \
+    --hash=sha256:02665d7c4f1193a330205a791bc128f7e108eb6ae5b67144437a02f700943bad \
+    --hash=sha256:51997f20be8958e23b7c4061ba45d0efcd86bffd5fe81c695d0befee0d442976 \
+    --hash=sha256:85ef90d2f872384657d7774cc486c237c5b12df62d4ac5cb5c8d6001fa611323 \
+    --hash=sha256:9c20674964fb1490c677bd911d2023d2a09fec7a58a4bb0b7ddf1ccc269f107a \
+    --hash=sha256:a0eb1258beade34dceb29d97856a7764d179db1b5182899b61874f3418a1abc8
+    # via -r downstream/requirements.txt
 filelock==3.32.2 \
     --hash=sha256:87dd94cf281e586d135fa51132b8e3d9a598b316e90377a288663c9321036c82 \
     --hash=sha256:c33351e1f49cae33414acbc6d56784e6ecee82514ec90795da1161fc4836b5b8

@@ -1,4 +1,4 @@
-# The downstream evaluation environment's direct dependencies (floors only).
+# Downstream evaluation's direct dependencies and explicit compatibility pins.
 #
 # One environment for all four cross-method downstream tasks (docs/DOWNSTREAM.md):
 # ADE20K segmentation, COCO detection, NYUv2 depth and SSv2 video. The exact
@@ -7,7 +7,8 @@
 #
 # torch/torchvision/timm are the fleet versions (a downstream task freezes a
 # method's ViT backbone). The task-specific deps are the ones no method carries:
-# pycocotools (COCO mAP), h5py (NYUv2 .mat), av / PyAV (SSv2 video decode).
+# pycocotools (COCO mAP), h5py (NYUv2 .mat), av / PyAV (legacy video),
+# decord (revised SSv2 source decoder).
 torch>=2.1.0
 torchvision>=0.16.0
 timm>=0.9.0
@@ -17,6 +18,8 @@ Pillow>=9.0
 pycocotools>=2.0.7
 h5py>=3.0
 av>=10.0
+# Official 0.6.0 release has a Linux x86_64 wheel; no macOS ARM wheel.
+decord==0.6.0; sys_platform == "linux" and platform_machine == "x86_64"
 scipy>=1.10
 transformers>=5.16.1
 einops>=0.8.2

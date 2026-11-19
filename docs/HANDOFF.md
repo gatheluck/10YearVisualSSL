@@ -12,6 +12,17 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-11-19: remaining revised task routes and continuation
+
+The follow-up extends the revised CLI to SSv2 LoRA, COCO bbox LoRA and NYUv2
+LoRA/DPT, with strict portable completed-epoch continuation. This supersedes
+the missing-route/continuation boundaries in the dated entry below. Read the
+[task CLI](CVPR_ADAPTATION.md#revised-image-and-semantic-task-cli) for actual
+recipes, data layouts, output semantics and explicit limits. Component source
+comparisons, CPU tests and distributed tests do not certify released-weight
+GPU runs or manuscript scores. Source/run contradictions remain pending;
+consult the PR evidence for delivery and current CI status.
+
 ### 2026-11-18: revised manuscript and attention adapters
 
 The task-integration follow-up adds the explicit `b5x_lora_dpt_v2` CLI for
