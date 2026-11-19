@@ -1,5 +1,11 @@
 # Experimental implementations and the portable submission package
 
+For the revised manuscript inspected in November, start with the
+[LoRA/DPT task profiles](CVPR_ADAPTATION.md), the
+[40-setting Extended coverage ledger](CVPR_EXTENDED_COVERAGE.md) and the
+[representation analysis components](REPRESENTATION_ANALYSIS.md).
+Historical protocol counts below do not define the revised manuscript's scope.
+
 > **Legacy terminology:** numbered Step 1-4 labels in this file are historical
 > code/experiment identifiers, not manuscript section numbers. See the
 > [ASIS, CTRL and manuscript comparison map](PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.

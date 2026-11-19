@@ -1,0 +1,157 @@
+{
+  "targets": [
+    {
+      "file": "downstream/representation_plane.py",
+      "label": "average ties",
+      "old": "average = ends - (counts - 1) / 2",
+      "new": "average = ends",
+      "tests": [
+        "tests.test_representation_plane"
+      ]
+    },
+    {
+      "file": "downstream/representation_plane.py",
+      "label": "population divisor",
+      "old": "return average[inverse] / len(vector)",
+      "new": "return average[inverse] / (len(vector) + 1)",
+      "tests": [
+        "tests.test_representation_plane"
+      ]
+    },
+    {
+      "file": "downstream/representation_plane.py",
+      "label": "finite rank inputs",
+      "old": "if not np.isfinite(vector).all():",
+      "new": "if False:",
+      "tests": [
+        "tests.test_representation_plane"
+      ]
+    },
+    {
+      "file": "downstream/representation_plane.py",
+      "label": "depth direction",
+      "old": "-scores[keep] if lower_is_better else scores[keep]",
+      "new": "scores[keep] if lower_is_better else scores[keep]",
+      "tests": [
+        "tests.test_representation_plane"
+      ]
+    },
+    {
+      "file": "downstream/representation_plane.py",
+      "label": "explicit boolean selection",
+      "old": "np.asarray(valid)",
+      "new": "np.asarray(valid, dtype=bool)",
+      "tests": [
+        "tests.test_representation_plane"
+      ]
+    },
+    {
+      "file": "downstream/representation_plane.py",
+      "label": "held family leakage",
+      "old": "fold = _fit(design[train], target[train])",
+      "new": "fold = _fit(design, target)",
+      "tests": [
+        "tests.test_representation_plane"
+      ]
+    },
+    {
+      "file": "downstream/representation_plane.py",
+      "label": "global fold ranks",
+      "old": "fold = _fit(design[train], target[train])",
+      "new": "fold = _fit(np.column_stack([np.ones(int(train.sum())), percentile_rank(x[keep][train]), percentile_rank(y[keep][train])]), target[train])",
+      "tests": [
+        "tests.test_representation_plane"
+      ]
+    },
+    {
+      "file": "downstream/representation_plane.py",
+      "label": "pooled predictions",
+      "old": "\"rho_xy\": _correlation(predictions, target)",
+      "new": "\"rho_xy\": _correlation(design @ coefficients, target)",
+      "tests": [
+        "tests.test_representation_plane"
+      ]
+    },
+    {
+      "file": "downstream/representation_plane.py",
+      "label": "direction axes",
+      "old": "np.arctan2(coefficients[2], coefficients[1])",
+      "new": "np.arctan2(coefficients[1], coefficients[2])",
+      "tests": [
+        "tests.test_representation_plane"
+      ]
+    },
+    {
+      "file": "downstream/representation_plane.py",
+      "label": "fold lower extreme",
+      "old": "\"tmin\": min(angles)",
+      "new": "\"tmin\": max(angles)",
+      "tests": [
+        "tests.test_representation_plane"
+      ]
+    },
+    {
+      "file": "downstream/representation_plane.py",
+      "label": "singular designs",
+      "old": "if rank != design.shape[1]:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_representation_plane"
+      ]
+    },
+    {
+      "file": "downstream/representation_plane.py",
+      "label": "undefined gradient",
+      "old": "if np.linalg.norm(coefficients[1:]) < 1e-12:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_representation_plane"
+      ]
+    },
+    {
+      "file": "downstream/representation_plane.py",
+      "label": "explicit rotation",
+      "old": "\"theta\": theta + rotation_degrees",
+      "new": "\"theta\": theta",
+      "tests": [
+        "tests.test_representation_plane"
+      ]
+    },
+    {
+      "file": "downstream/representation_plane.py",
+      "label": "fold display rotation",
+      "old": "[low + rotation_degrees, high + rotation_degrees]",
+      "new": "[low, high]",
+      "tests": [
+        "tests.test_representation_plane"
+      ]
+    },
+    {
+      "file": "downstream/representation_plane.py",
+      "label": "finite display angle",
+      "old": "or not math.isfinite(rotation_degrees)",
+      "new": "or False",
+      "tests": [
+        "tests.test_representation_plane"
+      ]
+    },
+    {
+      "file": "downstream/representation_plane.py",
+      "label": "valid display range",
+      "old": "if not all(math.isfinite(v) for v in (theta, low, high)) or low > high:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_representation_plane"
+      ]
+    },
+    {
+      "file": "downstream/representation_plane.py",
+      "label": "reject lossy complex arrays",
+      "old": "if np.iscomplexobj(values):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_representation_plane"
+      ]
+    }
+  ]
+}

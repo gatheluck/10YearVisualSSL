@@ -1,4 +1,5 @@
 """Native encoder adaptation bindings retain model-specific readouts."""
+import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -90,6 +91,7 @@ class NativeBindings(unittest.TestCase):
         body.enable_adaptation_grad()
         differentiable = x.clone().requires_grad_()
         sum(t.square().mean() for t in body.forward_dpt_features(differentiable)).backward()
+        assert differentiable.grad is not None
         self.assertGreater(float(differentiable.grad.abs().sum()), 0)
 
     def test_vjepa_dpt_rejects_non_images_and_ambiguous_unaligned_grid(self):
@@ -101,6 +103,25 @@ class NativeBindings(unittest.TestCase):
               self.assertRaisesRegex(RuntimeError, 'fixture failure')):
             body.forward_dpt_features(torch.randn(1, 3, 32, 32))
         self.assertTrue(all(not block._forward_hooks for block in body.encoder.blocks))
+
+    def test_omega_serialized_fixture_retains_captured_dpt_taps(self):
+        body = self.omega()
+        images = torch.randn(1, 3, 32, 48)
+        expected = body.forward_dpt_features(images)
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / 'encoder.pt'
+            torch.save({'aggregator.' + n: value for n, value in body.aggregator.state_dict().items()}, path)
+            restored = sb.build_frozen_backbone({
+                'kind': 'vggt_omega', 'arch': 'fixture', 'encoder': str(path),
+                'img_size': 224, 'patch_size': 16,
+                'embed_dim': 64, 'depth': 24, 'num_heads': 4}, torch.device('cpu'))
+            readout = restored.forward_dpt_features
+            assert callable(readout)
+            actual = readout(images)
+            assert isinstance(actual, list)
+            self.assertEqual(len(actual), 4)
+            for observed, wanted in zip(actual, expected, strict=True):
+                torch.testing.assert_close(observed, wanted, atol=0, rtol=0)
 
     def test_omega_taps_use_cached_layer_four_not_even_layer_five(self):
         body = self.omega()
@@ -117,6 +138,7 @@ class NativeBindings(unittest.TestCase):
         body.enable_adaptation_grad()
         x.requires_grad_()
         sum(t.square().mean() for t in body.forward_dpt_features(x)).backward()
+        assert x.grad is not None
         self.assertGreater(float(x.grad.abs().sum()), 0)
 
     def test_omega_dpt_refuses_wrong_cache_set_missing_layer_and_prefix(self):

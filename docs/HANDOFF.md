@@ -12,6 +12,24 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-11-19: representation analysis and Extended input follow-up
+
+The follow-up adds the source-compared feature-array
+[representation analysis CLI](REPRESENTATION_ANALYSIS.md), the revised
+[40-setting Extended ledger](CVPR_EXTENDED_COVERAGE.md), native Cityscapes
+train-ID membership, and scoped/recorded numerical policy for revised training.
+These add portable components; released-weight GPU execution, full-data results,
+original sample/score attribution and scientific contradictions remain distinct.
+Use PR and private execution evidence for current delivery/GPU status.
+
+The dated GPU checkpoint in the adaptation guide records 35 reduced-provider
+CLI cases, exact single-GPU completed-epoch continuation, geometry CPU/CUDA
+agreement, and ten released-weight component updates. GPU execution exposed
+and drove fixes for stale autocast diagnostic weights and a reduced native
+fixture's tap cache. None of these small-input checks certifies full-data
+training, distributed CUDA continuation, or manuscript-score reproduction.
+Keep SSv2 AP and the two unresolved Extended task identities pending.
+
 ### 2026-11-19: remaining revised task routes and continuation
 
 The follow-up extends the revised CLI to SSv2 LoRA, COCO bbox LoRA and NYUv2

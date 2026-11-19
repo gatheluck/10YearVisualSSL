@@ -25,6 +25,7 @@ from downstream.extended_resume import (
     state_digest,
 )
 from downstream.lora import LowRankLinear
+from downstream.revised_precision import runtime_precision
 
 FORMAT = 'revised_epoch_v1'
 
@@ -174,6 +175,7 @@ class RevisedContinuation:
 
     def _identity(self):
         return _digest(dict(self.identity_base,
+                            runtime_precision=runtime_precision(),
                             backbone=state_digest(self.backbone.state_dict().items(), exclude=self.exclusions),
                             other_frozen=state_digest(self.other_frozen.items())))
 

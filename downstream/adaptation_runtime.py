@@ -1,5 +1,6 @@
 """Training-facing adapter checks and optimizer grouping."""
 import math
+from contextlib import contextmanager
 
 import torch
 from torch import nn
@@ -79,6 +80,18 @@ def adapter_parameter_groups(named, *, weight_decay, head_lr, adapter_lr):
     return groups
 
 
+@contextmanager
+def _uncached_autocast_weights():
+    # In-place perturbations must not reuse a leaf parameter's cached BF16 cast.
+    # Keep the caller's device/dtype/enabled policy and restore its cache flag.
+    previous = torch.is_autocast_cache_enabled()
+    torch.set_autocast_cache_enabled(False)
+    try:
+        yield
+    finally:
+        torch.set_autocast_cache_enabled(previous)
+
+
 @torch.no_grad()
 def check_adapter_effect(forward, adapters):
     """Compare baseline/perturbed/restored features without retaining mutations.
@@ -92,7 +105,7 @@ def check_adapter_effect(forward, adapters):
     saved = [layer.lora_B.detach().clone() for layer in layers]
     calls = [layer.calls for layer in layers]
     devices = sorted({layer.lora_B.device.index for layer in layers if layer.lora_B.is_cuda})
-    with torch.random.fork_rng(devices=devices):
+    with _uncached_autocast_weights(), torch.random.fork_rng(devices=devices):
         try:
             for layer in layers:
                 layer.calls = 0

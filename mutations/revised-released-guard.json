@@ -1,0 +1,58 @@
+{
+  "targets": [
+    {
+      "file": "methods/vjepa2_1/downstream_backbone.py",
+      "label": "native constructor",
+      "old": "spec.get('arch') == 'vit_giant_xformers'",
+      "new": "False",
+      "tests": [
+        "tests.test_method_revised_released_guard"
+      ]
+    },
+    {
+      "file": "downstream/spatial_backbones.py",
+      "label": "provider binding",
+      "old": "_load_provider(_PROVIDERS[kind]) if kind in _PROVIDERS else None",
+      "new": "None",
+      "tests": [
+        "tests.test_method_revised_released_guard"
+      ]
+    },
+    {
+      "file": "methods/vjepa2_1/downstream_backbone.py",
+      "label": "checkpoint required",
+      "old": "and bool(spec.get('encoder'))",
+      "new": "and True",
+      "tests": [
+        "tests.test_method_revised_released_guard"
+      ]
+    },
+    {
+      "file": "methods/vjepa2_1/downstream_backbone.py",
+      "label": "pretrained geometry",
+      "old": "and spec.get('img_size') == 384 and spec.get('patch_size') == 16",
+      "new": "and True",
+      "tests": [
+        "tests.test_method_revised_released_guard"
+      ]
+    },
+    {
+      "file": "methods/vjepa2_1/downstream_backbone.py",
+      "label": "no reduced dimensions",
+      "old": "and not {'embed_dim', 'depth', 'num_heads'} & spec.keys()",
+      "new": "and True",
+      "tests": [
+        "tests.test_method_revised_released_guard"
+      ]
+    },
+    {
+      "file": "downstream/revised_tasks.py",
+      "label": "complete population",
+      "old": "or populations != POPULATIONS[task]:",
+      "new": "or False:",
+      "tests": [
+        "tests.test_method_revised_released_guard"
+      ]
+    }
+  ]
+}

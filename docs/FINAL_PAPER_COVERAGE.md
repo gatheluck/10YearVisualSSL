@@ -1,5 +1,13 @@
 # Final submitted manuscript: implementation coverage
 
+**Historical manuscript ledger.** The tables below concern the dated 70-page
+submission, not the later 15-page revised manuscript. Current additions are
+tracked in [CVPR adaptation](CVPR_ADAPTATION.md), the
+[40-setting Extended ledger](CVPR_EXTENDED_COVERAGE.md) and
+[representation analysis](REPRESENTATION_ANALYSIS.md). Keep original evidence
+dates and result populations separate; these links do not certify full-paper
+reproduction.
+
 Audit: 2026-09-27, against the final 70-page submitted manuscript and portable
 baseline after PR 203 and the following two-family component port. This supersedes the table numbering and current-priority
 claims in the [September 25 ledger](PAPER_REPRODUCTION_GAPS.md), not its dated
