@@ -337,3 +337,13 @@ def detection_label_space(kind):
     """A source-owned category convention; raw COCO ids remain the default."""
     return (getattr(_load_provider(_PROVIDERS[kind]), 'DETECTION_LABEL_SPACE', 'category_id')
             if kind in _PROVIDERS else 'category_id')
+
+
+def is_released_spec(spec):
+    """Delegate native release admission; loading still validates actual weights."""
+    kind = spec.get('kind')
+    provider = _load_provider(_PROVIDERS[kind]) if kind in _PROVIDERS else None
+    predicate = getattr(provider, 'is_released_spec', None)
+    if callable(predicate):
+        return predicate(spec) is True
+    return spec.get('arch') == 'released'

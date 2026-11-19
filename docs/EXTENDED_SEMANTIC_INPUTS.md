@@ -1,8 +1,38 @@
-# Native Context and Mapillary inputs
+# Native Context, Mapillary and Cityscapes inputs
 
 See [package scope and terminology](SUBMISSION_SCOPE.md). These converters connect
 native inputs to the existing five-provider [Extended semantic LP/AP runner](EXTENDED_SEGMENTATION.md).
 They do not establish paper-score reproduction or release authenticity.
+
+## Cityscapes train IDs
+
+The revised manuscript's Figure 5 includes Cityscapes. Its existing semantic
+LP/AP runner now accepts a native membership from
+`python -m downstream.extended_segmentation_membership --config cityscapes.json --out samples.json`.
+The configuration contains exactly `{"dataset":"cityscapes","data_root":"/data/cityscapes"}`.
+Provide `leftImg8bit/{train,val}/<city>/*_leftImg8bit.png` and matching
+`gtFine/{train,val}/<city>/*_gtFine_labelTrainIds.png`. The converter checks the
+[official fine split counts](https://github.com/mcordts/cityscapesScripts):
+2,975 training and 500 validation pairs. It retains relative city/sample
+identities, requires bijective pairs and refuses escaping assets. It does not
+copy or modify the original images or masks; keep the configured dataset root
+as the runner's `data_root`.
+
+Only already prepared train IDs 0..18 and ignore ID 255 are selected. The
+captured builder's fallback to raw `labelIds` is deliberately not reproduced:
+raw IDs are not equivalent to the 19 train IDs. Missing `labelTrainIds` is an
+error even if raw IDs exist. This converter does not generate train-ID masks;
+use the dataset's official preparation tools separately. A misleading filename
+does not authenticate its contents: membership construction does not decode
+masks, and records `mask_values_verified: false`. The semantic reader validates
+numeric mask values and geometry when reading samples. Counts alone do not
+prove release authenticity or historical image-byte identity.
+
+Use the existing `captured_pair_crop224_v1` source profile with the semantic
+runner. The inspected `SegPair` reader uses paired augmentation and 224-grid
+evaluation; this is not native-resolution Cityscapes benchmark certification.
+The [current Figure 5 ledger](CVPR_EXTENDED_COVERAGE.md) separates this input
+support from unverified model/readout/result attribution.
 
 ## PASCAL Context
 

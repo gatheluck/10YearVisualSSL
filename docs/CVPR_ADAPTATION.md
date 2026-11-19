@@ -44,7 +44,7 @@ and checkpoint round trips. CUDA, distributed training and full-model/task
 runs are not validated by these component checks.
 
 The [revised task CLI](#revised-image-and-semantic-task-cli) connects these
-components to three explicitly versioned task routes. Older task defaults are
+components to seven explicitly versioned task/track routes. Older task defaults are
 unchanged. Model bindings alone do not establish every task recipe, released
 checkpoint result or continuation behavior.
 
@@ -104,8 +104,8 @@ disabled by PyTorch in the CPU diagnostic and is not validated here. The
 portable diagnostics additionally restore state and clean up hooks on errors.
 
 The task CLI below adds inspected readers and schedules for all five tasks,
-with portable completed-epoch continuation. Released-weight execution, CUDA
-and continuation under GPU execution still need further validation.
+with portable completed-epoch continuation. See the dated GPU validation below
+for released-weight and continuation checks; full-data execution remains separate.
 The model-specific tap bindings below provide component access, not proof of
 complete execution across every model and task.
 In particular, the generic evenly spaced rule must not override the captured
@@ -273,7 +273,9 @@ median alignment and global valid-pixel aggregation; unaligned diagnostics
 are separate. This explicit source profile does not settle the correspondence
 of manuscript columns to historical runs.
 
-Without a `diagnostic` object, the entry point requires `arch: released` and
+Without a `diagnostic` object, the entry point requires `arch: released`
+(V-JEPA2.1 instead uses its native `vit_giant_xformers` constructor, a local
+checkpoint, 384-pixel input, 16-pixel patches and no dimension overrides) and
 the reference populations: ImageNet 1,281,167 training / 50,000 validation
 images with 1,000 classes; ADE20K 20,210 / 2,000; SSv2 168,913 / 24,777
 with 174 classes; COCO 118,287 / 5,000 with 80 categories; NYUv2 795 / 654. These checks are necessary
@@ -334,10 +336,30 @@ run stopped at an earlier epoch is `component_partial`. Inspect
 as well as the manifest; an `ok` manifest alone is insufficient for reproduction.
 
 CPU execution uses float32. CUDA selects bfloat16 backbone/autocast with
-float32 adapters/head, but this task path has not yet been validated on CUDA.
+float32 adapters/head. The dated GPU checks below describe the validated scope;
+they do not establish full-data execution or numerical score reproduction.
+The inspected classification, detection and dense trainers explicitly enable
+TF32 for CUDA float32 matrix multiplication and cuDNN operations. The revised
+CLI now applies those switches only during its run and restores the caller's
+previous settings on success or failure. On newer PyTorch it uses separate
+operator precision settings; on older versions it preserves the full original
+matmul mode, including `medium`. It does not mix the old and new APIs, as
+required by [PyTorch's precision API](https://docs.pytorch.org/docs/stable/notes/cuda.html#tensorfloat-32-tf32-on-ampere-and-later-devices).
+
+`result.json.runtime_precision` records the effective FP32 policy, inherited
+determinism, cuDNN and attention-backend switches. Completed-epoch continuation
+binds these settings and rejects changes before loading or publishing a
+checkpoint. Unspecified source settings remain inherited and recorded; they
+are not silently forced to new values. CPU execution leaves backend policy
+unchanged. Backend-state tests on CPU validate scoping, restoration and
+identity checks, not CUDA numerical equivalence or GPU reproducibility.
+
 The implementation preserves RNG around diagnostic feature checks instead of
 copying their historical random-stream side effects, so an identical historical
-initialization trajectory is not claimed. CPU CLI checks exercise reduced local vision snapshots for ImageNet, ADE20K,
+initialization trajectory is not claimed. The diagnostic temporarily disables
+autocast's weight cache so its in-place adapter perturbation is actually observed,
+then restores the caller's cache policy. It does not change the numerical effect
+threshold, autocast dtype or training policy. CPU CLI checks exercise reduced local vision snapshots for ImageNet, ADE20K,
 NYUv2 and COCO; video tensor execution and distributed accumulation are checked
 separately from real decoding. Completed-epoch continuation is compared using
 fresh CLI processes. The other four providers have bound-component checks,
@@ -345,16 +367,41 @@ not yet a complete released-model CLI validation matrix. Consult the PR's
 executed-test evidence for the actual scope. Score attribution, shortened
 model-specific schedules and the tokenizer/generator distinction remain pending.
 
+### GPU validation checkpoint: 2026-11-19
+
+The CUDA/BF16 diagnostic CLI matrix passed all 35 combinations of five reduced
+providers and seven task/track routes, using real image/video/depth/bbox readers
+with synthetic fixtures. Output contracts, trainable updates and unchanged
+input checkpoints were checked. Geometry neighbors and agreement matched CPU
+exactly for the non-tied test inputs, and the numerical policy was restored.
+All three CUDA tests completed without skips; CPU skips are not this evidence.
+
+On H200 with Python 3.12.13, Torch 2.5.1/cu124 and Transformers 5.16.1,
+all five released-weight providers completed one ImageNet LoRA update and one
+ADE20K DPT update using synthetic inputs and a reduced diagnostic head.
+These ten component cases checked trainable updates, frozen-state preservation
+and unchanged input checkpoint hashes. The RAEv2 case is the K7 tokenizer,
+not the pending generator readout. These checks do not run the full datasets
+or establish manuscript-score correspondence.
+
+A reduced ImageNet CLI case also matched uninterrupted training exactly after
+a completed-epoch stop/resume in fresh CUDA processes, including model,
+optimizer, RNG, loss history and metrics. This covers single-GPU continuation
+in the tested runtime, not distributed CUDA or cross-runtime continuation.
+The local CPU and GPU dependency versions differ; their validation results
+must not be treated as interchangeable environment certifications.
+
 ## Confirmed remaining work and boundaries
 
 | Area | Observed difference and next action |
 | --- | --- |
-| LoRA task integration | The revised CLI connects all five inspected task profiles, with portable completed-epoch continuation. All-provider released-weight CLI verification and GPU/full-result validation remain. Earlier LoRA recipes remain historical. |
-| DPT | The revised CLI connects ADE20K and NYUv2 to the frozen four-tap head and v2 schedule. Released-weight/GPU validation remains. Dense execution follows the inspected single-device source; distributed dense training is not claimed. |
+| LoRA task integration | The revised CLI connects all five inspected task profiles, with portable completed-epoch continuation. Full-data released-weight CLI execution and result validation remain; small component updates do not complete them. Earlier LoRA recipes remain historical. |
+| DPT | The revised CLI connects ADE20K and NYUv2 to the frozen four-tap head and v2 schedule. Full-data released-weight task execution and result validation remain. Dense execution follows the inspected single-device source; distributed dense training is not claimed. |
 | RAEv2 readout | The revised paper's LP/AP generator block 29 at time 0.1 is different from this package's existing tokenizer K7 readout. Keep these identities separate and port the matching generator path. |
 | COCO | Basic5 uses Faster R-CNN bounding-box AP. The existing portable COCO runner already performs detection; historical category-presence scores must not be relabeled as detection AP. New correction metadata is not proof that all corresponding reruns completed. |
 | NYUv2 | The inspected revised source records median-aligned primary depth metrics and unaligned diagnostics. Cross-family alignment correspondence still needs reconciliation; do not silently choose a metric. |
-| Geometry analysis | The revised manuscript adds image/patch nearest-neighbor agreement. Its full source/configuration correspondence has not been validated by this checkpoint. |
+| Geometry analysis | The [feature-array analysis CLI](REPRESENTATION_ANALYSIS.md) adds source-compared image/patch agreement and held-family task-direction fits. Extraction identity, robustness variants and manuscript-number correspondence remain unverified. |
+| SSv2 attentive probing | The revised text describes frame-pooled tokens and a single cross-attention block; inspected paths include cross/self-attention and all spatiotemporal tokens. Keep the existing paths unchanged until the adopted run or protocol is confirmed. This does not block the separate revised LoRA route. |
 
 The supplied manuscript also explicitly describes a category-presence analysis
 separately from Basic5 detection. Preserve that distinction while reconciling
@@ -363,6 +410,15 @@ Basic5 COCO runner. Source availability and component tests do not establish
 the correspondence of any individual manuscript score to a run.
 
 ## Validation commands
+
+The opt-in CUDA matrix is `tests/test_method_revised_cuda_matrix.py`. It exercises
+five reduced synthetic providers across seven task/track CLI routes, geometry
+CPU/CUDA agreement, and fresh-process ImageNet completed-epoch continuation.
+It skips on CPU; such skips are not GPU evidence. On a CUDA host, execute
+`OMP_NUM_THREADS=1 python -m unittest tests.test_method_revised_cuda_matrix` in the
+complete downstream environment and inspect the exit status and skip count.
+Even a successful run uses synthetic weights/data and does not verify released
+checkpoints, full-data results, or distributed CUDA training.
 
 Run the component and COCO regression checks with an installed downstream
 environment:

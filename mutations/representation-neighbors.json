@@ -1,0 +1,112 @@
+{
+  "targets": [
+    {
+      "file": "downstream/representation_neighbors.py",
+      "label": "cosine normalization",
+      "old": "x = x / norm",
+      "new": "x = x",
+      "tests": [
+        "tests.test_representation_neighbors"
+      ]
+    },
+    {
+      "file": "downstream/representation_neighbors.py",
+      "label": "cross-image exclusion",
+      "old": "ids[start:stop, None] == ids[None, :]",
+      "new": "torch.arange(start, stop, device=x.device)[:, None] == torch.arange(n, device=x.device)[None, :]",
+      "tests": [
+        "tests.test_representation_neighbors"
+      ]
+    },
+    {
+      "file": "downstream/representation_neighbors.py",
+      "label": "intersection denominator",
+      "old": "left.shape[0] * k",
+      "new": "left.shape[0] * (k + 1)",
+      "tests": [
+        "tests.test_representation_neighbors"
+      ]
+    },
+    {
+      "file": "downstream/representation_neighbors.py",
+      "label": "duplicate neighbors",
+      "old": "if k > 1 and (ordered[:, 1:] == ordered[:, :-1]).any():",
+      "new": "if False:",
+      "tests": [
+        "tests.test_representation_neighbors"
+      ]
+    },
+    {
+      "file": "downstream/representation_neighbors.py",
+      "label": "spatial flatten order",
+      "old": "maps.permute(0, 2, 3, 1)",
+      "new": "maps.permute(0, 3, 2, 1)",
+      "tests": [
+        "tests.test_representation_neighbors"
+      ]
+    },
+    {
+      "file": "downstream/representation_neighbors.py",
+      "label": "position mean axis",
+      "old": "x - x.mean(0, keepdim=True)",
+      "new": "x - x.mean(1, keepdim=True)",
+      "tests": [
+        "tests.test_representation_neighbors"
+      ]
+    },
+    {
+      "file": "downstream/representation_neighbors.py",
+      "label": "subset seed",
+      "old": "np.random.default_rng(2)",
+      "new": "np.random.default_rng(3)",
+      "tests": [
+        "tests.test_representation_neighbors"
+      ]
+    },
+    {
+      "file": "downstream/representation_neighbors.py",
+      "label": "column share",
+      "old": "neighbor % grid == query % grid",
+      "new": "neighbor // grid == query // grid",
+      "tests": [
+        "tests.test_representation_neighbors"
+      ]
+    },
+    {
+      "file": "downstream/representation_neighbors.py",
+      "label": "pre-normalized preservation",
+      "old": "if pre_normalized:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_representation_neighbors"
+      ]
+    },
+    {
+      "file": "downstream/representation_neighbors.py",
+      "label": "finite norms",
+      "old": "not torch.isfinite(norm).all() or ",
+      "new": "",
+      "tests": [
+        "tests.test_representation_neighbors"
+      ]
+    },
+    {
+      "file": "downstream/representation_neighbors.py",
+      "label": "reject lossy complex projection",
+      "old": "if value.is_complex():",
+      "new": "if False:",
+      "tests": [
+        "tests.test_representation_neighbors"
+      ]
+    },
+    {
+      "file": "downstream/representation_neighbors.py",
+      "label": "exact integer intersection reduction",
+      "old": "int(intersection.sum()) / (left.shape[0] * k)",
+      "new": "float((intersection.double() / k).mean())",
+      "tests": [
+        "tests.test_representation_neighbors"
+      ]
+    }
+  ]
+}

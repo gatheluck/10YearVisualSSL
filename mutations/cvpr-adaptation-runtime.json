@@ -278,6 +278,24 @@
       "tests": [
         "tests.test_cvpr_adaptation_runtime.AdaptationRuntime.test_group_refusals_and_norm_rule"
       ]
+    },
+    {
+      "file": "downstream/adaptation_runtime.py",
+      "label": "disable stale autocast weight cache",
+      "old": "torch.set_autocast_cache_enabled(False)",
+      "new": "torch.set_autocast_cache_enabled(previous)",
+      "tests": [
+        "tests.test_cvpr_adaptation_runtime"
+      ]
+    },
+    {
+      "file": "downstream/adaptation_runtime.py",
+      "label": "restore caller autocast cache policy",
+      "old": "        torch.set_autocast_cache_enabled(previous)",
+      "new": "        torch.set_autocast_cache_enabled(False)",
+      "tests": [
+        "tests.test_cvpr_adaptation_runtime"
+      ]
     }
   ]
 }

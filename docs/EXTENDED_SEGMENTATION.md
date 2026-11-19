@@ -38,8 +38,9 @@ logits, upsampled bilinearly with `align_corners=False`.
 The accepted catalog entries have a fixed class count, `semantic_seg_20` and
 primary metric `mIoU`: ADE20K (150), PASCAL VOC 2012 (21), Cityscapes (19),
 Mapillary Vistas (66), BDD100K (19), and PASCAL Context (59). Cityscapes is a
-catalog entry, not one of the final 45 measured rows. This adds a shared route
-relevant to five measured rows, not six independently validated native ports.
+catalog entry outside the historical 45 measured rows, but is included in the
+revised manuscript's [40-setting Figure 5](CVPR_EXTENDED_COVERAGE.md).
+These are different populations, not six independently validated native results.
 
 SpaceNet's catalog metric is building IoU/F1 but the final table says mIoU.
 SUN RGB-D is depth/RMSE in the supplied catalog but semantic mIoU in the final
@@ -83,7 +84,10 @@ presence fails pending an explicit augmented manifest; it is never silently
 replaced with the smaller training list. Output classes retain numeric train-ID
 order. Mask bytes are validated by the runner, not this standard-library builder;
 release-sized synthetic tests do not certify real dataset contents. Native
-Cityscapes/Context/Mapillary preparation remains external.
+Cityscapes train-ID membership is now provided by the
+[native semantic input builder](EXTENDED_SEMANTIC_INPUTS.md); raw `labelIds`
+are not silently treated as train IDs. Context and Mapillary use the separate
+native-pair conversion path described in that guide.
 
 Profiles are explicit because experimental sources differ:
 

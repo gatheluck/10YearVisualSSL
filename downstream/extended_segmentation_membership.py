@@ -4,7 +4,8 @@ import hashlib
 import json
 from pathlib import Path
 
-COUNTS={'ade20k':(20210,2000,150),'pascal_voc2012':(1464,1449,21),'bdd100k':(7000,1000,19)}
+COUNTS={'ade20k':(20210,2000,150),'pascal_voc2012':(1464,1449,21),'bdd100k':(7000,1000,19),
+        'cityscapes':(2975,500,19)}
 
 
 def build(dataset,root,*,fixture_counts=None):
@@ -33,7 +34,17 @@ def build(dataset,root,*,fixture_counts=None):
         return found
 
     for split,expected in zip(('train','validation'),counts):
-        if dataset=='pascal_voc2012':
+        if dataset=='cityscapes':
+            tag='train' if split=='train' else 'val'
+            image_root=root/'leftImg8bit'/tag
+            mask_root=root/'gtFine'/tag
+            images={p.relative_to(image_root).as_posix().removesuffix('_leftImg8bit.png'):p
+                    for p in sorted(image_root.glob('*/*_leftImg8bit.png'))}
+            masks={p.relative_to(mask_root).as_posix().removesuffix('_gtFine_labelTrainIds.png'):p
+                   for p in sorted(mask_root.glob('*/*_gtFine_labelTrainIds.png'))}
+            if set(images)!=set(masks):
+                raise ValueError('Cityscapes pairs require labelTrainIds; raw labelIds are not a fallback')
+        elif dataset=='pascal_voc2012':
             lists=root/'ImageSets'/'Segmentation'
             if (lists/'trainaug.txt').exists():
                 raise ValueError('trainaug exists: augmented membership needs an explicit separately verified manifest')

@@ -89,6 +89,15 @@
       "tests": [
         "tests.test_method_cvpr_native_bindings"
       ]
+    },
+    {
+      "file": "methods/vggt_omega/downstream_backbone.py",
+      "label": "serialized full-depth fixture DPT cache",
+      "old": "if dims[\"depth\"] == 24",
+      "new": "if False",
+      "tests": [
+        "tests.test_method_cvpr_native_bindings.NativeBindings.test_omega_serialized_fixture_retains_captured_dpt_taps"
+      ]
     }
   ]
 }

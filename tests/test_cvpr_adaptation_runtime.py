@@ -22,6 +22,39 @@ class AdaptationRuntime(unittest.TestCase):
         torch.set_num_threads(1)
         torch.manual_seed(17)
 
+    def test_effect_diagnostic_isolates_autocast_cache_and_restores_caller_state(self):
+        layer = LowRankLinear(nn.Linear(8, 8), rank=4, alpha=4)
+        inputs = torch.randn(4, 8)
+        saved = {name: value.detach().clone() for name, value in layer.named_parameters()}
+        for parameter in layer.parameters():
+            if parameter.requires_grad:
+                parameter.grad = torch.ones_like(parameter)
+        gradients = {name: None if value.grad is None else value.grad.clone()
+                     for name, value in layer.named_parameters()}
+        for cache in (True, False):
+            with torch.autocast('cpu', dtype=torch.bfloat16, cache_enabled=cache):
+                baseline = layer(inputs).detach().clone()  # populate the caller cache
+                rng = torch.get_rng_state().clone()
+                result = check_adapter_effect(lambda: layer(inputs), {'layer': layer})
+                self.assertGreater(result['delta_perturbed'], 0)
+                self.assertEqual(result['delta_restored'], 0)
+                self.assertEqual(torch.is_autocast_cache_enabled(), cache)
+                self.assertTrue(torch.is_autocast_enabled('cpu'))
+                self.assertEqual(torch.get_autocast_dtype('cpu'), torch.bfloat16)
+                torch.testing.assert_close(layer(inputs), baseline, rtol=0, atol=0)
+                torch.testing.assert_close(torch.get_rng_state(), rng, rtol=0, atol=0)
+                def broken():
+                    raise RuntimeError('intentional forward failure')
+                with self.assertRaisesRegex(RuntimeError, 'intentional'):
+                    check_adapter_effect(broken, {'layer': layer})
+                self.assertEqual(torch.is_autocast_cache_enabled(), cache)
+        for name, value in layer.named_parameters():
+            torch.testing.assert_close(value, saved[name], rtol=0, atol=0)
+            if gradients[name] is None:
+                self.assertIsNone(value.grad)
+            else:
+                torch.testing.assert_close(value.grad, gradients[name], rtol=0, atol=0)
+
     def test_separate_rates_and_decay_update_only_selected_parameters(self):
         model = nn.Module()
         model.encoder = LowRankLinear(nn.Linear(4, 4), rank=2, alpha=4)

@@ -57,8 +57,11 @@ def _encoder(spec):
     root = Path(__file__).resolve().parents[2] / "third_party" / "vggt-omega"
     prepare_upstream(root, ("vggt_omega",))
     from vggt_omega.models.aggregator import Aggregator
+    # Full-depth reduced-width fixtures retain the captured DPT cache contract.
+    # Shallower fixtures only exercise final-feature paths, not four-tap DPT.
     kwargs = (dict(**dims, register_attention_block_indices=[0],
-                   cached_layer_indices=tuple(range(dims["depth"]))) if dims else {})
+                   cached_layer_indices=((4, 11, 17, 23) if dims["depth"] == 24
+                                         else tuple(range(dims["depth"])))) if dims else {})
     model = Aggregator(**kwargs)
     state = torch.load(path, map_location="cpu", weights_only=True)
     if isinstance(state, dict) and "model" in state:

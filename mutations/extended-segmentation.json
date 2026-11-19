@@ -147,8 +147,8 @@
     {
       "file": "downstream/extended_segmentation_membership.py",
       "label": "Drop unpaired masks",
-      "old": "if set(images)!=set(masks):",
-      "new": "if False:",
+      "old": "if set(images)!=set(masks): raise ValueError('orphan image/mask: native pairing must be bijective')",
+      "new": "if False: raise ValueError('orphan image/mask: native pairing must be bijective')",
       "tests": [
         "tests.test_extended_segmentation_membership.TestMembership.test_ade_pairs_labels_shift_and_orphans_fail"
       ]

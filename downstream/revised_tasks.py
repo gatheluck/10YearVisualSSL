@@ -26,7 +26,8 @@ from downstream.adaptation_runtime import (
     install_backbone_lora,
 )
 from downstream.extended_distributed import session
-from downstream.spatial_backbones import build_frozen_backbone
+from downstream.revised_precision import runtime_precision, source_precision
+from downstream.spatial_backbones import build_frozen_backbone, is_released_spec
 
 PROFILE = 'b5x_lora_dpt_v2'
 POPULATIONS = {'imagenet': (1281167, 50000), 'ade20k': (20210, 2000),
@@ -200,7 +201,8 @@ def prepare_datasets(cfg, recipe):
         raise ValueError('COCO train/val category mapping differs')
     populations = (len(train), len(val))
     if 'diagnostic' not in cfg:
-        if cfg['backbone'].get('arch') != 'released' or populations != POPULATIONS[task]:
+        spec = cfg['backbone']
+        if not is_released_spec(spec) or populations != POPULATIONS[task]:
             raise ValueError('reference run requires released weights and complete population')
         if task == 'ssv2' and (len(train.class_to_idx) != 174 or train.missing or val.missing):
             raise ValueError('reference SSv2 requires complete 174-class membership')
@@ -340,6 +342,7 @@ def _execute(cfg, out, context):
                   'accumulation_steps': accumulation,
                   'missing_populations': [len(getattr(dataset.dataset if isinstance(dataset, Subset) else dataset, 'missing', [])) for dataset in (train, val)],
                   'precision': 'cuda_bf16' if device.type == 'cuda' else 'cpu_fp32',
+                  'runtime_precision': runtime_precision(),
                   'checkpoint_sha256': identity,
                   'loss_log': losses, 'loss_scope': 'rank0', 'adapter_effect': live,
                   'continuation': (continuation.report() if continuation is not None else
@@ -372,7 +375,7 @@ def run(cfg, out, *, config_bytes=None):
     out = Path(out)
     data = config_bytes if config_bytes is not None else json.dumps(cfg, sort_keys=True).encode()
     now = lambda: datetime.now(UTC).isoformat()
-    with session(cfg['device']) as context:
+    with session(cfg['device']) as context, source_precision(context.device):
         context.agree(contract.sha256_bytes(data))
         context.call(lambda: out.mkdir(parents=True, exist_ok=False), leader=True)
         started = now()

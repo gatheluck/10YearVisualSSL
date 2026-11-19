@@ -41,6 +41,21 @@ VIDEO_RECIPE = {'interpolation': 'bilinear', 'temporal_rng': 'torch', 'augmentat
 _VARIANTS = {"vit_large": "ema_encoder", "vit_giant_xformers": "target_encoder"}
 
 
+
+def is_released_spec(spec):
+    """The selected giant release uses a native constructor name, not an alias.
+
+    Reduced fixtures share this constructor key but carry dimension overrides.
+    Actual checkpoint/key validation remains in the strict encoder loader.
+    """
+    return (
+        spec.get('arch') == 'vit_giant_xformers'
+        and bool(spec.get('encoder'))
+        and spec.get('img_size') == 384 and spec.get('patch_size') == 16
+        and not {'embed_dim', 'depth', 'num_heads'} & spec.keys()
+    )
+
+
 def _encoder(spec):
     arch = spec["arch"]
     if arch not in _VARIANTS:

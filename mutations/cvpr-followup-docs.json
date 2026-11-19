@@ -1,0 +1,25 @@
+{
+  "targets": [
+    {
+      "file": "docs/FINAL_PAPER_COVERAGE.md",
+      "label": "current Extended coverage navigation",
+      "old": "[40-setting Extended ledger](CVPR_EXTENDED_COVERAGE.md)",
+      "new": "[40-setting Extended ledger](missing-coverage.md)",
+      "tests": ["tests.test_cvpr_followup_docs"]
+    },
+    {
+      "file": "docs/REPRESENTATION_ANALYSIS.md",
+      "label": "executable analysis entry point",
+      "old": "python -m downstream.representation_analysis --config analysis-config.json --out runs/new-analysis",
+      "new": "python -m downstream.missing_analysis --config analysis-config.json --out runs/new-analysis",
+      "tests": ["tests.test_cvpr_followup_docs"]
+    },
+    {
+      "file": ".github/workflows/tests.yml",
+      "label": "analysis CLI CI selection",
+      "old": "tests.test_representation_plane tests.test_representation_analysis_cli",
+      "new": "tests.test_representation_plane",
+      "tests": ["tests.test_basic5_component_dependencies.TestDependencyCI"]
+    }
+  ]
+}
