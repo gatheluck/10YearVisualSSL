@@ -258,7 +258,10 @@ AP, AP50, AP75 and size-specific AP in percent. `result.json` retains these
 source percentages; contract `metrics.json` uses the existing `coco_map*`
 fraction-valued keys (including the COCOeval undefined-size sentinel). Outputs 81 through 90 are
 excluded from the 80-category result mapping. Raw RGB is normalized only by
-the detector; it must not receive the other readers' pre-normalized tensors.
+the detector; it must not receive the other readers' pre-normalized tensors. The adapter-effect
+diagnostic uses that same detector transform before inspecting the backbone
+feature map, without depending on the newly initialized FPN. Arbitrary COCO
+image dimensions are padded before patch-aligned providers are invoked.
 
 NYUv2 uses `task: nyuv2`, with either `track: lora` or `track: dpt`, and
 `labeled/nyu_depth_v2_labeled.mat` plus `labeled/splits.mat`. HDF5 handles are

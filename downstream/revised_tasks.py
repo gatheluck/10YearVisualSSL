@@ -275,8 +275,10 @@ def _execute(cfg, out, context):
         def inspect():
             with torch.autocast(device.type, dtype=torch.bfloat16, enabled=device.type == 'cuda'):
                 if task == 'coco':
-                    from downstream.revised_detection import detection_features
-                    return check_adapter_effect(lambda: detection_features(backbone, probe), adapters)
+                    def detector_forward():
+                        images, _ = model.transform(list(probe), None)
+                        return getattr(model.backbone.body, model.backbone.readout)(images.tensors)
+                    return check_adapter_effect(detector_forward, adapters)
                 return check_adapter_effect(lambda: model.features(probe), adapters)
         live = context.call(inspect)
     check_initial_state(model)

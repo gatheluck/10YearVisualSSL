@@ -53,6 +53,24 @@
       "tests": [
         "tests.test_revised_route_loaders"
       ]
+    },
+    {
+      "file": "downstream/revised_tasks.py",
+      "label": "detector probe uses transformed geometry",
+      "old": "return getattr(model.backbone.body, model.backbone.readout)(images.tensors)",
+      "new": "return getattr(model.backbone.body, model.backbone.readout)(probe)",
+      "tests": [
+        "tests.test_revised_detection_probe"
+      ]
+    },
+    {
+      "file": "downstream/revised_tasks.py",
+      "label": "canonical adapter feature precedes trainable FPN",
+      "old": "return getattr(model.backbone.body, model.backbone.readout)(images.tensors)",
+      "new": "return model.backbone(images.tensors)['0']",
+      "tests": [
+        "tests.test_revised_detection_probe"
+      ]
     }
   ]
 }

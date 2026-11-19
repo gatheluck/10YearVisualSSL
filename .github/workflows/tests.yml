@@ -191,7 +191,7 @@ jobs:
             tests.test_revised_remaining_cli tests.test_revised_resume tests.test_revised_cli_resume \
             tests.test_revised_membership tests.test_method_revised_detection_binding \
             tests.test_method_revised_remaining_cli tests.test_revised_route_loaders \
-            tests.test_revised_decoder_dependency \
+            tests.test_revised_decoder_dependency tests.test_revised_detection_probe \
             tests.test_method_revised_cli tests.test_revised_documentation \
             tests.test_method_hf_basic5 \
             tests.test_idv2_evaluation \
