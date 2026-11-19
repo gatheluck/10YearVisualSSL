@@ -139,3 +139,6 @@ Metadata does not prove correct pixels, execution authenticity or paper/workbook
 correspondence. Failed, partial, stale or contradictory attempts need reconciliation.
 Extended FT, BasicFive reuse/wrapper records, Omega accounting, legacy checkpoint
 continuation and frontier response evaluation remain outside this auditor.
+
+A Basic Five cell can bind its recorded protocol hash to the actual JSON using
+the optional [protocol document check](BASIC5_V1_AUDIT.md#auditing-outputs).

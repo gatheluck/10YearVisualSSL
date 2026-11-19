@@ -1,0 +1,85 @@
+{
+  "targets": [
+    {
+      "label": "three seeds",
+      "file": "downstream/accounting.py",
+      "old": "set(expected_seeds) != {0, 1, 2}",
+      "new": "False",
+      "tests": [
+        "tests.test_downstream_accounting.TestV1Reporting"
+      ]
+    },
+    {
+      "label": "horizon",
+      "file": "downstream/accounting.py",
+      "old": "settings.get('epochs') != epochs",
+      "new": "False",
+      "tests": [
+        "tests.test_downstream_accounting.TestV1Reporting"
+      ]
+    },
+    {
+      "label": "caps",
+      "file": "downstream/accounting.py",
+      "old": "settings[key] != 0",
+      "new": "False",
+      "tests": [
+        "tests.test_downstream_accounting.TestV1Reporting"
+      ]
+    },
+    {
+      "label": "required scores",
+      "file": "downstream/accounting.py",
+      "old": "set(scores) != set(fields.values())",
+      "new": "False",
+      "tests": [
+        "tests.test_downstream_accounting.TestV1Reporting"
+      ]
+    },
+    {
+      "label": "raw score correspondence",
+      "file": "downstream/accounting.py",
+      "old": "final[raw] != scores[name]",
+      "new": "False",
+      "tests": [
+        "tests.test_downstream_accounting.TestV1Reporting"
+      ]
+    },
+    {
+      "label": "document identity",
+      "file": "downstream/reference_accounting.py",
+      "old": "document[\"sha256\"] != identity[hash_field]",
+      "new": "False",
+      "tests": [
+        "tests.test_basic5_reference_accounting.BasicFiveAccounting.test_pinned_protocol_limits_horizon_and_seed_selection"
+      ]
+    },
+    {
+      "label": "document track",
+      "file": "downstream/reference_accounting.py",
+      "old": "description.get(\"protocol_id\") != identity[\"protocol_id\"]",
+      "new": "False",
+      "tests": [
+        "tests.test_basic5_reference_accounting.BasicFiveAccounting.test_pinned_protocol_limits_horizon_and_seed_selection"
+      ]
+    },
+    {
+      "label": "document horizon",
+      "file": "downstream/reference_accounting.py",
+      "old": "not positive(horizon) or horizon != cell[\"epochs\"]",
+      "new": "False",
+      "tests": [
+        "tests.test_basic5_reference_accounting.BasicFiveAccounting.test_pinned_protocol_limits_horizon_and_seed_selection"
+      ]
+    },
+    {
+      "label": "document repeats",
+      "file": "downstream/reference_accounting.py",
+      "old": "set(cell[\"expected_seeds\"]) != {0, 1, 2}",
+      "new": "False",
+      "tests": [
+        "tests.test_basic5_reference_accounting.BasicFiveAccounting.test_pinned_protocol_limits_horizon_and_seed_selection"
+      ]
+    }
+  ]
+}

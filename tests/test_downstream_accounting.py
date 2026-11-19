@@ -94,4 +94,111 @@ class TestAccounting(unittest.TestCase):
         self.assertNotEqual(second.returncode,0)
 
 
-if __name__=='__main__':unittest.main()
+
+
+
+class TestV1Reporting(unittest.TestCase):
+    setUp = TestAccounting.setUp
+    run_record = TestAccounting.run_record
+
+    @staticmethod
+    def finalize(record):
+        out = Path(record['out'])
+        manifest = json.loads((out / contract.MANIFEST).read_text())
+        keys = ('task', 'method_ref', 'status', 'config_sha256', 'started_at', 'finished_at', 'seed', 'backbone')
+        contract.write_manifest(out, **{key: manifest[key] for key in keys})
+
+    def make_cell(self, task, fields, epochs, adaptation, cap=0):
+        records = []
+        for seed in (0, 1, 2):
+            settings = dict(epochs=epochs, max_train_samples=cap, max_val_samples=0,
+                            max_steps_per_epoch=0)
+            key = 'detector' if task == 'coco_detection' else 'probe'
+            record = self.run_record(seed, seed, task=task, adaptation=adaptation,
+                                     **{key: settings})
+            out = Path(record['out'])
+            raw = {key: float(seed + index) for index, key in enumerate(fields)}
+            raw['epochs'] = epochs
+            contract.write_metrics(out, raw, {**fields, 'epochs': 'epochs_completed'})
+            path = out / 'results.json'
+            result = json.loads(path.read_text())
+            result['final'] = raw
+            path.write_text(json.dumps(result))
+            self.finalize(record)
+            records.append(record)
+        return records
+
+    def report(self, records, seeds=(0, 1, 2)):
+        return self.accounting.aggregate(records, expected_seeds=list(seeds), basic5_v1=True)
+
+    def test_full_three_seed_output_and_no_scientific_promotion(self):
+        fields = {'top1': 'imagenet_top1', 'top5': 'imagenet_top5'}
+        rows = self.make_cell('imagenet_classification', fields, 100, 'finetune')
+        report = self.report(rows)
+        self.assertTrue(report['complete'])
+        self.assertEqual(report['reporting_protocol'], 'BASIC5_FINETUNE_v1')
+        self.assertEqual(report['metrics']['imagenet_top1']['std'], 1)
+        for row in rows:
+            path = Path(row['out']) / 'results.json'
+            result = json.loads(path.read_text())
+            result.update(canonical_eligible=True, record_value=True)
+            path.write_text(json.dumps(result))
+            self.finalize(row)
+        report = self.report(rows)
+        self.assertFalse(report['record_value'])
+        self.assertFalse(report['canonical_eligible'])
+        with self.assertRaises(ValueError):
+            self.report(rows[:1], [0])
+
+    def test_depth_and_video_cli_report_all_metrics(self):
+        cases = [
+            ('nyuv2_depth', 30, {'rmse': 'nyuv2_rmse', 'abs_rel': 'nyuv2_absrel',
+                                 **{f'delta{i}': f'nyuv2_delta{i}' for i in (1, 2, 3)}}),
+            ('ssv2_video', 50, {'top1': 'ssv2_top1', 'top5': 'ssv2_top5'}),
+        ]
+        for task, epochs, fields in cases:
+            with self.subTest(task=task):
+                root = Path(self.tmp.name) / task
+                root.mkdir()
+                self.root = root
+                rows = self.make_cell(task, fields, epochs, 'frozen')
+                config = root / 'plan.json'
+                config.write_text(json.dumps({'expected_seeds': [0, 1, 2], 'runs': rows}))
+                output = root / 'summary.json'
+                subprocess.run([sys.executable, '-m', 'downstream.accounting', '--basic5-v1',
+                                '--config', str(config), '--out', str(output)], check=True)
+                report = json.loads(output.read_text())
+                self.assertTrue(report['complete'])
+                self.assertEqual(report['reporting_protocol'], 'BASIC5_FAIR_v1')
+                self.assertEqual(set(report['metrics']), set(fields.values()))
+
+    def test_short_capped_missing_or_remapped_scores_excluded(self):
+        fields = {'miou': 'ade20k_miou', 'pacc': 'ade20k_pixel_accuracy'}
+        rows = self.make_cell('ade20k_segmentation', fields, 20, 'attentive')
+        for row, mode in zip(rows, ('missing', 'altered', 'cross_task')):
+            path = Path(row['out']) / contract.METRICS
+            data = json.loads(path.read_text())
+            if mode == 'missing':
+                del data['metrics']['ade20k_miou']
+            elif mode == 'altered':
+                data['metrics']['ade20k_pixel_accuracy'] += 1
+            else:
+                data['metrics']['imagenet_top1'] = 1
+            path.write_text(json.dumps(data))
+            self.finalize(row)
+        report = self.report(rows)
+        self.assertFalse(report['complete'])
+        self.assertEqual(len(report['invalid_runs']), 3)
+        self.assertEqual(report['metrics'], {})
+
+    def test_coco_requires_twelve_full_epochs_and_uncapped_data(self):
+        fields = {f'bbox_mAP{s}': f'coco_map{s}' for s in ('', '_50', '_75', '_small', '_medium', '_large')}
+        rows = self.make_cell('coco_detection', fields, 2, 'frozen', cap=1)
+        report = self.report(rows)
+        self.assertEqual(report['completed_seeds'], [])
+        self.assertIn('v1 epoch horizon differs', report['invalid_runs'][0]['reasons'])
+        self.assertIn('v1 requires uncapped data and updates', report['invalid_runs'][0]['reasons'])
+
+
+if __name__ == '__main__':
+    unittest.main()

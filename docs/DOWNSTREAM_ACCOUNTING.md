@@ -49,3 +49,7 @@ Extended LP/AP and selected BasicFive LP/AP/FT records without fabricating porta
 evidence, explicit identity/population and a recorded successful exit. Neither
 auditor establishes historical score authenticity. The tool does not infer
 missing experiments or perform frontier/Extended evaluations.
+
+The optional `--basic5-v1` mode applies the original three-seed reporting
+requirements across LP/AP/FT. See the [five-task comparison](BASIC5_V1_AUDIT.md)
+for metric, horizon and subset checks and their limits.
