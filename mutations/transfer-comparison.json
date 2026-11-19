@@ -1,0 +1,112 @@
+{
+  "targets": [
+    {
+      "file": "downstream/transfer_comparison.py",
+      "label": "error direction",
+      "old": "direction = -1 if setting['metric'] == 'error' else 1",
+      "new": "direction = 1",
+      "tests": [
+        "tests.test_transfer_comparison"
+      ]
+    },
+    {
+      "file": "downstream/transfer_comparison.py",
+      "label": "error transformation",
+      "old": "1 / (1 + value) if direction == -1 else value / 100",
+      "new": "value / 100",
+      "tests": [
+        "tests.test_transfer_comparison"
+      ]
+    },
+    {
+      "file": "downstream/transfer_comparison.py",
+      "label": "radial denominator",
+      "old": "value / maximum for model, value in transformed.items()",
+      "new": "value for model, value in transformed.items()",
+      "tests": [
+        "tests.test_transfer_comparison"
+      ]
+    },
+    {
+      "file": "downstream/transfer_comparison.py",
+      "label": "strict reversal",
+      "old": "elif (lp < 0) != (ap < 0):",
+      "new": "elif (lp < 0) == (ap < 0):",
+      "tests": [
+        "tests.test_transfer_comparison"
+      ]
+    },
+    {
+      "file": "downstream/transfer_comparison.py",
+      "label": "tie handling",
+      "old": "if lp == 0 or ap == 0:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_transfer_comparison"
+      ]
+    },
+    {
+      "file": "downstream/transfer_comparison.py",
+      "label": "complete membership",
+      "old": "set(scores) != set(models)",
+      "new": "False",
+      "tests": [
+        "tests.test_transfer_comparison"
+      ]
+    },
+    {
+      "file": "downstream/transfer_comparison.py",
+      "label": "finite values",
+      "old": "not math.isfinite(value)",
+      "new": "False",
+      "tests": [
+        "tests.test_transfer_comparison"
+      ]
+    },
+    {
+      "file": "downstream/transfer_comparison.py",
+      "label": "protocol identity",
+      "old": "if not _label(setting['protocol_id'][protocol]):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_transfer_comparison"
+      ]
+    },
+    {
+      "file": "downstream/transfer_comparison.py",
+      "label": "unique rank counts",
+      "old": "if tied == 1 and better < 2:",
+      "new": "if better < 2:",
+      "tests": [
+        "tests.test_transfer_comparison"
+      ]
+    },
+    {
+      "file": "downstream/transfer_comparison.py",
+      "label": "group counting",
+      "old": "group[protocol][model][key] += 1",
+      "new": "group[protocol][model][key] += 0",
+      "tests": [
+        "tests.test_transfer_comparison"
+      ]
+    },
+    {
+      "file": "downstream/transfer_comparison.py",
+      "label": "exclusive output",
+      "old": "args.out.open('x', encoding='utf-8')",
+      "new": "args.out.open('w', encoding='utf-8')",
+      "tests": [
+        "tests.test_transfer_comparison"
+      ]
+    },
+    {
+      "file": "downstream/transfer_comparison.py",
+      "label": "zero normalization",
+      "old": "if maximum == 0:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_transfer_comparison"
+      ]
+    }
+  ]
+}

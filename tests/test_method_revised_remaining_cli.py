@@ -74,6 +74,10 @@ class RemainingCommand(unittest.TestCase):
                     self.assertFalse(result['record_value'])
                     self.assertEqual(result['status'],'diagnostic')
                     self.assertEqual(result['metrics']['n_images'],1)
+                    if task == 'nyuv2':
+                        self.assertEqual(result['reporting']['paper_metric']['field'], 'rmse_unaligned')
+                        self.assertEqual(result['reporting']['paper_metric']['value'], result['metrics']['rmse_unaligned'])
+                        self.assertEqual(result['reporting']['primary_in_record']['value'], result['metrics']['rmse'])
                     self.assertEqual(result['recipe']['optimizer'],'SGD' if task=='coco' else 'AdamW')
                     if task == 'coco':
                         published = json.loads((out/'metrics.json').read_text())['metrics']

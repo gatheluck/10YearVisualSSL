@@ -269,9 +269,8 @@ worker-local. Upright RGB and depth are resized to 224; valid training pixels
 are finite and strictly between 0.1 and 10 metres. LoRA uses a positive 1x1
 readout before resize; DPT applies positivity after resize. The SILog loss
 has no square root and uses coefficient 0.5. Primary metrics use per-image
-median alignment and global valid-pixel aggregation; unaligned diagnostics
-are separate. This explicit source profile does not settle the correspondence
-of manuscript columns to historical runs.
+median alignment and global valid-pixel aggregation; the [paper reporting guide](REVISED_DEPTH_REPORTING.md) selects unaligned RMSE
+for the LoRA and DPT manuscript columns.
 
 Without a `diagnostic` object, the entry point requires `arch: released`
 (V-JEPA2.1 instead uses its native `vit_giant_xformers` constructor, a local
@@ -364,8 +363,8 @@ NYUv2 and COCO; video tensor execution and distributed accumulation are checked
 separately from real decoding. Completed-epoch continuation is compared using
 fresh CLI processes. The other four providers have bound-component checks,
 not yet a complete released-model CLI validation matrix. Consult the PR's
-executed-test evidence for the actual scope. Score attribution, shortened
-model-specific schedules and the tokenizer/generator distinction remain pending.
+executed-test evidence for the actual scope. Select the documented [short schedules](REVISED_SCHEDULES.md) explicitly.
+Full-data score attribution and the tokenizer/generator distinction remain open.
 
 ### GPU validation checkpoint: 2026-11-19
 
@@ -399,8 +398,8 @@ must not be treated as interchangeable environment certifications.
 | DPT | The revised CLI connects ADE20K and NYUv2 to the frozen four-tap head and v2 schedule. Full-data released-weight task execution and result validation remain. Dense execution follows the inspected single-device source; distributed dense training is not claimed. |
 | RAEv2 readout | The revised paper's LP/AP generator block 29 at time 0.1 is different from this package's existing tokenizer K7 readout. Keep these identities separate and port the matching generator path. |
 | COCO | Basic5 uses Faster R-CNN bounding-box AP. The existing portable COCO runner already performs detection; historical category-presence scores must not be relabeled as detection AP. New correction metadata is not proof that all corresponding reruns completed. |
-| NYUv2 | The inspected revised source records median-aligned primary depth metrics and unaligned diagnostics. Cross-family alignment correspondence still needs reconciliation; do not silently choose a metric. |
-| Geometry analysis | The [feature-array analysis CLI](REPRESENTATION_ANALYSIS.md) adds source-compared image/patch agreement and held-family task-direction fits. Extraction identity, robustness variants and manuscript-number correspondence remain unverified. |
+| NYUv2 | The LoRA/DPT run record stores median-aligned RMSE as primary. The author-supplied v2 descriptions select the unaligned field for manuscript reporting. Other tracks require their own provenance. |
+| Geometry analysis | The [feature-array analysis CLI](REPRESENTATION_ANALYSIS.md) adds source-compared image/patch agreement and held-family task-direction fits. The original Figure 7b table statistics matched across five tasks. Extraction identity and fixed two-coordinate attribution remain open. |
 | SSv2 attentive probing | The revised text describes frame-pooled tokens and a single cross-attention block; inspected paths include cross/self-attention and all spatiotemporal tokens. Keep the existing paths unchanged until the adopted run or protocol is confirmed. This does not block the separate revised LoRA route. |
 
 The supplied manuscript also explicitly describes a category-presence analysis
@@ -441,3 +440,50 @@ Run the bound-model contracts in the same downstream environment:
 The `cvpr-bound-runtime`, `cvpr-hf-bindings`, `cvpr-native-bindings` and
 `cvpr-rae-bindings` mutation specifications cover the new behavior. Run each
 with `bin/mutate.py --spec mutations/<name>.json --python <downstream-python>`.
+
+## Author-supplied November v2 run descriptions
+
+The LoRA and DPT v2 Markdown and JSON descriptions were written after the
+experiments from their code and records. The runs consumed earlier task and
+optimizer specifications. Use the v2 descriptions to interpret recorded
+protocol IDs. The descriptions cover six backbones including Cosmos 3 Super.
+The five-provider validation matrix above covers a subset of that population.
+
+DINOv3-7B LoRA uses 50 epochs on ImageNet and 24 on SSv2. Each has three
+original seed records. The COCO bbox LoRA records retain the v1 identifier
+with the same detection recipe. The two-epoch resume diagnostic is excluded.
+For the two revised tracks, report the final scheduled epoch and the mean and
+sample standard deviation over seeds 0, 1 and 2. The source segmented jobs
+reseeded random draws at restart. Portable exact continuation preserves RNG.
+
+For NYUv2 LoRA and DPT, the recorded `rmse` is per-image median-aligned.
+The manuscript reports `rmse_unaligned`. In the three original VGGT Omega
+DPT records the means are 0.408087 and 0.424844 respectively. The latter
+rounds to the manuscript's 0.425. This finding applies to these tracks.
+The original descriptions include internal paths and are kept outside Git.
+
+Across the six models, seven task/track routes and three seeds, all 126
+selected result records matched their completion markers and reached the
+specified final epoch. Independent field-level checks of both evaluation
+count and total updates were possible for 72 records. The ADE20K metrics
+in the other 36 records expose evaluated pixels but no image count, and the
+18 COCO recipes omit a total-step field. The DINOv3-7B short-run recipes
+also record zero activation-checkpointed blocks on ImageNet and 40 on SSv2,
+qualifying the protocol's general activation-checkpointing description.
+
+Use the [transfer comparison guide](TRANSFER_COMPARISON.md) to calculate
+LP/AP pair reversals and radial values from an explicitly selected score table.
+
+A two-GPU NCCL check of the preceding implementation ran the ImageNet, SSv2
+and COCO LoRA CLI on reduced inputs. Each completed uninterrupted training,
+an epoch-boundary stop, and a fresh-process restart. ImageNet and SSv2 matched
+across model, optimizer, RNG, loss and metrics. COCO matched evaluation
+metrics, reported losses and update count, but the checkpoint tensor
+comparison failed. Exact two-GPU detection restart remains unverified.
+
+An additional two-GPU COCO control restored the same checkpoint with zero
+updates and reproduced all saved tensors, metrics and losses exactly. Two
+independent uninterrupted runs also produced identical metrics and losses
+but different trained tensors (maximum absolute trainable-weight difference
+3.73e-9). The strict comparison detected both differences. The particular
+operation responsible for the training variation has not been identified.

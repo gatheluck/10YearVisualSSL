@@ -36,12 +36,14 @@ POPULATIONS = {'imagenet': (1281167, 50000), 'ade20k': (20210, 2000),
 
 def validate_config(cfg):
     required = {'profile', 'task', 'track', 'seed', 'device', 'data_root', 'backbone'}
-    if not isinstance(cfg, dict) or required - cfg.keys() or cfg.keys() - required - {'workers', 'diagnostic', 'micro_batch_size', 'continuation', 'resume', 'stop_after_epoch'}:
+    if not isinstance(cfg, dict) or required - cfg.keys() or cfg.keys() - required - {'workers', 'diagnostic', 'micro_batch_size', 'continuation', 'resume', 'stop_after_epoch', 'schedule'}:
         raise ValueError('missing or unknown revised task configuration fields')
     from downstream.revised_recipe import resolve_recipe
+    if 'schedule' in cfg and (not isinstance(cfg['schedule'], str) or not cfg['schedule']):
+        raise ValueError('schedule must be an explicit nonempty name')
     if cfg['profile'] != PROFILE:
         raise ValueError('unknown revised profile')
-    recipe = resolve_recipe(cfg['task'], cfg['track'])
+    recipe = resolve_recipe(cfg['task'], cfg['track'], schedule=cfg.get('schedule'), backbone=cfg.get('backbone'))
     if type(cfg['seed']) is not int or not 0 <= cfg['seed'] < 2**32:
         raise ValueError('seed must be an unsigned 32-bit integer')
     if cfg['device'] not in ('cpu', 'cuda'):
@@ -226,7 +228,8 @@ def _execute(cfg, out, context):
     from downstream.revised_recipe import resolve_recipe
     task, track, device = cfg['task'], cfg['track'], context.device
     d = cfg.get('diagnostic', {})
-    recipe = resolve_recipe(task, track, effective_batch=d.get('batch_size'))
+    recipe = resolve_recipe(task, track, effective_batch=d.get('batch_size'),
+                            schedule=cfg.get('schedule'), backbone=cfg.get('backbone'))
     if task in ('ade20k', 'nyuv2') and context.world != 1:
         raise ValueError('revised dense source uses single-device execution')
     if recipe.effective_batch % context.world:
@@ -347,6 +350,8 @@ def _execute(cfg, out, context):
                   'loss_log': losses, 'loss_scope': 'rank0', 'adapter_effect': live,
                   'continuation': (continuation.report() if continuation is not None else
                                    'disabled; trainable.pt is not a resume checkpoint')}
+    from downstream.revised_reporting import reporting_fields
+    result.update(reporting_fields(result))
     result = json.loads(json.dumps(result, allow_nan=False))
     def publish():
         (out/'result.json').write_text(json.dumps(result, indent=2, allow_nan=False)+'\n')

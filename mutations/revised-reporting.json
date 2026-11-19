@@ -1,0 +1,103 @@
+{
+  "targets": [
+    {
+      "file": "downstream/revised_reporting.py",
+      "label": "paper is unaligned",
+      "old": "('paper_metric', 'rmse_unaligned', 'none')",
+      "new": "('paper_metric', 'rmse', 'none')",
+      "tests": [
+        "tests.test_revised_reporting"
+      ]
+    },
+    {
+      "file": "downstream/revised_reporting.py",
+      "label": "finite metrics",
+      "old": "not math.isfinite(value)",
+      "new": "False",
+      "tests": [
+        "tests.test_revised_reporting"
+      ]
+    },
+    {
+      "file": "downstream/revised_reporting.py",
+      "label": "reject negative RMSE",
+      "old": "value < 0",
+      "new": "False",
+      "tests": [
+        "tests.test_revised_reporting"
+      ]
+    },
+    {
+      "file": "downstream/revised_reporting.py",
+      "label": "final epoch validity",
+      "old": "result.get('training_complete') is not True",
+      "new": "False",
+      "tests": [
+        "tests.test_revised_reporting"
+      ]
+    },
+    {
+      "file": "downstream/revised_reporting.py",
+      "label": "report identity",
+      "old": "result.get('reporting') != selected",
+      "new": "False",
+      "tests": [
+        "tests.test_revised_reporting"
+      ]
+    },
+    {
+      "file": "downstream/revised_reporting.py",
+      "label": "checkpoint identity",
+      "old": "digest != checkpoint",
+      "new": "False",
+      "tests": [
+        "tests.test_revised_reporting"
+      ]
+    },
+    {
+      "file": "downstream/revised_reporting.py",
+      "label": "config identity",
+      "old": "identity != fingerprint",
+      "new": "False",
+      "tests": [
+        "tests.test_revised_reporting"
+      ]
+    },
+    {
+      "file": "downstream/revised_reporting.py",
+      "label": "contract validation",
+      "old": "ok, _errors = contract.verify(out, config, record['exit_status'])",
+      "new": "ok, _errors = True, []",
+      "tests": [
+        "tests.test_revised_reporting"
+      ]
+    },
+    {
+      "file": "downstream/revised_reporting.py",
+      "label": "legacy primary consistency",
+      "old": "published.get('nyuv2_rmse') != selected['primary_in_record']['value']",
+      "new": "False",
+      "tests": [
+        "tests.test_revised_reporting"
+      ]
+    },
+    {
+      "file": "downstream/revised_tasks.py",
+      "label": "CLI exposes paper metric",
+      "old": "result.update(reporting_fields(result))",
+      "new": "result.update({})",
+      "tests": [
+        "tests.test_method_revised_remaining_cli"
+      ]
+    },
+    {
+      "file": "downstream/revised_reporting.py",
+      "label": "do not echo private contract identifiers",
+      "old": "reasons = ['invalid run contract'] if not ok else []",
+      "new": "reasons = list(_errors)",
+      "tests": [
+        "tests.test_revised_reporting"
+      ]
+    }
+  ]
+}

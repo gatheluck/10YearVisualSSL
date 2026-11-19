@@ -12,8 +12,8 @@
     {
       "file": "downstream/spatial_backbones.py",
       "label": "provider binding",
-      "old": "_load_provider(_PROVIDERS[kind]) if kind in _PROVIDERS else None",
-      "new": "None",
+      "old": "provider = _load_provider(_PROVIDERS[kind]) if kind in _PROVIDERS else None\n    predicate =",
+      "new": "provider = None\n    predicate =",
       "tests": [
         "tests.test_method_revised_released_guard"
       ]

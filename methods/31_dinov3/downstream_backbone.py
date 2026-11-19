@@ -28,3 +28,17 @@ def build(spec):
 
 def build_trainable(spec):
     return build_vision(spec, family='register_cls', expected={'hidden_size': 4096, 'num_hidden_layers': 40, 'num_attention_heads': 32, 'patch_size': 16, 'num_register_tokens': 4}, trainable=True)
+
+
+def revised_schedule(spec, task, track, name):
+    """Explicit author-reported compute-limited schedules for the 7B release."""
+    schedules = {
+        ('imagenet', 'lora', 'B5X_LORA_LP_50EP_v2'): 50,
+        ('ssv2', 'lora', 'B5X_LORA_LP_24EP_v2'): 24,
+    }
+    if spec.get('arch') != 'released' or not spec.get('encoder'):
+        raise ValueError('short schedule requires the released checkpoint profile')
+    key = (task, track, name)
+    if key not in schedules:
+        raise ValueError('unconfirmed task, track or named schedule')
+    return {'epochs': schedules[key], 'protocol_id': name}
