@@ -1737,3 +1737,12 @@ This supersedes earlier pending-registry delivery statements. It does not add
 trainers, execute jobs or prove result-to-run correspondence. JSON paths require
 explicit loader substitution. Refresh private archive selection, README status
 and affected hash-bound approvals, then verify ZIP delivery and anonymity.
+
+### 2026-11-19: author protocol and figure verification
+
+Read the November v2 run descriptions section of [the adaptation guide](CVPR_ADAPTATION.md)
+for the DINOv3 short schedules and NYUv2 paper reporting field. The dated
+[representation analysis](REPRESENTATION_ANALYSIS.md) now includes the original
+figure-table comparison. See [transfer comparison](TRANSFER_COMPARISON.md) for
+the score-table aggregation procedures. Consult the PR for final validation.
+SSv2 attentive probing, SpaceNet and SUN RGB-D remain pending.

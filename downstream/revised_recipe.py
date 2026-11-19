@@ -5,7 +5,7 @@ Recipe identity does not certify correspondence to a particular paper result.
 """
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 
 @dataclass(frozen=True)
@@ -37,7 +37,7 @@ def _integer(value, name, minimum):
         raise ValueError(f'{name} must be an integer >= {minimum}')
 
 
-def resolve_recipe(task: str, track: str, *, effective_batch=None) -> RevisedRecipe:
+def resolve_recipe(task: str, track: str, *, effective_batch=None, schedule=None, backbone=None) -> RevisedRecipe:
     """Resolve only inspected routes; changed batch sizes remain explicit.
 
     All rates scale with effective batch, but the warmup start and cosine floor
@@ -59,7 +59,7 @@ def resolve_recipe(task: str, track: str, *, effective_batch=None) -> RevisedRec
     _integer(batch, 'effective_batch', 1)
     scale = batch / reference_batch
     dense_probe = track == 'dpt'
-    return RevisedRecipe(
+    recipe = RevisedRecipe(
         profile='b5x_lora_dpt_v2',
         source_protocol_id=('B5X_LORA_LP_v1' if task == 'coco' else
                             'B5X_DPT_LP_v2' if dense_probe else 'B5X_LORA_LP_v2'),
@@ -71,6 +71,12 @@ def resolve_recipe(task: str, track: str, *, effective_batch=None) -> RevisedRec
         optimizer='SGD' if task == 'coco' else 'AdamW',
         weight_decay=.0001 if task == 'coco' else .05,
     )
+
+    if schedule is not None:
+        from downstream.spatial_backbones import revised_schedule
+        selected = revised_schedule(backbone, task, track, schedule)
+        recipe = replace(recipe, epochs=selected['epochs'], source_protocol_id=selected['protocol_id'])
+    return recipe
 
 
 def cosine_lr(step: int, total: int, warmup: int, base_lr: float,

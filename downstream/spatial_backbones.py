@@ -347,3 +347,15 @@ def is_released_spec(spec):
     if callable(predicate):
         return predicate(spec) is True
     return spec.get('arch') == 'released'
+
+
+def revised_schedule(spec, task, track, name):
+    """Resolve an explicitly named, provider-owned adopted schedule."""
+    if not isinstance(spec, dict) or not isinstance(name, str) or not name:
+        raise ValueError('named schedule requires an explicit backbone and name')
+    kind = spec.get('kind')
+    provider = _load_provider(_PROVIDERS[kind]) if kind in _PROVIDERS else None
+    resolver = getattr(provider, 'revised_schedule', None)
+    if not callable(resolver):
+        raise ValueError('provider does not declare this revised schedule')
+    return resolver(spec, task, track, name)

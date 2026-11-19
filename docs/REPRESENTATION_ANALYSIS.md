@@ -155,3 +155,56 @@ verify the calculation, not the original features or manuscript numbers.
 
 Run `python -m unittest tests.test_representation_plane` in an environment with
 NumPy. Mutation checks are defined in `mutations/representation-plane.json`.
+
+## Rendering the recorded representation plane
+
+`python -m downstream.representation_plot --analysis runs/new-analysis/analysis.json --families families.json --out runs/new-plot`
+
+The renderer requires NumPy and Matplotlib. `families.json` is an explicit JSON
+array of opaque family identifiers, in exactly the report's `fit_models` order.
+No family is inferred from model names. Keep this mapping with the input evidence;
+it is not inferred from the fold summary. Family labels are displayed, so opaque
+syntax validation is not proof that the chosen names are anonymous.
+
+The new directory contains `representation.svg`, `representation.png` and
+`plot.json`. Points use the common fitted population's average percentile ranks.
+Both reference models must already be excluded. Arrows use the recorded task
+angle plus the explicit display rotation; their radii equal pooled held-family
+`rho_xy`. Wedges show arithmetic fold-angle extrema. Task counts and image-only
+versus two-coordinate correlations appear beside the plot, including the smaller
+COCO population. Coordinates are not rotated. The arrow-only rotation and
+unverified historical identity are stated visibly, and diagnostic reports retain
+that label. No input paths, model IDs or unknown report metadata are propagated.
+
+This is a portable visualization of supplied analysis, not a pixel-identical
+reconstruction of the manuscript figure. Layout and family colors are generic;
+reference stars are omitted because the report does not contain their border
+coordinates. Negative held-family correlations are rejected rather than silently
+reversing arrows: the inspected positive-radius figure gives no convention for
+that case. Full-circle axes retain diagnostic directions outside the first
+quadrant. It does not perform fold-wise reference selection, reference-free
+embedding or domain re-extraction. Source rotation ambiguity remains unresolved.
+
+Behavioral tests validate ranks, arrow endpoints, missing-score task counts,
+record/display consistency, reference exclusion, privacy and real SVG/PNG output.
+Run `python -m unittest tests.test_representation_plot`; mutation checks are in
+`mutations/representation-plot.json`. Synthetic preview inspection verifies
+readability only, not manuscript results or canonical model identity.
+
+### Check against the original figure tables
+
+Applying the portable rank and held-family regression to the original figure's
+coordinate and score tables reproduced the stored Figure 7b numbers at their
+four-decimal precision for all five tasks (104 models, 94 for COCO). This
+checks the analysis from the tables onward. With image agreement alone and
+then both coordinates, pooled Spearman correlations were 0.8798 and 0.8755
+for ImageNet, 0.7246 and 0.7279 for SSv2, 0.5134 and 0.6166 for COCO, 0.1892
+and 0.7506 for ADE20K, and 0.0113 and 0.6695 for NYUv2. The underlying
+feature extraction and original task training remain separate validations.
+
+The archived nested patch-reference selection reports pooled correlations
+0.597 (ADE20K) and 0.595 (NYUv2). A separate archived nested reference-free
+analysis reports 0.692 and 0.738. Those latter values round to the numbers in
+the manuscript, but its text describes two coordinates. The archived
+selection uses three or four coordinates in every selected fold for both
+tasks. Attribution to a fixed two-coordinate analysis remains unresolved.
