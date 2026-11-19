@@ -235,7 +235,13 @@ to zero.
 For SSv2 use `task: ssv2`, `track: lora`: inputs are 16-frame clips from
 `videos/<id>.webm` (or `.mp4`) and `labels/{labels,train,validation}.json`.
 Sampling uses Python RNG; one bicubic crop is shared by all frames, without
-horizontal flipping. Missing videos are counted in `missing_populations`,
+horizontal flipping. Decoding uses Decord; the Linux downstream lock includes
+a pinned, hashed package. The captured source uses this decoder but did not
+provide its exact installed version, so decoder-version identity with the
+historical environment is not certified. On platforms without a compatible
+Decord installation, the video route cannot run; it never silently switches
+to a different decoder. The real-codec test is selected in Linux downstream CI;
+local macOS checks use injected decoded frames and do not certify real decoding. Missing videos are counted in `missing_populations`,
 never replaced with a different clip. Full reference execution requires no
 missing videos. `micro_batch_size` is an SSv2-only positive integer (default
 8, capped to the per-rank effective batch for a reduced diagnostic). Effective
@@ -328,8 +334,10 @@ CPU execution uses float32. CUDA selects bfloat16 backbone/autocast with
 float32 adapters/head, but this task path has not yet been validated on CUDA.
 The implementation preserves RNG around diagnostic feature checks instead of
 copying their historical random-stream side effects, so an identical historical
-initialization trajectory is not claimed. Initial CLI tests exercise a reduced
-local vision snapshot; the other four providers have bound-component checks,
+initialization trajectory is not claimed. CPU CLI checks exercise reduced local vision snapshots for ImageNet, ADE20K,
+NYUv2 and COCO; video tensor execution and distributed accumulation are checked
+separately from real decoding. Completed-epoch continuation is compared using
+fresh CLI processes. The other four providers have bound-component checks,
 not yet a complete released-model CLI validation matrix. Consult the PR's
 executed-test evidence for the actual scope. Score attribution, shortened
 model-specific schedules and the tokenizer/generator distinction remain pending.

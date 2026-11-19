@@ -1,0 +1,31 @@
+{
+  "targets": [
+    {
+      "file": "downstream/requirements.txt",
+      "label": "decord==0.6.0",
+      "old": "decord==0.6.0",
+      "new": "# decoder omitted",
+      "tests": [
+        "tests.test_revised_decoder_dependency.RevisedDecoderDependency.test_linux_lock_supplies_the_declared_decoder_with_hashes"
+      ]
+    },
+    {
+      "file": "downstream/requirements.lock.txt",
+      "label": "51997f20be8958e23b7c4061ba45d0efcd86bffd5fe81c695d0befee0d442976",
+      "old": "51997f20be8958e23b7c4061ba45d0efcd86bffd5fe81c695d0befee0d442976",
+      "new": "0000000000000000000000000000000000000000000000000000000000000000",
+      "tests": [
+        "tests.test_revised_decoder_dependency.RevisedDecoderDependency.test_linux_lock_supplies_the_declared_decoder_with_hashes"
+      ]
+    },
+    {
+      "file": ".github/workflows/tests.yml",
+      "label": "scipy, av, decord, pycocotools",
+      "old": "scipy, av, decord, pycocotools",
+      "new": "scipy, av, pycocotools",
+      "tests": [
+        "tests.test_revised_decoder_dependency.RevisedDecoderDependency.test_ci_imports_decoder_before_running_downstream_tests"
+      ]
+    }
+  ]
+}

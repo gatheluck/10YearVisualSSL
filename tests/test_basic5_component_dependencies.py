@@ -34,6 +34,7 @@ class TestDependencyCI(unittest.TestCase):
                        'tests.test_revised_resume', 'tests.test_revised_cli_resume',
                        'tests.test_revised_membership', 'tests.test_method_revised_detection_binding',
                        'tests.test_method_revised_remaining_cli', 'tests.test_revised_route_loaders',
+                       'tests.test_revised_decoder_dependency',
                        'tests.test_method_revised_cli', 'tests.test_revised_documentation'):
             with self.subTest(module=module):
                 self.assertTrue(_runs_finetune_tests(command, module=module))

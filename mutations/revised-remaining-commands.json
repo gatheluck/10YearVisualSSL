@@ -44,6 +44,15 @@
       "tests": [
         "tests.test_revised_remaining_cli.RemainingCLI.test_video_run_updates_and_publishes_population_metadata"
       ]
+    },
+    {
+      "file": "downstream/revised_tasks.py",
+      "label": "reference microbatch requires explicit override",
+      "old": "if 'diagnostic' in cfg else 8",
+      "new": "if True else 8",
+      "tests": [
+        "tests.test_revised_route_loaders"
+      ]
     }
   ]
 }

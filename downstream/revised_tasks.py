@@ -237,7 +237,8 @@ def _execute(cfg, out, context):
                if task in ('imagenet', 'ssv2', 'coco') else None)
     gen = torch.Generator().manual_seed(cfg['seed']*1000+context.rank if sampler else cfg['seed'])
     workers = cfg.get('workers', 0)
-    physical_batch = cfg.get('micro_batch_size', min(8, recipe.effective_batch // context.world)) if task == 'ssv2' else recipe.effective_batch//context.world
+    default_micro = min(8, recipe.effective_batch // context.world) if 'diagnostic' in cfg else 8
+    physical_batch = cfg.get('micro_batch_size', default_micro) if task == 'ssv2' else recipe.effective_batch//context.world
     if recipe.effective_batch % (physical_batch*context.world):
         raise ValueError('effective batch must divide physical batches across ranks exactly')
     accumulation = recipe.effective_batch // (physical_batch*context.world)
