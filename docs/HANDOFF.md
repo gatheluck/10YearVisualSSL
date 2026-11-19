@@ -14,11 +14,22 @@ delivery status and permission assumptions do not describe today's workflow.
 
 ### 2026-11-18: revised manuscript and attention adapters
 
+The task-integration follow-up adds the explicit `b5x_lora_dpt_v2` CLI for
+ImageNet LoRA and ADE20K LoRA/DPT. Its inspected readers, separate adapter/head
+rates and per-update schedule are documented in the
+[revised task entry point](CVPR_ADAPTATION.md#revised-image-and-semantic-task-cli).
+This supersedes the missing-CLI boundary for those three routes only. Diagnostic
+outputs remain distinct from full component execution, and neither is certified
+as a manuscript result. Other revised tasks, all-provider released-weight
+execution, CUDA verification and continuation remain separate work;
+`trainable.pt` is explicitly not a resume checkpoint. Refer to delivery evidence
+for actual test/CI status rather than inferring it from this implementation note.
+
 The subsequent model-binding change exposes frozen-base LoRA gradient paths and
 four-layer DPT features for the inspected vision, video, aggregator and tokenizer
 providers, plus a frozen-backbone/dense-head composition. See the
 [explicit bindings](CVPR_ADAPTATION.md#explicit-model-bindings). This supersedes
-the earlier missing-model-binding boundary only; task recipes/CLI, released
+the earlier missing-model-binding boundary only; broader task recipes/CLI, released
 weights, CUDA/distributed execution and full results remain separate work. The
 RAEv2 tokenizer binding is not the revised generator LP/AP profile. Source
 comparisons, RED/GREEN, mutation and delivery evidence belong to the task/PR;

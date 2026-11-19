@@ -1,0 +1,211 @@
+{
+  "targets": [
+    {
+      "file": "downstream/revised_tasks.py",
+      "label": "reject unknown top level",
+      "old": "or cfg.keys() - required - {'workers', 'diagnostic'}",
+      "new": "",
+      "tests": [
+        "tests.test_revised_task_cli"
+      ]
+    },
+    {
+      "file": "downstream/revised_tasks.py",
+      "label": "validate profile",
+      "old": "cfg['profile'] != PROFILE or ",
+      "new": "",
+      "tests": [
+        "tests.test_revised_task_cli"
+      ]
+    },
+    {
+      "file": "downstream/revised_tasks.py",
+      "label": "seed bool invalid",
+      "old": "type(cfg['seed']) is not int",
+      "new": "not isinstance(cfg['seed'], int)",
+      "tests": [
+        "tests.test_revised_task_cli"
+      ]
+    },
+    {
+      "file": "downstream/revised_tasks.py",
+      "label": "explicit device",
+      "old": "if cfg['device'] not in ('cpu', 'cuda'):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_revised_task_cli"
+      ]
+    },
+    {
+      "file": "downstream/revised_tasks.py",
+      "label": "data path required",
+      "old": "if not isinstance(cfg['data_root'], str) or not cfg['data_root'].strip():",
+      "new": "if False:",
+      "tests": [
+        "tests.test_revised_task_cli"
+      ]
+    },
+    {
+      "file": "downstream/revised_tasks.py",
+      "label": "provider required",
+      "old": "if not isinstance(cfg['backbone'], dict) or not cfg['backbone'].get('kind'):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_revised_task_cli"
+      ]
+    },
+    {
+      "file": "downstream/revised_tasks.py",
+      "label": "workers nonnegative",
+      "old": "if type(cfg.get('workers', 0)) is not int or cfg.get('workers', 0) < 0:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_revised_task_cli"
+      ]
+    },
+    {
+      "file": "downstream/revised_tasks.py",
+      "label": "known diagnostic fields",
+      "old": "if not isinstance(d, dict) or d.keys() - allowed:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_revised_task_cli"
+      ]
+    },
+    {
+      "file": "downstream/revised_tasks.py",
+      "label": "positive diagnostic values",
+      "old": "if any(type(v) is not int or v < 1 for v in d.values()):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_revised_task_cli"
+      ]
+    },
+    {
+      "file": "downstream/revised_tasks.py",
+      "label": "diagnostic horizon",
+      "old": "if d.get('epochs', 1) > (100 if cfg['task'] == 'imagenet' else 20):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_revised_task_cli"
+      ]
+    },
+    {
+      "file": "downstream/revised_tasks.py",
+      "label": "normal head initialization",
+      "old": "nn.init.normal_(self.head.weight, std=.01)",
+      "new": "nn.init.zeros_(self.head.weight)",
+      "tests": [
+        "tests.test_revised_task_cli"
+      ]
+    },
+    {
+      "file": "downstream/revised_tasks.py",
+      "label": "base eval",
+      "old": "self.backbone.eval()",
+      "new": "self.backbone.train()",
+      "tests": [
+        "tests.test_revised_task_cli"
+      ]
+    },
+    {
+      "file": "downstream/revised_tasks.py",
+      "label": "keep frozen global readout",
+      "old": "readout(images, adaptation='frozen')",
+      "new": "readout(images, adaptation='finetune')",
+      "tests": [
+        "tests.test_revised_task_cli"
+      ]
+    },
+    {
+      "file": "downstream/revised_tasks.py",
+      "label": "classification head seed",
+      "old": "torch.manual_seed(seed)\n        model = AdaptedTask",
+      "new": "torch.manual_seed(seed + 1)\n        model = AdaptedTask",
+      "tests": [
+        "tests.test_revised_task_cli"
+      ]
+    },
+    {
+      "file": "downstream/revised_tasks.py",
+      "label": "fixed source global sampler",
+      "old": "if task == 'imagenet' else None)",
+      "new": "if False else None)",
+      "tests": [
+        "tests.test_revised_task_cli"
+      ]
+    },
+    {
+      "file": "downstream/revised_tasks.py",
+      "label": "train loader drop tail",
+      "old": "sampler=sampler, shuffle=sampler is None, drop_last=True",
+      "new": "sampler=sampler, shuffle=sampler is None, drop_last=False",
+      "tests": [
+        "tests.test_revised_task_cli"
+      ]
+    },
+    {
+      "file": "downstream/revised_tasks.py",
+      "label": "source generator seed",
+      "old": "cfg['seed']*1000+context.rank if sampler else cfg['seed']",
+      "new": "cfg['seed'] if sampler else cfg['seed']",
+      "tests": [
+        "tests.test_revised_task_cli"
+      ]
+    },
+    {
+      "file": "downstream/revised_tasks.py",
+      "label": "checkpoint content identity",
+      "old": "contract.sha256_file(p)",
+      "new": "'constant'",
+      "tests": [
+        "tests.test_revised_task_cli"
+      ]
+    },
+    {
+      "file": "downstream/revised_tasks.py",
+      "label": "no automatic score certification",
+      "old": "'record_value': False",
+      "new": "'record_value': True",
+      "tests": [
+        "tests.test_revised_task_cli"
+      ]
+    },
+    {
+      "file": "downstream/revised_tasks.py",
+      "label": "honest incomplete status",
+      "old": "'training_complete': epochs_completed == recipe.epochs",
+      "new": "'training_complete': True",
+      "tests": [
+        "tests.test_revised_task_cli"
+      ]
+    },
+    {
+      "file": "downstream/revised_tasks.py",
+      "label": "refuse output overwrite",
+      "old": "out.mkdir(parents=True, exist_ok=False)",
+      "new": "out.mkdir(parents=True, exist_ok=True)",
+      "tests": [
+        "tests.test_revised_task_cli"
+      ]
+    },
+    {
+      "file": "downstream/revised_tasks.py",
+      "label": "save trainable only",
+      "old": "if p.requires_grad},",
+      "new": "if True},",
+      "tests": [
+        "tests.test_revised_task_cli"
+      ]
+    },
+    {
+      "file": ".github/workflows/tests.yml",
+      "label": "CLI CI entry",
+      "old": "tests.test_revised_engine tests.test_revised_task_cli",
+      "new": "tests.test_revised_engine",
+      "tests": [
+        "tests.test_basic5_component_dependencies.TestDependencyCI"
+      ]
+    }
+  ]
+}

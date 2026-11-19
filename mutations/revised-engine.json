@@ -1,0 +1,157 @@
+{
+  "targets": [
+    {
+      "file": "downstream/revised_engine.py",
+      "label": "schedule before update",
+      "old": "set_learning_rates(optimizer, recipe, step, steps_per_epoch)",
+      "new": "set_learning_rates(optimizer, recipe, step + 1, steps_per_epoch)",
+      "tests": [
+        "tests.test_revised_engine.RevisedEngine.test_three_updates_equal_absolute_schedule_and_clipped_reference"
+      ]
+    },
+    {
+      "file": "downstream/revised_engine.py",
+      "label": "global gradient clip",
+      "old": "torch.nn.utils.clip_grad_norm_(trainable, recipe.clip_norm)",
+      "new": "torch.nn.utils.clip_grad_norm_(trainable, 1e9)",
+      "tests": [
+        "tests.test_revised_engine.RevisedEngine.test_three_updates_equal_absolute_schedule_and_clipped_reference"
+      ]
+    },
+    {
+      "file": "downstream/revised_engine.py",
+      "label": "mean rank gradients",
+      "old": "flat /= _world()",
+      "new": "flat *= 1",
+      "tests": [
+        "tests.test_revised_engine.RevisedEngine.test_two_rank_update_uneven_metrics_and_collective_failure"
+      ]
+    },
+    {
+      "file": "downstream/revised_engine.py",
+      "label": "initial state verification",
+      "old": "_require_all(torch.equal(flat, reference), flat.device, \"rank initial parameters differ\")",
+      "new": "_require_all(True, flat.device, \"rank initial parameters differ\")",
+      "tests": [
+        "tests.test_revised_engine.RevisedEngine.test_two_rank_update_uneven_metrics_and_collective_failure"
+      ]
+    },
+    {
+      "file": "downstream/revised_engine.py",
+      "label": "ImageNet class 255",
+      "old": "ignore_index=255 if recipe.task == \"ade20k\" else -100",
+      "new": "ignore_index=255",
+      "tests": [
+        "tests.test_revised_engine.RevisedEngine.test_imagenet_class_255_is_not_a_segmentation_ignore_label"
+      ]
+    },
+    {
+      "file": "downstream/revised_engine.py",
+      "label": "truncation cap",
+      "old": "if max_steps and step >= max_steps:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_revised_engine.RevisedEngine.test_cap_retains_protocol_horizon_and_reports_actual_updates"
+      ]
+    },
+    {
+      "file": "downstream/revised_engine.py",
+      "label": "zero adapter gradient",
+      "old": "_require_all(zero <= .1 * len(adapters), device, \"LoRA B gradient is absent or zero\")",
+      "new": "_require_all(True, device, \"LoRA B gradient is absent or zero\")",
+      "tests": [
+        "tests.test_revised_engine.RevisedEngine.test_unused_adapter_gradient_is_rejected"
+      ]
+    },
+    {
+      "file": "downstream/revised_engine.py",
+      "label": "nonfinite gradient",
+      "old": "all(p.grad is None or torch.isfinite(p.grad).all() for p in trainable)",
+      "new": "True",
+      "tests": [
+        "tests.test_revised_engine.RevisedEngine.test_nonfinite_backward_rejected_before_update"
+      ]
+    },
+    {
+      "file": "downstream/revised_engine.py",
+      "label": "nonfinite loss",
+      "old": "_require_all(torch.isfinite(loss), device, \"nonfinite revised training loss\")",
+      "new": "_require_all(True, device, \"nonfinite revised training loss\")",
+      "tests": [
+        "tests.test_revised_engine.RevisedEngine.test_nonfinite_loss_and_zero_update_inputs_fail_without_weights_changed"
+      ]
+    },
+    {
+      "file": "downstream/revised_engine.py",
+      "label": "present-class union",
+      "old": "present = union > 0",
+      "new": "present = intersection > 0",
+      "tests": [
+        "tests.test_revised_engine.RevisedEngine.test_metrics_use_global_pixels_present_classes_and_topk_counts"
+      ]
+    },
+    {
+      "file": "downstream/revised_engine.py",
+      "label": "segmentation ignore pixels",
+      "old": "valid = labels != 255",
+      "new": "valid = torch.ones_like(labels, dtype=torch.bool)",
+      "tests": [
+        "tests.test_revised_engine.RevisedEngine.test_metrics_use_global_pixels_present_classes_and_topk_counts"
+      ]
+    },
+    {
+      "file": "downstream/revised_engine.py",
+      "label": "top-five counts",
+      "old": "(top == labels[:, None]).any(1).sum()",
+      "new": "(top[:, 0] == labels).sum()",
+      "tests": [
+        "tests.test_revised_engine.RevisedEngine.test_metrics_use_global_pixels_present_classes_and_topk_counts"
+      ]
+    },
+    {
+      "file": "downstream/revised_engine.py",
+      "label": "empty evaluation",
+      "old": "if not torch.isfinite(counts).all() or counts[2] <= 0:",
+      "new": "if not torch.isfinite(counts).all():",
+      "tests": [
+        "tests.test_revised_engine.RevisedEngine.test_metrics_use_global_pixels_present_classes_and_topk_counts"
+      ]
+    },
+    {
+      "file": "downstream/revised_engine.py",
+      "label": "training decode stage",
+      "old": "batch = _stage(lambda: next(iterator), device)",
+      "new": "batch = next(iterator)",
+      "tests": [
+        "tests.test_revised_engine.RevisedEngine.test_rank_local_loader_forward_backward_errors_propagate"
+      ]
+    },
+    {
+      "file": "downstream/revised_engine.py",
+      "label": "training forward stage",
+      "old": "loss = _stage(forward_loss, device)",
+      "new": "loss = forward_loss()",
+      "tests": [
+        "tests.test_revised_engine.RevisedEngine.test_rank_local_loader_forward_backward_errors_propagate"
+      ]
+    },
+    {
+      "file": "downstream/revised_engine.py",
+      "label": "training backward stage",
+      "old": "_stage(loss.backward, device)",
+      "new": "loss.backward()",
+      "tests": [
+        "tests.test_revised_engine.RevisedEngine.test_rank_local_loader_forward_backward_errors_propagate"
+      ]
+    },
+    {
+      "file": "downstream/revised_engine.py",
+      "label": "uneven evaluation failure stage",
+      "old": "_stage(local_evaluation, device)",
+      "new": "local_evaluation()",
+      "tests": [
+        "tests.test_revised_engine.RevisedEngine.test_rank_local_loader_forward_backward_errors_propagate"
+      ]
+    }
+  ]
+}
