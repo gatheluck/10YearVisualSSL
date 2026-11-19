@@ -62,7 +62,7 @@ class RevisedCLI(unittest.TestCase):
     def test_config_rejects_unknown_or_implicit_recipe_changes(self):
         cfg = self.config()
         self.api.validate_config(cfg)
-        for change in ({'profile': 'legacy'}, {'track': 'finetune'}, {'task': 'nyuv2'},
+        for change in ({'profile': 'legacy'}, {'track': 'finetune'}, {'task': 'unknown'},
                        {'epochs': 1}, {'seed': True}, {'diagnostic': {'batch_size': 0}},
                        {'diagnostic': {'unknown': 1}}, {'device': 'imaginary'},
                        {'data_root': ''}, {'backbone': None}, {'workers': -1},

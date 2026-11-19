@@ -57,14 +57,45 @@ class RevisedRecipeTests(unittest.TestCase):
             self.assertEqual(recipe.start_lr, 1e-6)
 
     def test_unconfirmed_routes_and_invalid_batches_fail_closed(self):
-        for task, track in [('imagenet', 'dpt'), ('nyuv2', 'dpt'),
-                            ('ssv2', 'lora'), ('ade20k', 'LORA'),
+        for task, track in [('imagenet', 'dpt'), ('coco', 'dpt'),
+                            ('ssv2', 'dpt'), ('ade20k', 'LORA'),
                             ('ade20k', 'finetune')]:
             with self.subTest(task=task, track=track), self.assertRaises(ValueError):
                 self.api().resolve_recipe(task, track)
         for batch in (0, -1, True, 1.5, '8'):
             with self.subTest(batch=batch), self.assertRaises(ValueError):
                 self.api().resolve_recipe('ade20k', 'lora', effective_batch=batch)
+
+    def test_video_depth_and_detection_keep_distinct_source_recipes(self):
+        for task, track, epochs, batch, head, adapter in [
+                ('ssv2', 'lora', 50, 256, .001, .0005),
+                ('nyuv2', 'lora', 30, 8, .001, .0001),
+                ('nyuv2', 'dpt', 30, 8, .0005, None),
+                ('coco', 'lora', 12, 16, .02, .02)]:
+            with self.subTest(task=task, track=track):
+                r = self.api().resolve_recipe(task, track)
+                self.assertEqual((r.epochs, r.effective_batch, r.head_lr, r.adapter_lr),
+                                 (epochs, batch, head, adapter))
+                self.assertEqual(r.optimizer, 'SGD' if task == 'coco' else 'AdamW')
+                if task == 'coco':
+                    self.assertEqual((r.momentum, r.weight_decay), (.9, .0001))
+                    self.assertEqual(r.source_protocol_id, 'B5X_LORA_LP_v1')
+
+    def test_detection_warmup_precedes_milestones_and_shared_rate_is_pure(self):
+        api = self.api()
+        r = api.resolve_recipe('coco', 'lora', effective_batch=8)
+        for step, steps, factor in [(0, 100, .001), (250, 100, .5005),
+                                     (499, 10, .998002), (500, 100, 1.),
+                                     (800, 100, .1), (1100, 100, .01)]:
+            self.assertAlmostEqual(api.recipe_learning_rate(r, step, steps, r.head_lr),
+                                   .01 * factor)
+            opt = SimpleNamespace(param_groups=[{'base_lr': r.head_lr, 'lr': 9}])
+            api.set_learning_rates(opt, r, step, steps)
+            self.assertAlmostEqual(opt.param_groups[0]['lr'], .01 * factor)
+        for step, steps, rate in [(-1, 100, .01), (True, 100, .01),
+                                   (1, 0, .01), (1, 100, float('nan'))]:
+            with self.assertRaises(ValueError):
+                api.recipe_learning_rate(r, step, steps, rate)
 
     def test_cosine_uses_zero_based_updates_and_absolute_endpoints(self):
         cosine = self.api().cosine_lr

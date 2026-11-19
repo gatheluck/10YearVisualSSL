@@ -1,0 +1,49 @@
+{
+  "targets": [
+    {
+      "file": "downstream/revised_video.py",
+      "label": "174)",
+      "old": "174)",
+      "new": "173)",
+      "tests": [
+        "tests.test_revised_video.RevisedVideo.test_native_video_gradient_and_mode"
+      ]
+    },
+    {
+      "file": "downstream/revised_video.py",
+      "label": "return F.normalize(tokens.mean(1).float(), dim=-1)",
+      "old": "return F.normalize(tokens.mean(1).float(), dim=-1)",
+      "new": "return tokens.mean(1).float()",
+      "tests": [
+        "tests.test_revised_video.RevisedVideo.test_native_video_gradient_and_mode"
+      ]
+    },
+    {
+      "file": "downstream/revised_video.py",
+      "label": "return readout(clips, adaptation='frozen', video=True)",
+      "old": "return readout(clips, adaptation='frozen', video=True)",
+      "new": "return F.normalize(readout(clips, adaptation='frozen', video=True), dim=-1)",
+      "tests": [
+        "tests.test_revised_video.RevisedVideo.test_provider_readout_is_used_without_renormalization"
+      ]
+    },
+    {
+      "file": "downstream/revised_video.py",
+      "label": "self.backbone.eval()",
+      "old": "self.backbone.eval()",
+      "new": "self.backbone.train()",
+      "tests": [
+        "tests.test_revised_video.RevisedVideo.test_native_video_gradient_and_mode"
+      ]
+    },
+    {
+      "file": "downstream/revised_video.py",
+      "label": "path = path.with_suffix('.mp4')",
+      "old": "path = path.with_suffix('.mp4')",
+      "new": "path = path.with_suffix('.missing')",
+      "tests": [
+        "tests.test_revised_video.RevisedVideo.test_reader_population_geometry_and_failure"
+      ]
+    }
+  ]
+}

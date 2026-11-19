@@ -1,0 +1,157 @@
+{
+  "targets": [
+    {
+      "label": "upright image orientation",
+      "file": "downstream/revised_depth.py",
+      "old": ".transpose(2, 1, 0)",
+      "new": ".transpose(1, 2, 0)",
+      "tests": [
+        "tests.test_revised_depth.RevisedDepth.test_reader_upright_interpolation_mask_and_paired_python_flip"
+      ]
+    },
+    {
+      "label": "upright depth orientation",
+      "file": "downstream/revised_depth.py",
+      "old": "np.array(handle['depths'][frame]).T.astype(np.float32)",
+      "new": "np.array(handle['depths'][frame]).astype(np.float32)",
+      "tests": [
+        "tests.test_revised_depth.RevisedDepth.test_reader_upright_interpolation_mask_and_paired_python_flip"
+      ]
+    },
+    {
+      "label": "depth interpolation",
+      "file": "downstream/revised_depth.py",
+      "old": "Image.Resampling.BILINEAR",
+      "new": "Image.Resampling.NEAREST",
+      "tests": [
+        "tests.test_revised_depth.RevisedDepth.test_reader_upright_interpolation_mask_and_paired_python_flip"
+      ]
+    },
+    {
+      "label": "image interpolation",
+      "file": "downstream/revised_depth.py",
+      "old": "Image.Resampling.BICUBIC",
+      "new": "Image.Resampling.BILINEAR",
+      "tests": [
+        "tests.test_revised_depth.RevisedDepth.test_reader_upright_interpolation_mask_and_paired_python_flip"
+      ]
+    },
+    {
+      "label": "strict lower validity",
+      "file": "downstream/revised_depth.py",
+      "old": "valid = (target > .1) & (target < 10.) & torch.isfinite(target)",
+      "new": "valid = (target >= .1) & (target < 10.) & torch.isfinite(target)",
+      "tests": [
+        "tests.test_revised_depth.RevisedDepth.test_reader_upright_interpolation_mask_and_paired_python_flip"
+      ]
+    },
+    {
+      "label": "strict upper validity",
+      "file": "downstream/revised_depth.py",
+      "old": "valid = (target > .1) & (target < 10.) & torch.isfinite(target)",
+      "new": "valid = (target > .1) & (target <= 10.) & torch.isfinite(target)",
+      "tests": [
+        "tests.test_revised_depth.RevisedDepth.test_reader_upright_interpolation_mask_and_paired_python_flip"
+      ]
+    },
+    {
+      "label": "unit range image",
+      "file": "downstream/revised_depth.py",
+      "old": "if rgb.max() <= 1.:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_revised_depth.RevisedDepth.test_reader_unit_range_pixels_and_handle_pickle_reopen"
+      ]
+    },
+    {
+      "label": "PID-local handle",
+      "file": "downstream/revised_depth.py",
+      "old": "self._handle is None or self._pid != os.getpid()",
+      "new": "self._handle is None",
+      "tests": [
+        "tests.test_revised_depth.RevisedDepth.test_worker_handles_are_reopened_after_probe_access"
+      ]
+    },
+    {
+      "label": "serializable closed handle",
+      "file": "downstream/revised_depth.py",
+      "old": "return dict(self.__dict__, _handle=None, _pid=None)",
+      "new": "return self.__dict__",
+      "tests": [
+        "tests.test_revised_depth.RevisedDepth.test_reader_unit_range_pixels_and_handle_pickle_reopen"
+      ]
+    },
+    {
+      "label": "head positivity order",
+      "file": "downstream/revised_depth.py",
+      "old": "positive = F.softplus(self.head(self.features(images))) + .001\n        return F.interpolate(positive, size=out_hw, mode='bilinear', align_corners=False)",
+      "new": "raw = self.head(self.features(images))\n        return F.softplus(F.interpolate(raw, size=out_hw, mode='bilinear', align_corners=False)) + .001",
+      "tests": [
+        "tests.test_revised_depth.RevisedDepth.test_head_positive_mapping_precedes_resize_and_preserves_gradients"
+      ]
+    },
+    {
+      "label": "base eval",
+      "file": "downstream/revised_depth.py",
+      "old": "self.backbone.eval()",
+      "new": "pass",
+      "tests": [
+        "tests.test_revised_depth.RevisedDepth.test_head_positive_mapping_precedes_resize_and_preserves_gradients"
+      ]
+    },
+    {
+      "label": "loss floor",
+      "file": "downstream/revised_depth.py",
+      "old": "prediction.float().clamp_min(1e-4)",
+      "new": "prediction.float().clamp_min(1e-6)",
+      "tests": [
+        "tests.test_revised_depth.RevisedDepth.test_silog_floor_scale_term_empty_mask_and_shape_contract"
+      ]
+    },
+    {
+      "label": "loss scale term",
+      "file": "downstream/revised_depth.py",
+      "old": " - .5 * residual.mean().square()",
+      "new": " - 1. * residual.mean().square()",
+      "tests": [
+        "tests.test_revised_depth.RevisedDepth.test_silog_floor_scale_term_empty_mask_and_shape_contract"
+      ]
+    },
+    {
+      "label": "lower median",
+      "file": "downstream/revised_depth.py",
+      "old": "truth.median() / raw.median().clamp_min(1e-6)",
+      "new": "torch.quantile(truth, .5) / torch.quantile(raw, .5).clamp_min(1e-6)",
+      "tests": [
+        "tests.test_revised_depth.RevisedDepth.test_metrics_per_image_lower_median_and_global_pixel_weight"
+      ]
+    },
+    {
+      "label": "global pixel RMSE",
+      "file": "downstream/revised_depth.py",
+      "old": "math.sqrt(squared/count)",
+      "new": "math.sqrt(squared/samples)",
+      "tests": [
+        "tests.test_revised_depth.RevisedDepth.test_metrics_per_image_lower_median_and_global_pixel_weight"
+      ]
+    },
+    {
+      "label": "single device guard",
+      "file": "downstream/revised_depth.py",
+      "old": "if torch.distributed.is_initialized() and torch.distributed.get_world_size() != 1:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_revised_depth.RevisedDepth.test_metric_clamps_thresholds_and_rejects_empty_nonfinite_or_multirank"
+      ]
+    },
+    {
+      "label": "optional HDF5 dependency boundary",
+      "file": "downstream/revised_depth.py",
+      "old": "import math\n",
+      "new": "import h5py\nimport math\n",
+      "tests": [
+        "tests.test_revised_depth.RevisedDepthDependencies.test_loss_head_and_evaluator_do_not_require_hdf5_or_scipy"
+      ]
+    }
+  ]
+}

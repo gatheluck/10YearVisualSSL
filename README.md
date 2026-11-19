@@ -70,6 +70,8 @@ whether the original experiments were performed. Each method's README records
 what was exercised in this package. See [scope and terminology](docs/SUBMISSION_SCOPE.md)
 for porting status and the separate evidence needed to verify a reported result.
 
+The revised manuscript has a separate [LoRA/DPT task CLI](docs/CVPR_ADAPTATION.md#revised-image-and-semantic-task-cli): five LoRA task routes, ADE20K/NYUv2 DPT and portable completed-epoch continuation. This source-aligned profile is distinct from the historical experiments below; component support does not certify manuscript scores.
+
 ## Methods
 
 Every method ported so far lives under `methods/`, one directory each, with its

@@ -75,8 +75,8 @@
     {
       "file": "downstream/revised_recipe.py",
       "label": "update horizon",
-      "old": "total = recipe.epochs * steps_per_epoch",
-      "new": "total = recipe.epochs * steps_per_epoch - 1",
+      "old": "recipe.epochs * steps_per_epoch,",
+      "new": "recipe.epochs * steps_per_epoch - 1,",
       "tests": [
         "tests.test_revised_recipe"
       ]
@@ -84,8 +84,8 @@
     {
       "file": "downstream/revised_recipe.py",
       "label": "group base rates",
-      "old": "group['base_lr'],",
-      "new": "recipe.head_lr,",
+      "old": "steps_per_epoch, group['base_lr'])",
+      "new": "steps_per_epoch, recipe.head_lr)",
       "tests": [
         "tests.test_revised_recipe"
       ]
@@ -113,6 +113,42 @@
       "label": "cosine endpoint clamp",
       "old": "progress = min(1., (step - warmup) / (total - warmup))",
       "new": "progress = (step - warmup) / (total - warmup)",
+      "tests": [
+        "tests.test_revised_recipe"
+      ]
+    },
+    {
+      "file": "downstream/revised_recipe.py",
+      "label": "detection warmup priority",
+      "old": "if step < 500 else",
+      "new": "if step < 0 else",
+      "tests": [
+        "tests.test_revised_recipe"
+      ]
+    },
+    {
+      "file": "downstream/revised_recipe.py",
+      "label": "detection milestones",
+      "old": ".01 if epoch >= 11 else .1 if epoch >= 8 else 1.",
+      "new": ".01 if epoch >= 12 else .1 if epoch >= 9 else 1.",
+      "tests": [
+        "tests.test_revised_recipe"
+      ]
+    },
+    {
+      "file": "downstream/revised_recipe.py",
+      "label": "depth horizon",
+      "old": "('nyuv2', 'lora'): (30, 8, .001, .0001, 1)",
+      "new": "('nyuv2', 'lora'): (20, 8, .001, .0001, 1)",
+      "tests": [
+        "tests.test_revised_recipe"
+      ]
+    },
+    {
+      "file": "downstream/revised_recipe.py",
+      "label": "video adapter rate",
+      "old": "('ssv2', 'lora'): (50, 256, .001, .0005, 5)",
+      "new": "('ssv2', 'lora'): (50, 256, .001, .0001, 5)",
       "tests": [
         "tests.test_revised_recipe"
       ]

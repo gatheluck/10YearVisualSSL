@@ -1,0 +1,49 @@
+{
+  "targets": [
+    {
+      "label": "rank mean gradient",
+      "file": "downstream/revised_engine.py",
+      "old": "flat /= _world()",
+      "new": "flat /= 1",
+      "tests": [
+        "tests.test_revised_multitask_distributed.RevisedMultitaskDistributed.test_video_global_accumulated_update_and_uneven_eval"
+      ]
+    },
+    {
+      "label": "microbatch mean loss",
+      "file": "downstream/revised_engine.py",
+      "old": "(loss / accumulation_steps).backward()",
+      "new": "loss.backward()",
+      "tests": [
+        "tests.test_revised_multitask_distributed.RevisedMultitaskDistributed.test_video_global_accumulated_update_and_uneven_eval"
+      ]
+    },
+    {
+      "label": "all rank bbox population",
+      "file": "downstream/revised_detection.py",
+      "old": "rows = [row for part in parts for row in part[0]]",
+      "new": "rows = [row for part in parts[:1] for row in part[0]]",
+      "tests": [
+        "tests.test_revised_multitask_distributed.RevisedMultitaskDistributed.test_coco_uneven_rank_strides_match_single_process"
+      ]
+    },
+    {
+      "label": "prediction stage coordination",
+      "file": "downstream/revised_detection.py",
+      "old": "local = _stage(collect, device)",
+      "new": "local = collect()",
+      "tests": [
+        "tests.test_revised_multitask_distributed.RevisedMultitaskDistributed.test_coco_rank_local_prediction_and_rank_zero_scoring_failures_propagate"
+      ]
+    },
+    {
+      "label": "scoring stage coordination",
+      "file": "downstream/revised_detection.py",
+      "old": "result = _stage(score, device)",
+      "new": "result = score()",
+      "tests": [
+        "tests.test_revised_multitask_distributed.RevisedMultitaskDistributed.test_coco_rank_local_prediction_and_rank_zero_scoring_failures_propagate"
+      ]
+    }
+  ]
+}

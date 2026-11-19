@@ -3,7 +3,7 @@
     {
       "file": "downstream/revised_tasks.py",
       "label": "reject unknown top level",
-      "old": "or cfg.keys() - required - {'workers', 'diagnostic'}",
+      "old": "or cfg.keys() - required - {'workers', 'diagnostic', 'micro_batch_size', 'continuation', 'resume', 'stop_after_epoch'}",
       "new": "",
       "tests": [
         "tests.test_revised_task_cli"
@@ -12,8 +12,8 @@
     {
       "file": "downstream/revised_tasks.py",
       "label": "validate profile",
-      "old": "cfg['profile'] != PROFILE or ",
-      "new": "",
+      "old": "if cfg['profile'] != PROFILE:",
+      "new": "if False:",
       "tests": [
         "tests.test_revised_task_cli"
       ]
@@ -84,7 +84,7 @@
     {
       "file": "downstream/revised_tasks.py",
       "label": "diagnostic horizon",
-      "old": "if d.get('epochs', 1) > (100 if cfg['task'] == 'imagenet' else 20):",
+      "old": "if d.get('epochs', 1) > recipe.epochs:",
       "new": "if False:",
       "tests": [
         "tests.test_revised_task_cli"
@@ -120,8 +120,8 @@
     {
       "file": "downstream/revised_tasks.py",
       "label": "classification head seed",
-      "old": "torch.manual_seed(seed)\n        model = AdaptedTask",
-      "new": "torch.manual_seed(seed + 1)\n        model = AdaptedTask",
+      "old": "torch.manual_seed(seed)\n        if recipe.task == 'ssv2':",
+      "new": "torch.manual_seed(seed + 1)\n        if recipe.task == 'ssv2':",
       "tests": [
         "tests.test_revised_task_cli"
       ]
@@ -129,7 +129,7 @@
     {
       "file": "downstream/revised_tasks.py",
       "label": "fixed source global sampler",
-      "old": "if task == 'imagenet' else None)",
+      "old": "if task in ('imagenet', 'ssv2', 'coco') else None)",
       "new": "if False else None)",
       "tests": [
         "tests.test_revised_task_cli"

@@ -220,8 +220,8 @@
     {
       "file": "downstream/extended_resume.py",
       "label": "atomic publish",
-      "old": "temporary=self.path.with_suffix('.tmp')",
-      "new": "temporary=self.path",
+      "old": "temporary=path.with_suffix('.tmp')",
+      "new": "temporary=path",
       "tests": [
         "tests.test_method_extended_resume.TestResume.test_previous_completed_epoch_survives_failure_and_can_resume"
       ]
@@ -229,7 +229,7 @@
     {
       "file": "downstream/extended_resume.py",
       "label": "source protection",
-      "old": "Path(source).resolve()==self.path.resolve()",
+      "old": "Path(source).resolve()==Path(destination).resolve()",
       "new": "False",
       "tests": [
         "tests.test_method_extended_resume.TestResume.test_resume_source_and_epoch_guards_leave_source_unchanged"

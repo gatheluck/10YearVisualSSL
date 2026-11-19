@@ -103,8 +103,9 @@ the complete original trainer executing locally. Native CUDA autocast was
 disabled by PyTorch in the CPU diagnostic and is not validated here. The
 portable diagnostics additionally restore state and clean up hooks on errors.
 
-The task CLI below adds inspected image/semantic readers and training schedules.
-Released-weight execution, CUDA and continuation still need further validation.
+The task CLI below adds inspected readers and schedules for all five tasks,
+with portable completed-epoch continuation. Released-weight execution, CUDA
+and continuation under GPU execution still need further validation.
 The model-specific tap bindings below provide component access, not proof of
 complete execution across every model and task.
 In particular, the generic evenly spaced rule must not override the captured
@@ -165,16 +166,28 @@ provides a separate `b5x_lora_dpt_v2` profile. It accepts exactly these routes:
 | `imagenet` | `lora` | 100 | 256 | 0.001 | 0.000125 | 5 |
 | `ade20k` | `lora` | 20 | 8 | 0.001 | 0.0001 | 1 |
 | `ade20k` | `dpt` | 20 | 8 | 0.0005 | None | 1 |
+| `ssv2` | `lora` | 50 | 256 | 0.001 | 0.0005 | 5 |
+| `coco` | `lora` | 12 | 16 | 0.02 | 0.02 | 0 |
+| `nyuv2` | `lora` | 30 | 8 | 0.001 | 0.0001 | 1 |
+| `nyuv2` | `dpt` | 30 | 8 | 0.0005 | None | 1 |
 
 The portable `imagenet` task name corresponds to `imagenet1k` in the inspected
-source protocol. All routes use AdamW `(0.9, 0.999)`, weight decay `0.05` and
+source protocol. All routes except COCO use AdamW `(0.9, 0.999)`, weight decay `0.05` and
 global trainable-gradient clipping at `1.0`. Bias/one-dimensional parameters
 and names containing `norm` have no decay. LoRA rank and alpha are both `16`;
 DPT uses hidden width `512`. The head and adapters retain float32 parameters.
-Each parameter group has its own absolute linear warmup from `1e-6` followed
+Each AdamW parameter group has its own absolute linear warmup from `1e-6` followed
 by cosine decay to `1e-6`. Scheduling happens before each zero-based optimizer
 update; the floor is reached at the reference horizon, not one update early.
 Diagnostic truncation does not shorten that reference schedule.
+
+COCO uses the inspected `B5X_LORA_LP_v1` optimizer, retained by the v2 source:
+SGD, momentum `0.9`, weight decay `0.0001`, and the same scaled rate for head
+and adapter parameters. Its first 500 updates use the factor
+`0.001 + 0.999 * step / 500`; thereafter epochs 8 and 11 apply factors 0.1
+and 0.01. Warmup takes precedence even in a tiny diagnostic run. The source
+uses global gradient clipping at 1.0 here too. This is bounding-box detection,
+not category-presence classification.
 
 Save this **template** as `config.json`. Replace the provider placeholder and
 local paths before running. The shown backbone fields illustrate a local
@@ -219,19 +232,53 @@ resize. These readers do not inherit interpolation defaults from older task
 routes. `workers` is an explicit nonnegative loader-worker count, defaulting
 to zero.
 
+For SSv2 use `task: ssv2`, `track: lora`: inputs are 16-frame clips from
+`videos/<id>.webm` (or `.mp4`) and `labels/{labels,train,validation}.json`.
+Sampling uses Python RNG; one bicubic crop is shared by all frames, without
+horizontal flipping. Missing videos are counted in `missing_populations`,
+never replaced with a different clip. Full reference execution requires no
+missing videos. `micro_batch_size` is an SSv2-only positive integer (default
+8, capped to the per-rank effective batch for a reduced diagnostic). Effective
+batch must divide exactly by `micro_batch_size * world_size`. Incomplete
+accumulation groups are not updated; the first unused tail batch is read,
+as in the source, to preserve its RNG effect.
+
+COCO uses `task: coco`, `track: lora`, `images/{train,val}2017` and
+`annotations/instances_{train,val}2017.json`. The source Faster R-CNN has
+91 outputs, contiguous foreground labels, and provider-specific FPN and
+normalization before image resizing/padding. Crowd and <=1-pixel boxes are
+excluded from training; evaluation uses official bbox COCOeval and reports
+AP, AP50, AP75 and size-specific AP in percent. `result.json` retains these
+source percentages; contract `metrics.json` uses the existing `coco_map*`
+fraction-valued keys (including the COCOeval undefined-size sentinel). Outputs 81 through 90 are
+excluded from the 80-category result mapping. Raw RGB is normalized only by
+the detector; it must not receive the other readers' pre-normalized tensors.
+
+NYUv2 uses `task: nyuv2`, with either `track: lora` or `track: dpt`, and
+`labeled/nyu_depth_v2_labeled.mat` plus `labeled/splits.mat`. HDF5 handles are
+worker-local. Upright RGB and depth are resized to 224; valid training pixels
+are finite and strictly between 0.1 and 10 metres. LoRA uses a positive 1x1
+readout before resize; DPT applies positivity after resize. The SILog loss
+has no square root and uses coefficient 0.5. Primary metrics use per-image
+median alignment and global valid-pixel aggregation; unaligned diagnostics
+are separate. This explicit source profile does not settle the correspondence
+of manuscript columns to historical runs.
+
 Without a `diagnostic` object, the entry point requires `arch: released` and
 the reference populations: ImageNet 1,281,167 training / 50,000 validation
-images with 1,000 classes; ADE20K 20,210 / 2,000. These checks are necessary
+images with 1,000 classes; ADE20K 20,210 / 2,000; SSv2 168,913 / 24,777
+with 174 classes; COCO 118,287 / 5,000 with 80 categories; NYUv2 795 / 654. These checks are necessary
 input checks, not proof of a paper result. For a reduced test, add an explicit
 `diagnostic` object, for example
 `"diagnostic": {"epochs": 1, "batch_size": 2, "max_steps": 3}`.
 Optional diagnostic fields also include `max_train_samples`, `max_val_samples`
-and `dpt_hidden`. Diagnostic batch changes linearly scale base learning rates
+and `dpt_hidden`; COCO additionally accepts `detection_size` and
+`detection_proposals` to reduce detector compute explicitly. Diagnostic batch changes linearly scale base learning rates
 while preserving absolute warmup/floor rates and reference-batch metadata.
 Top-level epoch/rate overrides are rejected rather than silently changing the
 reference recipe. The output directory must not already exist.
 
-ImageNet can be launched with
+ImageNet, SSv2 and COCO can be launched with
 `torchrun --master-addr=127.0.0.1 --master-port=29517 --nproc-per-node=2 -m downstream.revised_tasks --config config.json --out runs/new-distributed-run`.
 This is a **single-host** example; ensure port 29517 is unused or select another
 unused port. The tested local launcher needs explicit IPv4 loopback: automatic
@@ -239,21 +286,41 @@ unused port. The tested local launcher needs explicit IPv4 loopback: automatic
 administrator-approved reachable addresses and network configuration, not a
 loopback address shared across hosts.
 Its effective batch must divide evenly across ranks; training drops incomplete
-batches, and validation partitions samples without duplication. ADE20K follows
+batches, and validation partitions samples without duplication. ADE20K and NYUv2 follow
 the inspected single-device trainer and rejects multi-rank execution. These
 interfaces are not evidence of released-checkpoint or multi-GPU validation.
 
 Successful execution writes `result.json`, contract metrics/manifest and
 `trainable.pt` containing only trainable parameters. **`trainable.pt` is not a
-resume checkpoint**: optimizer, data-loader and random-stream continuation are
-not implemented by this entry point. `result.json` retains `record_value: false`
+resume checkpoint**. For exact portable completed-epoch continuation, set
+`continuation: true`, `workers: 0` and optionally `stop_after_epoch: N`.
+Each completed epoch writes a separate atomic `resume.pt` before validation.
+Resume into a **new** output directory with `resume: /path/to/resume.pt`,
+keeping the original recipe and diagnostic horizon; remove or increase the
+stop boundary. A checkpoint already at the target is evaluated/exported
+without another optimizer update. `max_steps` is incompatible with continuation.
+Loss logs explicitly identify `loss_scope: rank0`, as in the source; the leader
+loss is broadcast before a common checkpoint is validated and published.
+
+Continuation validates actual frozen state, checkpoint input bytes, ordered
+train/validation membership and file bytes, recipe, optimizer groups, scheduler
+position, precision, world size, runtime versions and loader policy. It restores
+trainable parameters/buffers, optimizer state and each rank's Python/NumPy/Torch
+and loader-generator states only after collective preflight. Hashing large
+inputs costs an initial full read; file counts and timestamps are not enough.
+Private input paths appear only inside identity digests, not in saved metadata.
+Frozen weights are not copied into the checkpoint. Worker-prefetch state,
+mid-epoch continuation, changed world size and native experimental checkpoint
+imports are deliberately rejected. This is portable continuation, not a claim
+of an identical historical native-checkpoint trajectory. `result.json` retains `record_value: false`
 and `historical_run_verified: false` for every run. `checkpoint_sha256` binds
 the local checkpoint input bytes through a digest without retaining their
 filename or path; the digest identifies an input, not a verified correspondence
 to a paper result.
 `status: diagnostic` marks
 an explicit diagnostic configuration; `status: component_complete` records a
-completed non-diagnostic component run, not a certified paper score. Inspect
+completed non-diagnostic component run, not a certified paper score. A non-diagnostic
+run stopped at an earlier epoch is `component_partial`. Inspect
 `training_complete`, populations, update counts, precision and recipe fields
 as well as the manifest; an `ok` manifest alone is insufficient for reproduction.
 
@@ -271,8 +338,8 @@ model-specific schedules and the tokenizer/generator distinction remain pending.
 
 | Area | Observed difference and next action |
 | --- | --- |
-| LoRA task integration | The revised CLI connects ImageNet and ADE20K with rank 16, alpha 16, an LP head and separate head/adapter rates. SSv2, COCO and NYUv2 revised routes, continuation, all-provider CLI verification and released-weight/GPU validation remain. Earlier LoRA recipes remain historical. |
-| DPT | The revised CLI connects ADE20K to the frozen four-tap head and v2 schedule. NYUv2 task integration and released-weight/GPU validation remain. Dense execution follows the inspected single-device source; distributed dense training is not claimed. |
+| LoRA task integration | The revised CLI connects all five inspected task profiles, with portable completed-epoch continuation. All-provider released-weight CLI verification and GPU/full-result validation remain. Earlier LoRA recipes remain historical. |
+| DPT | The revised CLI connects ADE20K and NYUv2 to the frozen four-tap head and v2 schedule. Released-weight/GPU validation remains. Dense execution follows the inspected single-device source; distributed dense training is not claimed. |
 | RAEv2 readout | The revised paper's LP/AP generator block 29 at time 0.1 is different from this package's existing tokenizer K7 readout. Keep these identities separate and port the matching generator path. |
 | COCO | Basic5 uses Faster R-CNN bounding-box AP. The existing portable COCO runner already performs detection; historical category-presence scores must not be relabeled as detection AP. New correction metadata is not proof that all corresponding reruns completed. |
 | NYUv2 | The inspected revised source records median-aligned primary depth metrics and unaligned diagnostics. Cross-family alignment correspondence still needs reconciliation; do not silently choose a metric. |

@@ -28,12 +28,53 @@ def _probe(model):
     return {k:v for k,v in model.state_dict().items() if not k.startswith(prefix)}
 
 
-def _backbone_digest(model):
+def state_digest(named_state, *, exclude=()):
+    """Hash named tensor bytes, excluding only explicitly supplied exact names."""
+    named_state = dict(named_state)
+    if set(exclude) - named_state.keys():
+        raise ValueError('excluded tensor name is absent from state')
     digest=hashlib.sha256()
-    for name,value in sorted(model.backbone.state_dict().items()):
+    for name,value in sorted(named_state.items()):
+        if name in exclude:
+            continue
         digest.update(json.dumps([name,str(value.dtype),list(value.shape)]).encode())
         digest.update(value.detach().cpu().contiguous().reshape(-1).view(torch.uint8).numpy().tobytes())
     return digest.hexdigest()
+
+
+def _backbone_digest(model):
+    return state_digest(model.backbone.state_dict().items())
+
+
+def read_checkpoint(source, destination):
+    """Read an explicitly separate source with safe tensor-only deserialization."""
+    if not isinstance(source,str) or not source.strip():
+        raise ValueError('resume requires a checkpoint path')
+    if Path(source).resolve()==Path(destination).resolve():
+        raise ValueError('resume requires a different output directory')
+    data=Path(source).read_bytes()
+    return torch.load(io.BytesIO(data),map_location='cpu',weights_only=True),hashlib.sha256(data).hexdigest()
+
+
+def gather_rng(loader, context):
+    """Capture each rank in rank order without advancing its random streams."""
+    local=context.call(lambda:_rng(loader,context.device))
+    states=[local]
+    if context.world>1:
+        states=[None]*context.world
+        torch.distributed.all_gather_object(states,local)
+    return states
+
+
+def atomic_save(blob, path):
+    """Keep the previous checkpoint intact if serialization or replacement fails."""
+    path=Path(path)
+    temporary=path.with_suffix('.tmp')
+    try:
+        torch.save(blob,temporary)
+        temporary.replace(path)
+    finally:
+        temporary.unlink(missing_ok=True)
 
 
 def _rng(loader,device):
@@ -75,12 +116,7 @@ class Continuation:
         context.agree(self.identity)
         source=cfg.get('resume')
         if source is not None:
-            def read():
-                if not isinstance(source,str) or not source.strip(): raise ValueError('resume requires a checkpoint path')
-                if Path(source).resolve()==self.path.resolve(): raise ValueError('resume requires a different output directory')
-                data=Path(source).read_bytes()
-                return torch.load(io.BytesIO(data),map_location='cpu',weights_only=True),hashlib.sha256(data).hexdigest()
-            blob,self.source_sha256=context.call(read)
+            blob,self.source_sha256=context.call(lambda:read_checkpoint(source,self.path))
             context.agree(self.source_sha256)
             context.call(lambda:self._restore(blob,cfg['probe']['epochs']))
             if self.start_epoch==cfg['probe']['epochs']:
@@ -134,21 +170,12 @@ class Continuation:
 
     def save(self,epoch):
         context=self.context
-        local=context.call(lambda:_rng(self.loader,context.device))
-        states=[local]
-        if context.world>1:
-            states=[None]*context.world
-            torch.distributed.all_gather_object(states,local)
+        states=gather_rng(self.loader,context)
         def publish():
             blob=dict(format=self.format_name,identity=self.identity,epoch=epoch,model=_cpu(self.model_state()),
                       optimizer=_cpu(self.opt.state_dict()),scheduler=_cpu(self.scheduler.state_dict()),
                       runtime=copy.deepcopy(self.runtime),rng=states)
-            temporary=self.path.with_suffix('.tmp')
-            try:
-                torch.save(blob,temporary)
-                temporary.replace(self.path)
-            finally:
-                temporary.unlink(missing_ok=True)
+            atomic_save(blob,self.path)
         context.call(publish,leader=True)
 
     def report(self):
