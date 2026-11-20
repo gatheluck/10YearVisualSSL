@@ -596,3 +596,22 @@ rounded that buffer and produced maximum differences of 0.625, 4, 36 and
 For the same NYUv2 input, the other three providers (RAEv2 K7, SigLIP 2-G
 and V-JEPA 2.1-G) already matched the original four taps and initial DPT
 prediction exactly. End-of-training parity remains a separate measurement.
+
+### Full-data reruns after the two precision corrections
+
+Each cell below includes three independent 30-epoch runs (seeds 0, 1 and 2)
+with the same populations and schedules as the earlier NYUv2 table. All 12
+training processes exited successfully. The final auditor verified each
+checkpoint, epoch history, evaluation count and metric contract. For VGGT,
+the first post-training reporting process used incompatible revisions of the
+reporter and recipe and failed. The complete reporter subsequently read all
+six retained training outputs.
+
+| Backbone | Updated DPT | Figure 3 DPT | Updated LoRA | Figure 3 LoRA |
+| --- | ---: | ---: | ---: | ---: |
+| DINOv3-7B | 0.401 +/- 0.001 | 0.401 +/- 0.001 | 0.396 +/- 0.002 | 0.396 +/- 0.002 |
+| VGGT-Omega | 0.428 +/- 0.002 | 0.425 +/- 0.002 | 0.417 +/- 0.003 | 0.418 +/- 0.003 |
+
+All values are unaligned RMSE in meters (mean +/- sample SD). The two
+changes were selected from original loader behavior and fixed-input tests;
+these aggregate reruns assess their effect independently.

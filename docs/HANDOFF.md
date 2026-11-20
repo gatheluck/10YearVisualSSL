@@ -18,7 +18,8 @@ The updated revised trainer preserves VGGT-Omega checkpoint precision. See
 the [fixed-input comparison](CVPR_ADAPTATION.md#vggt-omega-backbone-precision)
 for the four feature taps, the preprocessing control and the scope of the check. The
 [DINOv3 comparison](CVPR_ADAPTATION.md#dinov3-rotary-frequencies) documents
-the separate precision policy for the rotary-frequency buffer.
+the separate precision policy for the rotary-frequency buffer. All 12
+follow-up training runs completed. See the [post-correction results](CVPR_ADAPTATION.md#full-data-reruns-after-the-two-precision-corrections).
 
 ### 2026-11-21: portable Figure 3 output accounting
 
