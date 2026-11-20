@@ -107,7 +107,11 @@ def main():
     parser.add_argument('--out', type=Path, required=True, help='New summary JSON')
     args = parser.parse_args()
     plan = json.loads(args.config.read_text())
-    report = aggregate(plan['runs'], expected_seeds=plan['expected_seeds'])
+    if plan.get('schema') == 'native_figure3_v1':
+        from downstream.revised_native_reporting import audit_native
+        report = audit_native(plan['cells'])
+    else:
+        report = aggregate(plan['runs'], expected_seeds=plan['expected_seeds'])
     with args.out.open('x') as stream:
         stream.write(json.dumps(report, indent=2, allow_nan=False) + '\n')
 
