@@ -263,7 +263,7 @@ def _execute(cfg, out, context):
                             if cfg['backbone'].get('encoder') else None)
     context.agree(identity)
     def probe_input():
-        if device.type == 'cuda':
+        if device.type == 'cuda' and not getattr(backbone, 'preserve_revised_storage', False):
             backbone.to(dtype=torch.bfloat16)
         # Preserve the training RNG stream while validating representative input.
         py, npstate, state = random.getstate(), np.random.get_state(), torch.get_rng_state()

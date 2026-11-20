@@ -78,6 +78,8 @@ def _encoder(spec):
 
 
 class Backbone(nn.Module):
+    # Revised trainers autocast operations while retaining the loaded FP32 aggregator.
+    preserve_revised_storage = True
     reader_profile = ATTENTIVE_PROFILE
     classifier_init_std = .01
     patch_size = 16

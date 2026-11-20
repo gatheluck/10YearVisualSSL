@@ -12,6 +12,12 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-11-21: revised backbone precision
+
+The updated revised trainer preserves VGGT-Omega checkpoint precision. See
+the [fixed-input comparison](CVPR_ADAPTATION.md#vggt-omega-backbone-precision)
+for the four feature taps, the preprocessing control and the scope of the check.
+
 ### 2026-11-21: portable Figure 3 output accounting
 
 The [CVPR checkpoint](CVPR_ADAPTATION.md) describes the three-seed reporting

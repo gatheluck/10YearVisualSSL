@@ -334,8 +334,9 @@ run stopped at an earlier epoch is `component_partial`. Inspect
 `training_complete`, populations, update counts, precision and recipe fields
 as well as the manifest; an `ok` manifest alone is insufficient for reproduction.
 
-CPU execution uses float32. CUDA selects bfloat16 backbone/autocast with
-float32 adapters/head. The dated GPU checks below describe the validated scope;
+CPU execution uses float32. CUDA uses bfloat16 autocast with float32 adapters and heads. The
+VGGT-Omega aggregator retains its loaded float32 parameters and buffers under
+autocast. Other providers retain the existing bfloat16 backbone conversion. The dated GPU checks below describe the validated scope;
 they do not establish full-data execution or numerical score reproduction.
 The inspected classification, detection and dense trainers explicitly enable
 TF32 for CUDA float32 matrix multiplication and cuDNN operations. The revised
@@ -569,3 +570,14 @@ RAEv2 LoRA and V-JEPA 2.1-G DPT. Numerical differences
 at the printed precision remain visible here. Neither the source of such
 differences nor equivalence of the implementations follows from these aggregate
 numbers. The existing holds for other tasks and figures still apply.
+
+### VGGT-Omega backbone precision
+
+For one fixed NYUv2 validation image on H200, we compared the four DPT
+feature tensors against the original trainer with the released aggregator.
+The initial head parameters and depth target matched. Converting the backbone
+to bfloat16 before autocast produced layer-wise maximum absolute differences
+of 0.199, 0.548, 38.567 and 321.567. Preserving the loaded float32 backbone
+produced zero difference at every tap, with either the native image or the
+portable preprocessing. This verifies the storage correction on that input.
+The table above records the earlier implementation.
