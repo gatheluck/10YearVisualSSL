@@ -78,6 +78,7 @@ class NativeReporting(unittest.TestCase):
         self.assertEqual(row['status'], 'invalid')
         self.assertEqual(row['reason'], 'code differs across seeds')
         self.assertNotIn('observed', row)
+        self.assertEqual(row['arithmetic_only'], {'mean': '0.410', 'sd': '0.010'})
 
     def test_identical_code_with_different_recipe_is_invalid(self):
         self.records[2]['recipe']['lr'] = 0.1

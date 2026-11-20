@@ -499,8 +499,12 @@ recipe, and both the mean and sample SD reproduced the displayed values at
 their printed precision. This includes all ten NYUv2 cells, which use
 unaligned RMSE, and both explicitly shortened classification schedules.
 The four exceptions were VGGT-Omega COCO LoRA and RAEv2 ImageNet-1K, COCO
-and SSv2 LoRA. Each had two code digests across its three seeds. The effect
-of those source differences on the reported numbers remains unknown. This
+and SSv2 LoRA. Each had two code digests across its three seeds. Their arithmetic also
+matches at printed precision (35/35 overall). The affected classification
+and detection entry points changed progress logging and wall-time stop
+handling. An independent run across the two versions would be needed to
+measure any effect on results. The report exposes this arithmetic separately
+and retains the failed code-identity check. This
 audit reads historical artifacts. Full-data retraining with the public
 implementation is a separate validation step.
 

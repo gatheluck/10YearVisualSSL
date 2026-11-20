@@ -85,8 +85,6 @@ def compare(cell):
         return dict(row, status='invalid')
     if len({checkpoint for _, checkpoint, _ in identities}) > 1:
         return dict(row, status='invalid', reason='checkpoint differs across seeds')
-    if len({code for code, _, _ in identities}) > 1:
-        return dict(row, status='invalid', reason='code differs across seeds')
     if len({recipe for _, _, recipe in identities}) > 1:
         return dict(row, status='invalid', reason='recipe differs across seeds')
     if len(values) != 3:
@@ -94,6 +92,9 @@ def compare(cell):
     stats = summarize([values[i] for i in range(3)])
     observed = {key: format(stats[name], f'.{digits}f') for key, name in
                 (('mean', 'mean'), ('sd', 'std'))}
+    if len({code for code, _, _ in identities}) > 1:
+        return dict(row, status='invalid', reason='code differs across seeds',
+                    arithmetic_only=observed)
     return dict(row, status='match' if observed == expected else 'mismatch',
                 observed=observed, seeds=sorted(values))
 
