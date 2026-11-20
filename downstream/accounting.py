@@ -24,9 +24,45 @@ def validate_seeds(expected_seeds):
         raise ValueError('expected_seeds must be unique nonnegative integers')
 
 
-def aggregate(records, *, expected_seeds):
+V1_TRACKS = {'frozen': 'BASIC5_FAIR_v1', 'attentive': 'BASIC5_ATTENTIVE_v1',
+             'finetune': 'BASIC5_FINETUNE_v1'}
+V1_REPORTS = {
+    'imagenet_classification': (100, {'top1': 'imagenet_top1', 'top5': 'imagenet_top5'}),
+    'ssv2_video': (50, {'top1': 'ssv2_top1', 'top5': 'ssv2_top5'}),
+    'ade20k_segmentation': (20, {'miou': 'ade20k_miou', 'pacc': 'ade20k_pixel_accuracy'}),
+    'nyuv2_depth': (30, {'rmse': 'nyuv2_rmse', 'abs_rel': 'nyuv2_absrel',
+                         **{f'delta{i}': f'nyuv2_delta{i}' for i in (1, 2, 3)}}),
+    'coco_detection': (12, {f'bbox_mAP{s}': f'coco_map{s}'
+                            for s in ('', '_50', '_75', '_small', '_medium', '_large')}),
+}
+
+
+def _v1_reporting_errors(cfg, final, scores):
+    task = cfg.get('task')
+    if task not in V1_REPORTS or cfg.get('adaptation', 'frozen') not in V1_TRACKS:
+        return ['unknown Basic5 v1 task or track']
+    epochs, fields = V1_REPORTS[task]
+    settings = cfg.get('detector' if task == 'coco_detection' else 'probe', {})
+    reasons = []
+    if settings.get('epochs') != epochs:
+        reasons.append('v1 epoch horizon differs')
+    caps = ('max_train_samples', 'max_val_samples', 'max_steps_per_epoch')
+    if any(type(settings.get(key)) is not int or settings[key] != 0 for key in caps):
+        reasons.append('v1 requires uncapped data and updates')
+    if set(scores) != set(fields.values()):
+        reasons.append('v1 primary or secondary metric set differs')
+    elif any(type(final.get(raw)) not in (int, float) or final[raw] != scores[name]
+             for raw, name in fields.items()):
+        reasons.append('v1 published score differs from final raw metric')
+    return reasons
+
+
+def aggregate(records, *, expected_seeds, basic5_v1=False):
     """Keep missing/invalid repeats explicit; never replace them with zero."""
     validate_seeds(expected_seeds)
+    if basic5_v1 and set(expected_seeds) != {0, 1, 2}:
+        raise ValueError("Basic5 v1 reporting requires expected seeds 0, 1 and 2")
+    protocol = None
     seen, valid, invalid, identity = set(), [], [], None
     for record in records:
         seed=record.get('seed')
@@ -42,6 +78,8 @@ def aggregate(records, *, expected_seeds):
             invalid.append({'seed': seed,'reasons': [f'cannot read config: {type(exc).__name__}']})
             continue
         recipe={k:v for k,v in cfg.items() if k != 'seed'}
+        if basic5_v1:
+            protocol = V1_TRACKS.get(cfg.get('adaptation', 'frozen'))
         fingerprint=contract.sha256_bytes(json.dumps(recipe,sort_keys=True,allow_nan=False).encode())
         if identity is not None and identity != fingerprint:
             raise ValueError('runs differ in recipe, task, checkpoint or dataset; split the cell')
@@ -73,6 +111,8 @@ def aggregate(records, *, expected_seeds):
             scores={k:v for k,v in values.items() if contract.DOWNSTREAM_METRICS.get(k)==contract.COMPARABLE}
             if not scores or any(type(v) not in (int,float) or not math.isfinite(v) for v in scores.values()):
                 reasons.append('missing or nonfinite measured score')
+            if basic5_v1:
+                reasons.extend(_v1_reporting_errors(cfg, final, scores))
         except (OSError, ValueError, KeyError, TypeError, AttributeError) as exc:
             invalid.append({'seed': seed,'reasons': [f'invalid artifacts: {type(exc).__name__}']})
             continue
@@ -91,21 +131,23 @@ def aggregate(records, *, expected_seeds):
         values=[r['metrics'][name] for r in valid]
         metrics[name]=summarize(values)
     complete=len(valid)==len(expected_seeds)
-    return {'schema_version': 1,'recipe_sha256': identity,'expected_seeds': sorted(expected_seeds),
+    return {**({'reporting_protocol': protocol} if basic5_v1 else {}),
+        'schema_version': 1,'recipe_sha256': identity,'expected_seeds': sorted(expected_seeds),
         'completed_seeds': [r['seed'] for r in valid],'missing_seeds': sorted(set(expected_seeds)-seen),
         'invalid_runs': invalid,'per_seed': valid,'complete': complete,'metrics': metrics,
         'selection': 'final_scheduled_epoch','std_convention': 'sample_ddof_1; undefined for n < 2',
-        'canonical_eligible': bool(complete and all(r['canonical_eligible'] for r in valid)),
-        'record_value': bool(complete and all(r['record_value'] for r in valid))}
+        'canonical_eligible': bool(not basic5_v1 and complete and all(r['canonical_eligible'] for r in valid)),
+        'record_value': bool(not basic5_v1 and complete and all(r['record_value'] for r in valid))}
 
 
 def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--config',required=True,help='JSON with expected_seeds and explicit runs')
     parser.add_argument('--out',required=True,help='New report JSON file; existing files are refused')
+    parser.add_argument('--basic5-v1', action='store_true', help='Require all v1 reporting fields, seeds and horizon')
     args=parser.parse_args(argv)
     plan=json.loads(Path(args.config).read_text())
-    report=aggregate(plan['runs'],expected_seeds=plan['expected_seeds'])
+    report=aggregate(plan['runs'],expected_seeds=plan['expected_seeds'], basic5_v1=args.basic5_v1)
     with Path(args.out).open('x') as handle:
         handle.write(json.dumps(report,indent=2,sort_keys=True,allow_nan=False)+'\n')
     return 0

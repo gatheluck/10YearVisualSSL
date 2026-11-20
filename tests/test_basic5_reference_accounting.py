@@ -330,3 +330,28 @@ class BasicFiveAccounting(unittest.TestCase):
             self.assertEqual(cell["missing_seeds"], [0, 1, 2])
             self.assertIsNone(cell["summary"])
             self.assertFalse(cell["complete"])
+
+    def test_pinned_protocol_limits_horizon_and_seed_selection(self):
+        for schema in ('basic5_epoch_v1', 'basic5_scheduled_v1'):
+            cell = self.cell(schema)
+            protocol = {'protocol_id': 'BASIC5_FINETUNE_v1',
+                        'tasks': {'imagenet1k': {'optimization': {'epochs': 100}}}}
+            document = self.artifact(protocol)
+            cell['protocol_document'] = document
+            field = 'protocol_hash' if schema == 'basic5_scheduled_v1' else 'protocol_sha256'
+            cell['identity'][field] = document['sha256']
+            cell['runs'] = [self.record(cell)]
+            report = self.audit(cell)
+            self.assertEqual(report['protocol_document_sha256'], document['sha256'])
+            self.assertEqual(report['completed_seeds'], [0])
+            self.assertNotIn(document['path'], json.dumps(report))
+            for updates in ({'epochs': 99}, {'expected_seeds': [0]}):
+                with self.assertRaises(ValueError):
+                    self.audit(dict(cell, **updates))
+            for changed in (dict(protocol, protocol_id='other'), dict(protocol, tasks={})):
+                doc = self.artifact(changed)
+                variant = dict(cell, protocol_document=doc, identity=dict(cell['identity'], **{field: doc['sha256']}))
+                with self.assertRaises(ValueError):
+                    self.audit(variant)
+            with self.assertRaises(ValueError):
+                self.audit(dict(cell, identity=dict(cell['identity'], **{field: '1' * 64})))

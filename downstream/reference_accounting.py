@@ -137,6 +137,8 @@ def validate_cell(cell):
     }
     if schema != "extended_lp_ap_v1":
         required |= {"source_schema", "track"}
+        if "protocol_document" in cell:
+            required.add("protocol_document")
     if set(cell) != required:
         raise ValueError("cell has missing or unknown fields")
     if not isinstance(cell["cell_id"], str) or not cell["cell_id"].strip():
@@ -174,6 +176,22 @@ def validate_cell(cell):
     )
     if re.fullmatch(r"[0-9a-f]{64}", str(identity[hash_field])) is None:
         raise ValueError("protocol hash is required")
+    if "protocol_document" in cell:
+        document = cell["protocol_document"]
+        description = pinned(document)
+        if document["sha256"] != identity[hash_field]:
+            raise ValueError("protocol document differs from recorded identity")
+        if description.get("protocol_id") != identity["protocol_id"]:
+            raise ValueError("protocol document ID differs")
+        tasks = description.get("tasks")
+        dataset = identity["dataset"]
+        recipe = tasks.get(dataset) if isinstance(tasks, dict) else None
+        optimization = recipe.get("optimization") if isinstance(recipe, dict) else None
+        horizon = optimization.get("epochs") if isinstance(optimization, dict) else None
+        if not positive(horizon) or horizon != cell["epochs"]:
+            raise ValueError("documented task epoch horizon differs")
+        if set(cell["expected_seeds"]) != {0, 1, 2}:
+            raise ValueError("document-backed Basic5 v1 requires three expected seeds")
     canonical(identity)
     metric = cell["metric"]
     if (
@@ -323,6 +341,8 @@ def audit(plan):
                     if "source_schema" in cell
                     else {}
                 ),
+                **({"protocol_document_sha256": cell["protocol_document"]["sha256"]}
+                   if "protocol_document" in cell else {}),
                 "identity_sha256": hashlib.sha256(
                     canonical(cell["identity"])
                 ).hexdigest(),

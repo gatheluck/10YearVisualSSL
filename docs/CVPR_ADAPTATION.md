@@ -487,3 +487,5 @@ independent uninterrupted runs also produced identical metrics and losses
 but different trained tensors (maximum absolute trainable-weight difference
 3.73e-9). The strict comparison detected both differences. The particular
 operation responsible for the training variation has not been identified.
+
+For the preceding LP/AP/FT tracks see the [three v1 protocols and execution comparison](BASIC5_V1_AUDIT.md).

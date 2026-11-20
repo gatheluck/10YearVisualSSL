@@ -1746,3 +1746,9 @@ for the DINOv3 short schedules and NYUv2 paper reporting field. The dated
 figure-table comparison. See [transfer comparison](TRANSFER_COMPARISON.md) for
 the score-table aggregation procedures. Consult the PR for final validation.
 SSv2 attentive probing, SpaceNet and SUN RGB-D remain pending.
+
+### 2026-11-19: original LP/AP/FT protocol audit
+
+The [v1 comparison](BASIC5_V1_AUDIT.md) covers all five tasks, three tracks,
+the captured JSON identities, portable reporting and historical accounting.
+Distinguish the draft single-seed option from original three-seed reporting.

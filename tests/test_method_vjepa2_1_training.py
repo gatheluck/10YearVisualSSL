@@ -19,6 +19,68 @@ except ImportError:
     HAVE = False
 
 
+@unittest.skipUnless(HAVE and importlib.util.find_spec("scipy"), "requires downstream dependencies")
+class TestCorrectedDenseProbe(unittest.TestCase):
+    def config(self):
+        from tests.test_downstream_ade20k import smoke_config
+        cfg = smoke_config(Path('/unused'))
+        backbone = dict(kind='vjepa2_1', arch='vit_large', encoder='', img_size=384, patch_size=16)
+        cfg.update(profile='capture_basic5_components', adaptation='attentive', backbone=backbone,
+                   optimizer_profile='basic5_frozen_v1', training_revision='dense_ap_fp32_norm_bias_v1')
+        cfg['probe']['lr'] = 'protocol'
+        return cfg
+
+    def test_revision_uses_fp32_readout_and_source_decay_groups(self):
+        from torch import nn
+        from downstream import ade20k
+        from downstream.optimization import resolve_optimization, build_optimizer
+        cfg = self.config()
+        ade20k.validate_config(cfg)
+        report = resolve_optimization(cfg, ade20k.TASK)
+
+        class FrozenGrid(nn.Module):
+            out_channels = 8
+
+            def __init__(self):
+                super().__init__()
+                self.projection = nn.Conv2d(3, 8, 4, stride=4).requires_grad_(False)
+
+            def forward_features(self, x):
+                return self.projection(x)
+
+        model = ade20k.FrozenSegModel(FrozenGrid(),
+                                      adaptation='attentive', training_revision=cfg['training_revision'])
+        opt = build_optimizer(model, report)
+        decay = {id(p): group['weight_decay'] for group in opt.param_groups for p in group['params']}
+        self.assertEqual(set(decay), {id(p) for p in model.parameters() if p.requires_grad})
+        for name, p in model.named_parameters():
+            if p.requires_grad:
+                expected = 0 if name.endswith('bias') or 'norm' in name else .05
+                self.assertEqual(decay[id(p)], expected, name)
+        observed = []
+        hook = model.adapter.register_forward_pre_hook(
+            lambda module, args: observed.append((torch.is_autocast_enabled('cpu'), args[0].dtype)))
+        x = torch.randn(2, 3, 32, 32)
+        with torch.autocast('cpu', dtype=torch.bfloat16):
+            logits = model(x)
+        hook.remove()
+        self.assertEqual(observed, [(False, torch.float32)])
+        self.assertEqual(logits.dtype, torch.float32)
+        before = model.head.weight.detach().clone()
+        logits.square().mean().backward()
+        opt.step()
+        self.assertFalse(torch.equal(before, model.head.weight))
+        self.assertTrue(all(p.grad is None for p in model.backbone.parameters()))
+
+    def test_corrected_revision_is_scoped(self):
+        from downstream import ade20k
+        cfg = self.config()
+        for update in ({'training_revision': 'unknown'}, {'adaptation': 'frozen'},
+                       {'backbone': {**cfg['backbone'], 'kind': 'vit'}}, {'optimizer_profile': None}):
+            with self.subTest(update=update), self.assertRaises(ade20k.ConfigError):
+                ade20k.validate_config({**cfg, **update})
+
+
 class TestCoverageDelivery(unittest.TestCase):
     def test_ci_executes_both_modules(self):
         from tests.test_ci import HAVE_YAML, WORKFLOWS, parsed

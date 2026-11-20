@@ -9,6 +9,7 @@ import torch
 PROFILE = "basic5_frozen_v1"
 FT_PROFILE = "basic5_finetune_v1"
 REFERENCE_SCHEDULE = "basic5_reference_schedule_v1"
+DENSE_AP_FP32 = "dense_ap_fp32_norm_bias_v1"
 COCO_SCHEDULE = "coco_frozen_1x_v1"
 DENSE_AP_SCHEDULE = "dense_ap_cosine_v1"
 DENSE_AP_EPOCHS = {"ade20k_segmentation": 20, "nyuv2_depth": 30}
@@ -31,6 +32,14 @@ The existing numeric lr belongs to the legacy optimizer. Requiring the explicit
 sentinel avoids silently ignoring a caller's requested rate. Without explicit
 execution, one process and one physical batch per update are required.
 """
+    from downstream.spatial_backbones import dense_execution_policy
+
+    if "training_revision" in cfg and (
+        cfg["training_revision"] != DENSE_AP_FP32 or task != "ade20k_segmentation"
+        or cfg.get("adaptation", "frozen") != "attentive" or cfg.get("optimizer_profile") != PROFILE
+        or (dense_execution_policy(cfg.get("backbone", {}).get("kind")) or {}).get("ade_ap_revision") != DENSE_AP_FP32
+    ):
+        raise ValueError("training_revision requires a provider with the corrected ADE20K AP recipe")
     if "scheduler_profile" in cfg:
         if cfg["scheduler_profile"] == REFERENCE_SCHEDULE:
             if cfg.get("optimizer_profile") not in (PROFILE, FT_PROFILE):
@@ -113,6 +122,8 @@ execution, one process and one physical batch per update are required.
         "effective_batch": batch, "world_size": 1, "accumulation_steps": 1,
         "drop_last": True, "schedule": "none",
     }
+    if "training_revision" in cfg:
+        report["training_revision"] = cfg["training_revision"]
     report.update({"momentum": .9} if algorithm == "SGD" else {"betas": [.9, .999]})
     if execution is not None:
         report.update(world_size=execution['world_size'], accumulation_steps=execution['accumulation_steps'])
@@ -135,6 +146,14 @@ def build_optimizer(model, report: dict):
         raise ValueError("optimizer_profile found no trainable parameters")
     if report["profile"] == FT_PROFILE:
         params = _finetune_groups(model, report)
+    elif report.get("training_revision") == DENSE_AP_FP32:
+        # The trainable spatial adapter and 1x1 head contain projections, norms and biases.
+        decay, no_decay = [], []
+        for name, parameter in model.named_parameters():
+            if parameter.requires_grad:
+                group = no_decay if name.endswith("bias") or "norm" in name else decay
+                group.append(parameter)
+        params = [{"params": decay}, {"params": no_decay, "weight_decay": 0.0}]
     kwargs = {"lr": report["lr"], "weight_decay": report["weight_decay"]}
     if report["optimizer"] == "SGD":
         return torch.optim.SGD(params, momentum=report["momentum"], **kwargs)
