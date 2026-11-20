@@ -521,3 +521,25 @@ an evaluated pixel count. The audit checks that it is positive; image-level
 membership cannot be reconstructed from that field. Output reports each
 cell as match, mismatch, incomplete or invalid. Inspect these statuses even
 when the command successfully writes a report.
+
+## Auditing portable Figure 3 training outputs
+
+After running the public revised CLI, create a private plan for each model,
+task and track with `schema: portable_figure3_v1`, `expected_seeds: [0, 1, 2]`
+and a `runs` list. Each entry supplies the integer seed, config path, output
+directory (`out`) and recorded process exit status (`exit_status`). Run
+`python -m downstream.revised_reporting --config plan.json --out new-report.json`.
+This mode reads existing public-CLI artifacts for all five LoRA routes and
+both dense DPT routes. It also resolves the two provider-owned short schedules.
+Use the training environment for named schedules.
+
+The report checks the hash-checked output contract, resolved recipe,
+final epoch, recorded train/validation populations, evaluated sample count,
+checkpoint digest and execution topology. The configuration apart from seed
+must be identical across runs. Counts alone cannot establish sample identity.
+COCO bbox AP is reported in percentage points (contract mAP is a fraction).
+Depth uses unaligned RMSE in meters, with the aligned value retained separately.
+Three valid seeds are required for a complete cell. Partial summaries describe
+only the valid seeds listed. No historical result or equivalence to a published
+score is automatically certified. The native historical audit above uses a
+different input schema.

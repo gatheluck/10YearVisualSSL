@@ -4,6 +4,8 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import re
+from dataclasses import asdict
 from pathlib import Path
 
 from downstream import contract
@@ -30,9 +32,59 @@ def reporting_fields(result):
     return {'reporting': values}
 
 
-def aggregate(records, *, expected_seeds):
+def checked_depth_fields(result):
+    selected = reporting_fields(result)['reporting']
+    if result.get('reporting') != selected:
+        raise ValueError('missing or inconsistent explicit paper metric metadata')
+    return selected
+
+
+# Native result field, downstream contract name, contract divisor, evaluation count.
+PORTABLE_METRICS = {
+    'imagenet': ('top1', 'imagenet_top1', 1, 'n'),
+    'ssv2': ('top1', 'ssv2_top1', 1, 'n'),
+    'ade20k': ('miou', 'ade20k_miou', 1, 'n'),
+    'coco': ('bbox_ap', 'coco_map', 100, 'n_images'),
+    'nyuv2': ('rmse_unaligned', 'nyuv2_rmse', 1, 'n_images'),
+}
+
+
+def portable_fields(cfg, result, published):
+    """Verify the reporting contract of a full revised CLI result."""
+    from downstream.revised_recipe import POPULATIONS, resolve_recipe
+    task = cfg['task']
+    recipe = resolve_recipe(task, cfg['track'], schedule=cfg.get('schedule'), backbone=cfg['backbone'])
+    if (cfg.get('profile') != recipe.profile or result['source_protocol_id'] != recipe.source_protocol_id
+            or result['recipe'] != json.loads(json.dumps(asdict(recipe)))):
+        raise ValueError('resolved recipe differs')
+    population = list(POPULATIONS[task])
+    for name in ('source_populations', 'intended_populations', 'used_populations'):
+        if result[name] != population:
+            raise ValueError('full population required')
+    if result['missing_populations'] != [0, 0]:
+        raise ValueError('missing samples')
+    field, name, divisor, count = PORTABLE_METRICS[task]
+    metrics = result['metrics']
+    if metrics[count] != population[1] or (task == 'nyuv2' and metrics['n_input_images'] != population[1]):
+        raise ValueError('evaluated count differs')
+    if task == 'nyuv2':
+        selected = checked_depth_fields(result)
+    else:
+        value = metrics[field]
+        if type(value) not in (int, float) or not 0 <= value <= 100:
+            raise ValueError('expected percentage points')
+        selected = {k: {'value': value} for k in ('primary_in_record', 'paper_metric')}
+    if published.get(name) != selected['primary_in_record']['value'] / divisor:
+        raise ValueError('published metric differs')
+    return selected, recipe.epochs
+
+
+def aggregate(records, *, expected_seeds, portable=False):
     """Audit new portable revised depth artifacts; never reinterpret old records."""
     validate_seeds(expected_seeds)
+    if portable and (set(expected_seeds) != {0, 1, 2} or not records):
+        raise ValueError('portable Figure 3 requires one cell and expected seeds 0, 1 and 2')
+    task, protocol_id, execution = None, None, None
     seen, valid, invalid, fingerprint, checkpoint = set(), [], [], None, None
     for record in records:
         seed = record.get('seed')
@@ -58,30 +110,44 @@ def aggregate(records, *, expected_seeds):
             result = json.loads((out / 'result.json').read_text())
             manifest = json.loads((out / contract.MANIFEST).read_text())
             published = json.loads((out / contract.METRICS).read_text())['metrics']
-            if cfg.get('profile') != 'b5x_lora_dpt_v2' or cfg.get('task') != 'nyuv2' or cfg.get('track') not in ('lora', 'dpt'):
+            if not portable and (cfg.get('profile') != 'b5x_lora_dpt_v2' or cfg.get('task') != 'nyuv2' or cfg.get('track') not in ('lora', 'dpt')):
                 reasons.append('not a revised depth cell')
             if any(result.get(k) != cfg.get(k) for k in ('profile', 'task', 'track')):
                 reasons.append('result recipe differs')
             if cfg.get('seed') != seed or manifest.get('seed') != seed or manifest.get('task') != cfg.get('task'):
                 reasons.append('seed or task differs')
             epochs = result.get('recipe', {}).get('epochs')
-            if (type(epochs) is not int or epochs != 30 or result.get('epochs_completed') != epochs
+            horizon = 30
+            if portable:
+                task = cfg['task']
+                selected, horizon = portable_fields(cfg, result, published)
+            else:
+                selected = checked_depth_fields(result)
+                if published.get('nyuv2_rmse') != selected['primary_in_record']['value']:
+                    reasons.append('legacy aligned contract differs')
+            if (type(epochs) is not int or epochs != horizon or result.get('epochs_completed') != epochs
                     or result.get('training_complete') is not True or result.get('status') != 'component_complete'
                     or 'diagnostic' in cfg):
                 reasons.append('full final scheduled epoch not completed')
-            selected = reporting_fields(result)['reporting']
-            if result.get('reporting') != selected:
-                reasons.append('missing or inconsistent explicit paper metric metadata')
-            if published.get('nyuv2_rmse') != selected['primary_in_record']['value']:
-                reasons.append('legacy aligned contract differs')
             digest = result.get('checkpoint_sha256')
             if not isinstance(digest, str) or not digest:
                 reasons.append('checkpoint identity missing')
+            if portable and (not isinstance(digest, str) or not re.fullmatch(r'[0-9a-f]{64}', digest)):
+                reasons.append('full checkpoint digest required')
+            if portable:
+                topology = (result['world_size'], result['accumulation_steps'], result['precision'])
+                if (any(type(n) is not int or n < 1 for n in topology[:2])
+                        or topology[2] not in ('cpu_fp32', 'cuda_bf16')
+                        or (execution is not None and topology != execution)):
+                    reasons.append('execution topology or precision differs')
             if checkpoint is not None and digest != checkpoint:
                 reasons.append('checkpoint bytes differ across seeds')
             if reasons:
                 invalid.append({'seed': seed, 'reasons': reasons})
             else:
+                if portable:
+                    execution = topology
+                    protocol_id = result['source_protocol_id']
                 checkpoint = digest
                 valid.append({'seed': seed, **{key: value['value'] for key, value in selected.items()}})
         except (OSError, ValueError, KeyError, TypeError, AttributeError):
@@ -93,8 +159,17 @@ def aggregate(records, *, expected_seeds):
               'recipe_sha256': fingerprint, 'selection': 'final_scheduled_epoch',
               'std_convention': 'sample_ddof_1; undefined for n < 2',
               'record_value': False, 'historical_run_verified': False}
-    for label, field in (('paper_metric', 'rmse_unaligned'), ('primary_in_record', 'rmse')):
-        summary = {'field': field, 'unit': 'meters', 'summary_available': bool(valid)}
+    paper, primary, unit = 'rmse_unaligned', 'rmse', 'meters'
+    if portable:
+        report['schema'] = 'portable_figure3_v1'
+        if task not in PORTABLE_METRICS:
+            return report
+        report.update(task=task, protocol_id=protocol_id)
+        if task != 'nyuv2':
+            paper = primary = PORTABLE_METRICS[task][0]
+            unit = 'percentage_points'
+    for label, field in (('paper_metric', paper), ('primary_in_record', primary)):
+        summary = {'field': field, 'unit': unit, 'summary_available': bool(valid)}
         if valid:
             summary.update(summarize([row[label] for row in valid]))
         report[label] = summary
@@ -110,6 +185,8 @@ def main():
     if plan.get('schema') == 'native_figure3_v1':
         from downstream.revised_native_reporting import audit_native
         report = audit_native(plan['cells'])
+    elif plan.get('schema') == 'portable_figure3_v1':
+        report = aggregate(plan['runs'], expected_seeds=plan['expected_seeds'], portable=True)
     else:
         report = aggregate(plan['runs'], expected_seeds=plan['expected_seeds'])
     with args.out.open('x') as stream:

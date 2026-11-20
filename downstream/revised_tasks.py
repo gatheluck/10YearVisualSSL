@@ -26,12 +26,12 @@ from downstream.adaptation_runtime import (
     install_backbone_lora,
 )
 from downstream.extended_distributed import session
+from downstream.revised_recipe import POPULATIONS
 from downstream.revised_precision import runtime_precision, source_precision
 from downstream.spatial_backbones import build_frozen_backbone, is_released_spec
 
 PROFILE = 'b5x_lora_dpt_v2'
-POPULATIONS = {'imagenet': (1281167, 50000), 'ade20k': (20210, 2000),
-               'ssv2': (168913, 24777), 'coco': (118287, 5000), 'nyuv2': (795, 654)}
+
 
 
 def validate_config(cfg):

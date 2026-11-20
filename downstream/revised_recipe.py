@@ -8,6 +8,10 @@ import math
 from dataclasses import dataclass, replace
 
 
+POPULATIONS = {'imagenet': (1281167, 50000), 'ade20k': (20210, 2000),
+               'ssv2': (168913, 24777), 'coco': (118287, 5000), 'nyuv2': (795, 654)}
+
+
 @dataclass(frozen=True)
 class RevisedRecipe:
     profile: str

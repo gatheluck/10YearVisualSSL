@@ -12,6 +12,13 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-11-21: portable Figure 3 output accounting
+
+The [CVPR checkpoint](CVPR_ADAPTATION.md) describes the three-seed reporting
+mode for all seven revised routes, including two named shortened schedules.
+Progress on historical provenance and full-data public reruns is tracked
+separately. The reporting tests exercise artifact contracts using fixtures.
+
 ### 2026-11-20: Figure 3 historical seed comparison
 
 The [CVPR checkpoint](CVPR_ADAPTATION.md) records the 35-cell LoRA/DPT
