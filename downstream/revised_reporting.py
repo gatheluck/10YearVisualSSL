@@ -51,7 +51,7 @@ PORTABLE_METRICS = {
 
 def portable_fields(cfg, result, published):
     """Verify the reporting contract of a full revised CLI result."""
-    from downstream.revised_recipe import POPULATIONS, resolve_recipe
+    from downstream.revised_recipe import POPULATIONS, resolve_recipe, validate_completed_epochs
     task = cfg['task']
     recipe = resolve_recipe(task, cfg['track'], schedule=cfg.get('schedule'), backbone=cfg['backbone'])
     if (cfg.get('profile') != recipe.profile or result['source_protocol_id'] != recipe.source_protocol_id
@@ -63,6 +63,10 @@ def portable_fields(cfg, result, published):
             raise ValueError('full population required')
     if result['missing_populations'] != [0, 0]:
         raise ValueError('missing samples')
+    steps_per_epoch = population[0] // recipe.effective_batch
+    validate_completed_epochs(result['loss_log'], recipe.epochs, steps_per_epoch)
+    if type(result['updates']) is not int or result['updates'] != recipe.epochs * steps_per_epoch:
+        raise ValueError('full optimizer update count required')
     field, name, divisor, count = PORTABLE_METRICS[task]
     metrics = result['metrics']
     if metrics[count] != population[1] or (task == 'nyuv2' and metrics['n_input_images'] != population[1]):
@@ -119,6 +123,8 @@ def aggregate(records, *, expected_seeds, portable=False):
             epochs = result.get('recipe', {}).get('epochs')
             horizon = 30
             if portable:
+                if not any(a['path'] == 'trainable.pt' and a['bytes'] > 0 for a in manifest['artifacts']):
+                    reasons.append('missing trainable checkpoint artifact')
                 task = cfg['task']
                 selected, horizon = portable_fields(cfg, result, published)
             else:

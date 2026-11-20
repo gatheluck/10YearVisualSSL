@@ -5,13 +5,14 @@ import hashlib
 import importlib.metadata
 import inspect
 import json
-import math
 import platform
 from dataclasses import asdict
 from pathlib import Path
 
 import numpy as np
 import torch
+
+from downstream.revised_recipe import validate_completed_epochs
 
 from downstream import continuation_validation
 from downstream.contract import sha256_file
@@ -198,15 +199,7 @@ class RevisedContinuation:
                 or blob['world'] != self.context.world or blob['precision'] != self.precision
                 or blob['horizon'] != self.recipe.epochs or blob['steps_per_epoch'] != self.steps_per_epoch):
             raise ValueError('checkpoint execution horizon differs')
-        losses = blob['losses']
-        if not isinstance(losses, list) or len(losses) != epoch:
-            raise ValueError('checkpoint loss prefix must match completed epochs')
-        for number, row in enumerate(losses, 1):
-            if (not isinstance(row, dict) or set(row) != {'epoch', 'loss', 'updates'}
-                    or type(row['epoch']) is not int or row['epoch'] != number
-                    or type(row['updates']) is not int or row['updates'] != self.steps_per_epoch
-                    or type(row['loss']) not in (float, int) or not math.isfinite(row['loss'])):
-                raise ValueError('invalid checkpoint completed-epoch loss log')
+        validate_completed_epochs(blob['losses'], epoch, self.steps_per_epoch)
         current = self.model_state()
         if not isinstance(blob['model'], dict) or set(blob['model']) != set(current):
             raise ValueError('checkpoint trainable or buffer keys disagree')

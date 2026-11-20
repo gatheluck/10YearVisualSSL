@@ -46,13 +46,17 @@ class PortableFigure(unittest.TestCase):
                       source_populations=population[:], intended_populations=population[:],
                       used_populations=population[:], missing_populations=[0, 0],
                       metrics=metrics, world_size=1, accumulation_steps=1, precision='cuda_bf16', checkpoint_sha256='a'*64)
+        steps = population[0] // recipe['effective_batch']
+        result.update(updates=steps * recipe['epochs'], loss_log=[
+            dict(epoch=i + 1, updates=steps, loss=.25) for i in range(recipe['epochs'])])
+        (out/'trainable.pt').write_bytes(b'fixture checkpoint bytes')
         result.update(reporting_fields(result))
         published = {name: value/100 if task == 'coco' else .3 if task == 'nyuv2' else value}
         if alter:
             alter(result, published)
         (out/'result.json').write_text(json.dumps(result))
         contract.write_metrics(out, published, {name: name})
-        contract.write_manifest(out, task=task, method_ref='fixture', status='ok',
+        contract.write_manifest(out, task=task, method_ref='revised-component', status='ok',
             config_sha256=contract.sha256_bytes(config.read_bytes()), started_at='start', finished_at='end',
             seed=seed, backbone=cfg['backbone'])
         return dict(seed=seed, config=str(config), out=str(out), exit_status=0)
@@ -116,3 +120,22 @@ class PortableFigure(unittest.TestCase):
             report = self.report([self.record(task, 'lora', seed, schedule=name) for seed in range(3)])
             self.assertTrue(report['complete'])
             self.assertEqual(report['protocol_id'], name)
+
+
+    def test_claimed_completion_requires_all_updates_and_trainable_artifact(self):
+        def wrong_total(r, _):
+            r['updates'] -= 1
+        def wrong_epoch(r, _):
+            r['loss_log'][4]['updates'] = 0
+        records = [self.record('coco', 'lora', i, alter=fn)
+                   for i, fn in enumerate((wrong_total, wrong_epoch, None))]
+        run = records[-1]
+        out = Path(run['out'])
+        (out/'trainable.pt').unlink()
+        cfg = Path(run['config'])
+        contract.write_manifest(out, task='coco', method_ref='revised-component', status='ok',
+            config_sha256=contract.sha256_bytes(cfg.read_bytes()), started_at='start', finished_at='end',
+            seed=2, backbone={'kind': 'fixture'})
+        report = self.report(records)
+        self.assertEqual([r['seed'] for r in report['invalid_runs']], [0, 1, 2])
+        self.assertFalse(report['complete'])

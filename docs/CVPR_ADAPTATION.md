@@ -394,8 +394,8 @@ must not be treated as interchangeable environment certifications.
 
 | Area | Observed difference and next action |
 | --- | --- |
-| LoRA task integration | The revised CLI connects all five inspected task profiles, with portable completed-epoch continuation. Full-data released-weight CLI execution and result validation remain; small component updates do not complete them. Earlier LoRA recipes remain historical. |
-| DPT | The revised CLI connects ADE20K and NYUv2 to the frozen four-tap head and v2 schedule. Full-data released-weight task execution and result validation remain. Dense execution follows the inspected single-device source; distributed dense training is not claimed. |
+| LoRA task integration | The revised CLI connects all five inspected task profiles, with portable completed-epoch continuation. Full-data NYUv2 results appear below. Other tasks still require full-data released-weight validation; small component updates do not complete them. Earlier LoRA recipes remain historical. |
+| DPT | The revised CLI connects ADE20K and NYUv2 to the frozen four-tap head and v2 schedule. NYUv2 full-data executions are reported below. Full-data ADE20K validation remains. Dense execution follows the inspected single-device source; distributed dense training is not claimed. |
 | RAEv2 readout | The revised paper's LP/AP generator block 29 at time 0.1 is different from this package's existing tokenizer K7 readout. Keep these identities separate and port the matching generator path. |
 | COCO | Basic5 uses Faster R-CNN bounding-box AP. The existing portable COCO runner already performs detection; historical category-presence scores must not be relabeled as detection AP. New correction metadata is not proof that all corresponding reruns completed. |
 | NYUv2 | The LoRA/DPT run record stores median-aligned RMSE as primary. The author-supplied v2 descriptions select the unaligned field for manuscript reporting. Other tracks require their own provenance. |
@@ -535,7 +535,7 @@ Use the training environment for named schedules.
 
 The report checks the hash-checked output contract, resolved recipe,
 final epoch, recorded train/validation populations, evaluated sample count,
-checkpoint digest and execution topology. The configuration apart from seed
+checkpoint digest, final trainable artifact, per-epoch update counts and execution topology. The configuration apart from seed
 must be identical across runs. Counts alone cannot establish sample identity.
 COCO bbox AP is reported in percentage points (contract mAP is a fraction).
 Depth uses unaligned RMSE in meters, with the aligned value retained separately.
@@ -543,3 +543,29 @@ Three valid seeds are required for a complete cell. Partial summaries describe
 only the valid seeds listed. No historical result or equivalence to a published
 score is automatically certified. The native historical audit above uses a
 different input schema.
+
+## Full-data NYUv2 reruns (2026-11-21)
+
+The portable CLI ran the two revised tracks for the five Figure 3 models,
+using released weights, the full official split (795 train / 654 test),
+224-pixel input, batch 8, six data-loader workers, 30 epochs and seeds 0, 1 and 2 on individual H200
+GPUs. Each of the 30 outputs completed 2,970 optimizer updates. Each result,
+trainable checkpoint and metric contract passed the portable audit. The
+comparison below reports unaligned RMSE in meters as mean +/- sample SD at
+the figure's printed precision. The historical column was independently
+checked against native seed records. The rerun uses the public training code
+at commit `f7dfe83`; subsequent reporting checks read those outputs.
+
+| Backbone | Portable DPT | Figure 3 DPT | Portable LoRA | Figure 3 LoRA |
+| --- | ---: | ---: | ---: | ---: |
+| DINOv3-7B | 0.401 +/- 0.002 | 0.401 +/- 0.001 | 0.396 +/- 0.003 | 0.396 +/- 0.002 |
+| VGGT-Omega | 0.427 +/- 0.002 | 0.425 +/- 0.002 | 0.419 +/- 0.002 | 0.418 +/- 0.003 |
+| RAEv2 K7 | 0.437 +/- 0.003 | 0.436 +/- 0.002 | 0.472 +/- 0.002 | 0.472 +/- 0.002 |
+| V-JEPA 2.1-G | 0.454 +/- 0.001 | 0.454 +/- 0.001 | 0.463 +/- 0.006 | 0.461 +/- 0.003 |
+| SigLIP 2-G | 0.481 +/- 0.003 | 0.480 +/- 0.001 | 0.480 +/- 0.005 | 0.479 +/- 0.005 |
+
+At the printed precision, four means match. Two cells also match the sample SD:
+RAEv2 LoRA and V-JEPA 2.1-G DPT. Numerical differences
+at the printed precision remain visible here. Neither the source of such
+differences nor equivalence of the implementations follows from these aggregate
+numbers. The existing holds for other tasks and figures still apply.

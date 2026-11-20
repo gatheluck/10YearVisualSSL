@@ -53,6 +53,33 @@
       "tests": [
         "tests.test_portable_figure3.PortableFigure.test_all_seven_routes_use_paper_units_and_sample_sd"
       ]
+    },
+    {
+      "label": "require final trainable artifact",
+      "file": "downstream/revised_reporting.py",
+      "old": "if not any(a['path'] == 'trainable.pt' and a['bytes'] > 0 for a in manifest['artifacts']):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_portable_figure3.PortableFigure.test_claimed_completion_requires_all_updates_and_trainable_artifact"
+      ]
+    },
+    {
+      "label": "require total optimizer count",
+      "file": "downstream/revised_reporting.py",
+      "old": "or result['updates'] != recipe.epochs * steps_per_epoch",
+      "new": "or False",
+      "tests": [
+        "tests.test_portable_figure3.PortableFigure.test_claimed_completion_requires_all_updates_and_trainable_artifact"
+      ]
+    },
+    {
+      "label": "require complete epoch updates",
+      "file": "downstream/revised_reporting.py",
+      "old": "validate_completed_epochs(result['loss_log'], recipe.epochs, steps_per_epoch)",
+      "new": "pass",
+      "tests": [
+        "tests.test_portable_figure3.PortableFigure.test_claimed_completion_requires_all_updates_and_trainable_artifact"
+      ]
     }
   ]
 }

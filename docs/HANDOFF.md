@@ -16,8 +16,10 @@ delivery status and permission assumptions do not describe today's workflow.
 
 The [CVPR checkpoint](CVPR_ADAPTATION.md) describes the three-seed reporting
 mode for all seven revised routes, including two named shortened schedules.
-Progress on historical provenance and full-data public reruns is tracked
-separately. The reporting tests exercise artifact contracts using fixtures.
+The portable CLI completed all 30 NYUv2 runs for five models and two tracks.
+At printed precision, four of ten means match and two also match the sample
+SD. The checkpoint table records both sets of values. Full-data verification
+for other revised tasks and investigation of the numerical differences remain.
 
 ### 2026-11-20: Figure 3 historical seed comparison
 
