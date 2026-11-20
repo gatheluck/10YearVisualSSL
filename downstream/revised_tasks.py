@@ -258,7 +258,7 @@ def _execute(cfg, out, context):
     validation = DataLoader(Subset(val, range(context.rank, len(val), context.world)),
                             batch_size={'imagenet': 64, 'ssv2': 8, 'coco': 2}.get(task, physical_batch), collate_fn=collation,
                             num_workers=workers, pin_memory=device.type == 'cuda')
-    backbone = context.call(lambda: build_frozen_backbone(cfg['backbone'], device))
+    backbone = context.call(lambda: build_frozen_backbone(cfg['backbone'], device, revised_cuda=device.type == 'cuda'))
     identity = context.call(lambda: checkpoint_identity(cfg['backbone']['encoder'])
                             if cfg['backbone'].get('encoder') else None)
     context.agree(identity)

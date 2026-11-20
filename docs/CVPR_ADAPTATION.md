@@ -336,7 +336,9 @@ as well as the manifest; an `ok` manifest alone is insufficient for reproduction
 
 CPU execution uses float32. CUDA uses bfloat16 autocast with float32 adapters and heads. The
 VGGT-Omega aggregator retains its loaded float32 parameters and buffers under
-autocast. Other providers retain the existing bfloat16 backbone conversion. The dated GPU checks below describe the validated scope;
+autocast. DINOv3-7B loads bfloat16 parameters directly while the loader
+constructs float32 rotary frequencies. Other providers retain the existing
+bfloat16 backbone conversion. The dated GPU checks below describe the validated scope;
 they do not establish full-data execution or numerical score reproduction.
 The inspected classification, detection and dense trainers explicitly enable
 TF32 for CUDA float32 matrix multiplication and cuDNN operations. The revised
@@ -581,3 +583,16 @@ of 0.199, 0.548, 38.567 and 321.567. Preserving the loaded float32 backbone
 produced zero difference at every tap, with either the native image or the
 portable preprocessing. This verifies the storage correction on that input.
 The table above records the earlier implementation.
+
+### DINOv3 rotary frequencies
+
+The same H200 comparison with released DINOv3-7B weights isolated another
+precision difference. Loading the vision model with bfloat16 weights and
+keeping the rotary-frequency buffer in float32 reproduced all four native
+DPT taps exactly. Converting the entire model to bfloat16 after loading
+rounded that buffer and produced maximum differences of 0.625, 4, 36 and
+96. This loader policy applies to revised CUDA training only.
+
+For the same NYUv2 input, the other three providers (RAEv2 K7, SigLIP 2-G
+and V-JEPA 2.1-G) already matched the original four taps and initial DPT
+prediction exactly. End-of-training parity remains a separate measurement.

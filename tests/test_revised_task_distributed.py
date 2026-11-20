@@ -59,7 +59,7 @@ def setup_fault_rank(rank, directory, fault):
         with patch.dict(os.environ, env), \
              patch.object(revised_tasks, 'build_datasets', return_value=(probe_train, val)), \
              patch.object(revised_tasks, 'build_frozen_backbone',
-                          side_effect=lambda *args: fixture.backbone()):
+                          side_effect=lambda *args, **options: fixture.backbone()):
             try:
                 revised_tasks.run(cfg, Path(directory) / 'output')
             except (ValueError, RuntimeError) as exc:

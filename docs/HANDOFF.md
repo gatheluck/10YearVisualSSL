@@ -16,7 +16,9 @@ delivery status and permission assumptions do not describe today's workflow.
 
 The updated revised trainer preserves VGGT-Omega checkpoint precision. See
 the [fixed-input comparison](CVPR_ADAPTATION.md#vggt-omega-backbone-precision)
-for the four feature taps, the preprocessing control and the scope of the check.
+for the four feature taps, the preprocessing control and the scope of the check. The
+[DINOv3 comparison](CVPR_ADAPTATION.md#dinov3-rotary-frequencies) documents
+the separate precision policy for the rotary-frequency buffer.
 
 ### 2026-11-21: portable Figure 3 output accounting
 

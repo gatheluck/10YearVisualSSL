@@ -22,8 +22,16 @@ ATTENTIVE_PROFILE = "captured_single_block_v1"
 NATIVE_DETECTION = True
 
 
-def build(spec):
-    return build_vision(spec, family='register_cls', expected={'hidden_size': 4096, 'num_hidden_layers': 40, 'num_attention_heads': 32, 'patch_size': 16, 'num_register_tokens': 4})
+def build(spec, *, load_dtype=None):
+    return build_vision(spec, family='register_cls', expected={'hidden_size': 4096, 'num_hidden_layers': 40, 'num_attention_heads': 32, 'patch_size': 16, 'num_register_tokens': 4}, load_dtype=load_dtype)
+
+
+def build_revised_cuda(spec):
+    import torch
+    backbone = build(spec, load_dtype=torch.bfloat16)
+    # The loader constructs the rotary frequencies in float32.
+    backbone.preserve_revised_storage = True
+    return backbone
 
 
 def build_trainable(spec):
