@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ASIS vs CTRL · Vision Baselines</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="history.css" />
+    <link rel="stylesheet" href="control.css" />
+    <script defer src="control-data.js"></script>
+    <script defer src="control.js"></script>
+  </head>
+  <body>
+    <a class="skip" href="#compare">Skip to paired scores</a>
+    <header>
+      <div class="wrap nav">
+        <a class="brand" href="index.html#overview"
+          ><span class="symbol" aria-hidden="true"><i></i><i></i><i></i></span>
+          Vision Baselines</a
+        >
+        <nav aria-label="Sections">
+          <a href="index.html#overview">Overview</a
+          ><a href="index.html#leaderboard">Leaderboard</a
+          ><a href="history.html">History</a
+          ><a href="index.html#protocols">Protocols</a>
+          <a href="control.html" aria-current="page">ASIS vs CTRL</a>
+        </nav>
+      </div>
+    </header>
+    <main class="wrap">
+      <section class="history-intro intro">
+        <p class="eyebrow">
+          <span class="dash"></span>Figure 4 · Controlled VSSL pre-training
+        </p>
+        <h1>ASIS <em>vs</em> CTRL</h1>
+        <p class="summary">
+          How does transfer change when 32 self-supervised methods share a
+          backbone and pre-training recipe? Compare each historical
+          configuration with its controlled counterpart on the same benchmark.
+        </p>
+      </section>
+      <section id="compare" aria-label="Paired scores">
+        <div class="toolbar">
+          <label
+            >Benchmark
+            <select id="benchmark"></select></label
+          ><span class="source">32 paired configurations</span>
+        </div>
+        <div class="comparison">
+          <figure>
+            <figcaption><h2 id="chart-title"></h2></figcaption>
+            <svg
+              id="paired"
+              viewBox="0 0 370 240"
+              role="img"
+              aria-labelledby="chart-title chart-note"
+            ></svg>
+            <p id="chart-note">
+              Each point is one method. Shading marks a better CTRL score; the
+              diagonal marks equality.
+            </p>
+          </figure>
+          <div class="reading">
+            <p class="eyebrow">Under the controlled recipe</p>
+            <p id="finding" aria-live="polite"></p>
+            <details>
+              <summary>Evaluation conditions</summary>
+              <dl>
+                <dt>ASIS · historical configuration</dt>
+                <dd>
+                  Released or reproduced checkpoints, with family-specific
+                  feature extraction and downstream evaluation on shared
+                  benchmarks.
+                </dd>
+                <dt>CTRL · controlled pre-training</dt>
+                <dd>
+                  Each method trains from scratch with ViT-B/16 on unlabeled
+                  ImageNet-1K for 300 epochs. Optimization and augmentations are
+                  aligned where compatible, preserving mechanisms such as
+                  masking, memory banks and teacher updates. Figure 4 uses the
+                  300-epoch result; intermediate evaluations occur at 100 and
+                  200 epochs.
+                </dd>
+                <dt>Interpreting a difference</dt>
+                <dd>
+                  Architecture, pre-training, feature extraction and downstream
+                  evaluation can all change. The difference measures their
+                  combined effect. The shared recipe may suit some methods
+                  better than others.
+                </dd>
+              </dl>
+            </details>
+          </div>
+        </div>
+        <div class="results-heading">
+          <h2>Paired results</h2>
+          <span id="metric"></span>
+        </div>
+        <p id="rule"></p>
+        <div
+          class="table-scroll"
+          role="region"
+          aria-label="Scores in figure legend order"
+          tabindex="0"
+        >
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Method</th>
+                <th scope="col">ASIS</th>
+                <th scope="col">CTRL</th>
+                <th scope="col">CTRL − ASIS</th>
+                <th scope="col">Outcome</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+    <footer>
+      <div class="wrap">
+        <a href="index.html">Vision Baselines</a
+        ><a href="history.html">Historical comparison →</a>
+      </div>
+    </footer>
+  </body>
+</html>

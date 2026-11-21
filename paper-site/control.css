@@ -1,0 +1,80 @@
+.comparison {
+  display: grid;
+  grid-template-columns: minmax(275px, 1fr) minmax(240px, 1fr);
+  gap: clamp(20px, 4vw, 60px);
+  align-items: start;
+  margin: 24px 0 36px;
+}
+.comparison figure {
+  border: 1px solid #bfd1d3;
+  border-radius: 8px;
+  background: linear-gradient(120deg, #eef6f2, #eef1fb);
+  padding: 20px;
+}
+.comparison h2,
+.reading #finding {
+  font:
+    400 clamp(25px, 3vw, 38px) / 1.1 Georgia,
+    serif;
+  letter-spacing: -0.04em;
+}
+#paired {
+  width: 100%;
+  height: clamp(185px, 25vw, 250px);
+  margin: 8px 0;
+}
+#chart-note,
+#rule,
+dd {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+#rule {
+  margin: 8px 0 14px;
+}
+.reading {
+  padding: 15px 0;
+}
+.reading #finding {
+  margin: 15px 0 24px;
+  color: var(--ink);
+}
+details {
+  border-block: 1px solid var(--line);
+  padding: 16px 0;
+}
+summary {
+  font-weight: 600;
+  cursor: pointer;
+}
+#metric {
+  font: 12px var(--mono);
+  color: var(--muted);
+}
+td {
+  font-variant-numeric: tabular-nums;
+}
+td:last-child {
+  font-size: 13px;
+}
+.better {
+  color: #116252;
+}
+.worse {
+  color: #8f4029;
+}
+@media (max-width: 670px) {
+  .comparison {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .nav {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-block: 8px;
+  }
+  .table-scroll table {
+    min-width: 425px;
+  }
+}
