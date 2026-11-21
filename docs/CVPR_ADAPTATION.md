@@ -489,3 +489,35 @@ but different trained tensors (maximum absolute trainable-weight difference
 operation responsible for the training variation has not been identified.
 
 For the preceding LP/AP/FT tracks see the [three v1 protocols and execution comparison](BASIC5_V1_AUDIT.md).
+
+## Figure 3 LoRA and DPT seed evidence (2026-11-20)
+
+Across the five displayed models and seven task/readout columns, the audit
+read 105 original final results and their matching completion records. In
+31 of 35 cells the three seeds shared a code digest, checkpoint identity and
+recipe, and both the mean and sample SD reproduced the displayed values at
+their printed precision. This includes all ten NYUv2 cells, which use
+unaligned RMSE, and both explicitly shortened classification schedules.
+The four exceptions were VGGT-Omega COCO LoRA and RAEv2 ImageNet-1K, COCO
+and SSv2 LoRA. Each had two code digests across its three seeds. Their arithmetic also
+matches at printed precision (35/35 overall). The affected classification
+and detection entry points changed progress logging and wall-time stop
+handling. An independent run across the two versions would be needed to
+measure any effect on results. The report exposes this arithmetic separately
+and retains the failed code-identity check. This
+audit reads historical artifacts. Full-data retraining with the public
+implementation is a separate validation step.
+
+Run `python -m downstream.revised_reporting --config plan.json --out report.json`
+with a new output path. For this audit supply a private plan with
+`schema: native_figure3_v1` and a list named `cells`. Each cell specifies
+`method_id`, `dataset`, `track`, `protocol_id`, `paper_mean`, `paper_sd`
+(the two values as printed decimal strings), and `runs`. For each seed
+0, 1 and 2 include the integer `seed` and two descriptors, `result` and
+`completion`, each containing the file's `path` and full `sha256`.
+Select runs by experiment identity and schedule before comparing scores.
+COCO detection's native LoRA record uses the v1 identifier. ADE20K records
+an evaluated pixel count. The audit checks that it is positive; image-level
+membership cannot be reconstructed from that field. Output reports each
+cell as match, mismatch, incomplete or invalid. Inspect these statuses even
+when the command successfully writes a report.

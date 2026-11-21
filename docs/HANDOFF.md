@@ -12,6 +12,13 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-11-20: Figure 3 historical seed comparison
+
+The [CVPR checkpoint](CVPR_ADAPTATION.md) records the 35-cell LoRA/DPT
+comparison, including four mixed-code cells requiring source comparison.
+The three-seed arithmetic check covers original results. It does not
+establish a new full-data run of the portable package.
+
 ### 2026-11-19: representation analysis and Extended input follow-up
 
 The follow-up adds the source-compared feature-array

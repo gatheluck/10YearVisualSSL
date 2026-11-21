@@ -1,0 +1,58 @@
+{
+  "targets": [
+    {
+      "label": "skip SD comparison",
+      "file": "downstream/revised_native_reporting.py",
+      "old": "observed == expected",
+      "new": "observed['mean'] == expected['mean']",
+      "tests": [
+        "tests.test_revised_native_reporting.NativeReporting.test_wrong_sd_alone_is_a_mismatch"
+      ]
+    },
+    {
+      "label": "accept different completion records",
+      "file": "downstream/revised_native_reporting.py",
+      "old": "if canonical(record) != canonical(pinned(run['completion'])):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_revised_native_reporting.NativeReporting.test_different_completion_artifact_is_invalid"
+      ]
+    },
+    {
+      "label": "ignore final epoch",
+      "file": "downstream/revised_native_reporting.py",
+      "old": " or record['loss_log'][-1]['epoch'] != epochs",
+      "new": "",
+      "tests": [
+        "tests.test_revised_native_reporting.NativeReporting.test_wrong_final_epoch_is_invalid"
+      ]
+    },
+    {
+      "label": "mix different training code",
+      "file": "downstream/revised_native_reporting.py",
+      "old": "if len({code for code, _, _ in identities}) > 1:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_revised_native_reporting.NativeReporting.test_different_code_across_seeds_is_diagnosed"
+      ]
+    },
+    {
+      "label": "mix different recipes",
+      "file": "downstream/revised_native_reporting.py",
+      "old": "if len({recipe for _, _, recipe in identities}) > 1:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_revised_native_reporting.NativeReporting.test_identical_code_with_different_recipe_is_invalid"
+      ]
+    },
+    {
+      "label": "report aligned RMSE",
+      "file": "downstream/revised_native_reporting.py",
+      "old": "('rmse_unaligned', 30",
+      "new": "('rmse', 30",
+      "tests": [
+        "tests.test_revised_native_reporting.NativeReporting.test_unaligned_mean_and_sample_sd_match_paper"
+      ]
+    }
+  ]
+}
