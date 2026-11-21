@@ -79,6 +79,7 @@ const path = require("node:path");
       109,
     );
     await page.getByRole("link", { name: "Explore all 109 rankings" }).click();
+    await page.waitForURL("**/history.html", { waitUntil: "load" });
     assert.equal(await page.locator("tbody tr").count(), 109);
     console.log(
       "Opening chart, paper ranks, family colors, filtering, responsive first view and history navigation passed.",

@@ -59,8 +59,9 @@
               <h3>Task transfer rank matrix</h3>
               <span class="scale">Better <i></i> Worse</span>
             </figcaption>
-            <p>
-              Select a model name or column to inspect its ranks.
+            <p class="matrix-key">
+              <span class="selection-tag">Selected</span
+              ><strong id="matrix-selection"></strong>
             </p>
             <div class="matrix-shell">
               <div class="matrix-labels">
@@ -76,9 +77,7 @@
                 <div id="rank-matrix" aria-hidden="true"></div>
               </div>
             </div>
-            <div class="matrix-axis">
-              Models · best overall rank first →
-            </div>
+            <div class="matrix-axis">Models · best overall rank first →</div>
           </figure>
           <aside class="profile-panel">
             <label for="inspect-config">Inspect configuration</label

@@ -30,6 +30,7 @@ function buildRankBoard(rows, familyByName, families) {
   }
   function inspect(row) {
     select.value = row.name;
+    get("matrix-selection").textContent = row.name;
     for (const [name, col] of elements)
       col.classList.toggle("picked", name === row.name);
     const panel = get("rank-profile");

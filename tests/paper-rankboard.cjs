@@ -24,6 +24,39 @@ const { chromium } = require("playwright");
     assert.equal(await board.locator(".matrix-column").count(), 109);
     assert.equal(await board.locator(".matrix-cell").count(), 545);
     const select = board.getByLabel("Inspect configuration");
+    const selectedName = board.locator("#matrix-selection");
+    const columns = board.locator(".matrix-column");
+    const cellColors = () =>
+      columns
+        .nth(6)
+        .locator("i")
+        .evaluateAll((cells) =>
+          cells.map((c) => getComputedStyle(c).backgroundColor),
+        );
+    const before = await cellColors();
+    await select.selectOption({ label: "RAEv2" });
+    await columns.nth(7).hover();
+    assert.equal(
+      await selectedName.allTextContents().then((t) => t.join("")),
+      "RAEv2",
+      "A visible horizontal label must identify the selected model",
+    );
+    const marker = (col) =>
+      col.evaluate((el) => ({
+        tick: getComputedStyle(el.querySelector(".model-tick")).backgroundColor,
+        pointer: getComputedStyle(el, "::before").content,
+        base: getComputedStyle(el, "::after").content,
+      }));
+    const active = await marker(columns.nth(6)),
+      hovered = await marker(columns.nth(7));
+    assert.equal(active.tick, "rgb(255, 199, 0)");
+    assert.notEqual(active.tick, hovered.tick);
+    assert.notEqual(active.pointer, "none");
+    assert.notEqual(active.base, "none");
+    assert.equal(hovered.pointer, "none");
+    assert.deepEqual(await cellColors(), before);
+    await select.selectOption({ index: 0 });
+    assert.equal((await marker(columns.nth(6))).pointer, "none");
     const names = board.locator(".model-tick");
     assert.deepEqual(
       await names.allTextContents(),

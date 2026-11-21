@@ -334,14 +334,78 @@
   letter-spacing: 0;
   padding-top: 2px;
 }
-.matrix-column.picked .model-tick {
-  font-weight: 700;
+.rank-map .matrix-key {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 6px 0 3px;
+  font:
+    600 12px/1.4 Arial,
+    sans-serif;
+  color: var(--ink);
 }
-.matrix-column.picked,
-.matrix-column:hover {
-  outline: 2px solid #132e40;
-  outline-offset: -1px;
-  z-index: 1;
+.selection-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #352600;
+  background: var(--gold);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+.selection-tag::before {
+  content: "";
+  width: 7px;
+  height: 6px;
+  background: currentColor;
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+}
+#rank-matrix {
+  padding-block: 9px 4px;
+}
+.matrix-labels {
+  margin-top: 9px;
+}
+.matrix-column {
+  position: relative;
+}
+.matrix-column:not(.picked):hover .model-tick {
+  background: #dce9e8;
+  color: #163b37;
+}
+.matrix-column.picked .model-tick {
+  background: var(--gold);
+  color: #302000;
+  font-weight: 700;
+  justify-self: stretch;
+  text-align: start;
+  align-content: center;
+}
+.matrix-column.picked .matrix-cell {
+  box-shadow:
+    inset 1.5px 0 var(--gold),
+    inset -1.5px 0 var(--gold);
+}
+.matrix-column.picked::before,
+.matrix-column.picked::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  background: var(--gold);
+  pointer-events: none;
+}
+.matrix-column.picked::before {
+  height: 8px;
+  top: -9px;
+  clip-path: polygon(0 0, 100% 0, 100% 40%, 50% 100%, 0 40%);
+}
+.matrix-column.picked::after {
+  height: 3px;
+  bottom: -4px;
 }
 .matrix-axis {
   margin: 8px 0 0 60px;
@@ -593,7 +657,7 @@
     padding: 14px 0;
   }
   .rank-spread {
-    margin: 6px 0 14px;
+    margin: 6px 0 8px;
   }
   .rank-map h3,
   .rank-table-top h3 {
