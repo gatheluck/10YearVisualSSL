@@ -38,72 +38,25 @@
               <em>in the Deep Learning Era</em>
             </h1>
             <p class="opening-deck">
-              Across 2,500+ experiments, we trace a decade of visual
-              representations through recognition, detection, segmentation,
+              2,500+ experiments across recognition, detection, segmentation,
               depth and video.
             </p>
             <a class="opening-cta" href="#leaderboard"
               >Explore leaderboard <span aria-hidden="true">↓</span></a
             >
           </div>
-          <figure class="atlas">
-            <figcaption>
-              <span class="kicker">Figure 1</span>
-              <h2>109 configurations, five ranks</h2>
-            </figcaption>
-            <p class="atlas-note">
-              Each line traces one of 109 configurations across the Basic Five.
-              Higher positions indicate better ranks.
-            </p>
-            <div class="axis-labels" aria-hidden="true">
-              <span>ImageNet</span><span>COCO</span><span>ADE20K</span
-              ><span>NYUv2</span><span>SSv2</span>
-            </div>
-            <svg
-              id="rank-atlas"
-              viewBox="-3 -2 406 114"
-              preserveAspectRatio="none"
-              role="img"
-              aria-label="Figure 1 benchmark ranks for 109 configurations. Rank 1 at the top, 109 at the bottom."
-            ></svg>
-            <div class="rank-caption">
-              <span>Benchmark rank · 1–109</span
-              ><span id="atlas-status" aria-live="polite"></span>
-            </div>
-            <div
-              class="family-legend"
-              role="group"
-              aria-label="Highlight a model family"
-            ></div>
-            <a class="atlas-link" href="history.html"
-              >Explore all 109 rankings <span aria-hidden="true">↗</span></a
-            >
-          </figure>
-          <section class="scope" aria-label="Study scope">
-            <p><strong>110+</strong><span>Model configurations</span></p>
-            <p>
-              <strong>2,500+</strong
-              ><span>Training &amp; evaluation experiments</span>
-            </p>
-            <p><strong>5</strong><span>Core transfer benchmarks</span></p>
-            <p><strong>40</strong><span>Extended benchmark settings</span></p>
-          </section>
         </div>
       </section>
       <section id="leaderboard" class="rank-board" aria-labelledby="rank-title">
         <div class="eyebrow">
-          <span class="dash"></span> Figure 1 · Historical evaluation
+          <span class="dash"></span> Figure 1 · 109 configurations · 5
+          benchmarks
         </div>
-        <h2 id="rank-title">The Basic Five rankings</h2>
-        <p class="rank-intro">
-          We ranked 109 configurations on five vision tasks, then averaged their
-          five ranks. DINOv3-7B leads overall. RAEv2 ranks first on ADE20K
-          segmentation and 100th on SSv2 video classification.
-        </p>
+        <h2 id="rank-title" class="sr">The Basic Five rankings</h2>
         <div class="rank-spread">
           <figure class="rank-map">
             <figcaption>
-              <h3>The transfer rank matrix</h3>
+              <h3>Task transfer rank matrix</h3>
               <span class="scale">Better <i></i> Worse</span>
             </figcaption>
             <p>
@@ -131,8 +84,8 @@
           <div>
             <h3>Overall standings</h3>
             <p>
-              Lower ranks are better. Each entry uses its family’s ASIS
-              protocol.
+              Sorted by mean rank across the Basic Five, under family-specific
+              ASIS protocols.
             </p>
           </div>
           <label
@@ -171,6 +124,42 @@
           </button>
         </div>
       </section>
+      <details class="trajectories">
+        <summary>Compare rank trajectories</summary>
+        <figure class="atlas">
+          <figcaption>
+            <span class="kicker">Figure 1</span>
+            <h2>109 configurations, five ranks</h2>
+          </figcaption>
+          <p class="atlas-note">
+            Each line traces one of 109 configurations across the Basic Five.
+            Higher positions indicate better ranks.
+          </p>
+          <div class="axis-labels" aria-hidden="true">
+            <span>ImageNet</span><span>COCO</span><span>ADE20K</span
+            ><span>NYUv2</span><span>SSv2</span>
+          </div>
+          <svg
+            id="rank-atlas"
+            viewBox="-3 -2 406 114"
+            preserveAspectRatio="none"
+            role="img"
+            aria-label="Figure 1 benchmark ranks for 109 configurations. Rank 1 at the top, 109 at the bottom."
+          ></svg>
+          <div class="rank-caption">
+            <span>Benchmark rank · 1–109</span
+            ><span id="atlas-status" aria-live="polite"></span>
+          </div>
+          <div
+            class="family-legend"
+            role="group"
+            aria-label="Highlight a model family"
+          ></div>
+          <a class="atlas-link" href="history.html"
+            >Explore all 109 rankings <span aria-hidden="true">↗</span></a
+          >
+        </figure>
+      </details>
       <section id="unified" class="board">
         <div class="eyebrow">
           <span class="dash"></span> Figure 3 · Unified evaluation
@@ -227,6 +216,15 @@
         <div id="plot"></div>
         <p id="finding" aria-live="polite"></p>
       </figure>
+      <section class="scope" aria-label="Study scope">
+        <p><strong>110+</strong><span>Model configurations</span></p>
+        <p>
+          <strong>2,500+</strong
+          ><span>Training &amp; evaluation experiments</span>
+        </p>
+        <p><strong>5</strong><span>Core transfer benchmarks</span></p>
+        <p><strong>40</strong><span>Extended benchmark settings</span></p>
+      </section>
       <section id="protocols" class="protocols">
         <div>
           <div class="eyebrow"><span class="dash"></span> Evaluation guide</div>

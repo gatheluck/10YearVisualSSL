@@ -34,9 +34,9 @@ Run `node tests/paper-control.cjs` with the browser setup above. The test verifi
 
 ## Figure 1 on the opening screen
 
-The overview traces all 109 published configurations through their five benchmark ranks in manuscript order. Each vertical axis uses the same rank scale, with rank 1 at the top. Click a family in the legend to highlight its traces, then click it again to restore all seven. The link below the chart opens the exact ranks in the historical comparison. Study-wide experiment and configuration counts cover a broader population than the Figure 1 cohort.
+The opening screen leads with the task transfer rank matrix and overall standings. Below the standings, expand **Compare rank trajectories** to trace all 109 published configurations through their five benchmark ranks in manuscript order. Each vertical axis uses the same rank scale, with rank 1 at the top. Click a family in the legend to highlight its traces, then click it again to restore all seven. The link below the chart opens the exact ranks in the historical comparison. Study-wide experiment and configuration counts cover a broader population than the Figure 1 cohort.
 
-The seven series colors follow the manuscript family palette. Cyan is reserved for navigation and emphasis. The two V-JEPA lines retain their separate configurations (ViT-H in VSSL and ViT-L in VideoSSL). Run `node tests/paper-overview.cjs` with the browser setup above to check the opening chart, family highlighting and first-screen visibility.
+The seven series colors follow the manuscript family palette. Cyan is reserved for navigation and emphasis. The two V-JEPA lines retain their separate configurations (ViT-H in VSSL and ViT-L in VideoSSL). Run `node tests/paper-overview.cjs` with the browser setup above to check first-screen matrix and standings visibility, the expandable chart and family highlighting.
 
 ## Main leaderboard
 

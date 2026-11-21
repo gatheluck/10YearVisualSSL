@@ -15,6 +15,34 @@ const path = require("node:path");
       process.env.OVERVIEW_HOME ||
         pathToFileURL(path.resolve(__dirname, "../paper-site/index.html")).href,
     );
+    for (const [width, height, minRows] of [
+      [1440, 900, 3],
+      [390, 844, 1],
+      [320, 640, 0],
+    ]) {
+      await page.setViewportSize({ width, height });
+      const matrix = await page.locator("#rank-matrix").boundingBox();
+      assert.ok(
+        matrix.y >= 0 && matrix.y + matrix.height < height,
+        "Complete rank matrix must be visible before scrolling at " + width,
+      );
+      if (minRows) {
+        const row = await page
+          .locator("#leaderboard tbody tr")
+          .nth(minRows - 1)
+          .boundingBox();
+        assert.ok(
+          row.y + row.height <= height,
+          "Leading standings must be visible before scrolling at " + width,
+        );
+      }
+      assert.ok(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= innerWidth,
+        ),
+      );
+    }
+    await page.getByText("Compare rank trajectories", { exact: true }).click();
     const lines = page.locator("#rank-atlas polyline");
     assert.equal(
       await lines.count(),
@@ -50,24 +78,6 @@ const path = require("node:path");
       ),
       109,
     );
-    for (const [width, height] of [
-      [1440, 900],
-      [390, 844],
-      [320, 640],
-    ]) {
-      await page.setViewportSize({ width, height });
-      await page.evaluate(() => window.scrollTo(0, 0));
-      const chart = await page.locator("#rank-atlas").boundingBox();
-      assert.ok(
-        chart.y + chart.height / 2 < height,
-        "Chart must be visible on first screen at " + width,
-      );
-      assert.ok(
-        await page.evaluate(
-          () => document.documentElement.scrollWidth <= innerWidth,
-        ),
-      );
-    }
     await page.getByRole("link", { name: "Explore all 109 rankings" }).click();
     assert.equal(await page.locator("tbody tr").count(), 109);
     console.log(

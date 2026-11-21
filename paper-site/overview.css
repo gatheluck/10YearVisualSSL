@@ -482,3 +482,162 @@
     font-size: 15px;
   }
 }
+
+/* The first screen pairs the published rank matrix with the standings. */
+.opening-grid {
+  display: block;
+  padding: clamp(15px, 1.7vw, 25px) 0;
+}
+.opening-copy {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 20px;
+  align-items: end;
+}
+.opening-copy .kicker {
+  grid-column: 1/-1;
+}
+.opening-copy h1 {
+  max-width: none;
+  grid-column: 1/-1;
+  font-size: clamp(26px, 3.3vw, 52px);
+  line-height: 1.05;
+  margin: 7px 0;
+}
+.opening-deck {
+  max-width: none;
+  font-size: 14px;
+}
+.opening-cta {
+  margin: 0;
+  background: none;
+  color: var(--cyan);
+  padding: 0;
+  font-size: 13px;
+}
+.rank-board {
+  padding: 22px 0 25px;
+}
+.rank-spread {
+  margin: 8px 0 23px;
+}
+.rank-map {
+  padding: clamp(14px, 1.7vw, 25px);
+}
+.rank-map h3,
+.rank-table-top h3 {
+  font-size: clamp(28px, 2.8vw, 46px);
+}
+.trajectories {
+  background: #101c2a;
+  color: #f4f6fb;
+  border-radius: 8px;
+  margin: 20px 0;
+}
+.trajectories summary {
+  padding: 12px 20px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.trajectories .atlas {
+  padding: 8px 20px 20px;
+}
+@media (max-width: 740px) {
+  .opening-copy {
+    display: block;
+  }
+  .opening-grid {
+    padding: 12px 0;
+  }
+  .opening-copy h1 {
+    font-size: clamp(24px, 5.8vw, 34px);
+  }
+  .opening-deck {
+    font-size: 12px;
+  }
+  .opening-cta {
+    margin-top: 4px;
+  }
+  .rank-board {
+    padding: 14px 0;
+  }
+  .rank-spread {
+    margin: 6px 0 14px;
+  }
+  .rank-map h3,
+  .rank-table-top h3 {
+    font-size: 26px;
+  }
+  .rank-map {
+    padding: 10px;
+  }
+  .rank-map p,
+  .rank-table-top p {
+    font-size: 12px;
+    margin: 4px 0 7px;
+  }
+  .profile-panel {
+    padding: 9px 12px;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 3px 12px;
+  }
+  .profile-panel select {
+    margin: 0;
+    padding: 4px;
+  }
+  .profile-panel label {
+    font-size: 11px;
+  }
+  #rank-profile {
+    grid-column: 1/-1;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 2px 10px;
+  }
+  #rank-profile h3 {
+    font-size: 16px;
+    margin: 0;
+  }
+  #rank-profile .family-name {
+    display: none;
+  }
+  .spotlight strong {
+    font-size: 20px;
+  }
+  .spotlight span {
+    font-size: 10px;
+  }
+  #rank-profile dl {
+    width: 100%;
+    margin: 2px 0 0;
+    padding-top: 4px;
+  }
+  #rank-profile dd {
+    margin: 1px 0 0;
+    font-size: 13px;
+  }
+  .rank-table-top {
+    gap: 3px;
+    margin-bottom: 2px;
+  }
+  .rank-table-top label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+  }
+  .rank-table-top input {
+    padding: 5px 8px;
+  }
+}
+@media (max-width: 740px) {
+  .opening-copy .kicker {
+    display: none;
+  }
+  .rank-scroll thead th {
+    padding-block: 10px;
+  }
+}
