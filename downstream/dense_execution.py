@@ -137,7 +137,13 @@ def train_epoch(model, loader, loss_for_batch, optimizer, scheduler, cfg, plan):
     )
 
 
-def batch_loss(model, batch, device, task, precision):
+def segmentation_loss(logits, target, *, allow_void):
+    if allow_void and not (target != 255).any():
+        return logits.float().sum() * 0.0
+    return torch.nn.functional.cross_entropy(logits, target, ignore_index=255)
+
+
+def batch_loss(model, batch, device, task, precision, *, allow_void=False):
     """Autocast the forward; preserve the dense reductions in FP32."""
     if task == "coco_detection":
         images, targets = batch
@@ -150,9 +156,7 @@ def batch_loss(model, batch, device, task, precision):
     with execution.autocast_context(device, precision):
         prediction = model(images)
     if task == "ade20k_segmentation":
-        return torch.nn.functional.cross_entropy(
-            prediction.float(), targets[0], ignore_index=255
-        )
+        return segmentation_loss(prediction.float(), targets[0], allow_void=allow_void)
     from downstream.nyuv2 import silog_loss
 
     return silog_loss(prediction.float(), targets[0].float(), targets[1])

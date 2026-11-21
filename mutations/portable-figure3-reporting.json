@@ -116,6 +116,60 @@
       "tests": [
         "tests.test_portable_figure3.PortableFigure.test_consistent_but_impossible_ade_pixel_accuracy_is_rejected"
       ]
+    },
+    {
+      "label": "ignore top5 publication units",
+      "file": "downstream/revised_reporting.py",
+      "old": "or published.get(task + '_top5') != top5",
+      "new": "or False",
+      "tests": [
+        "tests.test_portable_figure3.PortableFigure.test_full_classification_requires_consistent_top5"
+      ]
+    },
+    {
+      "label": "ignore top1 versus top5 order",
+      "file": "downstream/revised_reporting.py",
+      "old": "metrics['top1'] <= top5 <= 100",
+      "new": "0 <= top5 <= 100",
+      "tests": [
+        "tests.test_portable_figure3.PortableFigure.test_full_classification_requires_consistent_top5"
+      ]
+    },
+    {
+      "label": "ignore COCO area or threshold units",
+      "file": "downstream/revised_reporting.py",
+      "old": "or published.get(name) != ap / 100",
+      "new": "or False",
+      "tests": [
+        "tests.test_portable_figure3.PortableFigure.test_full_coco_requires_all_bbox_metrics_and_detection_count"
+      ]
+    },
+    {
+      "label": "accept a negative detection count",
+      "file": "downstream/revised_reporting.py",
+      "old": "or detections < 0",
+      "new": "or False",
+      "tests": [
+        "tests.test_portable_figure3.PortableFigure.test_full_coco_requires_all_bbox_metrics_and_detection_count"
+      ]
+    },
+    {
+      "label": "accept nonzero AP without predictions",
+      "file": "downstream/revised_reporting.py",
+      "old": "if detections == 0 and ap != 0:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_portable_figure3.PortableFigure.test_empty_coco_predictions_can_only_publish_zero_ap"
+      ]
+    },
+    {
+      "label": "accept invalid auxiliary bbox AP ranges",
+      "file": "downstream/revised_reporting.py",
+      "old": "or not 0 <= ap <= 100",
+      "new": "or False",
+      "tests": [
+        "tests.test_portable_figure3.PortableFigure.test_coco_rejects_consistent_but_invalid_auxiliary_values"
+      ]
     }
   ]
 }

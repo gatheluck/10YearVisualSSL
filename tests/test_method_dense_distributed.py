@@ -389,6 +389,9 @@ def worker(directory, kind="clip_hf"):
                 cfg = fixtures.Dense().config(
                     api, factory, data, kind=kind, adaptation=adaptation
                 )
+                corrected = kind == "vjepa2_1" and api is fixtures.ade20k and adaptation == "attentive"
+                if corrected:
+                    cfg["training_revision"] = "dense_ap_fp32_norm_bias_v1"
                 settings = "detector" if api is fixtures.coco else "probe"
                 if api is fixtures.coco and kind == "clip_hf":
                     cfg["detector_profile"] = "captured_native_detection_v1"
@@ -432,13 +435,17 @@ def worker(directory, kind="clip_hf"):
                 real_evaluate = api.evaluate
 
                 def evaluate(
-                    *args, observed=observed, real_evaluate=real_evaluate, **kwargs
+                    *args, observed=observed, real_evaluate=real_evaluate, corrected=corrected, **kwargs
                 ):
-                    assert context.rank == 0, (
+                    assert corrected or context.rank == 0, (
                         "validation must use only the leader's full loader"
                     )
                     observed.append(len(args[1].dataset))
-                    return real_evaluate(*args, **kwargs)
+                    metrics = real_evaluate(*args, **kwargs)
+                    if corrected:
+                        # Distinct rank scores make a leader-only reduction observable.
+                        metrics["pacc"] = 20.0 + 10 * context.rank
+                    return metrics
 
                 real_train = dense_execution.train_epoch
 
@@ -485,6 +492,8 @@ def worker(directory, kind="clip_hf"):
                             (base / mode / "run_manifest.json").read_text(),
                         )
                         report = json.loads((base / mode / "results.json").read_text())
+                        if corrected:
+                            assert report["final"]["pacc"] == 25.0, report["final"]
                         assert report["execution"]["world_size"] == 2
                         assert report["execution"]["effective_batch"] == 4
                         if kind == "vjepa2_1":
@@ -519,7 +528,7 @@ def worker(directory, kind="clip_hf"):
                         0 if api is fixtures.nyuv2 else 2
                     )
                     assert observed == (
-                        [3 if api is fixtures.nyuv2 else 5] * 5
+                        [5] * 4 if corrected else [3 if api is fixtures.nyuv2 else 5] * 5
                         if context.rank == 0
                         else []
                     )

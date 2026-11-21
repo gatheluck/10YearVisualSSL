@@ -4,6 +4,7 @@ import unittest
 import importlib.util
 import json
 import math
+import sys
 import tempfile
 from pathlib import Path
 from unittest import mock
@@ -72,6 +73,79 @@ class TestCorrectedDenseProbe(unittest.TestCase):
         self.assertFalse(torch.equal(before, model.head.weight))
         self.assertTrue(all(p.grad is None for p in model.backbone.parameters()))
 
+    def exercise_epochs(self, revision, *, void=False, bf16=False):
+        from PIL import Image
+
+        from downstream import ade20k
+        from tests.test_downstream_ade20k import tiny_ade
+
+        seen = []
+
+        class Grid(torch.nn.Module):
+            out_channels = 3
+
+            def __init__(self):
+                super().__init__()
+                self.scale = torch.nn.Parameter(torch.ones(1), requires_grad=False)
+
+            def forward_features(self, images):
+                seen.append((self.scale.dtype, torch.is_autocast_enabled('cpu')))
+                return torch.nn.functional.avg_pool2d(images * self.scale, 8)
+
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            data = tiny_ade(root / 'data', per=8)
+            if void:
+                for mask in (data / 'annotations/training').glob('*.png'):
+                    Image.new('L', (40, 40), 0).save(mask)
+            cfg = self.config()
+            if not revision:
+                del cfg['training_revision']
+            cfg.update(data_root=str(data), scheduler_profile='basic5_reference_schedule_v1',
+                       execution={'profile': 'captured_dense_v1', 'accumulation_steps': 1,
+                                  'tail_policy': 'discard', 'precision': 'bf16' if bf16 else 'fp32'})
+            cfg['probe'].update(epochs=20, batch_size=8, max_train_samples=0)
+            events = []
+            def trace(fn, label):
+                def run(*args, **kwargs):
+                    events.append(label)
+                    return fn(*args, **kwargs)
+                return run
+            def cpu_context(device, precision):
+                return torch.autocast('cpu', dtype=torch.bfloat16, enabled=precision == 'bf16')
+
+            with mock.patch.object(ade20k.dense_execution, 'autocast_context', cpu_context), \
+                    mock.patch.object(ade20k.dense_execution.execution, 'autocast_context', cpu_context), \
+                    mock.patch.object(ade20k, 'build_frozen_backbone', return_value=Grid()), \
+                    mock.patch.object(ade20k.dense_execution, 'train_epoch',
+                                      trace(ade20k.dense_execution.train_epoch, 'train')), \
+                    mock.patch.object(ade20k, 'evaluate', trace(ade20k.evaluate, 'eval')):
+                ade20k.run(cfg, root / 'out')
+            result = json.loads((root / 'out/results.json').read_text())
+            return events, result, seen
+
+    def test_corrected_training_scores_only_the_final_epoch(self):
+        self.assertEqual(self.exercise_epochs(False)[0], ['train', 'eval'] * 20)
+        self.assertEqual(self.exercise_epochs(True)[0], ['train'] * 20 + ['eval'])
+
+    def test_corrected_bf16_encoder_is_used_in_training_and_validation(self):
+        _, _, seen = self.exercise_epochs(True, bf16=True)
+        self.assertTrue(seen)
+        self.assertEqual(set(seen), {(torch.bfloat16, True)})
+
+    def test_previous_epoch_checkpoint_format_is_distinguished(self):
+        for corrected, expected in [(False, 'basic5_dense_epoch_v1'),
+                                    (True, 'basic5_corrected_ade_ap_epoch_v2')]:
+            with self.subTest(corrected=corrected):
+                _, result, _ = self.exercise_epochs(corrected)
+                self.assertEqual(result['continuation']['format'], expected)
+
+    def test_corrected_void_crops_complete_all_optimizer_updates(self):
+        events, result, _ = self.exercise_epochs(True, void=True)
+        self.assertEqual(result['execution']['updates'], 20)
+        self.assertTrue(math.isfinite(result['final']['miou']))
+        self.assertEqual(events.count('eval'), 1)
+
     def test_corrected_revision_is_scoped(self):
         from downstream import ade20k
         cfg = self.config()
@@ -108,6 +182,9 @@ class TestCoverageDelivery(unittest.TestCase):
 
 @unittest.skipUnless(HAVE, "torch and author encoder dependencies required")
 class TestFinetuneOptimization(unittest.TestCase):
+    def setUp(self):
+        self.addCleanup(sys.path.__setitem__, slice(None), sys.path.copy())
+
     def config(self, task="ade20k_segmentation"):
         return dict(task=task, profile="capture_basic5_components", adaptation="finetune",
                     optimizer_profile="basic5_finetune_v1",

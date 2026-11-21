@@ -45,7 +45,9 @@ never trusted. A changed empty commit also requires new validation.
 Git and SSH transport variables are removed from the test environment. Volatile
 shell/terminal variables are excluded; Python bytecode uses a fresh temporary
 location, `PYTHONPATH=.` and `PYTHONDONTWRITEBYTECODE=1`. The local Git launcher
-normalizes SDK/PATH additions consistently before validation and hook checks.
+normalizes SDK additions before validation and hook checks. Repeated entries in
+`PATH` and `MANPATH` retain their first position. A change to search order,
+new directories or the default manual search path still invalidates the receipt.
 Other environment values participate in the hash without being stored in clear.
 Submodules are inspected, never restored or updated by this tool. Testing a dirty
 submodule does not publish those edits; account for them separately during review.

@@ -143,6 +143,24 @@
       "tests": [
         "tests.test_push_validation.TestPushValidation.test_explicit_python_override_is_used_for_actual_push"
       ]
+    },
+    {
+      "label": "manual path repeats change fingerprint",
+      "file": "bin/validate-push.py",
+      "old": "for key in ('PATH', 'MANPATH'):",
+      "new": "for key in ('PATH',):",
+      "tests": [
+        "tests.test_push_validation.TestPushValidation.test_repeated_manual_search_paths_preserve_receipt_but_changes_invalidate"
+      ]
+    },
+    {
+      "label": "manual search order ignored",
+      "file": "bin/validate-push.py",
+      "old": "env[key] = os.pathsep.join(dict.fromkeys(env[key].split(os.pathsep)))",
+      "new": "env[key] = os.pathsep.join(sorted(set(env[key].split(os.pathsep)))) if key == 'MANPATH' else os.pathsep.join(dict.fromkeys(env[key].split(os.pathsep)))",
+      "tests": [
+        "tests.test_push_validation.TestPushValidation.test_repeated_manual_search_paths_preserve_receipt_but_changes_invalidate"
+      ]
     }
   ]
 }
