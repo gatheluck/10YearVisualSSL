@@ -12,6 +12,12 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-11-21: full-data ADE20K comparison
+
+All 30 public LoRA and DPT runs completed. At printed precision, 1 of
+ten cells match both mean and sample SD. See the [seed results and mask
+census](ADE20K_REPRODUCTION.md) for the reference and portable scores.
+
 ### 2026-11-21: revised backbone precision
 
 The updated revised trainer preserves VGGT-Omega checkpoint precision. See

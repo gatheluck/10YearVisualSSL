@@ -51,7 +51,11 @@ PORTABLE_METRICS = {
 
 def portable_fields(cfg, result, published):
     """Verify the reporting contract of a full revised CLI result."""
-    from downstream.revised_recipe import POPULATIONS, resolve_recipe, validate_completed_epochs
+    from downstream.revised_recipe import (
+        POPULATIONS,
+        resolve_recipe,
+        validate_completed_epochs,
+    )
     task = cfg['task']
     recipe = resolve_recipe(task, cfg['track'], schedule=cfg.get('schedule'), backbone=cfg['backbone'])
     if (cfg.get('profile') != recipe.profile or result['source_protocol_id'] != recipe.source_protocol_id
@@ -71,6 +75,14 @@ def portable_fields(cfg, result, published):
     metrics = result['metrics']
     if metrics[count] != population[1] or (task == 'nyuv2' and metrics['n_input_images'] != population[1]):
         raise ValueError('evaluated count differs')
+    if task == 'ade20k':
+        # All 2,000 validation masks, nearest-resized to 224 square, excluding void.
+        if metrics['n_pixels'] != 92_007_036 or metrics['n_classes_present'] != 150:
+            raise ValueError('ADE20K labeled pixel or class count differs')
+        accuracy = metrics['pixel_acc']
+        if (type(accuracy) not in (int, float) or not 0 <= accuracy <= 100
+                or published.get('ade20k_pixel_accuracy') != accuracy):
+            raise ValueError('ADE20K pixel accuracy differs or is outside percentage points')
     if task == 'nyuv2':
         selected = checked_depth_fields(result)
     else:

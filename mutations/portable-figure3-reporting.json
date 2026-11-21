@@ -80,6 +80,42 @@
       "tests": [
         "tests.test_portable_figure3.PortableFigure.test_claimed_completion_requires_all_updates_and_trainable_artifact"
       ]
+    },
+    {
+      "label": "accept missing ADE pixels",
+      "file": "downstream/revised_reporting.py",
+      "old": "metrics['n_pixels'] != 92_007_036",
+      "new": "False",
+      "tests": [
+        "tests.test_portable_figure3.PortableFigure.test_full_ade_validation_mask_and_pixel_accuracy_are_verified"
+      ]
+    },
+    {
+      "label": "ignore ADE classes",
+      "file": "downstream/revised_reporting.py",
+      "old": "metrics['n_classes_present'] != 150",
+      "new": "False",
+      "tests": [
+        "tests.test_portable_figure3.PortableFigure.test_full_ade_validation_mask_and_pixel_accuracy_are_verified"
+      ]
+    },
+    {
+      "label": "accept conflicting pixel accuracy",
+      "file": "downstream/revised_reporting.py",
+      "old": "published.get('ade20k_pixel_accuracy') != accuracy",
+      "new": "False",
+      "tests": [
+        "tests.test_portable_figure3.PortableFigure.test_full_ade_validation_mask_and_pixel_accuracy_are_verified"
+      ]
+    },
+    {
+      "label": "accept impossible pixel accuracy",
+      "file": "downstream/revised_reporting.py",
+      "old": "not 0 <= accuracy <= 100",
+      "new": "False",
+      "tests": [
+        "tests.test_portable_figure3.PortableFigure.test_consistent_but_impossible_ade_pixel_accuracy_is_rejected"
+      ]
     }
   ]
 }
