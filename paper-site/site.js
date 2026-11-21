@@ -49,7 +49,7 @@ const protocols = {
   ],
 };
 const models = ["DINOv3-7B", "VGGT-Ω", "RAEv2", "V-JEPA 2.1-G", "SigLIP 2-G"];
-const palette = ["#224bc2", "#9d4819", "#7141a4", "#13766b", "#a02e59"];
+const palette = ["var(--teal)", "var(--coral)", "var(--purple)", "var(--green)", "var(--sky)"];
 const byId = (id) => document.getElementById(id);
 const entry = (model, task, protocol) =>
   results.find(

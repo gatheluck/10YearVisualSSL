@@ -6,6 +6,9 @@
     <meta name="theme-color" content="#f8f8f3" />
     <title>Revisiting Vision Model Baselines · Basic Five</title>
     <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="overview.css" />
+    <script defer src="history-data.js"></script>
+    <script defer src="overview.js"></script>
     <script defer src="results.js"></script>
     <script defer src="site.js"></script>
   </head>
@@ -25,45 +28,66 @@
       </div>
     </header>
     <main id="overview" class="wrap">
-      <section class="hero" aria-labelledby="title">
-        <div class="intro">
-          <p class="eyebrow">
-            <span class="dash"></span> Visual representation learning
-          </p>
-          <h1 id="title">
-            Revisiting Vision Model Baselines <em>in the Deep Learning Era</em>
-          </h1>
-          <p class="summary">
-            How well do visual representations transfer beyond image
-            classification? A decade of models, evaluated across recognition,
-            detection, segmentation, depth and video.
-          </p>
-          <a class="primary" href="#leaderboard"
-            >Explore leaderboard <span aria-hidden="true">↓</span></a
-          >
-        </div>
-        <figure class="chart">
-          <figcaption>
-            <span class="eyebrow">Readout comparison</span
-            ><span class="source">Fig. 3</span>
-          </figcaption>
-          <h2>When rankings change</h2>
-          <div class="chart-controls" aria-label="Chart dataset">
-            <button type="button" data-chart="SSv2">SSv2</button
-            ><button type="button" data-chart="COCO">COCO</button>
+      <section class="opening" aria-labelledby="title">
+        <div class="opening-grid">
+          <div class="opening-copy">
+            <p class="kicker"><span></span> Visual representation learning</p>
+            <h1 id="title">
+              Revisiting Vision Model Baselines
+              <em>in the Deep Learning Era</em>
+            </h1>
+            <p class="opening-deck">
+              Across 2,500+ experiments, we trace a decade of visual
+              representations through recognition, detection, segmentation,
+              depth and video.
+            </p>
+            <a class="opening-cta" href="#leaderboard"
+              >Explore leaderboard <span aria-hidden="true">↓</span></a
+            >
           </div>
-          <div id="plot"></div>
-          <p id="finding" aria-live="polite"></p>
-        </figure>
-      </section>
-      <section class="scope" aria-label="Study scope">
-        <p><strong>110+</strong><span>Model configurations</span></p>
-        <p>
-          <strong>2,500+</strong
-          ><span>Training &amp; evaluation experiments</span>
-        </p>
-        <p><strong>5</strong><span>Core transfer benchmarks</span></p>
-        <p><strong>40</strong><span>Extended benchmark settings</span></p>
+          <figure class="atlas">
+            <figcaption>
+              <span class="kicker">Figure 1</span>
+              <h2>109 configurations, five ranks</h2>
+            </figcaption>
+            <p class="atlas-note">
+              Each line traces one of 109 configurations across the Basic Five.
+              Higher positions indicate better ranks.
+            </p>
+            <div class="axis-labels" aria-hidden="true">
+              <span>ImageNet</span><span>COCO</span><span>ADE20K</span
+              ><span>NYUv2</span><span>SSv2</span>
+            </div>
+            <svg
+              id="rank-atlas"
+              viewBox="-3 -2 406 114"
+              preserveAspectRatio="none"
+              role="img"
+              aria-label="Figure 1 benchmark ranks for 109 configurations. Rank 1 at the top, 109 at the bottom."
+            ></svg>
+            <div class="rank-caption">
+              <span>Benchmark rank · 1–109</span
+              ><span id="atlas-status" aria-live="polite"></span>
+            </div>
+            <div
+              class="family-legend"
+              role="group"
+              aria-label="Highlight a model family"
+            ></div>
+            <a class="atlas-link" href="history.html"
+              >Explore all 109 rankings <span aria-hidden="true">↗</span></a
+            >
+          </figure>
+          <section class="scope" aria-label="Study scope">
+            <p><strong>110+</strong><span>Model configurations</span></p>
+            <p>
+              <strong>2,500+</strong
+              ><span>Training &amp; evaluation experiments</span>
+            </p>
+            <p><strong>5</strong><span>Core transfer benchmarks</span></p>
+            <p><strong>40</strong><span>Extended benchmark settings</span></p>
+          </section>
+        </div>
       </section>
       <section id="leaderboard" class="board">
         <div class="eyebrow">
@@ -108,6 +132,19 @@
         </div>
         <p id="track-note"></p>
       </section>
+      <figure class="chart readout-chart">
+        <figcaption>
+          <span class="eyebrow">Readout comparison</span
+          ><span class="source">Fig. 3</span>
+        </figcaption>
+        <h2>When rankings change</h2>
+        <div class="chart-controls" aria-label="Chart dataset">
+          <button type="button" data-chart="SSv2">SSv2</button
+          ><button type="button" data-chart="COCO">COCO</button>
+        </div>
+        <div id="plot"></div>
+        <p id="finding" aria-live="polite"></p>
+      </figure>
       <section id="protocols" class="protocols">
         <div>
           <div class="eyebrow"><span class="dash"></span> Evaluation guide</div>

@@ -136,7 +136,7 @@ function draw(rows, i) {
       cx: x(row.year),
       cy: y(v),
       r: 3.6,
-      fill: "#2849b4",
+      fill: "var(--blue)",
       "fill-opacity": ".6",
     });
     const title = document.createElementNS(plot.namespaceURI, "title");

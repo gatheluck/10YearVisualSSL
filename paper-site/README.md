@@ -31,3 +31,9 @@ Run `node tests/paper-history.cjs` alongside the home-page test with the same br
 Open **ASIS vs CTRL** or `control.html`. The five benchmark panels follow Figure 4 on page 5. The source is the v41 comparison table used by the plot whose PDF drawing stream matches the November manuscript. All 32 methods follow the printed legend order. The table retains the plot source’s precision, including near-zero detection scores. CTRL uses the final 300-epoch value. Differences are signed CTRL minus ASIS, with lower values favorable only for NYUv2 RMSE. The scatter uses identical scales on both axes within each benchmark. Expand **Evaluation conditions** for the shared training recipe and interpretation limits from section 5.
 
 Run `node tests/paper-control.cjs` with the browser setup above. The test verifies all 160 pairs, differences and outcomes, navigation, protocol details and narrow-screen layout. Set `CONTROL_HOME` to test an existing local preview.
+
+## Figure 1 on the opening screen
+
+The overview traces all 109 published configurations through their five benchmark ranks in manuscript order. Each vertical axis uses the same rank scale, with rank 1 at the top. Click a family in the legend to highlight its traces, then click it again to restore all seven. The link below the chart opens the exact ranks in the historical comparison. Study-wide experiment and configuration counts cover a broader population than the Figure 1 cohort.
+
+The seven series colors follow the manuscript family palette. Cyan is reserved for navigation and emphasis. The two V-JEPA lines retain their separate configurations (ViT-H in VSSL and ViT-L in VideoSSL). Run `node tests/paper-overview.cjs` with the browser setup above to check the opening chart, family highlighting and first-screen visibility.

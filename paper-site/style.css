@@ -2,7 +2,14 @@
   --paper: #fafaf6;
   --ink: #172329;
   --muted: #4d5d62;
-  --blue: #2849b4;
+  --teal: #00B3B0;
+  --cyan: #2DD4D9;
+  --sky: #00A2FF;
+  --blue: #2563EB;
+  --purple: #A044E6;
+  --coral: #FF5A5F;
+  --gold: #FFC700;
+  --green: #84D447;
   --line: #ccd2cd;
   --mono: "SFMono-Regular", Consolas, monospace;
   font-family: "Helvetica Neue", Arial, sans-serif;
@@ -524,3 +531,5 @@ dialog .score {
 .intro h1 {
   text-wrap: balance;
 }
+
+@media(max-width:650px){.nav{flex-wrap:wrap;gap:8px;padding-block:9px}nav{flex-wrap:wrap;row-gap:5px}}

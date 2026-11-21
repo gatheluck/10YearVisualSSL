@@ -58,7 +58,7 @@ function drawPairs(points, lower) {
       cx: 90 + pos(Number(a)),
       cy: 190 - pos(Number(c)),
       r: 3.8,
-      fill: "#2849b4",
+      fill: "var(--blue)",
       "fill-opacity": ".75",
     });
     const title = document.createElementNS(svg.namespaceURI, "title");
