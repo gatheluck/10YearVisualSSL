@@ -197,7 +197,7 @@ def _build_vit(spec: dict, *, trainable: bool = False) -> ViTSpatialBackbone:
         out_channels=int(vit.embed_dim), **({"trainable": True} if trainable else {}))
 
 
-def build_frozen_backbone(spec: dict, device: "torch.device") -> nn.Module:
+def build_frozen_backbone(spec: dict, device: "torch.device", *, revised_cuda=False) -> nn.Module:
     """Build the frozen spatial backbone named by `spec['kind']`."""
     from downstream.activation_checkpointing import validate
     validate(spec, trainable=False)
@@ -208,7 +208,9 @@ def build_frozen_backbone(spec: dict, device: "torch.device") -> nn.Module:
         # A lineage method reuses its own model, loaded by file path from its own
         # directory to avoid a cross-method `models`-package collision; imported
         # lazily so a base `vit` run pulls none of it.
-        model = _load_provider(_PROVIDERS[kind]).build(spec)
+        provider = _load_provider(_PROVIDERS[kind])
+        build = getattr(provider, 'build_revised_cuda', provider.build) if revised_cuda else provider.build
+        model = build(spec)
     elif kind in ("resnet50", "clip_vit"):
         raise NotImplementedError(
             f"backbone kind {kind!r} is not ported yet; this pilot implements "

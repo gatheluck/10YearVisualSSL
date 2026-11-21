@@ -334,8 +334,11 @@ run stopped at an earlier epoch is `component_partial`. Inspect
 `training_complete`, populations, update counts, precision and recipe fields
 as well as the manifest; an `ok` manifest alone is insufficient for reproduction.
 
-CPU execution uses float32. CUDA selects bfloat16 backbone/autocast with
-float32 adapters/head. The dated GPU checks below describe the validated scope;
+CPU execution uses float32. CUDA uses bfloat16 autocast with float32 adapters and heads. The
+VGGT-Omega aggregator retains its loaded float32 parameters and buffers under
+autocast. DINOv3-7B loads bfloat16 parameters directly while the loader
+constructs float32 rotary frequencies. Other providers retain the existing
+bfloat16 backbone conversion. The dated GPU checks below describe the validated scope;
 they do not establish full-data execution or numerical score reproduction.
 The inspected classification, detection and dense trainers explicitly enable
 TF32 for CUDA float32 matrix multiplication and cuDNN operations. The revised
@@ -569,3 +572,46 @@ RAEv2 LoRA and V-JEPA 2.1-G DPT. Numerical differences
 at the printed precision remain visible here. Neither the source of such
 differences nor equivalence of the implementations follows from these aggregate
 numbers. The existing holds for other tasks and figures still apply.
+
+### VGGT-Omega backbone precision
+
+For one fixed NYUv2 validation image on H200, we compared the four DPT
+feature tensors against the original trainer with the released aggregator.
+The initial head parameters and depth target matched. Converting the backbone
+to bfloat16 before autocast produced layer-wise maximum absolute differences
+of 0.199, 0.548, 38.567 and 321.567. Preserving the loaded float32 backbone
+produced zero difference at every tap, with either the native image or the
+portable preprocessing. This verifies the storage correction on that input.
+The table above records the earlier implementation.
+
+### DINOv3 rotary frequencies
+
+The same H200 comparison with released DINOv3-7B weights isolated another
+precision difference. Loading the vision model with bfloat16 weights and
+keeping the rotary-frequency buffer in float32 reproduced all four native
+DPT taps exactly. Converting the entire model to bfloat16 after loading
+rounded that buffer and produced maximum differences of 0.625, 4, 36 and
+96. This loader policy applies to revised CUDA training only.
+
+For the same NYUv2 input, the other three providers (RAEv2 K7, SigLIP 2-G
+and V-JEPA 2.1-G) already matched the original four taps and initial DPT
+prediction exactly. End-of-training parity remains a separate measurement.
+
+### Full-data reruns after the two precision corrections
+
+Each cell below includes three independent 30-epoch runs (seeds 0, 1 and 2)
+with the same populations and schedules as the earlier NYUv2 table. All 12
+training processes exited successfully. The final auditor verified each
+checkpoint, epoch history, evaluation count and metric contract. For VGGT,
+the first post-training reporting process used incompatible revisions of the
+reporter and recipe and failed. The complete reporter subsequently read all
+six retained training outputs.
+
+| Backbone | Updated DPT | Figure 3 DPT | Updated LoRA | Figure 3 LoRA |
+| --- | ---: | ---: | ---: | ---: |
+| DINOv3-7B | 0.401 +/- 0.001 | 0.401 +/- 0.001 | 0.396 +/- 0.002 | 0.396 +/- 0.002 |
+| VGGT-Omega | 0.428 +/- 0.002 | 0.425 +/- 0.002 | 0.417 +/- 0.003 | 0.418 +/- 0.003 |
+
+All values are unaligned RMSE in meters (mean +/- sample SD). The two
+changes were selected from original loader behavior and fixed-input tests;
+these aggregate reruns assess their effect independently.

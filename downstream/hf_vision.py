@@ -26,7 +26,7 @@ def vision_no_decay(name):
         'positional', 'class_token', 'cls_token'))
 
 
-def build_vision(spec, *, family, expected, trainable=False):
+def build_vision(spec, *, family, expected, trainable=False, load_dtype=None):
     """Read a complete local HF snapshot; reduced fixtures need arch=fixture."""
     from transformers import (AutoConfig, CLIPVisionModelWithProjection,
                               SiglipVisionModel, DINOv3ViTModel)
@@ -52,7 +52,8 @@ def build_vision(spec, *, family, expected, trainable=False):
     if family == "register_cls":
         config.pos_embed_shift = config.pos_embed_jitter = config.pos_embed_rescale = None
     model, info = cls.from_pretrained(path, config=config, local_files_only=True,
-                                     trust_remote_code=False, output_loading_info=True)
+                                     trust_remote_code=False, output_loading_info=True,
+                                     **({"dtype": load_dtype} if load_dtype is not None else {}))
     if info.get("missing_keys") or info.get("mismatched_keys") or info.get("error_msgs"):
         raise ValueError("incomplete checkpoint: missing or incompatible vision weights")
     # Full multimodal snapshots may also carry a text tower; never instantiate it.

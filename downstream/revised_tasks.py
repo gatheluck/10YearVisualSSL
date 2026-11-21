@@ -258,12 +258,12 @@ def _execute(cfg, out, context):
     validation = DataLoader(Subset(val, range(context.rank, len(val), context.world)),
                             batch_size={'imagenet': 64, 'ssv2': 8, 'coco': 2}.get(task, physical_batch), collate_fn=collation,
                             num_workers=workers, pin_memory=device.type == 'cuda')
-    backbone = context.call(lambda: build_frozen_backbone(cfg['backbone'], device))
+    backbone = context.call(lambda: build_frozen_backbone(cfg['backbone'], device, revised_cuda=device.type == 'cuda'))
     identity = context.call(lambda: checkpoint_identity(cfg['backbone']['encoder'])
                             if cfg['backbone'].get('encoder') else None)
     context.agree(identity)
     def probe_input():
-        if device.type == 'cuda':
+        if device.type == 'cuda' and not getattr(backbone, 'preserve_revised_storage', False):
             backbone.to(dtype=torch.bfloat16)
         # Preserve the training RNG stream while validating representative input.
         py, npstate, state = random.getstate(), np.random.get_state(), torch.get_rng_state()
