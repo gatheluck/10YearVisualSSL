@@ -208,6 +208,7 @@ shown so the shape is visible before it is built.
 │   └── aggregate-seeds.py           seeds 0,1,2 -> mean +/- std (BASIC5 rule seed)
 ├── adapterlib/                     the one place a run_manifest.json is written
 │   └── __init__.py                                                    exists
+├── paper-site/                     paper overview and Basic Five leaderboard
 ├── downstream/                     cross-method downstream tasks      exists
 │   ├── contract.py                   the downstream contract: write + verify
 │   ├── arssl.py                      ARSSL harness: drive one backbone through them all

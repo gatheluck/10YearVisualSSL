@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f8f8f3" />
+    <title>Revisiting Vision Model Baselines · Basic Five</title>
+    <link rel="stylesheet" href="style.css" />
+    <script defer src="results.js"></script>
+    <script defer src="site.js"></script>
+  </head>
+  <body>
+    <a class="skip" href="#leaderboard">Skip to leaderboard</a>
+    <header>
+      <div class="wrap nav">
+        <a class="brand" href="#overview"
+          ><span class="symbol" aria-hidden="true"><i></i><i></i><i></i></span>
+          Vision Baselines</a
+        >
+        <nav aria-label="Sections">
+          <a href="#overview">Overview</a><a href="#leaderboard">Leaderboard</a
+          ><a href="#protocols">Protocols</a>
+        </nav>
+      </div>
+    </header>
+    <main id="overview" class="wrap">
+      <section class="hero" aria-labelledby="title">
+        <div class="intro">
+          <p class="eyebrow">
+            <span class="dash"></span> Visual representation learning
+          </p>
+          <h1 id="title">
+            Revisiting Vision Model Baselines <em>in the Deep Learning Era</em>
+          </h1>
+          <p class="summary">
+            How well do visual representations transfer beyond image
+            classification? A decade of models, evaluated across recognition,
+            detection, segmentation, depth and video.
+          </p>
+          <a class="primary" href="#leaderboard"
+            >Explore leaderboard <span aria-hidden="true">↓</span></a
+          >
+        </div>
+        <figure class="chart">
+          <figcaption>
+            <span class="eyebrow">Readout comparison</span
+            ><span class="source">Fig. 3</span>
+          </figcaption>
+          <h2>When rankings change</h2>
+          <div class="chart-controls" aria-label="Chart dataset">
+            <button type="button" data-chart="SSv2">SSv2</button
+            ><button type="button" data-chart="COCO">COCO</button>
+          </div>
+          <div id="plot"></div>
+          <p id="finding" aria-live="polite"></p>
+        </figure>
+      </section>
+      <section class="scope" aria-label="Study scope">
+        <p><strong>110+</strong><span>Model configurations</span></p>
+        <p>
+          <strong>2,500+</strong
+          ><span>Training &amp; evaluation experiments</span>
+        </p>
+        <p><strong>5</strong><span>Core transfer benchmarks</span></p>
+        <p><strong>40</strong><span>Extended benchmark settings</span></p>
+      </section>
+      <section id="leaderboard" class="board">
+        <div class="eyebrow">
+          <span class="dash"></span> Figure 3 · Unified evaluation
+        </div>
+        <div class="board-heading">
+          <div>
+            <h2>Basic Five leaderboard</h2>
+            <p>
+              Five checkpoints under shared downstream tasks, splits and
+              metrics. Select a score to inspect its protocol.
+            </p>
+          </div>
+          <button id="csv" class="download">
+            Download CSV <span aria-hidden="true">↓</span>
+          </button>
+        </div>
+        <div class="toolbar">
+          <div id="tracks" role="group" aria-label="Readout protocol"></div>
+          <label
+            >Task
+            <select id="task" aria-label="Show task"></select
+          ></label>
+        </div>
+        <div
+          class="table-scroll"
+          tabindex="0"
+          aria-label="Scrollable benchmark table"
+        >
+          <table>
+            <caption class="sr">
+              Figure 3 manuscript means and standard deviations. Choose a column
+              header to sort.
+            </caption>
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="table-note">
+          <span><b>Mean ± SD</b> across three runs · ↑ higher / ↓ lower</span
+          ><span id="rows-info" aria-live="polite"></span>
+        </div>
+        <p id="track-note"></p>
+      </section>
+      <section id="protocols" class="protocols">
+        <div>
+          <div class="eyebrow"><span class="dash"></span> Evaluation guide</div>
+          <h2>Reading the protocols</h2>
+          <p>
+            Scores describe a checkpoint, its feature interface and the
+            downstream procedure. Pre-training is not controlled across these
+            five checkpoints.
+          </p>
+        </div>
+        <div id="guides"></div>
+      </section>
+    </main>
+    <footer>
+      <div class="wrap">
+        <span>Vision Baselines</span><a href="#overview">Back to overview ↑</a>
+      </div>
+    </footer>
+    <dialog aria-labelledby="detail-title">
+      <button id="close" aria-label="Close score details">×</button>
+      <div class="eyebrow">Figure 3 · Score details</div>
+      <h2 id="detail-title"></h2>
+      <div id="detail"></div>
+    </dialog>
+  </body>
+</html>
