@@ -397,8 +397,8 @@ must not be treated as interchangeable environment certifications.
 
 | Area | Observed difference and next action |
 | --- | --- |
-| LoRA task integration | The revised CLI connects all five inspected task profiles, with portable completed-epoch continuation. Full-data NYUv2 results appear below. Other tasks still require full-data released-weight validation; small component updates do not complete them. Earlier LoRA recipes remain historical. |
-| DPT | The revised CLI connects ADE20K and NYUv2 to the frozen four-tap head and v2 schedule. NYUv2 full-data executions are reported below. Full-data ADE20K validation remains. Dense execution follows the inspected single-device source; distributed dense training is not claimed. |
+| LoRA task integration | The revised CLI connects all five inspected task profiles, with portable completed-epoch continuation. Full-data NYUv2 results appear below and the [ADE20K comparison](ADE20K_REPRODUCTION.md) covers all five models. ImageNet, SSv2 and COCO still require full-data released-weight validation; small component updates do not complete them. Earlier LoRA recipes remain historical. |
+| DPT | The revised CLI connects ADE20K and NYUv2 to the frozen four-tap head and v2 schedule. NYUv2 full-data executions are reported below. The [ADE20K report](ADE20K_REPRODUCTION.md) compares all five released models over three seeds. Dense execution follows the inspected single-device source; distributed dense training is not claimed. |
 | RAEv2 readout | The revised paper's LP/AP generator block 29 at time 0.1 is different from this package's existing tokenizer K7 readout. Keep these identities separate and port the matching generator path. |
 | COCO | Basic5 uses Faster R-CNN bounding-box AP. The existing portable COCO runner already performs detection; historical category-presence scores must not be relabeled as detection AP. New correction metadata is not proof that all corresponding reruns completed. |
 | NYUv2 | The LoRA/DPT run record stores median-aligned RMSE as primary. The author-supplied v2 descriptions select the unaligned field for manuscript reporting. Other tracks require their own provenance. |

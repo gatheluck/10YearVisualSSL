@@ -1,6 +1,6 @@
 """Audit full portable Figure 3 outputs at the reporting CLI."""
-import json
 import importlib.util
+import json
 import subprocess
 import sys
 import tempfile
@@ -29,44 +29,51 @@ class PortableFigure(unittest.TestCase):
         }[task]
         out = self.root / f'{task}-{track}-{seed}'
         out.mkdir()
-        cfg = dict(profile='b5x_lora_dpt_v2', task=task, track=track, seed=seed,
-                   device='cuda', backbone={'kind': 'fixture'}, data_root='private')
+        backbone = {'kind': 'fixture'}
         if schedule is not None:
-            cfg.update(schedule=schedule, backbone={'kind': 'dinov3_hf', 'arch': 'released', 'encoder': 'weights'})
+            backbone.update(kind='dinov3_hf', arch='released', encoder='weights')
+        cfg = {'profile': 'b5x_lora_dpt_v2', 'task': task, 'track': track, 'seed': seed,
+               'device': 'cuda', 'backbone': backbone, 'data_root': 'private'}
+        if schedule is not None:
+            cfg['schedule'] = schedule
         config = out.with_suffix('.json')
         config.write_text(json.dumps(cfg))
-        recipe = json.loads(json.dumps(asdict(resolve_recipe(task, track, schedule=schedule, backbone=cfg['backbone']))))
+        recipe = json.loads(json.dumps(asdict(resolve_recipe(task, track, schedule=schedule, backbone=backbone))))
         value = .4 + seed / 100 if task == 'nyuv2' else 50 + seed
         metrics = {key: value, count: population[1]}
         if task == 'nyuv2':
             metrics.update(rmse=.3, scale_alignment='per-image median', n_input_images=654)
-        result = dict(profile=cfg['profile'], task=task, track=track, status='component_complete',
-                      recipe=recipe, source_protocol_id=recipe['source_protocol_id'],
-                      epochs_completed=recipe['epochs'], training_complete=True,
-                      source_populations=population[:], intended_populations=population[:],
-                      used_populations=population[:], missing_populations=[0, 0],
-                      metrics=metrics, world_size=1, accumulation_steps=1, precision='cuda_bf16', checkpoint_sha256='a'*64)
+        if task == 'ade20k':
+            metrics.update(n_pixels=92_007_036, n_classes_present=150, pixel_acc=78.5)
+        result = {'profile': cfg['profile'], 'task': task, 'track': track, 'status': 'component_complete',
+                      'recipe': recipe, 'source_protocol_id': recipe['source_protocol_id'],
+                      'epochs_completed': recipe['epochs'], 'training_complete': True,
+                      'source_populations': population[:], 'intended_populations': population[:],
+                      'used_populations': population[:], 'missing_populations': [0, 0],
+                      'metrics': metrics, 'world_size': 1, 'accumulation_steps': 1, 'precision': 'cuda_bf16', 'checkpoint_sha256': 'a'*64}
         steps = population[0] // recipe['effective_batch']
         result.update(updates=steps * recipe['epochs'], loss_log=[
-            dict(epoch=i + 1, updates=steps, loss=.25) for i in range(recipe['epochs'])])
+            {'epoch': i + 1, 'updates': steps, 'loss': .25} for i in range(recipe['epochs'])])
         (out/'trainable.pt').write_bytes(b'fixture checkpoint bytes')
         result.update(reporting_fields(result))
         published = {name: value/100 if task == 'coco' else .3 if task == 'nyuv2' else value}
+        if task == 'ade20k':
+            published['ade20k_pixel_accuracy'] = metrics['pixel_acc']
         if alter:
             alter(result, published)
         (out/'result.json').write_text(json.dumps(result))
-        contract.write_metrics(out, published, {name: name})
+        contract.write_metrics(out, published, {key: key for key in published})
         contract.write_manifest(out, task=task, method_ref='revised-component', status='ok',
             config_sha256=contract.sha256_bytes(config.read_bytes()), started_at='start', finished_at='end',
-            seed=seed, backbone=cfg['backbone'])
-        return dict(seed=seed, config=str(config), out=str(out), exit_status=0)
+            seed=seed, backbone=backbone)
+        return {'seed': seed, 'config': str(config), 'out': str(out), 'exit_status': 0}
 
     def report(self, records):
         config = self.root / 'plan.json'
         out = self.root / 'report.json'
         out.unlink(missing_ok=True)
-        config.write_text(json.dumps(dict(schema='portable_figure3_v1', runs=records,
-                                          expected_seeds=[0, 1, 2])))
+        config.write_text(json.dumps({'schema': 'portable_figure3_v1', 'runs': records,
+                                          'expected_seeds': [0, 1, 2]}))
         subprocess.run([sys.executable, '-m', 'downstream.revised_reporting', '--config', str(config),
                         '--out', str(out)], check=True, capture_output=True)
         self.assertNotIn(str(self.root), out.read_text())
@@ -106,6 +113,28 @@ class PortableFigure(unittest.TestCase):
         self.assertEqual(report['missing_seeds'], [2])
         self.assertFalse(report['complete'])
 
+
+    def test_full_ade_validation_mask_and_pixel_accuracy_are_verified(self):
+        def lost_pixel(result, _):
+            result['metrics']['n_pixels'] -= 1
+
+        def lost_class(result, _):
+            result['metrics']['n_classes_present'] -= 1
+
+        def wrong_accuracy(_, published):
+            published['ade20k_pixel_accuracy'] = 0.785
+
+        records = [self.record('ade20k', 'lora', i, alter=alter)
+                   for i, alter in enumerate((lost_pixel, lost_class, wrong_accuracy))]
+        report = self.report(records)
+        self.assertEqual(report['completed_seeds'], [])
+        self.assertEqual([r['seed'] for r in report['invalid_runs']], [0, 1, 2])
+
+    def test_consistent_but_impossible_ade_pixel_accuracy_is_rejected(self):
+        def impossible(result, published):
+            result['metrics']['pixel_acc'] = published['ade20k_pixel_accuracy'] = 101
+        report = self.report([self.record('ade20k', 'dpt', 0, alter=impossible)])
+        self.assertEqual(report['completed_seeds'], [])
 
     def test_different_execution_topologies_do_not_complete_one_cell(self):
         report = self.report([self.record('imagenet', 'lora', seed, alter=
