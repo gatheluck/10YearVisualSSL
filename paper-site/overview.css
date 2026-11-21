@@ -288,28 +288,54 @@
   border: 1px solid #889d95;
 }
 .matrix-shell {
+  --plot-height: 92px;
+  --tick-height: 67px;
+  --column-width: 7.5px;
   display: grid;
   grid-template-columns: 60px minmax(0, 1fr);
-  align-items: stretch;
 }
 .matrix-labels {
+  height: var(--plot-height);
   display: grid;
   grid-template-rows: repeat(5, 1fr);
   align-items: center;
   font: bold 11px var(--mono);
 }
+.matrix-viewport {
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
 #rank-matrix {
   display: grid;
-  grid-template-columns: repeat(109, minmax(0, 1fr));
-  height: 145px;
-  background: white;
+  grid-template-columns: repeat(109, minmax(var(--column-width), 1fr));
+  min-width: max-content;
 }
 .matrix-column {
   display: grid;
-  grid-template-rows: repeat(5, 1fr);
+  grid-template-rows: repeat(5, calc((var(--plot-height) - 10px) / 5)) var(
+      --tick-height
+    );
   gap: 2px;
   cursor: pointer;
+  min-width: 0;
+}
+.matrix-cell {
   border-right: 1px solid #ffffff70;
+}
+.model-tick {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  white-space: nowrap;
+  justify-self: center;
+  color: #173335;
+  font:
+    7.5px/1 Arial,
+    sans-serif;
+  letter-spacing: 0;
+  padding-top: 2px;
+}
+.matrix-column.picked .model-tick {
+  font-weight: 700;
 }
 .matrix-column.picked,
 .matrix-column:hover {
@@ -469,8 +495,13 @@
   .rank-map {
     padding: 12px;
   }
-  #rank-matrix {
-    height: 110px;
+  .matrix-shell {
+    --column-width: 12px;
+    --plot-height: 65px;
+    --tick-height: 81px;
+  }
+  .model-tick {
+    font-size: 9px;
   }
   .matrix-column {
     border: 0;

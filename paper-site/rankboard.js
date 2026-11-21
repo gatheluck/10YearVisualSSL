@@ -59,11 +59,19 @@ function buildRankBoard(rows, familyByName, families) {
       cell.className = "matrix-cell";
       cell.style.backgroundColor = shade(rank);
     }
+    add(col, "span", row.name).className = "model-tick";
     col.onclick = () => inspect(row);
     elements.set(row.name, col);
   }
-  select.onchange = () =>
+  select.onchange = () => {
     inspect(rows.find((row) => row.name === select.value));
+    const viewport = matrix.parentElement;
+    const frame = viewport.getBoundingClientRect();
+    const cell = elements.get(select.value).getBoundingClientRect();
+    if (cell.left < frame.left || cell.right > frame.right)
+      viewport.scrollLeft +=
+        (cell.left + cell.right - frame.left - frame.right) / 2;
+  };
   inspect(rows[0]);
   let all = false;
   function draw() {

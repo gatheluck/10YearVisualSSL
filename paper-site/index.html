@@ -60,18 +60,24 @@
               <span class="scale">Better <i></i> Worse</span>
             </figcaption>
             <p>
-              One column per configuration, ordered by mean rank. Select a
-              column to inspect its five ranks.
+              Select a model name or column to inspect its ranks.
             </p>
             <div class="matrix-shell">
               <div class="matrix-labels">
                 <span>ImageNet</span><span>COCO</span><span>ADE20K</span
                 ><span>NYUv2</span><span>SSv2</span>
               </div>
-              <div id="rank-matrix" aria-hidden="true"></div>
+              <div
+                class="matrix-viewport"
+                tabindex="0"
+                role="region"
+                aria-label="Model configurations in overall rank order, scroll horizontally"
+              >
+                <div id="rank-matrix" aria-hidden="true"></div>
+              </div>
             </div>
             <div class="matrix-axis">
-              <span>1st overall</span><span>109th</span>
+              Models · best overall rank first →
             </div>
           </figure>
           <aside class="profile-panel">

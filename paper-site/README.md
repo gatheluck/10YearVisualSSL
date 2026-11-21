@@ -40,4 +40,4 @@ The seven series colors follow the manuscript family palette. Cyan is reserved f
 
 ## Main leaderboard
 
-The Figure 1 heatmap shows all 545 published task ranks with a single scale. Columns keep the manuscript’s mean-rank order and ties. Select a column or use the configuration selector to read exact values. The standings start with ten rows and support expansion and model-name search. Run `node tests/paper-rankboard.cjs` to check the interactive views and compare the complete standings against the manuscript.
+The Figure 1 heatmap shows all 545 published task ranks with a single scale. Columns keep the manuscript’s mean-rank order and ties. Each column carries its full configuration name beneath the five task ranks. Narrow views scroll the columns and their labels together while task names stay fixed. Select a label or column, or use the configuration selector to read exact values. The standings start with ten rows and support expansion and model-name search. Run `node tests/paper-rankboard.cjs` to check the interactive views and compare the complete standings against the manuscript.

@@ -24,6 +24,42 @@ const { chromium } = require("playwright");
     assert.equal(await board.locator(".matrix-column").count(), 109);
     assert.equal(await board.locator(".matrix-cell").count(), 545);
     const select = board.getByLabel("Inspect configuration");
+    const names = board.locator(".model-tick");
+    assert.deepEqual(
+      await names.allTextContents(),
+      await select.locator("option").allTextContents(),
+      "Each heatmap column must have its published configuration name on the axis",
+    );
+    for (const width of [1440, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      assert.ok(
+        await names.evaluateAll((ticks) =>
+          ticks.every((t) => {
+            const a = t.getBoundingClientRect(),
+              b = t.parentElement
+                .querySelector("i.matrix-cell:last-of-type")
+                .getBoundingClientRect();
+            return (
+              a.width > 0 &&
+              a.height > 0 &&
+              a.top >= b.bottom - 1 &&
+              Math.abs((a.left + a.right - b.left - b.right) / 2) < 1
+            );
+          }),
+        ),
+        "Axis text must stay centered below the cells",
+      );
+      await select.selectOption({ index: 108 });
+      const last = await names.last().boundingBox(),
+        end = await board.locator(".matrix-viewport").boundingBox();
+      assert.ok(
+        last.x >= end.x && last.x + last.width <= end.x + end.width + 1,
+        "Selected model must be visible",
+      );
+      await select.selectOption({ index: 0 });
+      await names.nth(1).click();
+      assert.equal(await select.inputValue(), "DINOv2");
+    }
     await select.selectOption({ label: "RAEv2" });
     assert.match(await board.locator("#rank-profile").innerText(), /RAEv2/);
     assert.deepEqual(
