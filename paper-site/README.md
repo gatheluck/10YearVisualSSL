@@ -17,3 +17,11 @@ With Node.js, Playwright and its Chromium browser installed, run `node tests/pap
 ## Branch and delivery
 
 Maintain the static site on the dedicated `codex/paper-website` branch. The deployable directory is `paper-site/`; keep the repository root, test fixtures, development notes and review manuscript outside any hosting artifact. All runtime assets use relative paths. A future GitHub Pages workflow can select this branch and publish only that directory after release approval. No publishing workflow is included.
+
+## Historical comparison
+
+Open **History** from the home page or open `history.html` directly. Switch between the printed overall ranking (Figure 1, 109 configurations) and scores by first release (Figure 2, 113 configurations). Year and benchmark filters apply to the chart and table. Selecting a table value opens evaluation details. ASIS uses family-specific protocols; Figure 3 uses the Unified protocols.
+
+Figure 1 preserves the manuscript's printed overall and task ranks, including ties. The mean is the unweighted average of its five task ranks; all 109 means were checked against page 1. Figure 2 uses the v45 plot source whose PDF content stream matches the figure embedded on page 3 of the November manuscript. Its plotted-point counts in benchmark order are 112, 110, 112, 112 and 113. MAGE, JiT and Highway Networks have no plotted COCO detection score in that version; AlayaWorld v1.1 is explicitly excluded from its depth panel. Later figure revisions are separate evidence. The two figures retain their own cohorts; in particular the printed Highway Networks ranks are preserved independently of missing Figure 2 scores. Checkpoint-specific feature descriptions follow manuscript section 4 where available. Unreported per-run recipes are left unspecified.
+
+Run `node tests/paper-history.cjs` alongside the home-page test with the same browser setup. Set `HISTORY_HOME` to a local HTTP preview URL to exercise navigation through the running server.

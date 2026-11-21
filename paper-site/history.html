@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Historical transfer · Vision Baselines</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="history.css" />
+    <script defer src="history-data.js"></script>
+    <script defer src="history.js"></script>
+  </head>
+  <body>
+    <a class="skip" href="#compare">Skip to comparison</a>
+    <header>
+      <div class="wrap nav">
+        <a class="brand" href="index.html#overview"
+          ><span class="symbol" aria-hidden="true"><i></i><i></i><i></i></span>
+          Vision Baselines</a
+        >
+        <nav aria-label="Sections">
+          <a href="index.html#overview">Overview</a
+          ><a href="index.html#leaderboard">Leaderboard</a
+          ><a href="history.html" aria-current="page">History</a
+          ><a href="index.html#protocols">Protocols</a>
+        </nav>
+      </div>
+    </header>
+    <main class="wrap">
+      <section class="history-intro intro">
+        <p class="eyebrow">
+          <span class="dash"></span> Figures 1 &amp; 2 · ASIS
+        </p>
+        <h1>Historical <em>transfer</em></h1>
+        <p class="summary">
+          Explore how released vision models perform across the Basic Five. Each
+          historical result pairs a checkpoint with its family’s feature
+          extraction and downstream evaluation protocol.
+        </p>
+      </section>
+      <section id="compare" aria-label="Compare historical results">
+        <div class="toolbar">
+          <div id="tracks" aria-label="Comparison view">
+            <button id="ranking" aria-pressed="true">Figure 1 · Ranks</button
+            ><button id="scores" aria-pressed="false">Figure 2 · Scores</button>
+          </div>
+          <div class="filters">
+            <label
+              >First release
+              <select id="year">
+                <option value="">All years</option>
+              </select></label
+            >
+            <label
+              >Benchmark
+              <select id="task"></select
+            ></label>
+          </div>
+        </div>
+        <figure class="historical-chart">
+          <figcaption>
+            <h2 id="chart-title"></h2>
+            <span id="axis"></span>
+          </figcaption>
+          <svg
+            id="plot"
+            role="img"
+            aria-labelledby="chart-title axis"
+            viewBox="0 0 800 175"
+          ></svg>
+        </figure>
+        <div class="results-heading">
+          <h2 id="heading"></h2>
+          <span aria-live="polite" id="count"></span>
+        </div>
+        <p id="context"></p>
+        <div
+          class="table-scroll"
+          tabindex="0"
+          role="region"
+          aria-label="Historical configurations"
+        >
+          <table>
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+    <footer>
+      <div class="wrap">
+        <a href="index.html">Vision Baselines</a
+        ><a href="index.html#leaderboard">Figure 3 · Unified leaderboard →</a>
+      </div>
+    </footer>
+    <dialog aria-labelledby="detail-title">
+      <form method="dialog">
+        <button id="close" aria-label="Close details">×</button>
+      </form>
+      <p class="eyebrow" id="source"></p>
+      <h2 id="detail-title"></h2>
+      <dl id="details"></dl>
+    </dialog>
+  </body>
+</html>
