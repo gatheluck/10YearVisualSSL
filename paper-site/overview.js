@@ -77,4 +77,5 @@
     traces.push(trace);
   }
   highlight(null);
+  buildRankBoard(historicalRanks, byName, families);
 })();

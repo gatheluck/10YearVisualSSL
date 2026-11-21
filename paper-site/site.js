@@ -181,7 +181,7 @@ function setHash() {
     p.set("sort", state.sort);
     if (state.reverse) p.set("reverse", "1");
   }
-  history.replaceState(null, "", "#leaderboard?" + p);
+  history.replaceState(null, "", "#unified?" + p);
 }
 function visibleTasks() {
   return state.task === "all" ? paperTasks(state.protocol) : [state.task];
@@ -220,7 +220,7 @@ function draw() {
         new Option(t === "all" ? "All tasks" : t, t, false, t === state.task),
     ),
   );
-  const head = document.querySelector("thead");
+  const head = document.querySelector("#unified thead");
   head.innerHTML =
     '<tr><th scope="col">Checkpoint</th>' +
     columns
@@ -247,7 +247,7 @@ function draw() {
       })
       .join("") +
     "</tr>";
-  const body = document.querySelector("tbody");
+  const body = document.querySelector("#unified tbody");
   body.innerHTML = orderedModels()
     .map(
       (model) =>
@@ -362,7 +362,7 @@ for (const [code, [name, description]] of Object.entries(protocols)) {
 document
   .querySelectorAll("[data-chart]")
   .forEach((btn) => (btn.onclick = () => chart(btn.dataset.chart)));
-document.querySelector("thead").onclick = (e) => {
+document.querySelector("#unified thead").onclick = (e) => {
   const btn = e.target.closest("[data-sort]");
   if (!btn) return;
   const task = btn.dataset.sort;
@@ -372,7 +372,7 @@ document.querySelector("thead").onclick = (e) => {
   setHash();
   document.querySelector('[data-sort="' + task + '"]').focus();
 };
-document.querySelector("tbody").onclick = (e) => {
+document.querySelector("#unified tbody").onclick = (e) => {
   const btn = e.target.closest("[data-model]");
   if (btn) details(entry(btn.dataset.model, btn.dataset.task, state.protocol));
 };
@@ -400,5 +400,5 @@ if (visibleTasks().includes(params.get("sort"))) {
 }
 chart("SSv2");
 draw();
-if (location.hash.startsWith("#leaderboard?"))
-  byId("leaderboard").scrollIntoView();
+if (/^#(?:leaderboard|unified)\?/.test(location.hash))
+  byId("unified").scrollIntoView();

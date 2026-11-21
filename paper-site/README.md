@@ -8,7 +8,7 @@ Open `index.html` directly in a browser. For local HTTP preview, run the followi
 python3 -m http.server 8765 --bind 127.0.0.1 --directory paper-site
 ```
 
-The selected protocol, task and sort order are shareable via the leaderboard fragment. Select a score to see its metric, procedure, source and schedule note. The CSV contains the displayed cells in display order.
+The primary leaderboard (#leaderboard) presents Figure 1. For Figure 3, the selected protocol, task and sort order are shareable via the #unified fragment. Existing parameterized Figure 3 leaderboard links remain supported. Select a score to see its metric, procedure, source and schedule note. The CSV contains the displayed cells in display order.
 
 ## Local checks
 
@@ -37,3 +37,7 @@ Run `node tests/paper-control.cjs` with the browser setup above. The test verifi
 The overview traces all 109 published configurations through their five benchmark ranks in manuscript order. Each vertical axis uses the same rank scale, with rank 1 at the top. Click a family in the legend to highlight its traces, then click it again to restore all seven. The link below the chart opens the exact ranks in the historical comparison. Study-wide experiment and configuration counts cover a broader population than the Figure 1 cohort.
 
 The seven series colors follow the manuscript family palette. Cyan is reserved for navigation and emphasis. The two V-JEPA lines retain their separate configurations (ViT-H in VSSL and ViT-L in VideoSSL). Run `node tests/paper-overview.cjs` with the browser setup above to check the opening chart, family highlighting and first-screen visibility.
+
+## Main leaderboard
+
+The Figure 1 heatmap shows all 545 published task ranks with a single scale. Columns keep the manuscript’s mean-rank order and ties. Select a column or use the configuration selector to read exact values. The standings start with ten rows and support expansion and model-name search. Run `node tests/paper-rankboard.cjs` to check the interactive views and compare the complete standings against the manuscript.

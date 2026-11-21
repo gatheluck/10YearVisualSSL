@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="style.css" />
     <link rel="stylesheet" href="overview.css" />
     <script defer src="history-data.js"></script>
+    <script defer src="rankboard.js"></script>
     <script defer src="overview.js"></script>
     <script defer src="results.js"></script>
     <script defer src="site.js"></script>
@@ -89,13 +90,94 @@
           </section>
         </div>
       </section>
-      <section id="leaderboard" class="board">
+      <section id="leaderboard" class="rank-board" aria-labelledby="rank-title">
+        <div class="eyebrow">
+          <span class="dash"></span> Figure 1 · Historical evaluation
+        </div>
+        <h2 id="rank-title">The Basic Five rankings</h2>
+        <p class="rank-intro">
+          We ranked 109 configurations on five vision tasks, then averaged their
+          five ranks. DINOv3-7B leads overall. RAEv2 ranks first on ADE20K
+          segmentation and 100th on SSv2 video classification.
+        </p>
+        <div class="rank-spread">
+          <figure class="rank-map">
+            <figcaption>
+              <h3>The transfer rank matrix</h3>
+              <span class="scale">Better <i></i> Worse</span>
+            </figcaption>
+            <p>
+              One column per configuration, ordered by mean rank. Select a
+              column to inspect its five ranks.
+            </p>
+            <div class="matrix-shell">
+              <div class="matrix-labels">
+                <span>ImageNet</span><span>COCO</span><span>ADE20K</span
+                ><span>NYUv2</span><span>SSv2</span>
+              </div>
+              <div id="rank-matrix" aria-hidden="true"></div>
+            </div>
+            <div class="matrix-axis">
+              <span>1st overall</span><span>109th</span>
+            </div>
+          </figure>
+          <aside class="profile-panel">
+            <label for="inspect-config">Inspect configuration</label
+            ><select id="inspect-config"></select>
+            <div id="rank-profile" aria-live="polite"></div>
+          </aside>
+        </div>
+        <div class="rank-table-top">
+          <div>
+            <h3>Overall standings</h3>
+            <p>
+              Lower ranks are better. Each entry uses its family’s ASIS
+              protocol.
+            </p>
+          </div>
+          <label
+            >Find a configuration<input
+              id="rank-search"
+              type="search"
+              placeholder="Model name"
+          /></label>
+        </div>
+        <div
+          class="rank-scroll"
+          role="region"
+          tabindex="0"
+          aria-label="Figure 1 standings"
+        >
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Overall</th>
+                <th scope="col">Configuration</th>
+                <th scope="col">Mean rank</th>
+                <th scope="col">ImageNet</th>
+                <th scope="col">COCO</th>
+                <th scope="col">ADE20K</th>
+                <th scope="col">NYUv2</th>
+                <th scope="col">SSv2</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="rank-table-foot">
+          <span id="rank-count" aria-live="polite"></span
+          ><button type="button" id="rank-expand">
+            Show all 109 configurations
+          </button>
+        </div>
+      </section>
+      <section id="unified" class="board">
         <div class="eyebrow">
           <span class="dash"></span> Figure 3 · Unified evaluation
         </div>
         <div class="board-heading">
           <div>
-            <h2>Basic Five leaderboard</h2>
+            <h2>Unified readout comparison</h2>
             <p>
               Five checkpoints under shared downstream tasks, splits and
               metrics. Select a score to inspect its protocol.

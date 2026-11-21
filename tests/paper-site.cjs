@@ -39,7 +39,7 @@ const paperDigests = {
     await page
       .getByRole("link", { name: "Explore leaderboard", exact: true })
       .click();
-    assert.equal(await page.locator("tbody tr").count(), 5);
+    assert.equal(await page.locator("#unified tbody tr").count(), 5);
     let total = 0;
     for (const [protocol, n] of [
       ["LP", 25],
@@ -48,7 +48,7 @@ const paperDigests = {
       ["LoRA", 25],
     ]) {
       await page.getByRole("button", { name: protocol, exact: true }).click();
-      assert.equal(await page.locator("tbody button").count(), n);
+      assert.equal(await page.locator("#unified tbody button").count(), n);
       total += n;
       const download = page.waitForEvent("download");
       await page.getByRole("button", { name: "Download CSV" }).click();
@@ -94,12 +94,12 @@ const paperDigests = {
     await page.keyboard.press("Escape");
     await page.getByRole("button", { name: "DPT", exact: true }).click();
     await page.getByRole("button", { name: /Sort by NYUv2/ }).click();
-    assert.match(await page.locator("tbody tr").first().innerText(), /DINOv3/);
+    assert.match(await page.locator("#unified tbody tr").first().innerText(), /DINOv3/);
     await page.reload();
-    assert.equal(await page.locator("tbody button").count(), 10);
+    assert.equal(await page.locator("#unified tbody button").count(), 10);
     await page.getByRole("button", { name: "LP", exact: true }).click();
     await page.getByRole("button", { name: "Sort by SSv2" }).click();
-    assert.match(await page.locator("tbody tr").first().innerText(), /SigLIP/);
+    assert.match(await page.locator("#unified tbody tr").first().innerText(), /SigLIP/);
     await page.setViewportSize({ width: 390, height: 844 });
     assert.ok(
       await page.evaluate(
