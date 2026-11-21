@@ -1,0 +1,85 @@
+{
+  "targets": [
+    {
+      "label": "accept incomplete membership",
+      "file": "downstream/revised_reporting.py",
+      "old": "if result[name] != population:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_portable_figure3.PortableFigure.test_count_recipe_and_contract_drift_are_rejected"
+      ]
+    },
+    {
+      "label": "ignore recipe drift",
+      "file": "downstream/revised_reporting.py",
+      "old": "or result['recipe'] != json.loads(json.dumps(asdict(recipe)))",
+      "new": "or False",
+      "tests": [
+        "tests.test_portable_figure3.PortableFigure.test_count_recipe_and_contract_drift_are_rejected"
+      ]
+    },
+    {
+      "label": "ignore contract units",
+      "file": "downstream/revised_reporting.py",
+      "old": "if published.get(name) != selected['primary_in_record']['value'] / divisor:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_portable_figure3.PortableFigure.test_count_recipe_and_contract_drift_are_rejected"
+      ]
+    },
+    {
+      "label": "accept incomplete evaluation",
+      "file": "downstream/revised_reporting.py",
+      "old": "if metrics[count] != population[1] or",
+      "new": "if False or",
+      "tests": [
+        "tests.test_portable_figure3.PortableFigure.test_absent_seeds_and_wrong_evaluated_count"
+      ]
+    },
+    {
+      "label": "allow topology drift",
+      "file": "downstream/revised_reporting.py",
+      "old": "or (execution is not None and topology != execution)",
+      "new": "or False",
+      "tests": [
+        "tests.test_portable_figure3.PortableFigure.test_different_execution_topologies_do_not_complete_one_cell"
+      ]
+    },
+    {
+      "label": "use detection contract units in report",
+      "file": "downstream/revised_reporting.py",
+      "old": "('bbox_ap', 'coco_map', 100,",
+      "new": "('bbox_ap', 'coco_map', 1,",
+      "tests": [
+        "tests.test_portable_figure3.PortableFigure.test_all_seven_routes_use_paper_units_and_sample_sd"
+      ]
+    },
+    {
+      "label": "require final trainable artifact",
+      "file": "downstream/revised_reporting.py",
+      "old": "if not any(a['path'] == 'trainable.pt' and a['bytes'] > 0 for a in manifest['artifacts']):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_portable_figure3.PortableFigure.test_claimed_completion_requires_all_updates_and_trainable_artifact"
+      ]
+    },
+    {
+      "label": "require total optimizer count",
+      "file": "downstream/revised_reporting.py",
+      "old": "or result['updates'] != recipe.epochs * steps_per_epoch",
+      "new": "or False",
+      "tests": [
+        "tests.test_portable_figure3.PortableFigure.test_claimed_completion_requires_all_updates_and_trainable_artifact"
+      ]
+    },
+    {
+      "label": "require complete epoch updates",
+      "file": "downstream/revised_reporting.py",
+      "old": "validate_completed_epochs(result['loss_log'], recipe.epochs, steps_per_epoch)",
+      "new": "pass",
+      "tests": [
+        "tests.test_portable_figure3.PortableFigure.test_claimed_completion_requires_all_updates_and_trainable_artifact"
+      ]
+    }
+  ]
+}

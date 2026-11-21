@@ -100,7 +100,7 @@
       ]
     },
     {
-      "file": "downstream/revised_resume.py",
+      "file": "downstream/revised_recipe.py",
       "label": "losses",
       "old": "len(losses) != epoch",
       "new": "False",

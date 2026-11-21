@@ -52,3 +52,5 @@ checkpoint/config changes, and actual LoRA/DPT CLI output. Run
 Mutation specifications are in `mutations/revised-reporting.json`.
 
 See the [package scope](SUBMISSION_SCOPE.md) for validation terminology.
+
+See the [full-data NYUv2 rerun table](CVPR_ADAPTATION.md#full-data-nyuv2-reruns-2026-11-21) for the independent public-CLI results and their comparison with the ten manuscript cells.

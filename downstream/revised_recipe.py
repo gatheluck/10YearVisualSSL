@@ -8,6 +8,10 @@ import math
 from dataclasses import dataclass, replace
 
 
+POPULATIONS = {'imagenet': (1281167, 50000), 'ade20k': (20210, 2000),
+               'ssv2': (168913, 24777), 'coco': (118287, 5000), 'nyuv2': (795, 654)}
+
+
 @dataclass(frozen=True)
 class RevisedRecipe:
     profile: str
@@ -128,3 +132,15 @@ def set_learning_rates(optimizer, recipe: RevisedRecipe, step: int,
              for group in optimizer.param_groups]
     for group, rate in zip(optimizer.param_groups, rates):
         group['lr'] = rate
+
+
+def validate_completed_epochs(losses, epoch, steps_per_epoch):
+    """Check each reported epoch against its scheduled optimizer update count."""
+    if not isinstance(losses, list) or len(losses) != epoch:
+        raise ValueError('checkpoint loss prefix must match completed epochs')
+    for number, row in enumerate(losses, 1):
+        if (not isinstance(row, dict) or set(row) != {'epoch', 'loss', 'updates'}
+                or type(row['epoch']) is not int or row['epoch'] != number
+                or type(row['updates']) is not int or row['updates'] != steps_per_epoch
+                or type(row['loss']) not in (float, int) or not math.isfinite(row['loss'])):
+            raise ValueError('invalid checkpoint completed-epoch loss log')
