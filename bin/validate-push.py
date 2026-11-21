@@ -42,7 +42,9 @@ def test_environment():
     launched = dict(os.fsdecode(item).split('=', 1) for item in result.split(b'\0') if item)
     env = {k: v for k, v in launched.items()
            if not k.startswith(('GIT_', 'SSH_')) and k not in VOLATILE}
-    env['PATH'] = os.pathsep.join(dict.fromkeys(env['PATH'].split(os.pathsep)))
+    for key in ('PATH', 'MANPATH'):
+        if key in env:
+            env[key] = os.pathsep.join(dict.fromkeys(env[key].split(os.pathsep)))
     env.update(PYTHONPATH='.', PYTHONDONTWRITEBYTECODE='1')
     return env
 

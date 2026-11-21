@@ -179,7 +179,7 @@ def evaluate_detection(model, loader, device):
     def score():
         if distributed and dist.get_rank() != 0:
             return None
-        names = ('bbox_ap','bbox_ap50','bbox_ap75','bbox_aps','bbox_apm','bbox_apl')
+        from downstream.revised_reporting import COCO_BBOX_METRICS
         values = [0.] * 6
         if rows:
             evaluator = COCOeval(dataset.coco, dataset.coco.loadRes(rows), 'bbox')
@@ -188,7 +188,7 @@ def evaluate_detection(model, loader, device):
             evaluator.accumulate()
             evaluator.summarize()
             values = [float(value)*100 for value in evaluator.stats[:6]]
-        return dict(zip(names, values, strict=True), n_images=len(identifiers), n_detections=len(rows))
+        return dict(zip(COCO_BBOX_METRICS, values, strict=True), n_images=len(identifiers), n_detections=len(rows))
     result = _stage(score, device)
     if distributed:
         objects = [result]

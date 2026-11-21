@@ -49,6 +49,32 @@ PORTABLE_METRICS = {
 }
 
 
+COCO_BBOX_METRICS = {
+    'bbox_ap': 'coco_map', 'bbox_ap50': 'coco_map_50', 'bbox_ap75': 'coco_map_75',
+    'bbox_aps': 'coco_map_small', 'bbox_apm': 'coco_map_medium', 'bbox_apl': 'coco_map_large',
+}
+
+
+def verify_auxiliary_metrics(task, metrics, published):
+    if task in ('imagenet', 'ssv2'):
+        top5 = metrics['top5']
+        if (type(top5) not in (int, float) or not metrics['top1'] <= top5 <= 100
+                or published.get(task + '_top5') != top5):
+            raise ValueError('top-5 accuracy differs or violates top-1/percentage bounds')
+    if task == 'coco':
+        detections = metrics['n_detections']
+        if type(detections) is not int or detections < 0:
+            raise ValueError('invalid detection count')
+        for field, name in COCO_BBOX_METRICS.items():
+            ap = metrics[field]
+            if detections == 0 and ap != 0:
+                raise ValueError('empty predictions require zero bbox AP')
+            if field == 'bbox_ap':
+                continue  # The primary metric and its units are checked for every task below.
+            if type(ap) not in (int, float) or not 0 <= ap <= 100 or published.get(name) != ap / 100:
+                raise ValueError('invalid bbox AP or inconsistent published fraction')
+
+
 def portable_fields(cfg, result, published):
     """Verify the reporting contract of a full revised CLI result."""
     from downstream.revised_recipe import (
@@ -73,6 +99,7 @@ def portable_fields(cfg, result, published):
         raise ValueError('full optimizer update count required')
     field, name, divisor, count = PORTABLE_METRICS[task]
     metrics = result['metrics']
+    verify_auxiliary_metrics(task, metrics, published)
     if metrics[count] != population[1] or (task == 'nyuv2' and metrics['n_input_images'] != population[1]):
         raise ValueError('evaluated count differs')
     if task == 'ade20k':

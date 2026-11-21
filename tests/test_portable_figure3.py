@@ -57,6 +57,14 @@ class PortableFigure(unittest.TestCase):
         (out/'trainable.pt').write_bytes(b'fixture checkpoint bytes')
         result.update(reporting_fields(result))
         published = {name: value/100 if task == 'coco' else .3 if task == 'nyuv2' else value}
+        if task in ('ssv2', 'imagenet'):
+            metrics['top5'] = published[task + '_top5'] = 75.
+        if task == 'coco':
+            metrics['n_detections'] = 5235
+            for suffix, contract_suffix in [('50', '_50'), ('75', '_75'), ('s', '_small'),
+                                            ('m', '_medium'), ('l', '_large')]:
+                metrics['bbox_ap' + suffix] = value
+                published['coco_map' + contract_suffix] = value / 100
         if task == 'ade20k':
             published['ade20k_pixel_accuracy'] = metrics['pixel_acc']
         if alter:
@@ -103,6 +111,69 @@ class PortableFigure(unittest.TestCase):
         self.assertEqual(report['completed_seeds'], [])
         self.assertEqual(len(report['invalid_runs']), 3)
         self.assertFalse(report['complete'])
+
+    def test_full_classification_requires_consistent_top5(self):
+        for task in ('imagenet', 'ssv2'):
+            def swapped_units(_, contract_metrics, task=task):
+                contract_metrics[task + '_top5'] /= 100
+
+            def invalid_order(result, contract_metrics, task=task):
+                result['metrics']['top5'] = contract_metrics[task + '_top5'] = 30
+
+            def above_ceiling(result, contract_metrics, task=task):
+                result['metrics']['top5'] = contract_metrics[task + '_top5'] = 101
+
+            records = [self.record(task, 'lora', seed, alter=change)
+                       for seed, change in enumerate((swapped_units, invalid_order, above_ceiling))]
+            self.assertEqual(self.report(records)['completed_seeds'], [], task)
+
+    def test_full_coco_requires_all_bbox_metrics_and_detection_count(self):
+        def missing_area(_, published):
+            del published['coco_map_small']
+
+        def wrong_threshold(_, published):
+            published['coco_map_75'] *= 100
+
+        def impossible_count(result, _):
+            result['metrics']['n_detections'] = -1
+
+        records = [self.record('coco', 'lora', seed, alter=change)
+                   for seed, change in enumerate((missing_area, wrong_threshold, impossible_count))]
+        self.assertEqual(self.report(records)['completed_seeds'], [])
+
+    def test_coco_rejects_consistent_but_invalid_auxiliary_values(self):
+        def above_ceiling(result, published):
+            result['metrics']['bbox_apl'] = 105.
+            published['coco_map_large'] = 1.05
+
+        def invalid_count(result, _):
+            result['metrics']['n_detections'] = True
+
+        def nonnumeric_score(result, published):
+            result['metrics']['bbox_ap50'] = True
+            published['coco_map_50'] = .01
+
+        records = [self.record('coco', 'lora', seed, alter=change)
+                   for seed, change in enumerate((above_ceiling, invalid_count, nonnumeric_score))]
+        self.assertEqual(self.report(records)['completed_seeds'], [])
+
+    def test_empty_coco_predictions_can_only_publish_zero_ap(self):
+        def empty(result, published):
+            result['metrics']['n_detections'] = 0
+            for key in result['metrics']:
+                if key.startswith('bbox_'):
+                    result['metrics'][key] = 0.
+            for key in published:
+                published[key] = 0.
+
+        def inconsistent(result, published):
+            empty(result, published)
+            result['metrics']['bbox_apm'] = 1.
+            published['coco_map_medium'] = .01
+
+        records = [self.record('coco', 'lora', 0, alter=empty),
+                   self.record('coco', 'lora', 1, alter=inconsistent)]
+        self.assertEqual(self.report(records)['completed_seeds'], [0])
 
     def test_absent_seeds_and_wrong_evaluated_count(self):
         def count(result, published):

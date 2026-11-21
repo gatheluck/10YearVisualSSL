@@ -179,6 +179,60 @@
       "tests": [
         "tests.test_basic5_imagenet.TestImageNet.test_real_cli_reference_schedule_advances_after_updates"
       ]
+    },
+    {
+      "label": "score each corrected epoch",
+      "file": "downstream/ade20k.py",
+      "old": "if not corrected:\n            metrics",
+      "new": "if True:\n            metrics",
+      "tests": [
+        "tests.test_method_vjepa2_1_training.TestCorrectedDenseProbe.test_corrected_training_scores_only_the_final_epoch"
+      ]
+    },
+    {
+      "label": "omit encoder storage conversion",
+      "file": "downstream/ade20k.py",
+      "old": "backbone.to(dtype=torch.bfloat16)",
+      "new": "pass",
+      "tests": [
+        "tests.test_method_vjepa2_1_training.TestCorrectedDenseProbe.test_corrected_bf16_encoder_is_used_in_training_and_validation"
+      ]
+    },
+    {
+      "label": "disable final scorer autocast",
+      "file": "downstream/ade20k.py",
+      "old": "with dense_execution.autocast_context(device, precision):",
+      "new": "with dense_execution.autocast_context(device, \"fp32\"):",
+      "tests": [
+        "tests.test_method_vjepa2_1_training.TestCorrectedDenseProbe.test_corrected_bf16_encoder_is_used_in_training_and_validation"
+      ]
+    },
+    {
+      "label": "drop rank score averaging",
+      "file": "downstream/ade20k.py",
+      "old": "torch.distributed.all_reduce(scores)",
+      "new": "pass",
+      "tests": [
+        "tests.test_method_dense_distributed.Integration.test_manual_reduction_training_continuation_and_unused_parameters"
+      ]
+    },
+    {
+      "label": "omit void crop handling",
+      "file": "downstream/dense_execution.py",
+      "old": "if allow_void and not (target != 255).any():",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_vjepa2_1_training.TestCorrectedDenseProbe.test_corrected_void_crops_complete_all_optimizer_updates"
+      ]
+    },
+    {
+      "label": "reuse prior checkpoint format",
+      "file": "downstream/dense_resume.py",
+      "old": "self.format_name = \"basic5_corrected_ade_ap_epoch_v2\"",
+      "new": "pass",
+      "tests": [
+        "tests.test_method_vjepa2_1_training.TestCorrectedDenseProbe.test_previous_epoch_checkpoint_format_is_distinguished"
+      ]
     }
   ]
 }

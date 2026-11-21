@@ -540,12 +540,32 @@ The report checks the hash-checked output contract, resolved recipe,
 final epoch, recorded train/validation populations, evaluated sample count,
 checkpoint digest, final trainable artifact, per-epoch update counts and execution topology. The configuration apart from seed
 must be identical across runs. Counts alone cannot establish sample identity.
-COCO bbox AP is reported in percentage points (contract mAP is a fraction).
+ImageNet and SSv2 require the published top-5 accuracy to match the evaluator
+in percentage points, between top-1 and 100. COCO checks the nonnegative
+integer detection count and all six bbox AP values (overall, at IoU .50 and
+.75, and for small, medium and large objects). The evaluator reports percentage
+points and the published contract stores fractions. Empty predictions yield
+six zeros.
 Depth uses unaligned RMSE in meters, with the aligned value retained separately.
 Three valid seeds are required for a complete cell. Partial summaries describe
 only the valid seeds listed. No historical result or equivalence to a published
 score is automatically certified. The native historical audit above uses a
 different input schema.
+
+### Full-data input checks for the remaining LoRA routes
+
+The public loader ran on both splits using the same dataset roots as the
+revised training source. It checked class mappings and split sizes and
+decoded the first item of each split.
+
+| LoRA task | Training | Validation | Classes | Membership check |
+| --- | ---: | ---: | ---: | --- |
+| ImageNet-1k | 1,281,167 | 50,000 | 1,000 | ImageFolder enumerated the two class trees |
+| SSv2 | 168,913 | 24,777 | 174 | Every listed clip resolved to a file |
+| COCO detection | 118,287 | 5,000 | 80 | Every annotated image filename was present in its split |
+
+The check decoded six samples in total. Full training and comparison of these
+three LoRA routes with Figure 3 remain open.
 
 ## Full-data NYUv2 reruns (2026-11-21)
 

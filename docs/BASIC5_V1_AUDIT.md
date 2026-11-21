@@ -94,9 +94,60 @@ AdamW applies the recipe weight decay to projection weights and zero decay
 to trainable biases and normalization parameters. The selection is included
 in the optimization report and in the configuration used for continuation.
 The three-seed result above came from the original corrected checkpoints.
-The portable path has component validation; full-data training remains open.
+A byte comparison of nine source modules found that the encoder, datasets,
+heads, RNG utilities, metrics and readers matched the archived snapshot.
+The live training entry point, task model and optimizer differed. The FP32
+readout and bias/norm decay settings above were checked against the live
+correction and the saved settings for all three seeds.
+
+The corrected reference used eight ranks, one image per rank, no gradient
+accumulation, two loader workers per rank and 20 epochs. With the public BF16
+execution option, the frozen encoder uses BF16 storage and autocast in both
+training and evaluation. The reader and segmentation head retain FP32.
+An entirely ignored training crop contributes a differentiable zero loss so
+that rank can still participate in the update. Each rank evaluates the full
+validation set once after training. The published scores are the arithmetic
+means of those rank scores.
+
+The corrected path saves the completed-epoch RNG state before its final
+evaluation. Its checkpoint format is `basic5_corrected_ade_ap_epoch_v2`.
+Earlier corrected checkpoints used intermediate validation passes that
+advanced the random streams. Start fresh to use the new training sequence.
 
 A reduced CPU check used a BF16 feature grid with autocast enabled around the
 model. Against the captured V-JEPA reader and head, the portable path matched
 initialization, logits, clipped gradients and parameters after three AdamW
 updates exactly. This test starts at the feature grid.
+
+A paired H200 check at seed 0 used the first validation image, the released
+encoder and both complete model constructors. The normalized input, target,
+BF16 encoder feature grid and initial segmentation head weights matched
+exactly. Both paths had 1,723,670 trainable parameters and cross-entropy
+5.00047636. The greatest absolute difference was 4.77e-7 across sampled
+logits (every fourth spatial position), and 4.01e-8 over the clipped head
+weight gradients. These observations describe one image before training.
+
+The first three submissions stalled before receiving their first training
+batch. All 16 loader workers in each job lacked a multiprocessing listener.
+The launcher's temporary path exceeded the Unix socket address limit. A
+standalone listener reproduced the failure and succeeded under a short path.
+All three jobs ended with zero checkpoints. The retries use a short
+job-private temporary path and check listener creation before launching.
+
+### Full-data public rerun
+
+The corrected public CLI trained on all 20,210 training images and evaluated
+all 2,000 validation images on every rank. Three independent jobs each used
+eight H200 GPUs, one image per GPU, two workers per rank and 20 epochs.
+Distributed sampler padding produced 2,527 optimizer updates per epoch
+(50,540 per run). All three final metric contracts and checkpoint hashes
+verified. The ordered training and validation membership hashes matched
+across seeds.
+
+| ADE20K AP mIoU (%) | Seed 0 | Seed 1 | Seed 2 | Mean +/- sample SD |
+| --- | ---: | ---: | ---: | ---: |
+| Corrected original records | 39.24 | 39.15 | 39.01 | 39.13 +/- 0.12 |
+| Public rerun | 39.19 | 39.12 | 39.21 | 39.17 +/- 0.05 |
+
+Figure 3 reports 39.13 +/- 0.12. At its two-decimal precision the difference
+in mean mIoU (public minus Figure 3) is +0.04 percentage points.

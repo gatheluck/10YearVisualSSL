@@ -192,8 +192,8 @@
     {
       "label": "ade20k post-validation RNG boundary",
       "file": "downstream/ade20k.py",
-      "old": "        metrics = dense_distributed.call(context, lambda: evaluate(model, val_loader, device), leader=True)\n        if continuation is not None:\n            continuation.save(epoch + 1)",
-      "new": "        if continuation is not None:\n            continuation.save(epoch + 1)\n        metrics = dense_distributed.call(context, lambda: evaluate(model, val_loader, device), leader=True)",
+      "old": "        if not corrected:\n            metrics = dense_distributed.call(context, lambda: evaluate(model, val_loader, device), leader=True)\n            training_summary += f\" mIoU={metrics['miou']:.3f} pACC={metrics['pacc']:.3f}\"\n        if continuation is not None:\n            continuation.save(epoch + 1)\n",
+      "new": "        if continuation is not None:\n            continuation.save(epoch + 1)\n        if not corrected:\n            metrics = dense_distributed.call(context, lambda: evaluate(model, val_loader, device), leader=True)\n            training_summary += f\" mIoU={metrics['miou']:.3f} pACC={metrics['pacc']:.3f}\"\n",
       "tests": [
         "tests.test_dense_continuation.Continuation.test_all_three_tasks_and_adaptations_resume_exactly"
       ]
