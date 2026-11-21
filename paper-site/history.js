@@ -24,7 +24,7 @@ const notes = {
 const el = (id) => document.getElementById(id);
 const task = el("task"),
   year = el("year");
-let scores = false;
+let scores = location.hash === "#scores";
 function add(parent, tag, value) {
   const child = document.createElement(tag);
   child.textContent = value;
@@ -93,6 +93,8 @@ function showDetails(row, i) {
     "Evaluation conditions",
     "ASIS uses released or reproduced checkpoints on shared benchmarks. Feature extraction and downstream training vary by family. The figures do not specify a full per-run training recipe.",
   );
+  add(details, "dt", "Original source");
+  add(details, "dd", "").append(sourceLink(row.name, true));
   el("details").closest("dialog").showModal();
 }
 function draw(rows, i) {
@@ -111,11 +113,20 @@ function draw(rows, i) {
   const lo = scores ? 0 : 1,
     hi = scores ? Math.ceil(Math.max(...values)) : 109;
   const lowBetter = !scores || i === 3;
-  const x = (y) => 55 + (720 * (y - years[0])) / (years.at(-1) - years[0]);
+  const width = matchMedia("(max-width:550px)").matches ? 375 : 800;
+  plot.setAttribute("viewBox", "0 0 " + width + " 175");
+  const x = (y) =>
+    55 + ((width - 80) * (y - years[0])) / (years.at(-1) - years[0]);
   const y = (v) =>
     10 + 128 * (lowBetter ? (v - lo) / (hi - lo) : (hi - v) / (hi - lo));
   for (const v of [lo, hi]) {
-    mark("line", { x1: 48, x2: 785, y1: y(v), y2: y(v), stroke: "#c3ccd4" });
+    mark("line", {
+      x1: 48,
+      x2: width - 15,
+      y1: y(v),
+      y2: y(v),
+      stroke: "#c3ccd4",
+    });
     mark(
       "text",
       { x: 40, y: y(v) + 5, "text-anchor": "end", fill: "#4d5d62" },
@@ -163,6 +174,24 @@ function render() {
   el("axis").textContent = scores
     ? benchmarks[i][3] + (i === 3 ? " ↓" : " ↑")
     : "Published task rank · 1 is best";
+  const measured = rows.filter((row) => !scores || row.scores[i] !== null);
+  const value = (row) => (scores ? row.scores[i] : row.ranks[i]);
+  const ordered = [...measured].sort(
+    (a, b) => (value(a) - value(b)) * (!scores || i === 3 ? 1 : -1),
+  );
+  const first = ordered[0];
+  el("history-leading-label").textContent = name + " · best in selection";
+  el("history-leading").textContent = first
+    ? ordered
+        .filter((r) => value(r) === value(first))
+        .map((r) => r.name)
+        .join(" / ")
+    : "No measured result";
+  el("history-value").textContent = first
+    ? scores
+      ? value(first) + " · " + benchmarks[i][3]
+      : "Rank #" + value(first)
+    : "";
   draw(rows, i);
   const head = document.querySelector("thead"),
     body = document.querySelector("tbody");
@@ -177,7 +206,7 @@ function render() {
     const line = add(body, "tr", "");
     const cell = add(line, "th", "");
     cell.scope = "row";
-    add(cell, "span", row.name);
+    add(cell, "span", "").append(sourceLink(row.name));
     if (scores) add(cell, "small", "#" + row.id + " · " + row.family);
     add(line, "td", row.year);
     if (!scores) {
@@ -202,4 +231,5 @@ el("scores").onclick = () => {
 };
 year.onchange = render;
 task.onchange = render;
+matchMedia("(max-width:550px)").addEventListener("change", render);
 render();

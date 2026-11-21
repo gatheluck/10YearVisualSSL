@@ -38,7 +38,7 @@ function buildRankBoard(rows, familyByName, families) {
     const { label, color } = familyStyles.get(familyByName.get(row.name));
     panel.style.setProperty("--series", color);
     add(panel, "p", label + " · " + row.year).className = "family-name";
-    add(panel, "h3", row.name);
+    add(panel, "h3").append(sourceLink(row.name));
     const value = add(panel, "p");
     value.className = "spotlight";
     add(value, "strong", "#" + row.place);
@@ -88,7 +88,7 @@ function buildRankBoard(rows, familyByName, families) {
       const name = add(tr, "th");
       name.scope = "row";
       name.style.setProperty("--series", color);
-      add(name, "b", row.name);
+      add(name, "b").append(sourceLink(row.name));
       add(name, "small", label);
       tr.insertCell().textContent = mean(row);
       for (const rank of row.ranks) {

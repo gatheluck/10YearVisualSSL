@@ -497,7 +497,7 @@ dialog .score {
     gap: 13px;
     font-size: 12px;
   }
-  nav a:first-child {
+  header nav a:first-child {
     display: none;
   }
   .hero {

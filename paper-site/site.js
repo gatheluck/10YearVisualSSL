@@ -49,7 +49,13 @@ const protocols = {
   ],
 };
 const models = ["DINOv3-7B", "VGGT-Ω", "RAEv2", "V-JEPA 2.1-G", "SigLIP 2-G"];
-const palette = ["var(--teal)", "var(--coral)", "var(--purple)", "var(--green)", "var(--sky)"];
+const palette = [
+  "var(--teal)",
+  "var(--coral)",
+  "var(--purple)",
+  "var(--green)",
+  "var(--sky)",
+];
 const byId = (id) => document.getElementById(id);
 const entry = (model, task, protocol) =>
   results.find(
@@ -139,6 +145,7 @@ function chart(task) {
     "</text></g>" +
     lines.join("") +
     "</svg>";
+  byId("reversal-count").textContent = reversals + " / 10";
   byId("finding").textContent =
     reversals +
     " of 10 model pairs reverse order on " +
@@ -173,6 +180,7 @@ function details(r) {
     "</p><p>" +
     notes(r) +
     '</p><p class="source">Manuscript · Figure 3, page 4 · Unified evaluation</p>';
+  byId("detail").append(sourceLink(r.model, true));
   dialog.showModal();
 }
 function setHash() {
@@ -254,7 +262,7 @@ function draw() {
         '<tr><th scope="row"><span class="key" style="background:' +
         palette[models.indexOf(model)] +
         '"></span>' +
-        model +
+        sourceLink(model).outerHTML +
         "</th>" +
         columns
           .map((task) => {

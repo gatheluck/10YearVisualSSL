@@ -78,15 +78,21 @@ function render() {
   body.replaceChildren();
   let improved = 0,
     tied = 0;
+  const strip = document.getElementById("outcome-strip");
+  strip.replaceChildren();
   for (const [method, a, c, delta] of points) {
     const gain = Number(delta) * (lower ? -1 : 1);
     if (gain > 0) improved++;
     if (gain === 0) tied++;
     const outcome = gain > 0 ? "Better" : gain < 0 ? "Worse" : "Tied";
+    const tile = document.createElement("i");
+    tile.className = outcome.toLowerCase();
+    tile.title = method + " · " + outcome;
+    strip.append(tile);
     const row = body.insertRow(),
       label = document.createElement("th");
     label.scope = "row";
-    label.textContent = method;
+    label.append(sourceLink(method));
     row.append(label);
     for (const v of [a, c, Number(delta) > 0 ? "+" + delta : delta, outcome])
       row.insertCell().textContent = v;

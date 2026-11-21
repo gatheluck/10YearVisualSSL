@@ -7,6 +7,8 @@
     <title>Revisiting Vision Model Baselines · Basic Five</title>
     <link rel="stylesheet" href="style.css" />
     <link rel="stylesheet" href="overview.css" />
+    <link rel="stylesheet" href="research.css" />
+    <script defer src="sources.js"></script>
     <script defer src="history-data.js"></script>
     <script defer src="rankboard.js"></script>
     <script defer src="overview.js"></script>
@@ -208,19 +210,50 @@
         </div>
         <p id="track-note"></p>
       </section>
-      <figure class="chart readout-chart">
-        <figcaption>
-          <span class="eyebrow">Readout comparison</span
-          ><span class="source">Fig. 3</span>
-        </figcaption>
-        <h2>When rankings change</h2>
-        <div class="chart-controls" aria-label="Chart dataset">
-          <button type="button" data-chart="SSv2">SSv2</button
-          ><button type="button" data-chart="COCO">COCO</button>
+      <section class="readout-story" aria-labelledby="readout-title">
+        <div class="readout-lead">
+          <p class="eyebrow">Figure 3 · Readout sensitivity</p>
+          <h2 id="readout-title">When rankings change</h2>
+          <strong id="reversal-count"></strong>
+          <p id="finding" aria-live="polite"></p>
+          <div class="chart-controls" aria-label="Chart dataset">
+            <button type="button" data-chart="SSv2">SSv2</button
+            ><button type="button" data-chart="COCO">COCO</button>
+          </div>
         </div>
-        <div id="plot"></div>
-        <p id="finding" aria-live="polite"></p>
-      </figure>
+        <figure class="readout-graphic">
+          <figcaption>Linear probe → attentive probe</figcaption>
+          <div id="plot"></div>
+        </figure>
+      </section>
+      <nav class="study-paths" aria-label="Explore the experiments">
+        <a href="history.html#scores"
+          ><span>Figures 1–2 · Historical evaluation</span>
+          <h2>A decade of transfer</h2>
+          <p>
+            Follow 113 configurations through the five benchmarks by year of
+            release.
+          </p>
+          <div class="result-example">
+            <small>RAEv2 · task rank</small
+            ><b>1st <em>ADE20K</em> / 100th <em>SSv2</em></b>
+          </div>
+          <strong>Explore historical results →</strong></a
+        >
+        <a href="control.html"
+          ><span>Figure 4 · Controlled pre-training</span>
+          <h2>What changes under one recipe?</h2>
+          <p>
+            Compare 32 methods before and after training the same backbone on
+            ImageNet-1K.
+          </p>
+          <div class="result-example">
+            <small>Split-Brain · NYUv2 RMSE (m)</small
+            ><b>1.179 <em>ASIS</em> → 0.976 <em>CTRL</em></b>
+          </div>
+          <strong>Explore paired results →</strong></a
+        >
+      </nav>
       <section class="scope" aria-label="Study scope">
         <p><strong>110+</strong><span>Model configurations</span></p>
         <p>
