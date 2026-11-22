@@ -37,8 +37,12 @@ The supplied protocol specifies these schedules, and inspected original run
 metadata contains their matching IDs, horizons and five-epoch warm-up for three
 seeds each. Original resumed logs contain only portions of those horizons; the
 metadata alone is not independent evidence that all epochs or final scores were
-reproduced here. Activation-checkpointing reports also differ between tasks
-and must be considered separately from this schedule selection.
+reproduced here. For the five inspected providers, the selected SSv2 and COCO bounding-box
+LoRA runs use activation checkpointing only on DINOv3-7B (all 40 encoder
+blocks). DINOv3 ImageNet uses zero. The revised model constructor applies
+non-reentrant recomputation to these two DINOv3 routes during grad-enabled
+forwards. A reduced DINOv3 fixture observes each block executing again in
+backward and once in evaluation.
 
 Validation checks source ID/horizon, scheduler endpoint, invalid provider/task
 selection, diagnostic limits, result recording with a synthetic model and

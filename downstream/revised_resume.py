@@ -42,7 +42,9 @@ def hash_membership(rows):
     Each row is exactly ``{'files': [path, ...], 'metadata': labels_or_ids}``.
     Repeated file bytes are hashed once per call; counts/mtime are not substitutes.
     """
-    cache, identities = {}, []
+    cache = {}
+    digest = hashlib.sha256(b"[")
+    samples = 0
     for row in rows:
         if not isinstance(row, dict) or set(row) != {'files', 'metadata'}:
             raise ValueError('membership requires files and metadata for every row')
@@ -54,10 +56,15 @@ def hash_membership(rows):
             if path not in cache:
                 cache[path] = sha256_file(path)
             files.append([str(path), cache[path]])
-        identities.append([files, row['metadata']])
-    if not identities:
+        if samples:
+            digest.update(b',')
+        digest.update(json.dumps([files, row['metadata']], sort_keys=True, allow_nan=False,
+                                 separators=(',', ':')).encode())
+        samples += 1
+    if not samples:
         raise ValueError('membership must not be empty')
-    return {'samples': len(identities), 'sha256': _digest(identities)}
+    digest.update(b']')
+    return {'samples': samples, 'sha256': digest.hexdigest()}
 
 
 def _versions():
@@ -112,8 +119,9 @@ class RevisedContinuation:
             if (not isinstance(immutable_identity, str) or len(immutable_identity) != 64
                     or any(c not in '0123456789abcdef' for c in immutable_identity)):
                 raise ValueError('continuation requires a SHA-256 checkpoint identity')
-            if cfg.get('workers', 0) != 0 or loader.num_workers != 0:
-                raise ValueError('exact revised continuation requires workers=0')
+            if (loader.num_workers != cfg.get('workers', 0) or (loader.num_workers and
+                    (cfg.get('worker_lifecycle') != 'reseed_each_epoch' or loader.persistent_workers))):
+                raise ValueError('continuation requires zero workers or matching epoch-seeded workers')
             if cfg.get('diagnostic', {}).get('max_steps', 0):
                 raise ValueError('continuation does not support a mid-epoch max_steps cap')
             horizon = cfg.get('diagnostic', {}).get('epochs', recipe.epochs)

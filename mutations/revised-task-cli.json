@@ -3,7 +3,7 @@
     {
       "file": "downstream/revised_tasks.py",
       "label": "reject unknown top level",
-      "old": "or cfg.keys() - required - {'workers', 'diagnostic', 'micro_batch_size', 'continuation', 'resume', 'stop_after_epoch', 'schedule'}",
+      "old": "or cfg.keys() - required - {'workers', 'diagnostic', 'micro_batch_size', 'continuation', 'resume', 'stop_after_epoch', 'schedule', 'worker_lifecycle'}",
       "new": "",
       "tests": [
         "tests.test_revised_task_cli"

@@ -36,7 +36,7 @@ PROFILE = 'b5x_lora_dpt_v2'
 
 def validate_config(cfg):
     required = {'profile', 'task', 'track', 'seed', 'device', 'data_root', 'backbone'}
-    if not isinstance(cfg, dict) or required - cfg.keys() or cfg.keys() - required - {'workers', 'diagnostic', 'micro_batch_size', 'continuation', 'resume', 'stop_after_epoch', 'schedule'}:
+    if not isinstance(cfg, dict) or required - cfg.keys() or cfg.keys() - required - {'workers', 'diagnostic', 'micro_batch_size', 'continuation', 'resume', 'stop_after_epoch', 'schedule', 'worker_lifecycle'}:
         raise ValueError('missing or unknown revised task configuration fields')
     from downstream.revised_recipe import resolve_recipe
     if 'schedule' in cfg and (not isinstance(cfg['schedule'], str) or not cfg['schedule']):
@@ -74,8 +74,11 @@ def validate_config(cfg):
         raise ValueError('resume must name an explicit checkpoint')
     if ('resume' in cfg or 'stop_after_epoch' in cfg) and not cfg.get('continuation'):
         raise ValueError('resume and stop require explicit continuation')
+    if 'worker_lifecycle' in cfg and (cfg['worker_lifecycle'] != 'reseed_each_epoch'
+            or not cfg.get('continuation') or not cfg.get('workers')):
+        raise ValueError('epoch-seeded workers require continuation and positive workers')
     if cfg.get('continuation'):
-        if cfg.get('workers', 0) or cfg.get('diagnostic', {}).get('max_steps'):
+        if (cfg.get('workers', 0) and 'worker_lifecycle' not in cfg) or cfg.get('diagnostic', {}).get('max_steps'):
             raise ValueError('exact epoch continuation requires zero workers and complete epochs')
         horizon = cfg.get('diagnostic', {}).get('epochs',
             recipe.epochs)
@@ -121,6 +124,10 @@ def build_model(backbone, recipe, probe, *, seed, dpt_hidden=None, detection_dia
     backbone.eval()
     if recipe.track == 'lora':
         adapters = install_backbone_lora(backbone, rank=recipe.rank, alpha=recipe.alpha)
+        if getattr(backbone, 'family', None) == 'register_cls' and recipe.task in ('ssv2', 'coco'):
+            from downstream.activation_checkpointing import enable_blocks
+            blocks, = backbone.adaptation_block_groups()
+            enable_blocks(blocks)
         if recipe.task in ('imagenet', 'ssv2', 'coco'):
             torch.manual_seed(seed)
         if recipe.task == 'ssv2':
@@ -254,7 +261,7 @@ def _execute(cfg, out, context):
     loader = DataLoader(train, batch_size=physical_batch,
                         sampler=sampler, shuffle=sampler is None, drop_last=True,
                         generator=gen, num_workers=workers, worker_init_fn=_seed_worker, collate_fn=collation,
-                        persistent_workers=workers > 0, pin_memory=device.type == 'cuda')
+                        persistent_workers=workers > 0 and 'worker_lifecycle' not in cfg, pin_memory=device.type == 'cuda')
     validation = DataLoader(Subset(val, range(context.rank, len(val), context.world)),
                             batch_size={'imagenet': 64, 'ssv2': 8, 'coco': 2}.get(task, physical_batch), collate_fn=collation,
                             num_workers=workers, pin_memory=device.type == 'cuda')

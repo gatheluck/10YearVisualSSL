@@ -294,6 +294,28 @@ class RevisedResumeTests(unittest.TestCase):
         with self.assertRaises(FileNotFoundError):
             self.api().hash_membership([{'files': [self.root / 'missing'], 'metadata': 0}])
 
+    def test_membership_streams_the_legacy_digest_with_bounded_metadata_memory(self):
+        import hashlib
+        import tracemalloc
+        path = self.root / 'pixels'
+        path.write_bytes(b'image')
+        metadata = {'class_table': 'x' * 2048}
+        count = 2048
+        file_record = [[str(path.resolve()), hashlib.sha256(b'image').hexdigest()]]
+        row = json.dumps([file_record, metadata], sort_keys=True, separators=(',', ':')).encode()
+        expected = hashlib.sha256(b'[' + b','.join([row] * count) + b']').hexdigest()
+        rows = ({'files': [path], 'metadata': metadata} for _ in range(count))
+        tracemalloc.start()
+        try:
+            from unittest.mock import patch
+            with patch('downstream.revised_resume.sha256_file', return_value=file_record[0][1]):
+                report = self.api().hash_membership(rows)
+            peak = tracemalloc.get_traced_memory()[1]
+        finally:
+            tracemalloc.stop()
+        self.assertEqual(report, {'samples': count, 'sha256': expected})
+        self.assertLess(peak, 2 * 1024 * 1024)
+
     def test_two_rank_continuation_and_other_rank_corruption_are_atomic(self):
         import torch
         if not torch.distributed.is_gloo_available(): self.skipTest('Gloo unavailable')

@@ -26,8 +26,6 @@ def validate(spec, *, trainable):
 
 def enable(model, policy):
     """Apply only a provider's inspected backend; never silently ignore a request."""
-    from torch.utils.checkpoint import checkpoint
-
     strategy, path = policy
     target = model.get_submodule(path)
     if strategy == "hf":
@@ -40,23 +38,28 @@ def enable(model, policy):
             raise ValueError("activation_checkpointing native flag is unavailable")
         target.use_activation_checkpointing = True
     elif strategy == "blocks":
-        if not len(target.blocks):
-            raise ValueError("activation_checkpointing requires nonempty blocks")
-        for block in target.blocks:
-            if getattr(block, "_portable_checkpointed", False):
-                continue
-            original = block.forward
-
-            def wrap(forward):
-                @wraps(forward)
-                def recompute(*args, **kwargs):
-                    return checkpoint(forward, *args, use_reentrant=False, **kwargs)
-
-                return recompute
-
-            block.forward = wrap(original)
-            block._portable_checkpointed = True
+        enable_blocks(target.blocks)
     elif strategy == "timm":
         target.set_grad_checkpointing(True)
     else:
         raise ValueError("unknown activation_checkpointing strategy")
+
+def enable_blocks(blocks):
+    """Checkpoint grad-enabled forwards while retaining module and parameter identities."""
+    import torch
+    from torch.utils.checkpoint import checkpoint
+
+    def wrap(forward):
+        @wraps(forward)
+        def recompute(*args, **kwargs):
+            if torch.is_grad_enabled():
+                return checkpoint(forward, *args, use_reentrant=False, **kwargs)
+            return forward(*args, **kwargs)
+        return recompute
+
+    if not len(blocks):
+        raise ValueError("activation_checkpointing requires nonempty blocks")
+    for block in blocks:
+        if not getattr(block, "_portable_checkpointed", False):
+            block.forward = wrap(block.forward)
+            block._portable_checkpointed = True

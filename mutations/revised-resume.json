@@ -39,8 +39,8 @@
     {
       "file": "downstream/revised_resume.py",
       "label": "workers",
-      "old": "cfg.get('workers', 0) != 0 or loader.num_workers != 0",
-      "new": "False",
+      "old": "if (loader.num_workers != cfg.get('workers', 0) or (loader.num_workers and\n                    (cfg.get('worker_lifecycle') != 'reseed_each_epoch' or loader.persistent_workers))):",
+      "new": "if False:",
       "tests": [
         "tests.test_revised_resume.RevisedResumeTests.test_partial_boundary_workers_and_step_caps_are_rejected"
       ]

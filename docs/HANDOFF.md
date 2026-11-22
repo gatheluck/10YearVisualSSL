@@ -12,6 +12,17 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-11-22: full-data LoRA classification and detection
+
+The [Figure 3 reference table](LORA_FULL_REPRODUCTION.md) gives the 15 comparison targets.
+The 45 selected original configurations cover five backbones, three tasks
+and seeds 0, 1 and 2. Each uses eight ranks. The [revised schedule guide](REVISED_SCHEDULES.md)
+describes the two shorter DINOv3 horizons and the block recomputation policy.
+The [adaptation guide](CVPR_ADAPTATION.md) documents epoch-seeded loader
+workers, checkpoint identity and resumed-seed reporting. The verified input
+census covers both splits for all three tasks. Public seed outcomes require
+completed training, full evaluation and a validated run contract.
+
 ### 2026-11-21: corrected attentive probe and LoRA inputs
 
 The [corrected V-JEPA ADE20K AP comparison](BASIC5_V1_AUDIT.md#full-data-public-rerun)

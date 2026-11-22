@@ -19,7 +19,7 @@ class PortableFigure(unittest.TestCase):
         self.addCleanup(temp.cleanup)
         self.root = Path(temp.name)
 
-    def record(self, task, track, seed, *, alter=None, schedule=None):
+    def record(self, task, track, seed, *, alter=None, schedule=None, config_extra=None):
         population, key, count, name = {
             'imagenet': ([1281167, 50000], 'top1', 'n', 'imagenet_top1'),
             'ssv2': ([168913, 24777], 'top1', 'n', 'ssv2_top1'),
@@ -36,6 +36,7 @@ class PortableFigure(unittest.TestCase):
                'device': 'cuda', 'backbone': backbone, 'data_root': 'private'}
         if schedule is not None:
             cfg['schedule'] = schedule
+        cfg.update(config_extra or {})
         config = out.with_suffix('.json')
         config.write_text(json.dumps(cfg))
         recipe = json.loads(json.dumps(asdict(resolve_recipe(task, track, schedule=schedule, backbone=backbone))))
@@ -88,6 +89,26 @@ class PortableFigure(unittest.TestCase):
         result = json.loads(out.read_text())
         self.assertEqual(result['schema'], 'portable_figure3_v1')
         return result
+
+    def test_distinct_seed_resume_paths_require_the_observed_checkpoint_bytes(self):
+        records = []
+        for seed in range(3):
+            extra = {'continuation': True}
+            alter = None
+            if seed:
+                path = self.root / f'previous-{seed}.pt'
+                path.write_bytes(bytes([seed]))
+                extra['resume'] = str(path)
+                def alter(result, published, source=path):
+                    result['continuation'] = {'source_sha256': contract.sha256_file(source),
+                                              'format': 'revised_epoch_v1', 'start_epoch': 1,
+                                              'boundary': 'completed_epoch'}
+            records.append(self.record('coco', 'lora', seed, alter=alter, config_extra=extra))
+        self.assertTrue(self.report(records)['complete'])
+        (self.root / 'previous-1.pt').write_bytes(b'changed')
+        report = self.report(records)
+        self.assertFalse(report['complete'])
+        self.assertEqual([v['seed'] for v in report['invalid_runs']], [1])
 
     def test_all_seven_routes_use_paper_units_and_sample_sd(self):
         for task in ('imagenet', 'ssv2', 'coco', 'ade20k', 'nyuv2'):
