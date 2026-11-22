@@ -12,6 +12,12 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### Full-data LoRA configuration generation
+
+The [Figure 3 campaign guide](LORA_FULL_REPRODUCTION.md#generate-the-45-training-configurations)
+includes the three-task path template, configuration generator and eight-GPU
+launch example for the 45 runs.
+
 ### 2026-11-22: full-data LoRA classification and detection
 
 The [Figure 3 reference table](LORA_FULL_REPRODUCTION.md) gives the 15 comparison targets.

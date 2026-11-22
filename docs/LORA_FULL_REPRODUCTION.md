@@ -34,3 +34,37 @@ Its workers restart from the checkpointed loader generator at each training
 epoch. This differs from the original persistent worker streams. A complete
 comparison requires an audited final metric contract for all three seeds,
 including the source-checkpoint digest for each resumed seed.
+
+## Generate the 45 training configurations
+
+Copy the [local path example](../configs/figure3-lora-paths.example.json) to
+`paths.json` outside the repository. Set each value to the corresponding
+absolute dataset root or released checkpoint file or directory on your
+training host. The generator runs with the Python standard library and can
+prepare configurations before the inputs are mounted. Actual input and model
+validation happens in the training CLI.
+
+Run the following from the repository with the downstream training environment
+activated. Set `CAMPAIGN_DIR` to the private directory holding your path file.
+Choose a new configuration directory for each invocation.
+
+```sh
+python -m downstream.figure3_lora_configs --paths "$CAMPAIGN_DIR/paths.json" --out "$CAMPAIGN_DIR/configs-local"
+```
+
+The output contains one JSON per task, encoder and seed. The following
+example runs SSv2 seed 0 on one allocated node with eight GPUs. Use the
+corresponding JSON and a fresh output directory for each remaining run.
+The generator itself starts no training jobs.
+
+```sh
+torchrun --standalone --nnodes=1 --nproc-per-node=8 -m downstream.revised_tasks \
+  --config "$CAMPAIGN_DIR/configs-local/ssv2-dinov3_hf-s0.json" --out "$CAMPAIGN_DIR/runs/ssv2-dinov3_hf-s0"
+```
+
+The [five-encoder panel](../configs/figure3-lora-models.json) records the
+released architecture, geometry and short schedules. The configurations
+select the two recorded short schedules, eight clips per
+rank for SSv2, and the public campaign's worker counts and restart policy.
+For a time-limited allocation, follow the [completed-epoch continuation
+instructions](CVPR_ADAPTATION.md) and preserve the preceding output directory.
