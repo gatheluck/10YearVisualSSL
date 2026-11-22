@@ -10,6 +10,7 @@ from torch.utils.data import Subset
 from downstream.contract import sha256_file
 from downstream.extended_distributed import Session
 from downstream.extended_resume import Continuation
+from downstream.optimization import DENSE_AP_FP32
 
 
 def output_directory(out):
@@ -84,6 +85,8 @@ class DenseContinuation(Continuation):
         *,
         context=None,
     ):
+        if cfg.get("training_revision") == DENSE_AP_FP32:
+            self.format_name = "basic5_corrected_ade_ap_epoch_v2"
         self.finetune = cfg.get("adaptation") == "finetune"
         self.encoder_prefix = (
             "backbone.body." if cfg["task"] == "coco_detection" else "backbone."

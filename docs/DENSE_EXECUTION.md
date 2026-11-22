@@ -92,7 +92,7 @@ optimizer update. Missing gradients become zero, even for parameters unused on
 all ranks; this affects optimizer momentum/weight decay and is intentionally
 preserved. A discarded tail performs no parameter-gradient reduction or update.
 Results explicitly record `gradient_sync: accumulated_mean` for these multi-rank
-runs. Single-process execution and checkpoint identities remain unchanged.
+runs. The corrected ADE20K AP revision has its own checkpoint format and evaluation timing.
 
 Both inspected source revisions agree on these helpers and exclude COCO FT from
 FSDP. The 27 inspected run configurations (three seeds per task/adaptation) agree:
@@ -100,7 +100,9 @@ all use world size eight; the six ADE20K/NYUv2 FT configurations enable FSDP,
 and the other 21 do not. Configuration presence does not prove run completion.
 Isolated two-rank CPU comparisons match the source's gradients, parameter
 updates and SGD momentum exactly. Tiny task integration also checks all seven
-routes, full leader validation, coordinated failures, and exact portable resume.
+routes, coordinated failures and exact portable resume. The corrected ADE20K AP test
+checks full validation on each rank and the mean of distinct rank scores. Other
+routes covered here use leader validation.
 This is not full encoder/GPU, native RNG trajectory or table-score parity.
 
 V-JEPA2.1 ADE20K/NYUv2 FT remains refused in multi-rank execution because its
@@ -133,10 +135,9 @@ behavior is preserved.
 `results.json` records effective batch, precision, clipping, full schedule
 horizon, actual microbatches, optimizer updates and discarded tails. FT reports
 the batch-scaled base rate separately from layer-decayed parameter groups.
-Results keep `canonical_eligible: false` and `record_value: false`. Existing
-evaluation and its FP32 behavior are preserved; BF16 here selects training
-forwards, not a new evaluation recipe. The runners still evaluate each epoch;
-their complete RNG/validation trajectory has not been matched to native runs.
+Results keep `canonical_eligible: false` and `record_value: false`. Most routes evaluate in FP32 after each epoch. The
+[corrected ADE20K AP revision](BASIC5_V1_AUDIT.md#corrected-v-jepa-21-ade20k-attentive-run)
+uses the selected encoder precision for the final evaluation and FP32 for the readout.
 
 On 2026-10-07, isolated source update blocks from both the capture snapshot and
 current source matched 288 CPU cases, including 1,536 gradient tensors and
@@ -149,7 +150,8 @@ CI outcomes are recorded in the PR; skips are not validated routes.
 ## Portable epoch continuation
 
 Each explicit execution run writes `resume.pt` atomically after every completed
-training epoch **and its existing validation pass**. The checkpoint contains
+training epoch. For routes with per-epoch validation the save follows validation.
+The corrected ADE20K AP revision saves before its single final evaluation. The checkpoint contains
 optimizer/scheduler state, update counters, Python/NumPy/Torch/CUDA and loader
 RNG state. LP/AP retain the trained head/adapter and, for detection, the pyramid
 and detector state; the frozen encoder is excluded. FT includes the full model.
@@ -162,7 +164,7 @@ with a **new, empty** output directory. The target must remain within the same
 protocol horizon. Constant-rate and reference-horizon schedules retain their
 original clocks; the separate dense AP schedule still requires its full horizon.
 A target equal to the saved epoch evaluates without further training. The saved
-checkpoint retains the original post-validation RNG boundary in that case.
+checkpoint retains the original saved RNG boundary in that case.
 
 Configuration (except the target epoch and resume path), Torch version, initial
 encoder state, selected ordered samples, input bytes and annotations must match.

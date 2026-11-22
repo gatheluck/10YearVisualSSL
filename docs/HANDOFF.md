@@ -12,6 +12,13 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-11-21: corrected attentive probe and LoRA inputs
+
+The [corrected V-JEPA ADE20K AP comparison](BASIC5_V1_AUDIT.md#full-data-public-rerun)
+includes three independent eight-GPU runs, the original seed values and the
+Figure 3 reference. The [revised LoRA input checks](CVPR_ADAPTATION.md#full-data-input-checks-for-the-remaining-lora-routes)
+cover ImageNet, SSv2 and COCO split membership and example decoding.
+
 ### 2026-11-21: full-data ADE20K comparison
 
 All 30 public LoRA and DPT runs completed. At printed precision, 1 of

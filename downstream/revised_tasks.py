@@ -350,7 +350,7 @@ def _execute(cfg, out, context):
                   'loss_log': losses, 'loss_scope': 'rank0', 'adapter_effect': live,
                   'continuation': (continuation.report() if continuation is not None else
                                    'disabled; trainable.pt is not a resume checkpoint')}
-    from downstream.revised_reporting import reporting_fields
+    from downstream.revised_reporting import COCO_BBOX_METRICS, reporting_fields
     result.update(reporting_fields(result))
     result = json.loads(json.dumps(result, allow_nan=False))
     def publish():
@@ -367,8 +367,7 @@ def _execute(cfg, out, context):
             raw = {key: metrics[key] for key in ('rmse', 'absrel', 'delta1', 'delta2', 'delta3')}
             names = {key: 'nyuv2_'+key for key in raw}
         else:
-            names = dict(zip(('bbox_ap', 'bbox_ap50', 'bbox_ap75', 'bbox_aps', 'bbox_apm', 'bbox_apl'),
-                             ('coco_map', 'coco_map_50', 'coco_map_75', 'coco_map_small', 'coco_map_medium', 'coco_map_large'), strict=True))
+            names = COCO_BBOX_METRICS
             raw = {key: metrics[key] / 100 for key in names}
         contract.write_metrics(out, raw, names)
     context.call(publish, leader=True)

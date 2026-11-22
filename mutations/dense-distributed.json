@@ -84,8 +84,8 @@
     {
       "label": "ade20k DDP loss forward",
       "file": "downstream/ade20k.py",
-      "old": "dense_execution.batch_loss(training_model, batch",
-      "new": "dense_execution.batch_loss(model, batch",
+      "old": "training_model, batch, device, TASK, plan[\"precision\"], allow_void=corrected",
+      "new": "model, batch, device, TASK, plan[\"precision\"], allow_void=corrected",
       "tests": [
         "tests.test_method_dense_distributed.Integration"
       ]

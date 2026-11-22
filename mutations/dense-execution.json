@@ -165,8 +165,8 @@
     {
       "label": "segmentation float reduction",
       "file": "downstream/dense_execution.py",
-      "old": "prediction.float(), targets[0], ignore_index=255",
-      "new": "prediction, targets[0], ignore_index=255",
+      "old": "segmentation_loss(prediction.float(), targets[0]",
+      "new": "segmentation_loss(prediction, targets[0]",
       "tests": [
         "tests.test_method_dense_execution.Dense.test_batch_losses_keep_dense_reductions_in_float32"
       ]

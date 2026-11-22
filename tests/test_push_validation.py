@@ -99,6 +99,18 @@ class TestPushValidation(unittest.TestCase):
         r=self.command('push','--remote','origin'); self.assertEqual(r.returncode,0,r.stdout+r.stderr)
         self.assertEqual(self.count(),1)
 
+    def test_repeated_manual_search_paths_preserve_receipt_but_changes_invalidate(self):
+        first, second = '/fixture/manual/a', '/fixture/manual/b'
+        self.env['MANPATH'] = os.pathsep.join([first, second, ''])
+        self.prepare()
+        self.env['MANPATH'] = os.pathsep.join([first, second, first, second, ''])
+        check = self.command('check')
+        self.assertEqual(check.returncode, 0, check.stderr)
+        for paths in ([second, first, ''], [first, second], [first, second, '/extra', '']):
+            with self.subTest(paths=paths):
+                self.env['MANPATH'] = os.pathsep.join(paths)
+                self.assertNotEqual(self.command('check').returncode, 0)
+
     def test_root_changes_new_commit_and_untracked_files_invalidate(self):
         self.prepare()
         p=self.root/'source.py'; original=p.read_bytes(); old=p.stat()

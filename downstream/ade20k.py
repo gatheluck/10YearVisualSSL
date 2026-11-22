@@ -231,7 +231,8 @@ def _train_one_epoch(model, loader, optimizer, device, max_steps,
         images = images.to(device, non_blocking=True)
         targets = targets.to(device, non_blocking=True)
         logits = model(images)
-        loss = F.cross_entropy(logits, targets, ignore_index=IGNORE_INDEX)
+        loss = dense_execution.segmentation_loss(
+            logits, targets, allow_void=getattr(model, "training_revision", None) == DENSE_AP_FP32)
         if not torch.isfinite(loss):
             raise RuntimeError("non-finite ADE20k train loss")
         optimizer.zero_grad(set_to_none=True)
@@ -297,6 +298,10 @@ def run(cfg: dict, out: Path, device_override: str | None = None, *, context=Non
         require_training_batches(train_loader, optimization)
         builder = build_trainable_backbone if adaptation == "finetune" else build_frozen_backbone
         backbone = builder(cfg["backbone"], device)
+        corrected = cfg.get("training_revision") == DENSE_AP_FP32
+        precision = cfg.get("execution", {}).get("precision", "fp32")
+        if corrected and precision == "bf16":
+            backbone.to(dtype=torch.bfloat16)
         model = FrozenSegModel(backbone, adaptation=adaptation, reader_profile=cfg.get("reader_profile"),
                                training_revision=cfg.get("training_revision")).to(device)
         if adaptation != "finetune" and any(p.requires_grad for p in model.backbone.parameters()):
@@ -332,7 +337,8 @@ def run(cfg: dict, out: Path, device_override: str | None = None, *, context=Non
         if runtime is not None:
             statistics = dense_execution.train_epoch(
                 training_model, train_loader,
-                lambda batch: dense_execution.batch_loss(training_model, batch, device, TASK, plan["precision"]),
+                lambda batch: dense_execution.batch_loss(
+                    training_model, batch, device, TASK, plan["precision"], allow_void=corrected),
                 optimizer, update_scheduler, cfg, plan)
             dense_execution.record_epoch(runtime, statistics)
             training_summary = f"updates={statistics['updates']}"
@@ -340,13 +346,24 @@ def run(cfg: dict, out: Path, device_override: str | None = None, *, context=Non
             loss = _train_one_epoch(model, train_loader, optimizer, device, max_steps,
                                     adaptation=adaptation, scheduler=scheduler)
             training_summary = f"loss={loss:.4f}"
-        metrics = dense_distributed.call(context, lambda: evaluate(model, val_loader, device), leader=True)
+        if not corrected:
+            metrics = dense_distributed.call(context, lambda: evaluate(model, val_loader, device), leader=True)
+            training_summary += f" mIoU={metrics['miou']:.3f} pACC={metrics['pacc']:.3f}"
         if continuation is not None:
             continuation.save(epoch + 1)
-        print(f"[{epoch + 1}/{epochs}] {training_summary} "
-              f"mIoU={metrics['miou']:.3f} pACC={metrics['pacc']:.3f}")
+        print(f"[{epoch + 1}/{epochs}] {training_summary}")
 
-    if continuation is not None and continuation.start_epoch == epochs:
+    if corrected:
+        def final_evaluation():
+            with dense_execution.autocast_context(device, precision):
+                return evaluate(model, val_loader, device)
+
+        metrics = dense_distributed.call(context, final_evaluation)
+        if context is not None and context.world > 1:
+            scores = torch.tensor([metrics["miou"], metrics["pacc"]], device=device, dtype=torch.float64)
+            torch.distributed.all_reduce(scores)
+            metrics = dict(zip(("miou", "pacc"), (scores / context.world).tolist(), strict=True))
+    elif continuation is not None and continuation.start_epoch == epochs:
         metrics = dense_distributed.call(context, lambda: evaluate(model, val_loader, device), leader=True)
 
     def finish():
