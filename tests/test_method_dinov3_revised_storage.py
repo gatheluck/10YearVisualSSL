@@ -53,3 +53,30 @@ class DinoRevisedStorage(unittest.TestCase):
                                        rtol=0, atol=0)
             legacy = build_frozen_backbone(spec, torch.device("cpu"))
             self.assertEqual(next(legacy.parameters()).dtype, torch.float32)
+
+    def test_lora_recomputes_each_block_only_on_recorded_tasks(self):
+        from downstream.hf_vision import VisionBackbone
+        from downstream.revised_recipe import resolve_recipe
+        from downstream.revised_tasks import build_model
+
+        config = DINOv3ViTConfig(hidden_size=32, num_hidden_layers=2, num_attention_heads=2,
+                                 intermediate_size=48, image_size=32, patch_size=16)
+        image = torch.randn(1, 3, 32, 32)
+        for task in ('imagenet', 'ssv2', 'coco'):
+            with self.subTest(task=task):
+                torch.manual_seed(7)
+                backbone = VisionBackbone(DINOv3ViTModel(config), family='register_cls')
+                build_model(backbone, resolve_recipe(task, 'lora'), image, seed=0)
+                blocks, = backbone.adaptation_block_groups()
+                calls = [[] for _ in blocks]
+                for block, log in zip(blocks, calls):
+                    first = next(m for m in block.modules() if isinstance(m, torch.nn.LayerNorm))
+                    first.register_forward_pre_hook(lambda *args, log=log: log.append(True))
+                with torch.no_grad():
+                    backbone.model(image)
+                self.assertEqual([len(log) for log in calls], [1, 1])
+                output = backbone.model(image).last_hidden_state
+                output[..., 0].square().mean().backward()
+                self.assertEqual([len(log) for log in calls], [2, 2] if task == 'imagenet' else [3, 3])
+                self.assertTrue(any(p.grad is not None and torch.count_nonzero(p.grad)
+                                    for p in backbone.parameters() if p.requires_grad))

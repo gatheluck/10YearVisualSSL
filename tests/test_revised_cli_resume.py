@@ -92,6 +92,19 @@ class RevisedCLIResumeTests(unittest.TestCase):
             for path in (self.root / output).glob('*.json'):
                 self.assertNotIn(str(self.root), path.read_text())
 
+    def test_epoch_seeded_workers_resume_exactly(self):
+        import torch
+
+        from downstream.revised_tasks import run
+
+        cfg = dict(self.cfg, workers=1, worker_lifecycle='reseed_each_epoch')
+        full = run(cfg, self.root / 'whole')
+        run(dict(cfg, stop_after_epoch=1), self.root / 'part')
+        resumed = run(dict(cfg, resume=str(self.root / 'part/resume.pt')), self.root / 'continued')
+        self.equal(full['metrics'], resumed['metrics'])
+        self.equal(torch.load(self.root / 'whole/resume.pt', weights_only=True),
+                   torch.load(self.root / 'continued/resume.pt', weights_only=True))
+
     def test_two_rank_real_cli_resume_matches_uninterrupted(self):
         import torch
         import torch.multiprocessing as mp

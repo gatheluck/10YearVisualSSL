@@ -1,5 +1,6 @@
 """Recomputation must preserve observable outputs, gradients and state keys."""
 
+import sys
 import unittest
 
 try:
@@ -19,6 +20,9 @@ except ImportError:
 
 @unittest.skipUnless(HAVE, "Torch and vision dependencies required")
 class TestActivationCheckpointing(unittest.TestCase):
+    def setUp(self):
+        self.addCleanup(sys.path.__setitem__, slice(None), sys.path.copy())
+
     def fixtures(self):
         for owner, kinds in (
             (hf.TestVisionFamilies(), hf.KINDS),

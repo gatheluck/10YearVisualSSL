@@ -303,7 +303,13 @@ interfaces are not evidence of released-checkpoint or multi-GPU validation.
 Successful execution writes `result.json`, contract metrics/manifest and
 `trainable.pt` containing only trainable parameters. **`trainable.pt` is not a
 resume checkpoint**. For exact portable completed-epoch continuation, set
-`continuation: true`, `workers: 0` and optionally `stop_after_epoch: N`.
+`continuation: true` and optionally `stop_after_epoch: N`. Use `workers: 0`
+or set a positive `workers` count together with
+`"worker_lifecycle": "reseed_each_epoch"`. The latter recreates workers for
+each training epoch from the checkpointed loader generator. The original
+persistent-worker runs can therefore draw different augmentations. The CPU
+integration check compares complete checkpoint contents after a stop and
+restart with a real image loader and one worker.
 Each completed epoch writes a separate atomic `resume.pt` before validation.
 Resume into a **new** output directory with `resume: /path/to/resume.pt`,
 keeping the original recipe and diagnostic horizon; remove or increase the
@@ -317,9 +323,13 @@ train/validation membership and file bytes, recipe, optimizer groups, scheduler
 position, precision, world size, runtime versions and loader policy. It restores
 trainable parameters/buffers, optimizer state and each rank's Python/NumPy/Torch
 and loader-generator states only after collective preflight. Hashing large
-inputs costs an initial full read; file counts and timestamps are not enough.
+inputs costs an initial full read. Ordered metadata is streamed into the existing
+SHA-256 encoding, bounding temporary metadata memory while preserving the
+existing digest.
 Private input paths appear only inside identity digests, not in saved metadata.
-Frozen weights are not copied into the checkpoint. Worker-prefetch state,
+For a resumed Figure 3 seed, retain its source checkpoint. The cell audit checks
+its bytes against the recorded source digest before pooling seeds with distinct
+resume paths. Frozen weights are not copied into the checkpoint. Worker-prefetch state,
 mid-epoch continuation, changed world size and native experimental checkpoint
 imports are deliberately rejected. This is portable continuation, not a claim
 of an identical historical native-checkpoint trajectory. `result.json` retains `record_value: false`
@@ -553,6 +563,9 @@ score is automatically certified. The native historical audit above uses a
 different input schema.
 
 ### Full-data input checks for the remaining LoRA routes
+
+The [full-data LoRA comparison targets](LORA_FULL_REPRODUCTION.md) give the
+printed reference statistics and the original configuration provenance.
 
 The public loader ran on both splits using the same dataset roots as the
 revised training source. It checked class mappings and split sizes and

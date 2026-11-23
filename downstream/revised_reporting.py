@@ -139,7 +139,8 @@ def aggregate(records, *, expected_seeds, portable=False):
         try:
             config, out = Path(record['config']), Path(record['out'])
             cfg = json.loads(config.read_text())
-            identity = contract.sha256_bytes(json.dumps({k: v for k, v in cfg.items() if k != 'seed'},
+            excluded = {'seed', 'resume'} if portable and cfg.get('continuation') is True else {'seed'}
+            identity = contract.sha256_bytes(json.dumps({k: v for k, v in cfg.items() if k not in excluded},
                                                        sort_keys=True, allow_nan=False).encode())
         except (OSError, ValueError, KeyError, TypeError):
             invalid.append({'seed': seed, 'reasons': ['unreadable configuration']})
@@ -151,6 +152,12 @@ def aggregate(records, *, expected_seeds, portable=False):
             ok, _errors = contract.verify(out, config, record['exit_status'])
             reasons = ['invalid run contract'] if not ok else []
             result = json.loads((out / 'result.json').read_text())
+            if portable and 'resume' in cfg:
+                boundary = result.get('continuation', {})
+                if (cfg.get('continuation') is not True or boundary.get('format') != 'revised_epoch_v1'
+                        or boundary.get('boundary') != 'completed_epoch' or not 0 < boundary['start_epoch'] <= result['epochs_completed']
+                        or boundary.get('source_sha256') != contract.sha256_file(Path(cfg['resume']))):
+                    reasons.append('resume source differs from the completed-epoch checkpoint')
             manifest = json.loads((out / contract.MANIFEST).read_text())
             published = json.loads((out / contract.METRICS).read_text())['metrics']
             if not portable and (cfg.get('profile') != 'b5x_lora_dpt_v2' or cfg.get('task') != 'nyuv2' or cfg.get('track') not in ('lora', 'dpt')):

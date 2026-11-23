@@ -30,7 +30,7 @@
     {
       "file": "downstream/revised_tasks.py",
       "label": "complete epoch workers",
-      "old": "if cfg.get('workers', 0) or cfg.get('diagnostic', {}).get('max_steps'):",
+      "old": "if (cfg.get('workers', 0) and 'worker_lifecycle' not in cfg) or cfg.get('diagnostic', {}).get('max_steps'):",
       "new": "if False:",
       "tests": [
         "tests.test_revised_remaining_cli.RemainingCLI.test_new_routes_and_continuation_controls_are_explicit"
@@ -52,6 +52,42 @@
       "new": "if False:",
       "tests": [
         "tests.test_revised_remaining_cli.RemainingCLI.test_new_routes_and_continuation_controls_are_explicit"
+      ]
+    },
+    {
+      "label": "omit source-selected block recomputation",
+      "file": "downstream/revised_tasks.py",
+      "old": "enable_blocks(blocks)",
+      "new": "pass",
+      "tests": [
+        "tests.test_method_dinov3_revised_storage.DinoRevisedStorage.test_lora_recomputes_each_block_only_on_recorded_tasks"
+      ]
+    },
+    {
+      "label": "keep worker streams across an epoch boundary",
+      "file": "downstream/revised_tasks.py",
+      "old": "persistent_workers=workers > 0 and 'worker_lifecycle' not in cfg",
+      "new": "persistent_workers=workers > 0",
+      "tests": [
+        "tests.test_revised_cli_resume.RevisedCLIResumeTests.test_epoch_seeded_workers_resume_exactly"
+      ]
+    },
+    {
+      "label": "omit the JSON row separator",
+      "file": "downstream/revised_resume.py",
+      "old": "digest.update(b',')",
+      "new": "pass",
+      "tests": [
+        "tests.test_revised_resume.RevisedResumeTests.test_membership_streams_the_legacy_digest_with_bounded_metadata_memory"
+      ]
+    },
+    {
+      "label": "accept different source checkpoint bytes",
+      "file": "downstream/revised_reporting.py",
+      "old": "boundary.get('source_sha256') != contract.sha256_file(Path(cfg['resume']))",
+      "new": "False",
+      "tests": [
+        "tests.test_portable_figure3.PortableFigure.test_distinct_seed_resume_paths_require_the_observed_checkpoint_bytes"
       ]
     }
   ]
