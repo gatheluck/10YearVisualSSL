@@ -1,0 +1,30 @@
+.study { padding-bottom: 4rem; }
+.study section { margin: 2rem 0; }
+.study .study-hero { background:#142e39; color:#f1f7f5; border-radius:12px; padding:clamp(24px,5vw,75px); border-bottom:7px solid #00b3b0; }
+.study h1,.study h2 { letter-spacing:-.05em; line-height:1.04; margin:.4em 0; }
+.study h1 { font-size:clamp(40px,6vw,84px); max-width:17ch; }
+.study h1 em { color:#65dedd; font-weight:500; }
+.study h2 { font-size:clamp(28px,4vw,52px); }
+.study p { max-width:78ch; line-height:1.55; }
+.study-hero .eyebrow {color:#83e6dc}
+.action { display:inline-block; margin:12px 8px 0 0; padding:12px 16px; background:#92e6d9; color:#102c32; border-radius:5px; font-weight:700; }
+.action.secondary { background:transparent; color:white; border:1px solid #98b0b8; }
+.study table {width:100%; min-width:0; font-variant-numeric:tabular-nums; border-collapse:collapse;}
+.study caption { text-align:left; padding:14px 0; font-weight:700; }
+.study th,.study td {border-bottom:1px solid #cbdad5; padding:10px 8px; text-align:left;}
+.study th small,.study td small {display:block;font-size:.72rem;color:#355355;}
+.study th button {text-align:left; font:inherit; font-weight:700; text-decoration:underline; text-underline-offset:3px; cursor:pointer;}
+.filters {display:flex;flex-wrap:wrap;align-items:center;gap:1rem;background:#e8f1ee;padding:14px;border-radius:6px;}
+.filters select {font:inherit;padding:5px;}
+.matrix-scroll {overflow:auto;max-height:72vh;}
+#matrix {min-width:720px;}
+#matrix thead th {position:sticky;top:0;background:#e8f1ee;z-index:2;}
+#matrix tbody th {position:sticky;left:0;background:#fafbf8;max-width:180px;z-index:1;}
+#matrix .winner {border-left:4px solid var(--accent);background:color-mix(in srgb,var(--accent) 18%,white);font-weight:800;}
+.track {display:block;min-width:28px;height:9px;background:linear-gradient(to right,#b2c8c8 var(--start),#00b3b0 var(--start) var(--end),#e9eeee var(--end));}
+#geometry td {white-space:nowrap;}
+.study dialog {max-width:min(500px,92vw);border:0;border-radius:10px;padding:24px;}
+.study dialog::backdrop {background:#132a37a8;}
+.study dialog form {text-align:right;}
+.study dialog li {padding:.4rem;}
+@media(max-width:550px){#geometry td,#geometry th{padding:8px 3px;font-size:.79rem;} .study h1{font-size:39px}}

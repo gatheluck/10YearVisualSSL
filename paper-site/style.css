@@ -533,3 +533,16 @@ dialog .score {
 }
 
 @media(max-width:650px){.nav{flex-wrap:wrap;gap:8px;padding-block:9px}nav{flex-wrap:wrap;row-gap:5px}}
+
+/* Horizontal navigation leaves the first screen available for the results. */
+@media (max-width: 850px) {
+  header .nav { gap: 14px; }
+  header .brand { flex: none; }
+  header nav { overflow-x: auto; justify-content: flex-start; white-space: nowrap; gap: 14px; padding-block: 8px; }
+  header nav a { flex: none; }
+}
+@media (max-width: 850px) {
+  header .nav { flex-wrap: nowrap; }
+  header nav { flex-wrap: nowrap; min-width: 0; }
+  header nav a[href="paper.html"], header nav a[href="extended.html"] { order: -1; }
+}
