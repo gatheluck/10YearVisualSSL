@@ -497,9 +497,7 @@ dialog .score {
     gap: 13px;
     font-size: 12px;
   }
-  header nav a:first-child {
-    display: none;
-  }
+
   .hero {
     padding: 33px 0;
   }
@@ -534,15 +532,13 @@ dialog .score {
 
 @media(max-width:650px){.nav{flex-wrap:wrap;gap:8px;padding-block:9px}nav{flex-wrap:wrap;row-gap:5px}}
 
-/* Horizontal navigation leaves the first screen available for the results. */
-@media (max-width: 850px) {
-  header .nav { gap: 14px; }
-  header .brand { flex: none; }
-  header nav { overflow-x: auto; justify-content: flex-start; white-space: nowrap; gap: 14px; padding-block: 8px; }
-  header nav a { flex: none; }
+header nav[aria-label="Primary"] { flex-wrap: nowrap; }
+.experiment-index { justify-content: flex-start; flex-wrap: wrap; gap: 12px 20px; padding: 18px 0; border-top: 1px solid var(--line); }
+.experiment-index a { text-decoration: underline; text-underline-offset: 3px; }
+@media (max-width: 650px) {
+  header .nav { flex-wrap: nowrap; gap: 6px; }
+  header nav[aria-label="Primary"] { gap: 10px; }
 }
-@media (max-width: 850px) {
-  header .nav { flex-wrap: nowrap; }
-  header nav { flex-wrap: nowrap; min-width: 0; }
-  header nav a[href="paper.html"], header nav a[href="extended.html"] { order: -1; }
+@media (max-width: 350px) {
+  header .brand .symbol { display: none; }
 }

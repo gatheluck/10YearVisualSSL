@@ -28,3 +28,12 @@
 .study dialog form {text-align:right;}
 .study dialog li {padding:.4rem;}
 @media(max-width:550px){#geometry td,#geometry th{padding:8px 3px;font-size:.79rem;} .study h1{font-size:39px}}
+
+.geometry-spread { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:clamp(20px,4vw,60px); align-items:start; }
+.geometry-figure { background:white; border:1px solid #cbdad5; border-radius:8px; margin:0; padding:clamp(12px,2vw,24px); }
+.geometry-figure img { display:block; width:100%; height:auto; }
+.geometry-figure a { display:block; cursor:zoom-in; color:#195863; }
+.geometry-figure a span { display:block; margin-block:10px; text-decoration:underline; }
+.geometry-figure figcaption { display:block; font-size:.9rem; line-height:1.45; color:#38505a; }
+.geometry-reading p:first-child { margin-top:0; }
+@media(max-width:820px) { .geometry-spread { grid-template-columns:1fr; } }
