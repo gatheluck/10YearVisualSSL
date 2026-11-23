@@ -537,7 +537,9 @@ when the command successfully writes a report.
 
 ## Auditing portable Figure 3 training outputs
 
-After running the public revised CLI, create a private plan for each model,
+For comparison with all 35 printed LoRA/DPT entries, use the
+[Figure 3 panel reporting mode](LORA_FULL_REPRODUCTION.md#compare-public-outputs-with-figure-3).
+For a single artifact audit, create a private plan for each model,
 task and track with `schema: portable_figure3_v1`, `expected_seeds: [0, 1, 2]`
 and a `runs` list. Each entry supplies the integer seed, config path, output
 directory (`out`) and recorded process exit status (`exit_status`). Run
@@ -577,8 +579,8 @@ decoded the first item of each split.
 | SSv2 | 168,913 | 24,777 | 174 | Every listed clip resolved to a file |
 | COCO detection | 118,287 | 5,000 | 80 | Every annotated image filename was present in its split |
 
-The check decoded six samples in total. Full training and comparison of these
-three LoRA routes with Figure 3 remain open.
+The input check decoded six samples in total. Full-data training for these
+three LoRA routes is underway; see the dated panel audit for completed seeds.
 
 ## Full-data NYUv2 reruns (2026-11-21)
 

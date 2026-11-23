@@ -12,6 +12,12 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-11-24: public Figure 3 adaptation comparison
+
+The [panel reporting CLI](LORA_FULL_REPRODUCTION.md#compare-public-outputs-with-figure-3)
+compares the 35 LoRA/DPT targets, keeps incomplete seeds visible, and checks
+both displayed statistics. The linked guide records the first full-panel audit.
+
 ### Full-data LoRA configuration generation
 
 The [Figure 3 campaign guide](LORA_FULL_REPRODUCTION.md#generate-the-45-training-configurations)
