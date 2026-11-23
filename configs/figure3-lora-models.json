@@ -1,0 +1,26 @@
+{
+  "dinov3_hf": {
+    "arch": "released",
+    "img_size": 224,
+    "schedules": {
+      "imagenet": "B5X_LORA_LP_50EP_v2",
+      "ssv2": "B5X_LORA_LP_24EP_v2"
+    }
+  },
+  "raev2_k7": {
+    "arch": "released",
+    "img_size": 224
+  },
+  "vggt_omega": {
+    "arch": "released",
+    "img_size": 224
+  },
+  "vjepa2_1": {
+    "arch": "vit_giant_xformers",
+    "img_size": 384
+  },
+  "siglip2_g": {
+    "arch": "released",
+    "img_size": 384
+  }
+}

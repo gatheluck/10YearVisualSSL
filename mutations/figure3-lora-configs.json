@@ -1,0 +1,49 @@
+{
+  "targets": [
+    {
+      "file": "configs/figure3-lora-models.json",
+      "label": "geometry",
+      "old": "\"vit_giant_xformers\"",
+      "new": "\"released\"",
+      "tests": [
+        "tests.test_method_figure3_lora_configs.SelectedProviderTests.test_complete_source_selected_matrix"
+      ]
+    },
+    {
+      "file": "downstream/figure3_lora_configs.py",
+      "label": "ssv2batch",
+      "old": "base['micro_batch_size'] = 8",
+      "new": "base['micro_batch_size'] = 16",
+      "tests": [
+        "tests.test_method_figure3_lora_configs.SelectedProviderTests.test_complete_source_selected_matrix"
+      ]
+    },
+    {
+      "file": "downstream/figure3_lora_configs.py",
+      "label": "scheduled",
+      "old": "if task in spec.get('schedules', {}):",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_figure3_lora_configs.SelectedProviderTests.test_complete_source_selected_matrix"
+      ]
+    },
+    {
+      "file": "downstream/figure3_lora_configs.py",
+      "label": "required",
+      "old": "bindings.keys() != required.keys()",
+      "new": "not required.keys() <= bindings.keys()",
+      "tests": [
+        "tests.test_figure3_lora_configs.CampaignConfigsTests.test_rejects_missing_extra_and_relative_bindings_before_writing"
+      ]
+    },
+    {
+      "file": "downstream/figure3_lora_configs.py",
+      "label": "abspath",
+      "old": "not Path(p).is_absolute()",
+      "new": "not p",
+      "tests": [
+        "tests.test_figure3_lora_configs.CampaignConfigsTests.test_rejects_missing_extra_and_relative_bindings_before_writing"
+      ]
+    }
+  ]
+}

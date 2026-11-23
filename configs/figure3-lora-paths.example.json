@@ -1,0 +1,14 @@
+{
+  "datasets": {
+    "imagenet": "/path/to/imagenet",
+    "ssv2": "/path/to/ssv2",
+    "coco": "/path/to/coco"
+  },
+  "encoders": {
+    "dinov3_hf": "/path/to/dinov3-7b",
+    "raev2_k7": "/path/to/raev2-k7",
+    "vggt_omega": "/path/to/vggt-omega",
+    "vjepa2_1": "/path/to/vjepa-2.1-g",
+    "siglip2_g": "/path/to/siglip2-g"
+  }
+}
