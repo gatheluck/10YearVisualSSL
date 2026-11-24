@@ -20,6 +20,19 @@ const path = require("node:path");
       assert.deepEqual(await values.first().locator("dd").allTextContents(),["84.71","83.33"]);
       const taskPanel = feature.locator(".task-readout");
       assert.equal(await taskPanel.getByLabel("Inspect task").count(),1,"The task picker belongs to the score panel");
+      const picker = taskPanel.getByLabel("Inspect task");
+      for (const width of [1280, 390, 320]) {
+        await page.setViewportSize({width,height:850});
+        await picker.selectOption("Cambridge Landmarks");
+        const size = await picker.evaluate(el => ({
+          font: parseFloat(getComputedStyle(el).fontSize),
+          height: el.getBoundingClientRect().height,
+          right: el.getBoundingClientRect().right
+        }));
+        assert.ok(size.font >= 16 && size.font <= 18, "Use a compact, readable selected value");
+        assert.ok(size.height >= 44 && size.right <= width, "Preserve a usable touch target");
+      }
+      await picker.selectOption("ImageNet-10%");
       const profiles = feature.getByRole("group",{name:"Visible profiles"});
       await profiles.getByRole("radio",{name:/Linear/}).check();
       assert.equal(await values.locator("dd").count(),5);

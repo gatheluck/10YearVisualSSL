@@ -390,7 +390,7 @@ footer {
 
 #figure-five .task-readout {background:#142e39;color:#f5faf9;padding:clamp(16px,2.3vw,32px);border-radius:10px;margin-bottom:24px;}
 .task-heading {display:grid;justify-items:start;gap:4px;color:#b9dbda;font:600 12px var(--mono);}
-.task-heading select {max-width:100%;color:inherit;color-scheme:dark;background:#223f49;border:1px solid #6b959c;border-radius:6px;padding:4px 8px;font-weight:600;font-family:inherit;font-size:clamp(19px,2vw,29px);}
+.task-heading select {max-width:100%;color:inherit;color-scheme:dark;background:#223f49;border:1px solid #6b959c;border-radius:6px;padding:4px 8px;font-weight:600;font-family:inherit;font-size:clamp(16px,1.4vw,18px);min-height:44px;}
 #figure-five .task-readout output {padding:0;margin:0;background:transparent;}
 /* The selected name remains part of the live announcement. */
 #figure-five .task-readout output > strong {font-size:0;}
