@@ -5,12 +5,12 @@ const figureHeading = broadTransfer.querySelector("h2");
 figureHeading.insertAdjacentHTML("beforebegin", '<p class="eyebrow">Figure 5 · Broad transfer</p>');
 figureHeading.insertAdjacentHTML("afterend", `
   <div class="transfer-facts">
-    <p><strong>29<span>/40</span></strong>DINOv3-7B first-place finishes with linear or task-specific frozen probes.</p>
-    <p><strong>20<span>/40</span></strong>DINOv3-7B first-place finishes with attentive probes.</p>
-    <p><strong>6<span>/9</span></strong>Detection and segmentation settings led by RAEv2 with attentive probes.</p>
+    <p><strong>29<span>/40</span></strong>DINOv3-7B leads · LP</p>
+    <p><strong>20<span>/40</span></strong>DINOv3-7B leads · AP</p>
+    <p><strong>6<span>/9</span></strong>RAEv2 leads · detection &amp; segmentation, AP</p>
   </div>
   <figure>
-    <p class="radar-guide">Each chart is one model. Read the same 40 tasks clockwise from the top. Farther out means better transfer within each task and probe.</p>
+    <p class="radar-guide">40 tasks, clockwise from the top. Farther out is better; each probe is scaled to its task leader.</p>
     <div class="radar-tools">
       <label>Visible profiles <select class="probe-choice"><option>Both</option><option>LP</option><option>AP</option></select></label>
       <label>Inspect task <select class="task-choice"></select></label>
@@ -19,10 +19,10 @@ figureHeading.insertAdjacentHTML("afterend", `
     <output aria-live="polite"></output>
     <div class="radar-key"><span>△ Linear / frozen probe (LP) · dashed</span><span>● Attentive probe (AP) · solid</span></div>
     <div class="transfer-pan" role="region" tabindex="0" aria-label="Five interactive radar charts and the task key">${transferVector}</div>
-    <figcaption>The outer ring marks the best of the five models for each task. LP and AP are normalized separately.</figcaption>
-    <section class="task-key" aria-label="Numbered task key"><h3>Which task is each spoke?</h3><p>Select a numbered task to highlight it across all five models and compare its raw scores.</p><div></div></section>
+
+    <section class="task-key" aria-label="Numbered task key"><h3>Task key</h3><div></div></section>
   </figure>
-  <div class="transfer-foot"><p>The original figure includes all 40 settings. The score explorer covers 38 while the SpaceNet 2 and SUN RGB-D task definitions are under review.</p>
+  <div class="transfer-foot"><p>38 settings with score details · 2 pending</p>
   <a href="extended.html#matrix">Inspect task scores</a></div>`);
 
 const source = broadTransfer.querySelector("svg");
@@ -46,7 +46,6 @@ for (const entry of source.querySelectorAll(".rank-entry")) {
   label.textContent = entry.querySelector("text").textContent;
   key.append(label);
 }
-const modelNames = new Map();
 const names = [...taskChoice.options].map(option => option.value);
 const taskKey = broadTransfer.querySelector(".task-key div");
 let group;
@@ -80,7 +79,6 @@ for (const panel of panels) {
   const heading = document.createElement("h3");
   const [name, family, lp, ap] = panel.querySelectorAll(":scope > text");
   heading.textContent = name.textContent;
-  modelNames.set(panel, name.textContent);
   const subtitle = document.createElement("small");
   subtitle.textContent = family.textContent;
   const stats = document.createElement("table");
@@ -120,23 +118,36 @@ function updateRadar() {
   const heading = document.createElement("strong");
   heading.textContent = task;
   scoreOutput.replaceChildren(heading);
-  const entries = marks.filter(mark => mark.dataset.dataset === task);
-  if (!entries[0].hasAttribute("data-score")) {
+  const row = transferRows.find(entry => entry.task === task);
+  if (!row) {
     scoreOutput.append("Task definition and metric pending.");
     return;
   }
-  for (const panel of panels) {
+  const metric = document.createElement("small");
+  metric.textContent = row.metric + " · " + row.direction + " is better";
+  heading.append(metric);
+  const grid = document.createElement("span");
+  grid.className = "model-results";
+  scoreOutput.append(grid);
+  transferModels.forEach((model, index) => {
     const item = document.createElement("span");
+    item.className = "model-result";
     const label = document.createElement("b");
-    label.textContent = modelNames.get(panel);
-    item.append(label);
-    for (const protocol of ["LP","AP"]) {
+    label.textContent = model;
+    const scores = document.createElement("dl");
+    item.append(label, scores);
+    for (const protocol of ["LP", "AP"]) {
       if (probe !== "Both" && probe !== protocol) continue;
-      const mark = entries.find(node => panel.contains(node) && node.dataset.probe === protocol);
-      item.append(" " + protocol + " " + mark.dataset.score);
+      const pair = document.createElement("div");
+      const method = document.createElement("dt");
+      method.textContent = protocol;
+      const value = document.createElement("dd");
+      value.textContent = row[protocol][index];
+      scores.append(pair);
+      pair.append(method, value);
     }
-    scoreOutput.append(item);
-  }
+    grid.append(item);
+  });
 }
 chart.addEventListener("click", event => {
   const mark = event.target.closest(".score-point");

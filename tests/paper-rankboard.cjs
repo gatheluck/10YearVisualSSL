@@ -95,6 +95,10 @@ const { chromium } = require("playwright");
     }
     await select.selectOption({ label: "RAEv2" });
     assert.match(await board.locator("#rank-profile").innerText(), /RAEv2/);
+    assert.equal(await board.locator("#rank-profile .rank-rail").count(),5);
+    assert.ok(await board.locator("#rank-profile .rank-rail").evaluateAll(rails =>
+      rails.every(rail => Number.parseFloat(rail.style.getPropertyValue("--position")) ===
+        (Number(rail.parentElement.querySelector("dd").textContent)-1)*100/108)));
     assert.deepEqual(
       await board.locator("#rank-profile dd").allTextContents(),
       ["2", "5", "1", "8", "100"],

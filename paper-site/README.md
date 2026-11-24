@@ -65,3 +65,5 @@ In the web layout each model has an independent SVG viewport. The five cards ref
 At 1200 CSS pixels and wider the five plots share one row. The complete numbered task key appears below the plots. Each group swatch uses the same opaque palette color as its corresponding band on all five radars.
 
 Each radar card reports the published first- and second-place counts over all 40 settings in a table, with one row per probe.
+
+Figure 5's selected-task panel shows raw scores with their metric and direction, grouped by model and probe. Figure 1's selected-model ranks include a position tick from first (left) to last (right).

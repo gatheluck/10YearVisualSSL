@@ -364,3 +364,30 @@ footer {
 #figure-five .placement-counts th:first-child {text-align:left;}
 #figure-five .placement-counts tbody th {font-weight:500;}
 #figure-five .placement-counts td {font-weight:700;}
+
+/* Give the active measurement priority over the surrounding chart notes. */
+#figure-five output {display:block;padding:clamp(16px,2.3vw,32px);margin:12px 0 18px;border:0;border-radius:10px;background:#142e39;color:#f5faf9;}
+#figure-five output > strong {display:block;font-size:clamp(22px,2.4vw,34px);letter-spacing:-.04em;}
+#figure-five output small {display:block;margin-top:3px;font:500 13px/1.5 var(--mono);color:#b9dbda;letter-spacing:0;}
+.model-results {display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-top:20px;}
+.model-result {padding:12px 0 0;border-top:2px solid #4f7278;}
+.model-result b {font-size:14px;}
+.model-result dl {display:flex;gap:clamp(6px,1vw,18px);margin:10px 0 0;}
+.model-result dt {font:500 11px var(--mono);color:#a8cfce;}
+.model-result dd {font-size:clamp(15px,1.45vw,22px);font-weight:650;line-height:1.3;margin:2px 0 0;}
+#figure-five .transfer-facts p {margin-block:8px 20px;}
+#figure-five .radar-tools {gap:14px 20px;padding-block:12px;}
+#figure-five .radar-tools select,#figure-five .radar-tools button {border:1px solid #baccc8;border-radius:6px;background:#fff;padding:6px 9px;color:#183e40;}
+#rank-profile dl > div {flex:1;min-width:0;}
+#rank-profile dl {gap:6px;}
+.rank-rail {display:block;height:3px;margin:6px 4px 0 0;background:#45616a;position:relative;}
+.rank-rail::after {content:"";position:absolute;left:var(--position);transform:translateX(-50%);top:-1px;width:5px;height:5px;border-radius:50%;background:var(--series);}
+@media(max-width:760px) {
+  .model-results {grid-template-columns:1fr;gap:0;margin-top:12px;}
+  .model-result {display:flex;align-items:center;justify-content:space-between;border-top:1px solid #41606a;padding:8px 0;}
+  .model-result dl {margin:0;gap:12px;}
+  .model-result dl div {min-width:5ch;}
+  .model-result dt,.model-result dd {display:inline;}
+  .model-result dd {margin-left:4px;}
+  .rank-rail {margin-top:2px;height:2px;}
+}

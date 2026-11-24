@@ -48,6 +48,10 @@ function buildRankBoard(rows, familyByName, families) {
       const group = add(metrics, "div");
       add(group, "dt", benchmarks[i]);
       add(group, "dd", r);
+      const rail = add(group, "span");
+      rail.className = "rank-rail";
+      rail.setAttribute("aria-hidden", "true");
+      rail.style.setProperty("--position", ((r - 1) * 100 / (rows.length - 1)) + "%");
     });
   }
   for (const row of rows) {
