@@ -144,6 +144,33 @@
       "tests": [
         "tests.test_basic5_seg_detection.TestDetectionComponents.test_real_detection_cli_records_incomplete_profile"
       ]
+    },
+    {
+      "label": "COCO silently scores a partial split",
+      "file": "downstream/coco.py",
+      "old": "    check_evaluated_images(dataset, image_ids)",
+      "new": "    pass",
+      "tests": [
+        "tests.test_basic5_seg_detection.TestDetectionComponents.test_bbox_scores_require_exact_validation_membership_and_predictions"
+      ]
+    },
+    {
+      "label": "LoRA COCO loses its local validation membership",
+      "file": "downstream/revised_detection.py",
+      "old": "        check_evaluated_images(loader.dataset, identifiers)",
+      "new": "        pass",
+      "tests": [
+        "tests.test_basic5_seg_detection.TestDetectionComponents.test_bbox_scores_require_exact_validation_membership_and_predictions"
+      ]
+    },
+    {
+      "label": "Basic Five silently truncates extra detector outputs",
+      "file": "downstream/coco.py",
+      "old": "zip(targets, outputs, strict=True)",
+      "new": "zip(targets, outputs)",
+      "tests": [
+        "tests.test_basic5_seg_detection.TestDetectionComponents.test_bbox_scores_require_exact_validation_membership_and_predictions"
+      ]
     }
   ]
 }

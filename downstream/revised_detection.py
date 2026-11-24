@@ -10,7 +10,7 @@ from torch import nn
 from torch.utils.data import Dataset
 from torchvision.transforms import functional as TF
 
-from downstream.coco import SimpleFeaturePyramid
+from downstream.coco import SimpleFeaturePyramid, check_evaluated_images
 from downstream.native_detection import TransposedFeaturePyramid
 
 
@@ -163,6 +163,7 @@ def evaluate_detection(model, loader, device):
                         x1, y1, x2, y2 = box.tolist()
                         rows.append({'image_id': identifier, 'category_id': dataset.label_to_category[label],
                             'bbox': [x1,y1,x2-x1,y2-y1], 'score': float(score)})
+        check_evaluated_images(loader.dataset, identifiers)
         return rows, identifiers
 
     local = _stage(collect, device)

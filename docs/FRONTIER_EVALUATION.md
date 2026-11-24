@@ -4,7 +4,7 @@ See [package scope and terminology](SUBMISSION_SCOPE.md) for the distinction
 between original experiments, portable functionality and reproduced results.
 
 This entry point implements the explicit prediction interfaces and metrics in
-the submitted manuscript's Table 42 and Appendix E.6, together with the
+Figure 6 and supplementary Table 29 and Appendix E.6, together with the
 [verbatim prompts](submission_protocols/BASIC5_FRONTIER_SYSTEM_PROMPTS.md).
 It scores supplied predictions; it does not call a model API or train a model.
 The five interfaces remain separate from unified LP/AP/FT rankings. In
@@ -91,7 +91,7 @@ responses and result reports should remain outside Git.
 
 Results always retain `canonical_eligible: false`, `record_value: false`, and
 `paper_score_verified: false`. They demonstrate evaluation of supplied labels
-and predictions, not numerical reproduction of Table 42. Fixed subset selection,
+and predictions, not numerical reproduction of Table 29. Fixed subset selection,
 raw model execution, retry provenance, matching all systems to the original
 inputs, and historical conversion/scoring equivalence remain separate work.
 

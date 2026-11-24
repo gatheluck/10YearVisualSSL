@@ -9,6 +9,17 @@ TEMPLATE = ROOT / 'docs/templates/CVPR_REVIEWER_README.md'
 
 
 class ReviewerProtocolIndex(unittest.TestCase):
+    def test_paper_metric_and_completed_repeat_notes_are_reachable(self):
+        for page in (ROOT / 'README.md', TEMPLATE):
+            links = set(re.findall(r'\]\(([^)]+)\)', page.read_text()))
+            target = 'docs/BASIC5_V1_AUDIT.md#coco-evaluation-and-completed-repeats'
+            with self.subTest(page=page):
+                self.assertIn(target, links)
+        guide = (ROOT / 'docs/BASIC5_V1_AUDIT.md').read_text()
+        notes = guide.split('## COCO evaluation and completed repeats', 1)[-1].split('\n## ', 1)[0]
+        for term in ('Table 26', 'n=1', 'Table 29', 'Micro-F1', 'bounding-box AP'):
+            self.assertIn(term, notes)
+
     def test_root_and_review_copy_link_to_the_same_protocols(self):
         indexes = []
         for page in (ROOT / 'README.md', TEMPLATE):

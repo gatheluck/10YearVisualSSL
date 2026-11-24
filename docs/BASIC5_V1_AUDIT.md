@@ -52,7 +52,7 @@ The earlier directory for this cell yields different numbers. Count the
 corrected set only once. These comparisons verify reported statistics;
 checkpoint contents, inputs and independent training were outside this check.
 
-Eight cells still lacked an independently matched three-seed set: VGGT-Omega
+At the time of that audit, eight cells lacked an independently matched three-seed set: VGGT-Omega
 ImageNet AP, both COCO and both NYUv2 tracks, SigLIP 2-G ImageNet AP and both
 NYUv2 tracks. The original Omega NYUv2 runs give different means, and the
 corrected depth files examined were unreadable. The corrected Omega COCO LP
@@ -61,6 +61,57 @@ In the supplied manuscript, SigLIP 2-G NYUv2 LP is **0.848 +/- 0.007**;
 the earlier figure table shows **2.023 +/- 0.032**. Use the manuscript as the
 display source. Numeric agreement with a separate LoRA/DPT control would not
 establish which run produced this LP cell.
+
+## COCO evaluation and completed repeats
+
+For native Basic Five comparisons, COCO uses bounding-box AP on val2017:
+IoU 0.50 to 0.95 in steps of 0.05, all areas, at most 100 detections per image.
+The standard Basic Five evaluator reports AP as a fraction. The revised LoRA
+report and the paper use percentage points. Both evaluators check the observed
+image IDs against the requested validation population, including explicit
+subsets and rank-local shards. Images with no predicted boxes still count.
+
+The November correction records cover all 15 targeted historical settings with
+bbox evaluation over 5,000 images. Eleven corrected values match the displayed
+ASIS entries in Tables 15–17. For example, the printed APs are 20.83 for the
+RAEv2 generator, 2.32 for DiT and 0.12 for iGPT. Table 15 leaves MAGE and JiT
+blank despite separate completed evaluations. DINOv3-7B square-224 and
+V-JEPA 2.1-L also have separate correction records without corresponding cells
+in these tables. Preserve the printed blanks and configuration identities.
+
+A separate comparison of Figure 4 plotting inputs against Tables 10 and 21
+covered all 32 methods and five primary metrics. All 160 final CTRL values
+agree within the printed rounding interval. For ASIS, 159 of 160 agree;
+Context Prediction COCO is 0.30 in the Figure 4 plotting input and 1.47 in
+Table 10 and the Figure 2 plotting input. Treat this row as disputed when
+reporting the ASIS-to-CTRL change.
+
+Figure 6 and supplementary Table 29 specify a separate 500-image COCO
+category-presence Micro-F1 comparison. Keep these observations outside native
+detection ranks and aggregate bounding-box AP only within a matching task.
+The frontier scorer is documented in the repository's frontier evaluation guide.
+
+Figure 3 and Tables 22–25 agree for all 85 displayed means and sample SDs.
+Tables 22–25 report three runs per displayed cell. Full fine-tuning in Table 26
+uses the actual completed repeats. Of 25 possible entries, 18 have three runs,
+VGGT-Omega on SSv2 has n=1 (63.17, without a sample SD), and six are blank.
+
+### Run attribution checked against the revised supplement
+
+The adoption record and completed results identify RAEv2's DINOv3-L K7 tokenizer
+for the Unified experiments. For 22 cells (LP 5, AP 5, FT 5, LoRA 5, DPT 2),
+the three original final values per cell reproduce the printed mean and sample
+SD in Tables 22–26. LP/AP/FT records explicitly disable the diffusion transformer
+and decoder. Keep the generator block-29, timestep-0.1 setting for historical
+ASIS; the generalization of this setting to Unified tracks in C.3/E.4 conflicts
+with the adopted runs. Original-run agreement establishes attribution; independent
+training with the portable implementation has separate results.
+
+The figure revision identifies the SigLIP 2-G NYUv2 LP runs using upright depth,
+unaligned RMSE and SILog with lambda 0.5. Their three values are 0.839582,
+0.849808 and 0.853224 m (printed 0.848 +/- 0.007). This resolves the source of
+that cell in the earlier eight-cell audit; the older 2.023 result used a
+different training configuration.
 
 ## Auditing outputs
 
