@@ -10,24 +10,31 @@ figureHeading.insertAdjacentHTML("afterend", `
     <p><strong>6<span>/9</span></strong>RAEv2 leads · detection &amp; segmentation, AP</p>
   </div>
   <figure>
-    <p class="radar-guide">40 tasks, clockwise from the top. Farther out is better; each probe is scaled to its task leader.</p>
-    <div class="radar-tools">
-      <label>Visible profiles <select class="probe-choice"><option>Both</option><option>LP</option><option>AP</option></select></label>
-      <label>Inspect task <select class="task-choice"></select></label>
-      <button type="button" aria-pressed="false">Enlarge chart</button>
+    <div class="task-readout">
+      <label class="task-heading">Inspect task <select class="task-choice"></select></label>
+      <output aria-live="polite"></output>
     </div>
-    <output aria-live="polite"></output>
-    <div class="radar-key"><span>△ Linear / frozen probe (LP) · dashed</span><span>● Attentive probe (AP) · solid</span></div>
-    <div class="transfer-pan" role="region" tabindex="0" aria-label="Five interactive radar charts and the task key">${transferVector}</div>
-
+    <div class="radar-comparison">
+      <p class="radar-guide">40 tasks clockwise from the top. The outer ring marks each task’s best score for that probe.</p>
+      <div class="plot-toolbar">
+        <fieldset class="profile-switch"><legend class="sr">Visible profiles</legend>
+          <label><input type="radio" name="radar-probe" value="Both" checked><span>Both</span></label>
+          <label><input type="radio" name="radar-probe" value="LP"><span><svg viewBox="0 0 32 16" aria-hidden="true"><path d="M0 8h32" stroke="#56616f" stroke-dasharray="4 2"/><path d="m16 3 5 9H11Z" fill="#56616f"/></svg>Linear (LP)</span></label>
+          <label><input type="radio" name="radar-probe" value="AP"><span><svg viewBox="0 0 32 16" aria-hidden="true"><path d="M0 8h32" stroke="#267bb3"/><circle cx="16" cy="8" r="4" fill="#267bb3"/></svg>Attentive (AP)</span></label>
+        </fieldset>
+        <div class="radar-key" aria-label="Rank markers"></div>
+        <button class="zoom-radar" type="button" aria-pressed="false">Enlarge chart</button>
+      </div>
+      <div class="transfer-pan" role="region" tabindex="0" aria-label="Five interactive radar charts">${transferVector}</div>
+    </div>
     <section class="task-key" aria-label="Numbered task key"><h3>Task key</h3><div></div></section>
   </figure>
   <div class="transfer-foot"><p>38 settings with score details · 2 pending</p>
   <a href="extended.html#matrix">Inspect task scores</a></div>`);
 
-const source = broadTransfer.querySelector("svg");
+const source = broadTransfer.querySelector(".transfer-pan svg");
 const chart = source.parentElement;
-const probeChoice = broadTransfer.querySelector(".probe-choice");
+const profileSwitch = broadTransfer.querySelector(".profile-switch");
 const taskChoice = broadTransfer.querySelector(".task-choice");
 const scoreOutput = broadTransfer.querySelector("output");
 const marks = [...chart.querySelectorAll(".score-point")];
@@ -110,7 +117,7 @@ source.remove();
 
 function updateRadar() {
   const task = taskChoice.value;
-  const probe = probeChoice.value;
+  const probe = profileSwitch.querySelector(":checked").value;
   chart.querySelectorAll("[data-probe]").forEach(node => {
     node.style.display = probe === "Both" || node.dataset.probe === probe ? "" : "none";
   });
@@ -153,9 +160,9 @@ chart.addEventListener("click", event => {
   const mark = event.target.closest(".score-point");
   if (mark) { taskChoice.value = mark.dataset.dataset; updateRadar(); }
 });
-probeChoice.addEventListener("change", updateRadar);
+profileSwitch.addEventListener("change", updateRadar);
 taskChoice.addEventListener("change", updateRadar);
-const zoom = broadTransfer.querySelector(".radar-tools button");
+const zoom = broadTransfer.querySelector(".zoom-radar");
 zoom.addEventListener("click", () => {
   const enlarged = chart.classList.toggle("enlarged");
   zoom.setAttribute("aria-pressed", String(enlarged));

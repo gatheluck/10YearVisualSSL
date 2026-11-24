@@ -67,3 +67,5 @@ At 1200 CSS pixels and wider the five plots share one row. The complete numbered
 Each radar card reports the published first- and second-place counts over all 40 settings in a table, with one row per probe.
 
 Figure 5's selected-task panel shows raw scores with their metric and direction, grouped by model and probe. Figure 1's selected-model ranks include a position tick from first (left) to last (right).
+
+The task picker heads the live score panel. Immediately above the radar plots, the profile selector doubles as the line-and-marker legend and sits alongside the rank key and zoom control. This toolbar stays in view while scrolling the plots on narrow screens.
