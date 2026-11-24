@@ -365,10 +365,13 @@
       "paper_group": "detection_segmentation",
       "catalog_metric": "building IoU/F1",
       "module": null,
-      "component_status": "pending_task_metric_identity",
+      "component_status": "pending_portable_validation",
       "native_input": "pending",
       "result_attribution": "unverified",
-      "limitation": "The catalog specifies building IoU/F1; a semantic mIoU figure-to-run mapping is not established."
+      "limitation": "Portable image/mask membership and full evaluation still require verification.",
+      "figure_metric": "mIoU",
+      "figure_classes": 2,
+      "figure_input": "RGB"
     },
     {
       "figure_index": 31,
@@ -377,10 +380,13 @@
       "paper_group": "detection_segmentation",
       "catalog_metric": "RMSE",
       "module": null,
-      "component_status": "pending_task_metric_identity",
+      "component_status": "pending_portable_validation",
       "native_input": "pending",
       "result_attribution": "unverified",
-      "limitation": "The catalog specifies depth RMSE; the figure groups this setting with segmentation. Semantic run identity is not established."
+      "limitation": "The adopted rerun uses a learned five-to-three-channel stem; the historical depth runner evaluates another task.",
+      "figure_metric": "mIoU",
+      "figure_classes": 37,
+      "figure_input": "RGB-D"
     },
     {
       "figure_index": 32,

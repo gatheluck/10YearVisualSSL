@@ -10,8 +10,8 @@ for this figure; the 81-entry protocol catalog remains unchanged.
 The [machine-readable ledger](CVPR_EXTENDED_COVERAGE.json) separates existing
 component entry points from result attribution. It contains 24 recognition,
 nine detection/segmentation, three geometry and four video/pose settings.
-There are existing component entry points for 38 settings and two explicit
-task/metric holds. These are not 38 verified experiments, independently
+There are existing component entry points for 38 settings and two confirmed semantic settings awaiting
+portable input and evaluation validation. These are not 38 verified experiments, independently
 validated native datasets, or reproduced scores.
 
 All five model-to-run correspondences remain separate validation work. In
@@ -52,8 +52,8 @@ the broad plotting group must not change their task identity.
 | 27 | `mapillary_vistas` | `downstream.extended_segmentation` |
 | 28 | `bdd100k` | `downstream.extended_segmentation` |
 | 29 | `cityscapes` | `downstream.extended_segmentation` |
-| 30 | `spacenet2_vegas` | Pending task/metric identity |
-| 31 | `sun_rgbd` | Pending task/metric identity |
+| 30 | `spacenet2_vegas` | Background/building mIoU (2 classes); portable validation pending |
+| 31 | `sun_rgbd` | RGB-D semantic mIoU (37 classes); portable validation pending |
 | 32 | `lvis_v1` | `downstream.extended_detection` |
 | 33 | `livecell` | `downstream.extended_detection` |
 | 34 | `seven_scenes` | `downstream.extended_structured` |
@@ -66,10 +66,15 @@ the broad plotting group must not change their task identity.
 
 ## Remaining boundaries
 
-- SpaceNet 2: the catalog specifies building IoU/F1; the semantic mIoU run
-  mapping remains unresolved. SUN RGB-D: the catalog specifies depth RMSE,
-  while the figure places it among segmentation settings. Neither is inferred
-  into a supported semantic route.
+- SpaceNet 2 reports the mean of background and building IoUs. The archived
+  DINOv3-7B LP/AP records give 72.40/74.51 mIoU. The historical catalog lists
+  building IoU/F1.
+- SUN RGB-D reports 37-class semantic mIoU from RGB, decoded depth in metres
+  and a validity mask, with a learned 5-to-3 input stem. The DINOv3-7B LP/AP
+  records give 52.06/46.16 on 5,050 evaluation images (5,285 training images).
+  The depth RMSE catalog entry describes a separate experiment. These checks
+  establish the identities and example scores; the ledger's result attribution
+  field tracks validation across the entire model panel.
 - Localization reports translation and rotation separately. The scalar used
   by the figure remains to be linked to its original result data.
 - Sintel uses the existing captured 224-grid flow profile and native-pixel

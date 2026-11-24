@@ -80,8 +80,7 @@ set. Output includes the document digest. Keep original source documents and
 record paths outside Git. See [portable accounting](DOWNSTREAM_ACCOUNTING.md)
 and [native accounting](REFERENCE_ACCOUNTING.md).
 
-SpaceNet, SUN RGB-D, the revised SSv2 AP reader and Figure 7 reference-free
-dimensionality remain pending. This audit does not change their interpretation.
+The original audit excluded SSv2 AP. The [later record check](SSV2_EXECUTION.md#figure-3-attentive-probes) identifies its model-specific routes. See also the [Figure 5 ledger](CVPR_EXTENDED_COVERAGE.md) and [Figure 7 attribution](REPRESENTATION_ANALYSIS.md).
 
 ## Corrected V-JEPA 2.1 ADE20K attentive run
 

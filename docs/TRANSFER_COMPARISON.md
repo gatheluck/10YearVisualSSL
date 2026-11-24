@@ -66,7 +66,7 @@ not independent evidence or significance tests.
 
 This module accepts selected means for review; it does not establish which
 checkpoint, seed set, alignment or measurement protocol produced a paper cell.
-SpaceNet, SUN RGB-D and SSv2 AP scientific correspondence remain pending. Do not
+For adopted metrics see the [Figure 5 ledger](CVPR_EXTENDED_COVERAGE.md) and [SSv2 AP records](SSV2_EXECUTION.md#figure-3-attentive-probes). Do not
 substitute a classification task for detection, raw for aligned depth, or a
 proposed protocol for an executed one. Only supply adopted means after resolving
 those identities externally. The tool does not assert that a partial input

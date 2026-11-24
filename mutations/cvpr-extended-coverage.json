@@ -12,7 +12,7 @@
     {
       "label": "source conflict cannot become available",
       "file": "docs/CVPR_EXTENDED_COVERAGE.json",
-      "old": "\"catalog_metric\": \"building IoU/F1\",\n      \"module\": null,\n      \"component_status\": \"pending_task_metric_identity\"",
+      "old": "\"catalog_metric\": \"building IoU/F1\",\n      \"module\": null,\n      \"component_status\": \"pending_portable_validation\"",
       "new": "\"catalog_metric\": \"building IoU/F1\",\n      \"module\": null,\n      \"component_status\": \"available\"",
       "tests": [
         "tests.test_cvpr_extended_coverage.ExtendedCoverage.test_conflicting_entries_do_not_become_supported_by_diagram_group"

@@ -412,8 +412,8 @@ must not be treated as interchangeable environment certifications.
 | RAEv2 readout | The revised paper's LP/AP generator block 29 at time 0.1 is different from this package's existing tokenizer K7 readout. Keep these identities separate and port the matching generator path. |
 | COCO | Basic5 uses Faster R-CNN bounding-box AP. The existing portable COCO runner already performs detection; historical category-presence scores must not be relabeled as detection AP. New correction metadata is not proof that all corresponding reruns completed. |
 | NYUv2 | The LoRA/DPT run record stores median-aligned RMSE as primary. The author-supplied v2 descriptions select the unaligned field for manuscript reporting. Other tracks require their own provenance. |
-| Geometry analysis | The [feature-array analysis CLI](REPRESENTATION_ANALYSIS.md) adds source-compared image/patch agreement and held-family task-direction fits. The original Figure 7b table statistics matched across five tasks. Extraction identity and fixed two-coordinate attribution remain open. |
-| SSv2 attentive probing | The revised text describes frame-pooled tokens and a single cross-attention block; inspected paths include cross/self-attention and all spatiotemporal tokens. Keep the existing paths unchanged until the adopted run or protocol is confirmed. This does not block the separate revised LoRA route. |
+| Geometry analysis | The [feature-array analysis CLI](REPRESENTATION_ANALYSIS.md) adds source-compared image/patch agreement and held-family task-direction fits. The original Figure 7b table statistics matched across five tasks. The reference-free correlations come from nested coordinate selection. Extraction identity requires separate validation. |
+| SSv2 attentive probing | The adopted input and reader vary by model. See the [five source paths and original score audit](SSV2_EXECUTION.md#figure-3-attentive-probes). This does not block the separate revised LoRA route. |
 
 The supplied manuscript also explicitly describes a category-presence analysis
 separately from Basic5 detection. Preserve that distinction while reconciling
