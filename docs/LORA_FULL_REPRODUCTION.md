@@ -68,3 +68,53 @@ select the two recorded short schedules, eight clips per
 rank for SSv2, and the public campaign's worker counts and restart policy.
 For a time-limited allocation, follow the [completed-epoch continuation
 instructions](CVPR_ADAPTATION.md) and preserve the preceding output directory.
+
+## Compare public outputs with Figure 3
+
+The reporting CLI covers all 35 LoRA/DPT cells across the five released
+encoders. It reads the [printed means and sample standard deviations](../configs/figure3-adaptation-targets.json)
+and the same model panel used to generate the training configurations.
+Start with this private plan:
+
+```json
+{
+  "schema": "portable_figure3_comparison_v1",
+  "cells": [
+    {"model": "raev2_k7", "task": "coco", "track": "lora", "runs": []}
+  ]
+}
+```
+
+For each finished seed, append an object to its cell's `runs` list with
+`seed`, `config` (the final attempt's training JSON path), `out` (its artifact
+directory), and `exit_status` (the recorded process exit code). Use absolute
+paths or run from the directory against which those paths were recorded.
+Supply one cell per model/task/track. From the training environment, run:
+
+```sh
+python -m downstream.revised_reporting --config comparison-plan.json --out new-comparison.json
+```
+
+The JSON always lists the full panel. Omitted cells are `missing`. A valid
+subset of seeds is `incomplete`, with the audited individual scores.
+An incompatible configuration, failed contract or inconsistent set of seeds
+is `invalid`. Only three valid seeds (0, 1, 2) produce an observed mean and
+sample SD. A `match` requires equality of **both** printed values. Otherwise
+the row is a `mismatch`. Inspect these statuses after running the command.
+
+The comparison checks the released provider and its declared geometry,
+source-selected schedule, recorded configuration and manifest, and the
+validated public execution topology (one GPU for dense tasks, eight for the
+other three, four accumulation steps for SSv2, BF16). It reuses the full
+[portable artifact audit](CVPR_ADAPTATION.md#auditing-portable-figure-3-training-outputs).
+NYUv2 uses unaligned RMSE in meters to three decimals. Other tasks use
+percentage points to two decimals, including COCO bbox AP. Numerical
+agreement alone does not establish historical run or checkpoint identity.
+
+On 2026-11-24 the CLI read the 60 completed ADE20K/NYUv2 runs (including the
+corrected depth runs) and five completed single-seed runs from the other
+three tasks. Both printed statistics matched in 1/10 ADE20K and 4/10 NYUv2
+cells. The remaining 15 dense cells had a numerical difference. Five
+classification/detection cells were incomplete and ten had no completed
+seed at this checkpoint. The [ADE20K results](ADE20K_REPRODUCTION.md) and
+[corrected NYUv2 results](CVPR_ADAPTATION.md) give the underlying comparisons.

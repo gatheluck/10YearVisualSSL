@@ -74,7 +74,7 @@ class PortableFigure(unittest.TestCase):
         contract.write_metrics(out, published, {key: key for key in published})
         contract.write_manifest(out, task=task, method_ref='revised-component', status='ok',
             config_sha256=contract.sha256_bytes(config.read_bytes()), started_at='start', finished_at='end',
-            seed=seed, backbone=backbone)
+            seed=seed, backbone=cfg['backbone'])
         return {'seed': seed, 'config': str(config), 'out': str(out), 'exit_status': 0}
 
     def report(self, records):

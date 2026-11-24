@@ -1,0 +1,49 @@
+{
+  "targets": [
+    {
+      "file": "downstream/figure3_comparison.py",
+      "label": "complete",
+      "old": "elif not report[\"complete\"]:",
+      "new": "elif False:",
+      "tests": [
+        "tests.test_figure3_comparison.ComparisonTests.test_single_seed_does_not_publish_comparison"
+      ]
+    },
+    {
+      "file": "downstream/figure3_comparison.py",
+      "label": "std",
+      "old": "format(stats[\"std\"],",
+      "new": "format(stats[\"mean\"],",
+      "tests": [
+        "tests.test_figure3_comparison.ComparisonTests.test_bbox_and_unaligned_depth_in_printed_units"
+      ]
+    },
+    {
+      "file": "downstream/figure3_comparison.py",
+      "label": "both",
+      "old": "observed == row[\"expected\"]",
+      "new": "observed[\"mean\"] == row[\"expected\"][\"mean\"]",
+      "tests": [
+        "tests.test_figure3_comparison.ComparisonTests.test_matching_mean_with_different_sd_is_mismatch"
+      ]
+    },
+    {
+      "file": "downstream/figure3_comparison.py",
+      "label": "missing",
+      "old": "\"status\": \"missing\"",
+      "new": "\"status\": \"match\"",
+      "tests": [
+        "tests.test_figure3_comparison.ComparisonTests.test_documented_empty_campaign_can_be_reported"
+      ]
+    },
+    {
+      "file": "downstream/revised_reporting.py",
+      "label": "ranks",
+      "old": "or topology != (ranks, accumulation, 'cuda_bf16')",
+      "new": "or topology[1:] != (accumulation, 'cuda_bf16')",
+      "tests": [
+        "tests.test_figure3_comparison.ComparisonTests.test_wrong_rank_count_or_model_cannot_claim_paper_cell"
+      ]
+    }
+  ]
+}

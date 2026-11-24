@@ -122,7 +122,7 @@ def portable_fields(cfg, result, published):
     return selected, recipe.epochs
 
 
-def aggregate(records, *, expected_seeds, portable=False):
+def aggregate(records, *, expected_seeds, portable=False, panel_cell=None):
     """Audit new portable revised depth artifacts; never reinterpret old records."""
     validate_seeds(expected_seeds)
     if portable and (set(expected_seeds) != {0, 1, 2} or not records):
@@ -188,6 +188,20 @@ def aggregate(records, *, expected_seeds, portable=False):
                 reasons.append('full checkpoint digest required')
             if portable:
                 topology = (result['world_size'], result['accumulation_steps'], result['precision'])
+                if panel_cell is not None:
+                    model, panel_task, track, spec = panel_cell
+                    backbone = cfg['backbone']
+                    ranks = 1 if panel_task in ('ade20k', 'nyuv2') else 8
+                    accumulation = 4 if panel_task == 'ssv2' else 1
+                    if ((task, cfg['track'], backbone['kind']) != (panel_task, track, model)
+                            or manifest.get('backbone', {}).get('kind') != model
+                            or cfg.get('device') != 'cuda'
+                            or backbone.get('arch') != spec['arch']
+                            or backbone.get('img_size') != spec['img_size']
+                            or backbone.get('patch_size') != 16 or not backbone.get('encoder')
+                            or cfg.get('schedule') != spec.get('schedules', {}).get(panel_task)
+                            or topology != (ranks, accumulation, 'cuda_bf16')):
+                        reasons.append('run differs from selected Figure 3 configuration')
                 if (any(type(n) is not int or n < 1 for n in topology[:2])
                         or topology[2] not in ('cpu_fp32', 'cuda_bf16')
                         or (execution is not None and topology != execution)):
@@ -234,7 +248,10 @@ def main():
     parser.add_argument('--out', type=Path, required=True, help='New summary JSON')
     args = parser.parse_args()
     plan = json.loads(args.config.read_text())
-    if plan.get('schema') == 'native_figure3_v1':
+    if plan.get('schema') == 'portable_figure3_comparison_v1':
+        from downstream.figure3_comparison import compare_panel
+        report = compare_panel(plan['cells'])
+    elif plan.get('schema') == 'native_figure3_v1':
         from downstream.revised_native_reporting import audit_native
         report = audit_native(plan['cells'])
     elif plan.get('schema') == 'portable_figure3_v1':
