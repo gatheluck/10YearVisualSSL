@@ -1,0 +1,251 @@
+{
+  "protocol_id": "BASIC5_FINETUNE_v1",
+  "version": "1.0",
+  "status": "canonical",
+  "track": "full_fine_tuning",
+  "purpose": "Cross-family Basic Five evaluation of downstream adaptation with the pretrained backbone and the BASIC5_FAIR_v1 task head trained end-to-end.",
+  "baseline": "BASIC5_FAIR_v1",
+  "design_principle": "Preserve the dataset, split, input, epoch count, task head, and metric of BASIC5_FAIR_v1. Unfreeze the backbone and change only optimizer, learning rate, weight decay, warmup, layer-wise learning-rate decay, and augmentation where full fine-tuning requires it.",
+  "global_rules": {
+    "pretrained_weights": "Initialize from the released pretrained checkpoint as-is; no intermediate task adaptation.",
+    "backbone_mode": "trainable",
+    "backbone_gradients": true,
+    "normalization": "Train affine parameters. For BatchNorm backbones, update running statistics during training and use them at evaluation; SyncBN is permitted when required by the effective batch.",
+    "trainable_scope": [
+      "all backbone parameters",
+      "the same task head used by BASIC5_FAIR_v1"
+    ],
+    "head_invariance": "Do not replace the baseline head with a stronger decoder. In particular, ADE20K and NYUv2 retain their 1x1 Conv heads and COCO retains Faster R-CNN/FPN.",
+    "feature_extraction": {
+      "layer": "Use the same canonical output feature/layer as BASIC5_FAIR_v1.",
+      "spatial_tasks": "Preserve the same token-to-grid conversion and feature scale selection as BASIC5_FAIR_v1.",
+      "activation_checkpointing": "Allowed as a memory-only implementation detail.",
+      "feature_cache": "Forbidden because the backbone is trainable."
+    },
+    "hyperparameter_policy": "One canonical recipe per task, applied unchanged to every backbone. No model-specific learning-rate, layer-decay, augmentation, or feature-layer sweep.",
+    "lr_group_rules": {
+      "head_lr_multiplier": 1.0,
+      "layer_decay_definition": "Starting at the head/output side with multiplier 1.0, multiply the learning rate by the task's layer_decay once per successively earlier backbone block. Embeddings/stem receive the smallest multiplier.",
+      "no_decay": ["bias", "normalization affine parameters", "positional embeddings", "class tokens"],
+      "no_decay_weight_decay": 0.0
+    },
+    "precision": "AMP/bfloat16 permitted; keep numerically sensitive losses and metrics in float32.",
+    "gradient_clipping": {
+      "type": "global_norm",
+      "max_norm": 1.0
+    },
+    "seeds": [0, 1, 2]
+  },
+  "tasks": {
+    "imagenet1k": {
+      "dataset": "ImageNet-1k / ILSVRC2012",
+      "task": "full fine-tuning for image classification",
+      "split": "official train (1,281,167 images) / validation (50,000 images)",
+      "input": {
+        "train": "random resized crop to 224, scale [0.08, 1.0], ratio [0.75, 1.3333], random horizontal flip p=0.5",
+        "evaluation": "resize shorter side to 256, center crop 224",
+        "normalization": "the pretrained backbone's published input normalization"
+      },
+      "feature_and_pooling": "Use the backbone's canonical final global representation (for example CLS token or global average pooling), exactly as selected in BASIC5_FAIR_v1.",
+      "head": "the BASIC5_FAIR_v1 linear 1000-class classifier",
+      "trainable_scope": "entire backbone and linear classifier",
+      "optimization": {
+        "epochs": 100,
+        "optimizer": "AdamW",
+        "base_lr": 0.0005,
+        "lr_reference_effective_batch": 1024,
+        "lr_scaling": "linear: lr = 0.0005 * effective_batch_size / 1024",
+        "weight_decay": 0.05,
+        "betas": [0.9, 0.999],
+        "batch_size": 1024,
+        "warmup": "5 epochs, linear from 1e-6",
+        "schedule": "cosine decay to 1e-6",
+        "layer_decay": 0.75
+      },
+      "augmentation": {
+        "randaugment": "9/0.5",
+        "mixup_alpha": 0.8,
+        "cutmix_alpha": 1.0,
+        "mixup_probability": 1.0,
+        "label_smoothing": 0.1,
+        "random_erasing_probability": 0.25
+      },
+      "loss": "soft-target cross entropy when Mixup/CutMix is active; label-smoothed cross entropy otherwise",
+      "metrics": {
+        "primary": "top-1 accuracy",
+        "secondary": "top-5 accuracy"
+      },
+      "minimal_deviation_note": "The 100 epochs, split, resolution, pooling choice, classifier, and metrics are retained. AdamW, lower scaled LR, weight decay, layer decay, warmup, and regularizing augmentation are the full-fine-tuning changes."
+    },
+    "coco": {
+      "dataset": "COCO 2017",
+      "task": "full fine-tuning with Faster R-CNN object detection",
+      "split": "train2017 / val2017",
+      "input": {
+        "train": "random horizontal flip p=0.5; resize shorter side to 800 while limiting longer side to 1333",
+        "evaluation": "resize shorter side to 800 while limiting longer side to 1333",
+        "normalization": "the pretrained backbone's published input normalization"
+      },
+      "feature_and_pooling": "Use the same spatial/multiscale backbone features and FPN mapping as BASIC5_FAIR_v1; never globally pool.",
+      "head": "the BASIC5_FAIR_v1 Faster R-CNN detector, including unchanged FPN, RPN, RoIAlign, box classifier, and box regressor",
+      "trainable_scope": "entire backbone, FPN, RPN, and RoI heads",
+      "optimization": {
+        "epochs": 12,
+        "schedule_name": "1x",
+        "optimizer": "SGD",
+        "base_lr": 0.02,
+        "lr_reference_effective_batch": 16,
+        "lr_scaling": "linear: lr = 0.02 * effective_batch_size / 16",
+        "momentum": 0.9,
+        "weight_decay": 0.0001,
+        "batch_size": 16,
+        "warmup": "500 iterations, linear warmup factor 0.001",
+        "schedule": "step decay by 0.1 at epochs 8 and 11",
+        "layer_decay": 1.0
+      },
+      "augmentation": "Scale resize and horizontal flip only, identical to the frozen-linear baseline.",
+      "loss": "standard Faster R-CNN RPN and RoI classification/regression losses",
+      "metrics": {
+        "primary": "COCO bbox AP@[0.50:0.95] on val2017",
+        "secondary": ["AP50", "AP75", "APS", "APM", "APL"]
+      },
+      "minimal_deviation_note": "COCO already has a standard end-to-end 1x recipe. The detector, optimizer, LR, schedule, augmentation, and metrics are unchanged; the sole protocol change is unfreezing the backbone and its normalization."
+    },
+    "ade20k": {
+      "dataset": "ADE20K",
+      "task": "full fine-tuning for semantic segmentation",
+      "split": "official 20,210 train / 2,000 validation",
+      "input": {
+        "train": "random resize scale [0.5, 2.0], random 224x224 crop, random horizontal flip p=0.5",
+        "evaluation": "single-scale 224x224 evaluation using the BASIC5_FAIR_v1 resize/crop policy",
+        "normalization": "the pretrained backbone's published input normalization"
+      },
+      "feature_and_pooling": "Reshape the same final-layer patch tokens to their 2-D grid, apply the unchanged 1x1 Conv, and bilinearly upsample logits with align_corners=false.",
+      "head": "the BASIC5_FAIR_v1 1x1 Conv with 150 outputs; no UPerNet, FPN, auxiliary decoder, or multilevel fusion",
+      "trainable_scope": "entire backbone and 1x1 Conv",
+      "optimization": {
+        "epochs": 20,
+        "optimizer": "AdamW",
+        "base_lr": 0.0001,
+        "lr_reference_effective_batch": 8,
+        "lr_scaling": "linear: lr = 0.0001 * effective_batch_size / 8",
+        "weight_decay": 0.05,
+        "betas": [0.9, 0.999],
+        "batch_size": 8,
+        "warmup": "1 epoch, linear from 1e-6",
+        "schedule": "cosine decay to 1e-6",
+        "layer_decay": 0.8
+      },
+      "augmentation": "Retain the BASIC5_FAIR_v1 random scale/crop/flip policy; add color jitter 0.4 only as regularization for full fine-tuning.",
+      "loss": "pixel-wise cross entropy with ignore_index=255 and no auxiliary decoder loss",
+      "metrics": {
+        "primary": "mean IoU over 150 classes",
+        "secondary": "pixel accuracy"
+      },
+      "minimal_deviation_note": "The 20 epochs, 224 input, final feature, 1x1 head, upsampling, loss, and metric remain fixed. Only the backbone is unfrozen and the low-LR AdamW/layer-decay recipe plus mild color jitter is introduced."
+    },
+    "nyuv2": {
+      "dataset": "NYUv2 labeled subset",
+      "task": "full fine-tuning for monocular depth regression",
+      "split": "official Eigen-style 795 train / 654 test from labeled.mat and splits.mat",
+      "input": {
+        "train": "resize/crop to 224x224, random horizontal flip p=0.5, using the BASIC5_FAIR_v1 geometry",
+        "evaluation": "deterministic 224x224 transform and the same valid-pixel mask as BASIC5_FAIR_v1",
+        "normalization": "the pretrained backbone's published input normalization",
+        "valid_depth_m": [0.1, 10.0]
+      },
+      "feature_and_pooling": "Reshape the same final-layer patch tokens to their 2-D grid, apply the unchanged 1x1 depth head, and bilinearly upsample with align_corners=false.",
+      "head": "the BASIC5_FAIR_v1 single-channel 1x1 Conv depth head with positive depth parameterization; no DPT or multiscale decoder",
+      "trainable_scope": "entire backbone and 1x1 depth head",
+      "optimization": {
+        "epochs": 30,
+        "optimizer": "AdamW",
+        "base_lr": 0.0001,
+        "lr_reference_effective_batch": 8,
+        "lr_scaling": "linear: lr = 0.0001 * effective_batch_size / 8",
+        "weight_decay": 0.05,
+        "betas": [0.9, 0.999],
+        "batch_size": 8,
+        "warmup": "1 epoch, linear from 1e-6",
+        "schedule": "cosine decay to 1e-6",
+        "layer_decay": 0.8
+      },
+      "augmentation": "Retain the BASIC5_FAIR_v1 geometry; add color jitter 0.2. Do not use Mixup, CutMix, or synthetic depth data.",
+      "loss": "the same valid-pixel scale-invariant log-depth loss as BASIC5_FAIR_v1",
+      "metrics": {
+        "primary": "RMSE in meters",
+        "secondary": ["AbsRel", "delta1", "delta2", "delta3"]
+      },
+      "minimal_deviation_note": "The official 795/654 split, 0.1-10 m mask, 30 epochs, 1x1 head, loss, and metrics remain fixed. A conservative low-LR AdamW/layer-decay recipe and mild color jitter address overfitting while the backbone is unfrozen."
+    },
+    "ssv2": {
+      "dataset": "Something-Something v2",
+      "task": "full fine-tuning for action recognition",
+      "split": "official train / validation",
+      "input": {
+        "frames": 16,
+        "temporal_sampling": "one frame uniformly sampled from each of 16 equal temporal segments; random within segment for training, segment center for evaluation",
+        "train": "per-frame random resized crop to 224 with temporally consistent parameters; horizontal flip disabled",
+        "evaluation": "one temporal clip and one spatial center crop at 224",
+        "normalization": "the pretrained backbone's published input normalization"
+      },
+      "feature_and_pooling": "Use the same backbone-specific temporal representation rule as BASIC5_FAIR_v1: temporal mean of per-frame global features for image backbones, or the canonical final global representation for native video backbones.",
+      "head": "the BASIC5_FAIR_v1 linear 174-class classifier",
+      "trainable_scope": "entire backbone and linear classifier",
+      "optimization": {
+        "epochs": 50,
+        "optimizer": "AdamW",
+        "base_lr": 0.0005,
+        "lr_reference_effective_batch": 256,
+        "lr_scaling": "linear: lr = 0.0005 * effective_batch_size / 256",
+        "weight_decay": 0.05,
+        "betas": [0.9, 0.999],
+        "batch_size": 64,
+        "gradient_accumulation": "use as needed to reach effective batch size 256",
+        "warmup": "5 epochs, linear from 1e-6",
+        "schedule": "cosine decay to 1e-6",
+        "layer_decay": 0.75
+      },
+      "augmentation": {
+        "randaugment": "9/0.5 with temporally consistent parameters",
+        "mixup_alpha": 0.8,
+        "cutmix_alpha": 1.0,
+        "mixup_probability": 1.0,
+        "label_smoothing": 0.1,
+        "random_erasing_probability": 0.25,
+        "horizontal_flip": false
+      },
+      "loss": "soft-target cross entropy when Mixup/CutMix is active; label-smoothed cross entropy otherwise",
+      "metrics": {
+        "primary": "top-1 accuracy",
+        "secondary": "top-5 accuracy"
+      },
+      "minimal_deviation_note": "The 16-frame sampling, 50 epochs, pooling rule, classifier, and single-view evaluation remain fixed. AdamW, lower LR, weight/layer decay, warmup, and standard video fine-tuning regularization are the necessary end-to-end changes."
+    }
+  },
+  "reporting": {
+    "checkpoint_rule": "Use the final scheduled epoch for the canonical score. Do not select on the reported validation/test split. A best-validation checkpoint may be reported only as a clearly labeled secondary result when a separate validation split exists.",
+    "seed_aggregation": "Report mean and standard deviation over seeds 0, 1, and 2; retain every per-seed result.",
+    "required_metadata": [
+      "checkpoint identifier and checksum",
+      "backbone family and parameter count",
+      "trainable and total parameter counts",
+      "feature layer and tensor shape",
+      "input resolution and evaluation views",
+      "effective batch size and realized base/head/stem learning rates",
+      "per-seed metrics, mean, and standard deviation",
+      "peak accelerator memory and training compute",
+      "software revision and dataset version"
+    ],
+    "unsupported_rule": "Report UNSUPPORTED with the reason; never replace a task, split, head, or feature type silently.",
+    "comparability_rule": "Only results following this file without model-specific tuning belong in the BASIC5_FINETUNE_v1 main table.",
+    "oom_rule": "Gradient accumulation, activation checkpointing, and parameter/FSDP sharding may change memory use but not the effective batch, realized LR, precision, number of views, or optimization semantics.",
+    "failure_rule": "Do not tune a single failing model. Apply a protocol-wide numerical fix to every model, increment the protocol version, and disclose it."
+  },
+  "optional_tracks": {
+    "native_resolution": "Allowed only as BASIC5_FINETUNE_NATIVE_v1 and must not be mixed into the canonical table.",
+    "coco_2x": "24-epoch COCO results are optional and must be labeled 2x.",
+    "strong_decoder": "UPerNet, DPT, or other stronger dense decoders form a separate task-native track.",
+    "ssv2_native_clip": "Native clip length or multi-view testing is optional and must be reported separately."
+  }
+}

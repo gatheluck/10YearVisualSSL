@@ -44,6 +44,15 @@
       "tests": [
         "tests.test_paper_terminology.PaperTerminology.test_template_links_resolve_at_export_root"
       ]
+    },
+    {
+      "label": "CVPR protocol link changes in the export",
+      "file": "docs/templates/CVPR_REVIEWER_README.md",
+      "old": "docs/current_protocols/BASIC5_FINETUNE_v1.md",
+      "new": "docs/current_protocols/BASIC5_FINETUNE_v1.md#missing-heading",
+      "tests": [
+        "tests.test_reviewer_protocol_index.ReviewerProtocolIndex.test_root_and_review_copy_link_to_the_same_protocols"
+      ]
     }
   ]
 }

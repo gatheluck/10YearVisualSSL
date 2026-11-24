@@ -1,0 +1,198 @@
+{
+  "protocol_id": "B5X_DPT_LP_v2",
+  "version": "2.0",
+  "status": "as_run",
+  "track": "dpt_probing",
+  "purpose": "Dense Basic Five evaluation (ADE20K, NYUv2) with a fully frozen pretrained backbone read by a multi-layer DPT probe, to measure how much dense information a stronger frozen readout recovers beyond the single-layer 1x1 probe.",
+  "baseline": "BASIC5_FAIR_v1",
+  "optimization_baselines": {
+    "probe": "BASIC5_ATTENTIVE_v1 block of the task, with the learning rate of the reference DPT probe (Geosubprobe probe_lr)"
+  },
+  "provenance": {
+    "written": "2026-11-19, after the runs, from the code and the run records",
+    "code": "${EXPERIMENT_ROOT}/code_v9 (b5x/dpt.py, b5x/train.py, b5x/backbones.py)",
+    "protocol_note": "${EXPERIMENT_ROOT}/PROTOCOL.md",
+    "results": "${EXPERIMENT_ROOT}/results/<model>/{ade20k,nyuv2}/DPT_v2/seed{0,1,2}/result.json",
+    "reference_implementation": "DPT probe of Probe3D (El Banani et al., CVPR 2024) as released in Geosubprobe (evals/models/probes.py, class DPT; config depth_dpt: hidden_dim 512, kernel 3; configs/optimizer/*_epoch.yaml: probe_lr 5e-4 at batch_size 8)",
+    "note": "The runs read their task definitions and optimizer blocks from BASIC5_{LINEAR,ATTENTIVE}_v1.json and the DPT constants from the code. This file documents those runs; it was not an input to them."
+  },
+  "design_principle": "Preserve the dataset, split, input geometry, epoch count, loss, and metric of BASIC5_FAIR_v1. Keep the backbone fully frozen and replace the single-layer 1x1 head by a DPT probe that reads four evenly spaced intermediate blocks. Use the BASIC5_ATTENTIVE_v1 optimizer block of the task with the learning rate of the reference DPT probe.",
+  "scope": {
+    "tasks": ["ade20k", "nyuv2"],
+    "not_applicable": {
+      "imagenet1k": "global classification; no dense readout",
+      "ssv2": "video classification; no dense readout",
+      "coco": "detection keeps the BASIC5_FAIR_v1 feature pyramid and Faster R-CNN"
+    }
+  },
+  "global_rules": {
+    "pretrained_weights": "Use the released pretrained checkpoint as-is; no intermediate adaptation or task-specific pretraining.",
+    "backbone_mode": "fully_frozen_eval",
+    "backbone_gradients": false,
+    "batch_norm_statistics": "frozen",
+    "trainable_scope": [
+      "per-tap LayerNorm",
+      "per-tap 1x1 projections",
+      "four feature-fusion blocks",
+      "output convolutions"
+    ],
+    "not_trainable": [
+      "backbone parameters",
+      "backbone normalization affine parameters and running statistics",
+      "positional embeddings"
+    ],
+    "taps": {
+      "count": 4,
+      "rule": "blocks ceil(k L / 4) - 1 for k = 1..4 (0-based; L = number of transformer blocks), the evenly spaced choice of DPT for ViT-L ([5, 11, 17, 23])",
+      "exception": "VGGT-Omega uses the four aggregator layers its own DPT heads read (4, 11, 17, 23); the rule would give 5 in place of 4. The adapter checks that the cached set equals these layers.",
+      "tensor": "Block output tokens with non-spatial special tokens removed, reshaped to the patch grid in raster order. RAEv2-K7 uses the official DINOv3 get_intermediate_layers(norm=True) of its DINOv3-L encoder. VGGT-Omega uses its cached aggregator outputs (frame and global tokens concatenated). Cosmos 3 Super taps its vision-tower blocks before the merger (1152-d, 14x14), whereas its LP/LoRA feature is the 5120-d merger output at 7x7.",
+      "feature_cache": "Not used; taps are extracted online under no_grad."
+    },
+    "dpt_probe": {
+      "hidden": 512,
+      "kernel_size": 3,
+      "topology": "per tap: LayerNorm over channels -> 1x1 Conv C -> 512 -> x2 bilinear upsampling (align_corners=true); fusion from the deepest tap to the shallowest: fuse4(tap4); fuse3(tap3, .); fuse2(tap2, .); fuse1(tap1, .), each fusion = ResidualConvUnit(tap) + previous, then ResidualConvUnit; x4 bilinear upsampling (align_corners=true); Conv3x3 512->512, ReLU, Conv3x3 512->out; bilinear resize to the target size (align_corners=false)",
+      "residual_conv_unit": "Conv3x3 -> ReLU -> Conv3x3 -> ReLU, plus identity",
+      "outputs": {
+        "ade20k": "150 logits",
+        "nyuv2": "1 channel, depth = softplus(x) + 1e-3 (the BASIC5_FAIR_v1 positive parameterization)"
+      },
+      "changes_from_reference": [
+        "LayerNorm over channels on each tap before its projection, because the six backbones expose raw block outputs whose scales differ by orders of magnitude (pre-norm residual streams; Cosmos 3 Super block outputs about 1e3).",
+        "The reference's final fixed x2 upsampling is replaced by a bilinear resize to the target size (align_corners=false), as in the Unified LP readout."
+      ],
+      "same_grid_note": "All four taps share one patch grid (14x14 at 224 px), so the fusion stages do not upsample between taps."
+    },
+    "hyperparameter_policy": "One recipe per task, applied unchanged to all six models. No model-specific learning rate, tap selection (beyond the VGGT-Omega exception above), or probe width.",
+    "precision": "bfloat16 backbone weights and bfloat16 autocast; probe parameters, loss, and metrics in float32.",
+    "gradient_clipping": {
+      "type": "global_norm",
+      "max_norm": 1.0,
+      "scope": "all probe parameters"
+    },
+    "lr_group_rules": {
+      "no_decay": "1-D parameters (biases, LayerNorm affine) and parameters whose name contains 'norm'",
+      "no_decay_weight_decay": 0.0,
+      "schedule_unit": "The learning rate advances once per optimizer step over epochs x steps_per_epoch steps."
+    },
+    "seeds": [0, 1, 2]
+  },
+  "tasks": {
+    "ade20k": {
+      "dataset": "ADE20K",
+      "task": "DPT-probe semantic segmentation",
+      "split": "official 20,210 train / 2,000 validation",
+      "input": {
+        "train": "random rescale by [0.5, 2.0] (bicubic, each side at least 224 px), random 224x224 crop, random horizontal flip p=0.5",
+        "evaluation": "image resized to 224x224 (bicubic), label resized to 224x224 (nearest)",
+        "normalization": "the pretrained backbone's published input normalization"
+      },
+      "feature_and_pooling": "Four frozen taps (global_rules.taps) read by the DPT probe; logits resized to the label size.",
+      "head": "DPT probe with 150 outputs",
+      "trainable_scope": "DPT probe only",
+      "optimization": {
+        "epochs": 20,
+        "optimizer": "AdamW",
+        "base_lr": 0.0005,
+        "lr_reference_effective_batch": 8,
+        "lr_scaling": "linear: lr = 0.0005 * effective_batch_size / 8",
+        "lr_source": "Geosubprobe probe_lr 5e-4 at batch_size 8",
+        "weight_decay": 0.05,
+        "betas": [0.9, 0.999],
+        "batch_size": 8,
+        "distribution": "1 GPU, no gradient accumulation",
+        "warmup": "1 epoch, linear from 1e-6",
+        "schedule": "cosine decay to 1e-6",
+        "layer_decay": 1.0
+      },
+      "augmentation": "Same geometry as BASIC5_FAIR_v1; no photometric augmentation.",
+      "loss": "pixel-wise cross entropy with ignore_index=255",
+      "metrics": {
+        "primary": "mean IoU over 150 classes on the 2,000 validation images, final epoch",
+        "secondary": "pixel accuracy"
+      },
+      "minimal_deviation_note": "Split, 20 epochs, input, loss, and metric stay fixed; the 1x1 Conv on one layer is replaced by the DPT probe on four frozen layers."
+    },
+    "nyuv2": {
+      "dataset": "NYUv2 labeled subset",
+      "task": "DPT-probe monocular depth regression",
+      "split": "official Eigen-style 795 train / 654 test from labeled.mat and splits.mat",
+      "input": {
+        "orientation": "Images and depth maps read in their true 480x640 orientation (the basic5 loader transposed them).",
+        "train": "image resized to 224x224 (bicubic), depth resized to 224x224 (bilinear), random horizontal flip p=0.5",
+        "evaluation": "the same deterministic 224x224 resize without flip",
+        "normalization": "the pretrained backbone's published input normalization",
+        "valid_depth_m": [0.1, 10.0]
+      },
+      "feature_and_pooling": "Four frozen taps (global_rules.taps) read by the DPT probe; depth resized to the target size.",
+      "head": "DPT probe with one output channel, depth = softplus(x) + 1e-3",
+      "trainable_scope": "DPT probe only",
+      "optimization": {
+        "epochs": 30,
+        "optimizer": "AdamW",
+        "base_lr": 0.0005,
+        "lr_reference_effective_batch": 8,
+        "lr_scaling": "linear: lr = 0.0005 * effective_batch_size / 8",
+        "lr_source": "Geosubprobe probe_lr 5e-4 at batch_size 8",
+        "weight_decay": 0.05,
+        "betas": [0.9, 0.999],
+        "batch_size": 8,
+        "distribution": "1 GPU, no gradient accumulation",
+        "warmup": "1 epoch, linear from 1e-6",
+        "schedule": "cosine decay to 1e-6",
+        "layer_decay": 1.0
+      },
+      "augmentation": "Same geometry as BASIC5_FAIR_v1.",
+      "loss": "scale-invariant log-depth loss on valid pixels, lambda = 0.5: mean(d^2) - 0.5 * mean(d)^2 with d = log(pred) - log(gt)",
+      "metrics": {
+        "evaluation_mask": "valid pixels with 0.1 < depth < 10 m; predictions clamped to [0.1, 10]",
+        "primary_in_record": "RMSE in meters after per-image median scale alignment (field rmse)",
+        "paper_metric": "RMSE in meters without alignment (field rmse_unaligned), as defined in the paper's evaluation appendix",
+        "secondary": ["AbsRel (absrel, absrel_unaligned)", "delta1", "delta2", "delta3"]
+      },
+      "minimal_deviation_note": "Split, mask and range, 30 epochs, input, loss, and metrics stay fixed; the 1x1 depth head on one layer is replaced by the DPT probe on four frozen layers."
+    }
+  },
+  "model_specifics": {
+    "dinov3_7b": {"display": "DINOv3-7B", "blocks": 40, "tap_blocks": [9, 19, 29, 39], "tap_channels": 4096, "tap_grid": [14, 14], "probe_params": {"ade20k": 44511894, "nyuv2": 43825153}},
+    "siglip2_giant": {"display": "SigLIP 2-G", "blocks": 40, "tap_blocks": [9, 19, 29, 39], "tap_channels": 1536, "tap_grid": [14, 14], "probe_params": {"ade20k": 39248534, "nyuv2": 38561793}},
+    "vjepa2_1_vitg": {"display": "V-JEPA 2.1-G", "blocks": 40, "tap_blocks": [9, 19, 29, 39], "tap_channels": 1408, "tap_grid": [14, 14], "probe_params": {"ade20k": 38985366, "nyuv2": 38298625}},
+    "vggt_omega": {"display": "VGGT-Omega", "blocks": 24, "tap_blocks": [4, 11, 17, 23], "tap_channels": 2048, "tap_grid": [14, 14], "probe_params": {"ade20k": 40301206, "nyuv2": 39614465}},
+    "raev2_k7": {"display": "RAEv2-K7", "blocks": 24, "tap_blocks": [5, 11, 17, 23], "tap_channels": 1024, "tap_grid": [14, 14], "probe_params": {"ade20k": 38195862, "nyuv2": 37509121}},
+    "cosmos3_super": {"display": "Cosmos 3 Super", "blocks": 27, "tap_blocks": [6, 13, 20, 26], "tap_channels": 1152, "tap_grid": [14, 14], "probe_params": {"ade20k": 38459030, "nyuv2": 37772289}}
+  },
+  "reporting": {
+    "checkpoint_rule": "Use the final scheduled epoch; no selection on the reported validation/test split.",
+    "seed_aggregation": "Report mean and sample standard deviation (ddof = 1) over seeds 0, 1, and 2; retain every per-seed result.",
+    "required_metadata": [
+      "checkpoint identity",
+      "tap blocks and tap tensor shapes",
+      "feature shape",
+      "total and probe parameter counts",
+      "epochs, batch, realized learning rate and its source, steps per epoch, total steps",
+      "per-epoch training loss",
+      "code sha256, PBS job id, host, GPU, torch and python versions"
+    ],
+    "validity_rule": "A cell counts only with COMPLETED_VALID.json, the recipe's epoch count reached, steps_per_epoch x epochs = total steps, and evaluation on the full split.",
+    "failure_rule": "Do not tune a single failing model. Apply a protocol-wide fix to every model, increment the version, and disclose it."
+  },
+  "version_history": [
+    {
+      "version": "1.0",
+      "protocol_id": "B5X_DPT_LP_v1",
+      "date": "2026-11-11",
+      "recipe": "The DPT probe trained at the BASIC5_ATTENTIVE_v1 learning rate (1e-3 at batch 8).",
+      "outcome": "The training loss rose after warm-up and ended above the 1x1 linear probe's training loss for DINOv3-7B, V-JEPA 2.1, and RAEv2 on ADE20K, the three models where DPT scored below LP; seed spread was 3-5x that of LP and LoRA. Cells kept under DPT/ as a record."
+    },
+    {
+      "version": "2.0",
+      "protocol_id": "B5X_DPT_LP_v2",
+      "date": "2026-11-12",
+      "change": "The probe trains at the learning rate of the reference DPT probe it copies (5e-4 at batch 8, linearly scaled); everything else unchanged. Applied to all six models and both tasks. The learning rate comes from the reference implementation, not from the reported split."
+    }
+  ],
+  "deviations_from_unified_code": [
+    "NYUv2 frames are read upright (the basic5 loader transposed them).",
+    "The learning-rate schedule advances per optimizer step."
+  ]
+}

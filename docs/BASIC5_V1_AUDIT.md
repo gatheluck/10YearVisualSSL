@@ -2,7 +2,7 @@
 
 See [submission scope](SUBMISSION_SCOPE.md) for the limits of result attribution.
 
-The three author-supplied Markdown files and three JSON files match the inspected
+The three v1 Markdown files and three JSON files in [current protocols](current_protocols/) match the inspected
 archived protocol files byte for byte. LINEAR identifies itself as
 `BASIC5_FAIR_v1`. LP and AP mean linear and attentive **probing**. These v1
 specifications prescribe three seeds (0, 1, 2) and final-epoch results. The
@@ -23,7 +23,7 @@ it does not establish which configuration produced a figure cell.
 | COCO | 12 | SGD .02 for all three | Faster R-CNN/FPN bbox detection, resize 800 to at most 1333 and the 1x step schedule. Verify the provider's pyramid and normalizer; see [native detection](BASIC5_NATIVE_PATHS.md). Report AP, AP50, AP75 and all three size bins. |
 | ADE20K | 20 | AdamW .001 / .001 / .0001 | The linear and FT profiles use the minimal segmentation head; AP adds a spatial adapter. Compare mIoU and pixel accuracy. Final valid-pixel counts measure a different quantity from image counts. |
 | NYUv2 | 30 | AdamW .001 / .001 / .0001 | Use the 1x1 positive-depth head and valid-pixel log-depth objective for v1 components. Verify the split, valid pixels and alignment per run. The LoRA/DPT unaligned paper-field rule has separate provenance. |
-| SSv2 | 50 | SGD .1 / AdamW .001 / AdamW .0005 | The specification uses 16 segments, one evaluation view and no flip. LP and FT have video components. The AP reader and input tokens used for the revised manuscript are still pending. |
+| SSv2 | 50 | SGD .1 / AdamW .001 / AdamW .0005 | The specification uses 16 segments, one evaluation view and no flip. LP and FT have video components. See the [confirmed Figure 3 AP inputs and readers](SSV2_EXECUTION.md#figure-3-attentive-probes). |
 
 Dense execution profiles and distributed continuation are documented in
 [dense execution](DENSE_EXECUTION.md). Frozen heads, trainable readers and FT

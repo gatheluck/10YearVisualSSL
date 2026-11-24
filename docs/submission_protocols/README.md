@@ -1,5 +1,8 @@
 # Supplied experiment protocols
 
+For the current Basic Five experiments, start with the Evaluation protocols section in the root README. This directory preserves the earlier submission specifications.
+
+
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](../SUBMISSION_SCOPE.md)
 for the distinction from original experimental implementations and results.

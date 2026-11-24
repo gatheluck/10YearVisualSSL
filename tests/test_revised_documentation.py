@@ -17,7 +17,8 @@ class RevisedDocumentationTests(unittest.TestCase):
         for entry in (root/'README.md',root/'docs/DOWNSTREAM.md'):
             links=re.findall(r'\[[^\]]+\]\(([^)]+)\)',entry.read_text())
             matching=[link for link in links if (entry.parent/link.split('#')[0]).resolve()==target]
-            self.assertTrue(matching, entry.name+' must expose the revised task entry point')
+            self.assertTrue(any(link.endswith('#revised-image-and-semantic-task-cli') for link in matching),
+                            entry.name+' must link directly to the revised task CLI section')
             self.assertTrue(target.is_file())
 
     def test_documented_recipe_table_matches_resolved_source_routes(self):

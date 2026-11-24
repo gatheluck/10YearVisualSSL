@@ -17,7 +17,7 @@ for the distinction from original experimental implementations and results.
 >   **may change without notice**.
 > - The formal audit and the planned move to the **`cvpaperchallenge`**
 >   organisation have **not** happened yet.
-> - **Full-scale reruns of this portable package have not been validated.** Each method's
+> - **Full-data validation is recorded per task.** Each method's
 >   `README` states exactly what was and was not exercised.
 >
 > Please treat everything as provisional.
@@ -31,6 +31,20 @@ For an anonymous supplementary source ZIP, follow the
 [submission archive guide](docs/SUBMISSION_ARCHIVE.md). The tool audits a fixed
 commit using a private policy and blocks unresolved disclosures; it does not
 certify anonymity or experiment completeness.
+
+## Evaluation protocols
+
+The following are the primary Basic Five protocols for the experiments in this paper. Each row links to the full specification in Markdown and JSON. LP, AP and FT use v1. The LoRA and DPT v2 documents describe the executed settings reconstructed from the training code and run records. Results use seeds 0, 1 and 2 and the final scheduled epoch.
+
+| Method | Protocol | Implementation and adopted run details |
+| --- | --- | --- |
+| Linear probing (LP) | [Markdown](docs/current_protocols/BASIC5_LINEAR_v1.md) · [JSON](docs/current_protocols/BASIC5_LINEAR_v1.json) | Frozen encoder and task head. See the [optimization and evaluation audit](docs/BASIC5_V1_AUDIT.md#what-was-compared). |
+| Attentive probing (AP) | [Markdown](docs/current_protocols/BASIC5_ATTENTIVE_v1.md) · [JSON](docs/current_protocols/BASIC5_ATTENTIVE_v1.json) | For Figure 3 SSv2, see the [adopted reader and input tokens for each encoder](docs/SSV2_EXECUTION.md#figure-3-attentive-probes). |
+| Full fine-tuning (FT) | [Markdown](docs/current_protocols/BASIC5_FINETUNE_v1.md) · [JSON](docs/current_protocols/BASIC5_FINETUNE_v1.json) | End-to-end training. The [execution audit](docs/BASIC5_V1_AUDIT.md#what-was-compared) records deviations, including ImageNet label smoothing. |
+| LoRA | [Markdown](docs/current_protocols/BASIC5_LORA_v2.md) · [JSON](docs/current_protocols/BASIC5_LORA_v2.json) | [Task-specific schedules](docs/CVPR_ADAPTATION.md#revised-image-and-semantic-task-cli) and [DINOv3 shorter runs](docs/CVPR_ADAPTATION.md#author-supplied-november-v2-run-descriptions). |
+| DPT dense probing | [Markdown](docs/current_protocols/BASIC5_DPT_v2.md) · [JSON](docs/current_protocols/BASIC5_DPT_v2.json) | [Four-tap decoder](docs/CVPR_ADAPTATION.md#training-facing-checks-and-four-tap-dense-probe) for ADE20K and NYUv2. For NYUv2 the paper uses unaligned RMSE. |
+
+For the 40 Extended transfer settings, see the [Figure 5 dataset and metric ledger](docs/CVPR_EXTENDED_COVERAGE.md). The executed semantic metrics for SpaceNet 2 and SUN RGB-D are documented there.
 
 ## What this optimises for
 
@@ -63,14 +77,14 @@ becomes the exact bytes a run is identified by, an adapter produces
 decides by machine whether the port is finished. Every command below was run
 to produce the output shown.
 
-**Full-scale reruns using this portable package remain unvalidated.** The
+The [full-data comparison](docs/LORA_FULL_REPRODUCTION.md) records the Figure 3 runs verified so far. The
 experimental sources and run configurations supplied the references for these
 ports. This statement concerns validation of the port; it does not describe
 whether the original experiments were performed. Each method's README records
 what was exercised in this package. See [scope and terminology](docs/SUBMISSION_SCOPE.md)
 for porting status and the separate evidence needed to verify a reported result.
 
-The revised manuscript has a separate [LoRA/DPT task CLI](docs/CVPR_ADAPTATION.md#revised-image-and-semantic-task-cli): five LoRA task routes, ADE20K/NYUv2 DPT and portable completed-epoch continuation. This source-aligned profile is distinct from the historical experiments below; component support does not certify manuscript scores.
+The revised manuscript has a separate LoRA/DPT task CLI (see the evaluation protocol index above): five LoRA task routes, ADE20K/NYUv2 DPT and portable completed-epoch continuation. This source-aligned profile is distinct from the historical experiments below; component support does not certify manuscript scores.
 
 ## Methods
 
