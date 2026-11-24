@@ -44,7 +44,7 @@ These are different populations, not six independently validated native results.
 
 SpaceNet's catalog metric is building IoU/F1 but the final table says mIoU.
 SUN RGB-D is depth/RMSE in the supplied catalog but semantic mIoU in the final
-table. Both are refused pending run/specification reconciliation. Entries whose
+table. The adopted settings are documented in the [Figure 5 ledger](CVPR_EXTENDED_COVERAGE.md). This catalog-based runner still refuses both entries. Entries whose
 class counts must be inferred, instance segmentation and other task families are
 also refused. No tracked original protocol is rewritten to hide these differences.
 

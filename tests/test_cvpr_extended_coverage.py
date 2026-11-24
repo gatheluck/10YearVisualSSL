@@ -37,14 +37,17 @@ class ExtendedCoverage(unittest.TestCase):
                 if row['component_status'] == 'available':
                     self.assertTrue((ROOT / (row['module'].replace('.', '/') + '.py')).is_file())
                 else:
-                    self.assertEqual(row['component_status'], 'pending_task_metric_identity')
+                    self.assertEqual(row['component_status'], 'pending_portable_validation')
                     self.assertIsNone(row['module'])
                     self.assertTrue(row['limitation'])
 
     def test_conflicting_entries_do_not_become_supported_by_diagram_group(self):
         rows = {r['dataset']: r for r in self.load()['settings']}
-        for name in ('spacenet2_vegas', 'sun_rgbd'):
-            self.assertEqual(rows[name]['component_status'], 'pending_task_metric_identity')
+        for name, classes, inputs in [('spacenet2_vegas', 2, 'RGB'), ('sun_rgbd', 37, 'RGB-D')]:
+            self.assertEqual(rows[name]['figure_metric'], 'mIoU')
+            self.assertEqual(rows[name]['figure_classes'], classes)
+            self.assertEqual(rows[name]['figure_input'], inputs)
+            self.assertEqual(rows[name]['component_status'], 'pending_portable_validation')
         for name in ('pascal_voc2012', 'pascal_context', 'mapillary_vistas', 'bdd100k', 'cityscapes'):
             self.assertEqual(rows[name]['module'], 'downstream.extended_segmentation')
         self.assertEqual(rows['livecell']['module'], 'downstream.extended_detection')

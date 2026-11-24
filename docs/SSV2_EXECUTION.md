@@ -96,3 +96,20 @@ accepted as portable continuation files.
 including two-rank Gloo. Released-weight CUDA/BF16, native FSDP, original resume
 compatibility and full-data paper scores remain unverified. ImageNet and SSv2 share
 one classification execution engine; preprocessing and task contracts remain distinct.
+
+## Figure 3 attentive probes
+
+| Encoder | Reader input from the 16-frame clip | Reader after cross-attention | Original mean top-1 (%) |
+| --- | --- | --- | ---: |
+| DINOv3-7B | 16 spatial means | MLP | 47.43 |
+| RAEv2-K7 | 16 spatial means of tokenizer features | MLP | 40.69 |
+| V-JEPA 2.1-G | All spatiotemporal encoder tokens | MLP | 69.21 |
+| SigLIP 2-G | 16 spatial means | Query self-attention and MLP | 40.90 |
+| VGGT-Omega | All final-layer patch tokens across frames | Query self-attention and MLP | 44.57 (reported) |
+
+The captured model branches and reader definitions establish these routes.
+On 2026-11-24 the three original full-validation top-1 records were readable
+for each of the first four rows. VGGT-Omega seed 0 was 44.85; seeds 1 and 2
+were access-restricted, so its three-seed mean remains independently unchecked.
+The readers add no positional embedding. Encoder tokens may already encode
+time. Comparisons with V-JEPA change both the encoder and the reader input.

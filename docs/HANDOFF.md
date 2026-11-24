@@ -12,6 +12,13 @@ point, not a live dashboard. Read [agent instructions](../AGENTS.md) and
 The older [Basic5 crop handoff](HANDOFF_BASIC5_B.md) is historical; its branch,
 delivery status and permission assumptions do not describe today's workflow.
 
+### 2026-11-24: adopted Figure 3, 5 and 7 conditions
+
+The [SSv2 reader table](SSV2_EXECUTION.md#figure-3-attentive-probes),
+[semantic coverage ledger](CVPR_EXTENDED_COVERAGE.md) and
+[reference-free analysis](REPRESENTATION_ANALYSIS.md) supersede earlier holds.
+Two original VGGT-Omega seed records still require owner access.
+
 ### 2026-11-24: public Figure 3 adaptation comparison
 
 The [panel reporting CLI](LORA_FULL_REPRODUCTION.md#compare-public-outputs-with-figure-3)

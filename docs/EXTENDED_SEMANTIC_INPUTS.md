@@ -94,5 +94,4 @@ compared against the inspected reference for all 460 numeric native IDs.
 
 Run LP/AP with the existing semantic commands and continuation contract. Parser
 success, archive counts and reduced-model tests do not replace released-weight
-GPU evaluation, full-data scores or per-table run provenance. SpaceNet and
-SUN RGB-D task/metric conflicts remain pending in the [coverage ledger](FINAL_PAPER_COVERAGE.md).
+GPU evaluation, full-data scores or per-table run provenance. The [Figure 5 ledger](CVPR_EXTENDED_COVERAGE.md) records the confirmed SpaceNet and SUN RGB-D metrics and the remaining portable input validation.

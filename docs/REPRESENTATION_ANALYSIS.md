@@ -204,7 +204,13 @@ feature extraction and original task training remain separate validations.
 
 The archived nested patch-reference selection reports pooled correlations
 0.597 (ADE20K) and 0.595 (NYUv2). A separate archived nested reference-free
-analysis reports 0.692 and 0.738. Those latter values round to the numbers in
-the manuscript, but its text describes two coordinates. The archived
-selection uses three or four coordinates in every selected fold for both
-tasks. Attribution to a fixed two-coordinate analysis remains unresolved.
+analysis reports 0.692 and 0.738. The authors identified the nested
+analysis as the source of the reported reference-free result. Inspection of
+the original nested output confirmed the two correlations and all 14 choices.
+Each of seven outer held-family folds uses inner leave-one-family-out selection
+among 12 combinations: raw or position-corrected patch agreement, rank or
+negative-log transform, and 2, 3 or 4 coordinates. In family order (3D/4D,
+image generation, supervised, video generation, VideoSSL, VLM, VSSL), the
+chosen dimensions are 3/3/4/3/4/3/4 for ADE20K and 3/4/3/3/4/3/4 for NYUv2.
+The manuscript's fixed-two description needs correction. This check reads
+archived outputs; it does not rerun coordinate selection from the matrices.
