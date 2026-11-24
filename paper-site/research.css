@@ -304,7 +304,6 @@ footer {
 .transfer-facts strong span {font-size:.5em;color:#536b70;letter-spacing:-.025em;}
 #figure-five figure {margin:0; padding:12px; border-radius:5px;background:white;}
 .transfer-pan {overflow-x:auto;}
-.transfer-pan img {display:block;width:100%;min-width:900px;height:auto;}
 #figure-five figcaption,.transfer-foot {display:flex;align-items:center;justify-content:space-between;gap:15px;flex-wrap:wrap;}
 #figure-five figcaption {padding:12px 0 0;font-size:.87rem;}
 #figure-five a {text-decoration:underline;text-underline-offset:3px;}
@@ -314,3 +313,11 @@ footer {
   .transfer-facts {grid-template-columns:1fr;gap:0;margin:14px 0;}
   .transfer-facts p {display:grid;grid-template-columns:76px 1fr;align-items:center;margin:3px 0;}
 }
+.transfer-pan svg {display:block;width:100%;min-width:900px;height:auto;}
+.transfer-pan svg.enlarged {width:200%;min-width:1900px;}
+.transfer-pan .score-point {cursor:pointer;}
+.transfer-pan .inspected {stroke:#c94e19;stroke-width:3;}
+.radar-tools {display:flex;align-items:center;flex-wrap:wrap;gap:10px 18px;padding:10px 0;}
+.radar-tools select,.radar-tools button {font:inherit;max-width:100%;}
+#figure-five output {display:flex;align-items:baseline;gap:10px 20px;flex-wrap:wrap;background:#eaf5f3;padding:14px;margin-top:12px;font-variant-numeric:tabular-nums;}
+#figure-five output b {display:block;}
