@@ -473,7 +473,7 @@ For NYUv2 LoRA and DPT, the recorded `rmse` is per-image median-aligned.
 The manuscript reports `rmse_unaligned`. In the three original VGGT Omega
 DPT records the means are 0.408087 and 0.424844 respectively. The latter
 rounds to the manuscript's 0.425. This finding applies to these tracks.
-The original descriptions include internal paths and are kept outside Git.
+The review copies of the [LoRA](current_protocols/BASIC5_LORA_v2.md) and [DPT](current_protocols/BASIC5_DPT_v2.md) protocols preserve the experimental settings. Private source locations are replaced with a placeholder.
 
 Across the six models, seven task/track routes and three seeds, all 126
 selected result records matched their completion markers and reached the

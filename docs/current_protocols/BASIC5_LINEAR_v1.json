@@ -1,0 +1,154 @@
+{
+  "protocol_id": "BASIC5_FAIR_v1",
+  "version": "1.0",
+  "status": "canonical",
+  "track": "frozen_linear_probing",
+  "purpose": "Cross-family Basic Five evaluation with released pretrained weights, a fully frozen backbone, and the minimum task-appropriate readout.",
+  "design_principle": "Use one standard-inspired canonical recipe per task and apply it unchanged to every backbone. Preserve the pretrained representation and minimize trainable task-specific capacity.",
+  "global_rules": {
+    "pretrained_weights": "Use the released pretrained checkpoint as-is; no intermediate adaptation or task-specific pretraining.",
+    "backbone_mode": "fully_frozen_eval",
+    "backbone_gradients": false,
+    "batch_norm_statistics": "frozen",
+    "trainable_scope": "task head only",
+    "feature_layer": "single canonical final pre-classifier feature layer; no learned layer mixing or model-specific layer search",
+    "spatial_requirement": "ADE20K and NYUv2 require spatial tokens or a spatial feature map; otherwise report UNSUPPORTED.",
+    "hyperparameter_policy": "No model-specific learning-rate sweep, feature selection, resolution change, or other tuning.",
+    "precision": "AMP/bfloat16 permitted; sensitive losses and metrics remain float32.",
+    "seeds": [0, 1, 2]
+  },
+  "tasks": {
+    "imagenet1k": {
+      "dataset": "ImageNet-1k / ILSVRC2012",
+      "task": "frozen linear classification",
+      "split": "official train / validation",
+      "input": "train: random resized crop 224 and horizontal flip; evaluation: resize shorter side 256 and center crop 224; use published backbone normalization",
+      "feature_and_pooling": "canonical final global representation; L2-normalize before the classifier",
+      "head": "linear 1000-class classifier",
+      "trainable_scope": "linear classifier only",
+      "optimization": {
+        "epochs": 100,
+        "optimizer": "SGD",
+        "base_lr": 0.1,
+        "lr_reference_effective_batch": 256,
+        "lr_scaling": "linear",
+        "momentum": 0.9,
+        "weight_decay": 0.0,
+        "batch_size": 256,
+        "warmup": "none",
+        "schedule": "cosine decay to 0"
+      },
+      "augmentation": "random resized crop and horizontal flip only",
+      "loss": "cross entropy",
+      "metrics": {"primary": "top-1 accuracy", "secondary": "top-5 accuracy"}
+    },
+    "coco": {
+      "dataset": "COCO 2017",
+      "task": "Faster R-CNN object detection",
+      "split": "train2017 / val2017",
+      "input": "shorter side 800, longer side at most 1333; training horizontal flip p=0.5",
+      "feature_and_pooling": "preserve spatial/multiscale features; no global pooling",
+      "head": "FPN, RPN, RoIAlign, box classifier, and box regressor",
+      "trainable_scope": "complete Faster R-CNN/FPN detection head only; backbone frozen",
+      "optimization": {
+        "epochs": 12,
+        "schedule_name": "1x",
+        "optimizer": "SGD",
+        "base_lr": 0.02,
+        "lr_reference_effective_batch": 16,
+        "lr_scaling": "linear",
+        "momentum": 0.9,
+        "weight_decay": 0.0001,
+        "batch_size": 16,
+        "warmup": "500 iterations, linear factor 0.001",
+        "schedule": "step decay by 0.1 at epochs 8 and 11"
+      },
+      "augmentation": "resize and horizontal flip only",
+      "loss": "standard Faster R-CNN losses",
+      "metrics": {"primary": "COCO bbox AP@[0.50:0.95]", "secondary": ["AP50", "AP75", "APS", "APM", "APL"]}
+    },
+    "ade20k": {
+      "dataset": "ADE20K",
+      "task": "frozen linear semantic segmentation",
+      "split": "official 20,210 train / 2,000 validation",
+      "input": "random scale [0.5, 2.0], random 224x224 crop, horizontal flip p=0.5; single-scale 224 evaluation",
+      "feature_and_pooling": "final spatial tokens reshaped to a 2-D grid; 1x1 Conv; bilinear upsampling with align_corners=false",
+      "head": "1x1 Conv with 150 outputs",
+      "trainable_scope": "1x1 Conv only",
+      "optimization": {
+        "epochs": 20,
+        "optimizer": "AdamW",
+        "base_lr": 0.001,
+        "lr_reference_effective_batch": 8,
+        "lr_scaling": "linear",
+        "weight_decay": 0.0001,
+        "batch_size": 8,
+        "warmup": "1 epoch, linear from 1e-6",
+        "schedule": "cosine decay to 1e-6"
+      },
+      "augmentation": "random scale/crop/flip only",
+      "loss": "pixel-wise cross entropy with ignore_index=255",
+      "metrics": {"primary": "mean IoU over 150 classes", "secondary": "pixel accuracy"}
+    },
+    "nyuv2": {
+      "dataset": "NYUv2 labeled subset",
+      "task": "frozen linear depth regression",
+      "split": "official Eigen-style 795 train / 654 test from labeled.mat and splits.mat",
+      "input": "224x224 baseline geometry; valid depth 0.1-10.0 m",
+      "feature_and_pooling": "final spatial tokens reshaped to a 2-D grid; 1x1 depth Conv; bilinear upsampling with align_corners=false",
+      "head": "single-channel 1x1 Conv with positive depth parameterization",
+      "trainable_scope": "1x1 depth head only",
+      "optimization": {
+        "epochs": 30,
+        "optimizer": "AdamW",
+        "base_lr": 0.001,
+        "lr_reference_effective_batch": 8,
+        "lr_scaling": "linear",
+        "weight_decay": 0.0001,
+        "batch_size": 8,
+        "warmup": "1 epoch, linear from 1e-6",
+        "schedule": "cosine decay to 1e-6"
+      },
+      "augmentation": "baseline resize/crop and horizontal flip only",
+      "loss": "valid-pixel scale-invariant log-depth loss",
+      "metrics": {"primary": "RMSE in meters", "secondary": ["AbsRel", "delta1", "delta2", "delta3"]}
+    },
+    "ssv2": {
+      "dataset": "Something-Something v2",
+      "task": "frozen linear action recognition",
+      "split": "official train / validation",
+      "input": "16 uniformly segmented frames; random within-segment training sample, segment-center evaluation sample; temporally consistent 224 crop; horizontal flip disabled",
+      "feature_and_pooling": "spatial mean per frame followed by temporal mean for image backbones; canonical final global representation for native video backbones",
+      "head": "linear 174-class classifier",
+      "trainable_scope": "linear classifier only",
+      "optimization": {
+        "epochs": 50,
+        "optimizer": "SGD",
+        "base_lr": 0.1,
+        "lr_reference_effective_batch": 256,
+        "lr_scaling": "linear",
+        "momentum": 0.9,
+        "weight_decay": 0.0001,
+        "batch_size": 64,
+        "gradient_accumulation": "as needed to reach effective batch 256",
+        "warmup": "5 epochs, linear from 1e-6",
+        "schedule": "cosine decay to 0"
+      },
+      "augmentation": "temporally consistent random resized crop; no horizontal flip, Mixup, or CutMix",
+      "loss": "cross entropy",
+      "metrics": {"primary": "top-1 accuracy", "secondary": "top-5 accuracy"}
+    }
+  },
+  "reporting": {
+    "checkpoint_rule": "Use the final scheduled epoch for the canonical score; do not select on the reported validation/test split.",
+    "seed_aggregation": "Report every seed and mean plus standard deviation over seeds 0, 1, and 2.",
+    "required_metadata": ["checkpoint ID/checksum", "backbone and parameter count", "feature layer/shape", "input resolution/views", "effective batch and LR", "per-seed metrics", "software and dataset versions"],
+    "unsupported_rule": "Report UNSUPPORTED with a reason; never replace a task or feature type silently.",
+    "comparability_rule": "Only untuned runs conforming to this file belong in the BASIC5_FAIR_v1 main table."
+  },
+  "optional_tracks": {
+    "native_resolution": "report separately",
+    "coco_2x": "24 epochs; report separately",
+    "ssv2_native_clip": "native clip length or multi-view testing; report separately"
+  }
+}

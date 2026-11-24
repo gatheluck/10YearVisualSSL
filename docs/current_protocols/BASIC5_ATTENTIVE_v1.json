@@ -1,0 +1,255 @@
+{
+  "protocol_id": "BASIC5_ATTENTIVE_v1",
+  "version": "1.0",
+  "status": "canonical",
+  "track": "attentive_probing",
+  "purpose": "Cross-family Basic Five evaluation with a fully frozen pretrained backbone and one minimal attention-based reader.",
+  "baseline": "BASIC5_FAIR_v1",
+  "design_principle": "Preserve the dataset, split, input, epoch count, task head, and metric of BASIC5_FAIR_v1. Add only a one-block attention reader or adapter and make only the optimizer changes required to train it reliably.",
+  "global_rules": {
+    "pretrained_weights": "Use the released pretrained checkpoint as-is; no intermediate adaptation or task-specific pretraining.",
+    "backbone_mode": "fully_frozen_eval",
+    "backbone_gradients": false,
+    "batch_norm_statistics": "frozen",
+    "trainable_scope": [
+      "attention reader/adapter",
+      "reader input/output projections and normalization",
+      "the same task head used by BASIC5_FAIR_v1"
+    ],
+    "not_trainable": [
+      "backbone parameters",
+      "backbone normalization affine parameters",
+      "backbone running statistics",
+      "positional embeddings"
+    ],
+    "feature_extraction": {
+      "layer": "Use the same single canonical feature layer as BASIC5_FAIR_v1; default to the final pre-classifier representation.",
+      "spatial_tasks": "A method must expose spatial tokens or a spatial feature map. Otherwise report UNSUPPORTED; do not substitute a global feature.",
+      "token_preprocessing": "Remove non-spatial special tokens for dense prediction. Preserve patch-grid order. Do not concatenate extra layers unless BASIC5_FAIR_v1 already requires it.",
+      "feature_cache": "Allowed only when it is mathematically exact for the frozen backbone and fixed augmentation; otherwise extract online. Apply the same policy to every compared model."
+    },
+    "reader": {
+      "depth": 1,
+      "normalization": "pre_layer_norm",
+      "attention_heads": 8,
+      "mlp_ratio": 4.0,
+      "attention_dropout": 0.0,
+      "projection_dropout": 0.0,
+      "stochastic_depth": 0.0,
+      "global_and_video": {
+        "type": "learned_query_cross_attention",
+        "num_queries": 32,
+        "reader_width": 512,
+        "output_pooling": "mean over the 32 query outputs"
+      },
+      "dense_and_detection": {
+        "type": "spatial_bottleneck_self_attention_adapter",
+        "adapter_width": 256,
+        "topology": "C-to-256 projection, one residual self-attention/MLP block on the spatial grid, 256-to-C zero-initialized projection, then the unchanged task head",
+        "multiscale_rule": "Apply the same shared adapter weights independently at each selected feature scale."
+      },
+      "parameter_budget_reporting": "Report trainable reader parameters, task-head parameters, and their percentage of total model parameters."
+    },
+    "hyperparameter_policy": "One canonical recipe per task, applied unchanged to every backbone. No model-specific learning-rate sweep, query-count change, width change, or layer selection.",
+    "precision": "AMP/bfloat16 permitted; keep numerically sensitive losses and metrics in float32.",
+    "gradient_clipping": {
+      "type": "global_norm",
+      "max_norm": 1.0
+    },
+    "seeds": [0, 1, 2]
+  },
+  "tasks": {
+    "imagenet1k": {
+      "dataset": "ImageNet-1k / ILSVRC2012",
+      "task": "attentive image classification",
+      "split": "official train (1,281,167 images) / validation (50,000 images)",
+      "input": {
+        "train": "random resized crop to 224, scale [0.08, 1.0], ratio [0.75, 1.3333], random horizontal flip p=0.5",
+        "evaluation": "resize shorter side to 256, center crop 224",
+        "normalization": "the pretrained backbone's published input normalization"
+      },
+      "feature_and_pooling": "All final-layer patch tokens attend to 32 learned queries; mean-pool query outputs; do not add CLS/global tokens unless they are the model's only canonical token representation.",
+      "head": "the BASIC5_FAIR_v1 linear 1000-class classifier",
+      "trainable_scope": "attention reader, its projections/norms, and linear classifier only",
+      "optimization": {
+        "epochs": 100,
+        "optimizer": "AdamW",
+        "base_lr": 0.001,
+        "lr_reference_effective_batch": 256,
+        "lr_scaling": "linear: lr = 0.001 * effective_batch_size / 256",
+        "weight_decay": 0.05,
+        "betas": [0.9, 0.999],
+        "batch_size": 256,
+        "warmup": "5 epochs, linear from 1e-6",
+        "schedule": "cosine decay to 1e-6",
+        "layer_decay": 1.0
+      },
+      "augmentation": "Identical to the frozen-linear baseline; no Mixup, CutMix, label smoothing, RandAugment, or random erasing.",
+      "loss": "cross entropy",
+      "metrics": {
+        "primary": "top-1 accuracy",
+        "secondary": "top-5 accuracy"
+      },
+      "minimal_deviation_note": "Only the linear readout is preceded by the shared attention reader. AdamW replaces linear-probe SGD because the reader contains attention, normalization, and learned queries."
+    },
+    "coco": {
+      "dataset": "COCO 2017",
+      "task": "Faster R-CNN object detection",
+      "split": "train2017 / val2017",
+      "input": {
+        "train": "random horizontal flip p=0.5; resize shorter side to 800 while limiting longer side to 1333",
+        "evaluation": "resize shorter side to 800 while limiting longer side to 1333",
+        "normalization": "the pretrained backbone's published input normalization before feature extraction"
+      },
+      "feature_and_pooling": "Preserve spatial/multiscale features. Insert the shared one-block spatial adapter immediately before the unchanged FPN; never globally pool.",
+      "head": "the BASIC5_FAIR_v1 Faster R-CNN detector, including unchanged FPN, RPN, RoIAlign, box classifier, and box regressor",
+      "trainable_scope": "spatial attention adapter plus the complete Faster R-CNN/FPN detection head; backbone fully frozen",
+      "optimization": {
+        "epochs": 12,
+        "schedule_name": "1x",
+        "optimizer": "SGD",
+        "base_lr": 0.02,
+        "lr_reference_effective_batch": 16,
+        "lr_scaling": "linear: lr = 0.02 * effective_batch_size / 16",
+        "momentum": 0.9,
+        "weight_decay": 0.0001,
+        "batch_size": 16,
+        "warmup": "500 iterations, linear warmup factor 0.001",
+        "schedule": "step decay by 0.1 at epochs 8 and 11",
+        "layer_decay": 1.0
+      },
+      "augmentation": "Identical to the frozen-linear baseline: scale resize and horizontal flip only.",
+      "loss": "standard Faster R-CNN RPN and RoI classification/regression losses",
+      "metrics": {
+        "primary": "COCO bbox AP@[0.50:0.95] on val2017",
+        "secondary": ["AP50", "AP75", "APS", "APM", "APL"]
+      },
+      "minimal_deviation_note": "The detector, 1x schedule, SGD recipe, batch size, and augmentation are unchanged; only the frozen-backbone feature adapter is added."
+    },
+    "ade20k": {
+      "dataset": "ADE20K",
+      "task": "attentive semantic segmentation",
+      "split": "official 20,210 train / 2,000 validation",
+      "input": {
+        "train": "random resize scale [0.5, 2.0], random 224x224 crop, random horizontal flip p=0.5",
+        "evaluation": "single-scale 224x224 evaluation using the BASIC5_FAIR_v1 resize/crop policy",
+        "normalization": "the pretrained backbone's published input normalization"
+      },
+      "feature_and_pooling": "Reshape final-layer patch tokens to their 2-D grid, apply the one-block residual spatial adapter, apply the unchanged 1x1 Conv, and bilinearly upsample logits to target size with align_corners=false.",
+      "head": "the BASIC5_FAIR_v1 1x1 Conv with 150 outputs",
+      "trainable_scope": "spatial attention adapter and 1x1 Conv only",
+      "optimization": {
+        "epochs": 20,
+        "optimizer": "AdamW",
+        "base_lr": 0.001,
+        "lr_reference_effective_batch": 8,
+        "lr_scaling": "linear: lr = 0.001 * effective_batch_size / 8",
+        "weight_decay": 0.05,
+        "betas": [0.9, 0.999],
+        "batch_size": 8,
+        "warmup": "1 epoch, linear from 1e-6",
+        "schedule": "cosine decay to 1e-6",
+        "layer_decay": 1.0
+      },
+      "augmentation": "Same geometry as BASIC5_FAIR_v1; no photometric policy beyond the baseline.",
+      "loss": "pixel-wise cross entropy with ignore_index=255 and no auxiliary decoder loss",
+      "metrics": {
+        "primary": "mean IoU over 150 classes",
+        "secondary": "pixel accuracy"
+      },
+      "minimal_deviation_note": "Dataset, 20-epoch schedule, spatial feature layer, 1x1 head, upsampling, and metric remain fixed; one residual spatial attention adapter is inserted before the head."
+    },
+    "nyuv2": {
+      "dataset": "NYUv2 labeled subset",
+      "task": "attentive monocular depth regression",
+      "split": "official Eigen-style 795 train / 654 test from labeled.mat and splits.mat",
+      "input": {
+        "train": "resize/crop to 224x224, random horizontal flip p=0.5, using the BASIC5_FAIR_v1 geometry",
+        "evaluation": "deterministic 224x224 transform and the same valid-pixel mask as BASIC5_FAIR_v1",
+        "normalization": "the pretrained backbone's published input normalization",
+        "valid_depth_m": [0.1, 10.0]
+      },
+      "feature_and_pooling": "Reshape final-layer patch tokens to their 2-D grid, apply the one-block residual spatial adapter, apply the unchanged 1x1 depth head, and bilinearly upsample with align_corners=false.",
+      "head": "the BASIC5_FAIR_v1 single-channel 1x1 Conv depth head with positive depth parameterization",
+      "trainable_scope": "spatial attention adapter and 1x1 depth head only",
+      "optimization": {
+        "epochs": 30,
+        "optimizer": "AdamW",
+        "base_lr": 0.001,
+        "lr_reference_effective_batch": 8,
+        "lr_scaling": "linear: lr = 0.001 * effective_batch_size / 8",
+        "weight_decay": 0.05,
+        "betas": [0.9, 0.999],
+        "batch_size": 8,
+        "warmup": "1 epoch, linear from 1e-6",
+        "schedule": "cosine decay to 1e-6",
+        "layer_decay": 1.0
+      },
+      "augmentation": "Same geometry as BASIC5_FAIR_v1; no Mixup, CutMix, or task-specific pretraining.",
+      "loss": "the same valid-pixel scale-invariant log-depth loss as BASIC5_FAIR_v1",
+      "metrics": {
+        "primary": "RMSE in meters",
+        "secondary": ["AbsRel", "delta1", "delta2", "delta3"]
+      },
+      "minimal_deviation_note": "The official 795/654 split, depth mask/range, 30 epochs, 1x1 head, loss, and reporting stay fixed; only the residual spatial attention adapter and its optimizer-appropriate weight decay are added."
+    },
+    "ssv2": {
+      "dataset": "Something-Something v2",
+      "task": "attentive action recognition",
+      "split": "official train / validation",
+      "input": {
+        "frames": 16,
+        "temporal_sampling": "one frame uniformly sampled from each of 16 equal temporal segments; random within segment for training, segment center for evaluation",
+        "train": "per-frame random resized crop to 224 with temporally consistent parameters; horizontal flip disabled",
+        "evaluation": "one temporal clip and one spatial center crop at 224",
+        "normalization": "the pretrained backbone's published input normalization"
+      },
+      "feature_and_pooling": "For image backbones, spatially mean-pool each frame's patch tokens and feed the 16 ordered frame tokens to the 32-query reader. For native video backbones, feed the ordered final-layer spatiotemporal tokens directly. Mean-pool query outputs; do not temporal-mean-pool before attention.",
+      "head": "the BASIC5_FAIR_v1 linear 174-class classifier",
+      "trainable_scope": "attention reader, its projections/norms, and linear classifier only",
+      "optimization": {
+        "epochs": 50,
+        "optimizer": "AdamW",
+        "base_lr": 0.001,
+        "lr_reference_effective_batch": 256,
+        "lr_scaling": "linear: lr = 0.001 * effective_batch_size / 256",
+        "weight_decay": 0.05,
+        "betas": [0.9, 0.999],
+        "batch_size": 64,
+        "gradient_accumulation": "use as needed to reach effective batch size 256",
+        "warmup": "5 epochs, linear from 1e-6",
+        "schedule": "cosine decay to 1e-6",
+        "layer_decay": 1.0
+      },
+      "augmentation": "Same spatial and temporal policy as BASIC5_FAIR_v1; no Mixup, CutMix, RandAugment, random erasing, or horizontal flip.",
+      "loss": "cross entropy",
+      "metrics": {
+        "primary": "top-1 accuracy",
+        "secondary": "top-5 accuracy"
+      },
+      "minimal_deviation_note": "The 16-frame input, 50 epochs, classifier, and evaluation views remain fixed. Ordered tokens replace pre-classifier temporal mean pooling so the minimal attention reader can measure temporal readout capacity."
+    }
+  },
+  "reporting": {
+    "checkpoint_rule": "Use the final scheduled epoch for the canonical score. Do not select on the reported validation/test split. A best-validation checkpoint may be reported only as a clearly labeled secondary result when a separate validation split exists.",
+    "seed_aggregation": "Report mean and standard deviation over seeds 0, 1, and 2; retain every per-seed result.",
+    "required_metadata": [
+      "checkpoint identifier and checksum",
+      "backbone family and parameter count",
+      "feature layer and tensor shape",
+      "reader and head parameter counts",
+      "input resolution and evaluation views",
+      "effective batch size and realized learning rate",
+      "per-seed metrics, mean, and standard deviation",
+      "software revision and dataset version"
+    ],
+    "unsupported_rule": "Report UNSUPPORTED with the reason; never replace a task or feature type silently.",
+    "comparability_rule": "Only results following this file without model-specific tuning belong in the BASIC5_ATTENTIVE_v1 main table.",
+    "failure_rule": "Do not tune a single failing model. Apply a protocol-wide numerical fix to every model, increment the protocol version, and disclose it."
+  },
+  "optional_tracks": {
+    "native_resolution": "Allowed only as BASIC5_ATTENTIVE_NATIVE_v1 and must not be mixed into the canonical table.",
+    "coco_2x": "24-epoch COCO results are optional and must be labeled 2x.",
+    "ssv2_native_clip": "Native clip length or multi-view testing is optional and must be reported separately."
+  }
+}

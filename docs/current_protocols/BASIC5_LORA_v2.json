@@ -1,0 +1,332 @@
+{
+  "protocol_id": "B5X_LORA_LP_v2",
+  "version": "2.0",
+  "status": "as_run",
+  "track": "lora_adaptation",
+  "purpose": "Basic Five evaluation in which low-rank adapters (LoRA) inside the attention projections of a frozen pretrained backbone are trained together with the BASIC5_FAIR_v1 task head, to measure how far a light, weight-updating adaptation moves each model beyond frozen probing.",
+  "baseline": "BASIC5_FAIR_v1",
+  "optimization_baselines": {
+    "task_head": "BASIC5_ATTENTIVE_v1",
+    "lora_matrices": "BASIC5_FINETUNE_v1 (learning rate only)"
+  },
+  "provenance": {
+    "written": "2026-11-19, after the runs, from the code and the run records",
+    "code": "${EXPERIMENT_ROOT}/code_v8 and code_v9 (b5x/lora.py, b5x/train.py, b5x/train_cls.py, b5x/train_det.py); code_v9 differs from code_v8 only in the DPT learning rate",
+    "protocol_note": "${EXPERIMENT_ROOT}/PROTOCOL.md",
+    "results": "${EXPERIMENT_ROOT}/results/<model>/<dataset>/{LORA_v2,LORA}/<seed dir>/result.json",
+    "note": "The runs read their task definitions and optimizer blocks from BASIC5_{LINEAR,ATTENTIVE,FINETUNE}_v1.json and the LoRA constants from the code. This file documents those runs; it was not an input to them."
+  },
+  "record_protocol_ids": {
+    "B5X_LORA_LP_v2": "ImageNet-1k, SSv2, ADE20K and NYUv2 (directory LORA_v2/seed{0,1,2})",
+    "B5X_LORA_LP_v1": "COCO (directory LORA/seed{0,1,2}); for COCO the v1 and v2 recipes are identical, see version_history",
+    "B5X_LORA_LP_50EP_v2": "DINOv3-7B ImageNet-1k short schedule (directory LORA_v2/ep50_seed{0,1,2})",
+    "B5X_LORA_LP_24EP_v2": "DINOv3-7B SSv2 short schedule (directory LORA_v2/ep24_seed{0,1,2})",
+    "excluded": "B5X_LORA_LP_2EP_v2 is a 2-epoch resume test (RAEv2 ImageNet-1k) and is not a result"
+  },
+  "design_principle": "Preserve the dataset, split, input geometry, epoch count, task head on the canonical feature, loss, and metric of BASIC5_FAIR_v1. Add rank-16 LoRA to every attention projection of every transformer block. Train the head with the BASIC5_ATTENTIVE_v1 optimizer block of the task and the LoRA matrices at the BASIC5_FINETUNE_v1 learning rate of the task.",
+  "global_rules": {
+    "pretrained_weights": "Use the released pretrained checkpoint as-is; no intermediate adaptation or task-specific pretraining.",
+    "backbone_mode": "base_weights_frozen_eval_mode",
+    "backbone_eval_mode": "The backbone stays in eval() during training: dropout off, normalization statistics frozen, the DINOv3 RoPE training augmentation disabled.",
+    "backbone_gradients": "Gradients flow through the frozen backbone to the LoRA matrices; no backbone weight receives a gradient (checked on the first step of every run).",
+    "batch_norm_statistics": "frozen",
+    "trainable_scope": [
+      "LoRA A and B matrices",
+      "the BASIC5_FAIR_v1 task head on the canonical feature (COCO: the model's Unified feature pyramid plus the complete Faster R-CNN detector)"
+    ],
+    "not_trainable": [
+      "all original backbone weights, including the attention projections that carry LoRA",
+      "MLPs, patch embeddings, normalization affine parameters, positional embeddings",
+      "poolers, mergers, and any released head"
+    ],
+    "lora": {
+      "rank": 16,
+      "alpha": 16.0,
+      "scaling": "alpha / rank = 1.0",
+      "dropout": 0.0,
+      "formula": "W x + (alpha / r) * B A x",
+      "initialization": "A ~ Kaiming-uniform (a = sqrt(5)), B = 0, so training starts exactly at the released backbone",
+      "parameter_dtype": "float32",
+      "targets": "In every transformer block, every nn.Linear whose own name is qkv, proj, q_proj, k_proj, v_proj, o_proj, or out_proj and whose module path contains 'attn' or 'attention'. A block must yield 2 (fused qkv + output) or 4 (separate q, k, v + output) targets, otherwise the run stops.",
+      "block_lists": "The model's transformer blocks; VGGT-Omega: both the frame and the global (inter-frame) attention blocks of its aggregator; RAEv2-K7: the 24 DINOv3-L blocks of the K=7 tokenizer.",
+      "live_check": "Before training, every wrapped projection must be called by the canonical feature path, and a random perturbation of B must change the canonical feature; otherwise the run stops."
+    },
+    "feature_extraction": {
+      "layer": "The same canonical feature as the model's BASIC5_FAIR_v1 (Unified LP) run; LoRA changes the backbone that produces it, not the readout.",
+      "spatial_tasks": "ADE20K, NYUv2: the canonical spatial grid. COCO: the canonical spatial map fed to the model's own Unified feature pyramid.",
+      "feature_cache": "Forbidden because the features change during training.",
+      "activation_checkpointing": "Used on ImageNet-1k, SSv2, and COCO as a memory-only implementation detail."
+    },
+    "lr_group_rules": {
+      "head_lr": "the BASIC5_ATTENTIVE_v1 base_lr of the task, linearly scaled to the effective batch",
+      "lora_lr": "the BASIC5_FINETUNE_v1 base_lr of the task, linearly scaled to the effective batch; no layer decay",
+      "no_decay": "1-D parameters (biases, normalization affine) and parameters whose name contains 'norm'",
+      "no_decay_weight_decay": 0.0,
+      "schedule_unit": "The learning rate advances once per optimizer step over epochs x steps_per_epoch steps; warm-up and cosine apply to each group's own base learning rate."
+    },
+    "hyperparameter_policy": "One recipe per task, applied unchanged to all six models. No model-specific learning rate, rank, target set, or layer selection. The only per-model change is the shortened DINOv3-7B schedule on ImageNet-1k and SSv2 (see tasks.*.short_schedule).",
+    "precision": "bfloat16 backbone weights and bfloat16 autocast; LoRA and head parameters, loss, and metrics in float32.",
+    "gradient_clipping": {
+      "type": "global_norm",
+      "max_norm": 1.0,
+      "scope": "all trainable parameters (LoRA and head)"
+    },
+    "seeds": [0, 1, 2],
+    "resume": "Runs longer than one 12-hour job resume from the last epoch checkpoint (trainable weights, optimizer state, step counter, sampler epoch). Random number generators are reseeded per segment, so a resumed run differs from an uninterrupted one only in its random draws."
+  },
+  "tasks": {
+    "imagenet1k": {
+      "dataset": "ImageNet-1k / ILSVRC2012",
+      "task": "LoRA image classification",
+      "split": "official train (1,281,167 images) / validation (50,000 images)",
+      "input": {
+        "train": "random resized crop to 224, scale [0.08, 1.0], ratio [0.75, 1.3333], bicubic, random horizontal flip p=0.5",
+        "evaluation": "resize shorter side to 256 (bicubic), center crop 224, one view",
+        "normalization": "the pretrained backbone's published input normalization"
+      },
+      "feature_and_pooling": "The model's Unified LP global feature, L2-normalized.",
+      "head": "the BASIC5_FAIR_v1 linear 1000-class classifier (weights N(0, 0.01), bias 0)",
+      "trainable_scope": "LoRA A/B and the linear classifier",
+      "optimization": {
+        "epochs": 100,
+        "optimizer": "AdamW",
+        "base_lr": 0.001,
+        "lr_reference_effective_batch": 256,
+        "lr_scaling": "linear: lr = 0.001 * effective_batch_size / 256",
+        "lora_base_lr": 0.0005,
+        "lora_lr_reference_effective_batch": 1024,
+        "lora_lr_realized": 0.000125,
+        "weight_decay": 0.05,
+        "betas": [0.9, 0.999],
+        "batch_size": 256,
+        "distribution": "8 GPUs x 32 images, no gradient accumulation",
+        "warmup": "5 epochs, linear from 1e-6",
+        "schedule": "cosine decay to 1e-6",
+        "layer_decay": 1.0
+      },
+      "short_schedule": {
+        "models": ["DINOv3-7B"],
+        "epochs": 50,
+        "record_protocol_id": "B5X_LORA_LP_50EP_v2",
+        "rule": "Everything else unchanged; the 5-epoch warm-up and the cosine decay span the 50 epochs.",
+        "reason": "compute: about 98 hours per seed on one 8-GPU node at 100 epochs; three seeds had to finish before the main-paper deadline"
+      },
+      "augmentation": "Identical to the frozen-linear baseline; no Mixup, CutMix, label smoothing, RandAugment, or random erasing.",
+      "loss": "cross entropy",
+      "metrics": {
+        "primary": "top-1 accuracy on all 50,000 validation images",
+        "secondary": "top-5 accuracy"
+      },
+      "minimal_deviation_note": "The 100 epochs, input, canonical feature, and linear classifier stay fixed; LoRA is the only added capacity."
+    },
+    "coco": {
+      "dataset": "COCO 2017",
+      "task": "LoRA Faster R-CNN object detection",
+      "split": "train2017 / val2017 (5,000 images)",
+      "record_protocol_id": "B5X_LORA_LP_v1",
+      "input": {
+        "train": "random horizontal flip p=0.5; resize shorter side to 800 while limiting longer side to 1333",
+        "evaluation": "resize shorter side to 800 while limiting longer side to 1333",
+        "normalization": "the model's Unified detection normalization, applied by the detector transform",
+        "annotations": "crowd boxes and boxes of width or height <= 1 px dropped; labels 1..80"
+      },
+      "feature_and_pooling": "The canonical spatial map feeds the model's own Unified feature pyramid: basic5 SimpleFPN (transposed convolutions) for SigLIP 2-G, Cosmos 3 Super, and VGGT-Omega; the package SimpleFeaturePyramid (bilinear resampling + 1x1 laterals) for DINOv3-7B, RAEv2-K7, and V-JEPA 2.1. Both give 4 levels with 256 channels. Never globally pool.",
+      "head": "torchvision Faster R-CNN: RPN with anchors 32/64/128/256 x ratios {0.5, 1, 2}, MultiScaleRoIAlign 7x7 (sampling ratio 2), box classifier and regressor (num_classes 91, labels 1..80 used)",
+      "trainable_scope": "LoRA A/B, the feature pyramid, RPN, and RoI heads",
+      "optimization": {
+        "epochs": 12,
+        "schedule_name": "1x",
+        "optimizer": "SGD",
+        "base_lr": 0.02,
+        "lr_reference_effective_batch": 16,
+        "lr_scaling": "linear: lr = 0.02 * effective_batch_size / 16",
+        "lora_base_lr": 0.02,
+        "lora_lr_note": "The BASIC5_FINETUNE_v1 COCO learning rate equals the BASIC5_FAIR_v1 one, so LoRA and the detector share one learning rate.",
+        "momentum": 0.9,
+        "weight_decay": 0.0001,
+        "batch_size": 16,
+        "distribution": "8 GPUs x 2 images",
+        "warmup": "500 iterations, linear warmup factor 0.001",
+        "schedule": "step decay: x0.1 after epoch 8, x0.01 after epoch 11",
+        "layer_decay": 1.0
+      },
+      "augmentation": "Scale resize and horizontal flip only.",
+      "loss": "standard Faster R-CNN RPN and RoI classification/regression losses",
+      "metrics": {
+        "primary": "COCO bbox AP@[0.50:0.95] on all 5,000 val2017 images, final epoch",
+        "secondary": ["AP50", "AP75", "APS", "APM", "APL"]
+      },
+      "minimal_deviation_note": "Detector, pyramid, 1x schedule, SGD recipe, batch size, and augmentation are the model's Unified LP ones; LoRA is added and trains at the same rate."
+    },
+    "ade20k": {
+      "dataset": "ADE20K",
+      "task": "LoRA semantic segmentation",
+      "split": "official 20,210 train / 2,000 validation",
+      "input": {
+        "train": "random rescale by [0.5, 2.0] (bicubic, each side at least 224 px), random 224x224 crop, random horizontal flip p=0.5",
+        "evaluation": "image resized to 224x224 (bicubic), label resized to 224x224 (nearest)",
+        "normalization": "the pretrained backbone's published input normalization"
+      },
+      "feature_and_pooling": "The canonical spatial grid (14x14 for patch-16 models; 7x7 for the Cosmos 3 Super merger), the unchanged 1x1 Conv, bilinear upsampling of the logits to the label size with align_corners=false.",
+      "head": "the BASIC5_FAIR_v1 1x1 Conv with 150 outputs (weights N(0, 0.01), bias 0)",
+      "trainable_scope": "LoRA A/B and the 1x1 Conv",
+      "optimization": {
+        "epochs": 20,
+        "optimizer": "AdamW",
+        "base_lr": 0.001,
+        "lr_reference_effective_batch": 8,
+        "lr_scaling": "linear: lr = 0.001 * effective_batch_size / 8",
+        "lora_base_lr": 0.0001,
+        "lora_lr_reference_effective_batch": 8,
+        "lora_lr_realized": 0.0001,
+        "weight_decay": 0.05,
+        "betas": [0.9, 0.999],
+        "batch_size": 8,
+        "distribution": "1 GPU, no gradient accumulation",
+        "warmup": "1 epoch, linear from 1e-6",
+        "schedule": "cosine decay to 1e-6",
+        "layer_decay": 1.0
+      },
+      "augmentation": "Same geometry as BASIC5_FAIR_v1; no photometric augmentation.",
+      "loss": "pixel-wise cross entropy with ignore_index=255",
+      "metrics": {
+        "primary": "mean IoU over 150 classes on the 2,000 validation images, final epoch",
+        "secondary": "pixel accuracy"
+      },
+      "minimal_deviation_note": "Split, 20 epochs, feature, 1x1 head, upsampling, and metric stay fixed; LoRA is the only added capacity."
+    },
+    "nyuv2": {
+      "dataset": "NYUv2 labeled subset",
+      "task": "LoRA monocular depth regression",
+      "split": "official Eigen-style 795 train / 654 test from labeled.mat and splits.mat",
+      "input": {
+        "orientation": "Images and depth maps read in their true 480x640 orientation (the basic5 loader transposed them).",
+        "train": "image resized to 224x224 (bicubic), depth resized to 224x224 (bilinear), random horizontal flip p=0.5",
+        "evaluation": "the same deterministic 224x224 resize without flip",
+        "normalization": "the pretrained backbone's published input normalization",
+        "valid_depth_m": [0.1, 10.0]
+      },
+      "feature_and_pooling": "The canonical spatial grid, the unchanged 1x1 depth head, bilinear upsampling with align_corners=false.",
+      "head": "the BASIC5_FAIR_v1 single-channel 1x1 Conv, depth = softplus(x) + 1e-3",
+      "trainable_scope": "LoRA A/B and the 1x1 depth head",
+      "optimization": {
+        "epochs": 30,
+        "optimizer": "AdamW",
+        "base_lr": 0.001,
+        "lr_reference_effective_batch": 8,
+        "lr_scaling": "linear: lr = 0.001 * effective_batch_size / 8",
+        "lora_base_lr": 0.0001,
+        "lora_lr_reference_effective_batch": 8,
+        "lora_lr_realized": 0.0001,
+        "weight_decay": 0.05,
+        "betas": [0.9, 0.999],
+        "batch_size": 8,
+        "distribution": "1 GPU, no gradient accumulation",
+        "warmup": "1 epoch, linear from 1e-6",
+        "schedule": "cosine decay to 1e-6",
+        "layer_decay": 1.0
+      },
+      "augmentation": "Same geometry as BASIC5_FAIR_v1.",
+      "loss": "scale-invariant log-depth loss on valid pixels, lambda = 0.5: mean(d^2) - 0.5 * mean(d)^2 with d = log(pred) - log(gt)",
+      "metrics": {
+        "evaluation_mask": "valid pixels with 0.1 < depth < 10 m; predictions clamped to [0.1, 10]",
+        "primary_in_record": "RMSE in meters after per-image median scale alignment (field rmse)",
+        "paper_metric": "RMSE in meters without alignment (field rmse_unaligned), as defined in the paper's evaluation appendix",
+        "secondary": ["AbsRel (absrel, absrel_unaligned)", "delta1", "delta2", "delta3"]
+      },
+      "minimal_deviation_note": "Split, mask and range, 30 epochs, 1x1 head, and loss stay fixed; LoRA is the only added capacity. The upright orientation is shared with the same-code LP control (B5X_LP_CONTROL_v1)."
+    },
+    "ssv2": {
+      "dataset": "Something-Something v2",
+      "task": "LoRA action recognition",
+      "split": "official train (168,913 videos) / validation (24,777 videos)",
+      "input": {
+        "frames": 16,
+        "temporal_sampling": "one frame from each of 16 equal temporal segments; random within the segment for training, segment center for evaluation",
+        "train": "one random resized crop to 224 (scale [0.08, 1.0], ratio [0.75, 1.3333], bicubic) shared by all 16 frames; horizontal flip disabled",
+        "evaluation": "resize shorter side to 256 (bicubic), center crop 224; one temporal clip and one spatial view",
+        "normalization": "the pretrained backbone's published input normalization",
+        "loader": "one decord loader for all six models; missing files are excluded at construction and counted; a decode failure stops the run instead of substituting an all-zero clip"
+      },
+      "feature_and_pooling": "The model's Unified LP SSv2 feature: DINOv3-7B and RAEv2-K7: per-frame L2-normalized global feature (DINOv3 CLS; RAEv2 mean of K7 tokens), then temporal mean; SigLIP 2-G and Cosmos 3 Super: per-frame pooled feature (MAP pooler; merger mean), then temporal mean, no L2; V-JEPA 2.1: mean of the spatiotemporal tokens of the 16-frame clip, L2-normalized; VGGT-Omega: aggregator over the 16 frames, mean of patch tokens, L2-normalized.",
+      "head": "the BASIC5_FAIR_v1 linear 174-class classifier (weights N(0, 0.01), bias 0)",
+      "trainable_scope": "LoRA A/B and the linear classifier",
+      "optimization": {
+        "epochs": 50,
+        "optimizer": "AdamW",
+        "base_lr": 0.001,
+        "lr_reference_effective_batch": 256,
+        "lr_scaling": "linear: lr = 0.001 * effective_batch_size / 256",
+        "lora_base_lr": 0.0005,
+        "lora_lr_reference_effective_batch": 256,
+        "lora_lr_realized": 0.0005,
+        "weight_decay": 0.05,
+        "betas": [0.9, 0.999],
+        "batch_size": 256,
+        "distribution": "8 GPUs x 8 clips x 4 accumulation steps = effective batch 256",
+        "warmup": "5 epochs, linear from 1e-6",
+        "schedule": "cosine decay to 1e-6",
+        "layer_decay": 1.0
+      },
+      "short_schedule": {
+        "models": ["DINOv3-7B"],
+        "epochs": 24,
+        "record_protocol_id": "B5X_LORA_LP_24EP_v2",
+        "rule": "Everything else unchanged; the 5-epoch warm-up and the cosine decay span the 24 epochs.",
+        "reason": "compute: about 138 hours per seed on one 8-GPU node at 50 epochs; three seeds had to finish before the main-paper deadline"
+      },
+      "augmentation": "Same spatial and temporal policy as BASIC5_FAIR_v1; no Mixup, CutMix, RandAugment, random erasing, or horizontal flip.",
+      "loss": "cross entropy",
+      "metrics": {
+        "primary": "top-1 accuracy on all 24,777 validation videos, final epoch",
+        "secondary": "top-5 accuracy"
+      },
+      "minimal_deviation_note": "16 frames, 50 epochs, the model's Unified LP video feature, and the classifier stay fixed; LoRA is the only added capacity."
+    }
+  },
+  "model_specifics": {
+    "dinov3_7b": {"display": "DINOv3-7B", "lora_targets": "40 blocks x 4 projections = 160", "lora_params": 20971520},
+    "siglip2_giant": {"display": "SigLIP 2-G", "lora_targets": "40 blocks x 4 projections = 160", "lora_params": 7864320},
+    "vjepa2_1_vitg": {"display": "V-JEPA 2.1-G", "lora_targets": "40 blocks x 2 projections = 80", "lora_params": 5406720},
+    "vggt_omega": {"display": "VGGT-Omega", "lora_targets": "48 aggregator blocks (24 frame + 24 global) x 2 projections = 96", "lora_params": 4718592},
+    "raev2_k7": {"display": "RAEv2-K7", "lora_targets": "24 DINOv3-L blocks x 2 projections = 48", "lora_params": 2359296},
+    "cosmos3_super": {"display": "Cosmos 3 Super", "lora_targets": "27 vision-tower blocks x 2 projections = 54", "lora_params": 2985984}
+  },
+  "reporting": {
+    "checkpoint_rule": "Use the final scheduled epoch; no selection on the reported validation/test split.",
+    "seed_aggregation": "Report mean and sample standard deviation (ddof = 1) over seeds 0, 1, and 2; retain every per-seed result.",
+    "required_metadata": [
+      "checkpoint identity",
+      "LoRA rank, alpha, number of wrapped projections, and live-check result",
+      "feature shape",
+      "total, trainable, LoRA, and head parameter counts",
+      "epochs, effective batch, realized head and LoRA learning rates, steps per epoch, total steps",
+      "per-epoch training loss",
+      "code sha256, PBS job id, host, GPU, torch and python versions"
+    ],
+    "validity_rule": "A cell counts only with COMPLETED_VALID.json, the recipe's epoch count reached, steps_per_epoch x epochs = total steps, and evaluation on the full split.",
+    "comparability_rule": "Short-schedule cells (DINOv3-7B ImageNet-1k 50 epochs, SSv2 24 epochs) must be marked wherever they appear.",
+    "failure_rule": "Do not tune a single failing model. Apply a protocol-wide fix to every model, increment the version, and disclose it."
+  },
+  "version_history": [
+    {
+      "version": "1.0",
+      "protocol_id": "B5X_LORA_LP_v1",
+      "date": "2026-11-11",
+      "recipe": "LoRA A/B trained at the head learning rate of the BASIC5_ATTENTIVE_v1 block (1e-3 at batch 8 on ADE20K/NYUv2).",
+      "outcome": "On ADE20K, SigLIP 2-G and DINOv3-7B diverged after warm-up (training loss 1.2-1.4 after epoch 1, rising to 2.3-3.6). Cells kept under LORA/ as a record."
+    },
+    {
+      "version": "2.0",
+      "protocol_id": "B5X_LORA_LP_v2",
+      "date": "2026-11-11",
+      "change": "LoRA A/B train at the BASIC5_FINETUNE_v1 learning rate of the task; the head keeps the BASIC5_ATTENTIVE_v1 rate. Applied to all six models and all tasks, and every LoRA cell was rerun.",
+      "coco": "Unchanged, because the BASIC5_FINETUNE_v1 and BASIC5_FAIR_v1 COCO learning rates are equal; COCO cells keep the id B5X_LORA_LP_v1."
+    }
+  ],
+  "deviations_from_unified_code": [
+    "NYUv2 frames are read upright (the basic5 loader transposed them).",
+    "One SSv2 loader (decord, bicubic) for all six models; a decode failure stops the run.",
+    "The learning-rate schedule advances per optimizer step."
+  ]
+}
