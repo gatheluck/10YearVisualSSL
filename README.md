@@ -1,5 +1,28 @@
 # 10 Year Visual SSL
 
+Ten years of visual-domain self-supervised learning (SSL) methods, ported to
+**run in ordinary environments rather than on one specific supercomputer**.
+Support for ABCI is separated into a loosely coupled module; the core does not
+assume it.
+
+Open the [current evaluation protocols](#evaluation-protocols) or jump to the [files cited in Appendix E](#files-cited-in-appendix-e).
+
+## Quick verification
+
+Run the following checks from the code root. They use local fixtures and require no datasets or model weights. Use Python 3.12 in a clean environment. The shared downstream dependencies are listed in [the requirements file](downstream/requirements.txt). The [hashed CPU lock](downstream/requirements.lock.txt) targets Linux x86_64; on other platforms use the requirements file with compatible PyTorch wheels. Model-specific environments are under `methods/`.
+
+```sh
+python -m pip install --require-hashes --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple -r downstream/requirements.lock.txt
+python -m unittest tests.test_figure3_comparison tests.test_cvpr_extended_coverage tests.test_transfer_comparison tests.test_dpt_probe
+python -m downstream.revised_tasks --help
+python -m downstream.revised_reporting --help
+python -m downstream.representation_analysis --help
+```
+
+The test command should finish with `OK`, and each help command should print its available options.
+
+## Repository status and scope
+
 For ASIS, CTRL and legacy numbered labels, see the [manuscript terminology guide](docs/PAPER_TERMINOLOGY.md).
 
 Status, support and validation statements describe this portable package at the
@@ -21,11 +44,6 @@ for the distinction from original experimental implementations and results.
 >   `README` states exactly what was and was not exercised.
 >
 > Please treat everything as provisional.
-
-Ten years of visual-domain self-supervised learning (SSL) methods, ported to
-**run in ordinary environments rather than on one specific supercomputer**.
-Support for ABCI is separated into a loosely coupled module; the core does not
-assume it.
 
 For an anonymous supplementary source ZIP, follow the
 [submission archive guide](docs/SUBMISSION_ARCHIVE.md). The tool audits a fixed

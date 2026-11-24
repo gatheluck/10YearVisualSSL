@@ -1,6 +1,22 @@
 # Supplementary code for review
 
-Run commands from the extracted `code/` directory. The package contains evaluation and training entry points, model adapters, protocol references, figure analysis, and focused tests. Supply your own datasets and appropriately licensed checkpoints for training. The quick checks below use local fixtures.
+Run commands from the extracted `code/` directory. The package contains evaluation and training entry points, model adapters, protocol references, figure analysis, and focused tests. Supply your own datasets and appropriately licensed checkpoints for training.
+
+Open the [current evaluation protocols](#evaluation-protocols) or jump to the [files cited in Appendix E](#files-cited-in-appendix-e).
+
+## Quick verification
+
+Run the following checks from the code root. They use local fixtures and require no datasets or model weights. Use Python 3.12 in a clean environment. The shared downstream dependencies are listed in [the requirements file](downstream/requirements.txt). The [hashed CPU lock](downstream/requirements.lock.txt) targets Linux x86_64; on other platforms use the requirements file with compatible PyTorch wheels. Model-specific environments are under `methods/`.
+
+```sh
+python -m pip install --require-hashes --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple -r downstream/requirements.lock.txt
+python -m unittest tests.test_figure3_comparison tests.test_cvpr_extended_coverage tests.test_transfer_comparison tests.test_dpt_probe
+python -m downstream.revised_tasks --help
+python -m downstream.revised_reporting --help
+python -m downstream.representation_analysis --help
+```
+
+The test command should finish with `OK`, and each help command should print its available options.
 
 ## Evaluation protocols
 
@@ -16,6 +32,20 @@ The following are the primary Basic Five protocols for the experiments in this p
 
 For the 40 Extended transfer settings, see the [Figure 5 dataset and metric ledger](docs/CVPR_EXTENDED_COVERAGE.md). The executed semantic metrics for SpaceNet 2 and SUN RGB-D are documented there.
 
+## Figures and analyses
+
+| Paper experiment | Where to start |
+| --- | --- |
+| Figure 3, five encoders and Basic Five tasks | [LoRA and DPT training](docs/CVPR_ADAPTATION.md), [three-seed comparisons](docs/LORA_FULL_REPRODUCTION.md), [SSv2 attentive probes](docs/SSV2_EXECUTION.md#figure-3-attentive-probes) |
+| Figure 5, 40 transfer settings | [Dataset and metric ledger](docs/CVPR_EXTENDED_COVERAGE.md), [LP/AP comparisons](docs/TRANSFER_COMPARISON.md) |
+| Representation geometry and Figure 7 | [Analysis, plotting and coordinate selection](docs/REPRESENTATION_ANALYSIS.md) |
+
+## Reading the results
+
+A completed training run, an archived score, and a portable rerun are distinguished throughout the guides. For Figure 3, all 35 LoRA/DPT target cells are available for comparison. The recorded audit covers 20 complete three-seed dense cells; five matched both printed statistics. SSv2 attentive probing uses model-specific reader inputs and blocks. The original mean for VGGT-Omega could not be independently checked across all seeds.
+
+For Figure 5, SpaceNet 2 uses background/building mean IoU and SUN RGB-D uses 37-class semantic mIoU with a learned RGB-depth-validity stem. All twenty original seed-0 LP/AP scores for these two datasets match the source table at printed precision. Portable input and evaluation validation for both datasets remains open. The Figure 7 reference-free result uses nested selection over twelve settings; every selected fold used three or four coordinates.
+
 ## Files cited in Appendix E
 
 Use this table to open a filename cited in the supplement. The Evaluation protocols table above links the current Basic Five specifications and recorded model-specific settings.
@@ -30,32 +60,6 @@ Use this table to open a filename cited in the supplement. The Evaluation protoc
 | E.5 · Extended AP | [EXTEND_ATTENTIVE.md](docs/submission_protocols/EXTEND_ATTENTIVE.md) · [EXTEND_ATTENTIVE_v1.json](docs/submission_protocols/EXTEND_ATTENTIVE_v1.json) |
 | E.5 · Extended FT | [EXTEND_FINETUNE.md](docs/submission_protocols/EXTEND_FINETUNE.md) · [EXTEND_FINETUNE_v1.json](docs/submission_protocols/EXTEND_FINETUNE_v1.json) |
 | E.6 · Frontier-system prompts | [BASIC5_FRONTIER_SYSTEM_PROMPTS.md](docs/submission_protocols/BASIC5_FRONTIER_SYSTEM_PROMPTS.md) |
-
-## Figures and analyses
-
-| Paper experiment | Where to start |
-| --- | --- |
-| Figure 3, five encoders and Basic Five tasks | [LoRA and DPT training](docs/CVPR_ADAPTATION.md), [three-seed comparisons](docs/LORA_FULL_REPRODUCTION.md), [SSv2 attentive probes](docs/SSV2_EXECUTION.md#figure-3-attentive-probes) |
-| Figure 5, 40 transfer settings | [Dataset and metric ledger](docs/CVPR_EXTENDED_COVERAGE.md), [LP/AP comparisons](docs/TRANSFER_COMPARISON.md) |
-| Representation geometry and Figure 7 | [Analysis, plotting and coordinate selection](docs/REPRESENTATION_ANALYSIS.md) |
-
-## Quick verification
-
-Use Python 3.12 in a clean environment. The shared downstream dependencies are listed in [the requirements file](downstream/requirements.txt). The [hashed CPU lock](downstream/requirements.lock.txt) targets Linux x86_64; on other platforms use the requirements file with compatible PyTorch wheels. Model-specific environments are under `methods/`.
-
-```sh
-python -m pip install --require-hashes --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple -r downstream/requirements.lock.txt
-python -m unittest tests.test_figure3_comparison tests.test_cvpr_extended_coverage tests.test_transfer_comparison tests.test_dpt_probe
-python -m downstream.revised_tasks --help
-python -m downstream.revised_reporting --help
-python -m downstream.representation_analysis --help
-```
-
-## Reading the results
-
-A completed training run, an archived score, and a portable rerun are distinguished throughout the guides. For Figure 3, all 35 LoRA/DPT target cells are available for comparison. The recorded audit covers 20 complete three-seed dense cells; five matched both printed statistics. SSv2 attentive probing uses model-specific reader inputs and blocks. The original mean for VGGT-Omega could not be independently checked across all seeds.
-
-For Figure 5, SpaceNet 2 uses background/building mean IoU and SUN RGB-D uses 37-class semantic mIoU with a learned RGB-depth-validity stem. All twenty original seed-0 LP/AP scores for these two datasets match the source table at printed precision. Portable input and evaluation validation for both datasets remains open. The Figure 7 reference-free result uses nested selection over twelve settings; every selected fold used three or four coordinates.
 
 ## Data, dependencies and notices
 

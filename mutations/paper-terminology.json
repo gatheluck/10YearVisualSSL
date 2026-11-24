@@ -62,6 +62,15 @@
       "tests": [
         "tests.test_section_e_links.AppendixNavigation.test_every_cited_document_has_a_direct_file_link"
       ]
+    },
+    {
+      "label": "Opening Appendix E shortcut misses the index",
+      "file": "docs/templates/CVPR_REVIEWER_README.md",
+      "old": "](#files-cited-in-appendix-e)",
+      "new": "](#missing-index)",
+      "tests": [
+        "tests.test_reviewer_navigation.ReviewerNavigation.test_overview_links_to_protocols_and_appendix_before_quick_check"
+      ]
     }
   ]
 }
