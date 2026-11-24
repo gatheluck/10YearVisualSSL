@@ -61,8 +61,8 @@ and `analysis.json`, whose ordered model IDs index the matrices. The JSON record
 input hashes/counts, fitted populations, coordinates, predictions, numerical
 policy and display angles. Both `record_value` and `historical_run_verified`
 remain false, even when the counts match. It produces plot data, not the final
-manuscript figure. Fold-wise reference selection, reference-free coordinates,
-domain re-extraction and matching original scores remain separate work.
+manuscript figure. The [nested analyses](#nested-dense-task-analyses) consume aligned agreement matrices separately.
+Domain re-extraction and matching original scores remain separate work.
 
 ## Image and cross-image patch neighborhoods
 
@@ -212,5 +212,59 @@ among 12 combinations: raw or position-corrected patch agreement, rank or
 negative-log transform, and 2, 3 or 4 coordinates. In family order (3D/4D,
 image generation, supervised, video generation, VideoSSL, VLM, VSSL), the
 chosen dimensions are 3/3/4/3/4/3/4 for ADE20K and 3/4/3/3/4/3/4 for NYUv2.
-The manuscript's fixed-two description needs correction. This check reads
-archived outputs; it does not rerun coordinate selection from the matrices.
+The manuscript's fixed-two description needs correction. The matrix-level rerun is documented below.
+
+
+## Nested dense-task analyses
+
+Two commands reproduce distinct analyses of ADE20K mIoU and NYUv2 RMSE. Supply a
+single aligned NPZ per command. Use unique Unicode strings for model IDs, one
+Unicode family label per model and finite one-dimensional `ade20k` and `nyuv2`
+score arrays. Use the original model order consistently across all arrays.
+Agreement values range from zero to one (higher means more similar). Convert
+source distance files to agreement before running. Keep matrices, score arrays
+and identifying run metadata in the local experiment workspace.
+
+```sh
+python -m downstream.representation_nested --mode reference-free --input pcoa.npz --out pcoa.json
+python -m downstream.representation_nested --mode patch-reference --input candidates.npz --out candidates.json
+```
+
+**Reference-free result in the main text.** Alongside `model_ids`, `families`,
+`ade20k` and `nyuv2`, supply two symmetric model-by-model matrices, `patch_pc`
+(position corrected) and `patch_raw`. The reported population contains 105 models
+in seven families. The inner training families select from 12 combinations of
+matrix, rank or negative-log distance transform, and two, three or four axes.
+Within each split, fit principal coordinates on the training models, project the
+held models onto those axes and rank their coordinates against training values.
+Fit the regression to training ranks, reversing the direction of depth error.
+Select the first candidate attaining the maximum inner Spearman correlation in
+the specified matrix, transform and ascending dimension order. Pool the outer
+predictions for the final correlation. Applying the implementation to the
+archived matrices and scores recovered 0.692 on ADE20K and 0.738 on NYUv2.
+All 14 selected configurations and inner scores matched the archived report
+at its three-decimal precision.
+
+**Patch reference selected per fold (Supplement Tables 31 and 32).** Supply
+`model_ids`, `families`, `ade20k`, `nyuv2`, `image_agreement` (one value per
+model against the fixed image reference), `candidate_ids` and `patch_agreement`
+(one row per candidate, one column per model). Use the same ID wherever a
+candidate also belongs to the scored population. The reported setting uses
+105 models and 141 candidate patch references in source order, including the
+raw-pixel candidate. Score each candidate by inner held-family-out prediction
+with the candidate removed. Preserve global task ranks. Rank the coordinates
+among training models when scoring candidates, and across all remaining models
+when fitting the selected reference for the outer fold. Keep the first maximum.
+When the selected reference belongs to the held-out family, its prediction is
+null and it is excluded from the pooled score. Fold selection here predicts from
+image and patch agreement to references; it does not perform PCoA. The archived
+105-model, 141-candidate rerun recovered ADE20K 0.597 and NYUv2 0.595 (both
+0.60 in Table 31). All 105 held-out predictions were evaluable per task.
+All fourteen selected reference names and inner correlations agreed with the
+archived report at three-decimal precision.
+
+Both reports record per-fold selections, aligned predictions and pooled
+Spearman correlations. Each CLI requires a new output file. Archive-scale
+verification applies to the supplied agreement matrices and task scores.
+Regenerating agreement from model weights, images and dense patches is a
+separate validation.

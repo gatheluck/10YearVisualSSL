@@ -1,0 +1,112 @@
+{
+  "targets": [
+    {
+      "file": "downstream/representation_nested.py",
+      "label": "regression targets ignore membership",
+      "old": "scores[task][train], k)",
+      "new": "scores[task][:len(train)], k)",
+      "tests": [
+        "tests.test_representation_nested"
+      ]
+    },
+    {
+      "file": "downstream/representation_nested.py",
+      "label": "negative log floor",
+      "old": "within = -np.log(np.clip(1.0 - within, 1e-4, 1.0))",
+      "new": "within = within",
+      "tests": [
+        "tests.test_representation_nested"
+      ]
+    },
+    {
+      "file": "downstream/representation_nested.py",
+      "label": "prefer first maximum",
+      "old": "rho > best[task][0]",
+      "new": "rho >= best[task][0]",
+      "tests": [
+        "tests.test_representation_nested"
+      ]
+    },
+    {
+      "file": "downstream/representation_nested.py",
+      "label": "depth ordering",
+      "old": "-scores['nyuv2']",
+      "new": "scores['nyuv2']",
+      "tests": [
+        "tests.test_representation_nested"
+      ]
+    },
+    {
+      "file": "downstream/representation_nested.py",
+      "label": "training distance reference",
+      "old": "_relative_ranks(pairs, cross)",
+      "new": "_relative_ranks(cross.ravel(), cross)",
+      "tests": [
+        "tests.test_representation_nested"
+      ]
+    },
+    {
+      "file": "downstream/representation_nested.py",
+      "label": "agreement symmetry",
+      "old": "not np.allclose(values, values.T, rtol=0, atol=1e-12)",
+      "new": "False",
+      "tests": [
+        "tests.test_representation_nested"
+      ]
+    },
+    {
+      "file": "downstream/representation_nested.py",
+      "label": "matrix range guard",
+      "old": "np.any((values < 0) | (values > 1))",
+      "new": "False",
+      "tests": [
+        "tests.test_representation_nested"
+      ]
+    },
+    {
+      "file": "downstream/representation_nested.py",
+      "label": "unique model IDs",
+      "old": "len(set(ids)) != len(ids)",
+      "new": "False",
+      "tests": [
+        "tests.test_representation_nested"
+      ]
+    },
+    {
+      "file": "downstream/representation_reference.py",
+      "label": "global depth rank direction",
+      "old": "target = _rank(-scores if task == 'nyuv2' else scores)",
+      "new": "target = _rank(scores)",
+      "tests": [
+        "tests.test_representation_nested.PatchReferenceSelection"
+      ]
+    },
+    {
+      "file": "downstream/representation_reference.py",
+      "label": "exclude training candidate",
+      "old": "train = ~outer & (models != candidate)",
+      "new": "train = ~outer",
+      "tests": [
+        "tests.test_representation_nested.PatchReferenceSelection"
+      ]
+    },
+    {
+      "file": "downstream/representation_reference.py",
+      "label": "exclude selected reference in outer prediction",
+      "old": "keep = models != candidates[selected]",
+      "new": "keep = np.ones(size, dtype=bool)",
+      "tests": [
+        "tests.test_representation_nested.PatchReferenceSelection"
+      ]
+    },
+    {
+      "file": "downstream/representation_reference.py",
+      "label": "use image coordinate",
+      "old": "_rank(image[keep]), _rank(patch[keep])",
+      "new": "_rank(patch[keep]), _rank(patch[keep])",
+      "tests": [
+        "tests.test_representation_nested.PatchReferenceSelection"
+      ]
+    }
+  ]
+}
