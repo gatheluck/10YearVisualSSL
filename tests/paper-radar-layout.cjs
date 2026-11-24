@@ -13,6 +13,14 @@ const path = require("node:path");
   await section.screenshot({path:"/tmp/web-radar-mobile.png"});
   const cards=section.locator("article");
   assert.equal(await cards.count(),5,"Five independently reflowing model cards");
+  const tables=cards.getByRole("table",{name:"Placements across 40 tasks"});
+  assert.equal(await tables.count(),5,"Every model labels its task counts");
+  const reference=[[[29,6],[20,12]],[[1,2],[0,1]],[[2,16],[9,17]],[[1,2],[3,2]],[[7,14],[8,8]]];
+  for (const [index, table] of (await tables.all()).entries()) {
+    assert.deepEqual(await table.getByRole("columnheader").allTextContents(),["Probe","1st place","2nd place"]);
+    assert.deepEqual(await table.getByRole("rowheader").allTextContents(),["Linear (LP)","Attentive (AP)"]);
+    assert.deepEqual((await table.getByRole("cell").allTextContents()).map(Number),reference[index].flat());
+  }
   assert.equal(await section.locator("svg #headline, svg .dataset-column").count(),0);
   assert.ok(await cards.first().evaluate(el=>el.clientWidth>=250));
   assert.ok(await section.locator(".transfer-pan").evaluate(el=>el.scrollWidth<=el.clientWidth));

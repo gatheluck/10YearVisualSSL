@@ -83,9 +83,21 @@ for (const panel of panels) {
   modelNames.set(panel, name.textContent);
   const subtitle = document.createElement("small");
   subtitle.textContent = family.textContent;
-  const stats = document.createElement("p");
-  stats.textContent = [lp, ap].map(label => label.textContent.trim().replace(/\s*Best \/ Second-best:\s*/, " ")).join("   ·   ");
-  stats.prepend("First / second   ");
+  const stats = document.createElement("table");
+  stats.className = "placement-counts";
+  stats.innerHTML = `<caption>Placements across 40 tasks</caption>
+    <thead><tr><th scope="col">Probe</th><th scope="col">1st place</th><th scope="col">2nd place</th></tr></thead>`;
+  const rows = stats.createTBody();
+  for (const label of [lp, ap]) {
+    const [, probe, first, second] = label.textContent.trim().match(/^(LP|AP)\s+Best \/ Second-best:\s*(\d+) \/ (\d+)$/);
+    const row = rows.insertRow();
+    const method = document.createElement("th");
+    method.scope = "row";
+    method.textContent = probe === "LP" ? "Linear (LP)" : "Attentive (AP)";
+    row.append(method);
+    row.insertCell().textContent = first;
+    row.insertCell().textContent = second;
+  }
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   const center = Number(name.getAttribute("x"));
   svg.setAttribute("viewBox", [center - 212, 254, 424, 424].join(" "));

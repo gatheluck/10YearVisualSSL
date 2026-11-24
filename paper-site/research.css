@@ -328,7 +328,6 @@ footer {
 #figure-five .transfer-pan small {font:600 11px var(--mono);color:#526965;text-transform:uppercase;}
 #figure-five .transfer-pan h3 {margin:4px 0;font-size:clamp(20px,2vw,29px);letter-spacing:-.04em;}
 #figure-five .transfer-pan svg {width:100%;min-width:0;height:auto;font-family:Arial,sans-serif;}
-#figure-five .transfer-pan article p {margin:6px 0 0;border-top:1px solid #d6e0de;padding-top:7px;font-size:12px;font-variant-numeric:tabular-nums;}
 #figure-five .transfer-pan.enlarged {display:flex;overflow:auto;}
 #figure-five .transfer-pan.enlarged article {flex:0 0 clamp(430px,55vw,730px);}
 #figure-five .radar-key {display:flex;flex-wrap:wrap;gap:6px 15px;padding:13px 0;font-weight:600;font-size:13px;color:#284856;}
@@ -358,3 +357,10 @@ footer {
 #figure-five .task-key section {scroll-margin:12px;}
 
 #figure-five .category-band {fill-opacity:1;}
+
+#figure-five .placement-counts {width:100%;min-width:0;border-collapse:collapse;font-size:clamp(11px,.94vw,14px);font-variant-numeric:tabular-nums;}
+#figure-five .placement-counts caption {padding:8px 0 5px;border-top:1px solid #cbd9d5;text-align:left;font-size:inherit;font-weight:650;}
+#figure-five .placement-counts :is(th,td) {position:static;background:none;white-space:nowrap;padding:4px 2px;border:0;text-align:center;font-size:inherit;color:#284542;}
+#figure-five .placement-counts th:first-child {text-align:left;}
+#figure-five .placement-counts tbody th {font-weight:500;}
+#figure-five .placement-counts td {font-weight:700;}
