@@ -16,14 +16,17 @@ const path = require("node:path");
   assert.equal(await section.locator("svg #headline, svg .dataset-column").count(),0);
   assert.ok(await cards.first().evaluate(el=>el.clientWidth>=250));
   assert.ok(await section.locator(".transfer-pan").evaluate(el=>el.scrollWidth<=el.clientWidth));
-  await section.getByText("Task key", {exact:false}).filter({hasNot:p.locator("summary")}).first().click();
-  const buttons=section.locator("details button");
-  assert.equal(await buttons.count(),40);
+  const buttons=section.locator(".task-key button:visible");
+  assert.equal(await buttons.count(),40,"Every task name is visible without opening a disclosure");
+  assert.equal(await section.locator(".task-key details, details.task-key").count(),0);
+  assert.equal(await section.locator(".axis-groups a:visible").count(),6);
   await buttons.last().click();
   assert.match(await section.locator("output").innerText(),/CrowdPose/);
-  await p.setViewportSize({width:1280,height:900});
-  const rects=await cards.evaluateAll(els=>els.map(el=>el.getBoundingClientRect().top));
-  assert.equal(rects[0],rects[1]);
-  assert.ok(rects[4]>=rects[2]);
+  for(const width of [1280,1440,1920]) {
+    await p.setViewportSize({width,height:900});
+    const rects=await cards.evaluateAll(els=>els.map(el=>el.getBoundingClientRect()));
+    assert.equal(new Set(rects.map(r=>r.top)).size,1,"Five plots share a row at "+width);
+    assert.ok(rects[4].right<=width);
+  }
  } finally {await b.close();}
 })().catch(e=>{console.error(e);process.exitCode=1});

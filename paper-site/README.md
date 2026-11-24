@@ -60,4 +60,6 @@ The primary navigation has three destinations: Overview, Leaderboard and Paper. 
 
 Figure 5 appears inline on the overview/leaderboard, paper and broad-transfer pages. The browser draws the verified chart export as inline SVG with ten profiles and 400 selectable marks. Toggle LP/AP, select a task for its raw scores, or enlarge the chart. The corresponding source PDF drawing stream matches manuscript page 6. The full figure retains its 40 published settings; the linked explorer continues to withhold the two pending task definitions. On narrow screens the original figure pans horizontally.
 
-In the web layout each model has an independent SVG viewport. The five cards reflow with screen width. The common legend stays above the plots, and the expandable task key selects a spoke and updates all five model scores. Original path geometry, marks and model ordering come from the same verified export.
+In the web layout each model has an independent SVG viewport. The five cards reflow with screen width. The common legend stays above the plots, and the always-visible numbered task key selects a spoke and updates all five model scores. Original path geometry, marks and model ordering come from the same verified export.
+
+At 1200 CSS pixels and wider the five plots share one row. Color-coded task ranges above the plots link to the complete numbered key below.

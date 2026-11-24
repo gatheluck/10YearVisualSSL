@@ -10,16 +10,18 @@ figureHeading.insertAdjacentHTML("afterend", `
     <p><strong>6<span>/9</span></strong>Detection and segmentation settings led by RAEv2 with attentive probes.</p>
   </div>
   <figure>
+    <p class="radar-guide">Each chart is one model. Read the same 40 tasks clockwise from the top. Farther out means better transfer within each task and probe.</p>
     <div class="radar-tools">
       <label>Visible profiles <select class="probe-choice"><option>Both</option><option>LP</option><option>AP</option></select></label>
       <label>Inspect task <select class="task-choice"></select></label>
       <button type="button" aria-pressed="false">Enlarge chart</button>
     </div>
     <output aria-live="polite"></output>
-    <div class="radar-key"><span>△ LP · dashed</span><span>● AP · solid</span><span>Outer ring = best on this task</span></div>
-    <details class="task-key"><summary>Task key · 40 spokes</summary><div></div></details>
+    <div class="radar-key"><span>△ Linear / frozen probe (LP) · dashed</span><span>● Attentive probe (AP) · solid</span></div>
+    <div class="axis-groups" aria-label="Task groups in clockwise order"></div>
     <div class="transfer-pan" role="region" tabindex="0" aria-label="Five interactive radar charts and the task key">${transferVector}</div>
-    <figcaption>Each spoke is one task. LP triangles and AP circles are scaled separately. Choose a task or click a mark to compare its raw scores.</figcaption>
+    <figcaption>The outer ring marks the best of the five models for each task. LP and AP are normalized separately.</figcaption>
+    <section class="task-key" aria-label="Numbered task key"><h3>Which task is each spoke?</h3><p>Select a numbered task to highlight it across all five models and compare its raw scores.</p><div></div></section>
   </figure>
   <div class="transfer-foot"><p>The original figure includes all 40 settings. The score explorer covers 38 while the SpaceNet 2 and SUN RGB-D task definitions are under review.</p>
   <a href="extended.html#matrix">Inspect task scores</a></div>`);
@@ -62,6 +64,7 @@ for (const entry of source.querySelectorAll(".category-label, .dataset-key")) {
     button.type = "button";
     button.textContent = entry.textContent;
     const number = Number.parseInt(entry.textContent, 10);
+    if (!marks.find(mark => mark.dataset.dataset === names[number - 1]).hasAttribute("data-score")) button.append(" · pending");
     button.addEventListener("click", () => {
       taskChoice.value = names[number - 1];
       updateRadar();
@@ -69,6 +72,21 @@ for (const entry of source.querySelectorAll(".category-label, .dataset-key")) {
     });
     group.append(button);
   }
+}
+const groupLinks = broadTransfer.querySelector(".axis-groups");
+for (const [index, section] of Array.from(taskKey.children).entries()) {
+  const title = section.querySelector("h4");
+  const tasks = section.querySelectorAll("button");
+  // The first dense group measures semantic mIoU despite its print heading.
+  if (title.textContent === "Detection") title.textContent = "Semantic segmentation";
+  const first = tasks[0].textContent.trim().split(/\s+/)[0];
+  const last = tasks[tasks.length - 1].textContent.trim().split(/\s+/)[0];
+  section.id = "figure-five-group-" + (index + 1);
+  const link = document.createElement("a");
+  link.href = "#" + section.id;
+  link.style.borderColor = title.style.borderColor;
+  link.textContent = first + "–" + last + " " + title.textContent;
+  groupLinks.append(link);
 }
 for (const panel of panels) {
   const card = document.createElement("article");

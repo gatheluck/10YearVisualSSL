@@ -22,6 +22,7 @@ const { pathToFileURL } = require("node:url");
       "Home page must link to historical comparisons",
     );
     await link.click();
+    await page.waitForURL("**/history.html", { waitUntil: "load" });
     const rows = page.locator("tbody tr");
     const year = page.getByLabel("First release");
     const task = page.getByLabel("Benchmark");
