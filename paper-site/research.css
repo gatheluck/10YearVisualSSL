@@ -418,3 +418,7 @@ footer {
   .profile-switch {grid-column:1/-1;justify-self:start;}
   #figure-five .plot-toolbar .radar-key {order:0;}
 }
+@media(max-width:350px) {
+  #figure-five .task-readout {padding-inline:10px;}
+  .task-heading select {font-family:Arial,sans-serif;width:100%;}
+}

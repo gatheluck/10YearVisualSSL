@@ -30,6 +30,12 @@ const path = require("node:path");
           right: el.getBoundingClientRect().right
         }));
         assert.ok(size.font >= 16 && size.font <= 18, "Use a compact, readable selected value");
+        assert.ok(await picker.evaluate(el => {
+          const style = getComputedStyle(el);
+          const context = document.createElement("canvas").getContext("2d");
+          context.font = [style.fontWeight, style.fontSize, style.fontFamily].join(" ");
+          return [...el.options].every(option => context.measureText(option.text).width <= el.clientWidth - 32);
+        }), "Every dataset name fits beside the native disclosure arrow");
         assert.ok(size.height >= 44 && size.right <= width, "Preserve a usable touch target");
       }
       await picker.selectOption("ImageNet-10%");
