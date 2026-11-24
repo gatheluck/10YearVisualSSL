@@ -295,3 +295,22 @@ footer {
 .study-paths a:nth-child(2) .result-example b {
   color: #283e84;
 }
+
+#figure-five { margin:clamp(24px,4vw,60px) 0; padding:clamp(16px,3vw,42px); border:1px solid #bdd2cd; border-top:5px solid #00b3b0; background:#edf4f1; border-radius:8px; }
+#figure-five h2 { margin:.3em 0; max-width:24ch; font-size:clamp(32px,4.2vw,64px); letter-spacing:-.05em; line-height:1.02; }
+.transfer-facts { display:grid; grid-template-columns:repeat(3,1fr); gap:clamp(10px,3vw,44px); }
+.transfer-facts p {font-size:.93rem; line-height:1.35;}
+.transfer-facts strong {display:block; font-size:clamp(32px,4vw,60px); line-height:1.1; color:#15494a; letter-spacing:-.07em;}
+.transfer-facts strong span {font-size:.5em;color:#536b70;letter-spacing:-.025em;}
+#figure-five figure {margin:0; padding:12px; border-radius:5px;background:white;}
+.transfer-pan {overflow-x:auto;}
+.transfer-pan img {display:block;width:100%;min-width:900px;height:auto;}
+#figure-five figcaption,.transfer-foot {display:flex;align-items:center;justify-content:space-between;gap:15px;flex-wrap:wrap;}
+#figure-five figcaption {padding:12px 0 0;font-size:.87rem;}
+#figure-five a {text-decoration:underline;text-underline-offset:3px;}
+.transfer-foot p {max-width:70ch;font-size:.9rem;}
+.transfer-foot a {font-weight:700;}
+@media(max-width:600px){
+  .transfer-facts {grid-template-columns:1fr;gap:0;margin:14px 0;}
+  .transfer-facts p {display:grid;grid-template-columns:76px 1fr;align-items:center;margin:3px 0;}
+}

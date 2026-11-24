@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Broad transfer · Vision Baselines</title><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="research.css"><link rel="stylesheet" href="study.css"><script defer src="sources.js"></script><script defer src="extended-data.js"></script><script defer src="extended.js"></script></head>
+<title>Broad transfer · Vision Baselines</title><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="research.css"><link rel="stylesheet" href="study.css"><script defer src="sources.js"></script><script defer src="extended-data.js"></script><script defer src="extended.js"></script><script defer src="figure-five.js"></script></head>
 <body><a href="#study" class="skip">Skip to content</a><header>
       <div class="wrap nav">
         <a class="brand" href="index.html#overview"
@@ -15,7 +15,8 @@
       </div>
     </header><main class="wrap study" id="study"><section class="study-hero"><p class="eyebrow">Figure 5 · Broad transfer</p><h1>Where does each model lead?</h1>
 <p>Five frozen representations, from fine-grained recognition to camera pose. Across all 40 settings in the paper, DINOv3-7B leads 29 with LP and 20 with AP. RAEv2 leads six detection/segmentation settings with AP. Explore the task-level scores below.</p></section>
-<section><h2>Transfer across tasks</h2><p>Each highlighted cell marks a first-place score among the five models in that row. Select a task for its metric, probe conditions and original model papers.</p>
+<section id="figure-five" aria-labelledby="transfer-head"><h2 id="transfer-head">Read the five transfer profiles.</h2></section>
+      <section><h2>Transfer across tasks</h2><p>Each highlighted cell marks a first-place score among the five models in that row. Select a task for its metric, probe conditions and original model papers.</p>
 <div class="filters"><label>Probe <select id="probe"><option>LP</option><option>AP</option></select></label><label>Task family <select id="family"><option>All</option></select></label><span aria-live="polite" id="count"></span></div>
 <div class="matrix-scroll" role="region" aria-label="Scrollable task scores" tabindex="0"><table id="matrix"><caption>Measured scores in the original metric</caption><thead><tr><th scope="col">Task / metric</th></tr></thead><tbody></tbody></table></div>
 <p id="holds">SpaceNet 2 and SUN RGB-D are on hold pending confirmation of their tasks and metrics. The table covers the other 38 of the paper’s 40 settings.</p></section>
