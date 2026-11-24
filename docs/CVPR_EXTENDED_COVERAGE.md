@@ -10,13 +10,10 @@ for this figure; the 81-entry protocol catalog remains unchanged.
 The [machine-readable ledger](CVPR_EXTENDED_COVERAGE.json) separates existing
 component entry points from result attribution. It contains 24 recognition,
 nine detection/segmentation, three geometry and four video/pose settings.
-There are existing component entry points for 38 settings and two confirmed semantic settings awaiting
-portable input and evaluation validation. These are not 38 verified experiments, independently
+There are existing task components for 38 settings. Two additional confirmed semantic settings have native input readers and a saved-prediction evaluation CLI. These are not 38 verified experiments, independently
 validated native datasets, or reproduced scores.
 
-All five model-to-run correspondences remain separate validation work. In
-particular, the existing RAEv2-K7 tokenizer components do not establish the
-revised generator block-29/t=0.1 LP/AP profile. Do not substitute them silently.
+All five model-to-run correspondences remain separate validation work. The November 18 adoption record identifies the RAEv2 K7 tokenizer for Extended (Figure 5) and the generator block-29/t=0.1 readout for ASIS. The 66 audited original K7 records belong to Basic Five; each Figure 5 cell still needs its own provenance check.
 The figure places VOC, Context, Mapillary and BDD under a Detection heading,
 but their inspected protocol and implementation are semantic segmentation;
 the broad plotting group must not change their task identity.
@@ -52,8 +49,8 @@ the broad plotting group must not change their task identity.
 | 27 | `mapillary_vistas` | `downstream.extended_segmentation` |
 | 28 | `bdd100k` | `downstream.extended_segmentation` |
 | 29 | `cityscapes` | `downstream.extended_segmentation` |
-| 30 | `spacenet2_vegas` | Background/building mIoU (2 classes); portable validation pending |
-| 31 | `sun_rgbd` | RGB-D semantic mIoU (37 classes); portable validation pending |
+| 30 | `spacenet2_vegas` | [Native SpaceNet masks and saved-map evaluation](EXTENDED_SEMANTIC_INPUTS.md#figure-5-native-semantic-inputs-and-evaluation) |
+| 31 | `sun_rgbd` | [Native SUN RGB-D inputs and saved-map evaluation](EXTENDED_SEMANTIC_INPUTS.md#figure-5-native-semantic-inputs-and-evaluation) |
 | 32 | `lvis_v1` | `downstream.extended_detection` |
 | 33 | `livecell` | `downstream.extended_detection` |
 | 34 | `seven_scenes` | `downstream.extended_structured` |

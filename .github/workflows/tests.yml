@@ -228,7 +228,7 @@ jobs:
             tests.test_method_extended_structured tests.test_structured_membership \
             tests.test_method_extended_vos tests.test_context_membership tests.test_mapillary_membership \
             tests.test_extended_segmentation tests.test_method_extended_segmentation \
-            tests.test_extended_segmentation_membership tests.test_method_extended_execution \
+            tests.test_extended_segmentation_membership tests.test_figure5_native_semantics tests.test_method_extended_execution \
             tests.test_method_extended_distributed \
             tests.test_basic5_component_dependencies \
             tests.test_basic5_protocol tests.test_basic5_readers \

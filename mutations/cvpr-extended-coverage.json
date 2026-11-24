@@ -12,10 +12,37 @@
     {
       "label": "source conflict cannot become available",
       "file": "docs/CVPR_EXTENDED_COVERAGE.json",
-      "old": "\"catalog_metric\": \"building IoU/F1\",\n      \"module\": null,\n      \"component_status\": \"pending_portable_validation\"",
-      "new": "\"catalog_metric\": \"building IoU/F1\",\n      \"module\": null,\n      \"component_status\": \"available\"",
+      "old": "\"catalog_metric\": \"building IoU/F1\",\n      \"module\": \"downstream.figure5_native_semantics\",\n      \"component_status\": \"native_input_and_saved_map_evaluation\"",
+      "new": "\"catalog_metric\": \"building IoU/F1\",\n      \"module\": \"downstream.figure5_native_semantics\",\n      \"component_status\": \"available\"",
       "tests": [
         "tests.test_cvpr_extended_coverage.ExtendedCoverage.test_conflicting_entries_do_not_become_supported_by_diagram_group"
+      ]
+    },
+    {
+      "label": "SUN depth units",
+      "file": "downstream/figure5_native_semantics.py",
+      "old": "(meters / 10)[None]",
+      "new": "meters[None]",
+      "tests": [
+        "tests.test_figure5_native_semantics.NativeSemanticEvaluation.test_sun_model_inputs_encode_metric_depth_and_validity"
+      ]
+    },
+    {
+      "label": "SpaceNet foreground",
+      "file": "downstream/figure5_native_semantics.py",
+      "old": "mask |= self.coco.annToMask(ann)",
+      "new": "mask |= 0",
+      "tests": [
+        "tests.test_figure5_native_semantics.NativeSemanticEvaluation.test_spacenet_building_and_background_are_equally_weighted"
+      ]
+    },
+    {
+      "label": "native evaluation grid",
+      "file": "downstream/figure5_native_semantics.py",
+      "old": "if self.train:\n            y = np.array",
+      "new": "if not self.train:\n            y = np.array",
+      "tests": [
+        "tests.test_figure5_native_semantics.NativeSemanticEvaluation.test_sun_uses_official_metadata_order_native_dimensions_and_void"
       ]
     }
   ]

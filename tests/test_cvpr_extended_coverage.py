@@ -37,8 +37,8 @@ class ExtendedCoverage(unittest.TestCase):
                 if row['component_status'] == 'available':
                     self.assertTrue((ROOT / (row['module'].replace('.', '/') + '.py')).is_file())
                 else:
-                    self.assertEqual(row['component_status'], 'pending_portable_validation')
-                    self.assertIsNone(row['module'])
+                    self.assertEqual(row['component_status'], 'native_input_and_saved_map_evaluation')
+                    self.assertTrue((ROOT / (row['module'].replace('.', '/') + '.py')).is_file())
                     self.assertTrue(row['limitation'])
 
     def test_conflicting_entries_do_not_become_supported_by_diagram_group(self):
@@ -47,7 +47,8 @@ class ExtendedCoverage(unittest.TestCase):
             self.assertEqual(rows[name]['figure_metric'], 'mIoU')
             self.assertEqual(rows[name]['figure_classes'], classes)
             self.assertEqual(rows[name]['figure_input'], inputs)
-            self.assertEqual(rows[name]['component_status'], 'pending_portable_validation')
+            self.assertEqual(rows[name]['component_status'], 'native_input_and_saved_map_evaluation')
+            self.assertEqual(rows[name]['module'], 'downstream.figure5_native_semantics')
         for name in ('pascal_voc2012', 'pascal_context', 'mapillary_vistas', 'bdd100k', 'cityscapes'):
             self.assertEqual(rows[name]['module'], 'downstream.extended_segmentation')
         self.assertEqual(rows['livecell']['module'], 'downstream.extended_detection')
