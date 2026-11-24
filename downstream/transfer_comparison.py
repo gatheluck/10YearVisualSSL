@@ -109,11 +109,17 @@ def compare(document):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--figure4', action='store_true',
+                        help='Compare 32 paired ASIS methods with 100/200/300-epoch CTRL checkpoints')
     parser.add_argument('--input', type=Path, required=True)
     parser.add_argument('--out', type=Path, required=True)
     args = parser.parse_args(argv)
     raw = args.input.read_bytes()
-    report = compare(json.loads(raw))
+    if args.figure4:
+        from downstream.controlled_comparison import compare_controlled
+        report = compare_controlled(json.loads(raw))
+    else:
+        report = compare(json.loads(raw))
     report['input_sha256'] = hashlib.sha256(raw).hexdigest()
     payload = json.dumps(report, indent=2, allow_nan=False) + '\n'
     with args.out.open('x', encoding='utf-8') as stream:
