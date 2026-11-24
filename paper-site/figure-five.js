@@ -18,7 +18,6 @@ figureHeading.insertAdjacentHTML("afterend", `
     </div>
     <output aria-live="polite"></output>
     <div class="radar-key"><span>△ Linear / frozen probe (LP) · dashed</span><span>● Attentive probe (AP) · solid</span></div>
-    <div class="axis-groups" aria-label="Task groups in clockwise order"></div>
     <div class="transfer-pan" role="region" tabindex="0" aria-label="Five interactive radar charts and the task key">${transferVector}</div>
     <figcaption>The outer ring marks the best of the five models for each task. LP and AP are normalized separately.</figcaption>
     <section class="task-key" aria-label="Numbered task key"><h3>Which task is each spoke?</h3><p>Select a numbered task to highlight it across all five models and compare its raw scores.</p><div></div></section>
@@ -55,8 +54,11 @@ for (const entry of source.querySelectorAll(".category-label, .dataset-key")) {
   if (entry.matches(".category-label")) {
     group = document.createElement("section");
     const title = document.createElement("h4");
-    title.textContent = entry.textContent;
-    title.style.borderColor = entry.getAttribute("fill");
+    // The four datasets grouped under "Detection" use semantic mIoU.
+    title.textContent = entry.textContent === "Detection" ? "Semantic segmentation" : entry.textContent;
+    const category = entry.nextElementSibling.dataset.category;
+    const band = source.querySelector(`.category-band[data-category="${category}"]`);
+    title.style.borderColor = band.getAttribute("fill");
     group.append(title);
     taskKey.append(group);
   } else {
@@ -72,21 +74,6 @@ for (const entry of source.querySelectorAll(".category-label, .dataset-key")) {
     });
     group.append(button);
   }
-}
-const groupLinks = broadTransfer.querySelector(".axis-groups");
-for (const [index, section] of Array.from(taskKey.children).entries()) {
-  const title = section.querySelector("h4");
-  const tasks = section.querySelectorAll("button");
-  // The first dense group measures semantic mIoU despite its print heading.
-  if (title.textContent === "Detection") title.textContent = "Semantic segmentation";
-  const first = tasks[0].textContent.trim().split(/\s+/)[0];
-  const last = tasks[tasks.length - 1].textContent.trim().split(/\s+/)[0];
-  section.id = "figure-five-group-" + (index + 1);
-  const link = document.createElement("a");
-  link.href = "#" + section.id;
-  link.style.borderColor = title.style.borderColor;
-  link.textContent = first + "–" + last + " " + title.textContent;
-  groupLinks.append(link);
 }
 for (const panel of panels) {
   const card = document.createElement("article");

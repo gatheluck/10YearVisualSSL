@@ -19,7 +19,15 @@ const path = require("node:path");
   const buttons=section.locator(".task-key button:visible");
   assert.equal(await buttons.count(),40,"Every task name is visible without opening a disclosure");
   assert.equal(await section.locator(".task-key details, details.task-key").count(),0);
-  assert.equal(await section.locator(".axis-groups a:visible").count(),6);
+  assert.equal(await section.locator(".axis-groups").count(),0,"Task legend appears below the charts only");
+  const expected = ["rgb(0, 179, 176)", "rgb(160, 68, 230)", "rgb(255, 90, 95)", "rgb(132, 212, 71)", "rgb(255, 199, 0)", "rgb(0, 162, 255)"];
+  const swatches = await section.locator(".task-key h4").evaluateAll(headings => headings.map(h => getComputedStyle(h).borderLeftColor));
+  assert.deepEqual(swatches,expected);
+  for (const card of await cards.all()) {
+    const bands = await card.locator(".category-band").evaluateAll(paths =>
+      paths.map(path => [getComputedStyle(path).fill, getComputedStyle(path).fillOpacity]));
+    assert.deepEqual(bands, swatches.map(color => [color, "1"]));
+  }
   await buttons.last().click();
   assert.match(await section.locator("output").innerText(),/CrowdPose/);
   for(const width of [1280,1440,1920]) {

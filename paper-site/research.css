@@ -352,10 +352,9 @@ footer {
   #figure-five .transfer-pan h3 {font-size:clamp(16px,1.5vw,22px);}
 }
 #figure-five .radar-guide {margin:0 0 8px;max-width:85ch;}
-#figure-five .axis-groups {display:flex;flex-wrap:wrap;gap:8px 15px;margin:0 0 16px;}
-#figure-five .axis-groups a {border-left:4px solid;padding:2px 5px;color:#243e44;font-size:13px;text-decoration:none;}
-#figure-five .axis-groups a:hover {text-decoration:underline;}
 #figure-five section.task-key {margin:16px 0 0;padding-top:16px;}
 #figure-five .task-key h3,#figure-five .task-key p {margin:0 0 6px;}
 #figure-five .task-key > div {grid-template-columns:repeat(auto-fit,minmax(min(100%,165px),1fr));gap:8px;}
 #figure-five .task-key section {scroll-margin:12px;}
+
+#figure-five .category-band {fill-opacity:1;}

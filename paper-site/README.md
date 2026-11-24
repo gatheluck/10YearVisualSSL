@@ -62,4 +62,4 @@ Figure 5 appears inline on the overview/leaderboard, paper and broad-transfer pa
 
 In the web layout each model has an independent SVG viewport. The five cards reflow with screen width. The common legend stays above the plots, and the always-visible numbered task key selects a spoke and updates all five model scores. Original path geometry, marks and model ordering come from the same verified export.
 
-At 1200 CSS pixels and wider the five plots share one row. Color-coded task ranges above the plots link to the complete numbered key below.
+At 1200 CSS pixels and wider the five plots share one row. The complete numbered task key appears below the plots. Each group swatch uses the same opaque palette color as its corresponding band on all five radars.
