@@ -46,6 +46,21 @@ The following are the primary Basic Five protocols for the experiments in this p
 
 For the 40 Extended transfer settings, see the [Figure 5 dataset and metric ledger](docs/CVPR_EXTENDED_COVERAGE.md). The executed semantic metrics for SpaceNet 2 and SUN RGB-D are documented there.
 
+## Files cited in Appendix E
+
+Use this table to open a filename cited in the supplement. The Evaluation protocols table above links the current Basic Five specifications and recorded model-specific settings.
+
+| Appendix section | Companion files |
+| --- | --- |
+| E.2 · Initial comparisons | [INITIAL_STEP1_v1.md](docs/initial_protocols/INITIAL_STEP1_v1.md) · [INITIAL_STEP2_v1.md](docs/initial_protocols/INITIAL_STEP2_v1.md) |
+| E.3 · Initial comparisons by family | [INITIAL_STEP3_3DFM_v1.md](docs/initial_protocols/INITIAL_STEP3_3DFM_v1.md) · [INITIAL_STEP3_4DFM_v1.md](docs/initial_protocols/INITIAL_STEP3_4DFM_v1.md) · [INITIAL_STEP3_VISION_GENERATIVE_v1.md](docs/initial_protocols/INITIAL_STEP3_VISION_GENERATIVE_v1.md) · [INITIAL_STEP3_VIDEO_SSL_v1.md](docs/initial_protocols/INITIAL_STEP3_VIDEO_SSL_v1.md) · [INITIAL_STEP3_VIDEO_WORLD_MODELS_v1.md](docs/initial_protocols/INITIAL_STEP3_VIDEO_WORLD_MODELS_v1.md) · [INITIAL_STEP3_VLM_v1.md](docs/initial_protocols/INITIAL_STEP3_VLM_v1.md) |
+| E.4 · Basic Five baseline filenames | [BASIC5_LINEAR.md](docs/submission_protocols/BASIC5_LINEAR.md) · [BASIC5_ATTENTIVE.md](docs/submission_protocols/BASIC5_ATTENTIVE.md) · [BASIC5_FINETUNE.md](docs/submission_protocols/BASIC5_FINETUNE.md) |
+| E.4 · LoRA and DPT | [BASIC5_LORA_v2.md](docs/current_protocols/BASIC5_LORA_v2.md) · [BASIC5_LORA_v2.json](docs/current_protocols/BASIC5_LORA_v2.json) · [BASIC5_DPT_v2.md](docs/current_protocols/BASIC5_DPT_v2.md) · [BASIC5_DPT_v2.json](docs/current_protocols/BASIC5_DPT_v2.json) |
+| E.5 · Extended LP | [EXTEND_LINEAR.md](docs/submission_protocols/EXTEND_LINEAR.md) · [EXTEND_LINEAR_v1.json](docs/submission_protocols/EXTEND_LINEAR_v1.json) |
+| E.5 · Extended AP | [EXTEND_ATTENTIVE.md](docs/submission_protocols/EXTEND_ATTENTIVE.md) · [EXTEND_ATTENTIVE_v1.json](docs/submission_protocols/EXTEND_ATTENTIVE_v1.json) |
+| E.5 · Extended FT | [EXTEND_FINETUNE.md](docs/submission_protocols/EXTEND_FINETUNE.md) · [EXTEND_FINETUNE_v1.json](docs/submission_protocols/EXTEND_FINETUNE_v1.json) |
+| E.6 · Frontier-system prompts | [BASIC5_FRONTIER_SYSTEM_PROMPTS.md](docs/submission_protocols/BASIC5_FRONTIER_SYSTEM_PROMPTS.md) |
+
 ## What this optimises for
 
 1. **Reproducibility.** Preserve the evidence needed to independently reproduce a result.

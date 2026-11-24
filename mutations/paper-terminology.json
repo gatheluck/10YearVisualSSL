@@ -53,6 +53,15 @@
       "tests": [
         "tests.test_reviewer_protocol_index.ReviewerProtocolIndex.test_root_and_review_copy_link_to_the_same_protocols"
       ]
+    },
+    {
+      "label": "Appendix E prompt link replaced by its directory",
+      "file": "docs/templates/CVPR_REVIEWER_README.md",
+      "old": "](docs/submission_protocols/BASIC5_FRONTIER_SYSTEM_PROMPTS.md)",
+      "new": "](docs/submission_protocols/)",
+      "tests": [
+        "tests.test_section_e_links.AppendixNavigation.test_every_cited_document_has_a_direct_file_link"
+      ]
     }
   ]
 }
