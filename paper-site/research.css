@@ -422,3 +422,11 @@ footer {
   #figure-five .task-readout {padding-inline:10px;}
   .task-heading select {font-family:Arial,sans-serif;width:100%;}
 }
+
+@media (hover: hover) and (pointer: fine) {
+  .transfer-pan .score-point:hover {
+    transform-box: fill-box;
+    transform-origin: center;
+    transform: scale(1.4);
+  }
+}

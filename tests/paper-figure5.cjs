@@ -40,7 +40,26 @@ const path = require("node:path");
       }
       await picker.selectOption("ImageNet-10%");
       const profiles = feature.getByRole("group",{name:"Visible profiles"});
-      await profiles.getByRole("radio",{name:/Linear/}).check();
+      for (const [name, probe] of [[/Attentive/, "AP"], [/Linear/, "LP"]]) {
+        await profiles.getByRole("radio", {name}).check();
+        const points = feature.locator(`.score-point[data-model="dino"][data-probe="${probe}"]`);
+        const point = points.nth(1);
+        await point.scrollIntoViewIfNeeded();
+        await page.mouse.move(0, 0);
+        const baseWidth = (await point.boundingBox()).width;
+        const neighborWidth = (await points.first().boundingBox()).width;
+        await point.hover();
+        assert.ok((await point.boundingBox()).width > baseWidth * 1.15, "Hover enlarges the individual mark");
+        assert.equal((await points.first().boundingBox()).width, neighborWidth);
+        assert.equal(await picker.inputValue(), "ImageNet-10%");
+        await page.mouse.move(0, 0);
+        assert.equal((await point.boundingBox()).width, baseWidth);
+        await point.click();
+        assert.equal(await picker.inputValue(), await point.getAttribute("data-dataset"));
+        await page.mouse.move(0, 0);
+        assert.equal(await point.evaluate(el => getComputedStyle(el).transform), "none");
+        await picker.selectOption("ImageNet-10%");
+      }
       assert.equal(await values.locator("dd").count(),5);
       assert.equal(await feature.locator(".score-point:visible").count(), 200);
       assert.equal(await feature.locator(".profile:visible").count(), 5);
