@@ -23,8 +23,20 @@ const { chromium } = require("playwright");
     assert.deepEqual(await names(models), await page.evaluate(()=>historicalScores.map(m=>m.name)));
     assert.deepEqual(await names(settings), await page.locator(".task-choice option").allTextContents());
     assert.match(await settings.innerText(), /5 selected models/);
-    for (const dataset of ["ImageNet","COCO","ADE20K","NYUv2","SSv2"]) assert.ok((await hero.innerText()).includes(dataset));
-    assert.match(await hero.innerText(), /2,500\+/);
+    const resources = hero.getByRole("navigation",{name:"Reproduction resources"});
+    const experiments = hero.getByText("2,500+",{exact:true});
+    const positions = async () => Promise.all([models.locator("b"), settings.locator("b"), experiments].map(el=>el.boundingBox()));
+    for (const width of [1440,610,390,320]) {
+      await page.setViewportSize({width,height:900});
+      const boxes = await positions();
+      assert.ok(Math.max(...boxes.map(b=>b.y))-Math.min(...boxes.map(b=>b.y)) < 3, "Three study totals share a baseline at "+width);
+      assert.ok(boxes[0].x < boxes[1].x && boxes[1].x < boxes[2].x);
+    }
+    assert.doesNotMatch(await hero.innerText(), /core benchmarks/i);
+    for (const dataset of ["ImageNet","COCO","ADE20K","NYUv2","SSv2"]) assert.ok((await page.locator("#geometry").innerText()).includes(dataset));
+    for (const [label,path] of [["Source code",""],["Training recipes","/tree/main/methods"],["Checkpoint guide","/blob/main/docs/STEP1_WEIGHTS.md"]]) {
+      assert.equal(await resources.getByRole("link",{name:label}).getAttribute("href"),"https://github.com/gatheluck/10YearVisualSSL"+path);
+    }
     assert.equal(await page.locator(".cover-matrix rect").count(),545);
     const plot = models.locator(".coverage-marks");
     const frame = () => plot.screenshot({ animations: "allow" });

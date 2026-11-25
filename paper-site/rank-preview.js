@@ -29,6 +29,11 @@ function addCoverageMarks(selector, names) {
 addCoverageMarks(".model-marks", historicalScores.map(model => model.name));
 addCoverageMarks(".setting-marks", Array.from(document.querySelector(".task-choice").options, option => option.text));
 
+// The published lower bound spans 25 complete groups of 100 runs.
+for (let group = 0; group < 25; group++) {
+  atlas.querySelector(".experiment-units").append(document.createElement("i"));
+}
+
 const motionButton = document.querySelector(".motion-toggle");
 const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
 function setAtlasMotion(playing) {
