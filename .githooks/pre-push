@@ -1,8 +1,5 @@
-#!/usr/bin/env bash
-# Check offline whole-suite evidence; never start the suite inside Git transport.
-set -Eeuo pipefail
-unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX \
-      GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OBJECT_DIRECTORIES \
-      GIT_QUARANTINE_PATH
+#!/bin/sh
+set -eu
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX
 cd "$(git rev-parse --show-toplevel)"
-exec python3 bin/validate-push.py check --hook
+exec node scripts/push-check.mjs check

@@ -1,27 +1,2 @@
-# Generated artifacts. Nothing here is reproducible from the source, and a
-# stale one can shadow the source it was built from -- see
-# tests/test_repo_hygiene.py for the incident that prompted this.
-__pycache__/
-*.py[cod]
-*.so
-*.egg-info/
-# The READMEs tell people to build the environment at .venv/ inside the
-# repository. Nothing ignored it, so `git status` offered a whole virtual
-# environment as untracked -- and the language guard read its contents.
-.venv/
-venv/
-# Per-method environments, one directory each, kept OUT of methods/ so that
-# method-scanning tests never read a vendored package as the method's own
-# source: test_method_requirements walks methods/<m> for *.py, and a venv there
-# made it ast-parse the whole of torch. See docs/GPU.md section 2.
-.venvs/
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-# Downloaded pretrained backbones (bin/fetch-weights.py). Large, pinned by
-# sha256 in a method's provenance.json, and reproducible from there -- so the
-# bytes are never tracked. The default --out lands here.
-.weights/
-
-# Local account, reservation settings and private execution evidence. Never commit.
-.local/
+node_modules/
+.DS_Store
