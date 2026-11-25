@@ -7,6 +7,12 @@ const { chromium } = require("playwright");
   const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH });
   try {
     const page = await browser.newPage({ reducedMotion: "no-preference" });
+    // Returning readers may have the data script from before the shared color helper.
+    await page.route("**/history-data.js", async route => {
+      const fs = require("node:fs");
+      const current = fs.readFileSync(path.resolve(__dirname, "../paper-site/history-data.js"), "utf8");
+      await route.fulfill({contentType:"text/javascript", body:current.split("const taskRankColor =")[0]});
+    });
     await page.goto(process.env.HERO_URL || pathToFileURL(path.resolve(__dirname, "../paper-site/index.html")).href);
     const hero = page.locator(".paper-cover");
     const scope = await hero.locator("dl div").evaluateAll(items =>
@@ -15,10 +21,18 @@ const { chromium } = require("playwright");
       ["113", "Historical model configurations"], ["2,500+", "Training and evaluation experiments"],
       ["5", "Core tasks with LoRA adaptation"], ["40", "Extended settings with frozen probes"],
     ]);
-    const traces = hero.locator("svg polyline");
-    assert.deepEqual(await traces.evaluateAll(lines => lines.map(line =>
-      Array.from(line.points, point => point.y))), await page.evaluate(() => historicalRanks.map(model => model.ranks)));
-    const plot = hero.locator(".rank-field svg");
+    const story = hero.getByRole("figure", {name:/Same model, different ranks/});
+    assert.equal(await story.count(), 1, "Introduce the comparison with a readable, labeled example");
+    const ranks = story.locator("output");
+    assert.deepEqual(await ranks.allTextContents(), ["#1", "#100"]);
+    assert.match(await story.innerText(), /Segmentation/);
+    assert.match(await story.innerText(), /Video recognition/);
+    await story.getByRole("button", {name:"DINOv3-7B"}).click();
+    assert.deepEqual(await ranks.allTextContents(), ["#9", "#3"]);
+    await story.getByRole("button", {name:"RAEv2"}).click();
+    assert.deepEqual(await ranks.allTextContents(), ["#1", "#100"]);
+    assert.equal(await page.locator(".cover-matrix rect").count(),545);
+    const plot = story.locator(".task-pair");
     const frame = () => plot.screenshot({ animations: "allow" });
     const changes = async () => {
       const before = await frame();

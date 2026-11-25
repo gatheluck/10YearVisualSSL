@@ -16,29 +16,25 @@ historicalRanks.forEach((model, column) => {
 });
 preview.append(cells);
 
-// Draw the same five task ranks as the matrix in a parallel-coordinates view.
-const rankField = document.querySelector(".rank-field svg");
-const lines = rankField.querySelector(".rank-lines");
-const highlights = rankField.querySelector(".rank-highlights");
-historicalRanks.forEach(({ ranks }, index) => {
-  const trace = document.createElementNS(rankField.namespaceURI, "polyline");
-  trace.setAttribute("points", ranks.map((rank, index) => [index * 100, rank].join(",")).join(" "));
-  lines.append(trace);
-  if (index % 8 === 0) {
-    trace.id = "rank-profile-" + index;
-    const highlight = document.createElementNS(rankField.namespaceURI, "use");
-    highlight.setAttribute("href", "#" + trace.id);
-    highlights.append(highlight);
-  }
-});
+const story = document.querySelector(".task-story");
+const modelButtons = story.querySelectorAll(".example-models button");
+const rankOutputs = story.querySelectorAll("output");
+function showTaskExample(button) {
+  const model = historicalRanks.find(row => row.name === button.textContent);
+  rankOutputs[0].textContent = "#" + model.ranks[2];
+  rankOutputs[1].textContent = "#" + model.ranks[4];
+  modelButtons.forEach(item => item.setAttribute("aria-pressed", String(item === button)));
+}
+modelButtons.forEach(button => button.addEventListener("click", () => showTaskExample(button)));
+showTaskExample(modelButtons[0]);
 
 const motionButton = document.querySelector(".motion-toggle");
 const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
 function setRankMotion(playing) {
-  rankField.dataset.playing = String(playing);
+  story.dataset.playing = String(playing);
   motionButton.textContent = playing ? "Pause motion" : "Play motion";
 }
 setRankMotion(!preference.matches);
 motionButton.hidden = false;
-motionButton.addEventListener("click", () => setRankMotion(rankField.dataset.playing !== "true"));
+motionButton.addEventListener("click", () => setRankMotion(story.dataset.playing !== "true"));
 preference.addEventListener("change", () => setRankMotion(!preference.matches));
