@@ -15,8 +15,13 @@ const { chromium } = require("playwright");
     });
     await page.goto(process.env.HERO_URL || pathToFileURL(path.resolve(__dirname, "../paper-site/index.html")).href);
     const hero = page.locator(".paper-cover");
+    const authors = hero.getByRole("list",{name:"Authors"});
+    assert.deepEqual(await authors.getByRole("listitem").allTextContents(), [
+      "Hirokatsu Kataoka","Kohsuke Ide","Yoshihiro Fukuhara","Shumpei Takezaki",
+      "Nakamasa Inoue","Yuki M Asano","Christian Rupprecht",
+    ],"List the seven authors in manuscript order");
     const models = hero.getByRole("link",{name:/113 historical model configurations/i});
-    const settings = hero.getByRole("link",{name:/40 extended benchmark settings/i});
+    const settings = hero.getByRole("link",{name:/40 dataset benchmarks/i});
     assert.equal(await models.count(),1,"The first view must introduce the historical model collection");
     assert.equal(await settings.count(),1);
     assert.equal(await models.getAttribute("href"),"history.html");
@@ -24,6 +29,9 @@ const { chromium } = require("playwright");
     assert.match(await settings.getAttribute("aria-label"), /5 selected models/);
     assert.equal(+(await models.locator("b").textContent()),await page.evaluate(()=>historicalScores.length));
     assert.equal(+(await settings.locator("b").textContent()),await page.locator(".task-choice option").count());
+    assert.match(await settings.innerText(), /dataset benchmarks/i);
+    assert.match(await settings.innerText(), /5 models/);
+    assert.match(await settings.getAttribute("title"), /ImageNet.*1%.*10%/);
     const resources = hero.getByRole("navigation",{name:"Reproduction resources"});
     const experiments = hero.getByText("2,500+",{exact:true});
     const positions = async () => Promise.all([models.locator("b"), settings.locator("b"), experiments].map(el=>el.boundingBox()));
