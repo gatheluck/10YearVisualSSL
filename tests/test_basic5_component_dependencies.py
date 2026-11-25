@@ -38,7 +38,7 @@ class TestDependencyCI(unittest.TestCase):
                        'tests.test_revised_precision', 'tests.test_representation_neighbors',
                        'tests.test_method_revised_released_guard',
                        'tests.test_representation_plane', 'tests.test_representation_analysis_cli',
-                       'tests.test_representation_plot', 'tests.test_transfer_comparison',
+                       'tests.test_representation_nested', 'tests.test_representation_plot', 'tests.test_transfer_comparison',
                        'tests.test_revised_reporting', 'tests.test_method_revised_short_schedule',
                        'tests.test_extended_cityscapes', 'tests.test_cvpr_extended_coverage',
                        'tests.test_method_revised_cli', 'tests.test_revised_documentation'):
