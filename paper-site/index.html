@@ -13,8 +13,9 @@
     <script defer src="rankboard.js"></script>
     <script defer src="overview.js"></script>
     <script defer src="results.js"></script>
+    <script defer src="overview-location.js"></script>
     <script defer src="site.js"></script>
-  <script defer src="extended-data.js"></script><script defer src="figure-five-vector.js"></script><script defer src="figure-five.js"></script></head>
+  <script defer src="extended-data.js"></script><script defer src="figure-five-vector.js"></script><script defer src="figure-five.js"></script><link rel="stylesheet" href="publication.css"></head>
   <body>
     <a class="skip" href="#leaderboard">Skip to leaderboard</a>
     <header>
@@ -24,7 +25,7 @@
           Vision Baselines</a
         >
         <nav aria-label="Primary">
-          <a href="#overview">Overview</a>
+          <a href="#overview" aria-current="location">Overview</a>
           <a href="#leaderboard">Leaderboard</a>
           <a href="paper.html">Paper</a>
         </nav>
@@ -43,9 +44,8 @@
               2,500+ experiments across recognition, detection, segmentation,
               depth and video.
             </p>
-            <a class="opening-cta" href="#leaderboard"
-              >Explore leaderboard <span aria-hidden="true">↓</span></a
-            >
+            <div class="opening-actions"><a class="opening-cta" href="#leaderboard">Explore leaderboard <span aria-hidden="true">↓</span></a>
+              <a href="paper.html">Read the study</a></div>
           </div>
         </div>
       </section>
@@ -131,6 +131,10 @@
           </button>
         </div>
       </section>
+<nav class="results-directory" id="experiments" aria-label="Leaderboard comparisons"><div><h2>Explore the experiments</h2><a href="#protocols">Evaluation protocols ↓</a></div><div class="route-cards"><a aria-label="History" href="history.html"><small>Figures 1–2</small><strong>History</strong><span>Compare release years →</span></a>
+<a aria-label="Basic Five probes" href="#unified"><small>Figure 3</small><strong>Basic Five probes</strong><span>Compare readout protocols →</span></a>
+<a aria-label="ASIS vs CTRL" href="control.html"><small>Figure 4</small><strong>ASIS vs CTRL</strong><span>Compare pre-training setups →</span></a>
+<a aria-label="Broad transfer" href="extended.html"><small>Figure 5</small><strong>Broad transfer</strong><span>Explore 40 task settings →</span></a></div></nav>
       <section id="figure-five" aria-labelledby="transfer-head"><h2 id="transfer-head">Beyond the Basic Five: where do the leaders change?</h2></section>
       <details class="trajectories">
         <summary>Compare rank trajectories</summary>
@@ -168,14 +172,7 @@
           >
         </figure>
       </details>
-      <nav class="experiment-index" aria-label="Leaderboard comparisons">
-        <strong>Explore the results</strong>
-        <a href="history.html">History</a>
-        <a href="#unified">Basic Five probes</a>
-        <a href="control.html">ASIS vs CTRL</a>
-        <a href="extended.html">Broad transfer · Figure 5</a>
-        <a href="#protocols">Protocols</a>
-      </nav>
+
       <section id="unified" class="board">
         <div class="eyebrow">
           <span class="dash"></span> Figure 3 · Unified evaluation

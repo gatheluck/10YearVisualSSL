@@ -69,3 +69,5 @@ Each radar card reports the published first- and second-place counts over all 40
 Figure 5's selected-task panel shows raw scores with their metric and direction, grouped by model and probe. Figure 1's selected-model ranks include a position tick from first (left) to last (right).
 
 The task picker heads the live score panel. Immediately above the radar plots, the profile selector doubles as the line-and-marker legend and sits alongside the rank key and zoom control. This toolbar stays in view while scrolling the plots on narrow screens.
+
+The three primary destinations share a reading and navigation style. The overview leads directly to both the paper and the standings; its experiment directory links to historical, readout, controlled and broad-transfer comparisons. The paper introduces the Basic Five rationale before the broader results. Run `node tests/paper-wayfinding.cjs` to verify the routes and current-location indicators.

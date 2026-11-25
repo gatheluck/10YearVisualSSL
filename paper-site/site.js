@@ -190,6 +190,7 @@ function setHash() {
     if (state.reverse) p.set("reverse", "1");
   }
   history.replaceState(null, "", "#unified?" + p);
+  updateOverviewLocation();
 }
 function visibleTasks() {
   return state.task === "all" ? paperTasks(state.protocol) : [state.task];
