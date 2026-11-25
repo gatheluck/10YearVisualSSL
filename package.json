@@ -1,0 +1,12 @@
+{
+  "name": "vision-baselines-paper-site",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "test": "node scripts/test-site.mjs",
+    "verify:push": "node scripts/push-check.mjs prepare"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1"
+  }
+}

@@ -1,28 +1,5 @@
-#!/usr/bin/env bash
-# Refuse to commit while the test suite is failing.
-#
-# **A written rule did not hold.** On 2026-07-29 a commit went out, and was
-# pushed, with the suite red. The rule was stated in three separate places at
-# the time. So it is enforced here instead.
-#
-# Enable once per clone:
-#   git config core.hooksPath .githooks
-set -Eeuo pipefail
-
-# **git hands GIT_DIR and friends to hooks.** Left in place, the git processes
-# started by the tests would operate on this repository instead of their own
-# fixtures, and `git add` fails with exit 128. Clear them *before* calling git:
-# with the order reversed, `rev-parse` itself dies when GIT_DIR is broken.
-unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX \
-      GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OBJECT_DIRECTORIES \
-      GIT_QUARANTINE_PATH
-cd "$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
-
-echo "[pre-commit] running the test suite..."
-if ! ./tests/run-tests.sh > /tmp/pre-commit-tests.log 2>&1; then
-  echo "[pre-commit] *** tests are failing; the commit is aborted ***" >&2
-  tail -25 /tmp/pre-commit-tests.log >&2
-  echo "[pre-commit] full log: /tmp/pre-commit-tests.log" >&2
-  exit 1
-fi
-echo "[pre-commit] ok"
+#!/bin/sh
+set -eu
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX
+cd "$(git rev-parse --show-toplevel)"
+exec npm test
