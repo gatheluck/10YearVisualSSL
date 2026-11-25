@@ -1,38 +1,4 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>The paper · Vision Baselines</title><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="research.css"><link rel="stylesheet" href="study.css"><script defer src="extended-data.js"></script><script defer src="figure-five-vector.js"></script><script defer src="figure-five.js"></script><link rel="stylesheet" href="publication.css"></head>
-<body><a href="#study" class="skip">Skip to content</a><header>
-      <div class="wrap nav">
-        <a class="brand" href="index.html#overview"
-          ><span class="symbol" aria-hidden="true"><i></i><i></i><i></i></span>
-          Vision Baselines</a
-        >
-        <nav aria-label="Primary">
-          <a href="index.html#overview">Overview</a>
-          <a href="index.html#leaderboard">Leaderboard</a>
-          <a href="paper.html" aria-current="page">Paper</a>
-        </nav>
-      </div>
-    </header><main class="wrap study" id="study"><section class="study-hero paper-cover"><div><p class="eyebrow">Visual representation learning · Research overview</p>
-<h1>Revisiting Vision Model Baselines <em>in the Deep Learning Era</em></h1>
-<p>How much does an ImageNet ranking tell us about depth, segmentation or video? The answer depends on both the task and the readout.</p>
-<a class="action" href="#geometry">Why the Basic Five? ↓</a> <a class="action" href="index.html#leaderboard">Basic Five rankings →</a> <a class="action secondary" href="extended.html#figure-five">Explore Figure 5</a></div>
-<dl class="paper-scale" aria-label="Study scope">
-  <div><dt>Training and evaluation experiments</dt><dd>2,500+</dd></div>
-  <div><dt>Core benchmarks</dt><dd>5</dd></div>
-  <div><dt>Extended settings</dt><dd>40</dd></div>
-</dl></section>
-<section id="geometry"><p class="eyebrow">Figure 7 · Why the Basic Five?</p><h2>Image recognition tells only part of the story.</h2>
-<div class="geometry-spread">
-<figure class="geometry-figure">
-  <a href="figure-7.png" aria-label="Open Figure 7 at full resolution">
-    <img src="figure-7.png" width="1320" height="1520" alt="Figure 7. ImageNet points along the image-agreement axis, while the directions for ADE20K and NYUv2 tilt toward patch agreement.">
-    <span>Open full-size figure ↗</span>
-  </a>
-  <figcaption>Figure 7. Each point represents a configuration. Arrows show how task rankings vary with image and patch agreement. Shaded wedges show directions from family-held-out refits.</figcaption>
-</figure><div class="geometry-reading">
-<p>For NYUv2 depth, adding local patches to whole-image agreement raises held-out rank correlation from <strong>0.01 to 0.67</strong>. On ImageNet-1K it stays at <strong>0.88</strong>. Keeping both tasks exposes a difference a recognition-only leaderboard would miss.</p>
-<table><caption>Prediction of downstream ranks · pooled held-out Spearman ρ</caption><thead><tr><th>Task</th><th>Angle¹</th><th>Image</th><th>Image + patch</th><th aria-label="Change in correlation">Change</th></tr></thead><tbody><tr><th scope="row">ImageNet-1K</th><td>0°</td><td>0.88</td><td><b>0.88</b></td><td><span class="track" style="--start:88%;--end:88%"></span></td></tr><tr><th scope="row">SSv2</th><td>16°</td><td>0.72</td><td><b>0.73</b></td><td><span class="track" style="--start:72%;--end:73%"></span></td></tr><tr><th scope="row">COCO</th><td>33°</td><td>0.51</td><td><b>0.62</b></td><td><span class="track" style="--start:51%;--end:62%"></span></td></tr><tr><th scope="row">ADE20K</th><td>61°</td><td>0.19</td><td><b>0.75</b></td><td><span class="track" style="--start:19%;--end:75%"></span></td></tr><tr><th scope="row">NYUv2</th><td>71°</td><td>0.01</td><td><b>0.67</b></td><td><span class="track" style="--start:1%;--end:67%"></span></td></tr></tbody></table>
-<p>¹ Fitted direction relative to ImageNet-1K. Agreement uses label-free nearest neighbors in ImageNet validation features, comparing pooled images with DINOv3-7B and local patches with π3. The two coordinates correlate weakly (ρ = 0.11). Task directions use measured downstream ranks. Predictions hold out each of seven model families in turn.</p>
-<p>The paper reports 104 fitted configurations, with 94 used for COCO. Results depend on the reference models and the evaluation domain. These five tasks expose complementary variation in this study; they do not establish an optimal or exhaustive task set.</p></div></div></section><section id="figure-five" aria-labelledby="transfer-head"><h2 id="transfer-head">Forty settings expose different strengths.</h2></section>
-      </main><footer><div class="wrap"><a href="index.html#overview">Vision Baselines</a><a href="index.html#experiments">Browse experiments →</a></div></footer></body></html>
+<html lang="en"><head><meta charset="utf-8"><title>Overview · Vision Baselines</title>
+<script>location.replace("index.html" + location.search + location.hash);</script>
+</head><body><a href="index.html">Open the research overview</a></body></html>

@@ -9,7 +9,7 @@ const path = require("node:path");
   try {
     const page = await browser.newPage();
     await page.goto(
-      pathToFileURL(path.resolve(__dirname, "../paper-site/index.html")).href,
+      pathToFileURL(path.resolve(__dirname, "../paper-site/leaderboard.html")).href,
     );
     await page.setViewportSize({ width: 390, height: 844 });
     assert.ok(

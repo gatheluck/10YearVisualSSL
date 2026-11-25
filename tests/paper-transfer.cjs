@@ -6,8 +6,8 @@ const path = require("node:path");
   const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH });
   try {
     const page = await browser.newPage();
-    await page.goto(process.env.BOARD_HOME || pathToFileURL(path.resolve(__dirname, "../paper-site/index.html")).href);
-    const paper = page.getByRole("link", { name: "Paper", exact: true });
+    await page.goto(process.env.BOARD_HOME || pathToFileURL(path.resolve(__dirname, "../paper-site/leaderboard.html")).href);
+    const paper = page.getByRole("link", { name: "Overview", exact: true });
     assert.equal(await paper.count(), 1, "Leaderboard links directly to the paper overview");
     await paper.click();
     assert.equal(await page.locator("#geometry tbody tr").count(), 5);
@@ -32,6 +32,6 @@ const path = require("node:path");
     assert.match(await page.locator("#holds").innerText(), /SpaceNet 2.*SUN RGB-D/);
     await page.setViewportSize({ width:390, height:820 });
     assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth <= innerWidth));
-    assert.equal(await page.getByRole("link",{name:"Paper",exact:true}).isVisible(), true);
+    assert.equal(await page.getByRole("link",{name:"Overview",exact:true}).isVisible(), true);
   } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode=1; });

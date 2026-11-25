@@ -13,7 +13,7 @@ const path = require("node:path");
     });
     await page.goto(
       process.env.OVERVIEW_HOME ||
-        pathToFileURL(path.resolve(__dirname, "../paper-site/index.html")).href,
+        pathToFileURL(path.resolve(__dirname, "../paper-site/leaderboard.html")).href,
     );
     for (const [width, height, minRows] of [
       [1440, 900, 3],

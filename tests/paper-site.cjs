@@ -24,13 +24,13 @@ const paperDigests = {
     const errors = [];
     page.on("pageerror", (e) => errors.push(e.message));
     const url = pathToFileURL(
-      path.resolve(__dirname, "../paper-site/index.html"),
+      path.resolve(__dirname, "../paper-site/leaderboard.html"),
     ).href;
     await page.goto(url);
     assert.equal(await page.locator("h1").count(), 1, "Research title missing");
     assert.match(
       await page.locator("h1").innerText(),
-      /Revisiting Vision Model Baselines in the Deep Learning Era/i,
+      /Visual transfer leaderboard/i,
     );
     await page.getByRole("button", { name: "COCO", exact: true }).click();
     assert.match(await page.locator("#finding").innerText(), /0 of 10/);

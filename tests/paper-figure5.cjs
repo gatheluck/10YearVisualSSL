@@ -7,7 +7,7 @@ const path = require("node:path");
   try {
     const page = await browser.newPage();
     const base = process.env.BOARD_HOME || pathToFileURL(path.resolve(__dirname, "../paper-site/index.html")).href;
-    for (const file of ["index.html", "paper.html", "extended.html"]) {
+    for (const file of ["index.html", "leaderboard.html", "extended.html"]) {
       await page.goto(new URL(file, base).href);
       const feature = page.locator("#figure-five");
       assert.equal(await feature.locator("figure svg .model-panel").count(), 5, "Five live radar panels");

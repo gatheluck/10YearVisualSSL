@@ -11,12 +11,6 @@ function buildRankBoard(rows, familyByName, families) {
   const benchmarks = ["ImageNet", "COCO", "ADE20K", "NYUv2", "SSv2"];
   const mean = (r) =>
     (r.ranks.reduce((sum, x) => sum + x, 0) / r.ranks.length).toFixed(1);
-  const shade = (n) =>
-    "hsl(177 " +
-    (57 - ((n - 1) / 108) * 26) +
-    "% " +
-    (24 + ((n - 1) / 108) * 71) +
-    "%)";
   const select = get("inspect-config"),
     matrix = get("rank-matrix"),
     search = get("rank-search"),
@@ -62,7 +56,7 @@ function buildRankBoard(rows, familyByName, families) {
     for (const rank of row.ranks) {
       const cell = add(col, "i");
       cell.className = "matrix-cell";
-      cell.style.backgroundColor = shade(rank);
+      cell.style.backgroundColor = taskRankColor(rank);
     }
     add(col, "span", row.name).className = "model-tick";
     col.onclick = () => inspect(row);
@@ -99,7 +93,7 @@ function buildRankBoard(rows, familyByName, families) {
         const td = tr.insertCell();
         const num = add(td, "span", rank);
         num.className = "rank-chip";
-        num.style.background = shade(rank);
+        num.style.background = taskRankColor(rank);
         num.style.color = rank < 16 ? "white" : "#000";
       }
     }

@@ -13,7 +13,7 @@ const { pathToFileURL } = require("node:url");
     page.on("pageerror", (e) => errors.push(e.message));
     await page.goto(
       process.env.HISTORY_HOME ||
-        pathToFileURL(path.resolve(__dirname, "../paper-site/index.html")).href,
+        pathToFileURL(path.resolve(__dirname, "../paper-site/leaderboard.html")).href,
     );
     const link = page.getByRole("link", { name: "History", exact: true });
     assert.equal(

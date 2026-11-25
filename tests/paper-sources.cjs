@@ -10,7 +10,7 @@ const { chromium } = require("playwright");
     const p = await b.newPage();
     const base =
       process.env.BOARD_HOME ||
-      pathToFileURL(path.resolve(__dirname, "../paper-site/index.html")).href;
+      pathToFileURL(path.resolve(__dirname, "../paper-site/leaderboard.html")).href;
     await p.goto(base);
     await p
       .getByRole("button", { name: "Show all 109 configurations" })

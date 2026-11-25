@@ -225,3 +225,10 @@ const historicalScores = [
   {"id": 112, "name": "Qwen3-VL-8B", "family": "VLM, MLLM and Other Models", "year": 2025, "scores": [72.35, 3.11, 21.66, 0.875, 10.41]},
   {"id": 113, "name": "FLUX.2", "family": "VLM, MLLM and Other Models", "year": 2025, "scores": [9.07, 1.24, 17.87, 0.901, 1.66]}
 ];
+
+const taskRankColor = (n) =>
+    "hsl(177 " +
+    (57 - ((n - 1) / 108) * 26) +
+    "% " +
+    (24 + ((n - 1) / 108) * 71) +
+    "%)";

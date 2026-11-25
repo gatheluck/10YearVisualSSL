@@ -10,7 +10,7 @@ const { chromium } = require("playwright");
     const page = await browser.newPage();
     await page.goto(
       process.env.BOARD_HOME ||
-        pathToFileURL(path.resolve(__dirname, "../paper-site/index.html")).href,
+        pathToFileURL(path.resolve(__dirname, "../paper-site/leaderboard.html")).href,
     );
     await page
       .getByRole("link", { name: "Explore leaderboard", exact: true })

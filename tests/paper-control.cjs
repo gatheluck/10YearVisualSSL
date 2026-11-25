@@ -14,7 +14,7 @@ const path = require("node:path");
     page.on("pageerror", (e) => errors.push(e.message));
     await page.goto(
       process.env.CONTROL_HOME ||
-        pathToFileURL(path.resolve(__dirname, "../paper-site/index.html")).href,
+        pathToFileURL(path.resolve(__dirname, "../paper-site/leaderboard.html")).href,
     );
     const link = page.getByRole("link", { name: "ASIS vs CTRL", exact: true });
     assert.equal(await link.count(), 1, "The home page must link to Figure 4");
