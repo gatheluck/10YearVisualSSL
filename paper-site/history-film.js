@@ -1,0 +1,135 @@
+// The overview summarizes v46 scores with a running best across all families.
+(() => {
+  const film = document.querySelector(".history-film");
+  const svg = film.querySelector("svg");
+  const button = film.querySelector("button");
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)");
+  const chapters = [
+    ["in1k", "Image classification", "ImageNet Top-1 (%)"],
+    ["ade20k", "Segmentation", "ADE20K mIoU"],
+    ["nyuv2", "Depth estimation", "NYUv2 RMSE"],
+    ["ssv2", "Video classification", "SSv2 Top-1 (%)"],
+  ];
+  const start = Date.parse("2012-01-01"), end = Date.parse("2026-09-24");
+  const sweep = 7000, chapterTime = 9000;
+  let elapsed = reduced.matches ? sweep : 0, playing = !reduced.matches;
+  let timer, previous, chapter = -1, width, height, records, lower, ceiling;
+  let frontier, cursor, next, best, path, dots, labels, milestones;
+
+  function element(tag, attrs, parent = svg, text = "") {
+    const node = document.createElementNS(svg.namespaceURI, tag);
+    for (const [key,value] of Object.entries(attrs)) node.setAttribute(key,value);
+    node.textContent = text;
+    parent.append(node);
+    return node;
+  }
+  const x = date => 38 + (width-55)*(date-start)/(end-start);
+  const y = value => 12 + (height-43)*(lower ? value/ceiling : 1-value/ceiling);
+
+  function openChapter(index) {
+    chapter = index;
+    const [key,title,metric] = chapters[index];
+    lower = key === "nyuv2";
+    records = filmRecords.filter(row => row[key] !== null).map(row => ({
+      date:Date.parse(row.date), label:row.date, value:row[key], name:row.name,
+    }));
+    const step = lower ? 0.5 : 10;
+    ceiling = Math.ceil(Math.max(...records.map(r=>r.value))/step)*step;
+    film.querySelector("h2").textContent = title;
+    film.querySelector(".film-metric").textContent = metric + (lower ? " · lower is better" : " · higher is better");
+    width = Math.max(200,svg.clientWidth); height = svg.clientHeight;
+    svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+    svg.replaceChildren();
+    const tick = {fill:"#b9d0d1","font-size":11};
+    for (let i=0;i<=4;i++) {
+      const value=ceiling*i/4;
+      element("line",{x1:38,x2:width-17,y1:y(value),y2:y(value),stroke:"#34545b","stroke-dasharray":"3 5"});
+      element("text",{x:31,y:y(value)+4,"text-anchor":"end",...tick},svg,String(+value.toFixed(2)));
+    }
+    for (const year of (width < 500 ? [2012,2016,2020,2026] : [2012,2014,2016,2018,2020,2022,2024,2026])) {
+      element("text",{x:x(Date.UTC(year,0)),y:height-7,"text-anchor":"middle",...tick},svg,String(year));
+    }
+    dots=element("g",{});
+    frontier=element("path",{class:"frontier",fill:"none",stroke:"#00b3b0","stroke-width":2.5});
+    cursor=element("line",{y1:9,y2:height-30,stroke:"#bee7d9","stroke-opacity":0.6});
+    labels=element("g",{}); milestones=[];
+    next=0;best=null;path="";
+    film.querySelector(".film-best").textContent="";
+  }
+  // Give the current leader first choice of label position. Keep earlier
+  // records when there is room for both a readable name and a short leader.
+  function labelRecords() {
+    labels.replaceChildren();
+    const placed=[];
+    for (const r of milestones.slice().reverse()) {
+      const px=x(r.date), py=y(r.value);
+      const name=element("text",{class:"milestone-label","font-size":12,"font-weight":650,
+        fill:"#effaf7",stroke:"#102d33","stroke-width":3,"paint-order":"stroke"},labels,r.name);
+      const length=name.getComputedTextLength();
+      let position;
+      for (const offset of [-10,19,-26,35]) {
+        const left=Math.min(width-length-4,Math.max(38,px+5));
+        const base=py+offset;
+        if (base<12 || base>height-32) continue;
+        const box={left,right:left+length,top:base-12,bottom:base+3};
+        if (placed.some(p=>p.left<box.right+5 && box.left<p.right+5 && p.top<box.bottom+2 && box.top<p.bottom+2)) continue;
+        position={left,base};
+        placed.push(box);
+        break;
+      }
+      if (!position) {name.remove();continue;}
+      name.setAttribute("x",position.left);
+      name.setAttribute("y",position.base);
+      const leader=element("line",{x1:px,y1:py,x2:Math.max(position.left,Math.min(px,position.left+length)),
+        y2:position.base+(position.base>py?-11:3),stroke:"#bbd6d5","stroke-width":0.8},labels);
+      labels.insertBefore(leader,name);
+    }
+  }
+  function render() {
+    const index=Math.floor(elapsed/chapterTime)%chapters.length;
+    if(index!==chapter) openChapter(index);
+    const date=start+(end-start)*Math.min(1,(elapsed%chapterTime)/sweep);
+    const at=x(date);
+    const priorBest=best;
+    while(next<records.length && records[next].date<=date) {
+      const released=records[next].date;
+      let dayBest=records[next];
+      do {
+        const r=records[next++];
+        element("circle",{cx:x(r.date),cy:y(r.value),r:2.6,fill:"#8da3a6","data-date":r.label},dots);
+        if (lower ? r.value<dayBest.value : r.value>dayBest.value) dayBest=r;
+      } while(next<records.length && records[next].date===released);
+      if (!best || (lower ? dayBest.value<best.value : dayBest.value>best.value)) {
+        best=dayBest;
+        const px=x(best.date), py=y(best.value);
+        path+=path ? `H${px}V${py}` : `M${px} ${py}`;
+        milestones.push(best);
+        film.querySelector(".film-best").textContent=best.name+" · "+best.value;
+      }
+    }
+    if(best!==priorBest) labelRecords();
+    frontier.setAttribute("d",best ? path+"H"+at : "");
+    cursor.setAttribute("x1",at);cursor.setAttribute("x2",at);
+    film.querySelector(".film-year").textContent=new Date(date).getUTCFullYear();
+  }
+  function tick() {
+    const now=performance.now();
+    elapsed+=now-previous;previous=now;render();
+  }
+  function schedule() {
+    clearInterval(timer);
+    if(playing && !document.hidden) {previous=performance.now();timer=setInterval(tick,50);}
+    button.textContent=playing?"Pause motion":"Play motion";
+    render();
+  }
+  button.hidden=false;
+  button.onclick=()=>{
+    if(!playing && reduced.matches && elapsed===sweep) {elapsed=0;chapter=-1;}
+    playing=!playing;
+    schedule();
+  };
+  reduced.addEventListener("change",()=>{playing=!reduced.matches;elapsed=playing?0:sweep;chapter=-1;schedule();});
+  document.addEventListener("visibilitychange",schedule);
+  new ResizeObserver(()=>{if(svg.clientWidth!==width || svg.clientHeight!==height){chapter=-1;render();}}).observe(svg);
+  schedule();
+})();

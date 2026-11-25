@@ -106,10 +106,6 @@ header nav[aria-label=Primary] a:hover {background:#eef4f2;}
 .coverage-marks {position:relative;overflow:hidden;display:grid;grid-template-columns:repeat(12,1fr);gap:3px;align-self:start;width:100%;}
 .coverage-marks i {background:var(--tone);height:clamp(4px,.42vw,7px);border-radius:1px;}
 .setting-marks {grid-template-columns:repeat(8,1fr);}
-.coverage-marks::after {content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(100deg,transparent 25%,#fff9 48%,transparent 70%);mix-blend-mode:overlay;animation:scope-sweep 4s linear infinite;animation-play-state:paused;}
-.coverage-atlas[data-playing=true] .coverage-marks::after {animation-play-state:running;}
-@keyframes scope-sweep {from {transform:translateX(-80%);}to {transform:translateX(80%);}}
-.coverage-atlas button {grid-column:1/-1;justify-self:end;color:#c3dbd8;background:transparent;border:0;text-decoration:underline;text-underline-offset:3px;cursor:pointer;font-size:11px;}
 .paper-cover .hero-intro {display:block;padding:clamp(18px,3vw,40px) clamp(15px,3.4vw,48px) 0;}
 .paper-cover .hero-copy {display:grid;grid-template-columns:1.5fr 1fr;column-gap:clamp(20px,4vw,65px);align-items:center;}
 .paper-cover .hero-copy .eyebrow {grid-column:1/-1;margin:0;}
@@ -147,3 +143,17 @@ header nav[aria-label=Primary] a:hover {background:#eef4f2;}
   .hero-intro {padding:15px;gap:12px;}
   .study .paper-cover h1 {font-size:32px;}
 }
+
+.history-film {margin:0 clamp(12px,3.4vw,48px) 22px;padding:15px 0 0;border-top:1px solid #41626a;}
+.history-film figcaption,.film-key {display:flex;justify-content:space-between;align-items:center;gap:10px;}
+.history-film small,.film-metric,.film-key {font:500 12px/1.4 system-ui;color:#c1d7d7;}
+.history-film small {letter-spacing:.1em;}
+.study .history-film h2 {margin:2px 0;font:600 clamp(20px,2.4vw,32px)/1.1 system-ui;color:#ecf7f4;}
+.film-status {display:grid;justify-items:end;gap:3px;}
+.film-year {color:#9bedda;font:600 30px/1 system-ui;font-variant-numeric:tabular-nums;}
+.history-film button {cursor:pointer;border:0;background:transparent;text-decoration:underline;color:#c3dbd8;font-size:12px;}
+.history-film svg {display:block;width:100%;height:clamp(170px,19vw,245px);}
+.film-key {justify-content:flex-start;flex-wrap:wrap;}
+.film-key span::before {display:inline-block;content:"";margin-right:5px;width:7px;height:7px;border-radius:100%;background:#889da0;}
+.film-key span:nth-child(2)::before {width:16px;height:3px;background:#00b3b0;border-radius:0;}
+.film-best {color:#9befde;margin-left:auto;}

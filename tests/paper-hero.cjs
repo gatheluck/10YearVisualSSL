@@ -38,17 +38,44 @@ const { chromium } = require("playwright");
       assert.equal(await resources.getByRole("link",{name:label}).getAttribute("href"),"https://github.com/gatheluck/10YearVisualSSL"+path);
     }
     assert.equal(await page.locator(".cover-matrix rect").count(),545);
-    const plot = models.locator(".coverage-marks");
+    const plot = hero.locator(".history-film svg");
+    assert.equal(await plot.count(), 1, "Overview must play the historical chart");
+    await page.setViewportSize({width:1100,height:900});
+    // Keep the entire drawing in the viewport across focus and play-state changes.
+    await plot.evaluate(node => node.scrollIntoView({block:"center",behavior:"instant"}));
     const frame = () => plot.screenshot({ animations: "allow" });
     const changes = async () => {
       const before = await frame();
       await page.waitForTimeout(400);
-      return !before.equals(await frame());
+      const after = await frame();
+      if (before.equals(after)) return false;
+      // Chromium may rerasterize a few antialiased edge pixels in a stationary SVG.
+      return page.evaluate(async images => {
+        const canvas = document.createElement("canvas");
+        const context = canvas.getContext("2d");
+        const pixels = [];
+        for (const source of images) {
+          const image = new Image();
+          image.src = source;
+          await image.decode();
+          canvas.width = image.width;
+          canvas.height = image.height;
+          context.drawImage(image,0,0);
+          pixels.push(context.getImageData(0,0,image.width,image.height).data);
+        }
+        let changed = 0;
+        for (let i=0; i<pixels[0].length; i+=4) {
+          if (Math.abs(pixels[0][i+1] - pixels[1][i+1]) > 12) changed++;
+        }
+        return changed > canvas.height / 2;
+      }, [before,after].map(buffer => "data:image/png;base64," + buffer.toString("base64")));
     };
     await page.waitForTimeout(4100);
     assert.ok(await changes(), "The visible plot must still move after the opening");
     await hero.getByRole("button", {name:"Pause motion"}).click();
+    const frozen = await plot.innerHTML();
     assert.ok(!(await changes()), "Pausing freezes the actual plot");
+    assert.equal(await plot.innerHTML(), frozen, "Every SVG coordinate must remain exactly fixed");
     await hero.getByRole("button", {name:"Play motion"}).click();
     assert.ok(await changes());
     await page.emulateMedia({reducedMotion:"reduce"});

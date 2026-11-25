@@ -33,14 +33,3 @@ addCoverageMarks(".setting-marks", Array.from(document.querySelector(".task-choi
 for (let group = 0; group < 25; group++) {
   atlas.querySelector(".experiment-units").append(document.createElement("i"));
 }
-
-const motionButton = document.querySelector(".motion-toggle");
-const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
-function setAtlasMotion(playing) {
-  atlas.dataset.playing = String(playing);
-  motionButton.textContent = playing ? "Pause motion" : "Play motion";
-}
-setAtlasMotion(!preference.matches);
-motionButton.hidden = false;
-motionButton.addEventListener("click", () => setAtlasMotion(atlas.dataset.playing !== "true"));
-preference.addEventListener("change", () => setAtlasMotion(!preference.matches));
