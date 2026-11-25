@@ -14,6 +14,17 @@ const { chromium } = require("playwright");
     const film = page.locator(".history-film");
     assert.equal(await film.count(),1,"Provide an autoplay history in the cover");
     const points = film.locator("circle");
+    const palette = {
+      "VSSL":"#00B3B0", "3D/4D Geometric Models":"#FF5A5F", "Vision Generative Models":"#A044E6",
+      "VideoSSL":"#84D447", "Supervised Models":"#FFC700", "Multimodal World / Video Generative":"#2563EB",
+      "VLM, MLLM and Other Models":"#00A2FF",
+    };
+    const legend = film.getByRole("list",{name:"Model families"});
+    assert.equal(await legend.count(),1,"The family key belongs to this chart");
+    const swatches = await legend.locator("li").evaluateAll(items=>items.map(item=>[item.textContent,getComputedStyle(item,"::before").backgroundColor]));
+    const rgb = hex => "rgb("+hex.match(/../g).map(pair=>parseInt(pair,16)).join(", ")+")";
+    assert.deepEqual(swatches,Object.entries(palette).map(([family,hex])=>[family,rgb(hex.slice(1))]));
+    assert.doesNotMatch(await film.innerText(), /best across all configurations/i);
     for (const [name,count] of [["Image classification",112],["Segmentation",112],["Depth estimation",112],["Video classification",113]]) {
       assert.equal(await film.locator("h2").innerText(),name);
       assert.ok(await points.count()<10);
@@ -28,6 +39,9 @@ const { chromium } = require("playwright");
         previous=current;
       }
       assert.equal(await points.count(),count);
+      const key={"Image classification":"in1k","Segmentation":"ade20k","Depth estimation":"nyuv2","Video classification":"ssv2"}[name];
+      const families=await page.evaluate(task=>filmRecords.filter(r=>r[task]!==null).map(r=>r.family),key);
+      assert.deepEqual(await points.evaluateAll(ns=>ns.map(n=>getComputedStyle(n).fill)),families.map(family=>rgb(palette[family].slice(1))));
       const dates = await points.evaluateAll(ns=>ns.map(n=>n.dataset.date));
       assert.deepEqual(dates,[...dates].sort());
       assert.ok(await film.locator("path.frontier").getAttribute("d"));

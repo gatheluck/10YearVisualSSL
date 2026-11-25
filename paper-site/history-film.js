@@ -4,6 +4,22 @@
   const svg = film.querySelector("svg");
   const button = film.querySelector("button");
   const reduced = matchMedia("(prefers-reduced-motion: reduce)");
+  const familyColors = {
+    "VSSL": "#00B3B0",
+    "3D/4D Geometric Models": "#FF5A5F",
+    "Vision Generative Models": "#A044E6",
+    "VideoSSL": "#84D447",
+    "Supervised Models": "#FFC700",
+    "Multimodal World / Video Generative": "#2563EB",
+    "VLM, MLLM and Other Models": "#00A2FF"
+  };
+  const familyKey = film.querySelector(".film-key");
+  for (const [family,color] of Object.entries(familyColors)) {
+    const item=document.createElement("li");
+    item.textContent=family;
+    item.style.setProperty("--family-color",color);
+    familyKey.append(item);
+  }
   const chapters = [
     ["in1k", "Image classification", "ImageNet Top-1 (%)"],
     ["ade20k", "Segmentation", "ADE20K mIoU"],
@@ -31,7 +47,7 @@
     const [key,title,metric] = chapters[index];
     lower = key === "nyuv2";
     records = filmRecords.filter(row => row[key] !== null).map(row => ({
-      date:Date.parse(row.date), label:row.date, value:row[key], name:row.name,
+      date:Date.parse(row.date), label:row.date, value:row[key], name:row.name, family:row.family,
     }));
     const step = lower ? 0.5 : 10;
     ceiling = Math.ceil(Math.max(...records.map(r=>r.value))/step)*step;
@@ -49,8 +65,8 @@
     for (const year of (width < 500 ? [2012,2016,2020,2026] : [2012,2014,2016,2018,2020,2022,2024,2026])) {
       element("text",{x:x(Date.UTC(year,0)),y:height-7,"text-anchor":"middle",...tick},svg,String(year));
     }
-    dots=element("g",{});
     frontier=element("path",{class:"frontier",fill:"none",stroke:"#00b3b0","stroke-width":2.5});
+    dots=element("g",{});
     cursor=element("line",{y1:9,y2:height-30,stroke:"#bee7d9","stroke-opacity":0.6});
     labels=element("g",{});
     annotations=planLabels();
@@ -109,7 +125,7 @@
     const at=x(date);
     while(next<records.length && records[next].date<=date) {
       const r=records[next++], px=x(r.date), py=y(r.value);
-      element("circle",{cx:px,cy:py,r:2.6,fill:"#8da3a6","data-date":r.label},dots);
+      element("circle",{cx:px,cy:py,r:3.1,fill:familyColors[r.family],"data-date":r.label},dots);
       if (annotations.has(r)) {
         best=r;
         path+=path ? `H${px}V${py}` : `M${px} ${py}`;

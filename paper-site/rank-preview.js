@@ -15,21 +15,3 @@ historicalRanks.forEach((model, column) => {
   });
 });
 preview.append(cells);
-
-const atlas = document.querySelector(".coverage-atlas");
-function addCoverageMarks(selector, names) {
-  const marks = document.createDocumentFragment();
-  for (const name of names) {
-    const mark = document.createElement("i");
-    mark.title = name;
-    marks.append(mark);
-  }
-  atlas.querySelector(selector).append(marks);
-}
-addCoverageMarks(".model-marks", historicalScores.map(model => model.name));
-addCoverageMarks(".setting-marks", Array.from(document.querySelector(".task-choice").options, option => option.text));
-
-// The published lower bound spans 25 complete groups of 100 runs.
-for (let group = 0; group < 25; group++) {
-  atlas.querySelector(".experiment-units").append(document.createElement("i"));
-}
