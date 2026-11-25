@@ -8,6 +8,8 @@ const { chromium } = require("playwright");
     const page = await browser.newPage({reducedMotion:"no-preference"});
     await page.clock.install();
     await page.clock.pauseAt(new Date(Date.now()+1500));
+    for(const width of [390,1280]) {
+    await page.setViewportSize({width,height:900});
     await page.goto(pathToFileURL(path.resolve(__dirname,"../paper-site/index.html")).href);
     const film = page.locator(".history-film");
     assert.equal(await film.count(),1,"Provide an autoplay history in the cover");
@@ -15,7 +17,16 @@ const { chromium } = require("playwright");
     for (const [name,count] of [["Image classification",112],["Segmentation",112],["Depth estimation",112],["Video classification",113]]) {
       assert.equal(await film.locator("h2").innerText(),name);
       assert.ok(await points.count()<10);
-      await page.clock.runFor(7200);
+      let previous = {};
+      for(let step=0;step<36;step++) {
+        await page.clock.runFor(200);
+        const current=await film.locator(".milestone-label").evaluateAll(nodes=>Object.fromEntries(nodes.map(n=>{
+          const leader=n.previousElementSibling;
+          return [n.textContent,[n.getAttribute("x"),n.getAttribute("y"),...["x1","y1","x2","y2"].map(attr=>leader.getAttribute(attr))]];
+        })));
+        for(const [model,coords] of Object.entries(previous)) assert.deepEqual(current[model],coords,model+" label and leader must stay fixed during "+name);
+        previous=current;
+      }
       assert.equal(await points.count(),count);
       const dates = await points.evaluateAll(ns=>ns.map(n=>n.dataset.date));
       assert.deepEqual(dates,[...dates].sort());
@@ -42,5 +53,6 @@ const { chromium } = require("playwright");
       await page.clock.runFor(1800);
     }
     assert.equal(await film.locator("h2").innerText(),"Image classification");
+    }
   } finally {await browser.close();}
 })().catch(error=>{console.error(error);process.exitCode=1});

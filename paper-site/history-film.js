@@ -14,7 +14,7 @@
   const sweep = 7000, chapterTime = 9000;
   let elapsed = reduced.matches ? sweep : 0, playing = !reduced.matches;
   let timer, previous, chapter = -1, width, height, records, lower, ceiling;
-  let frontier, cursor, next, best, path, dots, labels, milestones;
+  let frontier, cursor, next, best, path, dots, labels, annotations;
 
   function element(tag, attrs, parent = svg, text = "") {
     const node = document.createElementNS(svg.namespaceURI, tag);
@@ -52,16 +52,30 @@
     dots=element("g",{});
     frontier=element("path",{class:"frontier",fill:"none",stroke:"#00b3b0","stroke-width":2.5});
     cursor=element("line",{y1:9,y2:height-30,stroke:"#bee7d9","stroke-opacity":0.6});
-    labels=element("g",{}); milestones=[];
+    labels=element("g",{});
+    annotations=planLabels();
     next=0;best=null;path="";
     film.querySelector(".film-best").textContent="";
   }
-  // Give the current leader first choice of label position. Keep earlier
-  // records when there is room for both a readable name and a short leader.
-  function labelRecords() {
-    labels.replaceChildren();
+  // Reserve space using the complete chapter at the current viewport size.
+  // A record with no room for a name still contributes its point and step.
+  function planLabels() {
+    const daily=new Map();
+    for(const r of records) {
+      const other=daily.get(r.date);
+      if(!other || (lower ? r.value<other.value : r.value>other.value)) daily.set(r.date,r);
+    }
+    const milestones=[];
+    let leader=null;
+    for(const r of daily.values()) {
+      if(!leader || (lower ? r.value<leader.value : r.value>leader.value)) {
+        milestones.push(r);
+        leader=r;
+      }
+    }
+    const planned=new Map(milestones.map(r=>[r,null]));
     const placed=[];
-    for (const r of milestones.slice().reverse()) {
+    for (const r of milestones.reverse()) {
       const px=x(r.date), py=y(r.value);
       const name=element("text",{class:"milestone-label","font-size":12,"font-weight":650,
         fill:"#effaf7",stroke:"#102d33","stroke-width":3,"paint-order":"stroke"},labels,r.name);
@@ -82,32 +96,28 @@
       name.setAttribute("y",position.base);
       const leader=element("line",{x1:px,y1:py,x2:Math.max(position.left,Math.min(px,position.left+length)),
         y2:position.base+(position.base>py?-11:3),stroke:"#bbd6d5","stroke-width":0.8},labels);
-      labels.insertBefore(leader,name);
+      const pair=document.createDocumentFragment();
+      pair.append(leader,name);
+      planned.set(r,pair);
     }
+    return planned;
   }
   function render() {
     const index=Math.floor(elapsed/chapterTime)%chapters.length;
     if(index!==chapter) openChapter(index);
     const date=start+(end-start)*Math.min(1,(elapsed%chapterTime)/sweep);
     const at=x(date);
-    const priorBest=best;
     while(next<records.length && records[next].date<=date) {
-      const released=records[next].date;
-      let dayBest=records[next];
-      do {
-        const r=records[next++];
-        element("circle",{cx:x(r.date),cy:y(r.value),r:2.6,fill:"#8da3a6","data-date":r.label},dots);
-        if (lower ? r.value<dayBest.value : r.value>dayBest.value) dayBest=r;
-      } while(next<records.length && records[next].date===released);
-      if (!best || (lower ? dayBest.value<best.value : dayBest.value>best.value)) {
-        best=dayBest;
-        const px=x(best.date), py=y(best.value);
+      const r=records[next++], px=x(r.date), py=y(r.value);
+      element("circle",{cx:px,cy:py,r:2.6,fill:"#8da3a6","data-date":r.label},dots);
+      if (annotations.has(r)) {
+        best=r;
         path+=path ? `H${px}V${py}` : `M${px} ${py}`;
-        milestones.push(best);
-        film.querySelector(".film-best").textContent=best.name+" · "+best.value;
+        const annotation=annotations.get(r);
+        if(annotation) labels.append(annotation);
+        film.querySelector(".film-best").textContent=r.name+" · "+r.value;
       }
     }
-    if(best!==priorBest) labelRecords();
     frontier.setAttribute("d",best ? path+"H"+at : "");
     cursor.setAttribute("x1",at);cursor.setAttribute("x2",at);
     film.querySelector(".film-year").textContent=new Date(date).getUTCFullYear();
