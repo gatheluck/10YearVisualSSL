@@ -160,3 +160,13 @@ header nav[aria-label=Primary] a:not([aria-current]):hover {background:#e4efeb;}
 .citation-bar button { background: #174a50; color: white; border: 0; border-radius: 20px; padding: 10px 16px; font-weight: 600; cursor: pointer; }
 #citation pre { white-space: pre-wrap; overflow-wrap: anywhere; background: #edf5f1; color: #193d43; padding: clamp(14px, 3vw, 28px); border-radius: 10px; line-height: 1.6; }
 .citation-status { color: #285951; }
+
+.standings-controls { display:flex; flex-wrap:wrap; align-items:end; gap:12px 20px; margin:20px 0 12px; }
+.standings-controls label { display:grid; gap:4px; min-width:0; max-width:100%; font-size:.8rem; font-weight:650; color:#38565b; }
+.standings-controls select { width:100%; min-width:0; max-width:100%; padding:8px; border:1px solid #a6bfb7; border-radius:6px; background:white; color:#173d44; font:inherit; }
+.rank-preview .preview-standings { min-width:0; width:100%; font-variant-numeric:tabular-nums; }
+.preview-standings th:first-child,.preview-standings td:first-child { width:12%; }
+.preview-standings th:last-child,.preview-standings td:last-child { text-align:right; }
+.preview-standings tbody tr:first-child { background:#e5f6ef; }
+.preview-standings tbody tr:first-child td:first-child { color:#095e56; font-weight:800; }
+.preview-standings tbody .paper-link { color:#174a50; text-underline-offset:3px; }
