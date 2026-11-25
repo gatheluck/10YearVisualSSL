@@ -1,8 +1,9 @@
 # CVPR adaptation checkpoint
 
-This checkpoint concerns the 15-page revised manuscript inspected on
-2026-11-18. Its referenced appendices were not supplied; historical ICLR
-protocols must not be treated as the new recipes. See
+The revised 15-page manuscript and its 38-page supplement specify the current
+comparisons. Tables 22–26 cover the Unified Basic Five and supplementary FT.
+See the [run attribution audit](BASIC5_V1_AUDIT.md#run-attribution-checked-against-the-revised-supplement)
+for the RAEv2 representation used in the experiments. See
 [package scope](SUBMISSION_SCOPE.md) for the distinction between experimental
 implementations, portable components and result reproduction.
 
@@ -127,10 +128,9 @@ normalization exactly once; loading local checkpoints is unchanged.
 | VGGT-Omega | Both frame and inter-frame block lists | Cached layers 4, 11, 17, 23; concatenate features as returned by the aggregator and remove its prefix |
 | RAEv2 K7 tokenizer | The tokenizer's 24 blocks | Official normalized intermediate-layer maps at evenly spaced indices; not raw hooks or the K7 aggregate |
 
-The RAEv2 row is explicitly the **tokenizer experiment source**, not the revised
-paper's generator block-29/time-0.1 LP/AP representation. No generator weights,
-identity or results are silently substituted. The projected-CLS HF family has
-no new binding in this change.
+The RAEv2 row implements the **K7 tokenizer** used by the adopted Unified
+experiments. The ASIS profile uses the diffusion generator at block 29 and
+timestep 0.1. The projected-CLS HF family has no new binding in this change.
 
 After building and placing a frozen provider, call
 `install_backbone_lora(backbone, rank=16, alpha=16)` from
@@ -377,7 +377,7 @@ separately from real decoding. Completed-epoch continuation is compared using
 fresh CLI processes. The other four providers have bound-component checks,
 not yet a complete released-model CLI validation matrix. Consult the PR's
 executed-test evidence for the actual scope. Select the documented [short schedules](REVISED_SCHEDULES.md) explicitly.
-Full-data score attribution and the tokenizer/generator distinction remain open.
+The original-run attribution and independent full-data comparisons are tracked separately.
 
 ### GPU validation checkpoint: 2026-11-19
 
@@ -393,7 +393,7 @@ all five released-weight providers completed one ImageNet LoRA update and one
 ADE20K DPT update using synthetic inputs and a reduced diagnostic head.
 These ten component cases checked trainable updates, frozen-state preservation
 and unchanged input checkpoint hashes. The RAEv2 case is the K7 tokenizer,
-not the pending generator readout. These checks do not run the full datasets
+as in the adopted Unified runs. These checks do not run the full datasets
 or establish manuscript-score correspondence.
 
 A reduced ImageNet CLI case also matched uninterrupted training exactly after
@@ -409,16 +409,15 @@ must not be treated as interchangeable environment certifications.
 | --- | --- |
 | LoRA task integration | The revised CLI connects all five inspected task profiles, with portable completed-epoch continuation. Full-data NYUv2 results appear below and the [ADE20K comparison](ADE20K_REPRODUCTION.md) covers all five models. ImageNet, SSv2 and COCO still require full-data released-weight validation; small component updates do not complete them. Earlier LoRA recipes remain historical. |
 | DPT | The revised CLI connects ADE20K and NYUv2 to the frozen four-tap head and v2 schedule. NYUv2 full-data executions are reported below. The [ADE20K report](ADE20K_REPRODUCTION.md) compares all five released models over three seeds. Dense execution follows the inspected single-device source; distributed dense training is not claimed. |
-| RAEv2 readout | The revised paper's LP/AP generator block 29 at time 0.1 is different from this package's existing tokenizer K7 readout. Keep these identities separate and port the matching generator path. |
-| COCO | Basic5 uses Faster R-CNN bounding-box AP. The existing portable COCO runner already performs detection; historical category-presence scores must not be relabeled as detection AP. New correction metadata is not proof that all corresponding reruns completed. |
+| RAEv2 readout | The adopted Unified experiments use the tokenizer K7 readout. Generator block 29 at time 0.1 applies to ASIS. See the run attribution audit above. |
+| COCO | Basic5 uses Faster R-CNN bounding-box AP. The existing portable COCO runner already performs detection; historical category-presence scores must not be relabeled as detection AP. The run attribution audit records the completed 15-target correction and its correspondence to the displayed tables. |
 | NYUv2 | The LoRA/DPT run record stores median-aligned RMSE as primary. The author-supplied v2 descriptions select the unaligned field for manuscript reporting. Other tracks require their own provenance. |
 | Geometry analysis | The [feature-array analysis CLI](REPRESENTATION_ANALYSIS.md) adds source-compared image/patch agreement and held-family task-direction fits. The original Figure 7b table statistics matched across five tasks. The reference-free correlations come from nested coordinate selection. Extraction identity requires separate validation. |
 | SSv2 attentive probing | The adopted input and reader vary by model. See the [five source paths and original score audit](SSV2_EXECUTION.md#figure-3-attentive-probes). This does not block the separate revised LoRA route. |
 
 The supplied manuscript also explicitly describes a category-presence analysis
-separately from Basic5 detection. Preserve that distinction while reconciling
-its intended scope; it must not be used to justify classification in the
-Basic5 COCO runner. Source availability and component tests do not establish
+in Figure 6 and supplementary Table 29 on a shared 500-image subset.
+All native Basic Five COCO evaluations use bounding boxes. Source availability and component tests do not establish
 the correspondence of any individual manuscript score to a run.
 
 ## Validation commands

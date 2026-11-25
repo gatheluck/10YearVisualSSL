@@ -20,7 +20,7 @@ The test command should finish with `OK`, and each help command should print its
 
 ## Evaluation protocols
 
-The following are the primary Basic Five protocols for the experiments in this paper. Each row links to the full specification in Markdown and JSON. LP, AP and FT use v1. The LoRA and DPT v2 documents describe the executed settings reconstructed from the training code and run records. Results use seeds 0, 1 and 2 and the final scheduled epoch.
+The following are the primary Basic Five protocols for the experiments in this paper. Each row links to the full specification in Markdown and JSON. LP, AP and FT use v1. The LoRA and DPT v2 documents describe the executed settings reconstructed from the training code and run records. The scheduled seeds are 0, 1 and 2. See [COCO metrics and completed FT repeats](docs/BASIC5_V1_AUDIT.md#coco-evaluation-and-completed-repeats) for the reported populations and final-epoch results.
 
 | Method | Protocol | Implementation and adopted run details |
 | --- | --- | --- |

@@ -327,21 +327,39 @@ def _train_one_epoch(model, loader, optimizer, device, max_steps,
     return total / max(steps, 1)
 
 
+def evaluation_image_ids(dataset):
+    """Resolve validation membership, including capped and rank-local Subsets."""
+    if isinstance(dataset, Subset):
+        parent = evaluation_image_ids(dataset.dataset)
+        return [parent[index] for index in dataset.indices]
+    if not hasattr(dataset, "ids"):
+        raise ValueError("COCO evaluation requires declared image IDs")
+    return dataset.ids
+
+
+def check_evaluated_images(dataset, observed):
+    expected = evaluation_image_ids(dataset)
+    if len(set(observed)) != len(observed) or sorted(observed) != sorted(expected):
+        raise ValueError("evaluated image IDs differ from the declared COCO population")
+
+
 @torch.no_grad()
 def evaluate(model, loader, dataset, device, *, profile: str = "legacy") -> dict:
     from pycocotools.cocoeval import COCOeval
     model.eval()
-    source = dataset.dataset if isinstance(dataset, Subset) else dataset
+    source = dataset
+    while isinstance(source, Subset):
+        source = source.dataset
     coco = source.coco
     results, image_ids = [], []
     for images, targets in loader:
         outputs = model([img.to(device) for img in images])
-        for target, output in zip(targets, outputs):
+        for target, output in zip(targets, outputs, strict=True):
             image_id = int(target["image_id"].item())
             image_ids.append(image_id)
             for box, label, score in zip(output["boxes"].cpu(),
                                          output["labels"].cpu(),
-                                         output["scores"].cpu()):
+                                         output["scores"].cpu(), strict=True):
                 x1, y1, x2, y2 = box.tolist()
                 category = int(label)
                 if getattr(source, "label_space", "category_id") == "contiguous":
@@ -352,6 +370,9 @@ def evaluate(model, loader, dataset, device, *, profile: str = "legacy") -> dict
                                 "bbox": [x1, y1, max(0.0, x2 - x1),
                                          max(0.0, y2 - y1)],
                                 "score": float(score)})
+    check_evaluated_images(dataset, image_ids)
+    if not image_ids:
+        raise ValueError("COCO evaluation requires a nonempty image population")
     names = ("bbox_mAP", "bbox_mAP_50")
     if profile == CAPTURE_PROFILE:
         names += ("bbox_mAP_75", "bbox_mAP_small", "bbox_mAP_medium", "bbox_mAP_large")
