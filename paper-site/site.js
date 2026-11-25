@@ -66,7 +66,7 @@ const betterFirst = (a, b, task) =>
 const paperTasks = (protocol) =>
   Object.keys(tasks).filter((task) => entry(models[0], task, protocol));
 const state = { protocol: "LP", task: "all", sort: "", reverse: false };
-const dialog = document.querySelector("dialog");
+const dialog = document.querySelector('dialog[aria-labelledby="detail-title"]');
 
 function chart(task) {
   const ranked = (protocol) =>

@@ -196,7 +196,7 @@ h2,
   width: fit-content;
 }
 .chart-controls button,
-#tracks button {
+:is(#tracks, #history-tracks) button {
   background: transparent;
   border: 0;
   border-radius: 4px;
@@ -286,14 +286,14 @@ select {
   font-size: 13px;
   color: var(--muted);
 }
-#tracks {
+:is(#tracks, #history-tracks) {
   display: flex;
   gap: 2px;
   background: #eceee9;
   padding: 4px;
   border-radius: 6px;
 }
-#tracks button[aria-pressed="true"] {
+:is(#tracks, #history-tracks) button[aria-pressed="true"] {
   background: var(--ink);
   color: white;
 }

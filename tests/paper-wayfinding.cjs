@@ -27,10 +27,36 @@ const {chromium} = require("playwright");
     assert.ok(await routes.evaluate(el=>Boolean(el.compareDocumentPosition(document.querySelector("#figure-five"))&Node.DOCUMENT_POSITION_FOLLOWING)));
     for(const link of await routes.getByRole("link").all()) {
       const target=await link.getAttribute("href");
+      assert.ok(target.startsWith("#"), "Comparison must be inside this document: "+target);
+      assert.equal(await page.locator(target).count(),1);
       await link.click();
       await page.waitForURL(new URL(target,new URL("leaderboard.html",base)).href);
       await page.goBack();
     }
+    for (const [oldRoute, fragment] of [
+      ["history.html#scores", "#scores"], ["control.html", "#controlled"],
+      ["extended.html#matrix", "#matrix"]
+    ]) {
+      await page.goto(new URL(oldRoute, base).href);
+      await page.waitForURL("**/leaderboard.html" + fragment);
+    }
+    await page.goto(new URL("leaderboard.html#scores", base).href);
+    assert.equal(await page.locator("#scores").getAttribute("aria-pressed"), "true");
+    await page.locator("#ranking").click();
+    await page.getByRole("link", {name: /Explore historical results/}).click();
+    await page.locator('#scores[aria-pressed="true"]').waitFor({timeout: 3000});
+    assert.equal(await page.locator("#scores").getAttribute("aria-pressed"), "true");
+    const duplicates = await page.locator("[id]").evaluateAll(nodes => {
+      const ids = nodes.map(node => node.id);
+      return ids.filter((id, index) => ids.indexOf(id) !== index);
+    });
+    assert.deepEqual(duplicates, []);
+    await page.locator("#year").selectOption("2013");
+    const origin = await page.evaluate(() => performance.timeOrigin);
+    await routes.getByRole("link", {name: "ASIS vs CTRL"}).click();
+    await routes.getByRole("link", {name: "History", exact: true}).click();
+    assert.equal(await page.locator("#year").inputValue(), "2013");
+    assert.equal(await page.evaluate(() => performance.timeOrigin), origin);
     for(const fragment of ["#unified?protocol=LoRA&task=all","#experiments","#leaderboard"]) {
       await page.goto(new URL("index.html"+fragment,base).href);
       await page.waitForURL(new URL("leaderboard.html"+fragment,base).href);

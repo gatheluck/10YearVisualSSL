@@ -7,7 +7,7 @@ const path = require("node:path");
   try {
     const page = await browser.newPage();
     const base = process.env.BOARD_HOME || pathToFileURL(path.resolve(__dirname, "../paper-site/index.html")).href;
-    for (const file of ["index.html", "leaderboard.html", "extended.html"]) {
+    for (const file of ["index.html", "leaderboard.html"]) {
       await page.goto(new URL(file, base).href);
       const feature = page.locator("#figure-five");
       assert.equal(await feature.locator("figure svg .model-panel").count(), 5, "Five live radar panels");
@@ -77,7 +77,7 @@ const path = require("node:path");
       assert.ok(await feature.locator(".transfer-pan").evaluate(e=>e.scrollWidth>e.clientWidth));
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
       await feature.getByRole("link", {name:"Inspect task scores"}).click();
-      await page.waitForURL("**/extended.html#matrix");
+      await page.waitForURL("**/leaderboard.html#matrix");
       assert.equal(await page.locator("#matrix tbody tr").count(), 38);
     }
   } finally {await browser.close();}

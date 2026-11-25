@@ -53,10 +53,10 @@ const { chromium } = require("playwright");
       ["control.html", 32],
     ]) {
       await p.goto(new URL(file, base).href);
-      await verify("tbody th", count);
+      await verify(file === "history.html" ? "#history tbody th" : "#controlled tbody th", count);
       if (file === "history.html") {
         await p.getByRole("button", { name: "Figure 2 · Scores" }).click();
-        await verify("tbody th", 113);
+        await verify("#history tbody th", 113);
       }
     }
     // Snapshot of the checked configuration-to-primary-source mapping.

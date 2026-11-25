@@ -1,3 +1,4 @@
+@scope (:is(#history, #controlled)) {
 .history-intro {
   padding: clamp(34px, 5vw, 80px) 0 32px;
 }
@@ -18,7 +19,7 @@ nav [aria-current] {
   flex-wrap: wrap;
   gap: 12px;
 }
-#tracks button {
+#history-tracks button {
   border: 0;
   border-radius: 4px;
   background: transparent;
@@ -45,11 +46,11 @@ nav [aria-current] {
   gap: 8px;
 }
 #axis,
-#count {
+#history-count {
   font: 12px var(--mono);
   color: var(--muted);
 }
-#plot {
+#history-plot {
   display: block;
   width: 100%;
   max-height: 225px;
@@ -61,7 +62,7 @@ nav [aria-current] {
   line-height: 1.5;
   color: var(--muted);
 }
-#compare {
+:is(#history-compare, #control-compare) {
   padding-bottom: 50px;
 }
 tbody th small {
@@ -95,7 +96,7 @@ dd {
   .filters select {
     margin: 0;
   }
-  #plot {
+  #history-plot {
     min-height: 105px;
   }
   .nav {
@@ -105,4 +106,5 @@ dd {
   .historical-chart {
     padding: 14px 7px;
   }
+}
 }

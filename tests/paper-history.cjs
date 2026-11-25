@@ -22,10 +22,10 @@ const { pathToFileURL } = require("node:url");
       "Home page must link to historical comparisons",
     );
     await link.click();
-    await page.waitForURL("**/history.html", { waitUntil: "load" });
-    const rows = page.locator("tbody tr");
+    await page.waitForURL("**/leaderboard.html#history", { waitUntil: "load" });
+    const rows = page.locator("#history tbody tr");
     const year = page.getByLabel("First release");
-    const task = page.getByLabel("Benchmark");
+    const task = page.locator("#history").getByLabel("Benchmark");
     assert.equal(await rows.count(), 109);
     assert.match(await rows.first().innerText(), /DINOv3-7B/);
     assert.match(await rows.first().innerText(), /6\.2/);
@@ -40,7 +40,7 @@ const { pathToFileURL } = require("node:url");
         "ssv2",
       ].entries()) {
         await task.selectOption(key);
-        assert.equal(await page.locator("#plot circle").count(), points[i]);
+        assert.equal(await page.locator("#history-plot circle").count(), points[i]);
         panels.push(
           ...(await rows.evaluateAll((lines) =>
             lines.map((line) =>

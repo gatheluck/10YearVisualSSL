@@ -30,7 +30,7 @@ figureHeading.insertAdjacentHTML("afterend", `
     <section class="task-key" aria-label="Numbered task key"><h3>Task key</h3><div></div></section>
   </figure>
   <div class="transfer-foot"><p>38 settings with score details · 2 pending</p>
-  <a href="extended.html#matrix">Inspect task scores</a></div>`);
+  <a href="${document.getElementById("matrix") ? "#matrix" : "leaderboard.html#matrix"}">Inspect task scores</a></div>`);
 
 const source = broadTransfer.querySelector(".transfer-pan svg");
 const chart = source.parentElement;

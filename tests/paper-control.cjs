@@ -19,13 +19,13 @@ const path = require("node:path");
     const link = page.getByRole("link", { name: "ASIS vs CTRL", exact: true });
     assert.equal(await link.count(), 1, "The home page must link to Figure 4");
     await link.click();
-    const task = page.getByLabel("Benchmark");
+    const task = page.locator("#controlled").getByLabel("Benchmark");
     const panels = [];
     for (const name of ["ImageNet-1K", "COCO", "ADE20K", "NYUv2", "SSv2"]) {
       await task.selectOption(name);
-      const rows = page.locator("tbody tr");
+      const rows = page.locator("#controlled tbody tr");
       assert.equal(await rows.count(), 32);
-      assert.equal(await page.locator("svg circle").count(), 32);
+      assert.equal(await page.locator("#paired circle").count(), 32);
       panels.push(
         ...(await rows.evaluateAll((rs) =>
           rs.map((r) => [...r.cells].map((c) => c.textContent).join("|")),
@@ -38,15 +38,15 @@ const path = require("node:path");
     );
     await task.selectOption("NYUv2");
     assert.match(
-      await page.getByRole("row", { name: /DINOv3/ }).innerText(),
+      await page.locator("#controlled").getByRole("row", { name: /DINOv3/ }).innerText(),
       /\+0\.115\s+Worse/,
     );
     assert.match(
-      await page.getByRole("row", { name: /Split-Brain/ }).innerText(),
+      await page.locator("#controlled").getByRole("row", { name: /Split-Brain/ }).innerText(),
       /-0\.203\s+Better/,
     );
-    await page.getByText("Evaluation conditions", { exact: true }).click();
-    const conditions = await page.locator("details[open]").innerText();
+    await page.locator("#controlled").getByText("Evaluation conditions", { exact: true }).click();
+    const conditions = await page.locator("#controlled details[open]").innerText();
     for (const phrase of [
       "ViT-B/16",
       "unlabeled ImageNet-1K",

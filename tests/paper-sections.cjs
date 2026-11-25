@@ -29,9 +29,9 @@ const path = require("node:path");
     await story.getByRole("button", { name: "SSv2", exact: true }).click();
     assert.equal(await story.locator("#reversal-count").innerText(), "4 / 10");
     await page.getByRole("link", { name: /Explore paired results/ }).click();
-    await page.waitForURL("**/control.html");
+    await page.waitForURL("**/leaderboard.html#controlled");
     for (const benchmark of ["ImageNet-1K", "NYUv2"]) {
-      await page.getByLabel("Benchmark").selectOption(benchmark);
+      await page.locator("#controlled").getByLabel("Benchmark").selectOption(benchmark);
       const better = await page.locator("td.better").count();
       assert.equal(
         await page.locator("#outcome-strip .better").count(),

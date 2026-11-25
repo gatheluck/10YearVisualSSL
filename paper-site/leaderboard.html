@@ -7,6 +7,9 @@
     <title>Leaderboard · Vision Baselines</title>
     <link rel="stylesheet" href="style.css" />
     <link rel="stylesheet" href="overview.css" />
+    <link rel="stylesheet" href="history.css" />
+    <link rel="stylesheet" href="control.css" />
+    <link rel="stylesheet" href="study.css" />
     <link rel="stylesheet" href="research.css" />
     <script defer src="sources.js"></script>
     <script defer src="history-data.js?v=b179a62c5b"></script>
@@ -15,7 +18,12 @@
     <script defer src="results.js"></script>
 
     <script defer src="site.js"></script>
-  <script defer src="extended-data.js"></script><script defer src="figure-five-vector.js"></script><script defer src="figure-five.js"></script><link rel="stylesheet" href="publication.css?v=935ba5ac04"></head>
+  <script defer src="extended-data.js"></script><script defer src="figure-five-vector.js"></script><script defer src="figure-five.js"></script><link rel="stylesheet" href="publication.css?v=935ba5ac04">
+    <script defer src="control-data.js"></script>
+    <script defer src="history.js"></script>
+    <script defer src="control.js"></script>
+    <script defer src="extended.js"></script>
+  </head>
   <body>
     <a class="skip" href="#leaderboard">Skip to leaderboard</a>
     <header>
@@ -126,11 +134,10 @@
           </button>
         </div>
       </section>
-<nav class="results-directory" id="experiments" aria-label="Leaderboard comparisons"><div><h2>Explore the experiments</h2><a href="#protocols">Evaluation protocols ↓</a></div><div class="route-cards"><a aria-label="History" href="history.html"><small>Figures 1–2</small><strong>History</strong><span>Compare release years →</span></a>
+<nav class="results-directory" id="experiments" aria-label="Leaderboard comparisons"><div><h2>Explore the experiments</h2><a href="#protocols">Evaluation protocols ↓</a></div><div class="route-cards"><a aria-label="History" href="#history"><small>Figures 1–2</small><strong>History</strong><span>Compare release years →</span></a>
 <a aria-label="Basic Five probes" href="#unified"><small>Figure 3</small><strong>Basic Five probes</strong><span>Compare readout protocols →</span></a>
-<a aria-label="ASIS vs CTRL" href="control.html"><small>Figure 4</small><strong>ASIS vs CTRL</strong><span>Compare pre-training setups →</span></a>
-<a aria-label="Broad transfer" href="extended.html"><small>Figure 5</small><strong>Broad transfer</strong><span>Explore 40 task settings →</span></a></div></nav>
-      <section id="figure-five" aria-labelledby="transfer-head"><h2 id="transfer-head">Beyond the Basic Five: where do the leaders change?</h2></section>
+<a aria-label="ASIS vs CTRL" href="#controlled"><small>Figure 4</small><strong>ASIS vs CTRL</strong><span>Compare pre-training setups →</span></a>
+<a aria-label="Broad transfer" href="#figure-five"><small>Figure 5</small><strong>Broad transfer</strong><span>Explore 40 task settings →</span></a></div></nav>
       <details class="trajectories">
         <summary>Compare rank trajectories</summary>
         <figure class="atlas">
@@ -162,12 +169,85 @@
             role="group"
             aria-label="Highlight a model family"
           ></div>
-          <a class="atlas-link" href="history.html"
+          <a class="atlas-link" href="#history"
             >Explore all 109 rankings <span aria-hidden="true">↗</span></a
           >
         </figure>
       </details>
 
+<section id="history" class="comparison-section" aria-label="History comparison">
+<section class="comparison-heading">
+        <p class="eyebrow">
+          <span class="dash"></span> Figures 1 &amp; 2 · ASIS
+        </p>
+        <h2>Historical <em>transfer</em></h2>
+        <p class="summary">
+          Compare Basic Five results by release year. Each checkpoint uses its original evaluation protocol.
+        </p>
+      </section>
+      <section id="history-compare" aria-label="Compare historical results">
+        <div class="toolbar">
+          <div id="history-tracks" aria-label="Comparison view">
+            <button id="ranking" aria-pressed="true">Figure 1 · Ranks</button
+            ><button id="scores" aria-pressed="false">Figure 2 · Scores</button>
+          </div>
+          <div class="filters">
+            <label
+              >First release
+              <select id="year">
+                <option value="">All years</option>
+              </select></label
+            >
+            <label
+              >Benchmark
+              <select id="history-task"></select
+            ></label>
+          </div>
+        </div>
+        <figure class="historical-chart">
+          <figcaption>
+            <h2 id="history-chart-title"></h2>
+            <span id="axis"></span>
+          </figcaption>
+          <svg
+            id="history-plot"
+            role="img"
+            aria-labelledby="history-chart-title axis"
+            viewBox="0 0 800 175"
+          ></svg>
+        </figure>
+        <div class="history-reading">
+          <span id="history-leading-label"></span
+          ><strong id="history-leading"></strong
+          ><span id="history-value"></span>
+        </div>
+        <div class="results-heading">
+          <h2 id="heading"></h2>
+          <span aria-live="polite" id="history-count"></span>
+        </div>
+        <p id="context"></p>
+        <div
+          class="table-scroll"
+          tabindex="0"
+          role="region"
+          aria-label="Historical configurations"
+        >
+          <table>
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+<dialog aria-labelledby="history-detail-title">
+      <form method="dialog">
+        <button id="history-close" aria-label="Close details">×</button>
+      </form>
+      <p class="eyebrow" id="source"></p>
+      <h2 id="history-detail-title"></h2>
+      <dl id="details"></dl>
+    </dialog>
+<a href="#experiments">Back to comparisons ↑</a>
+</section>
       <section id="unified" class="board">
         <div class="eyebrow">
           <span class="dash"></span> Figure 3 · Unified evaluation
@@ -228,7 +308,7 @@
         </figure>
       </section>
       <nav class="study-paths" aria-label="Explore the experiments">
-        <a href="history.html#scores"
+        <a href="#scores"
           ><span>Figures 1–2 · Historical evaluation</span>
           <h2>A decade of transfer</h2>
           <p>
@@ -241,7 +321,7 @@
           </div>
           <strong>Explore historical results →</strong></a
         >
-        <a href="control.html"
+        <a href="#controlled"
           ><span>Figure 4 · Controlled pre-training</span>
           <h2>What changes under one recipe?</h2>
           <p>
@@ -255,6 +335,106 @@
           <strong>Explore paired results →</strong></a
         >
       </nav>
+<section id="controlled" class="comparison-section" aria-label="Control comparison">
+<section class="comparison-heading">
+        <p class="eyebrow">
+          <span class="dash"></span>Figure 4 · Controlled VSSL pre-training
+        </p>
+        <h2>ASIS <em>vs</em> CTRL</h2>
+        <p class="summary">
+          Compare 32 methods before and after standardizing the backbone, dataset and training duration.
+        </p>
+      </section>
+      <section id="control-compare" aria-label="Paired scores">
+        <div class="toolbar">
+          <label
+            >Benchmark
+            <select id="benchmark"></select></label
+          ><span class="source">32 paired configurations</span>
+        </div>
+        <div class="comparison">
+          <figure>
+            <figcaption><h2 id="control-chart-title"></h2></figcaption>
+            <svg
+              id="paired"
+              viewBox="0 0 370 240"
+              role="img"
+              aria-labelledby="control-chart-title chart-note"
+            ></svg>
+            <p id="chart-note">
+              Each point is one method. Shading marks a better CTRL score; the
+              diagonal marks equality.
+            </p>
+          </figure>
+          <div class="reading">
+            <p class="eyebrow">Under the controlled recipe</p>
+            <p id="control-finding" aria-live="polite"></p>
+            <div id="outcome-strip" aria-hidden="true"></div>
+            <details>
+              <summary>Evaluation conditions</summary>
+              <dl>
+                <dt>ASIS · historical configuration</dt>
+                <dd>
+                  Released or reproduced checkpoints, with family-specific
+                  feature extraction and downstream evaluation on shared
+                  benchmarks.
+                </dd>
+                <dt>CTRL · controlled pre-training</dt>
+                <dd>
+                  Each method trains from scratch with ViT-B/16 on unlabeled
+                  ImageNet-1K for 300 epochs. Optimization and augmentations are
+                  aligned where compatible, preserving mechanisms such as
+                  masking, memory banks and teacher updates. Figure 4 uses the
+                  300-epoch result; intermediate evaluations occur at 100 and
+                  200 epochs.
+                </dd>
+                <dt>Interpreting a difference</dt>
+                <dd>
+                  Architecture, pre-training, feature extraction and downstream
+                  evaluation can all change. The difference measures their
+                  combined effect. The shared recipe may suit some methods
+                  better than others.
+                </dd>
+              </dl>
+            </details>
+          </div>
+        </div>
+        <div class="results-heading">
+          <h2>Paired results</h2>
+          <span id="metric"></span>
+        </div>
+        <p id="rule"></p>
+        <div
+          class="table-scroll"
+          role="region"
+          aria-label="Scores in figure legend order"
+          tabindex="0"
+        >
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Method</th>
+                <th scope="col">ASIS</th>
+                <th scope="col">CTRL</th>
+                <th scope="col">CTRL − ASIS</th>
+                <th scope="col">Outcome</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+<a href="#experiments">Back to comparisons ↑</a>
+</section>
+      <section id="figure-five" aria-labelledby="transfer-head"><h2 id="transfer-head">Beyond the Basic Five: where do the leaders change?</h2></section>
+<div class="study" id="transfer-details"><section><h2>Transfer across tasks</h2><p>Each highlighted cell marks a first-place score among the five models in that row. Select a task for its metric, probe conditions and original model papers.</p>
+<div class="filters"><label>Probe <select id="probe"><option>LP</option><option>AP</option></select></label><label>Task family <select id="family"><option>All</option></select></label><span aria-live="polite" id="transfer-count"></span></div>
+<div class="matrix-scroll" role="region" aria-label="Scrollable task scores" tabindex="0"><table id="matrix"><caption>Measured scores in the original metric</caption><thead><tr><th scope="col">Task / metric</th></tr></thead><tbody></tbody></table></div>
+<p id="holds">SpaceNet 2 and SUN RGB-D are on hold pending confirmation of their tasks and metrics. The table covers the other 38 of the paper’s 40 settings.</p></section>
+<section><p class="eyebrow">Evaluation conditions</p><h2>How to read the scores</h2><p>LP denotes linear or frozen-backbone probing with a task-specific head. AP denotes attentive probing. Each setting uses one seed. Subsets and related tasks count separately; a win count does not measure statistical significance.</p>
+<p>The paper plots percentages divided by 100 and errors mapped to 1/(1 + error), then scales each five-model group to its own maximum separately for LP and AP. This table preserves the source scores before normalization. SigLIP 2-G is the vision-language reference. The plotting source labels the RAEv2 series RAEv2-K7; exact feature-to-run correspondence remains unverified.</p></section>
+<dialog><form method="dialog"><button aria-label="Close details">Close ×</button></form><p class="eyebrow">Figure 5 · Evaluation detail</p><h2></h2><p id="conditions"></p><ul id="transfer-scores"></ul></dialog>
+<a href="#experiments">Back to comparisons ↑</a></div>
       <section class="scope" aria-label="Study scope">
         <p><strong>110+</strong><span>Model configurations</span></p>
         <p>

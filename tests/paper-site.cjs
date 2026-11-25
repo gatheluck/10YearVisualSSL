@@ -87,10 +87,10 @@ const paperDigests = {
     assert.equal(total, 85);
     await page.getByRole("button", { name: /87\.90/ }).click();
     assert.match(
-      await page.locator("dialog").innerText(),
+      await page.locator("dialog[open]").innerText(),
       /shorter|shortened/i,
     );
-    assert.match(await page.locator("dialog").innerText(), /ImageNet-1K/);
+    assert.match(await page.locator("dialog[open]").innerText(), /ImageNet-1K/);
     await page.keyboard.press("Escape");
     await page.getByRole("button", { name: "DPT", exact: true }).click();
     await page.getByRole("button", { name: /Sort by NYUv2/ }).click();

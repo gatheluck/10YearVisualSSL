@@ -18,7 +18,7 @@ const path = require("node:path");
     const first = rows.first();
     assert.match(await first.locator("td").first().innerText(), /84.71/);
     assert.match(await first.locator("td").first().innerText(), /1st/);
-    await page.getByLabel("Probe").selectOption("AP");
+    await page.locator("#transfer-details").getByLabel("Probe").selectOption("AP");
     assert.match(await first.locator("td").first().innerText(), /83.33/);
     await page.getByLabel("Task family").selectOption("Geometry");
     assert.equal(await rows.count(), 3);

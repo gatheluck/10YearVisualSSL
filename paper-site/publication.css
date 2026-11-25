@@ -40,8 +40,8 @@ header nav[aria-label=Primary] a:not([aria-current]):hover {background:#e4efeb;}
 #geometry .geometry-reading > p {line-height:1.65;max-width:65ch;}
 #geometry .geometry-reading > p + p {margin-top:1em;}
 #geometry .geometry-spread {margin-top:22px;}
-#compare .toolbar,.study .filters {border:1px solid var(--line);background:#edf5f1;border-radius:9px;padding:12px 16px;}
-#compare .toolbar select,.study .filters select {background:#fff;color:#25484e;border:1px solid #b8cbc5;border-radius:6px;padding:6px 8px;}
+:is(#history-compare, #control-compare) .toolbar,.study .filters {border:1px solid var(--line);background:#edf5f1;border-radius:9px;padding:12px 16px;}
+:is(#history-compare, #control-compare) .toolbar select,.study .filters select {background:#fff;color:#25484e;border:1px solid #b8cbc5;border-radius:6px;padding:6px 8px;}
 .results-heading {margin-top:clamp(24px,3vw,40px);}
 .table-scroll tbody tr:hover,.matrix-scroll tbody tr:hover {background:#ebf5f1;}
 @media(max-width:740px) {
@@ -149,3 +149,8 @@ header nav[aria-label=Primary] a:not([aria-current]):hover {background:#e4efeb;}
 .film-key li {display:inline-flex;align-items:center;gap:5px;}
 .film-key li::before {content:"";width:9px;height:9px;flex:none;border-radius:50%;background:var(--family-color);}
 .film-best {display:block;text-align:right;min-height:1.4em;color:#9befde;font-size:13px;}
+
+.comparison-section { margin-block: clamp(36px, 6vw, 84px); }
+.comparison-heading h2 { margin: .25em 0; font-size: clamp(28px, 4vw, 48px); letter-spacing: -.045em; }
+.comparison-heading .summary { margin: .5em 0 1.5em; }
+.comparison-section .table-scroll { max-height: 72vh; overflow: auto; }
