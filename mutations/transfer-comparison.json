@@ -107,6 +107,42 @@
       "tests": [
         "tests.test_transfer_comparison"
       ]
+    },
+    {
+      "file": "downstream/controlled_comparison.py",
+      "label": "CTRL ranks assign worse depth first",
+      "old": "lower = task == \"NYUv2\"",
+      "new": "lower = False",
+      "tests": [
+        "tests.test_control_comparison"
+      ]
+    },
+    {
+      "file": "downstream/controlled_comparison.py",
+      "label": "CTRL compares an intermediate checkpoint",
+      "old": "delta = scores[\"ctrl_300\"] - scores[\"asis\"]",
+      "new": "delta = scores[\"ctrl_200\"] - scores[\"asis\"]",
+      "tests": [
+        "tests.test_control_comparison"
+      ]
+    },
+    {
+      "file": "downstream/controlled_comparison.py",
+      "label": "CTRL accepts duplicated methods",
+      "old": "or method in tasks[\"COCO\"]",
+      "new": "or False",
+      "tests": [
+        "tests.test_control_comparison"
+      ]
+    },
+    {
+      "file": "downstream/controlled_comparison.py",
+      "label": "CTRL loses partial-checkpoint protection",
+      "old": "_score(row[key], task)",
+      "new": "_score(row.get(key, 0), task)",
+      "tests": [
+        "tests.test_control_comparison"
+      ]
     }
   ]
 }

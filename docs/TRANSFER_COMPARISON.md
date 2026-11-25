@@ -77,3 +77,39 @@ normalization, complete membership, group counts, malformed values and CLI
 output protection. Passing these tests does not verify any manuscript number.
 
 See the [package scope](SUBMISSION_SCOPE.md) for result attribution.
+
+## Figure 4 controlled pre-training
+
+Run the paired ASIS/CTRL analysis on the Figure 4 plotting-source JSON:
+
+```sh
+python -m downstream.transfer_comparison --figure4 --input comparison-data.json --out controlled-report.json
+```
+
+The input declares `cohort: 32` and one record per distinct method. Each record
+has a `method` and five `metrics` rows. The row's `task` is one of
+`ImageNet-1K`, `COCO`, `ADE20K`, `NYUv2` or `SSv2`. Supply the measured
+`asis`, `ctrl_100`, `ctrl_200` and `ctrl_300` scores, preferably as decimal
+strings retaining their original precision. The CTRL observations follow one
+training trajectory. COCO uses bounding-box AP in percentage points, depth
+uses RMSE in meters and the other scores are percentages. An explicit row
+`metric` must match the report's metric identifier (for COCO,
+`bbox_ap_percent`). Numeric scores alone cannot identify their evaluator.
+
+Within each task and setting, the report ranks the 32 methods using unrounded
+scores. A tie shares its competition rank. For the final CTRL checkpoint it
+reports the arithmetic difference from ASIS, the change oriented towards
+better performance, counts of gains/losses/ties and all joint winners. It also
+records the input digest. Supply source measurements even if the input already
+has precomputed display ranks and changes. The CLI recalculates these outputs.
+
+The authored Figure 4 input reproduced all 320 ASIS and final CTRL ranks,
+all 160 differences and 160 oriented changes, and all five summaries. Final
+CTRL improves on ASIS for 11, 11, 17, 18 and 15 methods in the task order
+above. DINOv3 leads the first four final CTRL comparisons and I-JEPA leads SSv2.
+The 480 primary CTRL comparisons against supplementary Tables 19–21 agree
+within the printed rounding intervals. For ASIS, 159 of 160 agree with Table 10.
+Context Prediction COCO is 0.30 in the Figure 4 plotting source and 1.47
+in Figure 2 and Table 10. Preserve that discrepancy when interpreting the
+paired result. This comparison checks the reported numbers and derived ranks.
+Reproducing the pre-training and downstream runs requires separate evidence.
