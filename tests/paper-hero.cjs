@@ -40,6 +40,9 @@ const { chromium } = require("playwright");
     assert.equal(await enter.getAttribute("href"),"leaderboard.html#leaderboard");
     assert.match(await settings.getAttribute("title"), /ImageNet.*1%.*10%/);
     const resources = hero.getByRole("navigation",{name:"Reproduction resources"});
+    assert.doesNotMatch(await hero.innerText(), /How well do vision models transfer across tasks|Run the experiments/i);
+    const firstResource=resources.getByRole("link").first();
+    assert.ok(Math.abs((await firstResource.boundingBox()).x-(await hero.locator(".hero-copy").boundingBox()).x)<=2,"Resources align with the title");
     const experiments = hero.getByText("2,500+",{exact:true});
     const positions = async () => Promise.all([models.locator("b"), settings.locator("b"), experiments].map(el=>el.boundingBox()));
     for (const width of [1440,610,390,320]) {
@@ -47,7 +50,7 @@ const { chromium } = require("playwright");
       const strip = await hero.locator(".study-totals").boundingBox();
       assert.ok(strip && strip.height <= 72,"Compact scope strip at "+width);
       const entry=await enter.boundingBox();
-      assert.ok(entry.height>=48 && entry.width>=200,"Prominent leaderboard entry at "+width);
+      assert.ok(entry.height>=60 && entry.width>=245,"Prominent leaderboard entry at "+width);
       const boxes = await positions();
       assert.ok(Math.max(...boxes.map(b=>b.y))-Math.min(...boxes.map(b=>b.y)) < 3, "Three study totals share a baseline at "+width);
       assert.ok(boxes[0].x < boxes[1].x && boxes[1].x < boxes[2].x);
@@ -55,6 +58,8 @@ const { chromium } = require("playwright");
     assert.doesNotMatch(await hero.innerText(), /core benchmarks/i);
     for (const dataset of ["ImageNet","COCO","ADE20K","NYUv2","SSv2"]) assert.ok((await page.locator("#geometry").innerText()).includes(dataset));
     for (const [label,path] of [["Source code",""],["Training recipes","/tree/main/methods"],["Checkpoint guide","/blob/main/docs/STEP1_WEIGHTS.md"]]) {
+      const icon=resources.getByRole("link",{name:label}).locator("svg[aria-hidden=true]");
+      assert.ok(await icon.isVisible(),label+" has a decorative icon");
       assert.equal(await resources.getByRole("link",{name:label}).getAttribute("href"),"https://github.com/gatheluck/10YearVisualSSL"+path);
     }
     assert.equal(await page.locator(".cover-matrix rect").count(),545);
