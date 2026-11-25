@@ -12,14 +12,18 @@
           <a href="leaderboard.html">Leaderboard</a>
         </nav>
       </div>
-    </header><main class="wrap study" id="study"><section class="study-hero paper-cover"><div><p class="eyebrow">Visual representation learning</p>
+    </header><main class="wrap study" id="study"><section class="study-hero paper-cover"><div class="hero-intro">
+<div class="hero-copy"><p class="eyebrow">Visual representation learning</p>
 <h1>Revisiting Vision Model Baselines <em>in the Deep Learning Era</em></h1>
-<p>How much does an ImageNet ranking tell us about depth, segmentation or video? The answer depends on both the task and the readout.</p>
-<a class="action" href="#geometry">Why the Basic Five? ↓</a> <a class="action" href="leaderboard.html#leaderboard">Explore leaderboard →</a> <a class="action secondary" href="extended.html#figure-five">Explore Figure 5</a></div>
+<p>Does an ImageNet winner also lead in detection, segmentation, depth and video? We compare historical models, then adapt five selected checkpoints across all five tasks.</p>
+<div class="hero-links"><a class="action" href="leaderboard.html#leaderboard">Explore leaderboard →</a> <a href="#geometry">Why the Basic Five? ↓</a> <a href="extended.html#figure-five">Explore Figure 5</a></div></div>
+<figure class="rank-field"><figcaption>How 109 model rankings shift across five tasks</figcaption><div class="field-axes" aria-hidden="true"><span>ImageNet</span><span>COCO</span><span>ADE20K</span><span>NYUv2</span><span>SSv2</span></div>
+<svg viewBox="0 -2 400 115" preserveAspectRatio="none" role="img" aria-label="Each line follows one model configuration across five task rankings. Higher positions indicate better ranks."></svg></figure></div>
 <dl class="paper-scale" aria-label="Study scope">
+  <div><dt>Historical model configurations</dt><dd>113</dd></div>
   <div><dt>Training and evaluation experiments</dt><dd>2,500+</dd></div>
-  <div><dt>Core benchmarks</dt><dd>5</dd></div>
-  <div><dt>Extended settings</dt><dd>40</dd></div>
+  <div><dt>Core tasks with LoRA adaptation</dt><dd>5</dd></div>
+  <div><dt>Extended settings with frozen probes</dt><dd>40</dd></div>
 </dl></section>
 <figure class="rank-preview"><figcaption><div><p class="eyebrow">Figure 1 · Transfer across tasks</p><h2>109 configurations. Five task rankings.</h2></div><a href="leaderboard.html#leaderboard">Inspect the full matrix →</a></figcaption>
 <div class="cover-plot"><div class="cover-labels" aria-hidden="true"><span>ImageNet</span><span>COCO</span><span>ADE20K</span><span>NYUv2</span><span>SSv2</span></div><svg class="cover-matrix" viewBox="0 0 436 50" preserveAspectRatio="none" role="img" aria-label="Five rows of task ranks. Each column is a configuration, ordered by overall rank. Darker cells indicate better ranks."></svg></div>

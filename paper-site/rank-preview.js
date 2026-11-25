@@ -15,3 +15,12 @@ historicalRanks.forEach((model, column) => {
   });
 });
 preview.append(cells);
+
+// Draw the same five task ranks as the matrix in a parallel-coordinates view.
+const rankField = document.querySelector(".rank-field svg");
+historicalRanks.forEach(({ ranks }) => {
+  const trace = document.createElementNS(rankField.namespaceURI, "polyline");
+  trace.setAttribute("points", ranks.map((rank, index) => [index * 100, rank].join(",")).join(" "));
+  trace.setAttribute("pathLength", "1");
+  rankField.append(trace);
+});

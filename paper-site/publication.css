@@ -75,3 +75,52 @@ header nav[aria-label=Primary] a:hover {background:#eef4f2;}
 .rank-preview > p {font-size:13px;color:#48616a;}
 .study .basic-rationale {max-width:76ch;margin:10px 0 20px;}
 @media(max-width:740px){.cover-matrix {height:85px;}.cover-plot{gap:5px;}.rank-preview figcaption a{font-size:13px;}}
+
+/* Overview cover. One thread per ranked configuration, highest rank at the top. */
+.study .paper-cover {
+  display:block; position:relative; overflow:hidden; isolation:isolate;
+  padding:0; background:radial-gradient(ellipse at 89% 18%,#174b59,transparent 58%),#0c252d;
+  border:1px solid #20434a; color:#f4fbfa;
+}
+.hero-intro {position:relative; display:grid; grid-template-columns:1.1fr 1fr; align-items:center; padding:clamp(24px,4vw,60px); gap:3%;}
+.hero-intro::before {
+  content:""; position:absolute; inset:0; z-index:-1;
+  background-image:radial-gradient(#81d9db45 .8px,transparent .9px); background-size:15px 15px;
+  mask-image:linear-gradient(90deg,transparent,#000 70%);
+}
+.study .paper-cover .eyebrow {color:#78dfd4; letter-spacing:.16em;}
+.study .paper-cover h1 {color:#f7fcfb; font-size:clamp(39px,4.9vw,76px); max-width:17ch;}
+.study .paper-cover h1 em {color:#8ce6de; display:block;}
+.study .paper-cover .hero-copy > p:not(.eyebrow) {color:#ccdfe1; max-width:50ch; font-size:clamp(14px,1.2vw,17px);}
+.hero-links {display:flex; flex-wrap:wrap; align-items:center; gap:12px 18px; margin-top:20px;}
+.hero-links a {color:#e4f4f3; font-size:13px; font-weight:600; text-underline-offset:4px;}
+.study .paper-cover .action:first-of-type {margin:0; background:#a4f0df; color:#113a3d; border-color:transparent;}
+.rank-field {margin:0; min-width:0; color:#e7f6f4;}
+.rank-field figcaption {font-size:clamp(13px,1.25vw,18px); font-weight:650; margin-bottom:18px;}
+.field-axes {display:flex; justify-content:space-between; color:#b3d2d8; font-size:11px;}
+.rank-field svg {display:block; width:100%; height:clamp(150px,16vw,240px); margin-top:8px; background:linear-gradient(to right,#8bc3ce46 1px,transparent 1px) left / 25% 100%; border-right:1px solid #8bc3ce46;}
+.rank-field polyline {fill:none; stroke:#2dd4d9; stroke-width:1; vector-effect:non-scaling-stroke; opacity:.35;}
+.rank-field polyline:nth-child(4n) {stroke:#00a2ff;}
+.rank-field polyline:nth-child(9n) {stroke:#ffc700; opacity:.67;}
+@media (prefers-reduced-motion:no-preference) {
+  .rank-field polyline {stroke-dasharray:1; animation:trace-ranks 3.6s cubic-bezier(.2,.65,.3,1) both;}
+  .rank-field polyline:nth-child(3n) {animation-delay:.18s;}
+  @keyframes trace-ranks {from {stroke-dashoffset:1;} to {stroke-dashoffset:0;}}
+}
+.paper-cover .paper-scale {display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); padding:22px clamp(20px,4vw,60px); gap:16px;
+  border:0; border-top:1px solid #36555c; background:#0b2027;}
+.paper-cover .paper-scale dt {color:#bcd0d3;}
+.paper-cover .paper-scale dd {color:#effaf8; font-size:clamp(32px,4vw,60px); font-variant-numeric:tabular-nums;}
+.paper-cover .paper-scale div:first-child dd {color:#83e5d8;}
+@media(max-width:720px) {
+  .hero-intro {grid-template-columns:1fr; gap:20px; padding:20px;}
+  .study .paper-cover h1 {font-size:clamp(34px,7vw,49px);}
+  .rank-field svg {height:70px;}
+  .rank-field figcaption {margin-bottom:5px;}
+  .hero-links {margin-top:12px; gap:8px 12px;}
+  .paper-cover .paper-scale {grid-template-columns:repeat(2,minmax(0,1fr)); padding:16px 20px; gap:12px;}
+}
+@media (prefers-reduced-motion:no-preference) {
+  .hero-intro::before {animation:cover-light 3.6s ease-out both;}
+  @keyframes cover-light {from {background-position:-24px 9px; opacity:.35;} to {background-position:0 0; opacity:1;}}
+}
