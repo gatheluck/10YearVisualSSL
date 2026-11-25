@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<script src="legacy-board-links.js"></script><script defer src="history-data.js?v=b179a62c5b"></script><script defer src="film-data.js?v=01c7793222"></script><script defer src="history-film.js?v=03a9bd9ea0"></script><title>Overview · Vision Baselines</title><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="research.css"><link rel="stylesheet" href="study.css"><script defer src="extended-data.js"></script><script defer src="figure-five-vector.js"></script><script defer src="figure-five.js"></script><script defer src="rank-preview.js?v=c2eb1e6cfe"></script><link rel="stylesheet" href="publication.css?v=b811ab92b3"><script defer src="citation.js"></script></head>
+<script src="legacy-board-links.js"></script><script defer src="history-data.js?v=b179a62c5b"></script><script defer src="film-data.js?v=01c7793222"></script><script defer src="history-film.js?v=03a9bd9ea0"></script><title>Overview · Vision Baselines</title><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="research.css"><link rel="stylesheet" href="study.css"><script defer src="extended-data.js"></script><script defer src="figure-five-vector.js"></script><script defer src="figure-five.js"></script><script defer src="sources.js"></script><script defer src="rank-preview.js?v=d4253dbe79"></script><link rel="stylesheet" href="publication.css?v=9e5220e0a7"><script defer src="citation.js"></script></head>
 <body id="overview"><a href="#study" class="skip">Skip to content</a><header>
       <div class="wrap nav">
         <a class="brand" href="index.html"
@@ -32,11 +32,28 @@
 <nav class="release-resources" aria-label="Reproduction resources">
   <a role="link" aria-disabled="true"><svg aria-hidden="true" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M5 2h9l5 5v15H5z M14 2v6h5 M8 12h8 M8 16h7"/></svg>arXiv paper · Coming soon</a>
   <a href="https://github.com/gatheluck/10YearVisualSSL"><svg aria-hidden="true" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7l-5 5 5 5m10-10 5 5-5 5m-4-14-3 18"/></svg>Source code</a><a href="https://github.com/gatheluck/10YearVisualSSL/tree/main/methods"><svg aria-hidden="true" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4q5-1 9 2 4-3 9-2v15q-5-1-9 2-4-3-9-2z M12 6v15"/></svg>Training recipes</a><a href="https://github.com/gatheluck/10YearVisualSSL/blob/main/docs/STEP1_WEIGHTS.md"><svg aria-hidden="true" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l9 5-9 5-9-5z M3 7v10l9 5 9-5V7 M12 12v10"/></svg>Checkpoint guide</a><a href="#citation">Cite this paper</a></nav></section>
-<figure class="rank-preview"><figcaption><p class="eyebrow">Figure 1 · Transfer across tasks</p><h2>109 model configurations across the Basic Five</h2>
-<p>We ranked each configuration on five benchmarks for image classification, object detection, segmentation, depth estimation and video classification.</p></figcaption>
+<figure class="rank-preview" id="rankings"><figcaption><p class="eyebrow">Figure 1 · Transfer across tasks</p><h2>Vision Model Rankings</h2>
+<p>109 model configurations across the Basic Five. Overall standings use the mean of five task ranks; lower is better.</p></figcaption>
+<div class="standings-controls">
+  <label>Rank by<select id="preview-task">
+    <option value="overall">Overall · Basic Five</option>
+    <option value="in1k">Image classification on ImageNet-1K</option>
+    <option value="coco">Object detection on COCO 2017</option>
+    <option value="ade20k">Semantic segmentation on ADE20K</option>
+    <option value="nyuv2">Depth estimation on NYUv2</option>
+    <option value="ssv2">Video classification on SSv2</option>
+  </select></label>
+  <label>Show ranks<select id="preview-limit"><option value="10">Top 10</option><option value="30">Top 30</option></select></label>
+</div>
+<table class="preview-standings">
+  <caption class="sr" aria-live="polite"></caption>
+  <thead><tr><th scope="col">Rank</th><th scope="col">Model configuration</th><th scope="col" class="comparison-stat">Mean rank</th></tr></thead>
+  <tbody></tbody>
+</table>
 <div class="cover-plot"><div class="cover-labels" aria-hidden="true"><span>ImageNet</span><span>COCO</span><span>ADE20K</span><span>NYUv2</span><span>SSv2</span></div><svg class="cover-matrix" viewBox="0 0 436 50" preserveAspectRatio="none" role="img" aria-label="Five rows of task ranks. Each column is a configuration, ordered by overall rank. Darker cells indicate better ranks."></svg></div>
 <p>One column per configuration, ordered by overall rank. Darker cells indicate better task ranks.</p>
 <div class="matrix-links"><a href="leaderboard.html#leaderboard">Inspect the full matrix <span aria-hidden="true">→</span></a><a href="#geometry">Why the Basic Five? <span aria-hidden="true">↓</span></a></div></figure>
+<section id="figure-five" aria-labelledby="transfer-head"><h2 id="transfer-head">Forty settings expose different strengths.</h2></section>
 <section id="geometry"><p class="eyebrow">Figure 7 · Why the Basic Five?</p><h2>Image recognition tells only part of the story.</h2>
 <p class="basic-rationale">The Basic Five cover image recognition (ImageNet), object detection (COCO), segmentation (ADE20K), depth estimation (NYUv2) and video recognition (SSv2). Their rankings reward different properties of a representation.</p>
 <div class="geometry-spread">
@@ -50,7 +67,7 @@
 <p>For NYUv2 depth, adding local patches to whole-image agreement raises held-out rank correlation from <strong>0.01 to 0.67</strong>. On ImageNet-1K it stays at <strong>0.88</strong>. Keeping both tasks exposes a difference a recognition-only leaderboard would miss.</p>
 <table><caption>Prediction of downstream ranks · pooled held-out Spearman ρ</caption><thead><tr><th>Task</th><th>Angle¹</th><th>Image</th><th>Image + patch</th><th aria-label="Change in correlation">Change</th></tr></thead><tbody><tr><th scope="row">ImageNet-1K</th><td>0°</td><td>0.88</td><td><b>0.88</b></td><td><span class="track" style="--start:88%;--end:88%"></span></td></tr><tr><th scope="row">SSv2</th><td>16°</td><td>0.72</td><td><b>0.73</b></td><td><span class="track" style="--start:72%;--end:73%"></span></td></tr><tr><th scope="row">COCO</th><td>33°</td><td>0.51</td><td><b>0.62</b></td><td><span class="track" style="--start:51%;--end:62%"></span></td></tr><tr><th scope="row">ADE20K</th><td>61°</td><td>0.19</td><td><b>0.75</b></td><td><span class="track" style="--start:19%;--end:75%"></span></td></tr><tr><th scope="row">NYUv2</th><td>71°</td><td>0.01</td><td><b>0.67</b></td><td><span class="track" style="--start:1%;--end:67%"></span></td></tr></tbody></table>
 <p>¹ Fitted direction relative to ImageNet-1K. Agreement uses label-free nearest neighbors in ImageNet validation features, comparing pooled images with DINOv3-7B and local patches with π3. The two coordinates correlate weakly (ρ = 0.11). Task directions use measured downstream ranks. Predictions hold out each of seven model families in turn.</p>
-<p>The paper reports 104 fitted configurations, with 94 used for COCO. Results depend on the reference models and the evaluation domain. These five tasks expose complementary variation in this study; they do not establish an optimal or exhaustive task set.</p></div></div></section><section id="figure-five" aria-labelledby="transfer-head"><h2 id="transfer-head">Forty settings expose different strengths.</h2></section>
+<p>The paper reports 104 fitted configurations, with 94 used for COCO. Results depend on the reference models and the evaluation domain. These five tasks expose complementary variation in this study; they do not establish an optimal or exhaustive task set.</p></div></div></section>
 <section id="citation" aria-labelledby="citation-title">
   <div class="citation-bar">
     <h2 id="citation-title">Citation</h2>
