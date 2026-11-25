@@ -46,19 +46,21 @@ def compare_controlled(document):
     for task, methods in tasks.items():
         lower = task == "NYUv2"
         results = {}
-        counts = dict(improved=0, worse=0, equal=0)
+        winners = []
+        counts = {"improved": 0, "worse": 0, "equal": 0}
         for name, scores in methods.items():
             ranks = {
                 key: 1 + sum((other[key] < value if lower else other[key] > value)
                              for other in methods.values())
                 for key, value in scores.items()
             }
+            if ranks["ctrl_300"] == 1:
+                winners.append(name)
             delta = scores["ctrl_300"] - scores["asis"]
             gain = -delta if lower else delta
             counts["improved" if gain > 0 else "worse" if gain < 0 else "equal"] += 1
             results[name] = {"scores": {key: str(value) for key, value in scores.items()},
                              "ranks": ranks, "delta": str(delta), "improvement": str(gain)}
-        winners = [name for name, result in results.items() if result["ranks"]["ctrl_300"] == 1]
-        report[task] = dict(metric=METRICS[task], methods=results, counts=counts, ctrl_winners=winners)
+        report[task] = {"metric": METRICS[task], "methods": results, "counts": counts, "ctrl_winners": winners}
     return {"schema": "figure4_controlled_comparison_v1", "historical_run_verified": False,
             "tasks": report}
