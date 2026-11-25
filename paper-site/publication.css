@@ -102,11 +102,12 @@ header nav[aria-label=Primary] a:hover {background:#eef4f2;}
 .rank-field polyline {fill:none; stroke:#2dd4d9; stroke-width:1; vector-effect:non-scaling-stroke; opacity:.35;}
 .rank-field polyline:nth-child(4n) {stroke:#00a2ff;}
 .rank-field polyline:nth-child(9n) {stroke:#ffc700; opacity:.67;}
-@media (prefers-reduced-motion:no-preference) {
-  .rank-field polyline {stroke-dasharray:1; animation:trace-ranks 3.6s cubic-bezier(.2,.65,.3,1) both;}
-  .rank-field polyline:nth-child(3n) {animation-delay:.18s;}
-  @keyframes trace-ranks {from {stroke-dashoffset:1;} to {stroke-dashoffset:0;}}
-}
+.rank-field figcaption {display:flex; align-items:center; justify-content:space-between; gap:8px;}
+.motion-toggle {flex:none; padding:4px 8px; border:1px solid #628586; border-radius:100px; background:#173d44; color:#e5fbf5; font:600 11px/1.4 system-ui; cursor:pointer;}
+.rank-field .sweep-position {animation:rank-scan 5.5s linear infinite; animation-play-state:paused;}
+.rank-field [data-playing="true"] .sweep-position {animation-play-state:running;}
+.rank-field .rank-highlights {filter:brightness(2.5);}
+@keyframes rank-scan {from {transform:translateX(0);} to {transform:translateX(464px);}}
 .paper-cover .paper-scale {display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); padding:22px clamp(20px,4vw,60px); gap:16px;
   border:0; border-top:1px solid #36555c; background:#0b2027;}
 .paper-cover .paper-scale dt {color:#bcd0d3;}

@@ -17,8 +17,17 @@
 <h1>Revisiting Vision Model Baselines <em>in the Deep Learning Era</em></h1>
 <p>Does an ImageNet winner also lead in detection, segmentation, depth and video? We compare historical models, then adapt five selected checkpoints across all five tasks.</p>
 <div class="hero-links"><a class="action" href="leaderboard.html#leaderboard">Explore leaderboard →</a> <a href="#geometry">Why the Basic Five? ↓</a> <a href="extended.html#figure-five">Explore Figure 5</a></div></div>
-<figure class="rank-field"><figcaption>How 109 model rankings shift across five tasks</figcaption><div class="field-axes" aria-hidden="true"><span>ImageNet</span><span>COCO</span><span>ADE20K</span><span>NYUv2</span><span>SSv2</span></div>
-<svg viewBox="0 -2 400 115" preserveAspectRatio="none" role="img" aria-label="Each line follows one model configuration across five task rankings. Higher positions indicate better ranks."></svg></figure></div>
+<figure class="rank-field"><figcaption>How 109 model rankings shift across five tasks <button type="button" class="motion-toggle" hidden>Play motion</button></figcaption><div class="field-axes" aria-hidden="true"><span>ImageNet</span><span>COCO</span><span>ADE20K</span><span>NYUv2</span><span>SSv2</span></div>
+<svg viewBox="0 -2 400 115" preserveAspectRatio="none" role="img" aria-label="Each line follows one model configuration across five task rankings. Higher positions indicate better ranks.">
+<defs>
+  <linearGradient id="rank-sweep"><stop stop-color="#8cf9ea" stop-opacity="0"/><stop offset="1" stop-color="#8cf9ea" stop-opacity=".28"/></linearGradient>
+  <clipPath id="rank-window"><rect class="sweep-position" x="-64" y="-2" width="64" height="115"/></clipPath>
+</defs>
+<g class="rank-lines"></g>
+<g class="rank-motion" aria-hidden="true">
+  <rect class="sweep-position" x="-64" y="-2" width="64" height="115" fill="url(#rank-sweep)"/>
+  <g class="rank-highlights" clip-path="url(#rank-window)"></g>
+</g></svg></figure></div>
 <dl class="paper-scale" aria-label="Study scope">
   <div><dt>Historical model configurations</dt><dd>113</dd></div>
   <div><dt>Training and evaluation experiments</dt><dd>2,500+</dd></div>
