@@ -15,24 +15,18 @@ const { chromium } = require("playwright");
     });
     await page.goto(process.env.HERO_URL || pathToFileURL(path.resolve(__dirname, "../paper-site/index.html")).href);
     const hero = page.locator(".paper-cover");
-    const scope = await hero.locator("dl div").evaluateAll(items =>
-      items.map(item => [item.querySelector("dd").textContent, item.querySelector("dt").textContent]));
-    assert.deepEqual(scope, [
-      ["113", "Historical model configurations"], ["2,500+", "Training and evaluation experiments"],
-      ["5", "Core tasks with LoRA adaptation"], ["40", "Extended settings with frozen probes"],
-    ]);
-    const story = hero.getByRole("figure", {name:/Same model, different ranks/});
-    assert.equal(await story.count(), 1, "Introduce the comparison with a readable, labeled example");
-    const ranks = story.locator("output");
-    assert.deepEqual(await ranks.allTextContents(), ["#1", "#100"]);
-    assert.match(await story.innerText(), /Segmentation/);
-    assert.match(await story.innerText(), /Video recognition/);
-    await story.getByRole("button", {name:"DINOv3-7B"}).click();
-    assert.deepEqual(await ranks.allTextContents(), ["#9", "#3"]);
-    await story.getByRole("button", {name:"RAEv2"}).click();
-    assert.deepEqual(await ranks.allTextContents(), ["#1", "#100"]);
+    const models = hero.getByRole("link",{name:/113 historical model configurations/i});
+    const settings = hero.getByRole("link",{name:/40 extended benchmark settings/i});
+    assert.equal(await models.count(),1,"The first view must introduce the historical model collection");
+    assert.equal(await settings.count(),1);
+    const names = locator => locator.locator("i").evaluateAll(nodes => nodes.map(n => n.title));
+    assert.deepEqual(await names(models), await page.evaluate(()=>historicalScores.map(m=>m.name)));
+    assert.deepEqual(await names(settings), await page.locator(".task-choice option").allTextContents());
+    assert.match(await settings.innerText(), /5 selected models/);
+    for (const dataset of ["ImageNet","COCO","ADE20K","NYUv2","SSv2"]) assert.ok((await hero.innerText()).includes(dataset));
+    assert.match(await hero.innerText(), /2,500\+/);
     assert.equal(await page.locator(".cover-matrix rect").count(),545);
-    const plot = story.locator(".task-pair");
+    const plot = models.locator(".coverage-marks");
     const frame = () => plot.screenshot({ animations: "allow" });
     const changes = async () => {
       const before = await frame();
@@ -53,7 +47,7 @@ const { chromium } = require("playwright");
     for (const width of [1440, 390, 320]) {
       await page.setViewportSize({width, height:900});
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
-      const last = await hero.locator("dd").last().boundingBox();
+      const last = await settings.boundingBox();
       assert.ok(last.y + last.height < 900, "Scope visible at " + width);
     }
   } finally { await browser.close(); }

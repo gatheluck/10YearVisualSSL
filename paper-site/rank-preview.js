@@ -16,25 +16,26 @@ historicalRanks.forEach((model, column) => {
 });
 preview.append(cells);
 
-const story = document.querySelector(".task-story");
-const modelButtons = story.querySelectorAll(".example-models button");
-const rankOutputs = story.querySelectorAll("output");
-function showTaskExample(button) {
-  const model = historicalRanks.find(row => row.name === button.textContent);
-  rankOutputs[0].textContent = "#" + model.ranks[2];
-  rankOutputs[1].textContent = "#" + model.ranks[4];
-  modelButtons.forEach(item => item.setAttribute("aria-pressed", String(item === button)));
+const atlas = document.querySelector(".coverage-atlas");
+function addCoverageMarks(selector, names) {
+  const marks = document.createDocumentFragment();
+  for (const name of names) {
+    const mark = document.createElement("i");
+    mark.title = name;
+    marks.append(mark);
+  }
+  atlas.querySelector(selector).append(marks);
 }
-modelButtons.forEach(button => button.addEventListener("click", () => showTaskExample(button)));
-showTaskExample(modelButtons[0]);
+addCoverageMarks(".model-marks", historicalScores.map(model => model.name));
+addCoverageMarks(".setting-marks", Array.from(document.querySelector(".task-choice").options, option => option.text));
 
 const motionButton = document.querySelector(".motion-toggle");
 const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
-function setRankMotion(playing) {
-  story.dataset.playing = String(playing);
+function setAtlasMotion(playing) {
+  atlas.dataset.playing = String(playing);
   motionButton.textContent = playing ? "Pause motion" : "Play motion";
 }
-setRankMotion(!preference.matches);
+setAtlasMotion(!preference.matches);
 motionButton.hidden = false;
-motionButton.addEventListener("click", () => setRankMotion(story.dataset.playing !== "true"));
-preference.addEventListener("change", () => setRankMotion(!preference.matches));
+motionButton.addEventListener("click", () => setAtlasMotion(atlas.dataset.playing !== "true"));
+preference.addEventListener("change", () => setAtlasMotion(!preference.matches));

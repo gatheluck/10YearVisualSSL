@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<script src="legacy-board-links.js"></script><script defer src="history-data.js?v=b179a62c5b"></script><script defer src="rank-preview.js?v=e44561fa26"></script><title>Overview · Vision Baselines</title><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="research.css"><link rel="stylesheet" href="study.css"><script defer src="extended-data.js"></script><script defer src="figure-five-vector.js"></script><script defer src="figure-five.js"></script><link rel="stylesheet" href="publication.css?v=4c71d274ca"></head>
+<script src="legacy-board-links.js"></script><script defer src="history-data.js?v=b179a62c5b"></script><title>Overview · Vision Baselines</title><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="research.css"><link rel="stylesheet" href="study.css"><script defer src="extended-data.js"></script><script defer src="figure-five-vector.js"></script><script defer src="figure-five.js"></script><script defer src="rank-preview.js?v=22184af81a"></script><link rel="stylesheet" href="publication.css?v=8b10081402"></head>
 <body id="overview"><a href="#study" class="skip">Skip to content</a><header>
       <div class="wrap nav">
         <a class="brand" href="index.html"
@@ -15,29 +15,14 @@
     </header><main class="wrap study" id="study"><section class="study-hero paper-cover"><div class="hero-intro">
 <div class="hero-copy"><p class="eyebrow">Visual representation learning</p>
 <h1>Revisiting Vision Model Baselines <em>in the Deep Learning Era</em></h1>
-<p>Does an ImageNet winner lead on other tasks? We compare 113 configurations and adapt five selected models across the Basic Five.</p>
-<div class="hero-links"><a class="action" href="leaderboard.html#leaderboard">Explore leaderboard →</a> <a href="#geometry">Why the Basic Five? ↓</a> <a href="extended.html#figure-five">Explore Figure 5</a></div></div>
-<figure class="task-story" aria-labelledby="story-title">
-  <figcaption id="story-title">Same model, different ranks.</figcaption>
-  <div class="story-subhead"><div class="example-models" role="group" aria-label="Compare a model"><button type="button" aria-pressed="true">RAEv2</button><button type="button" aria-pressed="false">DINOv3-7B</button></div><button class="motion-toggle" type="button" hidden>Play motion</button></div>
-  <div class="task-pair">
-    <div class="task-example mask-example">
-      <svg viewBox="0 0 180 62" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="180" height="62" fill="#9ae2d8"/><circle cx="136" cy="16" r="9" fill="#ffc700"/><path fill="#40aeb4" d="M0 49 38 12 73 44 104 20 150 59H0Z"/><path fill="#166b7d" d="m0 37 38 12 42-18 59 20 41-24v35H0Z"/><path fill="#82d447" d="m0 55 55-11 38 10 87-13v21H0Z"/></svg>
-      <div><small>ADE20K</small><strong>Segmentation</strong><output aria-label="Segmentation rank">#1</output></div>
-    </div>
-    <div class="task-example video-example">
-      <svg viewBox="0 0 180 62" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="180" height="62" fill="#bbb3e4"/><path fill="#9388b6" d="M0 47h180v15H0z"/><path d="M18 44 Q90 -20 162 44" stroke="#504779" fill="none" stroke-dasharray="3 4"/><circle cx="18" cy="44" r="6" fill="#6a5c9a"/><circle cx="162" cy="44" r="6" fill="#6a5c9a"/><circle class="moving-ball" r="8" fill="#ffcf50" stroke="#433565" stroke-width="2"/></svg>
-      <div><small>SSv2</small><strong>Video recognition</strong><output aria-label="Video recognition rank">#100</output></div>
-    </div>
-  </div>
-  <p class="story-note">Task ranks among 109 configurations · Figure 1</p>
-</figure></div>
-<dl class="paper-scale" aria-label="Study scope">
-  <div><dt>Historical model configurations</dt><dd>113</dd></div>
-  <div><dt>Training and evaluation experiments</dt><dd>2,500+</dd></div>
-  <div><dt>Core tasks with LoRA adaptation</dt><dd>5</dd></div>
-  <div><dt>Extended settings with frozen probes</dt><dd>40</dd></div>
-</dl></section>
+<p>From supervised classifiers to video and world models, how well does a decade of vision research transfer across tasks?</p>
+<div class="hero-links"><a class="action" href="leaderboard.html#leaderboard">Explore leaderboard →</a> <a href="#geometry">Why the Basic Five? ↓</a></div></div>
+<div class="coverage-atlas">
+  <a class="coverage-panel" href="history.html"><span class="coverage-heading"><b>113</b><strong>Historical model configurations</strong></span><span class="coverage-marks model-marks" aria-hidden="true"></span><small>Historical comparison · Figure 2 ↗</small></a>
+  <a class="coverage-panel" href="extended.html#figure-five" aria-label="40 extended benchmark settings · Explore Figure 5"><span class="coverage-heading"><b>40</b><strong>Extended benchmark settings</strong></span><span class="coverage-marks setting-marks" aria-hidden="true"></span><small>5 selected models · linear and attentive probes ↗</small></a>
+  <button class="motion-toggle" type="button" hidden>Play motion</button>
+</div></div>
+<div class="scope-strip"><div><b>2,500+</b><span>Training and evaluation experiments</span></div><div><b>5</b><span>Core benchmarks<small>ImageNet · COCO · ADE20K · NYUv2 · SSv2</small></span></div></div></section>
 <figure class="rank-preview"><figcaption><div><p class="eyebrow">Figure 1 · Transfer across tasks</p><h2>109 configurations. Five task rankings.</h2></div><a href="leaderboard.html#leaderboard">Inspect the full matrix →</a></figcaption>
 <div class="cover-plot"><div class="cover-labels" aria-hidden="true"><span>ImageNet</span><span>COCO</span><span>ADE20K</span><span>NYUv2</span><span>SSv2</span></div><svg class="cover-matrix" viewBox="0 0 436 50" preserveAspectRatio="none" role="img" aria-label="Five rows of task ranks. Each column is a configuration, ordered by overall rank. Darker cells indicate better ranks."></svg></div>
 <p>One column per configuration, ordered by overall rank. Darker cells indicate better task ranks.</p></figure>

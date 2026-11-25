@@ -76,7 +76,7 @@ header nav[aria-label=Primary] a:hover {background:#eef4f2;}
 .study .basic-rationale {max-width:76ch;margin:10px 0 20px;}
 @media(max-width:740px){.cover-matrix {height:85px;}.cover-plot{gap:5px;}.rank-preview figcaption a{font-size:13px;}}
 
-/* Overview cover. Task examples use the ranks published in Figure 1. */
+/* Overview cover. Figures 2 and 5 describe separate evaluation populations. */
 .study .paper-cover {
   display:block; position:relative; overflow:hidden; isolation:isolate;
   padding:0; background:radial-gradient(ellipse at 89% 18%,#174b59,transparent 58%),#0c252d;
@@ -95,36 +95,31 @@ header nav[aria-label=Primary] a:hover {background:#eef4f2;}
 .hero-links {display:flex; flex-wrap:wrap; align-items:center; gap:12px 18px; margin-top:20px;}
 .hero-links a {color:#e4f4f3; font-size:13px; font-weight:600; text-underline-offset:4px;}
 .study .paper-cover .action:first-of-type {margin:0; background:#a4f0df; color:#113a3d; border-color:transparent;}
-.task-story {margin:0; min-width:0; padding:clamp(12px,2vw,26px); border:1px solid #538080; border-radius:16px; background:#14353c;}
-.task-story figcaption {font-size:clamp(20px,2.1vw,34px); font-weight:650; line-height:1.1; letter-spacing:-.04em;}
-.story-subhead,.example-models {display:flex;align-items:center;gap:4px;}
-.story-subhead {justify-content:space-between;margin:12px 0;}
-.example-models {background:#092930;border-radius:16px;padding:3px;}
-.task-story button {color:#d3e8e5;background:transparent;border:0;padding:5px 9px;font:600 12px/1.2 system-ui;cursor:pointer;border-radius:14px;}
-.example-models [aria-pressed=true] {background:#bcf0de;color:#123c40;}
-.task-story .motion-toggle {font-size:11px;text-decoration:underline;text-underline-offset:3px;}
-.task-pair {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
-.task-example {overflow:hidden;border-radius:9px;background:#e0f2eb;color:#153f45;}
-.video-example {background:#ede9f6;color:#48375f;}
-.task-example svg {display:block;width:100%;height:clamp(38px,5.4vw,82px);}
-.task-example > div {padding:clamp(8px,1.3vw,18px);display:grid;}
-.task-example small {font:650 10px/1.4 system-ui;letter-spacing:.09em;}
-.task-example strong {font-size:clamp(12px,1.15vw,18px);}
-.task-example output {font:600 clamp(31px,3.8vw,57px)/1 system-ui;letter-spacing:-.085em;margin-top:8px;}
-.study .study-hero .task-story .story-note {margin:10px 0 0;color:#c9deda;font-size:12px;}
-.moving-ball {offset-path:path("M18 44 Q90 -20 162 44");offset-distance:50%;animation:ball-flight 2.4s ease-in-out infinite alternate;animation-play-state:paused;}
-.task-story[data-playing=true] .moving-ball {animation-play-state:running;}
-@keyframes ball-flight {from {offset-distance:0%;} to {offset-distance:100%;}}
-.paper-cover .paper-scale {display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); padding:22px clamp(20px,4vw,60px); gap:16px;
-  border:0; border-top:1px solid #36555c; background:#0b2027;}
-.paper-cover .paper-scale dt {color:#bcd0d3;}
-.paper-cover .paper-scale dd {color:#effaf8; font-size:clamp(32px,4vw,60px); font-variant-numeric:tabular-nums;}
-.paper-cover .paper-scale div:first-child dd {color:#83e5d8;}
+.coverage-atlas {display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:stretch;min-width:0;}
+.coverage-panel {--tone:#7ce9d4;display:flex;flex-direction:column;gap:14px;min-width:0;padding:clamp(12px,1.7vw,25px);background:#103037;border:1px solid #477174;border-radius:12px;color:#f2fbfa;text-decoration:none;}
+.coverage-panel:nth-child(2) {--tone:#fbd16c;background:#233338;border-color:#756a4d;}
+.coverage-panel:hover,.coverage-panel:focus-visible {border-color:var(--tone);}
+.coverage-heading {display:grid;gap:6px;}
+.coverage-heading b {font:650 clamp(52px,6.8vw,104px)/.95 system-ui;letter-spacing:-.08em;color:var(--tone);}
+.coverage-heading strong {font:600 clamp(14px,1.4vw,21px)/1.15 system-ui;}
+.coverage-panel small {margin-top:auto;color:#d3e0dd;font:500 12px/1.4 system-ui;}
+.coverage-marks {position:relative;overflow:hidden;display:grid;grid-template-columns:repeat(12,1fr);gap:3px;align-self:start;width:100%;}
+.coverage-marks i {background:var(--tone);height:clamp(4px,.42vw,7px);border-radius:1px;}
+.setting-marks {grid-template-columns:repeat(8,1fr);}
+.coverage-marks::after {content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(100deg,transparent 25%,#fff9 48%,transparent 70%);mix-blend-mode:overlay;animation:scope-sweep 4s linear infinite;animation-play-state:paused;}
+.coverage-atlas[data-playing=true] .coverage-marks::after {animation-play-state:running;}
+@keyframes scope-sweep {from {transform:translateX(-80%);}to {transform:translateX(80%);}}
+.coverage-atlas button {grid-column:1/-1;justify-self:end;color:#c3dbd8;background:transparent;border:0;text-decoration:underline;text-underline-offset:3px;cursor:pointer;font-size:11px;}
+.scope-strip {display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:20px clamp(20px,4vw,60px);border-top:1px solid #36555c;background:#0b2027;}
+.scope-strip > div {display:flex;align-items:center;gap:14px;}
+.scope-strip b {font:600 clamp(30px,3.8vw,58px)/1 system-ui;letter-spacing:-.065em;color:#e6f8f3;}
+.scope-strip span {font:600 clamp(12px,1.2vw,17px)/1.35 system-ui;}
+.scope-strip small {display:block;color:#bad2d2;font-weight:400;}
+@media(max-width:720px){.scope-strip {grid-template-columns:1fr;gap:10px;}.scope-strip b {min-width:3.3ch;}.coverage-panel {gap:9px;}.scope-strip > div {gap:10px;}}
 @media(max-width:720px) {
   .hero-intro {grid-template-columns:1fr; gap:20px; padding:20px;}
   .study .paper-cover h1 {font-size:clamp(34px,7vw,49px);}
   .hero-links {margin-top:12px; gap:8px 12px;}
-  .paper-cover .paper-scale {grid-template-columns:repeat(2,minmax(0,1fr)); padding:16px 20px; gap:12px;}
 }
 @media (prefers-reduced-motion:no-preference) {
   .hero-intro::before {animation:cover-light 3.6s ease-out both;}
@@ -133,7 +128,4 @@ header nav[aria-label=Primary] a:hover {background:#eef4f2;}
 @media(max-width:420px) {
   .hero-intro {padding:15px;gap:12px;}
   .study .paper-cover h1 {font-size:32px;}
-  .task-story {padding:10px;}
-  .story-subhead {margin:6px 0;}
-  .paper-cover .paper-scale {padding:12px 16px;gap:8px;}
 }
