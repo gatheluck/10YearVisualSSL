@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<script src="legacy-board-links.js"></script><script defer src="history-data.js?v=b179a62c5b"></script><script defer src="film-data.js?v=a1a102dbb8"></script><script defer src="history-film.js?v=aa19a81076"></script><title>Overview · Vision Baselines</title><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="research.css"><link rel="stylesheet" href="study.css"><script defer src="extended-data.js"></script><script defer src="figure-five-vector.js"></script><script defer src="figure-five.js"></script><script defer src="rank-preview.js?v=c2eb1e6cfe"></script><link rel="stylesheet" href="publication.css?v=125c459fc4"></head>
+<script src="legacy-board-links.js"></script><script defer src="history-data.js?v=b179a62c5b"></script><script defer src="film-data.js?v=a1a102dbb8"></script><script defer src="history-film.js?v=aa19a81076"></script><title>Overview · Vision Baselines</title><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="research.css"><link rel="stylesheet" href="study.css"><script defer src="extended-data.js"></script><script defer src="figure-five-vector.js"></script><script defer src="figure-five.js"></script><script defer src="rank-preview.js?v=c2eb1e6cfe"></script><link rel="stylesheet" href="publication.css?v=1dda0569bb"></head>
 <body id="overview"><a href="#study" class="skip">Skip to content</a><header>
       <div class="wrap nav">
         <a class="brand" href="index.html"
@@ -19,10 +19,10 @@
   <li>Hirokatsu Kataoka</li><li>Kohsuke Ide</li><li>Yoshihiro Fukuhara</li><li>Shumpei Takezaki</li><li>Nakamasa Inoue</li><li>Yuki M Asano</li><li>Christian Rupprecht</li>
 </ul>
 <p>How well do vision models transfer across tasks?</p>
-<div class="hero-links"><a class="action" href="leaderboard.html#leaderboard">Explore leaderboard →</a> <a href="#geometry">Why the Basic Five? ↓</a></div></div>
+<div class="hero-links"><a class="action" href="leaderboard.html#leaderboard">Explore Leaderboard <span aria-hidden="true">→</span></a></div></div>
 </div><div class="study-totals" role="group" aria-label="Study scope">
   <a href="history.html" aria-label="113 historical model configurations"><b>113</b> <span>model configurations</span></a>
-  <a href="extended.html#figure-five" aria-label="40 dataset benchmarks · 5 selected models · Explore Figure 5" title="Includes separate ImageNet 1% and 10% benchmarks"><b>40</b> <span>dataset benchmarks · 5 models</span></a>
+  <a href="extended.html#figure-five" aria-label="40 dataset benchmarks · Explore Figure 5" title="Includes separate ImageNet 1% and 10% benchmarks"><b>40</b> <span>dataset benchmarks</span></a>
   <span title="Training and evaluation experiments"><b>2,500+</b> <span>experiments</span></span>
 </div>
 <figure class="history-film" aria-label="Figure 2 · Historical transfer over time">
@@ -32,9 +32,11 @@
 </figure>
 <div class="release-resources"><strong>Run the experiments</strong>
 <nav aria-label="Reproduction resources"><a href="https://github.com/gatheluck/10YearVisualSSL">Source code</a><a href="https://github.com/gatheluck/10YearVisualSSL/tree/main/methods">Training recipes</a><a href="https://github.com/gatheluck/10YearVisualSSL/blob/main/docs/STEP1_WEIGHTS.md">Checkpoint guide</a></nav></div></section>
-<figure class="rank-preview"><figcaption><div><p class="eyebrow">Figure 1 · Transfer across tasks</p><h2>109 configurations. Five task rankings.</h2></div><a href="leaderboard.html#leaderboard">Inspect the full matrix →</a></figcaption>
+<figure class="rank-preview"><figcaption><p class="eyebrow">Figure 1 · Transfer across tasks</p><h2>109 model configurations across the Basic Five</h2>
+<p>We ranked each configuration on five benchmarks for image classification, object detection, segmentation, depth estimation and video classification.</p></figcaption>
 <div class="cover-plot"><div class="cover-labels" aria-hidden="true"><span>ImageNet</span><span>COCO</span><span>ADE20K</span><span>NYUv2</span><span>SSv2</span></div><svg class="cover-matrix" viewBox="0 0 436 50" preserveAspectRatio="none" role="img" aria-label="Five rows of task ranks. Each column is a configuration, ordered by overall rank. Darker cells indicate better ranks."></svg></div>
-<p>One column per configuration, ordered by overall rank. Darker cells indicate better task ranks.</p></figure>
+<p>One column per configuration, ordered by overall rank. Darker cells indicate better task ranks.</p>
+<div class="matrix-links"><a href="leaderboard.html#leaderboard">Inspect the full matrix <span aria-hidden="true">→</span></a><a href="#geometry">Why the Basic Five? <span aria-hidden="true">↓</span></a></div></figure>
 <section id="geometry"><p class="eyebrow">Figure 7 · Why the Basic Five?</p><h2>Image recognition tells only part of the story.</h2>
 <p class="basic-rationale">The Basic Five cover image recognition (ImageNet), object detection (COCO), segmentation (ADE20K), depth estimation (NYUv2) and video recognition (SSv2). Their rankings reward different properties of a representation.</p>
 <div class="geometry-spread">

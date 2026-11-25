@@ -12,6 +12,10 @@ const {chromium} = require("playwright");
       assert.deepEqual(await page.locator("header nav [aria-current]").allTextContents(),[active]);
       for(const width of [390,1280]){
         await page.setViewportSize({width,height:850});
+        for (const link of await page.locator("header nav a").all()) {
+          const target=await link.boundingBox();
+          assert.ok(target.height>=32,file+" navigation hit area at "+width);
+        }
         assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),file+" viewport");
       }
     }
