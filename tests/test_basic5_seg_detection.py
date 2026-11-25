@@ -166,12 +166,19 @@ class TestDetectionComponents(unittest.TestCase):
 
     def test_bbox_scores_require_exact_validation_membership_and_predictions(self):
         from torch.utils.data import DataLoader, Subset
+
         from downstream.revised_detection import RevisedCoco, evaluate_detection
 
         class Empty(torch.nn.Module):
             def forward(self, images):
-                return [dict(boxes=torch.empty(0, 4), scores=torch.empty(0),
-                             labels=torch.empty(0, dtype=torch.long)) for _ in images]
+                return [{"boxes": torch.empty(0, 4), "scores": torch.empty(0),
+                         "labels": torch.empty(0, dtype=torch.long)} for _ in images]
+
+        def measure(selected, revised, indices, model):
+            loader = DataLoader(selected, sampler=indices, collate_fn=coco.collate)
+            if revised:
+                return evaluate_detection(model, loader, "cpu")["bbox_ap"]
+            return coco.evaluate(model, loader, selected, "cpu", profile=PROFILE)["bbox_mAP"]
 
         with tempfile.TemporaryDirectory() as d:
             root = tiny_coco(Path(d), per=3)
@@ -180,26 +187,20 @@ class TestDetectionComponents(unittest.TestCase):
                            coco.CocoDetectionForFRCNN(str(root / "images/val2017"),
                                                      str(root / "annotations/instances_val2017.json")))
                 selected = Subset(dataset, [2, 0])
-                def measure(indices, model):
-                    loader = DataLoader(selected, sampler=indices, collate_fn=coco.collate)
-                    if revised:
-                        return evaluate_detection(model, loader, "cpu")["bbox_ap"]
-                    return coco.evaluate(model, loader, selected, "cpu", profile=PROFILE)["bbox_mAP"]
-
-                self.assertEqual(measure([1, 0], Empty()), 0)
+                self.assertEqual(measure(selected, revised, [1, 0], Empty()), 0)
                 for indices in ([0], [1, 1], []):
                     with self.subTest(revised=revised, indices=indices), self.assertRaises(ValueError):
-                        measure(indices, Empty())
+                        measure(selected, revised, indices, Empty())
 
                 with self.subTest(revised=revised, case="missing prediction"), self.assertRaises(ValueError):
-                    measure([0, 1], mock.Mock(wraps=Empty(), return_value=[]))
+                    measure(selected, revised, [0, 1], mock.Mock(wraps=Empty(), return_value=[]))
                 extra = mock.Mock(wraps=Empty(), side_effect=lambda images: Empty()(images * 2))
                 with self.subTest(revised=revised, case="extra prediction"), self.assertRaises(ValueError):
-                    measure([0, 1], extra)
-                broken = dict(boxes=torch.empty(0, 4), scores=torch.ones(1),
-                              labels=torch.empty(0, dtype=torch.long))
+                    measure(selected, revised, [0, 1], extra)
+                broken = {"boxes": torch.empty(0, 4), "scores": torch.ones(1),
+                          "labels": torch.empty(0, dtype=torch.long)}
                 with self.subTest(revised=revised, case="unpaired score"), self.assertRaises(ValueError):
-                    measure([0, 1], mock.Mock(wraps=Empty(), return_value=[broken]))
+                    measure(selected, revised, [0, 1], mock.Mock(wraps=Empty(), return_value=[broken]))
 
     def test_real_coco_evaluator_six_metrics_and_empty_predictions(self):
         class Predictions(torch.nn.Module):
