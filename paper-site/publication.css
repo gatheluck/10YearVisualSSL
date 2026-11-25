@@ -154,3 +154,9 @@ header nav[aria-label=Primary] a:not([aria-current]):hover {background:#e4efeb;}
 .comparison-heading h2 { margin: .25em 0; font-size: clamp(28px, 4vw, 48px); letter-spacing: -.045em; }
 .comparison-heading .summary { margin: .5em 0 1.5em; }
 .comparison-section .table-scroll { max-height: 72vh; overflow: auto; }
+
+#citation { border-top: 1px solid var(--line); padding: clamp(24px, 4vw, 52px) 0 0; }
+.citation-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.citation-bar button { background: #174a50; color: white; border: 0; border-radius: 20px; padding: 10px 16px; font-weight: 600; cursor: pointer; }
+#citation pre { white-space: pre-wrap; overflow-wrap: anywhere; background: #edf5f1; color: #193d43; padding: clamp(14px, 3vw, 28px); border-radius: 10px; line-height: 1.6; }
+.citation-status { color: #285951; }
