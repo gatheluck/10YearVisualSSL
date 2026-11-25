@@ -49,12 +49,19 @@ const { chromium } = require("playwright");
     assert.ok(Math.abs((await firstResource.boundingBox()).x-(await hero.locator(".hero-copy").boundingBox()).x)<=2,"Resources align with the title");
     const experiments = hero.getByText("2,500+",{exact:true});
     const positions = async () => Promise.all([models.locator("b"), settings.locator("b"), experiments].map(el=>el.boundingBox()));
-    for (const width of [1440,610,390,320]) {
+    for (const width of [1440,1024,721,610,390,320]) {
       await page.setViewportSize({width,height:900});
       const strip = await hero.locator(".study-totals").boundingBox();
       assert.ok(strip && strip.height <= 72,"Compact scope strip at "+width);
       const entry=await enter.boundingBox();
       assert.ok(entry.height>=60 && entry.width>=245,"Prominent leaderboard entry at "+width);
+      const film = await hero.locator(".history-film").boundingBox();
+      if (width > 720) {
+        assert.ok(Math.abs(entry.x + entry.width - film.x - film.width) <= 2,
+          "Leaderboard button aligns with the chart’s right edge at " + width);
+      } else {
+        assert.ok(entry.y >= (await authors.boundingBox()).y + (await authors.boundingBox()).height);
+      }
       const boxes = await positions();
       assert.ok(Math.max(...boxes.map(b=>b.y))-Math.min(...boxes.map(b=>b.y)) < 3, "Three study totals share a baseline at "+width);
       assert.ok(boxes[0].x < boxes[1].x && boxes[1].x < boxes[2].x);
