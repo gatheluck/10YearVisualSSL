@@ -95,3 +95,61 @@ compared against the inspected reference for all 460 numeric native IDs.
 Run LP/AP with the existing semantic commands and continuation contract. Parser
 success, archive counts and reduced-model tests do not replace released-weight
 GPU evaluation, full-data scores or per-table run provenance. The [Figure 5 ledger](CVPR_EXTENDED_COVERAGE.md) records the confirmed SpaceNet and SUN RGB-D metrics and the remaining portable input validation.
+
+## Figure 5 native semantic inputs and evaluation
+
+Use `python -m downstream.extended_segmentation --config eval.json --out new-result-directory`
+to score saved LP or AP class-ID maps for settings 30 and 31. For example:
+
+```json
+{
+  "task": "figure5_native_semantic_evaluation",
+  "dataset": "spacenet2_vegas",
+  "device": "cpu",
+  "population": "full",
+  "data_root": "/data/AOI_2_Vegas_Train",
+  "predictions": "/results/predicted-maps"
+}
+```
+
+SpaceNet reads the provided `annotations/instance_train.json` and
+`instance_val.json` plus `RGB-PanSharpen_jpg/` (3,080/771 images).
+The captured RGB route skips crowds and boxes at most one pixel across
+either axis, keeps up to 64 instances by area and merges building masks.
+The comparison grid is 224 × 224. The metric averages background and
+building IoU after pooling all valid pixels across images. The reader
+rejects malformed masks rather than using an empty target on decode errors.
+
+For `dataset: sun_rgbd`, replace `data_root` with three paths: `archive`
+for SUNRGBD.zip, `toolbox` for SUNRGBDtoolbox.zip and `semantic_mat` for
+SUNRGBD2Dseg.mat. The official 5,285/5,050 split uses complete scene keys.
+The seglabel cell at each SUNRGBDMeta row supplies its target; ID 0 is void
+and labels 1–37 become training IDs 0–36. The validation grid is the
+original semantic map. The five 224 × 224 input channels are RGB in [0,1],
+decoded depth in metres divided by ten and a binary validity map.
+
+In the predictions directory, provide `index.json` as an object mapping
+every validation ID to its own relative `.npy` integer class-ID map. Keys
+are decimal COCO image IDs for SpaceNet and full scene keys beginning with
+`SUNRGBD/` for SUN. Supply maps on the evaluation grid; generate them with
+the selected model's own readout and resize logits before taking argmax if
+required. The evaluator checks coverage and geometry, pools a confusion
+matrix, and writes `results.json` with mIoU, pixel accuracy, valid pixel
+counts and fingerprints. Use `population: fixture` for reduced local
+inputs; full mode enforces published split counts. This checks explicit
+inputs and saved outputs; it does not establish their historical run
+identity or reproduce training. The SUN learned 5-to-3 stem and complete
+LP/AP training/inference require model-specific validation.
+
+Python callers can open the same readers via
+`with native_samples(config, train=False) as samples:` from
+`downstream.figure5_native_semantics`. Use `samples.ids` for the ordered
+identifiers and `samples[i]` for the aligned input and target tensors.
+
+A read-only comparison against the original readers loaded both production
+splits for both datasets with the counts above. For the first, middle and
+last sample in each split (12 comparisons), the input and target tensors
+were exactly equal element by element, including the native resolution SUN
+test masks. This check sampled tensors from the real datasets; the saved-map
+scoring CLI was separately exercised with fixtures and known confusion
+counts.

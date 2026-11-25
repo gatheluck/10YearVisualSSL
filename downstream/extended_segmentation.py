@@ -275,6 +275,9 @@ def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--config',required=True); parser.add_argument('--out',required=True)
     args=parser.parse_args(argv); data=Path(args.config).read_bytes()
+    from downstream import figure5_native_semantics as native
+    if json.loads(data).get('task') == native.TASK:
+        return distributed.cli(data,args.out,native.evaluate,native.TASK)
     return distributed.cli(data,args.out,run,TASK)
 
 
