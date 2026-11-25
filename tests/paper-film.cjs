@@ -25,7 +25,7 @@ const { chromium } = require("playwright");
     const rgb = hex => "rgb("+hex.match(/../g).map(pair=>parseInt(pair,16)).join(", ")+")";
     assert.deepEqual(swatches,Object.entries(palette).map(([family,hex])=>[family,rgb(hex.slice(1))]));
     assert.doesNotMatch(await film.innerText(), /best across all configurations/i);
-    for (const [name,count] of [["Image classification",112],["Segmentation",112],["Depth estimation",112],["Video classification",113]]) {
+    for (const [name,count] of [["Image classification on ImageNet-1K",112],["Object detection on COCO 2017",113],["Semantic segmentation on ADE20K",112],["Depth estimation on NYUv2",112],["Video classification on SSv2",113]]) {
       assert.equal(await film.locator("h2").innerText(),name);
       assert.ok(await points.count()<10);
       let previous = {};
@@ -39,13 +39,19 @@ const { chromium } = require("playwright");
         previous=current;
       }
       assert.equal(await points.count(),count);
-      const key={"Image classification":"in1k","Segmentation":"ade20k","Depth estimation":"nyuv2","Video classification":"ssv2"}[name];
+      const key={"Image classification on ImageNet-1K":"in1k","Object detection on COCO 2017":"coco","Semantic segmentation on ADE20K":"ade20k","Depth estimation on NYUv2":"nyuv2","Video classification on SSv2":"ssv2"}[name];
+      if (key === "coco") {
+        const records = await page.evaluate(() => filmRecords.map(r =>
+          [r.name, r.date, r.family, r.coco.toFixed(6)].join("|")).join("\n"));
+        assert.equal(require("node:crypto").createHash("sha256").update(records).digest("hex"), "81d689c4f03c63d4886a212651326479c0536d0ed94ccb09f2cb64f414a92b87");
+        assert.match(await film.locator(".film-metric").innerText(), /mixed protocols/i);
+      }
       const families=await page.evaluate(task=>filmRecords.filter(r=>r[task]!==null).map(r=>r.family),key);
       assert.deepEqual(await points.evaluateAll(ns=>ns.map(n=>getComputedStyle(n).fill)),families.map(family=>rgb(palette[family].slice(1))));
       const dates = await points.evaluateAll(ns=>ns.map(n=>n.dataset.date));
       assert.deepEqual(dates,[...dates].sort());
       assert.ok(await film.locator("path.frontier").getAttribute("d"));
-      const expectedBest = {"Image classification":"DINOv3-7B","Segmentation":"RAEv2","Depth estimation":"π³","Video classification":"V-JEPA"};
+      const expectedBest = {"Image classification on ImageNet-1K":"DINOv3-7B","Object detection on COCO 2017":"MAGE","Semantic segmentation on ADE20K":"RAEv2","Depth estimation on NYUv2":"π³","Video classification on SSv2":"V-JEPA"};
       const errors = await film.evaluate(node=>{
         const path=node.querySelector("path.frontier");
         const points=[...node.querySelectorAll("circle")].map(c=>[c.cx.baseVal.value,c.cy.baseVal.value]);
@@ -63,10 +69,10 @@ const { chromium } = require("playwright");
       assert.equal(errors.length,0,"The staircase must meet the best visible score on every release date: "+name);
       const labels=await film.locator("svg .milestone-label").allTextContents();
       assert.ok(labels.length>=2 && labels.includes(expectedBest[name]),"Show historical leaders and the final leader inside the graph");
-      if(name==="Depth estimation") assert.match(await film.innerText(),/lower is better/);
+      if(name==="Depth estimation on NYUv2") assert.match(await film.innerText(),/lower is better/);
       await page.clock.runFor(1800);
     }
-    assert.equal(await film.locator("h2").innerText(),"Image classification");
+    assert.equal(await film.locator("h2").innerText(),"Image classification on ImageNet-1K");
     }
   } finally {await browser.close();}
 })().catch(error=>{console.error(error);process.exitCode=1});

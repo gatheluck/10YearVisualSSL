@@ -21,10 +21,11 @@
     familyKey.append(item);
   }
   const chapters = [
-    ["in1k", "Image classification", "ImageNet Top-1 (%)"],
-    ["ade20k", "Segmentation", "ADE20K mIoU"],
-    ["nyuv2", "Depth estimation", "NYUv2 RMSE"],
-    ["ssv2", "Video classification", "SSv2 Top-1 (%)"],
+    ["in1k", "Image classification on ImageNet-1K", "Top-1 accuracy (%)"],
+    ["coco", "Object detection on COCO 2017", "Figure 2 mAP · mixed protocols"],
+    ["ade20k", "Semantic segmentation on ADE20K", "mIoU"],
+    ["nyuv2", "Depth estimation on NYUv2", "RMSE"],
+    ["ssv2", "Video classification on SSv2", "Top-1 accuracy (%)"],
   ];
   const start = Date.parse("2012-01-01"), end = Date.parse("2026-09-24");
   const sweep = 7000, chapterTime = 9000;
