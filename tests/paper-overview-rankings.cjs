@@ -15,12 +15,21 @@ const { chromium } = require("playwright");
     assert.equal(await panel.getByRole("img", { name: /Five rows of task ranks/ }).count(), 0);
     const caption = panel.locator("figcaption");
     const datasets = "ImageNet-1K, COCO 2017, ADE20K, NYUv2, SSv2";
-    assert.equal(await caption.getByText(
-      "Top 10 of 109 models across the Basic Five datasets (" + datasets + ").",
-      { exact: true }).count(), 1);
-    assert.equal(await caption.locator("strong").textContent(), datasets);
+    const intro = caption.locator("p").filter({ hasText: "Top 10 of 109 models" });
+    assert.ok((await intro.innerText()).includes(
+      "Top 10 of 109 models across the Basic Five datasets (" + datasets + ")."));
+    assert.equal(await intro.locator("strong, b").count(), 0, "Dataset names use the surrounding text weight");
     assert.equal(await panel.getByText("What is the Basic Five?", { exact: true }).count(), 0);
     const reason = caption.getByRole("link", { name: "Why the Basic Five?" });
+    assert.equal(await intro.getByRole("link", { name: "Why the Basic Five?" }).count(), 1);
+    await page.setViewportSize({ width: 1280, height: 800 });
+    const horizontal = await intro.evaluate(paragraph => {
+      const text = document.createRange();
+      text.selectNodeContents(paragraph);
+      const tops = [...text.getClientRects()].map(rect => rect.top);
+      return Math.max(...tops) - Math.min(...tops) <= 2;
+    });
+    assert.ok(horizontal, "At desktop width, the complete introduction fits on one line");
     await reason.click();
     assert.equal(new URL(page.url()).hash, "#geometry");
     assert.equal(await panel.getByRole("link", { name: "Why the Basic Five?" }).count(), 1);

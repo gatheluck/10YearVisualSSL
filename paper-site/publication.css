@@ -67,9 +67,10 @@ header nav[aria-label=Primary] a:not([aria-current]):hover {background:#e4efeb;}
 
 .rank-preview {margin:clamp(22px,4vw,54px) 0;padding:clamp(14px,2.8vw,36px);border:1px solid #c4d9d2;background:#fff;border-radius:12px;}
 .rank-preview figcaption {display:block;}
-.rank-preview figcaption p:not(.eyebrow) {margin:8px 0;color:#425d65;text-wrap:balance;}
+.rank-preview figcaption p:not(.eyebrow) {max-width:none;margin:8px 0;color:#425d65;font-size:.95rem;}
 .rank-preview h2 {font-size:clamp(23px,3vw,42px);margin:5px 0;}
-.rank-preview figcaption a {color:#155d5b;text-decoration:underline;text-underline-offset:3px;}
+.rank-preview figcaption .keep-together {white-space:nowrap;}
+.rank-preview figcaption a {color:#155d5b;text-decoration:underline;text-underline-offset:3px;white-space:nowrap;}
 .rank-preview > p {font-size:13px;color:#48616a;}
 .study .basic-rationale {max-width:76ch;margin:10px 0 20px;}
 
