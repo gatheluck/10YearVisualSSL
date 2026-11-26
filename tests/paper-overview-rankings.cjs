@@ -17,8 +17,16 @@ const { chromium } = require("playwright");
     assert.equal(await panel.getByLabel("Show ranks").count(), 0);
     const { ranks, scores } = await page.evaluate(() => ({ ranks: historicalRanks, scores: historicalScores }));
     const rows = panel.locator("tbody tr");
+    const board = await browser.newPage();
+    await board.goto(new URL("leaderboard.html", page.url()).href);
+    await board.getByRole("button", { name: "Show all 109 configurations" }).click();
+    const boardColors = await board.locator(".rank-scroll tbody th b").evaluateAll(labels =>
+      Object.fromEntries(labels.map(label => [
+        label.textContent, getComputedStyle(label, "::before").backgroundColor,
+      ])));
+    await board.close();
     for (const [index, value] of ["overall", "in1k", "coco", "ade20k", "nyuv2", "ssv2"].entries()) {
-      await view.selectOption(value);
+      if (index) await view.selectOption(value);
       const rank = r => index === 0 ? r.place : r.ranks[index - 1];
       const expected = ranks.filter(r => rank(r) <= 10).sort((a,b) => rank(a)-rank(b));
       assert.deepEqual(await rows.evaluateAll(nodes => nodes.map(row =>
@@ -31,7 +39,21 @@ const { chromium } = require("playwright");
           ...r.ranks.map((place, task) => (score.scores[task] ?? "—") + "Rank " + place)];
       }));
       assert.equal(await rows.locator('a[href^="https://"]').count(), expected.length);
-      assert.equal(await panel.locator("thead th[aria-sort=ascending]").count(), 1);
+      const activeHeader = panel.locator("thead th[aria-sort=ascending]");
+      assert.equal(await activeHeader.count(), 1);
+      const activeColor = await activeHeader.evaluate(cell => getComputedStyle(cell).backgroundColor);
+      assert.notEqual(activeColor, "rgba(0, 0, 0, 0)");
+      const activeColumn = index === 0 ? 1 : index + 2;
+      for (const cells of await rows.evaluateAll(nodes => nodes.map(row =>
+        Array.from(row.cells, cell => getComputedStyle(cell).backgroundColor)))) {
+        assert.equal(cells[activeColumn], activeColor, value + " highlights every cell in the active column");
+        assert.equal(cells.filter(color => color === activeColor).length, 1);
+      }
+      const swatches = await rows.locator("th .preview-family").evaluateAll(labels => labels.map(label => {
+        const marker = getComputedStyle(label, "::before");
+        return [label.parentElement.querySelector("a").textContent, marker.backgroundColor, marker.width, marker.height];
+      }));
+      assert.deepEqual(swatches, expected.map(row => [row.name, boardColors[row.name], "8px", "8px"]));
     }
     for (const width of [320, 1280]) {
       await page.setViewportSize({ width, height: 800 });

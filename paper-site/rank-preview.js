@@ -19,6 +19,7 @@ preview.append(cells);
 const taskPicker = document.getElementById("preview-task");
 const standings = document.querySelector(".preview-standings");
 const rankKeys = ["in1k", "coco", "ade20k", "nyuv2", "ssv2"];
+const familyColors = new Map(rankingFamilies.map(([family, , token]) => [family, "var(--" + token + ")"]));
 const resultsByModel = new Map(historicalScores.map(result => [result.name, result]));
 for (const result of historicalScores.filter(result => result.name === "V-JEPA")) {
   const checkpoint = result.family === "VSSL" ? "ViT-H" : "ViT-L";
@@ -41,14 +42,19 @@ function showStandings() {
     const row = body.insertRow();
     const label = document.createElement("th");
     label.scope = "row";
-    label.append(sourceLink(model.name), document.createElement("small"));
-    label.lastElementChild.textContent = result.family;
+    const family = document.createElement("small");
+    family.className = "preview-family";
+    family.style.setProperty("--series", familyColors.get(result.family));
+    family.textContent = result.family;
+    label.append(sourceLink(model.name), family);
     row.append(label);
-    row.insertCell().textContent = "#" + model.place;
+    const overallRank = row.insertCell();
+    overallRank.textContent = "#" + model.place;
+    overallRank.classList.toggle("selected-rank", task < 0);
     row.insertCell().textContent = (model.ranks.reduce((sum, value) => sum + value, 0) / model.ranks.length).toFixed(1);
     for (const [index, place] of model.ranks.entries()) {
       const cell = row.insertCell();
-      cell.classList.toggle("ranked-task", task === index);
+      cell.classList.toggle("selected-rank", task === index);
       const score = document.createElement("strong");
       score.textContent = result.scores[index] ?? "—";
       const taskRank = document.createElement("small");

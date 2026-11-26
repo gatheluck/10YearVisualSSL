@@ -47,7 +47,7 @@ Run `node tests/paper-control.cjs` with the browser setup above. The test verifi
 
 ## Figure 1 on the leaderboard
 
-The Overview shows the top 10 ranks for the overall standings or any Basic Five task, including ties at the cutoff. Each row shows its training family, overall rank, mean of the five Figure 1 task ranks and the corresponding Figure 2 scores from the November manuscript. The Figure 2 historical leaderboard uses the same score source. A dash marks an unavailable score. The full leaderboard includes the remaining configurations and evaluation details.
+The Overview shows the top 10 ranks for the overall standings or any Basic Five task, including ties at the cutoff. The selected ranking column is shaded. Each row shows its training family, overall rank, mean of the five Figure 1 task ranks and the corresponding Figure 2 scores from the November manuscript. Family colors match the full leaderboard. The Figure 2 historical leaderboard uses the same score source. A dash marks an unavailable score. The full leaderboard includes the remaining configurations and evaluation details.
 
 The leaderboard leads with the task transfer rank matrix and overall standings. Below the standings, expand **Compare rank trajectories** to trace all 109 published configurations through their five benchmark ranks in manuscript order. Each vertical axis uses the same rank scale, with rank 1 at the top. Click a family in the legend to highlight its traces, then click it again to restore all seven. The link below the chart opens the exact ranks in the historical comparison. Study-wide experiment and configuration counts cover a broader population than the Figure 1 cohort.
 
