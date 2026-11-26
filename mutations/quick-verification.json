@@ -1,0 +1,25 @@
+{
+  "targets": [
+    {
+      "file": "README.md",
+      "label": "use the upstream branch instead of the recorded DPT revision",
+      "old": "update --init --checkout -- third_party/geosubprobe",
+      "new": "update --init --remote -- third_party/geosubprobe",
+      "tests": ["tests.test_reviewer_navigation"]
+    },
+    {
+      "file": "README.md",
+      "label": "require upstream DPT for the source-only checkout",
+      "old": "test_dpt_probe.DenseProbe.test_missing_submodule_reports_actionable_error",
+      "new": "test_dpt_probe",
+      "tests": ["tests.test_reviewer_navigation"]
+    },
+    {
+      "file": "README.md",
+      "label": "omit upstream DPT coverage from the full command",
+      "old": "tests.test_transfer_comparison tests.test_dpt_probe\n",
+      "new": "tests.test_transfer_comparison\n",
+      "tests": ["tests.test_reviewer_navigation"]
+    }
+  ]
+}

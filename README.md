@@ -9,17 +9,35 @@ Open the [current evaluation protocols](#evaluation-protocols) or jump to the [f
 
 ## Quick verification
 
-Run the following checks from the code root. They use local fixtures and require no datasets or model weights. Use Python 3.12 in a clean environment. The shared downstream dependencies are listed in [the requirements file](downstream/requirements.txt). The [hashed CPU lock](downstream/requirements.lock.txt) targets Linux x86_64; on other platforms use the requirements file with compatible PyTorch wheels. Model-specific environments are under `methods/`.
+From the repository root, activate a clean Python 3.12 environment. On Linux x86_64, install the shared dependencies from the [hashed CPU lock](downstream/requirements.lock.txt).
 
 ```sh
 python -m pip install --require-hashes --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple -r downstream/requirements.lock.txt
-python -m unittest tests.test_figure3_comparison tests.test_cvpr_extended_coverage tests.test_transfer_comparison tests.test_dpt_probe
+```
+
+On other platforms with compatible PyTorch wheels, use `python -m pip install -r downstream/requirements.txt`.
+
+**Source-only checkout.** Run these 19 tests and three help commands. They use local fixtures and need no model weights, datasets or submodule files.
+
+```sh
+python -m unittest tests.test_figure3_comparison tests.test_cvpr_extended_coverage tests.test_transfer_comparison tests.test_dpt_probe.DenseProbe.test_missing_submodule_reports_actionable_error
 python -m downstream.revised_tasks --help
 python -m downstream.revised_reporting --help
 python -m downstream.representation_analysis --help
 ```
 
-The test command should finish with `OK`, and each help command should print its available options.
+Expect 19 tests to pass with no skips. Each help command prints its available options.
+
+**Full check with the DPT implementation.** To run all 23 tests, the checkout must also contain the geosubprobe source at the revision pinned by this repository, including `third_party/geosubprobe/evals/models/probes.py`. Four additional tests construct the dense probe using that code.
+
+From the root of a Git clone at the revision you want to verify, run the following commands. The first fetches geosubprobe if needed and checks out the commit recorded by the parent repository. A source archive lacks the Git metadata for this step. See the [Git submodule documentation](https://git-scm.com/docs/git-submodule).
+
+```sh
+git submodule update --init --checkout -- third_party/geosubprobe
+python -m unittest tests.test_figure3_comparison tests.test_cvpr_extended_coverage tests.test_transfer_comparison tests.test_dpt_probe
+```
+
+Expect 23 tests to pass with no skips.
 
 ## Repository status and scope
 
