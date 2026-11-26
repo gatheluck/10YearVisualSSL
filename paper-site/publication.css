@@ -70,6 +70,9 @@ header nav[aria-label=Primary] a:not([aria-current]):hover {background:#e4efeb;}
 .rank-preview figcaption p:not(.eyebrow) {margin:8px 0;color:#425d65;text-wrap:balance;}
 .rank-preview-links {display:flex;align-items:center;gap:12px 24px;flex-wrap:wrap;margin-top:14px;}
 .rank-preview-links a {font-size:14px;font-weight:650;color:#155752;text-decoration:underline;text-underline-offset:4px;}
+.basic-five-explainer { margin-block: 10px; }
+.basic-five-explainer summary { color:#155752; cursor:pointer; font-weight:650; width:fit-content; }
+.basic-five-explainer p { margin:6px 0 0; color:#425d65; font-size:.9rem; }
 .rank-preview h2 {font-size:clamp(23px,3vw,42px);margin:5px 0;}
 .rank-preview figcaption a {color:#155d5b;text-decoration:underline;text-underline-offset:3px;}
 .rank-preview > p {font-size:13px;color:#48616a;}

@@ -13,7 +13,16 @@ const { chromium } = require("playwright");
     assert.deepEqual(await page.locator("main > [id]").evaluateAll(nodes => nodes.map(n => n.id)),
       ["rankings", "figure-five", "geometry", "citation"]);
     assert.equal(await panel.getByRole("img", { name: /Five rows of task ranks/ }).count(), 0);
-    assert.equal(await panel.getByText("Top 10 of 109 configurations across the Basic Five.", { exact: true }).count(), 1);
+    const explainer = panel.locator("summary").getByText("What is the Basic Five?", { exact: true });
+    assert.equal(await explainer.count(), 1);
+    await explainer.click();
+    for (const dataset of ["ImageNet-1K", "COCO 2017", "ADE20K", "NYUv2", "SSv2"]) {
+      assert.ok((await panel.locator("details[open] p").innerText()).includes(dataset));
+    }
+    assert.equal(await panel.getByText("Top 10 of 109 models across the Basic Five.", { exact: true }).count(), 1);
+    const reason = panel.getByRole("link", { name: "Why the Basic Five?" });
+    assert.equal(await reason.getAttribute("href"), "#geometry");
+    await explainer.click();
     const view = panel.getByLabel("Rank by");
     assert.equal(await view.inputValue(), "overall");
     assert.equal(await panel.getByLabel("Show ranks").count(), 0);
@@ -21,7 +30,7 @@ const { chromium } = require("playwright");
     const rows = panel.locator("tbody tr");
     const board = await browser.newPage();
     await board.goto(new URL("leaderboard.html", page.url()).href);
-    await board.getByRole("button", { name: "Show all 109 configurations" }).click();
+    await board.getByRole("button", { name: "Show all 109 models" }).click();
     const boardColors = await board.locator(".rank-scroll tbody th b").evaluateAll(labels =>
       Object.fromEntries(labels.map(label => [
         label.textContent, getComputedStyle(label, "::before").backgroundColor,
@@ -75,7 +84,7 @@ const { chromium } = require("playwright");
     await panel.getByRole("link", { name: "See all 109 model rankings" }).click();
     assert.ok(page.url().endsWith("/leaderboard.html"));
     assert.equal(await page.evaluate(() => window.scrollY), 0);
-    await page.getByRole("button", { name: "Show all 109 configurations" }).click();
+    await page.getByRole("button", { name: "Show all 109 models" }).click();
     assert.equal(await page.locator("#leaderboard tbody tr").count(), 109);
   } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });

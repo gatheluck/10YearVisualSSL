@@ -109,7 +109,7 @@ const { chromium } = require("playwright");
     const rows = board.locator("tbody tr");
     assert.equal(await rows.count(), 10);
     await board
-      .getByRole("button", { name: "Show all 109 configurations" })
+      .getByRole("button", { name: "Show all 109 models" })
       .click();
     assert.equal(await rows.count(), 109);
     // Reference digest from the printed places, names, means and five ranks on page one.
@@ -136,7 +136,7 @@ const { chromium } = require("playwright");
     assert.equal(await rows.count(), 4);
     await query.fill("xx-no-match");
     assert.equal(await rows.count(), 0);
-    assert.match(await board.innerText(), /No matching configurations/);
+    assert.match(await board.innerText(), /No matching models/);
     await query.fill("");
     await page.setViewportSize({ width: 390, height: 844 });
     assert.ok(

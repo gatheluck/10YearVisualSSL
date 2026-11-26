@@ -20,7 +20,7 @@ const { chromium } = require("playwright");
       "Hirokatsu Kataoka","Kohsuke Ide","Yoshihiro Fukuhara","Shumpei Takezaki",
       "Nakamasa Inoue","Yuki M Asano","Christian Rupprecht",
     ],"List the seven authors in manuscript order");
-    const models = hero.getByRole("link",{name:/113 historical model configurations/i});
+    const models = hero.getByRole("link",{name:/113 historical models/i});
     const settings = hero.getByRole("link",{name:/40 dataset benchmarks/i});
     assert.equal(await models.count(),1,"The first view must introduce the historical model collection");
     assert.equal(await settings.count(),1);
