@@ -13,16 +13,18 @@ const { chromium } = require("playwright");
     assert.deepEqual(await page.locator("main > [id]").evaluateAll(nodes => nodes.map(n => n.id)),
       ["rankings", "figure-five", "geometry", "citation"]);
     assert.equal(await panel.getByRole("img", { name: /Five rows of task ranks/ }).count(), 0);
-    const explainer = panel.locator("summary").getByText("What is the Basic Five?", { exact: true });
-    assert.equal(await explainer.count(), 1);
-    await explainer.click();
-    for (const dataset of ["ImageNet-1K", "COCO 2017", "ADE20K", "NYUv2", "SSv2"]) {
-      assert.ok((await panel.locator("details[open] p").innerText()).includes(dataset));
-    }
-    assert.equal(await panel.getByText("Top 10 of 109 models across the Basic Five.", { exact: true }).count(), 1);
-    const reason = panel.getByRole("link", { name: "Why the Basic Five?" });
-    assert.equal(await reason.getAttribute("href"), "#geometry");
-    await explainer.click();
+    const caption = panel.locator("figcaption");
+    const datasets = "ImageNet-1K, COCO 2017, ADE20K, NYUv2, SSv2";
+    assert.equal(await caption.getByText(
+      "Top 10 of 109 models across the Basic Five datasets (" + datasets + ").",
+      { exact: true }).count(), 1);
+    assert.equal(await caption.locator("strong").textContent(), datasets);
+    assert.equal(await panel.getByText("What is the Basic Five?", { exact: true }).count(), 0);
+    const reason = caption.getByRole("link", { name: "Why the Basic Five?" });
+    await reason.click();
+    assert.equal(new URL(page.url()).hash, "#geometry");
+    assert.equal(await panel.getByRole("link", { name: "Why the Basic Five?" }).count(), 1);
+    await page.goBack();
     const view = panel.getByLabel("Rank by");
     assert.equal(await view.inputValue(), "overall");
     assert.equal(await panel.getByLabel("Show ranks").count(), 0);
