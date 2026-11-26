@@ -179,3 +179,8 @@ header nav[aria-label=Primary] a:not([aria-current]):hover {background:#e4efeb;}
 @media(max-width:600px) {
   .rank-preview .standings-cta { margin-left:0; }
 }
+
+.rank-preview > .standings-scroll-hint { display:none; }
+@media(max-width:900px) {
+  .rank-preview > .standings-scroll-hint { display:block; margin:0 0 6px; }
+}

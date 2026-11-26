@@ -36,6 +36,7 @@ const { chromium } = require("playwright");
     for (const width of [320, 1280]) {
       await page.setViewportSize({ width, height: 800 });
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+      assert.equal(await panel.getByText("Scroll to see all five scores").isVisible(), width === 320);
       const table = panel.getByRole("region", { name: "Top 10 benchmark results" });
       assert.equal(await table.evaluate(el => el.scrollWidth > el.clientWidth), width === 320);
     }
