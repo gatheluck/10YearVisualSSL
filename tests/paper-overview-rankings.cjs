@@ -20,8 +20,8 @@ const { chromium } = require("playwright");
       "Top 10 of 109 models across the Basic Five datasets (" + datasets + ")."));
     assert.equal(await intro.locator("strong, b").count(), 0, "Dataset names use the surrounding text weight");
     assert.equal(await panel.getByText("What is the Basic Five?", { exact: true }).count(), 0);
-    const reason = caption.getByRole("link", { name: "Why the Basic Five?" });
-    assert.equal(await intro.getByRole("link", { name: "Why the Basic Five?" }).count(), 1);
+    const reason = panel.getByRole("link", { name: "Why the Basic Five?" });
+    assert.equal(await caption.getByRole("link", { name: "Why the Basic Five?" }).count(), 0);
     await page.setViewportSize({ width: 1280, height: 800 });
     const horizontal = await intro.evaluate(paragraph => {
       const text = document.createRange();
@@ -30,6 +30,11 @@ const { chromium } = require("playwright");
       return Math.max(...tops) - Math.min(...tops) <= 2;
     });
     assert.ok(horizontal, "At desktop width, the complete introduction fits on one line");
+    for (const width of [320, 1280]) {
+      await page.setViewportSize({ width, height: 800 });
+      const table = await panel.getByRole("region", { name: "Top 10 benchmark results" }).boundingBox();
+      assert.ok((await reason.boundingBox()).y >= table.y + table.height);
+    }
     await reason.click();
     assert.equal(new URL(page.url()).hash, "#geometry");
     assert.equal(await panel.getByRole("link", { name: "Why the Basic Five?" }).count(), 1);
