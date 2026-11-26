@@ -1,10 +1,19 @@
 {
   "targets": [
     {
-      "label": "Missing pinned dependency checkout",
+      "label": "Uninitialized dependency accepted",
       "file": "docs/HANDOFF.md",
-      "old": "git clone --recurse-submodules \"$PORT_REMOTE\"",
-      "new": "git clone \"$PORT_REMOTE\"",
+      "old": "substr($0, 1, 1) != \" \"",
+      "new": "substr($0, 1, 1) == \"+\"",
+      "tests": [
+        "tests.test_handoff.TestHandoff.test_fresh_clone_restores_pins_hooks_and_preserves_existing_checkout"
+      ]
+    },
+    {
+      "label": "Different dependency revision accepted",
+      "file": "docs/HANDOFF.md",
+      "old": "substr($0, 1, 1) != \" \"",
+      "new": "substr($0, 1, 1) == \"-\"",
       "tests": [
         "tests.test_handoff.TestHandoff.test_fresh_clone_restores_pins_hooks_and_preserves_existing_checkout"
       ]

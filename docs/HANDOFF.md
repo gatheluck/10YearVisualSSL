@@ -1371,8 +1371,28 @@ Virtual environments and compiled caches should be recreated for the new Mac.
 
 <!-- handoff-fresh-clone -->
 ```sh
-git clone --recurse-submodules "$PORT_REMOTE" "$PORT_DIR" && git -C "$PORT_DIR" config core.hooksPath .githooks && git clone "$CAPTURE_REMOTE" "$CAPTURE_DIR"
+git clone --no-recurse-submodules "$PORT_REMOTE" "$PORT_DIR" && git -C "$PORT_DIR" config core.hooksPath .githooks && git clone --no-recurse-submodules "$CAPTURE_REMOTE" "$CAPTURE_DIR"
 ```
+
+   The port clone records each dependency commit but leaves the dependency
+   directories empty. For full project validation, populate the pinned upstream
+   repositories and their nested dependencies from the configured remotes:
+
+```sh
+git -C "$PORT_DIR" submodule update --init --recursive
+```
+
+   The release checks use the actual upstream sources and license notices.
+   Isolated test fixtures create their own local Git commits. Verify the
+   upstream revisions before running the checks. A missing checkout or a
+   different revision makes this command fail.
+
+<!-- handoff-check-pins -->
+```sh
+pins=$(git -C "$PORT_DIR" submodule status --recursive) && test -n "$pins" && printf '%s\n' "$pins" | awk 'substr($0, 1, 1) != " " { print; failed = 1 } END { exit failed }'
+```
+
+   After the revisions match, run `./tests/run-tests.sh` from `PORT_DIR`.
 
    This is a fresh-clone recipe: rerunning against populated destinations must
    refuse, preserving their contents. For existing clones inspect status and

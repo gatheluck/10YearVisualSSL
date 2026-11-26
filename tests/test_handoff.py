@@ -9,6 +9,7 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).parent))
 from _checkout import needs_git
+from tests._git_fixture import local_gitlink
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -40,9 +41,7 @@ class TestHandoff(unittest.TestCase):
             env.update(HOME=tmp, GIT_CONFIG_NOSYSTEM="1",
                        GIT_CONFIG_GLOBAL=str(root / "gitconfig"),
                        GIT_AUTHOR_NAME="Test", GIT_AUTHOR_EMAIL="test@example.invalid",
-                       GIT_COMMITTER_NAME="Test", GIT_COMMITTER_EMAIL="test@example.invalid",
-                       GIT_CONFIG_COUNT="1", GIT_CONFIG_KEY_0="protocol.file.allow",
-                       GIT_CONFIG_VALUE_0="always")
+                       GIT_COMMITTER_NAME="Test", GIT_COMMITTER_EMAIL="test@example.invalid")
 
             def git(*args):
                 return subprocess.run(["git", *map(str, args)], env=env,
@@ -56,10 +55,10 @@ class TestHandoff(unittest.TestCase):
                 git("-C", path, "commit", "-m", "fixture")
                 return path
 
-            upstream = repo("upstream")
             port = repo("port-source")
             private = repo("private-source")
-            git("-C", port, "submodule", "add", upstream, "third_party/example")
+            relative = "third_party/example"
+            pin = local_gitlink(port, relative, {"fixture.txt": "upstream"}, env=env)
             (port / ".githooks").mkdir()
             (port / ".githooks/pre-commit").write_text("#!/bin/sh\nexit 0\n")
             git("-C", port, "add", ".")
@@ -70,9 +69,27 @@ class TestHandoff(unittest.TestCase):
                                     capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr)
             destination = Path(env["PORT_DIR"])
-            self.assertTrue((destination / "third_party/example/fixture.txt").is_file())
-            self.assertEqual(git("-C", destination / "third_party/example", "rev-parse", "HEAD"),
-                             git("-C", upstream, "rev-parse", "HEAD"))
+            entry = git("-C", destination, "ls-tree", "HEAD", "--", relative)
+            self.assertEqual(entry, f"160000 commit {pin}\t{relative}")
+            verify = re.search(r"<!-- handoff-check-pins -->\s*```sh\n(.*?)\n```",
+                               doc.read_text(), re.S)
+            self.assertIsNotNone(verify, "missing pin verification recipe")
+
+            def check_pins():
+                return subprocess.run(["bash", "-eu", "-c", verify[1]], env=env,
+                                      capture_output=True, text=True)
+
+            self.assertNotEqual(check_pins().returncode, 0, "missing checkout accepted")
+            child = destination / relative
+            child.rmdir()
+            (port / relative).rename(child)
+            git("-C", destination, "config", f"submodule.{relative}.active", "true")
+            self.assertEqual((child / "fixture.txt").read_text(), "upstream")
+            self.assertEqual(git("-C", child, "rev-parse", "HEAD"), pin)
+            checked = check_pins()
+            self.assertEqual(checked.returncode, 0, checked.stderr)
+            git("-C", child, "commit", "--allow-empty", "-m", "different revision")
+            self.assertNotEqual(check_pins().returncode, 0, "wrong checkout accepted")
             self.assertEqual(git("-C", destination, "config", "--get", "core.hooksPath"), ".githooks")
             self.assertEqual(git("-C", env["CAPTURE_DIR"], "rev-parse", "HEAD"),
                              git("-C", private, "rev-parse", "HEAD"))
