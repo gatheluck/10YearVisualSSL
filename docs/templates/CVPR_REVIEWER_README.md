@@ -6,17 +6,28 @@ Open the [current evaluation protocols](#evaluation-protocols) or jump to the [f
 
 ## Quick verification
 
-Run the following checks from the code root. They use local fixtures and require no datasets or model weights. Use Python 3.12 in a clean environment. The shared downstream dependencies are listed in [the requirements file](downstream/requirements.txt). The [hashed CPU lock](downstream/requirements.lock.txt) targets Linux x86_64; on other platforms use the requirements file with compatible PyTorch wheels. Model-specific environments are under `methods/`.
+From the extracted `code/` directory, activate a clean Python 3.12 environment. On Linux x86_64, install the [locked CPU dependencies](downstream/requirements.lock.txt):
 
 ```sh
 python -m pip install --require-hashes --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple -r downstream/requirements.lock.txt
-python -m unittest tests.test_figure3_comparison tests.test_cvpr_extended_coverage tests.test_transfer_comparison tests.test_dpt_probe
+```
+
+On other platforms with compatible PyTorch wheels, use `python -m pip install -r downstream/requirements.txt`. Run the following 19 tests with local fixtures, then check the three command interfaces:
+
+```sh
+python -m unittest tests.test_figure3_comparison tests.test_cvpr_extended_coverage tests.test_transfer_comparison tests.test_dpt_probe.DenseProbe.test_missing_submodule_reports_actionable_error
 python -m downstream.revised_tasks --help
 python -m downstream.revised_reporting --help
 python -m downstream.representation_analysis --help
 ```
 
-The test command should finish with `OK`, and each help command should print its available options.
+Expect 19 tests to pass without skips and each help command to print its options. If the archive also contains the pinned DPT implementation at `third_party/geosubprobe/evals/models/probes.py`, run the full 23-test check:
+
+```sh
+python -m unittest tests.test_figure3_comparison tests.test_cvpr_extended_coverage tests.test_transfer_comparison tests.test_dpt_probe
+```
+
+Expect 23 tests to pass without skips. Both checks use fixture data and require no model weights.
 
 ## Evaluation protocols
 
@@ -34,11 +45,17 @@ For the 40 Extended transfer settings, see the [Figure 5 dataset and metric ledg
 
 ## Figures and analyses
 
+Start with the [reproduction guide for Figures 1–7 and Appendices A–E](docs/PAPER_REPRODUCTION_GUIDE.md). It gives the input and verification procedure for each figure.
+
 | Paper experiment | Where to start |
 | --- | --- |
 | Figure 3, five encoders and Basic Five tasks | [LoRA and DPT training](docs/CVPR_ADAPTATION.md), [three-seed comparisons](docs/LORA_FULL_REPRODUCTION.md), [SSv2 attentive probes](docs/SSV2_EXECUTION.md#figure-3-attentive-probes) |
 | Figure 5, 40 transfer settings | [Dataset and metric ledger](docs/CVPR_EXTENDED_COVERAGE.md), [LP/AP comparisons](docs/TRANSFER_COMPARISON.md) |
 | Representation geometry and Figure 7 | [Analysis, plotting and coordinate selection](docs/REPRESENTATION_ANALYSIS.md) |
+
+### Methods
+
+Each method directory contains its adapter and experiment configurations. For example, the [Context Prediction pre-training configuration](methods/01_context_prediction/configs/pretrain.yaml) selects its original-setting recipe. Use the [ASIS protocol](docs/initial_protocols/INITIAL_STEP1_v1.md) to identify the evaluation settings.
 
 ## Reading the results
 
