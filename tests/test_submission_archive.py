@@ -13,6 +13,7 @@ import unittest
 import zipfile
 
 from tests._checkout import needs_git
+from tests._git_fixture import local_gitlink
 
 TOOL = Path(__file__).resolve().parents[1] / 'bin' / 'submission-archive.py'
 
@@ -261,11 +262,13 @@ class TestSubmissionArchive(unittest.TestCase):
         self.assertEqual((self.repo/'main.py').read_text(),'print("ready")\n')
 
     def test_submodule_materializes_pin_not_dirty_checkout(self):
-        upstream=self.base/'upstream';upstream.mkdir()
-        self.git('init','-q',cwd=upstream);self.git('config','user.name','Upstream',cwd=upstream);self.git('config','user.email','upstream@example.invalid',cwd=upstream)
-        (upstream/'dep.py').write_text('VALUE = 7\n');(upstream/'LICENSE').write_text('Upstream license\n')
-        self.git('add','.',cwd=upstream);self.git('commit','-qm','first',cwd=upstream)
-        self.git('-c','protocol.file.allow=always','submodule','add',str(upstream),'vendor/dep');self.commit()
+        local_gitlink(self.repo, 'vendor/dep',
+                      {'dep.py': 'VALUE = 7\n', 'LICENSE': 'Upstream license\n'})
+        self.commit()
+        child = self.repo / 'vendor/dep'
+        (child / 'dep.py').write_text('VALUE = 8\n')
+        self.git('-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid',
+                 'commit', '-qam', 'Later revision', cwd=child)
         (self.repo/'vendor/dep/dep.py').write_text('private-owner')
         self.policy['include'].append('vendor')
         self.assertTrue(self.run_build())
@@ -522,15 +525,7 @@ class TestSubmissionArchive(unittest.TestCase):
         self.assertIn('Ran 3 tests', result.stderr)
 
     def add_bundled_vendor(self):
-        upstream = self.base/'upstream'
-        upstream.mkdir()
-        self.git('init', '-q', cwd=upstream)
-        self.git('config', 'user.name', 'Upstream', cwd=upstream)
-        self.git('config', 'user.email', 'upstream@example.invalid', cwd=upstream)
-        (upstream/'nativepkg').mkdir()
-        (upstream/'nativepkg/__init__.py').write_text('VALUE = 7\n')
-        self.git('add', '.', cwd=upstream); self.git('commit', '-qm', 'fixture', cwd=upstream)
-        self.git('-c', 'protocol.file.allow=always', 'submodule', 'add', str(upstream), 'vendor/dep')
+        local_gitlink(self.repo, 'vendor/dep', {'nativepkg/__init__.py': 'VALUE = 7\n'})
         self.commit(); self.policy['include'].append('vendor')
 
     def test_bundle_index_keeps_dependencies_local_without_git_metadata(self):

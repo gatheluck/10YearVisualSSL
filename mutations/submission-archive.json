@@ -163,6 +163,15 @@
       ]
     },
     {
+      "label": "Export child HEAD instead of recorded pin",
+      "file": "bin/submission-archive.py",
+      "old": "walk(checkout, oid, path + '/')",
+      "new": "walk(checkout, 'HEAD', path + '/')",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_submodule_materializes_pin_not_dirty_checkout"
+      ]
+    },
+    {
       "label": "submodule absence ignored",
       "file": "bin/submission-archive.py",
       "old": "finding(path, 'missing-submodule')",

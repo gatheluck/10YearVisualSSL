@@ -9,6 +9,7 @@ import tempfile
 import unittest
 
 from tests._checkout import needs_git
+from tests._git_fixture import local_gitlink
 
 ROOT = Path(__file__).resolve().parents[1]
 TOOL = ROOT / 'bin' / 'validate-push.py'
@@ -169,14 +170,8 @@ class TestPushValidation(unittest.TestCase):
         self.assertFalse(self.receipt().exists()); self.assertEqual(self.count(),0)
 
     def test_dirty_submodule_content_is_bound_without_modifying_it(self):
-        upstream=Path(self.tmp.name)/'upstream'; upstream.mkdir()
-        subprocess.run(['git','init','-q',str(upstream)],check=True,capture_output=True,env=self.env)
-        for key,value in [('user.name','Fixture'),('user.email','fixture@example.invalid')]:
-            subprocess.run(['git','-C',str(upstream),'config',key,value],check=True,env=self.env)
-        (upstream/'code.py').write_text('x=1\n')
-        for args in [('add','.'),('commit','-qm','Upstream')]:
-            subprocess.run(['git','-C',str(upstream),*args],check=True,env=self.env)
-        self.git('-c','protocol.file.allow=always','submodule','add',str(upstream),'vendor'); self.commit()
+        local_gitlink(self.root, 'vendor', {'code.py': 'x=1\n'}, env=self.env)
+        self.commit()
         p=self.root/'vendor/code.py'; p.write_text('x=2\n'); self.prepare()
         self.assertEqual(p.read_text(),'x=2\n'); p.write_text('x=3\n')
         self.assertNotEqual(self.command('check').returncode,0)
