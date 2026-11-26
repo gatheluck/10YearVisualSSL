@@ -164,9 +164,18 @@ header nav[aria-label=Primary] a:not([aria-current]):hover {background:#e4efeb;}
 .standings-controls { display:flex; flex-wrap:wrap; align-items:end; gap:12px 20px; margin:20px 0 12px; }
 .standings-controls label { display:grid; gap:4px; min-width:0; max-width:100%; font-size:.8rem; font-weight:650; color:#38565b; }
 .standings-controls select { width:100%; min-width:0; max-width:100%; padding:8px; border:1px solid #a6bfb7; border-radius:6px; background:white; color:#173d44; font:inherit; }
-.rank-preview .preview-standings { min-width:0; width:100%; font-variant-numeric:tabular-nums; }
-.preview-standings th:first-child,.preview-standings td:first-child { width:12%; }
-.preview-standings th:last-child,.preview-standings td:last-child { text-align:right; }
-.preview-standings tbody tr:first-child { background:#e5f6ef; }
-.preview-standings tbody tr:first-child td:first-child { color:#095e56; font-weight:800; }
-.preview-standings tbody .paper-link { color:#174a50; text-underline-offset:3px; }
+.rank-preview .table-scroll { border:1px solid #c4d9d2; border-radius:8px; }
+.rank-preview .preview-standings { min-width:780px; width:100%; font-variant-numeric:tabular-nums; }
+.preview-standings :is(th,td) { padding:10px 12px; }
+.preview-standings thead { background:#edf5f1; }
+.preview-standings tbody th { text-align:left; white-space:normal; }
+.preview-standings :is(thead th:first-child,tbody th) { position:sticky; left:0; background:#f7fbf9; box-shadow:inset -1px 0 #dbe9e4; z-index:1; }
+.preview-standings small { display:block; color:#48636a; font-size:11px; font-weight:400; }
+.preview-standings :is(.ranked-task,[aria-sort]) { background:#e5f6ef; }
+.preview-standings tbody tr:first-child :is(th,td) { border-bottom-color:#9dcfc3; }
+.preview-standings .paper-link { color:#174a50; text-underline-offset:3px; }
+.rank-preview .standings-cta { display:inline-flex; gap:10px; align-items:center; margin-left:auto; padding:8px 14px; border-radius:6px; background:#174a50; color:white; font-weight:650; }
+.standings-cta:hover { text-decoration:underline; }
+@media(max-width:600px) {
+  .rank-preview .standings-cta { margin-left:0; }
+}
