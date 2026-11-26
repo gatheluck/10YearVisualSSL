@@ -18,11 +18,17 @@ const { chromium } = require("playwright");
         return r.width > 0 && r.left >= 0 && r.right <= innerWidth;
       })));
     }
-    assert.equal(await page.locator(".cover-matrix rect").count(),545);
-    assert.ok(await page.evaluate(() => [...document.querySelectorAll(".cover-matrix rect")].every((cell, i) => {
-      const rank = historicalRanks[Math.floor(i / 5)].ranks[i % 5];
-      return cell.getAttribute("fill") === taskRankColor(rank) && cell.querySelector("title").textContent.endsWith("#" + rank);
-    })));
+    await page.getByRole("link", { name: "View full leaderboard", exact: true }).click();
+    const cells = page.locator("#rank-matrix .matrix-cell");
+    assert.equal(await cells.count(), 545);
+    assert.ok(await cells.evaluateAll(nodes => {
+      const swatch = document.createElement("span");
+      return nodes.every((cell, i) => {
+        swatch.style.backgroundColor = taskRankColor(historicalRanks[Math.floor(i / 5)].ranks[i % 5]);
+        return cell.style.backgroundColor === swatch.style.backgroundColor;
+      });
+    }));
+    await page.goBack();
     const figure = page.locator("#geometry figure");
     assert.equal(await figure.count(), 1, "Figure 7 is presented alongside the analysis");
     const img = figure.locator("img");

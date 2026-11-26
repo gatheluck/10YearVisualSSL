@@ -12,6 +12,8 @@ const { chromium } = require("playwright");
     assert.equal(await panel.getByRole("heading", { name: "Vision Model Rankings" }).count(), 1);
     assert.deepEqual(await page.locator("main > [id]").evaluateAll(nodes => nodes.map(n => n.id)),
       ["rankings", "figure-five", "geometry", "citation"]);
+    assert.equal(await panel.getByRole("img", { name: /Five rows of task ranks/ }).count(), 0);
+    assert.equal(await panel.getByText("Top 10 of 109 configurations across the Basic Five.", { exact: true }).count(), 1);
     const view = panel.getByLabel("Rank by");
     assert.equal(await view.inputValue(), "overall");
     assert.equal(await panel.getByLabel("Show ranks").count(), 0);

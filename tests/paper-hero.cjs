@@ -73,7 +73,6 @@ const { chromium } = require("playwright");
       assert.ok(await icon.isVisible(),label+" has a decorative icon");
       assert.equal(await resources.getByRole("link",{name:label}).getAttribute("href"),"https://github.com/gatheluck/10YearVisualSSL"+path);
     }
-    assert.equal(await page.locator(".cover-matrix rect").count(),545);
     const plot = hero.locator(".history-film svg");
     assert.equal(await plot.count(), 1, "Overview must play the historical chart");
     await page.setViewportSize({width:1100,height:900});

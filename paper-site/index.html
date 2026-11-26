@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<script src="legacy-board-links.js"></script><script defer src="history-data.js?v=b179a62c5b"></script><script defer src="film-data.js?v=01c7793222"></script><script defer src="history-film.js?v=03a9bd9ea0"></script><title>Overview · Vision Baselines</title><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="research.css"><link rel="stylesheet" href="study.css"><script defer src="extended-data.js"></script><script defer src="figure-five-vector.js"></script><script defer src="figure-five.js"></script><script defer src="sources.js"></script><script defer src="ranking-families.js"></script><script defer src="rank-preview.js?v=94eec8a2ec"></script><link rel="stylesheet" href="publication.css?v=f77c0eef9b"><script defer src="citation.js"></script></head>
+<script src="legacy-board-links.js"></script><script defer src="history-data.js?v=b179a62c5b"></script><script defer src="film-data.js?v=01c7793222"></script><script defer src="history-film.js?v=03a9bd9ea0"></script><title>Overview · Vision Baselines</title><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="research.css"><link rel="stylesheet" href="study.css"><script defer src="extended-data.js"></script><script defer src="figure-five-vector.js"></script><script defer src="figure-five.js"></script><script defer src="sources.js"></script><script defer src="ranking-families.js"></script><script defer src="rank-preview.js?v=b838e808c8"></script><link rel="stylesheet" href="publication.css?v=ae44c71a42"><script defer src="citation.js"></script></head>
 <body id="overview"><a href="#study" class="skip">Skip to content</a><header>
       <div class="wrap nav">
         <a class="brand" href="index.html"
@@ -33,7 +33,7 @@
   <a role="link" aria-disabled="true"><svg aria-hidden="true" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M5 2h9l5 5v15H5z M14 2v6h5 M8 12h8 M8 16h7"/></svg>arXiv paper · Coming soon</a>
   <a href="https://github.com/gatheluck/10YearVisualSSL"><svg aria-hidden="true" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7l-5 5 5 5m10-10 5 5-5 5m-4-14-3 18"/></svg>Source code</a><a href="https://github.com/gatheluck/10YearVisualSSL/tree/main/methods"><svg aria-hidden="true" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4q5-1 9 2 4-3 9-2v15q-5-1-9 2-4-3-9-2z M12 6v15"/></svg>Training recipes</a><a href="https://github.com/gatheluck/10YearVisualSSL/blob/main/docs/STEP1_WEIGHTS.md"><svg aria-hidden="true" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l9 5-9 5-9-5z M3 7v10l9 5 9-5V7 M12 12v10"/></svg>Checkpoint guide</a><a href="#citation">Cite this paper</a></nav></section>
 <figure class="rank-preview" id="rankings"><figcaption><p class="eyebrow">Figure 1 · Transfer across tasks</p><h2>Vision Model Rankings</h2>
-<p>The top 10 ranks across 109 model configurations in the Basic Five. Overall standings use the mean of five task ranks.</p></figcaption>
+<p>Top 10 of 109 configurations across the Basic Five.</p></figcaption>
 <div class="standings-controls">
   <label>Rank by<select id="preview-task">
     <option value="overall">Overall · Basic Five</option>
@@ -65,10 +65,8 @@
     </td></tr></tfoot>
   </table>
 </div>
-<p id="standings-note">Ranks come from Figure 1. Scores are the reported ASIS results in Figure 2 of the November manuscript. A dash indicates a missing score.</p>
-<div class="cover-plot"><div class="cover-labels" aria-hidden="true"><span>ImageNet</span><span>COCO</span><span>ADE20K</span><span>NYUv2</span><span>SSv2</span></div><svg class="cover-matrix" viewBox="0 0 436 50" preserveAspectRatio="none" role="img" aria-label="Five rows of task ranks. Each column is a configuration, ordered by overall rank. Darker cells indicate better ranks."></svg></div>
-<p>One column per configuration, ordered by overall rank. Darker cells indicate better task ranks.</p>
-<div class="matrix-links"><a href="leaderboard.html#leaderboard">Inspect the full matrix <span aria-hidden="true">→</span></a><a href="#geometry">Why the Basic Five? <span aria-hidden="true">↓</span></a></div></figure>
+<p id="standings-note">Ranks come from Figure 1. The overall ranking uses the mean of the five task ranks. Scores are the reported ASIS results in Figure 2 of the November manuscript. A dash indicates a missing score.</p>
+<div class="rank-preview-links"><a href="#geometry">Why the Basic Five? <span aria-hidden="true">↓</span></a></div></figure>
 <section id="figure-five" aria-labelledby="transfer-head"><h2 id="transfer-head">Forty settings expose different strengths.</h2></section>
 <section id="geometry"><p class="eyebrow">Figure 7 · Why the Basic Five?</p><h2>Image recognition tells only part of the story.</h2>
 <p class="basic-rationale">The Basic Five cover image recognition (ImageNet), object detection (COCO), segmentation (ADE20K), depth estimation (NYUv2) and video recognition (SSv2). Their rankings reward different properties of a representation.</p>
