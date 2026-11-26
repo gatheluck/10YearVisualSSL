@@ -21,6 +21,18 @@ Directory boundaries alone do not establish authorship or erase upstream terms.
 Ported code needs provenance review before it is represented as independently
 authored. A submodule pin separates version control, not legal obligations.
 
+### Reading a source-only checkout
+
+These examples were checked against parent commit `b7b4ee93110a` on 2026-11-26.
+
+| What you receive | Example in the parent repository | What to check before sharing it |
+|---|---|---|
+| Project code | The [contract checker](../bin/contract-test.py) validates files produced by an adapter. | Retain the root MIT notice for the project's own contributions. The owner still needs to confirm publication approval. |
+| A reference to external code | Git records a CLIP commit at `third_party/CLIP`. The [pin inventory](THIRD_PARTY_LICENSES.json) gives its upstream URL and revision. | The parent stores a reference. If your package also contains the upstream files, review the notices for that revision. |
+| A port with unresolved authorship | The [PIRL model](../methods/33_pirl/models/resnet_pirl.py) ships as Python source. Its [provenance record](../methods/33_pirl/provenance.json) describes the experimental implementation it came from. | The owner still needs to confirm authorship and applicable terms. See the PIRL finding below. |
+| A bundled upstream data file | [Colorization](../methods/03_colorization/data/pts_in_hull.npy) and [Split-Brain](../methods/08_split_brain/data/pts_in_hull.npy) each contain the same table of 313 color-bin centers. | Both copies match the [upstream table](https://github.com/richzhang/colorization/blob/a1642d6ac6fc80fe08885edba34c166da09465f6/resources/pts_in_hull.npy). Retain the [upstream notice](notices/COLORIZATION_LICENSE.txt) and confirm its scope for the table before publication. |
+| Instructions for external weights and training data | The [weight acquisition guide](STEP1_WEIGHTS.md) explains how to supply a checkpoint. The [PIRL dataset reader](../methods/33_pirl/data/pirl_dataset.py) reads training images from a supplied directory. | The PIRL checkpoint and ImageNet training images are separate inputs. Check the terms for each artifact before sharing its bytes. A matching hash identifies a file. |
+
 The tables below describe the pinned versions, not moving upstream defaults.
 Preserve original notices and applicable modification/attribution statements.
 Do not replace upstream licenses with the root MIT license. In particular,
