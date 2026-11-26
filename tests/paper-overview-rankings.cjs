@@ -61,8 +61,17 @@ const { chromium } = require("playwright");
       assert.equal(await panel.getByText("Scroll to see all five scores").isVisible(), width === 320);
       const table = panel.getByRole("region", { name: "Top 10 benchmark results" });
       assert.equal(await table.evaluate(el => el.scrollWidth > el.clientWidth), width === 320);
+      const continuation = table.locator("tfoot");
+      assert.equal(await continuation.count(), 1, "The results end with a continuation row");
+      assert.match(await continuation.innerText(), /^…\s+See all 109 configurations/);
+      await table.evaluate(el => { el.scrollLeft = el.scrollWidth; });
+      const link = await continuation.getByRole("link").boundingBox();
+      const region = await table.boundingBox();
+      assert.ok(link.x >= region.x && link.x + link.width <= region.x + region.width);
+      await table.evaluate(el => { el.scrollLeft = 0; });
     }
-    await panel.getByRole("link", { name: "View full leaderboard" }).click();
-    assert.ok(page.url().endsWith("/leaderboard.html#leaderboard"));
+    await panel.getByRole("link", { name: "See all 109 configurations" }).click();
+    assert.ok(page.url().endsWith("/leaderboard.html#history"));
+    assert.equal(await page.locator("#history tbody tr").count(), 109);
   } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });

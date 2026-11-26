@@ -175,6 +175,10 @@ header nav[aria-label=Primary] a:not([aria-current]):hover {background:#e4efeb;}
 .preview-family::before { content:""; display:inline-block; width:8px; height:8px; margin-right:6px; border-radius:2px; background:var(--series); }
 .preview-standings tbody tr:first-child :is(th,td) { border-bottom-color:#9dcfc3; }
 .preview-standings .paper-link { color:#174a50; text-underline-offset:3px; }
+.preview-standings tfoot td { background:#f7fbf9; text-align:left; border-bottom:0; }
+.preview-standings tfoot a { position:sticky; left:12px; display:inline-flex; align-items:center; gap:8px; color:#155752; text-underline-offset:3px; font-weight:650; }
+.preview-standings tfoot span { color:#48636a; font-size:18px; line-height:1; }
+
 .rank-preview .standings-cta { display:inline-flex; gap:10px; align-items:center; margin-left:auto; padding:8px 14px; border-radius:6px; background:#174a50; color:white; font-weight:650; }
 .standings-cta:hover { text-decoration:underline; }
 @media(max-width:600px) {
