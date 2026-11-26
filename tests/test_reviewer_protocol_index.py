@@ -20,6 +20,15 @@ class ReviewerProtocolIndex(unittest.TestCase):
         for term in ('Table 26', 'n=1', 'Table 29', 'Micro-F1', 'bounding-box AP'):
             self.assertIn(term, notes)
 
+    def test_readers_can_distinguish_completed_table_26_runs_from_scheduled_seeds(self):
+        for page in (ROOT / 'README.md', TEMPLATE):
+            with self.subTest(page=page.name):
+                section = page.read_text().split('## Evaluation protocols\n')[1].split('\n## ')[0]
+                note = next((line for line in section.splitlines() if 'Table 26' in line), '')
+                self.assertRegex(note, r'18 of 25[^.]*three runs')
+                self.assertRegex(note, r'VGGT-Omega on SSv2[^.]*one run')
+                self.assertRegex(note, r'six[^.]*blank')
+
     def test_root_and_review_copy_link_to_the_same_protocols(self):
         indexes = []
         for page in (ROOT / 'README.md', TEMPLATE):

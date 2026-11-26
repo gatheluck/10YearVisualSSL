@@ -20,7 +20,7 @@ This document records, **fact-based**, two things that are easy to conflate:
 It exists so the gap is written down and nobody assumes the current ports
 reproduce the whole table. Sources are cited by path; the capture's experiment
 code lives on the `snapshots` branch of
-`gatheluck/10YearVisualSSLCapturePrivate` (read-only from here).
+the private experiment archive (read-only from here).
 
 ---
 

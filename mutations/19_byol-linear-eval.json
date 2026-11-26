@@ -1,5 +1,5 @@
 {
-  "_note": "Run: .venvs/19_byol/bin/python bin/mutate.py --spec mutations/19_byol-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/19_byol/bin/python. Proves the BYOL model/loss/eval guards are not vacuous: the loss is negative cosine, the target is stop-gradient, the EMA tau schedule rises, the EMA update moves the target toward the online net, encoder.pt excludes the projector/predictor/target, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
+  "_note": "Run: .venvs/19_byol/bin/python bin/mutate.py --spec mutations/19_byol-linear-eval.json --python \"$PWD/.venvs/19_byol/bin/python\". Proves the BYOL model/loss/eval guards are not vacuous: the loss is negative cosine, the target is stop-gradient, the EMA tau schedule rises, the EMA update moves the target toward the online net, encoder.pt excludes the projector/predictor/target, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
   "targets": [
     {
       "label": "the loss flips sign (no longer pulls prediction toward target)",

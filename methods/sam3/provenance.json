@@ -1,6 +1,6 @@
 {
   "captured_at": "2026-09-01",
-  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
+  "captured_from": "private experiment archive",
   "captured_note": "Meta SAM 3 (facebook/sam3) appears in the capture's Step-3 CompEval evaluation (methods_step3/SegFM/SAM3, methods_compeval/adapters/sam3_adapter.py) as an as-is comparison: the official promptable-segmentation checkpoint is loaded and its vision encoder is frozen, then a linear probe is fit on the mean-pooled patch tokens (no text/box prompts), because SAM 3's from-scratch training is not reproduced. The capture converts the official sam3.pt trunk (detector.backbone.vision_backbone.trunk.*, ViTDet style) onto transformers' Sam3ViTModel. This port carries that as-is comparison only. There is NO author submodule: the model class is transformers' (a pinned pip dependency), imported not copied, and the weights are a sha256-pinned, gated download.",
   "paper": {
     "title": "SAM 3: Segment Anything with Concepts (Meta SAM 3)",
@@ -16,7 +16,7 @@
     "sha256": "9999e2341ceef5e136daa386eecb55cb414446a00ac2b55eb2dfd2f7c3cf8c9e",
     "license": "Meta SAM License (gated)",
     "gated": true,
-    "sha256_source": "recorded in the capture's methods_step3/SegFM/SAM3/SOURCE_SNAPSHOT.json (read 2026-09-01 from gatheluck/10YearVisualSSLCapturePrivate origin/snapshots), which hashed the checkpoint at its source at revision 3c879f39826c281e95690f02c7821c4de09afae7; bin/fetch-weights.py re-verifies this value against any copy you supply. The URL is gated (the Meta SAM License): the file is not auto-downloaded here -- you must already be entitled to it and have accepted the licence. The byte count is not recorded because the gated file was not re-downloaded and hashed during the port; the sha256 is the contract that fetch-weights.py checks."
+    "sha256_source": "recorded in the capture's methods_step3/SegFM/SAM3/SOURCE_SNAPSHOT.json (read 2026-09-01 from private experiment archive origin/snapshots), which hashed the checkpoint at its source at revision 3c879f39826c281e95690f02c7821c4de09afae7; bin/fetch-weights.py re-verifies this value against any copy you supply. The URL is gated (the Meta SAM License): the file is not auto-downloaded here -- you must already be entitled to it and have accepted the licence. The byte count is not recorded because the gated file was not re-downloaded and hashed during the port; the sha256 is the contract that fetch-weights.py checks."
   },
   "rewritten_during_the_port": [
     "the model class is transformers' Sam3ViTModel, not a copied or submoduled author repository; the pretrained weights are a sha256-pinned, gated download (backbone_artifact) rather than an auto-download, so CI never fetches and a real run is hash-verified",

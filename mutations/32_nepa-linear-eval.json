@@ -1,5 +1,5 @@
 {
-  "_note": "Run: .venvs/32_nepa/bin/python bin/mutate.py --spec mutations/32_nepa-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/32_nepa/bin/python. Proves the NEPA model/eval guards are not vacuous: the EMA update moves the EMA toward the online model, the EMA is frozen, extract_features avg-pools the predictor output, encoder.pt excludes the online model, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
+  "_note": "Run: .venvs/32_nepa/bin/python bin/mutate.py --spec mutations/32_nepa-linear-eval.json --python \"$PWD/.venvs/32_nepa/bin/python\". Proves the NEPA model/eval guards are not vacuous: the EMA update moves the EMA toward the online model, the EMA is frozen, extract_features avg-pools the predictor output, encoder.pt excludes the online model, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
   "targets": [
     {
       "label": "the EMA update drops the online term (the EMA only decays)",

@@ -1,6 +1,6 @@
 {
   "captured_at": "2026-08-01",
-  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate, branch snapshots",
+  "captured_from": "private experiment archive, branch snapshots",
   "captured_path": "methods/21_barlow_twins",
   "captured_sha256": {
     "models/barlow_resnet.py": "40467f5b3156ccf731b55329516177e1a6e2e5a9c6bbcd992eee4e9f49bf7f1c",

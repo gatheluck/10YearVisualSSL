@@ -1,5 +1,5 @@
 {
-  "_note": "Run: .venvs/18_sela/bin/python bin/mutate.py --spec mutations/18_sela-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/18_sela/bin/python. Proves the model/Sinkhorn/eval guards are not vacuous: the model returns per-head logits, the Sinkhorn iteration actually runs (balancing the assignment), encoder.pt excludes the prototype heads, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
+  "_note": "Run: .venvs/18_sela/bin/python bin/mutate.py --spec mutations/18_sela-linear-eval.json --python \"$PWD/.venvs/18_sela/bin/python\". Proves the model/Sinkhorn/eval guards are not vacuous: the model returns per-head logits, the Sinkhorn iteration actually runs (balancing the assignment), encoder.pt excludes the prototype heads, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
   "targets": [
     {
       "label": "the model no longer returns per-head logits (heads collapsed to one)",

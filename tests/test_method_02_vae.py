@@ -185,7 +185,7 @@ class TestTheOutputPathIsNotTheClusters(unittest.TestCase):
     """**The new wrinkle in this port.**
 
     The captured config carries
-    `/groups/.../methods/02_vae/checkpoints/step1_mnist_original` as
+    a machine-specific path ending in `checkpoints/step1_mnist_original` as
     `output.checkpoint_dir`. Two things are wrong with shipping that: the
     contract says the adapter writes only under `--out`, and a machine's
     absolute path in a published config is not reproducible anywhere else.

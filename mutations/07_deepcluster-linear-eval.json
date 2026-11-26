@@ -1,5 +1,5 @@
 {
-  "_note": "Run: .venvs/07_deepcluster/bin/python bin/mutate.py --spec mutations/07_deepcluster-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/07_deepcluster/bin/python. Proves the model/clustering/two-stage guards are not vacuous: the backbone returns one fc7 vector per image, the top_layer is actually reset, k-means assigns one centroid per sample, encoder.pt excludes the top_layer, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
+  "_note": "Run: .venvs/07_deepcluster/bin/python bin/mutate.py --spec mutations/07_deepcluster-linear-eval.json --python \"$PWD/.venvs/07_deepcluster/bin/python\". Proves the model/clustering/two-stage guards are not vacuous: the backbone returns one fc7 vector per image, the top_layer is actually reset, k-means assigns one centroid per sample, encoder.pt excludes the top_layer, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
   "targets": [
     {
       "label": "the backbone no longer flattens to one fc7 vector per image",

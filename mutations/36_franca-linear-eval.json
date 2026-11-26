@@ -1,5 +1,5 @@
 {
-  "_note": "Run: .venvs/36_franca/bin/python bin/mutate.py --spec mutations/36_franca-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/36_franca/bin/python (an interpreter with this method's lock, and the franca submodule checked out, so the probe/smoke tests run). Proves the eval-only guards are not vacuous: the probed feature reads a valid backbone key, a downstream number cannot borrow a pretext name, the absent encoder is declared, and the device is resolved rather than assumed.",
+  "_note": "Run: .venvs/36_franca/bin/python bin/mutate.py --spec mutations/36_franca-linear-eval.json --python \"$PWD/.venvs/36_franca/bin/python\" (an interpreter with this method's lock, and the franca submodule checked out, so the probe/smoke tests run). Proves the eval-only guards are not vacuous: the probed feature reads a valid backbone key, a downstream number cannot borrow a pretext name, the absent encoder is declared, and the device is resolved rather than assumed.",
   "targets": [
     {
       "label": "the probe reads a key the backbone does not expose",

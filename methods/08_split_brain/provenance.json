@@ -1,6 +1,6 @@
 {
   "captured_at": "2026-08-07",
-  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
+  "captured_from": "private experiment archive",
   "captured_note": "Ported from the capture's self-contained methods/8_split_brain, specifically its AlexNet path (model.py's SplitBrainAlexNet/SplitBrainModel, dataset.py, evaluate_linear.py). These are the lab's own implementation of Zhang, Isola & Efros (CVPR 2017) Split-Brain Autoencoders. The capture directory number (8) equals this method's number in the Step 1&2 list (see docs/PORTING_ROADMAP.md); the ported directory is zero-padded to 08_split_brain to match the other single-digit methods.",
   "paper": {
     "title": "Split-Brain Autoencoders: Unsupervised Learning by Cross-Channel Prediction",

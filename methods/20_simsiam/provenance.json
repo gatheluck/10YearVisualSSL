@@ -1,6 +1,6 @@
 {
   "captured_at": "2026-07-31",
-  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate, branch snapshots",
+  "captured_from": "private experiment archive, branch snapshots",
   "captured_path": "methods/20_simsiam",
   "captured_sha256": {
     "models/simsiam_resnet.py": "23f65603f3825b4348729d059fea63aa27bb7076717a3bc14978d62edc6e2362",

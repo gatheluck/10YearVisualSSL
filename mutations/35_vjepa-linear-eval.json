@@ -1,5 +1,5 @@
 {
-  "_note": "Run: .venvs/35_vjepa/bin/python bin/mutate.py --spec mutations/35_vjepa-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/35_vjepa/bin/python (jepa submodule checked out). Proves the V-JEPA model/eval guards are not vacuous: the EMA target moves toward the context encoder, the mask config must be non-empty, an empty encoder state is refused, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
+  "_note": "Run: .venvs/35_vjepa/bin/python bin/mutate.py --spec mutations/35_vjepa-linear-eval.json --python \"$PWD/.venvs/35_vjepa/bin/python\" (jepa submodule checked out). Proves the V-JEPA model/eval guards are not vacuous: the EMA target moves toward the context encoder, the mask config must be non-empty, an empty encoder state is refused, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
   "targets": [
     {
       "label": "the EMA target only decays (the source term is dropped)",

@@ -1,5 +1,5 @@
 {
-  "_note": "Run under the method venv (the train-branch test needs torchvision): /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/13_mocov1/bin/python bin/mutate.py --spec mutations/13_mocov1-probe-aug.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/13_mocov1/bin/python. Proves the BASIC5 rule `aug` wiring in this feature-cache evaluator is not vacuous: the train split must route through probe_transforms (RandomResizedCrop + HorizontalFlip), and run() must build the train split with train=True. The rule itself is proven in mutations/basic5-aug.json; these two targets prove this method wires it.",
+  "_note": "Run under the method venv (the train-branch test needs torchvision): .venvs/13_mocov1/bin/python bin/mutate.py --spec mutations/13_mocov1-probe-aug.json --python \"$PWD/.venvs/13_mocov1/bin/python\". Proves the BASIC5 rule `aug` wiring in this feature-cache evaluator is not vacuous: the train split must route through probe_transforms (RandomResizedCrop + HorizontalFlip), and run() must build the train split with train=True. The rule itself is proven in mutations/basic5-aug.json; these two targets prove this method wires it.",
   "targets": [
     {
       "label": "the probe's train split falls back to the deterministic eval transform, so BASIC5 rule aug (RandomResizedCrop + HorizontalFlip) is not applied",

@@ -1,5 +1,5 @@
 {
-  "_note": "Run: .venvs/37_lejepa/bin/python bin/mutate.py --spec mutations/37_lejepa-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/37_lejepa/bin/python. Proves the LeJEPA model/eval guards are not vacuous: SIGReg refuses too few knots, advances its slice seed each call, and produces a non-zero statistic; encoder.pt strips the backbone prefix and excludes the projector; a downstream number cannot borrow a pretext name; and the absent encoder is declared.",
+  "_note": "Run: .venvs/37_lejepa/bin/python bin/mutate.py --spec mutations/37_lejepa-linear-eval.json --python \"$PWD/.venvs/37_lejepa/bin/python\". Proves the LeJEPA model/eval guards are not vacuous: SIGReg refuses too few knots, advances its slice seed each call, and produces a non-zero statistic; encoder.pt strips the backbone prefix and excludes the projector; a downstream number cannot borrow a pretext name; and the absent encoder is declared.",
   "targets": [
     {
       "label": "SIGReg no longer refuses too few quadrature knots",

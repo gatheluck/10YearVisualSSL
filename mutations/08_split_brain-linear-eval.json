@@ -1,5 +1,5 @@
 {
-  "_note": "Run: .venvs/08_split_brain/bin/python bin/mutate.py --spec mutations/08_split_brain-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/08_split_brain/bin/python. Proves the model/colour/two-stage guards are not vacuous: the probe feature concatenates both encoders per image, the cross-channel branches predict the right bin counts, the numpy CIE Lab conversion is correct, encoder.pt excludes the decoders, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
+  "_note": "Run: .venvs/08_split_brain/bin/python bin/mutate.py --spec mutations/08_split_brain-linear-eval.json --python \"$PWD/.venvs/08_split_brain/bin/python\". Proves the model/colour/two-stage guards are not vacuous: the probe feature concatenates both encoders per image, the cross-channel branches predict the right bin counts, the numpy CIE Lab conversion is correct, encoder.pt excludes the decoders, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
   "targets": [
     {
       "label": "the probe feature no longer concatenates the two encoders per image",

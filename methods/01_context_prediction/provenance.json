@@ -1,6 +1,6 @@
 {
   "captured_at": "2026-07-29",
-  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate, branch snapshots",
+  "captured_from": "private experiment archive, branch snapshots",
   "captured_path": "methods/01_context_prediction",
   "captured_sha256": {
     "data/context_dataset_official.py": "2c9ea384ca3358fe3f750c65d2638fe816c2ad7bfbd7f9a122cb5527c8d4cc38",

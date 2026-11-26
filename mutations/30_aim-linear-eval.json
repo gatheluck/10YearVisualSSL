@@ -1,5 +1,5 @@
 {
-  "_note": "Run: .venvs/30_aim/bin/python bin/mutate.py --spec mutations/30_aim-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/30_aim/bin/python (an interpreter with this method's lock, and the ml-aim submodule checked out, so the probe/smoke tests run). Proves the eval-only guards are not vacuous: the probed feature is the last-N-block average patch-mean-pooled (one vector per image), a downstream number cannot borrow a pretext name, the absent encoder is declared, and the device is resolved rather than assumed.",
+  "_note": "Run: .venvs/30_aim/bin/python bin/mutate.py --spec mutations/30_aim-linear-eval.json --python \"$PWD/.venvs/30_aim/bin/python\" (an interpreter with this method's lock, and the ml-aim submodule checked out, so the probe/smoke tests run). Proves the eval-only guards are not vacuous: the probed feature is the last-N-block average patch-mean-pooled (one vector per image), a downstream number cannot borrow a pretext name, the absent encoder is declared, and the device is resolved rather than assumed.",
   "targets": [
     {
       "label": "the feature is not pooled over patch tokens (a token grid, not one vector)",

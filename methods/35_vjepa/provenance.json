@@ -1,6 +1,6 @@
 {
   "captured_at": "2026-08-11",
-  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
+  "captured_from": "private experiment archive",
   "captured_note": "Ported from the capture's methods/35_vjepa, which wraps the official facebookresearch/jepa repo (it ships no model/loss of its own). The capture has two paths: a pretrain CAVEAT probe of the released V-JEPA VIDEO ViT-H/16 on ImageNet images (explicitly an appendix/caveat row, 'very low accuracy, not a main-table success'), and a step-2 unified-comparison that trains a V-JEPA-objective image ViT-B/16 from scratch on ImageNet at num_frames=1. This port covers the STEP-2 from-scratch path (a genuine comparable row, like 31_dinov3); the pretrain caveat probe is not ported. It pins facebookresearch/jepa as the submodule third_party/jepa and IMPORTS its ViT + predictor (app.vjepa.utils.init_video_model), its 3D mask collator (src.masks.multiblock3d) and apply_masks, running them in a single-process trainer. The port keeps the capture directory numbering (35) per the 2026-08-09 keep-capture-numbering decision (this list's number 33 is V-JEPA -- see docs/PORTING_ROADMAP.md). The optional step1_native_artifact recipe now also exposes the recorded video-pretrained caveat features; it does not change the Step-2 training default.",
   "paper": {
     "title": "Revisiting Feature Prediction for Learning Visual Representations from Video (V-JEPA)",

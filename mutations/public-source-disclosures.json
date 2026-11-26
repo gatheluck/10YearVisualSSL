@@ -1,0 +1,40 @@
+{
+  "targets": [
+    {
+      "label": "A public document links to a private capture remote",
+      "file": "docs/EVALUATION.md",
+      "old": "step1_downstream_registry.yaml` (snapshots) states the rule",
+      "new": "projectCapturePrivate` (snapshots) states the rule",
+      "tests": [
+        "tests.test_public_source_disclosures.PublicSourceDisclosures.test_capture_provenance_does_not_publish_the_private_repository_address"
+      ]
+    },
+    {
+      "label": "A usage note depends on a checkout in an account home",
+      "file": "mutations/mar-pretrain-device.json",
+      "old": "Run: .venvs/mar/bin/python",
+      "new": "Run: /home/example/work/.venvs/mar/bin/python",
+      "tests": [
+        "tests.test_public_source_disclosures.PublicSourceDisclosures.test_mutation_usage_notes_work_outside_the_original_checkout"
+      ]
+    },
+    {
+      "label": "The Table 26 reader is told all entries completed three runs in README.md",
+      "file": "README.md",
+      "old": "18 of 25 full fine-tuning entries",
+      "new": "25 of 25 full fine-tuning entries",
+      "tests": [
+        "tests.test_reviewer_protocol_index.ReviewerProtocolIndex.test_readers_can_distinguish_completed_table_26_runs_from_scheduled_seeds"
+      ]
+    },
+    {
+      "label": "The Table 26 reader is told all entries completed three runs in docs/templates/CVPR_REVIEWER_README.md",
+      "file": "docs/templates/CVPR_REVIEWER_README.md",
+      "old": "18 of 25 full fine-tuning entries",
+      "new": "25 of 25 full fine-tuning entries",
+      "tests": [
+        "tests.test_reviewer_protocol_index.ReviewerProtocolIndex.test_readers_can_distinguish_completed_table_26_runs_from_scheduled_seeds"
+      ]
+    }
+  ]
+}

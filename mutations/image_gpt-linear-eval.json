@@ -1,5 +1,5 @@
 {
-  "_note": "Run: .venvs/image_gpt/bin/python bin/mutate.py --spec mutations/image_gpt-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/image_gpt/bin/python. Proves the two-stage guards are not vacuous: the probe representation is one vector per image, the encoder excludes the generative head, the clusters step 1 fits are carried to the probe (the probe must quantise in the same colour space), a downstream number cannot borrow a pretext name, the absent encoder is declared, and the stage is read from the config.",
+  "_note": "Run: .venvs/image_gpt/bin/python bin/mutate.py --spec mutations/image_gpt-linear-eval.json --python \"$PWD/.venvs/image_gpt/bin/python\". Proves the two-stage guards are not vacuous: the probe representation is one vector per image, the encoder excludes the generative head, the clusters step 1 fits are carried to the probe (the probe must quantise in the same colour space), a downstream number cannot borrow a pretext name, the absent encoder is declared, and the stage is read from the config.",
   "targets": [
     {
       "label": "extract_features no longer pools to one vector per image",

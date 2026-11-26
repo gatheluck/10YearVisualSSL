@@ -1,5 +1,5 @@
 {
-  "_note": "Run: .venvs/25_mae/bin/python bin/mutate.py --spec mutations/25_mae-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/25_mae/bin/python. Proves the two-stage guards are not vacuous (the tests were written after this self-contained port, so mutation is the proof they bite): the encoder feature is one vector per image, encoder.pt excludes the decoder, a downstream number cannot borrow a pretext name, the absent encoder is declared, and the stage is read from the config.",
+  "_note": "Run: .venvs/25_mae/bin/python bin/mutate.py --spec mutations/25_mae-linear-eval.json --python \"$PWD/.venvs/25_mae/bin/python\". Proves the two-stage guards are not vacuous (the tests were written after this self-contained port, so mutation is the proof they bite): the encoder feature is one vector per image, encoder.pt excludes the decoder, a downstream number cannot borrow a pretext name, the absent encoder is declared, and the stage is read from the config.",
   "targets": [
     {
       "label": "the encoder feature is no longer pooled to one vector per image",

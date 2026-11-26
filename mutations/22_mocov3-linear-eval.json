@@ -1,5 +1,5 @@
 {
-  "_note": "Run: .venvs/22_mocov3/bin/python bin/mutate.py --spec mutations/22_mocov3-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/22_mocov3/bin/python. Proves the MoCo v3 model/schedule/eval guards are not vacuous: the EMA momentum schedule rises, the EMA update moves the key toward the query, the momentum encoder is frozen, get_backbone returns the CLS feature (not the projector output), encoder.pt excludes the projector head, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
+  "_note": "Run: .venvs/22_mocov3/bin/python bin/mutate.py --spec mutations/22_mocov3-linear-eval.json --python \"$PWD/.venvs/22_mocov3/bin/python\". Proves the MoCo v3 model/schedule/eval guards are not vacuous: the EMA momentum schedule rises, the EMA update moves the key toward the query, the momentum encoder is frozen, get_backbone returns the CLS feature (not the projector output), encoder.pt excludes the projector head, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
   "targets": [
     {
       "label": "the EMA momentum schedule is frozen at its base (never rises)",

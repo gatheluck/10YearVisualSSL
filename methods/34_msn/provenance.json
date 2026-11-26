@@ -1,6 +1,6 @@
 {
   "captured_at": "2026-08-11",
-  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
+  "captured_from": "private experiment archive",
   "captured_note": "Ported from the capture's methods/34_msn, which is a thin wrapper that drives the official facebookresearch/msn repo (its main.py under DistributedDataParallel + submitit, and its linear_eval.py under cyanure). The capture ships no model or loss of its own for MSN. This port pins facebookresearch/msn as the submodule third_party/msn and IMPORTS its ViT (src/deit.py) and MSN loss (src/losses.py) + optimiser (src/msn_train.init_opt), running them in a single-process trainer; only the multi-view augmentation is reimplemented (see below) and the linear probe is the shared ARSSL probe rather than the official cyanure one. The port keeps the capture directory numbering (34) per the 2026-08-09 keep-capture-numbering decision (this list's number 29 is MSN -- see docs/PORTING_ROADMAP.md).",
   "paper": {
     "title": "Masked Siamese Networks for Label-Efficient Learning",

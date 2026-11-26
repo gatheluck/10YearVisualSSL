@@ -1,6 +1,6 @@
 {
   "captured_at": "2026-08-30",
-  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
+  "captured_from": "private experiment archive",
   "captured_note": "CAE (Context Autoencoder) appears in the capture's Step-3 evaluation as an as-is SSL comparison: a pretrained vision backbone is frozen and a linear probe is fit on its CLS token, because the from-scratch context-autoencoder pretraining (IN-1k, many GPU-days) is not reproduced. The capture logged CAE as a deficiency (DEF-02): the checkpoint its own doc names, hujinwen/cae-base, is NOT a valid HuggingFace identifier (the capture's own eval scripts confirm it never resolves), the paper authors' official weights are distributed only via Baidu, so the capture pipeline fell back to a BEiT-v2 proxy and explicitly refused to label that number CAE. This port does NOT ship a proxy. It carries the as-is comparison only, on a real, publicly downloadable CAE ViT-B checkpoint the capture missed.",
   "paper": {
     "title": "Context Autoencoder for Self-Supervised Representation Learning (CAE)",

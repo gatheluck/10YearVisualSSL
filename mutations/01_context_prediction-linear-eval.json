@@ -1,5 +1,5 @@
 {
-  "_note": "Run: .venvs/1_context_prediction/bin/python bin/mutate.py --spec mutations/01_context_prediction-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/1_context_prediction/bin/python. Proves the encoder-extraction, absent-encoder, metric-filter and round-trip guards are not vacuous. See docs/GPU.md section 4.",
+  "_note": "Run: .venvs/1_context_prediction/bin/python bin/mutate.py --spec mutations/01_context_prediction-linear-eval.json --python \"$PWD/.venvs/1_context_prediction/bin/python\". Proves the encoder-extraction, absent-encoder, metric-filter and round-trip guards are not vacuous. See docs/GPU.md section 4.",
   "targets": [
     {
       "label": "extract_encoder keeps the pretext head too (prefix filter removed)",

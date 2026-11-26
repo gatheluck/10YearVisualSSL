@@ -1,0 +1,140 @@
+[
+  {
+    "label": "docs/BASIC5_NATIVE_PATHS.md refers to DOWNSTREAM.md",
+    "file": "docs/BASIC5_NATIVE_PATHS.md",
+    "old": "[complete downstream task configurations](DOWNSTREAM.md)",
+    "new": "complete downstream task configurations (`docs/DOWNSTREAM.md` in the full repository)"
+  },
+  {
+    "label": "docs/BASIC5_NATIVE_PATHS.md refers to FINAL_PAPER_COVERAGE.md",
+    "file": "docs/BASIC5_NATIVE_PATHS.md",
+    "old": "[final-paper coverage audit](FINAL_PAPER_COVERAGE.md)",
+    "new": "final-paper coverage audit (`docs/FINAL_PAPER_COVERAGE.md` in the full repository, or see the bundled [figure-by-figure reproduction guide](PAPER_REPRODUCTION_GUIDE.md))"
+  },
+  {
+    "label": "docs/BASIC5_NATIVE_PATHS.md refers to IMAGENET_FINETUNE.md",
+    "file": "docs/BASIC5_NATIVE_PATHS.md",
+    "old": "[explicit source profiles](IMAGENET_FINETUNE.md)",
+    "new": "explicit source profiles (`docs/IMAGENET_FINETUNE.md` in the full repository)"
+  },
+  {
+    "label": "docs/BASIC5_V1_AUDIT.md refers to DENSE_EXECUTION.md",
+    "file": "docs/BASIC5_V1_AUDIT.md",
+    "old": "[dense execution](DENSE_EXECUTION.md)",
+    "new": "dense execution (`docs/DENSE_EXECUTION.md` in the full repository)"
+  },
+  {
+    "label": "docs/BASIC5_V1_AUDIT.md refers to DOWNSTREAM_ACCOUNTING.md",
+    "file": "docs/BASIC5_V1_AUDIT.md",
+    "old": "[portable accounting](DOWNSTREAM_ACCOUNTING.md)",
+    "new": "portable accounting (`docs/DOWNSTREAM_ACCOUNTING.md` in the full repository)"
+  },
+  {
+    "label": "docs/BASIC5_V1_AUDIT.md refers to IMAGENET_FINETUNE.md",
+    "file": "docs/BASIC5_V1_AUDIT.md",
+    "old": "[finetuning](IMAGENET_FINETUNE.md)",
+    "new": "finetuning (`docs/IMAGENET_FINETUNE.md` in the full repository)"
+  },
+  {
+    "label": "docs/BASIC5_V1_AUDIT.md refers to IMAGENET_PROBE_PREPROCESSING.md",
+    "file": "docs/BASIC5_V1_AUDIT.md",
+    "old": "[image preprocessing](IMAGENET_PROBE_PREPROCESSING.md)",
+    "new": "image preprocessing (`docs/IMAGENET_PROBE_PREPROCESSING.md` in the full repository)"
+  },
+  {
+    "label": "docs/BASIC5_V1_AUDIT.md refers to REFERENCE_ACCOUNTING.md",
+    "file": "docs/BASIC5_V1_AUDIT.md",
+    "old": "[native accounting](REFERENCE_ACCOUNTING.md)",
+    "new": "native accounting (`docs/REFERENCE_ACCOUNTING.md` in the full repository)"
+  },
+  {
+    "label": "docs/CVPR_ADAPTATION.md refers to REVISED_DEPTH_REPORTING.md",
+    "file": "docs/CVPR_ADAPTATION.md",
+    "old": "[paper reporting guide](REVISED_DEPTH_REPORTING.md)",
+    "new": "paper reporting guide (`docs/REVISED_DEPTH_REPORTING.md` in the full repository)"
+  },
+  {
+    "label": "docs/CVPR_ADAPTATION.md refers to REVISED_SCHEDULES.md",
+    "file": "docs/CVPR_ADAPTATION.md",
+    "old": "[short schedules](REVISED_SCHEDULES.md)",
+    "new": "short schedules (`docs/REVISED_SCHEDULES.md` in the full repository)"
+  },
+  {
+    "label": "docs/CVPR_EXTENDED_COVERAGE.md refers to EXTENDED_DETECTION.md",
+    "file": "docs/CVPR_EXTENDED_COVERAGE.md",
+    "old": "[detection](EXTENDED_DETECTION.md)",
+    "new": "detection (`docs/EXTENDED_DETECTION.md` in the full repository)"
+  },
+  {
+    "label": "docs/CVPR_EXTENDED_COVERAGE.md refers to EXTENDED_FLOW.md",
+    "file": "docs/CVPR_EXTENDED_COVERAGE.md",
+    "old": "[flow](EXTENDED_FLOW.md)",
+    "new": "flow (`docs/EXTENDED_FLOW.md` in the full repository)"
+  },
+  {
+    "label": "docs/CVPR_EXTENDED_COVERAGE.md refers to EXTENDED_NATIVE_IMAGES.md",
+    "file": "docs/CVPR_EXTENDED_COVERAGE.md",
+    "old": "[image inputs](EXTENDED_NATIVE_IMAGES.md)",
+    "new": "image inputs (`docs/EXTENDED_NATIVE_IMAGES.md` in the full repository)"
+  },
+  {
+    "label": "docs/CVPR_EXTENDED_COVERAGE.md refers to EXTENDED_STRUCTURED.md",
+    "file": "docs/CVPR_EXTENDED_COVERAGE.md",
+    "old": "[structured tasks](EXTENDED_STRUCTURED.md)",
+    "new": "structured tasks (`docs/EXTENDED_STRUCTURED.md` in the full repository)"
+  },
+  {
+    "label": "docs/CVPR_EXTENDED_COVERAGE.md refers to EXTENDED_VIDEO.md",
+    "file": "docs/CVPR_EXTENDED_COVERAGE.md",
+    "old": "[video](EXTENDED_VIDEO.md)",
+    "new": "video (`docs/EXTENDED_VIDEO.md` in the full repository)"
+  },
+  {
+    "label": "docs/EXTENDED_SEGMENTATION.md refers to EXTENDED_CLASSIFICATION.md",
+    "file": "docs/EXTENDED_SEGMENTATION.md",
+    "old": "[Extended image classification](EXTENDED_CLASSIFICATION.md)",
+    "new": "Extended image classification (`docs/EXTENDED_CLASSIFICATION.md` in the full repository)"
+  },
+  {
+    "label": "docs/EXTENDED_SEGMENTATION.md refers to EXTENDED_EXECUTION.md",
+    "file": "docs/EXTENDED_SEGMENTATION.md",
+    "old": "[accumulation and CUDA BF16](EXTENDED_EXECUTION.md)",
+    "new": "accumulation and CUDA BF16 (`docs/EXTENDED_EXECUTION.md` in the full repository)"
+  },
+  {
+    "label": "docs/EXTENDED_SEGMENTATION.md refers to EXTENDED_EXECUTION.md#epoch-checkpoints-and-continuation",
+    "file": "docs/EXTENDED_SEGMENTATION.md",
+    "old": "[shared runner](EXTENDED_EXECUTION.md#epoch-checkpoints-and-continuation)",
+    "new": "shared runner (`docs/EXTENDED_EXECUTION.md#epoch-checkpoints-and-continuation` in the full repository)"
+  },
+  {
+    "label": "docs/EXTENDED_SEGMENTATION.md refers to FINAL_PAPER_COVERAGE.md",
+    "file": "docs/EXTENDED_SEGMENTATION.md",
+    "old": "[final-paper coverage](FINAL_PAPER_COVERAGE.md)",
+    "new": "final-paper coverage (`docs/FINAL_PAPER_COVERAGE.md` in the full repository, or see the bundled [figure-by-figure reproduction guide](PAPER_REPRODUCTION_GUIDE.md))"
+  },
+  {
+    "label": "docs/LORA_FULL_REPRODUCTION.md refers to REVISED_SCHEDULES.md",
+    "file": "docs/LORA_FULL_REPRODUCTION.md",
+    "old": "[schedule guide](REVISED_SCHEDULES.md)",
+    "new": "schedule guide (`docs/REVISED_SCHEDULES.md` in the full repository)"
+  },
+  {
+    "label": "docs/SSV2_EXECUTION.md refers to CONTINUATION_INTEGRITY.md",
+    "file": "docs/SSV2_EXECUTION.md",
+    "old": "[shared continuation validation contract](CONTINUATION_INTEGRITY.md)",
+    "new": "shared continuation validation contract (`docs/CONTINUATION_INTEGRITY.md` in the full repository)"
+  },
+  {
+    "label": "docs/SSV2_EXECUTION.md refers to IMAGENET_EXECUTION.md",
+    "file": "docs/SSV2_EXECUTION.md",
+    "old": "[ImageNet execution policy](IMAGENET_EXECUTION.md)",
+    "new": "ImageNet execution policy (`docs/IMAGENET_EXECUTION.md` in the full repository)"
+  },
+  {
+    "label": "docs/THIRD_PARTY_LICENSES.md refers to STEP1_WEIGHTS.md",
+    "file": "docs/THIRD_PARTY_LICENSES.md",
+    "old": "[weight acquisition guide](STEP1_WEIGHTS.md)",
+    "new": "weight acquisition guide (`docs/STEP1_WEIGHTS.md` in the full repository)"
+  }
+]

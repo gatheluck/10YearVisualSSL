@@ -1,5 +1,5 @@
 {
-  "_note": "Run: .venvs/34_msn/bin/python bin/mutate.py --spec mutations/34_msn-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/34_msn/bin/python (msn submodule checked out). Proves the MSN model/eval guards are not vacuous: the number of anchor views fed to the loss equals len(imgs[1:]) (target-tiling must match), encoder.pt excludes the projection head, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
+  "_note": "Run: .venvs/34_msn/bin/python bin/mutate.py --spec mutations/34_msn-linear-eval.json --python \"$PWD/.venvs/34_msn/bin/python\" (msn submodule checked out). Proves the MSN model/eval guards are not vacuous: the number of anchor views fed to the loss equals len(imgs[1:]) (target-tiling must match), encoder.pt excludes the projection head, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
   "targets": [
     {
       "label": "the anchor-view count is off by one, so the loss target-tiling mismatches the anchor rows",

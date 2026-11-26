@@ -1,6 +1,6 @@
 {
   "captured_at": "2026-09-02",
-  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
+  "captured_from": "private experiment archive",
   "captured_note": "VideoMAE appears in the capture's Step-3 VideoSSL series (methods_step3/VideoSSL/03_videomae) as an as-is SSL comparison: the pretrained video encoder is frozen and a linear probe is fit on its features. Unlike the sibling VideoSSL entries 01_shufflelearn and 02_videomoco (first-party re-implementations with no released weights, deferred in the port), VideoMAE uses the authors' official public checkpoints (MCG-NJU/videomae-base). The capture's backbone/__init__.py is a self-contained VideoMAE wrapper that loads the checkpoint directly from safetensors without the transformers library; its ImageNet linear eval (eval_imagenet_linear.py) feeds a still image replicated num_frames times along the temporal axis and mean-pools the tokens (never PyAV / a video dataset).",
   "paper": {
     "title": "VideoMAE: Masked Autoencoders are Data-Efficient Learners for Self-Supervised Video Pre-Training",

@@ -1,5 +1,5 @@
 {
-  "_note": "Run: .venvs/06_rotation_prediction/bin/python bin/mutate.py --spec mutations/06_rotation_prediction-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/06_rotation_prediction/bin/python. Proves the model/dataset/two-stage guards are not vacuous: the encoder returns one vector per image, the four rotations are the actual right angles, the collate flattens correctly, encoder.pt excludes the classifier, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
+  "_note": "Run: .venvs/06_rotation_prediction/bin/python bin/mutate.py --spec mutations/06_rotation_prediction-linear-eval.json --python \"$PWD/.venvs/06_rotation_prediction/bin/python\". Proves the model/dataset/two-stage guards are not vacuous: the encoder returns one vector per image, the four rotations are the actual right angles, the collate flattens correctly, encoder.pt excludes the classifier, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
   "targets": [
     {
       "label": "the encoder no longer returns one feature vector per image",

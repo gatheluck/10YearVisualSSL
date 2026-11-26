@@ -1,5 +1,5 @@
 {
-  "_note": "Run: .venvs/33_pirl/bin/python bin/mutate.py --spec mutations/33_pirl-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/33_pirl/bin/python. Proves the PIRL model/bank/eval guards are not vacuous: the memory bank is normalized, the bank update moves the indexed rows toward the features, the image and jigsaw features are L2-normalised, encoder.pt excludes the projection heads, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
+  "_note": "Run: .venvs/33_pirl/bin/python bin/mutate.py --spec mutations/33_pirl-linear-eval.json --python \"$PWD/.venvs/33_pirl/bin/python\". Proves the PIRL model/bank/eval guards are not vacuous: the memory bank is normalized, the bank update moves the indexed rows toward the features, the image and jigsaw features are L2-normalised, encoder.pt excludes the projection heads, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
   "targets": [
     {
       "label": "the memory bank is not normalized at init",

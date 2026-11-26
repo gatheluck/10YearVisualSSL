@@ -1,5 +1,5 @@
 {
-  "_note": "Run: .venvs/06_rotation_prediction/bin/python bin/mutate.py --spec mutations/downstream-ade20k.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/06_rotation_prediction/bin/python (any interpreter with torch/torchvision/timm/PIL). Proves the downstream ADE20K guards are not vacuous: the device is resolved not assumed, a config that names the output is refused, a subset/smoke run is stamped non-recordable, the contract refuses an unlisted output, and a metric outside the downstream vocabulary is refused.",
+  "_note": "Run: .venvs/06_rotation_prediction/bin/python bin/mutate.py --spec mutations/downstream-ade20k.json --python \"$PWD/.venvs/06_rotation_prediction/bin/python\" (any interpreter with torch/torchvision/timm/PIL). Proves the downstream ADE20K guards are not vacuous: the device is resolved not assumed, a config that names the output is refused, a subset/smoke run is stamped non-recordable, the contract refuses an unlisted output, and a metric outside the downstream vocabulary is refused.",
   "targets": [
     {
       "label": "cpu is not honoured -- the requested cpu returns a cuda device",

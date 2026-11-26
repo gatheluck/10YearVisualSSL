@@ -30,7 +30,7 @@ component checkpoint continuation. Historical core-only descriptions below do
 not cover this addition. Native distributed integration and full-score reruns in this port remain
 unverified.
 
-The capture (`gatheluck/10YearVisualSSLCapturePrivate`, `snapshots` branch) has a
+The private archive (`snapshots` branch) has a
 **self-contained `methods/<n>_<name>/` directory for every one of the 38**, and
 ~32 of them carry the lab's **own** model code under `models/*.py` (an
 independent implementation following the paper, torch-based — the same
