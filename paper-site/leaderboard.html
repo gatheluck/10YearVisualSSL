@@ -13,15 +13,17 @@
     <link rel="stylesheet" href="research.css?v=da7d773a07" />
     <script defer src="sources.js"></script>
     <script defer src="history-data.js?v=b179a62c5b"></script>
-    <script defer src="rankboard.js?v=e4e859e137"></script>
+    <script defer src="rank-records.js?v=59faa88a80"></script>
+    <script defer src="rankboard.js?v=fcdff3fa81"></script>
+    <script defer src="comparison-panels.js?v=d97235181c"></script>
     <script defer src="ranking-families.js"></script>
-    <script defer src="overview.js?v=4058a795ee"></script>
+    <script defer src="overview.js?v=688f139bb9"></script>
     <script defer src="results.js"></script>
 
-    <script defer src="site.js"></script>
-  <script defer src="extended-data.js"></script><script defer src="figure-five-vector.js"></script><script defer src="figure-five.js?v=d336f524c1"></script><link rel="stylesheet" href="publication.css?v=dab9566474">
+    <script defer src="site.js?v=a8d18aff21"></script>
+  <script defer src="extended-data.js"></script><script defer src="figure-five-vector.js"></script><script defer src="figure-five.js?v=d336f524c1"></script><link rel="stylesheet" href="publication.css?v=cf1862c2dc">
     <script defer src="control-data.js"></script>
-    <script defer src="history.js?v=4c04fa0ef3"></script>
+    <script defer src="history.js?v=abb07694dc"></script>
     <script defer src="control.js"></script>
     <script defer src="extended.js"></script>
   </head>
@@ -59,6 +61,48 @@
           benchmarks
         </div>
         <h2 id="rank-title" class="sr">The Basic Five rankings</h2>
+        <div class="rank-table-top">
+          <div>
+            <h3>Model rankings</h3>
+            <p>Published Figure 1 ranks and manuscript Figure 2 v45 scores.</p>
+          </div>
+          <div class="ranking-filters">
+            <label>Rank by
+              <select id="rank-task">
+                <option value="overall">Overall</option>
+                <option value="in1k">ImageNet-1K</option>
+                <option value="coco">COCO 2017</option>
+                <option value="ade20k">ADE20K</option>
+                <option value="nyuv2">NYUv2</option>
+                <option value="ssv2">SSv2</option>
+              </select>
+            </label>
+            <label>Find a model<input id="rank-search" type="search" placeholder="Model name"></label>
+          </div>
+        </div>
+        <section class="profile-panel ranked-model" id="selected-model" aria-label="Selected model" tabindex="-1" hidden>
+          <div id="rank-profile"></div>
+          <button type="button" id="close-model">Close model profile</button>
+        </section>
+        <div class="rank-scroll" role="region" aria-label="Figure 1 standings" tabindex="0">
+          <table aria-label="Model rankings">
+            <thead><tr>
+              <th scope="col" id="rank-order">Overall rank</th>
+              <th scope="col">Model</th>
+              <th scope="col" id="rank-value">Mean rank</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="rank-table-foot">
+          <span id="rank-count" aria-live="polite"></span
+          ><button type="button" id="rank-expand">
+            Show all 109 models
+          </button>
+        </div>
+      </section>
+      <details class="comparison-panel rank-visuals">
+        <summary>Show the rank heatmap</summary>
         <div class="rank-spread">
           <figure class="rank-map">
             <figcaption>
@@ -88,57 +132,8 @@
           <aside class="profile-panel">
             <label for="inspect-config">Inspect configuration</label
             ><select id="inspect-config"></select>
-            <div id="rank-profile" aria-live="polite"></div>
           </aside>
         </div>
-        <div class="rank-table-top">
-          <div>
-            <h3>Overall standings</h3>
-            <p>
-              Sorted by mean rank across the Basic Five, under family-specific
-              ASIS protocols.
-            </p>
-          </div>
-          <label
-            >Find a configuration<input
-              id="rank-search"
-              type="search"
-              placeholder="Model name"
-          /></label>
-        </div>
-        <div
-          class="rank-scroll"
-          role="region"
-          tabindex="0"
-          aria-label="Figure 1 standings"
-        >
-          <table>
-            <thead>
-              <tr>
-                <th scope="col">Overall</th>
-                <th scope="col">Model</th>
-                <th scope="col">Mean rank</th>
-                <th scope="col">ImageNet</th>
-                <th scope="col">COCO</th>
-                <th scope="col">ADE20K</th>
-                <th scope="col">NYUv2</th>
-                <th scope="col">SSv2</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-        <div class="rank-table-foot">
-          <span id="rank-count" aria-live="polite"></span
-          ><button type="button" id="rank-expand">
-            Show all 109 models
-          </button>
-        </div>
-      </section>
-<nav class="results-directory" id="experiments" aria-label="Leaderboard comparisons"><div><h2>Explore the experiments</h2><a href="#protocols">Evaluation protocols ↓</a></div><div class="route-cards"><a aria-label="History" href="#history"><small>Figures 1–2</small><strong>History</strong><span>Compare release years →</span></a>
-<a aria-label="Basic Five probes" href="#unified"><small>Figure 3</small><strong>Basic Five probes</strong><span>Compare readout protocols →</span></a>
-<a aria-label="ASIS vs CTRL" href="#controlled"><small>Figure 4</small><strong>ASIS vs CTRL</strong><span>Compare pre-training setups →</span></a>
-<a aria-label="Broad transfer" href="#figure-five"><small>Figure 5</small><strong>Broad transfer</strong><span>Explore 40 task settings →</span></a></div></nav>
       <details class="trajectories">
         <summary>Compare rank trajectories</summary>
         <figure class="atlas">
@@ -176,6 +171,13 @@
         </figure>
       </details>
 
+      </details>
+<nav class="results-directory" id="experiments" aria-label="Leaderboard comparisons"><div><h2>Explore the experiments</h2><a href="#protocols">Evaluation protocols ↓</a></div><div class="route-cards"><a aria-label="History" href="#history"><small>Figures 1–2</small><strong>History</strong><span>Compare release years →</span></a>
+<a aria-label="Basic Five probes" href="#unified"><small>Figure 3</small><strong>Basic Five probes</strong><span>Compare readout protocols →</span></a>
+<a aria-label="ASIS vs CTRL" href="#controlled"><small>Figure 4</small><strong>ASIS vs CTRL</strong><span>Compare pre-training setups →</span></a>
+<a aria-label="Broad transfer" href="#figure-five"><small>Figure 5</small><strong>Broad transfer</strong><span>Explore 40 task settings →</span></a></div></nav>
+      <details class="comparison-panel">
+        <summary>Historical ranks and scores</summary>
 <section id="history" class="comparison-section" aria-label="History comparison">
 <section class="comparison-heading">
         <p class="eyebrow">
@@ -259,6 +261,9 @@
     </dialog>
 <a href="#experiments">Back to comparisons ↑</a>
 </section>
+      </details>
+      <details class="comparison-panel">
+        <summary>Unified readout and adaptation</summary>
       <section id="unified" class="board">
         <div class="eyebrow">
           <span class="dash"></span> Figure 3 · Unified evaluation
@@ -318,34 +323,9 @@
           <div id="plot"></div>
         </figure>
       </section>
-      <nav class="study-paths" aria-label="Explore the experiments">
-        <a href="#scores"
-          ><span>Figures 1–2 · Historical evaluation</span>
-          <h2>A decade of transfer</h2>
-          <p>
-            Follow 113 models through the five benchmarks by year of
-            release.
-          </p>
-          <div class="result-example">
-            <small>RAEv2 · task rank</small
-            ><b>1st <em>ADE20K</em> / 100th <em>SSv2</em></b>
-          </div>
-          <strong>Explore historical results →</strong></a
-        >
-        <a href="#controlled"
-          ><span>Figure 4 · Controlled pre-training</span>
-          <h2>What changes under one recipe?</h2>
-          <p>
-            Compare 32 methods before and after training the same backbone on
-            ImageNet-1K.
-          </p>
-          <div class="result-example">
-            <small>Split-Brain · NYUv2 RMSE (m)</small
-            ><b>1.179 <em>ASIS</em> → 0.976 <em>CTRL</em></b>
-          </div>
-          <strong>Explore paired results →</strong></a
-        >
-      </nav>
+      </details>
+      <details class="comparison-panel">
+        <summary>Controlled pre-training</summary>
 <section id="controlled" class="comparison-section" aria-label="Control comparison">
 <section class="comparison-heading">
         <p class="eyebrow">
@@ -437,6 +417,9 @@
       </section>
 <a href="#experiments">Back to comparisons ↑</a>
 </section>
+      </details>
+      <details class="comparison-panel">
+        <summary>Extended transfer</summary>
       <section id="figure-five" aria-labelledby="transfer-head"><h2 id="transfer-head">Beyond the Basic Five: where do the leaders change?</h2></section>
 <div class="study" id="transfer-details"><section><h2>Transfer across tasks</h2><p>Each highlighted cell marks a first-place score among the five models in that row. Select a task for its metric, probe conditions and original model papers.</p>
 <div class="filters"><label>Probe <select id="probe"><option>LP</option><option>AP</option></select></label><label>Task family <select id="family"><option>All</option></select></label><span aria-live="polite" id="transfer-count"></span></div>
@@ -446,15 +429,9 @@
 <p>The paper plots percentages divided by 100 and errors mapped to 1/(1 + error), then scales each five-model group to its own maximum separately for LP and AP. This table preserves the source scores before normalization. SigLIP 2-G is the vision-language reference. The plotting source labels the RAEv2 series RAEv2-K7; exact feature-to-run correspondence remains unverified.</p></section>
 <dialog><form method="dialog"><button aria-label="Close details">Close ×</button></form><p class="eyebrow">Figure 5 · Evaluation detail</p><h2></h2><p id="conditions"></p><ul id="transfer-scores"></ul></dialog>
 <a href="#experiments">Back to comparisons ↑</a></div>
-      <section class="scope" aria-label="Study scope">
-        <p><strong>110+</strong><span>Model configurations</span></p>
-        <p>
-          <strong>2,500+</strong
-          ><span>Training &amp; evaluation experiments</span>
-        </p>
-        <p><strong>5</strong><span>Core transfer benchmarks</span></p>
-        <p><strong>40</strong><span>Extended benchmark settings</span></p>
-      </section>
+      </details>
+      <details class="comparison-panel">
+        <summary>Evaluation protocols</summary>
       <section id="protocols" class="protocols">
         <div>
           <div class="eyebrow"><span class="dash"></span> Evaluation guide</div>
@@ -467,12 +444,18 @@
         </div>
         <div id="guides"></div>
       </section>
+      </details>
     </main>
     <footer>
       <div class="wrap">
         <span>Vision Baselines</span><a href="index.html">Back to overview ↑</a>
       </div>
     </footer>
+    <dialog id="rank-score-dialog" aria-labelledby="rank-score-title">
+      <form method="dialog"><button aria-label="Close ranking score details">×</button></form>
+      <h2 id="rank-score-title"></h2>
+      <dl id="rank-score-fields"></dl>
+    </dialog>
     <dialog aria-labelledby="detail-title">
       <button id="close" aria-label="Close score details">×</button>
       <div class="eyebrow">Figure 3 · Score details</div>

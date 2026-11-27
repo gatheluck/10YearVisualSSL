@@ -224,12 +224,12 @@
     }
   }
   el("ranking").onclick = () => {
-    window.history.replaceState(null, "", "#history");
+    window.history.replaceState(window.history.state, "", "#history");
     scores = false;
     render();
   };
   el("scores").onclick = () => {
-    window.history.replaceState(null, "", "#scores");
+    window.history.replaceState(window.history.state, "", "#scores");
     scores = true;
     render();
   };

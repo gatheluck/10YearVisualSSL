@@ -100,7 +100,7 @@ test("Figure 5 explains the probe labels and links to raw scores and pending set
   const page = await browser.newPage({ viewport: { width: 320, height: 860 } });
   try {
     for (const pageName of ["index.html", "leaderboard.html"]) {
-      await page.goto(new URL(pageName, overview).href);
+      await page.goto(new URL(pageName === "leaderboard.html" ? pageName + "#figure-five" : pageName, overview).href);
       const figure = page.locator("#figure-five");
       assert.match(await figure.locator(".transfer-facts").innerText(), /frozen-feature probing.*attentive probing/is);
       assert.match(await figure.locator(".radar-guide").innerText(), /scaled to the best.*for each task and probe/i);

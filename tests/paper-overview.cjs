@@ -21,11 +21,7 @@ const path = require("node:path");
       [320, 640, 0],
     ]) {
       await page.setViewportSize({ width, height });
-      const matrix = await page.locator("#rank-matrix").boundingBox();
-      assert.ok(
-        matrix.y >= 0 && matrix.y + matrix.height < height,
-        "Complete rank matrix must be visible before scrolling at " + width,
-      );
+      assert.equal(await page.locator("#rank-matrix").isVisible(), false);
       if (minRows) {
         const row = await page
           .locator("#leaderboard tbody tr")
@@ -42,6 +38,8 @@ const path = require("node:path");
         ),
       );
     }
+    await page.getByText("Show the rank heatmap", { exact: true }).click();
+    assert.ok(await page.locator("#rank-matrix").isVisible());
     await page.getByText("Compare rank trajectories", { exact: true }).click();
     const lines = page.locator("#rank-atlas polyline");
     assert.equal(

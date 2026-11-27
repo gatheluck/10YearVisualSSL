@@ -189,7 +189,7 @@ function setHash() {
     p.set("sort", state.sort);
     if (state.reverse) p.set("reverse", "1");
   }
-  history.replaceState(null, "", "#unified?" + p);
+  history.replaceState(history.state, "", "#unified?" + p);
 }
 function visibleTasks() {
   return state.task === "all" ? paperTasks(state.protocol) : [state.task];
@@ -393,19 +393,28 @@ byId("task").onchange = (e) => {
 };
 byId("csv").onclick = exportCSV;
 byId("close").onclick = () => dialog.close();
-const params = new URLSearchParams(location.hash.split("?")[1] || "");
-if (Object.hasOwn(protocols, params.get("protocol")))
-  state.protocol = params.get("protocol");
-const available = paperTasks(state.protocol);
-state.task = available.includes(params.get("task"))
-  ? params.get("task")
-  : params.get("task") !== "all" && matchMedia("(max-width:550px)").matches
-    ? available[0]
-    : "all";
-if (visibleTasks().includes(params.get("sort"))) {
-  state.sort = params.get("sort");
-  state.reverse = params.get("reverse") === "1";
+function restoreOptions() {
+  const params = new URLSearchParams(location.hash.split("?")[1] || "");
+  state.protocol = Object.hasOwn(protocols, params.get("protocol")) ? params.get("protocol") : "LP";
+  state.sort = "";
+  state.reverse = false;
+  const available = paperTasks(state.protocol);
+  state.task = available.includes(params.get("task"))
+    ? params.get("task")
+    : params.get("task") !== "all" && matchMedia("(max-width:550px)").matches
+      ? available[0]
+      : "all";
+  if (visibleTasks().includes(params.get("sort"))) {
+    state.sort = params.get("sort");
+    state.reverse = params.get("reverse") === "1";
+  }
 }
+restoreOptions();
+window.addEventListener("hashchange", () => {
+  if (!/^#(?:leaderboard|unified)\?/.test(location.hash)) return;
+  restoreOptions();
+  draw();
+});
 chart("SSv2");
 draw();
 if (/^#(?:leaderboard|unified)\?/.test(location.hash))

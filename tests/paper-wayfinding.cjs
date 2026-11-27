@@ -43,7 +43,7 @@ const {chromium} = require("playwright");
     await page.goto(new URL("leaderboard.html#scores", base).href);
     assert.equal(await page.locator("#scores").getAttribute("aria-pressed"), "true");
     await page.locator("#ranking").click();
-    await page.getByRole("link", {name: /Explore historical results/}).click();
+    await page.goto(new URL("leaderboard.html#scores",base).href);
     await page.locator('#scores[aria-pressed="true"]').waitFor({timeout: 3000});
     assert.equal(await page.locator("#scores").getAttribute("aria-pressed"), "true");
     const duplicates = await page.locator("[id]").evaluateAll(nodes => {

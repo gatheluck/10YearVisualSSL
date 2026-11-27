@@ -21,11 +21,13 @@ const { chromium } = require("playwright");
       /Figure 1/i,
       "The primary leaderboard must be Figure 1",
     );
-    assert.equal(await board.locator(".matrix-column").count(), 109);
-    assert.equal(await board.locator(".matrix-cell").count(), 545);
-    const select = board.getByLabel("Inspect configuration");
-    const selectedName = board.locator("#matrix-selection");
-    const columns = board.locator(".matrix-column");
+    assert.equal(await page.locator(".rank-visuals .matrix-column").count(), 109);
+    assert.equal(await page.locator(".rank-visuals .matrix-cell").count(), 545);
+    await page.getByText("Show the rank heatmap", { exact: true }).click();
+    const heatmap = page.locator(".rank-visuals");
+    const select = heatmap.getByLabel("Inspect configuration");
+    const selectedName = page.locator(".rank-visuals #matrix-selection");
+    const columns = page.locator(".rank-visuals .matrix-column");
     const cellColors = () =>
       columns
         .nth(6)
@@ -57,7 +59,7 @@ const { chromium } = require("playwright");
     assert.deepEqual(await cellColors(), before);
     await select.selectOption({ index: 0 });
     assert.equal((await marker(columns.nth(6))).pointer, "none");
-    const names = board.locator(".model-tick");
+    const names = page.locator(".rank-visuals .model-tick");
     assert.deepEqual(
       await names.allTextContents(),
       await select.locator("option").allTextContents(),
@@ -84,7 +86,7 @@ const { chromium } = require("playwright");
       );
       await select.selectOption({ index: 108 });
       const last = await names.last().boundingBox(),
-        end = await board.locator(".matrix-viewport").boundingBox();
+        end = await page.locator(".rank-visuals .matrix-viewport").boundingBox();
       assert.ok(
         last.x >= end.x && last.x + last.width <= end.x + end.width + 1,
         "Selected model must be visible",
@@ -98,12 +100,12 @@ const { chromium } = require("playwright");
     assert.equal(await board.locator("#rank-profile .rank-rail").count(),5);
     assert.ok(await board.locator("#rank-profile .rank-rail").evaluateAll(rails =>
       rails.every(rail => Number.parseFloat(rail.style.getPropertyValue("--position")) ===
-        (Number(rail.parentElement.querySelector("dd").textContent)-1)*100/108)));
+        (Number(rail.parentElement.querySelector("dd small").textContent.replace("Rank ", ""))-1)*100/108)));
     assert.deepEqual(
-      await board.locator("#rank-profile dd").allTextContents(),
-      ["2", "5", "1", "8", "100"],
+      await board.locator("#rank-profile dd small").allTextContents(),
+      ["Rank 2", "Rank 5", "Rank 1", "Rank 8", "Rank 100"],
     );
-    await board.locator(".matrix-column").first().click();
+    await page.locator(".rank-visuals .matrix-column").first().click();
     assert.equal(await select.inputValue(), "DINOv3-7B");
     assert.match(await board.locator("#rank-profile").innerText(), /6\.2/);
     const rows = board.locator("tbody tr");
@@ -112,18 +114,19 @@ const { chromium } = require("playwright");
       .getByRole("button", { name: "Show all 109 models" })
       .click();
     assert.equal(await rows.count(), 109);
-    // Reference digest from the printed places, names, means and five ranks on page one.
-    const displayed = await rows.evaluateAll((list) =>
-      list
-        .map((row) =>
-          [...row.cells]
-            .map((cell, i) =>
-              i === 1 ? cell.querySelector("b").textContent : cell.textContent,
-            )
-            .join("|"),
-        )
-        .join("\n"),
-    );
+    // Reconstruct the same digest from the overall and five task views.
+    const rowsByName = new Map((await rows.evaluateAll(nodes => nodes.map(row => [
+      row.cells[1].querySelector("button").textContent,
+      [row.cells[0].textContent, row.cells[1].querySelector("button").textContent, row.cells[2].textContent],
+    ]))));
+    for (const task of ["in1k", "coco", "ade20k", "nyuv2", "ssv2"]) {
+      await board.getByLabel("Rank by").selectOption(task);
+      for (const [name, rank] of await rows.evaluateAll(nodes => nodes.map(row => [
+        row.cells[1].querySelector("button").textContent, row.cells[0].textContent.slice(1),
+      ]))) rowsByName.get(name).push(rank);
+    }
+    await board.getByLabel("Rank by").selectOption("overall");
+    const displayed = [...rowsByName.values()].map(values => values.join("|")).join("\n");
     assert.equal(
       require("node:crypto")
         .createHash("sha256")
@@ -131,7 +134,7 @@ const { chromium } = require("playwright");
         .digest("hex"),
       "918c0bb5cd54857d98cbb9279d273d6d521abea2499a0118fc268ff70521ba71",
     );
-    const query = board.getByLabel("Find a configuration");
+    const query = board.getByLabel("Find a model");
     await query.fill("V-JEPA");
     assert.equal(await rows.count(), 4);
     await query.fill("xx-no-match");

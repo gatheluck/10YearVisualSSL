@@ -39,10 +39,11 @@ const { chromium } = require("playwright");
     assert.equal(
       await p
         .locator("#leaderboard tbody")
-        .getByRole("link", { name: "iGPT", exact: true })
+        .getByRole("link", { name: "Original source for iGPT", exact: true })
         .getAttribute("href"),
       "https://proceedings.mlr.press/v119/chen20s.html",
     );
+    await p.getByText("Show the rank heatmap", { exact: true }).click();
     await p.locator("#inspect-config").selectOption("FLUX.2");
     assert.match(
       await p.locator("#rank-profile a").getAttribute("title"),

@@ -3,12 +3,6 @@ const standings = document.querySelector(".preview-standings");
 const viewport = standings.parentElement;
 const rankKeys = ["in1k", "coco", "ade20k", "nyuv2", "ssv2"];
 const familyColors = new Map(rankingFamilies.map(([family, , token]) => [family, "var(--" + token + ")"]));
-const resultsByModel = new Map(historicalScores.map(result => [result.name, result]));
-for (const result of historicalScores.filter(result => result.name === "V-JEPA")) {
-  const checkpoint = result.family === "VSSL" ? "ViT-H" : "ViT-L";
-  resultsByModel.set(`V-JEPA (${checkpoint})`, result);
-}
-
 function showStandings() {
   const task = rankKeys.indexOf(taskPicker.value);
   const rank = model => task < 0 ? model.place : model.ranks[task];
@@ -22,7 +16,7 @@ function showStandings() {
   body.replaceChildren();
 
   for (const model of leaders) {
-    const result = resultsByModel.get(model.name);
+    const result = manuscriptScoreForRank(model);
     const row = body.insertRow();
     const label = document.createElement("th");
     label.scope = "row";
