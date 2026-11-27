@@ -1,8 +1,9 @@
 {
+  "_result": {"measured_on": "2026-11-27", "killed": 18, "total": 18},
   "targets": [
     {
       "label": "initial synchronization removed",
-      "file": "methods/31_dinov3/dinov3_distributed.py",
+      "file": "methods/dinov3/dinov3_distributed.py",
       "old": "dist.broadcast(value, src=0)",
       "new": "pass",
       "tests": [
@@ -11,7 +12,7 @@
     },
     {
       "label": "gradient reducer removed",
-      "file": "methods/31_dinov3/dinov3_distributed.py",
+      "file": "methods/dinov3/dinov3_distributed.py",
       "old": "if self.world == 1:\n            return model",
       "new": "if True:\n            return model",
       "tests": [
@@ -20,7 +21,7 @@
     },
     {
       "label": "finite collective removed",
-      "file": "methods/31_dinov3/dinov3_distributed.py",
+      "file": "methods/dinov3/dinov3_distributed.py",
       "old": "dist.all_reduce(flag, op=dist.ReduceOp.MIN)",
       "new": "pass",
       "tests": [
@@ -29,7 +30,7 @@
     },
     {
       "label": "global reporting removed",
-      "file": "methods/31_dinov3/dinov3_distributed.py",
+      "file": "methods/dinov3/dinov3_distributed.py",
       "old": "dist.all_reduce(values)",
       "new": "pass",
       "tests": [
@@ -38,7 +39,7 @@
     },
     {
       "label": "rank RNG ignored",
-      "file": "methods/31_dinov3/dinov3_distributed.py",
+      "file": "methods/dinov3/dinov3_distributed.py",
       "old": "return states[self.rank]",
       "new": "return states[0]",
       "tests": [
@@ -47,7 +48,7 @@
     },
     {
       "label": "resume world guard removed",
-      "file": "methods/31_dinov3/dinov3_distributed.py",
+      "file": "methods/dinov3/dinov3_distributed.py",
       "old": "state.get('world_size') != self.world",
       "new": "False",
       "tests": [
@@ -56,7 +57,7 @@
     },
     {
       "label": "resume precision guard removed",
-      "file": "methods/31_dinov3/dinov3_distributed.py",
+      "file": "methods/dinov3/dinov3_distributed.py",
       "old": "state.get('precision') != self.precision",
       "new": "False",
       "tests": [
@@ -65,7 +66,7 @@
     },
     {
       "label": "rank seed removed",
-      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "file": "methods/dinov3/train_pretrain_dinov3.py",
       "old": "seed + (execution.rank if execution else 0)",
       "new": "seed",
       "tests": [
@@ -74,7 +75,7 @@
     },
     {
       "label": "epoch sampler advance removed",
-      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "file": "methods/dinov3/train_pretrain_dinov3.py",
       "old": "loader.sampler.set_epoch(epoch)",
       "new": "pass",
       "tests": [
@@ -83,7 +84,7 @@
     },
     {
       "label": "checkpoint leader guard removed",
-      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "file": "methods/dinov3/train_pretrain_dinov3.py",
       "old": "call(save, leader=True)",
       "new": "save()",
       "tests": [
@@ -92,7 +93,7 @@
     },
     {
       "label": "empty patch returns before collective",
-      "file": "methods/31_dinov3/losses/ibot_loss.py",
+      "file": "methods/dinov3/losses/ibot_loss.py",
       "old": "        if student_patch_logits.ndim == 2:",
       "new": "        if not masks.any():\n            return student_patch_logits.sum() * 0.0\n        if student_patch_logits.ndim == 2:",
       "tests": [
@@ -101,7 +102,7 @@
     },
     {
       "label": "uncoordinated launch allowed",
-      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "file": "methods/dinov3/train_pretrain_dinov3.py",
       "old": "if launch()[2] > 1 and execution is None:",
       "new": "if False:",
       "tests": [
@@ -110,7 +111,7 @@
     },
     {
       "label": "empty loader allowed",
-      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "file": "methods/dinov3/train_pretrain_dinov3.py",
       "old": "if len(loader) == 0:",
       "new": "if False:",
       "tests": [
@@ -119,7 +120,7 @@
     },
     {
       "label": "forward autocast omitted",
-      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "file": "methods/dinov3/train_pretrain_dinov3.py",
       "old": "            with autocast():",
       "new": "            with nullcontext():",
       "tests": [
@@ -128,7 +129,7 @@
     },
     {
       "label": "CPU bf16 admitted",
-      "file": "methods/31_dinov3/dinov3_distributed.py",
+      "file": "methods/dinov3/dinov3_distributed.py",
       "old": "if precision == 'bfloat16' and (context.device.type != 'cuda'\n                                      or not torch.cuda.is_bf16_supported()):",
       "new": "if False:",
       "tests": [
@@ -137,7 +138,7 @@
     },
     {
       "label": "precision vocabulary guard removed",
-      "file": "methods/31_dinov3/dinov3_distributed.py",
+      "file": "methods/dinov3/dinov3_distributed.py",
       "old": "if precision not in ('float32', 'bfloat16'):",
       "new": "if False:",
       "tests": [
@@ -146,7 +147,7 @@
     },
     {
       "label": "implicit execution accepted",
-      "file": "methods/31_dinov3/dinov3_distributed.py",
+      "file": "methods/dinov3/dinov3_distributed.py",
       "old": "if not isinstance(settings, dict) or set(settings) != {'precision'}:",
       "new": "if False:",
       "tests": [
@@ -155,7 +156,7 @@
     },
     {
       "label": "legacy core accepted",
-      "file": "methods/31_dinov3/dinov3_distributed.py",
+      "file": "methods/dinov3/dinov3_distributed.py",
       "old": "if cfg['training'].get('training_profile', 'core') == 'core':",
       "new": "if False:",
       "tests": [

@@ -1,0 +1,108 @@
+{
+  "_note": "Run: python3 bin/mutate.py --spec mutations/<file>.json --python <an interpreter with this method's lock installed>. Kept in the repository because a mutation result that lives only in a chat message cannot be checked by anyone later.",
+  "targets": [
+    {
+      "label": "a pretext name is used for a downstream number",
+      "file": "methods/simsiam/adapter/__init__.py",
+      "old": "    \"final_top1_acc\": \"final_linear_probe_top1_accuracy\",",
+      "new": "    \"final_top1_acc\": \"final_pretext_top1_accuracy\",",
+      "tests": [
+        "tests.test_method_simsiam"
+      ]
+    },
+    {
+      "label": "the second stage accepts step 1's settings",
+      "file": "methods/simsiam/adapter/__init__.py",
+      "old": "        keys = EVAL_VIT_KEYS if arch == \"vit\" else EVAL_TRAIN_KEYS",
+      "new": "        keys = EVAL_VIT_KEYS if arch == \"vit\" else (EVAL_TRAIN_KEYS | TRAIN_KEYS)",
+      "tests": [
+        "tests.test_method_simsiam"
+      ]
+    },
+    {
+      "label": "the encoder is no longer required by the second stage",
+      "file": "methods/simsiam/adapter/__init__.py",
+      "old": "    top = EVAL_TOP_KEYS if stage == \"linear_eval\" else TOP_KEYS",
+      "new": "    top = TOP_KEYS",
+      "tests": [
+        "tests.test_method_simsiam"
+      ]
+    },
+    {
+      "label": "the absent encoder is not explained",
+      "file": "methods/simsiam/adapter/__init__.py",
+      "old": "    if _stage_of(config_path) != \"linear_eval\":\n        return None",
+      "new": "    return None\n    if False:\n        return None",
+      "tests": [
+        "tests.test_method_simsiam"
+      ]
+    },
+    {
+      "label": "the stage is not read from the config",
+      "file": "methods/simsiam/adapter/__init__.py",
+      "old": "                              stage=_stage_of(a.config), body=body,",
+      "new": "                              stage=STAGES[0], body=body,",
+      "tests": [
+        "tests.test_method_simsiam"
+      ]
+    },
+    {
+      "label": "load_encoder ignores the config and uses defaults",
+      "file": "methods/simsiam/adapter/__init__.py",
+      "old": "        model = build_simsiam_resnet(dim=int(train[\"dim\"]),\n                                     pred_dim=int(train[\"pred_dim\"]))",
+      "new": "        model = build_simsiam_resnet()",
+      "tests": [
+        "tests.test_method_simsiam"
+      ],
+      "expect": "equivalent"
+    },
+    {
+      "label": "missing backbone weights are tolerated",
+      "file": "methods/simsiam/adapter/__init__.py",
+      "old": "    if absent:",
+      "new": "    if False:",
+      "tests": [
+        "tests.test_method_simsiam"
+      ]
+    },
+    {
+      "label": "the evaluation runs on whatever device it likes",
+      "file": "methods/simsiam/evaluate_linear_official.py",
+      "old": "    device = resolve_device(getattr(args, \"device\", \"auto\"), local_rank)",
+      "new": "    device = resolve_device(\"auto\", local_rank)",
+      "tests": [
+        "tests.test_method_simsiam"
+      ]
+    },
+    {
+      "label": "the evaluation discards its metrics again",
+      "file": "methods/simsiam/evaluate_linear_official.py",
+      "old": "        \"final_top1_acc\": float(final_acc1),",
+      "new": "        \"final_top1_acc\": None,",
+      "tests": [
+        "tests.test_method_simsiam"
+      ]
+    },
+    {
+      "label": "the vit path fails obscurely instead of by name",
+      "file": "methods/simsiam/evaluate_linear_official.py",
+      "old": "        raise NotImplementedError(",
+      "new": "        return None, None, None\n        raise NotImplementedError(",
+      "tests": [
+        "tests.test_method_simsiam"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-08-01",
+    "killed": 9,
+    "total": 10,
+    "equivalent": [
+      {
+        "label": "load_encoder ignores the config and uses defaults",
+        "why": "Measured, not assumed: build_simsiam_resnet's dim and pred_dim size the projector and predictor only. The backbone is identical under the default and the test settings -- 318 tensors, same keys and shapes -- and the backbone is all encoder.pt holds, so no test can tell the two apart. The config is still passed, because another port's encoder is genuinely shaped by it."
+      }
+    ],
+    "reanchored": "2026-09-03: both 'the second stage accepts step 1's settings' and 'load_encoder ignores the config and uses defaults' were re-anchored after the ViT arch branch was added (the EVAL_TRAIN_KEYS line moved into an else-branch and build_simsiam_resnet's call was re-indented). Re-measured under .venvs/simsiam: the first is still killed by TestTheLinearEvaluationStage.test_step1_settings_are_refused_here; the second still SURVIVES the whole module, re-confirming it as the documented equivalent mutant."
+  }
+}

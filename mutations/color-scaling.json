@@ -2,7 +2,7 @@
   "targets": [
     {
       "label": "native initialization order",
-      "file": "methods/03_colorization/color_scaling.py",
+      "file": "methods/colorization/color_scaling.py",
       "old": "native_initialization=True,",
       "new": "native_initialization=False,",
       "tests": [
@@ -11,7 +11,7 @@
     },
     {
       "label": "native Lab precision",
-      "file": "methods/03_colorization/color_scaling.py",
+      "file": "methods/colorization/color_scaling.py",
       "old": "native_eval=True",
       "new": "native_eval=False",
       "tests": [
@@ -20,7 +20,7 @@
     },
     {
       "label": "Lab finite guard",
-      "file": "methods/03_colorization/color_scaling.py",
+      "file": "methods/colorization/color_scaling.py",
       "old": "if not np.isfinite(light).all() or not np.isfinite(ab).all():",
       "new": "if False:",
       "tests": [
@@ -29,7 +29,7 @@
     },
     {
       "label": "lightness normalization",
-      "file": "methods/03_colorization/color_scaling.py",
+      "file": "methods/colorization/color_scaling.py",
       "old": "light / 100",
       "new": "light / 50",
       "tests": [
@@ -38,7 +38,7 @@
     },
     {
       "label": "native class-weight sampling",
-      "file": "methods/03_colorization/color_scaling.py",
+      "file": "methods/colorization/color_scaling.py",
       "old": "np.random.RandomState(42).choice",
       "new": "np.random.RandomState(43).choice",
       "tests": [
@@ -47,7 +47,7 @@
     },
     {
       "label": "native class-weight population cap",
-      "file": "methods/03_colorization/color_scaling.py",
+      "file": "methods/colorization/color_scaling.py",
       "old": "min(10000, len(dataset))",
       "new": "min(9999, len(dataset))",
       "tests": [
@@ -56,7 +56,7 @@
     },
     {
       "label": "native class balancing",
-      "file": "methods/03_colorization/color_scaling.py",
+      "file": "methods/colorization/color_scaling.py",
       "old": "0.5 * probs + 0.5 / 313",
       "new": "0.1 * probs + 0.9 / 313",
       "tests": [
@@ -65,7 +65,7 @@
     },
     {
       "label": "native schedule warmup",
-      "file": "methods/03_colorization/color_scaling.py",
+      "file": "methods/colorization/color_scaling.py",
       "old": "if epoch < 10",
       "new": "if epoch < 1",
       "tests": [
@@ -74,7 +74,7 @@
     },
     {
       "label": "native minimum rate scaling",
-      "file": "methods/03_colorization/color_scaling.py",
+      "file": "methods/colorization/color_scaling.py",
       "old": "1e-6 * batch / 256",
       "new": "1e-6",
       "tests": [
@@ -83,7 +83,7 @@
     },
     {
       "label": "weighted objective",
-      "file": "methods/03_colorization/color_scaling.py",
+      "file": "methods/colorization/color_scaling.py",
       "old": "targets, weight=weights",
       "new": "targets, weight=None",
       "tests": [
@@ -92,7 +92,7 @@
     },
     {
       "label": "pre-backward finite guard",
-      "file": "methods/03_colorization/color_scaling.py",
+      "file": "methods/colorization/color_scaling.py",
       "old": "context.call(lambda: finite(loss))",
       "new": "pass",
       "tests": [
@@ -101,7 +101,7 @@
     },
     {
       "label": "pre-update finite guard",
-      "file": "methods/03_colorization/color_scaling.py",
+      "file": "methods/colorization/color_scaling.py",
       "old": "context.call(lambda: finite(norm))",
       "new": "pass",
       "tests": [
@@ -110,7 +110,7 @@
     },
     {
       "label": "gradient clipping",
-      "file": "methods/03_colorization/color_scaling.py",
+      "file": "methods/colorization/color_scaling.py",
       "old": "clip_grad_norm_(model.parameters(), 1.0)",
       "new": "clip_grad_norm_(model.parameters(), 1e9)",
       "tests": [
@@ -119,7 +119,7 @@
     },
     {
       "label": "AMP unscale before clipping",
-      "file": "methods/03_colorization/color_scaling.py",
+      "file": "methods/colorization/color_scaling.py",
       "old": "scaler.unscale_(optimizer)",
       "new": "pass",
       "tests": [
@@ -128,7 +128,7 @@
     },
     {
       "label": "AMP scale update",
-      "file": "methods/03_colorization/color_scaling.py",
+      "file": "methods/colorization/color_scaling.py",
       "old": "scaler.update()",
       "new": "pass",
       "tests": [
@@ -137,7 +137,7 @@
     },
     {
       "label": "explicit resolved schema",
-      "file": "methods/03_colorization/color_scaling.py",
+      "file": "methods/colorization/color_scaling.py",
       "old": "if set(cfg) - {\"resume\"} != {",
       "new": "if False and set(cfg) - {\"resume\"} != {",
       "tests": [
@@ -146,7 +146,7 @@
     },
     {
       "label": "integer config excludes bool",
-      "file": "methods/03_colorization/color_scaling.py",
+      "file": "methods/colorization/color_scaling.py",
       "old": "type(cfg[key]) is not int",
       "new": "not isinstance(cfg[key], int)",
       "tests": [
@@ -155,7 +155,7 @@
     },
     {
       "label": "schedule horizon limit",
-      "file": "methods/03_colorization/color_scaling.py",
+      "file": "methods/colorization/color_scaling.py",
       "old": "cfg[\"epochs\"] > 90",
       "new": "cfg[\"epochs\"] > 900",
       "tests": [
@@ -164,7 +164,7 @@
     },
     {
       "label": "CPU precision refusal",
-      "file": "methods/03_colorization/color_scaling.py",
+      "file": "methods/colorization/color_scaling.py",
       "old": "if cfg[\"precision\"] == \"float16\" and cfg[\"device\"] != \"cuda\":",
       "new": "if False:",
       "tests": [
@@ -173,7 +173,7 @@
     },
     {
       "label": "retained epochs",
-      "file": "methods/03_colorization/color_scaling.py",
+      "file": "methods/colorization/color_scaling.py",
       "old": "if epoch + 1 in (30, 60, 90):",
       "new": "if epoch + 1 in (30,):",
       "tests": [
@@ -182,7 +182,7 @@
     },
     {
       "label": "head-free export",
-      "file": "methods/03_colorization/color_scaling.py",
+      "file": "methods/colorization/color_scaling.py",
       "old": "\"state_dict\": _cpu(raw.encoder.state_dict()),",
       "new": "\"state_dict\": _cpu(raw.state_dict()),",
       "tests": [
@@ -191,7 +191,7 @@
     },
     {
       "label": "large preset geometry",
-      "file": "methods/03_colorization/color_scaling.py",
+      "file": "methods/colorization/color_scaling.py",
       "old": "\"vit_large_patch16_224\": (1024, 24, 16)",
       "new": "\"vit_large_patch16_224\": (1024, 23, 16)",
       "tests": [
@@ -200,7 +200,7 @@
     },
     {
       "label": "AMP overflow preserves scaler handling",
-      "file": "methods/03_colorization/color_scaling.py",
+      "file": "methods/colorization/color_scaling.py",
       "old": "if scaler is None:\n        context.call(lambda: finite(norm))",
       "new": "if True:\n        context.call(lambda: finite(norm))",
       "tests": [
@@ -209,7 +209,7 @@
     },
     {
       "label": "actual optimizer update accounting",
-      "file": "methods/03_colorization/color_scaling.py",
+      "file": "methods/colorization/color_scaling.py",
       "old": "optimizer.register_step_post_hook(count_update)",
       "new": "optimizer.register_step_post_hook(lambda *args: None)",
       "tests": [
@@ -218,7 +218,7 @@
     },
     {
       "label": "optimizer attempt accounting",
-      "file": "methods/03_colorization/color_scaling.py",
+      "file": "methods/colorization/color_scaling.py",
       "old": "attempts += 1",
       "new": "attempts += 2",
       "tests": [

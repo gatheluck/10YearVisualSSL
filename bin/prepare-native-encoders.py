@@ -11,11 +11,16 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+
 import re
 import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from adapterlib.method_names import public_mapping
 
 
 def plan(sources, methods: Path, out: Path, python: str):
@@ -24,7 +29,7 @@ def plan(sources, methods: Path, out: Path, python: str):
     if out.exists():
         raise ValueError('output already exists; choose a new directory')
     jobs = []
-    for name, source in sorted(sources.items()):
+    for name, source in sorted(public_mapping(sources).items()):
         if not isinstance(name, str) or not re.fullmatch(r'[a-zA-Z0-9_]+', name):
             raise ValueError('invalid method name')
         method = methods / name

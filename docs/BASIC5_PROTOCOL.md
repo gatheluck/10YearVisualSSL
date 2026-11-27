@@ -180,19 +180,19 @@ Deviations that need reconciliation:
 
 - **Rule `d` (single canonical layer):** RECONCILED (step 3, branch
   `feat/extract-features-l2-representation`).
-  - `27_ibot` previously concatenated the `[CLS]` token from the **last four
+  - `ibot` previously concatenated the `[CLS]` token from the **last four
     blocks** (`n_last_blocks=4`), giving a 4×-wide 1536-d vector -- a genuine
     multi-layer concatenation and the clearest `d` violation. It now ships
     `n_last_blocks=1`, so both the saved feature dump and the trained probe read
     the **single final-block `[CLS]` token** (384-d for `vit_small`). This is the
-    same **deliberate** single-feature policy `23_dino` already documents (this
+    same **deliberate** single-feature policy `dino` already documents (this
     port uses the single-feature probe instead of the author's last-4
     concatenation). The deviation from iBOT's published recipe is documented in
-    `methods/27_ibot/configs/linear_eval.yaml`; the assertion that the port does
-    not concatenate is pinned by `tests/test_method_27_ibot.py` and proven
-    non-vacuous by `mutations/27_ibot-single-layer.json` (flipping the config
+    `methods/ibot/configs/linear_eval.yaml`; the assertion that the port does
+    not concatenate is pinned by `tests/test_method_ibot.py` and proven
+    non-vacuous by `mutations/ibot-single-layer.json` (flipping the config
     back to `4` makes the feature 1536-d and kills the width assertion).
-  - `12_cmc` and `08_split_brain` concatenate the two **colour-channel branch**
+  - `cmc` and `split_brain` concatenate the two **colour-channel branch**
     encoders (L and ab). DECISION: **conformant by design.** This is the model's
     single architectural representation -- the two branches jointly *are* the
     encoder's one final feature, not a multi-depth cherry-pick across layers of a
@@ -215,12 +215,12 @@ Deviations that need reconciliation:
   normalise) plus one `<method>-probe-eval.json` per method (1/1 each: the val
   transform reverts to the historical square resize).
   - Size 224 but wrong crop pipeline (square resize / no center crop): `cae`,
-    `data2vec2`, `videomae`, `06_rotation_prediction`, `10_inst_disc`.
+    `data2vec2`, `videomae`, `rotation_prediction`, `inst_disc`.
     RECONCILED (step 6, branch `downstream/basic5-b-eval-crop`). Each of the five
     now reads its val split (which its `feature_provider` extracts) through
     `basic5_eval_transform`.
   - Native resolution but wrong crop pipeline (square `Resize((s,s))`, aspect
-    distorted): `05_jigsaw_puzzle` (255), `09_jigsaw_puzzle_pp` (75), `vjepa2`
+    distorted): `jigsaw_puzzle` (255), `jigsaw_puzzle_pp` (75), `vjepa2`
     (256), `vjepa2_ac` (256). RECONCILED (step 6, same branch). Each keeps its
     **native/config eval size** (not forced to 224) and now routes through
     `basic5_eval_transform` at that size -- so only the crop *form* changed (from
@@ -231,21 +231,21 @@ Deviations that need reconciliation:
     in each method's test and proven by `mutations/<method>-probe-eval.json`
     (1/1 killed each).
   - Native resolution, **already conformant** (measured, shorter-side
-    `Resize(int)` + CenterCrop -- no change): `04_context_encoder` (227; Resize 256
-    + CenterCrop 227), `26_simmim` (192; `round(192*256/224)` + CenterCrop 192),
-    `36_franca` (518; `round(518/0.875)` + CenterCrop 518), `cosmos3_super`
-    (448), `sam3` (336; val branch), `image_gpt` (32), and `02_vae`'s ImageFolder
+    `Resize(int)` + CenterCrop -- no change): `context_encoder` (227; Resize 256
+    + CenterCrop 227), `simmim` (192; `round(192*256/224)` + CenterCrop 192),
+    `franca` (518; `round(518/0.875)` + CenterCrop 518), `cosmos3_super`
+    (448), `sam3` (336; val branch), `image_gpt` (32), and `vae`'s ImageFolder
     (ImageNet) path (Resize + CenterCrop at 28). These were verified by reading
     the code, not assumed from size.
   - **Deliberate** (recorded, not changed):
-    - `11_cpc` (256): the shipped native path resizes to a fixed **square** 300
+    - `cpc` (256): the shipped native path resizes to a fixed **square** 300
       (`Resize((300, 300))`) then `CenterCrop(256)`. This is architecture-specific
       -- CPC splits the crop into a fixed grid of overlapping patches, so the
       source is deliberately a fixed square before the grid split, not an
       aspect-preserving shorter-side resize. Recorded as deliberate, like the
       two-tower `d` cases. (Its separate `arch=vit` path already uses shorter-side
       Resize + CenterCrop, but that is not the shipped native path.)
-    - `02_vae` (28): the native MNIST path passes 28×28 grayscale through with no
+    - `vae` (28): the native MNIST path passes 28×28 grayscale through with no
       resize or crop (grayscale→3-channel repeat only). Dataset-specific: a 28×28
       MNIST digit is neither resized nor cropped; only the ImageFolder/ImageNet
       path (above) applies rule `b`.
@@ -256,11 +256,11 @@ Deviations that need reconciliation:
 
 - **Rule `e` (published normalisation):** mostly conformant -- each provider
   reproduces its own backbone's published normalisation, which is correct even
-  when it is not ImageNet (CLIP mean/std for `38_clip`/`aimv2`/`eva02`; 0.5/0.5
-  for `siglip`/`data2vec2`/`32_nepa`/`var`; CIE-Lab for the colour methods).
-  One numeric quirk: `17_swav` uses `std[0]=0.228` vs the standard `0.229`.
-  Candidates using bare `[0,1]`/no normalisation: `02_vae`, `05`, `06`, `09`,
-  `14_simclrv1`, `16_simclrv2`, `image_gpt`.
+  when it is not ImageNet (CLIP mean/std for `clip`/`aimv2`/`eva02`; 0.5/0.5
+  for `siglip`/`data2vec2`/`nepa`/`var`; CIE-Lab for the colour methods).
+  One numeric quirk: `swav` uses `std[0]=0.228` vs the standard `0.229`.
+  Candidates using bare `[0,1]`/no normalisation: `vae`, `05`, `06`, `09`,
+  `simclrv1`, `simclrv2`, `image_gpt`.
 
 ## Conformance status of the trained probe (`linear_eval`, per method)
 
@@ -272,7 +272,7 @@ Deviations that need reconciliation:
 
 - **Rule `seed` (seeds 0,1,2 + mean±std):** the shared aggregation mechanism is
   now in place (step 4). Each shipped `linear_eval*.yaml` still carries a single
-  `seed` (42, or 0 for `23_dino`) so one launch is one reproducible run; the
+  `seed` (42, or 0 for `dino`) so one launch is one reproducible run; the
   three-seed **mean ± std** is produced at eval time by running that same config
   under each seed and aggregating, in exactly one place:
 
@@ -299,24 +299,24 @@ Deviations that need reconciliation:
   the single implementation of the rule, but the shipped default is still one
   seed per config -- a full three-seed sweep is GPU work run at evaluation time,
   not baked into every config.
-- **Rule `aug` (RRC + HFlip only):** the feature-cache family (`14_simclrv1`,
-  `13_mocov1`, `23_dino`, `25_mae`, `28_dinov2`, `06_rotation`, `02_vae`,
+- **Rule `aug` (RRC + HFlip only):** the feature-cache family (`simclrv1`,
+  `mocov1`, `dino`, `mae`, `dinov2`, `06_rotation`, `vae`,
   `sam3`, `data2vec2`) historically cached features **once** using the
   deterministic Resize+CenterCrop val transform for training too -- so it applied
   **no** RandomResizedCrop and no HorizontalFlip. The end-to-end family
-  (`20_simsiam`, `21_barlow_twins`, `27_ibot`) applies RRC+HFlip and conforms.
+  (`simsiam`, `barlow_twins`, `ibot`) applies RRC+HFlip and conforms.
   Step 5 fan-out is **DONE for the whole feature-cache family**: the shared
   implementation of the rule is `probe_transforms.basic5_train_transform`
   (RandomResizedCrop + HFlip only, then the method's own ToTensor/Normalize
   tail), and every listed method now reads its train split through it while the
   val split (which the provider extracts) stays deterministic. Following the
-  port's decision (option B, matching `21_barlow_twins`), the augmented pass is
+  port's decision (option B, matching `barlow_twins`), the augmented pass is
   still extracted **once and cached** -- one RandomResizedCrop + HorizontalFlip
   draw per image -- so the feature cache is preserved and the backbone is not
   re-run per epoch. Each method carries a `TestTheProbeTrainAugmentation` class
   (the wiring check lives once in `tests/_probe_aug.py`, imported) and a
   `<method>-probe-aug.json` mutation spec (2/2 killed each: train falls back to
-  the val transform; `run()` builds train with `train=False`). `02_vae` is a
+  the val transform; `run()` builds train with `train=False`). `vae` is a
   **recorded exception in shape, not spirit**: it is dataset-agnostic, so rule
   `aug` applies to its ImageFolder (ImageNet) train path only -- the MNIST path
   stays deterministic on both splits, because randomly cropping or flipping a
@@ -327,11 +327,11 @@ Deviations that need reconciliation:
 - **Rule `opt` (LR/epochs/batch/scaling):** the shared mechanism now exists
   (`probe_optim`; see reconciliation step 7) and `cae` is wired as the pilot; the
   residual deviations below are the per-method wiring fan-out still to land.
-  - LR ≠ 0.1: `21_barlow_twins` (0.3), `27_ibot` (1e-3).
-  - Linear LR scaling with batch: only `20_simsiam` scales by `batch/256`; the
+  - LR ≠ 0.1: `barlow_twins` (0.3), `ibot` (1e-3).
+  - Linear LR scaling with batch: only `simsiam` scales by `batch/256`; the
     rest use the LR directly.
-  - Batch ≠ 256: `28_dinov2`/`sam3`/`data2vec2` = 32 (large-backbone memory).
-  - Epochs ≠ 100: `25_mae`/`06_rotation`/`20_simsiam` = 90.
+  - Batch ≠ 256: `dinov2`/`sam3`/`data2vec2` = 32 (large-backbone memory).
+  - Epochs ≠ 100: `mae`/`06_rotation`/`simsiam` = 90.
   - The feature-cache family additionally applies an **extra mean-centering**
     step on top of L2 before the head, which the protocol does not specify.
 
@@ -347,11 +347,11 @@ column above when it lands.
    `feat/extract-features-l2-representation`): the driver applies L2 by default,
    with a `raw` toggle; 13/13 mutants killed.
 2. **Externalise the protocol.** DONE (this document + its enforcing test).
-3. **`d` — single canonical layer for `27_ibot`.** DONE (branch
+3. **`d` — single canonical layer for `ibot`.** DONE (branch
    `feat/extract-features-l2-representation`): iBOT now ships `n_last_blocks=1`,
    so its saved feature and its probe read the single final-block `[CLS]` token
-   (384-d), consistent with the `23_dino` single-feature policy; 1/1 mutant
-   killed. `12_cmc` / `08_split_brain` (two-tower architectural concat) decided
+   (384-d), consistent with the `dino` single-feature policy; 1/1 mutant
+   killed. `cmc` / `split_brain` (two-tower architectural concat) decided
    **conformant by design** and recorded above, not changed.
 4. **`seed` — seeds 0,1,2 + mean±std.** MECHANISM DONE (branch
    `feat/extract-features-l2-representation`): `bin/aggregate-seeds.py` is the
@@ -369,17 +369,17 @@ column above when it lands.
    `probe_transforms.basic5_train_transform` is the single implementation of the
    rule (RandomResizedCrop + HorizontalFlip only), and every feature-cache method
    reads its train split through it while val stays deterministic. Per the port's
-   decision (**option B**, matching `21_barlow_twins`), the augmented pass is
+   decision (**option B**, matching `barlow_twins`), the augmented pass is
    cached once -- the feature cache is kept, the backbone is not re-run per epoch.
    Proven non-vacuous by `mutations/basic5-aug.json` (3/3: vertical-flip swap,
    centre-crop-instead-of-RRC, dropped-normalise) for the shared rule, and by a
-   per-method spec for the wiring: `mutations/14_simclrv1-linear-eval.json` (8/8)
-   for the pilot, plus one `<method>-probe-aug.json` for each of `13_mocov1`,
-   `23_dino`, `25_mae`, `28_dinov2`, `06_rotation_prediction`, `data2vec2`, `sam3`,
-   and `02_vae` (2/2 killed each: train falls back to the val transform; `run()`
-   builds the train split with `train=False`; for `02_vae`, train/val on the
+   per-method spec for the wiring: `mutations/simclrv1-linear-eval.json` (8/8)
+   for the pilot, plus one `<method>-probe-aug.json` for each of `mocov1`,
+   `dino`, `mae`, `dinov2`, `rotation_prediction`, `data2vec2`, `sam3`,
+   and `vae` (2/2 killed each: train falls back to the val transform; `run()`
+   builds the train split with `train=False`; for `vae`, train/val on the
    ImageFolder path). The wiring check lives once in `tests/_probe_aug.py`,
-   imported by each method's `TestTheProbeTrainAugmentation`. `02_vae` is a
+   imported by each method's `TestTheProbeTrainAugmentation`. `vae` is a
    recorded exception in shape: dataset-agnostic, so the rule applies to its
    ImageFolder (ImageNet) train path only -- the MNIST path stays deterministic on
    both splits (cropping/flipping a digit can change its class). Not yet flipped
@@ -388,21 +388,21 @@ column above when it lands.
 6. **`b` — eval preprocessing.** DONE for every known case (branch
    `downstream/basic5-b-eval-crop`), across two waves:
    - Wrong crop at size 224: `cae`, `data2vec2`, `videomae`,
-     `06_rotation_prediction`, `10_inst_disc` -- square resize with no centre
+     `rotation_prediction`, `inst_disc` -- square resize with no centre
      crop -- now route their val split through
      `probe_transforms.basic5_eval_transform` (Resize shorter-side 256 +
      CenterCrop 224), the single implementation of the rule and the deterministic
      sibling of `basic5_train_transform`. 3/3 shared mutants + 1/1 per method.
-   - Wrong crop at native resolution: `05_jigsaw_puzzle` (255),
-     `09_jigsaw_puzzle_pp` (75), `vjepa2` (256), `vjepa2_ac` (256) -- square
+   - Wrong crop at native resolution: `jigsaw_puzzle` (255),
+     `jigsaw_puzzle_pp` (75), `vjepa2` (256), `vjepa2_ac` (256) -- square
      `Resize((s,s))` -- now route through the same transform **at their native
      size** (kept, not forced to 224), so only the crop form changed; each
      backbone's interpolation/normalise tail is preserved. 1/1 mutant per method.
    - The remaining native-resolution methods were **measured, not assumed**:
-     `04_context_encoder`, `26_simmim`, `36_franca`, `cosmos3_super`, `sam3`,
-     `image_gpt`, and `02_vae`'s ImageFolder path already use shorter-side
-     Resize + CenterCrop (conformant, no change). `11_cpc` (fixed square source
-     for its patch grid) and `02_vae`'s MNIST path (28×28 passthrough) are
+     `context_encoder`, `simmim`, `franca`, `cosmos3_super`, `sam3`,
+     `image_gpt`, and `vae`'s ImageFolder path already use shorter-side
+     Resize + CenterCrop (conformant, no change). `cpc` (fixed square source
+     for its patch grid) and `vae`'s MNIST path (28×28 passthrough) are
      **deliberate**, recorded above. See the rule `b` conformance bullet.
    - The row stays `partial` for the same reason as `aug`: all known cases are
      resolved, but flipping to `conformant` should rest on a fleet-wide

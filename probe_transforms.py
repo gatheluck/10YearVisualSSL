@@ -23,7 +23,7 @@ crop output size (rule b), the per-image normalisation tail (rule e), the
 interpolation -- and this module owns which augmentations are applied.
 
 Per the port's decision recorded in docs/BASIC5_PROTOCOL.md (option B, matching
-21_barlow_twins), the augmented pass is still extracted once and cached: one
+barlow_twins), the augmented pass is still extracted once and cached: one
 RandomResizedCrop + HorizontalFlip draw per image. This preserves the feature
 cache; it does not re-run the backbone every epoch.
 

@@ -18,10 +18,10 @@ class TestColorScaling(unittest.TestCase):
 
         path = (
             Path(__file__).resolve().parents[1]
-            / "methods/03_colorization/color_scaling.py"
+            / "methods/colorization/color_scaling.py"
         )
         self.assertTrue(path.is_file(), "indexed color scaling training is missing")
-        return importlib.import_module("methods.03_colorization.color_scaling")
+        return importlib.import_module("methods.colorization.color_scaling")
 
     def test_native_epoch_schedule(self):
         m = self.entry()
@@ -584,7 +584,7 @@ class TestColorScaling(unittest.TestCase):
         from unittest import mock
 
         m = self.entry()
-        old = importlib.import_module("methods.03_colorization.models.vit_colorization")
+        old = importlib.import_module("methods.colorization.models.vit_colorization")
         nn = torch.nn
         torch.manual_seed(42)
         ref = nn.Module()
@@ -1068,7 +1068,7 @@ def worker(root):
     from downstream.extended_distributed import session
     from downstream.indexed_tar import IndexedTarDataset
 
-    m = importlib.import_module("methods.03_colorization.color_scaling")
+    m = importlib.import_module("methods.colorization.color_scaling")
     m.PRESETS["vit_base_patch16_224"] = (16, 1, 2)
     m.__dict__.update(CROP=16, RESIZE=20)
     cfg = json.loads((root / "config.json").read_text())

@@ -3,7 +3,7 @@
 
 A **pure eval-only** port: a single `linear_eval` stage and no pretraining at all,
 the frozen-backbone sibling of the download-and-probe methods (eva02 / aimv2 /
-data2vec2 / 36_franca). CAE's "Step 3 as-is" comparison freezes the pretrained
+data2vec2 / franca). CAE's "Step 3 as-is" comparison freezes the pretrained
 vision backbone (a BEiT-architecture ViT-B/16) and fits a linear probe on its
 **CLS token**, because the from-scratch context-autoencoder pretraining (IN-1k,
 many GPU-days) is the excluded step. The number is a genuine SSL representation,

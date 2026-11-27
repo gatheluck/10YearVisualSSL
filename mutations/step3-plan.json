@@ -49,17 +49,17 @@
     {
       "label": "an unnumbered directory is dropped from the partition",
       "file": "docs/STEP3_PORTING_PLAN.md",
-      "old": "\"non_step3_unnumbered\": [\"_reference\", \"image_gpt\", \"mar\", \"var\", \"cradiov4_h\"],",
-      "new": "\"non_step3_unnumbered\": [\"_reference\", \"image_gpt\", \"mar\"],",
+      "old": "\"non_step3_additions\": [\"_reference\", \"image_gpt\", \"mar\", \"var\", \"cradiov4_h\"],",
+      "new": "\"non_step3_additions\": [\"_reference\", \"image_gpt\", \"mar\"],",
       "tests": [
-        "tests.test_step3_plan.TestEveryPortIsAccountedFor.test_the_unnumbered_namespace_is_partitioned_by_the_plan"
+        "tests.test_step3_plan.TestEveryPortIsAccountedFor.test_additional_directories_are_partitioned_by_the_plan"
       ]
     },
     {
       "label": "a directory is listed as both a Step-3 port and a non-Step-3 exception",
       "file": "docs/STEP3_PORTING_PLAN.md",
-      "old": "\"non_step3_unnumbered\": [\"_reference\", \"image_gpt\", \"mar\", \"var\", \"cradiov4_h\"],",
-      "new": "\"non_step3_unnumbered\": [\"_reference\", \"image_gpt\", \"mar\", \"var\", \"eva02\"],",
+      "old": "\"non_step3_additions\": [\"_reference\", \"image_gpt\", \"mar\", \"var\", \"cradiov4_h\"],",
+      "new": "\"non_step3_additions\": [\"_reference\", \"image_gpt\", \"mar\", \"var\", \"eva02\"],",
       "tests": [
         "tests.test_step3_plan.TestEveryPortIsAccountedFor.test_the_two_sets_do_not_overlap"
       ]

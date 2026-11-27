@@ -2,7 +2,7 @@
 """Specification for eva02 (EVA-02; Fang et al., 2023; arXiv:2303.11331).
 
 A **pure eval-only** port: a single `linear_eval` stage and no pretraining at all,
-the timm-sourced sibling of the download-and-probe methods (36_franca / 30_aim).
+the timm-sourced sibling of the download-and-probe methods (franca / aim).
 EVA-02's "Step 3 as-is" comparison freezes the official masked-image-modelling
 pretrained backbone (`eva02_base_patch14_224.mim_in22k`, a ViT built with SwiGLU,
 sub-LN and 2D RoPE) and fits a linear probe on its pooled features, because the

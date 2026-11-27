@@ -19,13 +19,13 @@ masked-image-modelling pretrained backbone (`eva02_base_patch14_224.mim_in22k`)
 and fits a linear probe on its pooled features, because the from-scratch MIM
 pretraining (IN-22k, many GPU-days) is the excluded step. The probed
 representation is a genuine SSL feature, so the number **is** comparable — the
-"pretrained-backbone reuse" row, analogous to `36_franca` / `30_aim`.
+"pretrained-backbone reuse" row, analogous to `franca` / `aim`.
 
 ## Why this method, and what is new here
 
 **eva02 is the first pure eval-only port** — its only stage is `linear_eval`,
 with no `pretrain` at all (`mar` is pretrain-only; the download-and-probe siblings
-`36_franca` / `38_clip` carry a Step-2 pretrain alongside the probe). It is also
+`franca` / `clip` carry a Step-2 pretrain alongside the probe). It is also
 the **first unnumbered new port** under the naming decision that new methods take
 a bare name (`methods/eva02`, like `image_gpt` / `mar` / `var`) rather than a
 capture number.

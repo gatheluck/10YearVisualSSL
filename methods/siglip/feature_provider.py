@@ -8,7 +8,7 @@ SigLIP turns an image into a vector stays in one place.
 **How SigLIP's eval builds its model, measured -- not guessed**
 (`evaluate_linear_siglip.build_model` / `.extract_features` / `._build_loader`
 / `.run`): this is an eval-only, download-backed port, the timm-sourced
-multimodal sibling of `38_clip`/`eva02`. There is **no** `adapter.load_encoder`;
+multimodal sibling of `clip`/`eva02`. There is **no** `adapter.load_encoder`;
 the eval main builds a frozen timm SigLIP image tower with
 `build_model(train, device)` and, when `train["ckpt"]` is a path, loads that
 checkpoint into the named timm architecture (`timm.create_model(train["name"],

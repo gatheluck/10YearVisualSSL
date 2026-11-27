@@ -1,0 +1,137 @@
+# aim — as-is Step-1 probe + unified ViT-B/16 Step-2 pretrain + linear eval
+
+> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
+> code/experiment identifiers, not manuscript section numbers. See the
+> [ASIS, CTRL and manuscript comparison map](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
+El-Nouby et al., *Scalable Pre-training of Large Autoregressive Image Models*,
+2024 ([arXiv:2401.08541](https://arxiv.org/abs/2401.08541)).
+
+AIM pretrains a ViT **autoregressively** (predict image patches in raster order).
+Two comparisons live here:
+
+- **Step 1 (as-is)** — a `linear_eval` with no `recipe`: fit a linear probe on the
+  **frozen official pretrained backbone** (AIM-600M, ViT-H/14, downloaded from
+  `apple/AIM`), because AIM's from-scratch data (DFN-2B+, ~2B images) is not public.
+
+- **Step 2 (unified)** — `pretrain` trains an AIM **ViT-B/16 from scratch** on
+  ImageNet-1k with the prefix-LM next-patch objective, then `linear_eval` with
+  `recipe: unified` probes the trained `encoder.pt`. This puts AIM on the same axis
+  as every other method's Step 2 (all train on ImageNet-1k, so the data confound is
+  gone). (Added after the initial port, which probed only the downloaded Step-1
+  backbone; see the Step 2 section.)
+
+## Step 2 (unified ViT-B/16), from scratch
+
+`train_pretrain_vit_aim.py` is a single-process port of the capture's
+`train_step2_vit.py`. AIM is autoregressive: a prefix-LM ViT trunk sees a random
+prefix of patches bidirectionally and predicts the rest in raster order (per-patch
+normalised pixels, MSE). There is no teacher, no multi-crop and no masking collator
+— the prefix is sampled inside the model's forward. AdamW (betas 0.9/0.95), a
+per-epoch warmup→cosine LR, gradient-norm clipping, milestone saves; DDP / bf16
+autocast / TensorBoard dropped, device resolved. `encoder.pt` is the AIM **trunk**
+(the MLP prediction head, `predictor.*`, is excluded); the adapter also writes
+`encoder_epoch{100,200,300}.pt`. The Step-2 probe is AIM's own: the last
+`num_feature_layers` blocks averaged (bidirectional, no causal mask) then
+mean-pooled. Probe a Step-2 encoder with `configs/linear_eval_vit.yaml`.
+
+**Licence — the Step-2 pretraining is not bound by apple-amlr.** `models/aim_vit.py`
+is the lab's **own** from-scratch re-implementation (torch-only, following the AIM
+paper's Appendix D), trained on ImageNet-1k. It uses no apple code or weights. The
+apple-amlr non-commercial licence applies **only** to the Step-1 as-is probe, which
+imports the official `apple/ml-aim` package and downloads the AIM-600M weights
+(both pinned, never copied). See the Licence section below and `provenance.json`.
+
+## Scope — two comparisons on the unified axis
+
+The capture's AIM **Step 1** is a frozen-backbone probe: download the official
+AIM-600M and probe it. AIM's from-scratch autoregressive pretraining used the
+unavailable DFN-2B+, so the as-is Step-1 row reuses that official downloaded
+backbone (this Step-1 comparison **trains nothing** and writes **no `encoder.pt`**;
+it probes a frozen, hash-pinned downloaded backbone). The capture's own
+from-scratch **Step 2** (`models/aim_vit.py`) is ported additively: a ViT-B/16
+trained from scratch on ImageNet-1k with the prefix-LM next-patch objective, then
+linear-probed (`recipe: unified`), so AIM sits on the same unified axis as every
+other method. The eval-only Step-1 download path is unchanged.
+
+## Licence — non-commercial research use only
+
+The AIM code (`apple/ml-aim`) and the AIM-600M weights (`apple/AIM` on
+HuggingFace) are released by Apple under the **Apple ML Research License
+(apple-amlr)**, which permits use for **non-commercial research purposes only**.
+This port is used solely for academic research. **Nothing under apple-amlr is
+copied into this repository**: the code is referenced as a pinned git submodule
+(`third_party/ml-aim`, imported through PYTHONPATH, never installed) and the
+weights are a **hash-pinned download that CI never fetches**. This port's own files
+(the adapter, the evaluation, the configs, the tests) are original and carry this
+repository's licence; they only *reference* the Apple artifacts. See
+`provenance.json` (`licence_note`, `upstream`, `backbone_artifact`).
+
+## What the representation is, and why it is comparable
+
+The frozen feature is the **average of the last 6 transformer blocks**, mean-pooled
+over the patch tokens — one 1536-d vector per image (the capture's
+`AIMBackboneWrapper` behaviour, kept faithfully via forward hooks). This is a
+genuine SSL representation, so the linear-probe number is comparable. The probe
+follows the lab's shared ARSSL protocol (features cached once, mean-centred and
+L2-normalised, a single linear layer trained with SGD under a cosine schedule),
+which makes the number comparable across the ported methods. (The capture's own
+AIM eval fits an *attentive*-pooling probe, which it marks reference-only; using
+the shared single-feature linear probe instead is a documented deviation, the same
+as `dinov2` / `franca`.)
+
+The backbone is built from AIM-600M's dims via the pinned upstream (ml-aim's
+`_aim`), and the official backbone checkpoint loads **strict** (measured: 0 missing,
+0 unexpected on the backbone; only the unused attentive-probe head is absent).
+
+## What has and has not been exercised
+
+- **Exercised (linear_eval):** a hermetic smoke — a random **tiny** AIM (4 small
+  blocks at 32px, embed_dim 32, the last 2 blocks averaged; `ckpt` empty, so
+  nothing is downloaded) — runs through `python -m adapter` on a CPU, passes
+  `contract-test`, writes the comparable `linear_probe` accuracies, writes **no**
+  `encoder.pt`, and the manifest carries `encoder_absent_reason` and the pinned
+  `upstream`.
+- **Measured (not a full run):** the official AIM-600M backbone was downloaded once
+  and confirmed to load into the `_aim`-built model with 0 missing / 0 unexpected
+  (backbone), and its sha256 recorded in `provenance.json`. A full ImageNet probe
+  is the recipe in `configs/linear_eval.yaml`, not a completed run.
+- **GPU:** the device resolution is verified on real hardware; see the device
+  mutation spec (`mutations/aim-linear-eval.json`).
+
+## Environment
+
+torch / torchvision / numpy / PyYAML, **plus the pinned upstream's dependency
+`huggingface_hub`** (ml-aim's model module imports `PyTorchModelHubMixin`) and its
+closure. `requirements.lock.txt` (CPU) and `requirements.lock.cu130.txt` (CUDA
+13.0) are the hashed closures. The `aim` package itself is the submodule under
+`third_party/ml-aim`, imported through PYTHONPATH and never installed, so it is not
+in the lock.
+
+    pip install --require-hashes \
+        --index-url https://download.pytorch.org/whl/cpu \
+        --extra-index-url https://pypi.org/simple \
+        -r methods/aim/requirements.lock.txt -r requirements-tools.lock.txt
+
+    git submodule update --init third_party/ml-aim   # the AIM code (apple-amlr)
+
+## Running
+
+    # fetch + hash-verify the official AIM-600M backbone (apple-amlr; research use)
+    python bin/fetch-weights.py --provenance methods/aim/provenance.json \
+        --artifact backbone_artifact --out /path/to/weights
+
+    # linear eval: DATA_ROOT has train/ and val/; CKPT is the fetched backbone
+    python bin/resolve-config.py --config methods/aim/configs/linear_eval.yaml \
+        --set DATA_ROOT=/path/to/imagenet \
+        --set CKPT=/path/to/weights/aim_600m_2bimgs_attnprobe_backbone.pth --out eval.json
+    cd methods/aim && PYTHONPATH="$PWD/../.." \
+        python -m adapter --config /path/to/eval.json --out /path/to/eval
+
+Success is exit status 0 and `status: "ok"` in `out/run_manifest.json`. The
+linear_eval stage writes `metrics.json` and **no** `encoder.pt`; the manifest
+carries `encoder_absent_reason` and the pinned `upstream`.

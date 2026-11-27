@@ -18,7 +18,7 @@
 # import beit2/modeling_finetune.py (it uses timm.models.layers / registry) from
 # third_party/unilm; it is the submodule's import, not this port's own, so it is
 # absent from requirements.txt but present here -- the same shape as the openai/CLIP
-# submodule in 38_clip. The BEiT v2 model class is the author's (imported, never
+# submodule in clip. The BEiT v2 model class is the author's (imported, never
 # installed) and the pretrained weights are a sha256-pinned download
 # (backbone_artifact in provenance.json), never installed, so neither is in this lock.
 #

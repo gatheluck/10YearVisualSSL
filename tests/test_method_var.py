@@ -167,7 +167,7 @@ class TestThePinnedUpstream(unittest.TestCase):
         """`models` is a package name several methods define; the upstream
         defines it too. Caching another method's `models` first must not decide
         which `build_vae_var` the adapter gets."""
-        two = ROOT / "methods" / "02_vae"
+        two = ROOT / "methods" / "vae"
         load_from(two, "models", two / "models" / "__init__.py")  # poison cache
         trainer = load("var_trainer", METHOD / "train_pretrain_var.py")
         trainer._load_upstream()

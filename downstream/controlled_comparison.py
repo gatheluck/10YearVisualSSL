@@ -1,6 +1,8 @@
 """Figure 4 ASIS and CTRL checkpoint comparison on the native Basic Five."""
 
 from decimal import Decimal, InvalidOperation
+from adapterlib.method_names import public_name
+
 
 METRICS = {
     "ImageNet-1K": "top1_percent",
@@ -31,7 +33,7 @@ def compare_controlled(document):
         raise ValueError("Figure 4 requires 32 distinct paired methods")
     tasks = {task: {} for task in METRICS}
     for record in records:
-        method = record["method"]
+        method = public_name(record["method"])
         if not isinstance(method, str) or not method.strip() or method in tasks["COCO"]:
             raise ValueError("each method must have a distinct name")
         rows = record["metrics"]

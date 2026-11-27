@@ -16,7 +16,7 @@
 # runtime dependencies of the pinned facebookresearch/vjepa2 submodule, which the
 # method's own files do not import but the encoder it builds does: einops (its
 # patch-embed rearrange) and timm (its drop-path), plus timm's own closure
-# (huggingface-hub, safetensors, tqdm, ...). Unlike 35_vjepa -- whose jepa-v1 ViT
+# (huggingface-hub, safetensors, tqdm, ...). Unlike vjepa -- whose jepa-v1 ViT
 # is self-contained pure-torch -- V-JEPA 2's src/models/vision_transformer.py
 # imports einops and timm at import time, so a real run needs them installed; they
 # are lock-only (not requirements.txt, which is exactly this port's own imports).

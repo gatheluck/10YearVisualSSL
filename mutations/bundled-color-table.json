@@ -3,8 +3,8 @@
     {
       "label": "both links point to the same copy of the table",
       "file": "docs/THIRD_PARTY_LICENSES.md",
-      "old": "../methods/08_split_brain/data/pts_in_hull.npy",
-      "new": "../methods/03_colorization/data/pts_in_hull.npy",
+      "old": "../methods/split_brain/data/pts_in_hull.npy",
+      "new": "../methods/colorization/data/pts_in_hull.npy",
       "tests": ["tests.test_license_inventory.LicenseInventory.test_inventory_links_to_each_bundled_constant"]
     },
     {

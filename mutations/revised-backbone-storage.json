@@ -20,7 +20,7 @@
     },
     {
       "label": "round DINO rotary frequencies",
-      "file": "methods/31_dinov3/downstream_backbone.py",
+      "file": "methods/dinov3/downstream_backbone.py",
       "old": "backbone.preserve_revised_storage = True",
       "new": "backbone.preserve_revised_storage = False",
       "tests": [
@@ -29,7 +29,7 @@
     },
     {
       "label": "retain default DINO parameter precision",
-      "file": "methods/31_dinov3/downstream_backbone.py",
+      "file": "methods/dinov3/downstream_backbone.py",
       "old": "build(spec, load_dtype=torch.bfloat16)",
       "new": "build(spec, load_dtype=None)",
       "tests": [

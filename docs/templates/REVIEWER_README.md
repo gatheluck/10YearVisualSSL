@@ -27,7 +27,7 @@ and check the package without downloading datasets or model weights.
 | Category-specific model comparisons (Section 3) | [Initial protocols by family](docs/initial_protocols/README.md) | [Vision-provider coverage](docs/BASIC5_VISION_PROVIDERS.md) and [SAM3/Cosmos3 components](docs/BASIC5_PATCH_PROVIDERS.md) |
 | Unified Basic Five LP/AP/FT evaluation (Section 4; Appendix E) | [Linear](docs/submission_protocols/BASIC5_LINEAR.md), [attentive](docs/submission_protocols/BASIC5_ATTENTIVE.md), [fine-tuning](docs/submission_protocols/BASIC5_FINETUNE.md) | [Downstream execution](docs/DOWNSTREAM.md); [implemented components and recipe boundaries](docs/BASIC5_PROTOCOL.md) |
 | Extended evaluation (Section 4; Appendix E) | [Specifications and three JSON registries](docs/submission_protocols/README.md) | Per-dataset settings are in the registries; full Extended trainer/task integration is not included in this package |
-| Learning-design diagnostic studies (Section 5.2) | [DINOv3 heads, Gram stage and continuation](docs/DINOV3_STEP4.md); [IDv2 objectives and banks](docs/IDV2_COMPONENTS.md) | [DINOv3 adapter](methods/31_dinov3/README.md); [Instance Discrimination adapter](methods/10_inst_disc/README.md) |
+| Learning-design diagnostic studies (Section 5.2) | [DINOv3 heads, Gram stage and continuation](docs/DINOV3_STEP4.md); [IDv2 objectives and banks](docs/IDV2_COMPONENTS.md) | [DINOv3 adapter](methods/dinov3/README.md); [Instance Discrimination adapter](methods/inst_disc/README.md) |
 | Frontier-model prompting | [Supplied system prompts](docs/submission_protocols/BASIC5_FRONTIER_SYSTEM_PROMPTS.md) | Prompt specifications; full response records are not included |
 
 These are navigation links, not a claim that every model–task combination is

@@ -22,7 +22,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def module():
-    path = ROOT / "methods/06_rotation_prediction/rotation_scaling.py"
+    path = ROOT / "methods/rotation_prediction/rotation_scaling.py"
     assert path.is_file(), "native rotation scaling training entry is missing"
     spec = importlib.util.spec_from_file_location("rotation_scaling", path)
     assert spec is not None and spec.loader is not None
@@ -290,7 +290,7 @@ class TestScaling(unittest.TestCase):
         from downstream.indexed_tar import IndexedTarDataset
 
         spec = importlib.util.spec_from_file_location(
-            "reader_compat", ROOT / "methods/10_inst_disc/data/indexed_tar.py"
+            "reader_compat", ROOT / "methods/inst_disc/data/indexed_tar.py"
         )
         assert spec is not None and spec.loader is not None
         compat = importlib.util.module_from_spec(spec)

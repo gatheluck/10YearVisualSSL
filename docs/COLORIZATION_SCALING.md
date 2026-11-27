@@ -39,7 +39,7 @@ not a claim that the paper's numerical results have been reproduced here.
 Edit the [resolved example](examples/colorization_scaling.json) with explicit
 input roots. Use the method's locked environment, from the repository root:
 
-`PYTHONPATH=. python methods/03_colorization/color_scaling.py --config /path/to/resolved.json --out /path/to/new-output`
+`PYTHONPATH=. python methods/colorization/color_scaling.py --config /path/to/resolved.json --out /path/to/new-output`
 
 For an independently verified allocation use `torchrun` with the same script.
 `microbatch` counts images per rank; global batch is `WORLD_SIZE * microbatch`.

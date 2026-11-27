@@ -19,7 +19,7 @@
       ]
     },
     {
-      "file": "methods/31_dinov3/downstream_backbone.py",
+      "file": "methods/dinov3/downstream_backbone.py",
       "label": "released profile required",
       "old": "spec.get('arch') != 'released' or not spec.get('encoder')",
       "new": "False",

@@ -24,6 +24,7 @@ Prose is exempt: the README has to be able to say which methods are ported.
 
 from __future__ import annotations
 
+import ast
 import re
 import sys
 import unittest
@@ -83,7 +84,37 @@ def may_name(path: Path, method: str) -> bool:
     return False
 
 
-def names_method(text: str, method: str) -> bool:
+def implementation_literals(text, name):
+    """Identify quoted uses in the local configuration and upstream import APIs."""
+    try:
+        tree = ast.parse(text)
+    except SyntaxError:
+        return False
+    literals = {node for node in ast.walk(tree)
+                if isinstance(node, ast.Constant) and node.value == name}
+    allowed = set()
+    for node in ast.walk(tree):
+        parts = []
+        if isinstance(node, ast.Subscript) and isinstance(node.value, ast.Name) and node.value.id in {"cfg", "config"}:
+            parts = [node.slice]
+        elif isinstance(node, ast.Assign) and any(isinstance(t, ast.Name) and t.id.endswith("_KEYS") for t in node.targets):
+            parts = [node.value]
+        elif isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+            if node.func.id == "_block" and len(node.args) == 3 and isinstance(node.args[0], ast.Name) and node.args[0].id == "config":
+                parts = [node.args[1]]
+            elif node.func.id == "prepare_upstream" and len(node.args) == 2:
+                parts = [node.args[1]]
+        elif isinstance(node, ast.DictComp) and any(isinstance(n, ast.Name) and n.id == "config" for n in ast.walk(node.value)):
+            parts = [g.iter for g in node.generators]
+        elif isinstance(node, ast.BinOp) and isinstance(node.op, ast.Div) and isinstance(node.left, ast.BinOp):
+            if isinstance(node.left.right, ast.Constant) and node.left.right.value == "third_party":
+                parts = [node.right]
+        for part in parts:
+            allowed.update(ast.walk(part))
+    return bool(literals) and literals <= allowed
+
+
+def names_method(text: str, method: str, *, method_implementation=False) -> bool:
     """Whether `text` hard-codes `method` as a name.
 
     A method is hard-coded in exactly two shapes, and they are the shapes the
@@ -102,8 +133,11 @@ def names_method(text: str, method: str) -> bool:
     prose or an unrelated path is not.
     """
     m = re.escape(method)
-    return bool(re.search(r"methods/" + m + r"(?![\w-])", text)
-                or re.search(r"['\"]" + m + r"['\"]", text))
+    if re.search(r"methods/" + m + r"(?![\w-])", text):
+        return True
+    if not re.search(r"['\"]" + m + r"['\"]", text):
+        return False
+    return not (method_implementation and implementation_literals(text, method))
 
 
 class TestSharedMachineryDiscoversMethods(unittest.TestCase):
@@ -123,7 +157,7 @@ class TestSharedMachineryDiscoversMethods(unittest.TestCase):
             for method in method_names():
                 if method in EXEMPT_METHODS or may_name(path, method):
                     continue
-                if names_method(text, method):
+                if names_method(text, method, method_implementation=METHODS in path.parents):
                     offenders.append(
                         f"{path.relative_to(ROOT)} names {method}")
         self.assertEqual(
@@ -172,6 +206,10 @@ class TestSharedMachineryDiscoversMethods(unittest.TestCase):
         """The false positives a three-letter name invites: a substring, a bare
         mention in prose, an unrelated system path, and the submodule path --
         none of which wires the method in for discovery."""
+        self.assertTrue(names_method('LOCKS = ("cat",)', "cat", method_implementation=True))
+        self.assertTrue(names_method('if m == "cat": pass', "cat", method_implementation=True))
+        self.assertTrue(names_method("methods/cat/configs", "cat", method_implementation=True))
+        self.assertFalse(names_method('cfg["cat"]["loss_weight"]', "cat", method_implementation=True))
         self.assertFalse(names_method("concatenate scatter category", "cat"))
         self.assertFalse(names_method("# faster than cat, but simpler", "cat"))
         self.assertFalse(names_method("rm -rf /cat/lib/apt/lists", "cat"))

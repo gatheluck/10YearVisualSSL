@@ -16,7 +16,7 @@ pretrained vision backbone (`facebook/data2vec-vision-base`) and fits a linear
 probe on its CLS token, because the from-scratch self-distillation pretraining
 (IN-1k, many GPU-days) is the excluded step. The probed representation is a genuine
 SSL feature, so the number **is** comparable — the "pretrained-backbone reuse" row,
-analogous to `eva02` / `36_franca`.
+analogous to `eva02` / `franca`.
 
 ## The checkpoint, stated plainly
 

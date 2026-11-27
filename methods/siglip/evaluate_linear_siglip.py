@@ -4,7 +4,7 @@ SigLIP's as-is comparison freezes the official sigmoid-loss image-text pretraine
 image tower (`vit_base_patch16_siglip_224.webli`) and fits a single linear layer
 on its pooled image embedding. The representation is a genuine learned feature, so
 the number is comparable (the multimodal "pretrained-backbone reuse" row, the
-SigLIP sibling of `38_clip`).
+SigLIP sibling of `clip`).
 
 The model class is timm's -- a pinned pip dependency (`timm==1.0.28`), not a git
 submodule. A real run loads the official checkpoint (a hash-pinned download, passed

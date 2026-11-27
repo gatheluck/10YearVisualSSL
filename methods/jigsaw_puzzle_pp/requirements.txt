@@ -1,0 +1,27 @@
+# What the jigsaw_puzzle_pp port's own files import, and nothing else. Checked
+# in both directions by tests/test_method_requirements.py. Floors only; the exact
+# hashed closure is in requirements.lock.txt (CPU) and requirements.lock.cu130.txt.
+#
+# A self-contained re-implementation (the lab's own jigsaw++ code, no submodule):
+# the VGG16 pretext model + the knowledge-transfer AlexNet, the datasets, the
+# trainers and the probe are all here. torch is imported directly; numpy builds
+# the tile tensors and feature matrices; Pillow (PIL.Image) is imported directly
+# to load and grayscale images; torchvision provides the ImageFolder, transforms
+# and Grayscale; PyYAML is read to load a YAML config on the stand-alone path.
+#
+# faiss (k-means for the knowledge-transfer clustering) is the paper-target
+# backend; faiss-gpu ships only a linux-x86_64 wheel, so the knowledge_transfer
+# stage is GPU / x86_64-linux only. The `# gpu-only` marker keeps faiss out of the
+# cross-platform CPU lock (it lives in requirements.lock.cu130.txt, hashed) while
+# step 1 + linear_eval (arch=vgg16) stay torch-only and CPU-portable.
+torch>=2.0.0
+torchvision>=0.15.0
+numpy>=1.24.0
+Pillow>=9.5.0
+PyYAML>=6.0
+faiss-gpu>=1.14.3  # gpu-only
+# The Step-2 unified backbone (configs/pretrain_vit.yaml) is timm's
+# VisionTransformer, built from scratch (models/vit_jigsaw_pp.py). The native
+# VGG16 pretrain and the knowledge-transfer AlexNet import no timm; it is
+# only pulled in on the arch: vit path.
+timm>=0.9.0

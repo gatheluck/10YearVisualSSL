@@ -20,7 +20,7 @@ The shipped `configs/linear_eval.yaml` pins `vit_giant_xformers` (embed_dim
 1408); `build_model` loads the checkpoint strict, so the arch it constructs must
 match the state dict. The submodule's ViT factories each have a distinct
 embed_dim, so the checkpoint's `encoder`'s `patch_embed.proj.weight` first
-dimension names the factory uniquely (the way `28_dinov2` / `eva02` infer their
+dimension names the factory uniquely (the way `dinov2` / `eva02` infer their
 variant from the checkpoint). For the real giant download this resolves to
 `vit_giant_xformers` -- exactly the shipped config's arch -- and for a tiny CPU
 smoke checkpoint (embed_dim 192) to `vit_tiny`; the model built can never

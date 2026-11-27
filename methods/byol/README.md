@@ -1,0 +1,112 @@
+# byol — step 1 (BYOL ResNet-50 pretext) + linear evaluation
+
+> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
+> code/experiment identifiers, not manuscript section numbers. See the
+> [ASIS, CTRL and manuscript comparison map](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
+Grill et al., *Bootstrap Your Own Latent: A New Approach to Self-Supervised
+Learning* (BYOL), 2020 ([arXiv:2006.07733](https://arxiv.org/abs/2006.07733)).
+
+An **online** network (ResNet-50 backbone → projector → predictor) is trained so
+its prediction of one augmented view matches a **target** network's projection of
+the other view. The target is an exponential-moving-average (EMA) copy of the
+online backbone + projector, with no predictor and no gradient. The loss is a
+**symmetric negative cosine similarity** with a stop-gradient on the target —
+**no negatives, no queue**. The EMA momentum τ follows a cosine schedule from
+0.996 to 1.0. Step 1 is that pretext.
+
+## Scope — the ResNet-50 path and the unified ViT-B/16 Step 2
+
+This port covers the paper-faithful **ResNet-50** step 1 (`configs/pretrain.yaml`,
+`arch: resnet50`, LARS).
+
+It also ports the capture's **unified Step 2** (`configs/pretrain_vit.yaml`,
+`arch: vit`): the same ViT-B/16 backbone every method shares, trained from
+scratch as the BYOL online encoder — projector (768→4096→256) and predictor
+(256→4096→256), an EMA target encoder+projector, the symmetric negative-cosine
+loss. Optimiser AdamW with the batch-linear LR scaling and a 10-epoch warmup then
+cosine decay, **AMP on CUDA and gradient clipping** (as the capture's BYOL ViT
+loop uses, unlike the MoCo/SimSiam ViT trainers); EMA tau 0.996→1.0 on a cosine
+schedule; checkpoints at 100/200/300 epochs, each probed by the same
+frozen-backbone `linear_eval` (its head sizes to the CLS feature dynamically).
+The ViT path needs `timm` (imported lazily); the native ResNet-50 path is
+byte-for-byte unchanged (`train_pretrain_vit_byol.py`, `models/vit_byol.py`).
+
+## Why this method, and what is new here
+
+**A self-contained re-implementation** ported from the capture's own
+`methods/byol` (the lab's own online/target ResNet-50 networks, projector,
+predictor, symmetric cosine loss, LARS optimizer, EMA schedule and two-view
+dataset, torch/torchvision only) — no `third_party/` submodule.
+
+The lab wrapper trains under `DistributedDataParallel` with AMP autocast and logs
+to TensorBoard; none is needed for a single-process run, so `train_pretrain_byol.py`
+owns a thin fp32 loop, the device is **resolved** rather than assumed CUDA, and
+AMP / TensorBoard / tqdm are dropped. The EMA target update, the symmetric loss,
+LARS, and the cosine LR + EMA-τ schedules are kept faithfully.
+
+## `encoder.pt`, and a linear evaluation that reads it
+
+`encoder.pt` is the online **ResNet-50 backbone** (`online_encoder.*`), one
+2048-d feature per image. The projector, predictor and the entire target network
+are training machinery and are excluded, and the round trip (write it, load it
+back into a rebuilt model, compare the weights) is tested.
+
+`linear_eval` reads this `encoder.pt`: the representation is the model this port
+trains, so the probe number is a genuine, comparable linear probe. Images use the
+deterministic val pipeline (resize + centre crop, ImageNet normalisation — the
+same normalisation BYOL trains with); the probe follows the lab's shared ARSSL
+protocol (features cached once, mean-centred and L2-normalised, a single linear
+layer trained with SGD under a cosine schedule), which makes the number comparable
+across the ported methods.
+
+## What has and has not been exercised
+
+- **Exercised (step 1):** a hermetic smoke — a small BYOL ResNet-50, a few
+  fabricated images, narrow projector/predictor at 32px — runs through `python -m
+  adapter` on a CPU (exercising the EMA target update), passes `contract-test`,
+  and the encoder round-trip and a determinism check pass.
+- **Exercised (linear_eval):** a hermetic smoke fits the probe on a pretrain
+  encoder over a two-class ImageFolder, passes `contract-test`, writes the
+  comparable `linear_probe` accuracies, and writes **no** `encoder.pt`.
+- **Not a full run:** `configs/pretrain.yaml` is the BYOL recipe (4096/256 MLPs,
+  1000 epochs, batch 4096, LARS, EMA τ 0.996→1.0), a recipe, not a completed run.
+- **GPU:** the device resolution is verified on real hardware; see the device
+  mutation spec (`mutations/byol-pretrain-device.json`).
+
+## Environment
+
+torch / torchvision / numpy / PyYAML — the self-contained methods' stack, no
+submodule — plus `timm` for the unified ViT-B/16 Step-2 path (imported lazily, so
+the native ResNet-50 path never needs it).
+`requirements.lock.txt` (CPU) and `requirements.lock.cu130.txt` (CUDA 13.0) are
+the hashed closures (the same closure as `simclrv1`: identical floors,
+identical resolution).
+
+    pip install --require-hashes \
+        --index-url https://download.pytorch.org/whl/cpu \
+        --extra-index-url https://pypi.org/simple \
+        -r methods/byol/requirements.lock.txt -r requirements-tools.lock.txt
+
+## Running
+
+    # step 1: DATA_ROOT is a folder of training images (searched recursively)
+    python bin/resolve-config.py --config methods/byol/configs/pretrain.yaml \
+        --set DATA_ROOT=/path/to/images --out resolved.json
+    cd methods/byol && PYTHONPATH="$PWD/../.." \
+        python -m adapter --config /path/to/resolved.json --out /path/to/s1
+
+    # linear eval: DATA_ROOT has train/ and val/; ENCODER is step 1's encoder.pt
+    python bin/resolve-config.py --config methods/byol/configs/linear_eval.yaml \
+        --set DATA_ROOT=/path/to/imagenet \
+        --set ENCODER=/path/to/s1/encoder.pt --out eval.json
+    cd methods/byol && PYTHONPATH="$PWD/../.." \
+        python -m adapter --config /path/to/eval.json --out /path/to/eval
+
+Success is exit status 0 and `status: "ok"` in `out/run_manifest.json`. The
+linear_eval stage writes `metrics.json` and **no** `encoder.pt`; the manifest
+carries `encoder_absent_reason`.

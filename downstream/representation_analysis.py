@@ -10,6 +10,7 @@ from pathlib import Path
 import numpy as np
 import torch
 
+from adapterlib.method_names import public_name
 from downstream.representation_neighbors import (
     agreement_matrix,
     nearest_neighbors,
@@ -64,10 +65,11 @@ def _validate_config(config):
             raise ValueError('model and family IDs must be opaque identifiers, not paths')
         if not isinstance(model['scores'], dict) or set(model['scores']) - set(TASKS):
             raise ValueError('unknown task scores')
+    models = [dict(model, id=public_name(model['id'])) for model in models]
     ids = [model['id'] for model in models]
     if len(set(ids)) != len(ids):
         raise ValueError('model IDs must be unique')
-    references = [config.get('image_reference'), config.get('patch_reference')]
+    references = [public_name(config.get(key)) for key in ('image_reference', 'patch_reference')]
     if references[0] == references[1] or any(ref not in ids for ref in references):
         raise ValueError('two distinct, present references are required')
     return models, ids, references

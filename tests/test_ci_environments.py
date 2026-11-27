@@ -3,7 +3,6 @@
 import importlib.util
 import json
 import os
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -11,7 +10,7 @@ import unittest
 from pathlib import Path
 
 import ci_selection
-from tests.test_ci import discovery_script, needs_yaml, parsed
+from tests.test_ci import copy_selector, discovery_script, needs_yaml, parsed
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -123,7 +122,7 @@ class EnvironmentGroups(unittest.TestCase):
         self.put('alpha', lock())
         self.put('beta', '# Different method\n' + lock())
         self.put('gamma', lock(version='2.0'))
-        shutil.copy2(ROOT / 'ci_selection.py', self.root / 'ci_selection.py')
+        copy_selector(self.root)
         result = subprocess.run(
             [sys.executable, '-c', discovery_script(parsed()['tests.yml'])],
             cwd=self.root, env={**os.environ, 'GITHUB_EVENT_NAME': 'push'},

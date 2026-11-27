@@ -119,6 +119,25 @@ class TestSubmissionArchive(unittest.TestCase):
                 self.write(name, body); self.commit(); self.policy['include'] = [name]
                 self.assert_blocked('identifier')
 
+    def test_current_method_path_exports_verbatim_and_old_selection_fails(self):
+        old = "28_dinov2"
+        name = old.split("_", 1)[1]
+        relative = Path("methods", name, "configs", "linear_eval.yaml")
+        original = (TOOL.parent.parent / relative).read_bytes()
+        target = self.repo / relative
+        target.parent.mkdir(parents=True)
+        target.write_bytes(original)
+        self.commit()
+        self.policy["include"] = [str(relative)]
+        self.assertTrue(self.run_build())
+        with zipfile.ZipFile(self.out) as archive:
+            self.assertEqual(archive.read("code/" + str(relative)), original)
+            self.assertEqual(len(archive.namelist()), 2)
+        self.out.unlink()
+        self.policy["include"] = [str(Path("methods", old, "configs", relative.name))]
+        self.assertFalse(self.run_build())
+        self.assertFalse(self.out.exists())
+
     def test_supplied_protocol_links_survive_committed_export(self):
         source = TOOL.parent.parent / 'docs' / 'submission_protocols'
         expected = {f'{family}_{track}.md' for family in ('BASIC5', 'EXTEND')

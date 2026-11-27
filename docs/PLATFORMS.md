@@ -135,7 +135,7 @@ linear evaluation), each holding the usual per-class image folders
 linear evaluation — never the `train` directory itself. This is resolved in one
 place (`adapterlib.dataset_split_dir`) and held uniform by
 `tests/test_data_root_convention.py`. Two methods are inherent exceptions and
-say so in their own config: **`02_vae`** trains on MNIST (downloaded to
+say so in their own config: **`vae`** trains on MNIST (downloaded to
 `DATA_ROOT`), and **`mar`** reads pre-encoded cached VAE latents rather than an
 image folder.
 

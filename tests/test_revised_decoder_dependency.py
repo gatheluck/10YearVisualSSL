@@ -50,8 +50,8 @@ class RevisedDecoderDependency(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp); (root/'labels').mkdir(); (root/'videos').mkdir()
             (root/'labels/labels.json').write_text(json.dumps({'Moving [object]':'2'}))
-            (root/'labels/validation.json').write_text(json.dumps([{'id':'clip','template':'Moving [object]'}]))
-            with av.open(str(root/'videos/clip.mp4'),'w') as output:
+            (root/'labels/validation.json').write_text(json.dumps([{'id':'example_video','template':'Moving [object]'}]))
+            with av.open(str(root/'videos/example_video.mp4'),'w') as output:
                 stream=output.add_stream('mpeg4',rate=12)
                 stream.width=64; stream.height=48; stream.pix_fmt='yuv420p'
                 for index in range(20):

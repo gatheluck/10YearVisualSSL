@@ -32,7 +32,7 @@ FP32 and CUDA BF16 are explicit. Nonfinite inputs, loss or gradients fail closed
 
 Edit the [resolved configuration](examples/splitbrain_scaling.json) and run:
 
-`PYTHONPATH=. python methods/08_split_brain/splitbrain_scaling.py --config /path/to/resolved.json --out /path/to/new-output`
+`PYTHONPATH=. python methods/split_brain/splitbrain_scaling.py --config /path/to/resolved.json --out /path/to/new-output`
 
 The existing method lock supports `fallback`; `skimage` needs an explicitly
 managed environment containing that optional package. For DDP use `torchrun`

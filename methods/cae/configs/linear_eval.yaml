@@ -5,7 +5,7 @@
 # from-scratch context-autoencoder pretraining (IN-1k, many GPU-days) is the
 # excluded step. The probed representation is a genuine SSL feature -- so this
 # number is comparable (the "pretrained-backbone reuse" row, analogous to
-# eva02 / aimv2 / data2vec2 / 36_franca). See docs/EVAL_DOWNLOAD.md.
+# eva02 / aimv2 / data2vec2 / franca). See docs/EVAL_DOWNLOAD.md.
 #
 # The model is a small self-contained BEiT-style ViT in evaluate_linear_cae.py,
 # not a git submodule and not a pip model class. Two paths are passed at run time,

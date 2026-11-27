@@ -3,7 +3,7 @@
   "targets": [
     {
       "label": "filter activates one epoch late",
-      "file": "methods/10_inst_disc/idv2_components.py",
+      "file": "methods/inst_disc/idv2_components.py",
       "old": "epoch < 20",
       "new": "epoch < 21",
       "tests": [
@@ -12,7 +12,7 @@
     },
     {
       "label": "filter activates one epoch early",
-      "file": "methods/10_inst_disc/idv2_components.py",
+      "file": "methods/inst_disc/idv2_components.py",
       "old": "epoch < 20",
       "new": "epoch < 19",
       "tests": [
@@ -21,7 +21,7 @@
     },
     {
       "label": "self candidates enter filter",
-      "file": "methods/10_inst_disc/idv2_components.py",
+      "file": "methods/inst_disc/idv2_components.py",
       "old": "candidates = candidates + (candidates >= indices[:, None]).long()",
       "new": "candidates = candidates",
       "tests": [
@@ -30,7 +30,7 @@
     },
     {
       "label": "filter removes least similar",
-      "file": "methods/10_inst_disc/idv2_components.py",
+      "file": "methods/inst_disc/idv2_components.py",
       "old": "sim.topk(5, dim=1).indices",
       "new": "sim.topk(5, dim=1, largest=False).indices",
       "tests": [
@@ -39,7 +39,7 @@
     },
     {
       "label": "koleo includes self",
-      "file": "methods/10_inst_disc/idv2_components.py",
+      "file": "methods/inst_disc/idv2_components.py",
       "old": "sim.fill_diagonal_(float(\"-inf\"))",
       "new": "pass",
       "tests": [
@@ -48,7 +48,7 @@
     },
     {
       "label": "koleo wrong distance",
-      "file": "methods/10_inst_disc/idv2_components.py",
+      "file": "methods/inst_disc/idv2_components.py",
       "old": "F.pairwise_distance(features, features[nearest], eps=1e-8)",
       "new": "F.pairwise_distance(features, features[nearest], eps=0.1)",
       "tests": [
@@ -57,7 +57,7 @@
     },
     {
       "label": "bank consumes local views",
-      "file": "methods/10_inst_disc/idv2_components.py",
+      "file": "methods/inst_disc/idv2_components.py",
       "old": "if i < 2:",
       "new": "if i >= 2:",
       "tests": [
@@ -66,7 +66,7 @@
     },
     {
       "label": "bank mean not normalized",
-      "file": "methods/10_inst_disc/idv2_components.py",
+      "file": "methods/inst_disc/idv2_components.py",
       "old": "F.normalize(.5 * (globals_[0] + globals_[1]), dim=1)",
       "new": ".5 * (globals_[0] + globals_[1])",
       "tests": [
@@ -75,7 +75,7 @@
     },
     {
       "label": "wrong arity is accepted",
-      "file": "methods/10_inst_disc/idv2_components.py",
+      "file": "methods/inst_disc/idv2_components.py",
       "old": "if len(views) != required:",
       "new": "if False:",
       "tests": [
@@ -84,7 +84,7 @@
     },
     {
       "label": "patches update partition",
-      "file": "methods/10_inst_disc/idv2_components.py",
+      "file": "methods/inst_disc/idv2_components.py",
       "old": "rows_loss(bank, p, row, update_z=False)",
       "new": "rows_loss(bank, p, row, update_z=True)",
       "tests": [
@@ -93,7 +93,7 @@
     },
     {
       "label": "dense coefficient is wrong",
-      "file": "methods/10_inst_disc/idv2_components.py",
+      "file": "methods/inst_disc/idv2_components.py",
       "old": ".1 * torch.stack(patch_losses).mean()",
       "new": ".2 * torch.stack(patch_losses).mean()",
       "tests": [
@@ -102,7 +102,7 @@
     },
     {
       "label": "dense uses smallest noise",
-      "file": "methods/10_inst_disc/idv2_components.py",
+      "file": "methods/inst_disc/idv2_components.py",
       "old": "noise.topk(4, dim=1).indices",
       "new": "noise.topk(4, dim=1, largest=False).indices",
       "tests": [
@@ -111,7 +111,7 @@
     },
     {
       "label": "dense projector detached",
-      "file": "methods/10_inst_disc/idv2_components.py",
+      "file": "methods/inst_disc/idv2_components.py",
       "old": "F.normalize(model.fc(selected), dim=-1)",
       "new": "F.normalize(model.fc(selected).detach(), dim=-1)",
       "tests": [
@@ -120,7 +120,7 @@
     },
     {
       "label": "local crop becomes global sized",
-      "file": "methods/10_inst_disc/idv2_components.py",
+      "file": "methods/inst_disc/idv2_components.py",
       "old": "local_size, scale=(.05, .32)",
       "new": "image_size, scale=(.05, .32)",
       "tests": [
@@ -129,7 +129,7 @@
     },
     {
       "label": "local crop count changes",
-      "file": "methods/10_inst_disc/idv2_components.py",
+      "file": "methods/inst_disc/idv2_components.py",
       "old": "self.local_transform(image) for _ in range(4)",
       "new": "self.local_transform(image) for _ in range(3)",
       "tests": [
@@ -138,7 +138,7 @@
     },
     {
       "label": "torch RNG not restored",
-      "file": "methods/10_inst_disc/idv2_components.py",
+      "file": "methods/inst_disc/idv2_components.py",
       "old": "torch.set_rng_state(state[\"torch\"])",
       "new": "pass",
       "tests": [
@@ -147,7 +147,7 @@
     },
     {
       "label": "numpy RNG not restored",
-      "file": "methods/10_inst_disc/idv2_components.py",
+      "file": "methods/inst_disc/idv2_components.py",
       "old": "np.random.set_state(state[\"numpy\"])",
       "new": "pass",
       "tests": [
@@ -156,7 +156,7 @@
     },
     {
       "label": "python RNG not restored",
-      "file": "methods/10_inst_disc/idv2_components.py",
+      "file": "methods/inst_disc/idv2_components.py",
       "old": "random.setstate(state[\"python\"])",
       "new": "pass",
       "tests": [
@@ -165,7 +165,7 @@
     },
     {
       "label": "loader RNG not restored",
-      "file": "methods/10_inst_disc/idv2_components.py",
+      "file": "methods/inst_disc/idv2_components.py",
       "old": "generator.set_state(state[\"loader\"])",
       "new": "pass",
       "tests": [
@@ -174,7 +174,7 @@
     },
     {
       "label": "NCE state not restored",
-      "file": "methods/10_inst_disc/idv2_components.py",
+      "file": "methods/inst_disc/idv2_components.py",
       "old": "bank.load_state_dict(state[\"nce_state_dict\"])",
       "new": "pass",
       "tests": [
@@ -183,7 +183,7 @@
     },
     {
       "label": "optimizer state not restored",
-      "file": "methods/10_inst_disc/idv2_components.py",
+      "file": "methods/inst_disc/idv2_components.py",
       "old": "optimizer.load_state_dict(state[\"optimizer_state_dict\"])",
       "new": "pass",
       "tests": [
@@ -192,7 +192,7 @@
     },
     {
       "label": "model state not restored",
-      "file": "methods/10_inst_disc/idv2_components.py",
+      "file": "methods/inst_disc/idv2_components.py",
       "old": "model.load_state_dict(state[\"model_state_dict\"])",
       "new": "pass",
       "tests": [
@@ -201,7 +201,7 @@
     },
     {
       "label": "schedule compressed on interruption",
-      "file": "methods/10_inst_disc/idv2_components.py",
+      "file": "methods/inst_disc/idv2_components.py",
       "old": "max(300 - warmup, 1)",
       "new": "max(tr[\"epochs\"] - warmup, 1)",
       "tests": [
@@ -210,7 +210,7 @@
     },
     {
       "label": "source overwrite guard removed",
-      "file": "methods/10_inst_disc/idv2_components.py",
+      "file": "methods/inst_disc/idv2_components.py",
       "old": "if source and (source == out.parent or out.parent in source.parents):",
       "new": "if False:",
       "tests": [
@@ -219,7 +219,7 @@
     },
     {
       "label": "empty optimizer accepted",
-      "file": "methods/10_inst_disc/idv2_components.py",
+      "file": "methods/inst_disc/idv2_components.py",
       "old": "len(adam.get(\"state\", {})) != len(list(model.parameters()))",
       "new": "False",
       "tests": [
@@ -228,7 +228,7 @@
     },
     {
       "label": "version check absent",
-      "file": "methods/10_inst_disc/idv2_components.py",
+      "file": "methods/inst_disc/idv2_components.py",
       "old": "state.get(\"component_version\") != version",
       "new": "False",
       "tests": [
@@ -237,7 +237,7 @@
     },
     {
       "label": "contract check absent",
-      "file": "methods/10_inst_disc/idv2_components.py",
+      "file": "methods/inst_disc/idv2_components.py",
       "old": "state.get(\"contract\") != resume_contract(cfg)",
       "new": "False",
       "tests": [
@@ -246,7 +246,7 @@
     },
     {
       "label": "loader length check absent",
-      "file": "methods/10_inst_disc/idv2_components.py",
+      "file": "methods/inst_disc/idv2_components.py",
       "old": "state.get(\"steps_per_epoch\") != len(loader)",
       "new": "False",
       "tests": [
@@ -255,7 +255,7 @@
     },
     {
       "label": "device check absent",
-      "file": "methods/10_inst_disc/idv2_components.py",
+      "file": "methods/inst_disc/idv2_components.py",
       "old": "state.get(\"device\") != device.type",
       "new": "False",
       "tests": [
@@ -264,7 +264,7 @@
     },
     {
       "label": "distributed launch accepted",
-      "file": "methods/10_inst_disc/idv2_components.py",
+      "file": "methods/inst_disc/idv2_components.py",
       "old": "int(os.environ.get(\"WORLD_SIZE\", \"1\")) != 1",
       "new": "False",
       "tests": [
@@ -273,7 +273,7 @@
     },
     {
       "label": "uninitialized prototypes included",
-      "file": "methods/10_inst_disc/nce/multi_prototype.py",
+      "file": "methods/inst_disc/nce/multi_prototype.py",
       "old": "masked, dots).max(-1).values",
       "new": "dots, dots).max(-1).values",
       "tests": [
@@ -282,7 +282,7 @@
     },
     {
       "label": "only one view updates prototype bank",
-      "file": "methods/10_inst_disc/nce/multi_prototype.py",
+      "file": "methods/inst_disc/nce/multi_prototype.py",
       "old": "for z in (z1, z2):",
       "new": "for z in (z1,):",
       "tests": [
@@ -291,7 +291,7 @@
     },
     {
       "label": "prototype counters not saved",
-      "file": "methods/10_inst_disc/nce/multi_prototype.py",
+      "file": "methods/inst_disc/nce/multi_prototype.py",
       "old": "self.fill_counts += torch.bincount(slots, minlength=4)",
       "new": "pass",
       "tests": [
@@ -300,7 +300,7 @@
     },
     {
       "label": "nearest prototype assignment reversed",
-      "file": "methods/10_inst_disc/nce/multi_prototype.py",
+      "file": "methods/inst_disc/nce/multi_prototype.py",
       "old": ").argmax(1)",
       "new": ").argmin(1)",
       "tests": [
@@ -309,7 +309,7 @@
     },
     {
       "label": "duplicate prototype IDs use last sample",
-      "file": "methods/10_inst_disc/nce/multi_prototype.py",
+      "file": "methods/inst_disc/nce/multi_prototype.py",
       "old": "ids, features = self.unique_mean(z.detach(), indices)",
       "new": "ids, features = indices, z.detach()",
       "tests": [
@@ -318,7 +318,7 @@
     },
     {
       "label": "EMA profile uses default momentum",
-      "file": "methods/10_inst_disc/adapter/__init__.py",
+      "file": "methods/inst_disc/adapter/__init__.py",
       "old": "if nce[\"momentum\"] != expected_momentum:",
       "new": "if False:",
       "tests": [
@@ -327,7 +327,7 @@
     },
     {
       "label": "resume argument ignored",
-      "file": "methods/10_inst_disc/adapter/__init__.py",
+      "file": "methods/inst_disc/adapter/__init__.py",
       "old": "resume=config[\"train\"].get(\"resume_checkpoint\")",
       "new": "resume=None",
       "tests": [
@@ -336,7 +336,7 @@
     },
     {
       "label": "multicrop loss scaling wrong",
-      "file": "methods/10_inst_disc/idv2_components.py",
+      "file": "methods/inst_disc/idv2_components.py",
       "old": "(loss / 6).backward()",
       "new": "(loss / 2).backward()",
       "tests": [
@@ -345,7 +345,7 @@
     },
     {
       "label": "KoLeo coefficient wrong",
-      "file": "methods/10_inst_disc/idv2_components.py",
+      "file": "methods/inst_disc/idv2_components.py",
       "old": "total + .1 * .5 * sum(koleo(z, bank.distributed)",
       "new": "total + .2 * .5 * sum(koleo(z, bank.distributed)",
       "tests": [
@@ -354,7 +354,7 @@
     },
     {
       "label": "bank momentum guard absent",
-      "file": "methods/10_inst_disc/idv2_components.py",
+      "file": "methods/inst_disc/idv2_components.py",
       "old": "if momentum != expected:",
       "new": "if False:",
       "tests": [
@@ -363,7 +363,7 @@
     },
     {
       "label": "too small negative population accepted",
-      "file": "methods/10_inst_disc/idv2_components.py",
+      "file": "methods/inst_disc/idv2_components.py",
       "old": "if bank.num_samples < 2:",
       "new": "if False:",
       "tests": [
@@ -372,7 +372,7 @@
     },
     {
       "label": "too few patch tokens accepted",
-      "file": "methods/10_inst_disc/idv2_components.py",
+      "file": "methods/inst_disc/idv2_components.py",
       "old": "if patches.size(1) < 4:",
       "new": "if False:",
       "tests": [
@@ -381,7 +381,7 @@
     },
     {
       "label": "invalid endpoint accepted",
-      "file": "methods/10_inst_disc/adapter/__init__.py",
+      "file": "methods/inst_disc/adapter/__init__.py",
       "old": "if not 1 <= int(train[\"epochs\"]) <= 300:",
       "new": "if False:",
       "tests": [
@@ -390,7 +390,7 @@
     },
     {
       "label": "invalid local size accepted",
-      "file": "methods/10_inst_disc/adapter/__init__.py",
+      "file": "methods/inst_disc/adapter/__init__.py",
       "old": "if profile == \"idv2_multicrop_components\" and (",
       "new": "if False and (",
       "tests": [
@@ -399,7 +399,7 @@
     },
     {
       "label": "nonpositive NCE settings accepted",
-      "file": "methods/10_inst_disc/adapter/__init__.py",
+      "file": "methods/inst_disc/adapter/__init__.py",
       "old": "if (int(train[\"num_negatives\"]) < 1 or float(train[\"temperature\"]) <= 0",
       "new": "if (False",
       "tests": [
@@ -408,7 +408,7 @@
     },
     {
       "label": "nonfinite multicrop accepted",
-      "file": "methods/10_inst_disc/idv2_components.py",
+      "file": "methods/inst_disc/idv2_components.py",
       "old": "require_finite(loss, bank.distributed)",
       "new": "pass",
       "tests": [
@@ -417,7 +417,7 @@
     },
     {
       "label": "nonfinite dense loss accepted",
-      "file": "methods/10_inst_disc/idv2_components.py",
+      "file": "methods/inst_disc/idv2_components.py",
       "old": "total = dense_loss(bank, embeddings, patches, indices)\n        require_finite(total, bank.distributed)",
       "new": "total = dense_loss(bank, embeddings, patches, indices)",
       "tests": [
@@ -426,7 +426,7 @@
     },
     {
       "label": "nonfinite two-view loss accepted",
-      "file": "methods/10_inst_disc/idv2_components.py",
+      "file": "methods/inst_disc/idv2_components.py",
       "old": "total = total + .1 * .5 * sum(koleo(z, bank.distributed) for z in embeddings)\n        require_finite(total, bank.distributed)",
       "new": "total = total + .1 * .5 * sum(koleo(z, bank.distributed) for z in embeddings)",
       "tests": [

@@ -9,7 +9,7 @@ colliding in `sys.modules`. This has broken twice:
      fixed by discovering shared names from `methods/` (`_shared_names`).
   2. two methods sharing an *alias* (`this_methods_models`, used by the
      round-trip tests) and a *submodule* name (`vision_transformer`, in both
-     `23_dino` and `27_ibot`) cross-imported: loading the alias for the second
+     `dino` and `ibot`) cross-imported: loading the alias for the second
      method left the first method's `alias.vision_transformer` in `sys.modules`,
      so the second's `from .vision_transformer import vit_large` resolved against
      the first method's file and `vit_large` was not found.

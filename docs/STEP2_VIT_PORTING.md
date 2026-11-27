@@ -33,7 +33,7 @@ CSV Step 1 nor Step 2). The fan-out adds the unified ViT-B/16 Step-2 path per me
 **evaluated by the existing ImageNet linear probe** (the other 4 downstream tasks
 stay out of scope).
 
-## 2. The reusable pattern (established by the pilot, PR #84 = 06_rotation_prediction)
+## 2. The reusable pattern (established by the pilot, PR #84 = rotation_prediction)
 
 **Additive and non-destructive.** Selected by a new optional `arch: vit` key in the
 config; absent / `arch: alexnet` (or the method's native arch name) is the native
@@ -74,11 +74,11 @@ Per method, add:
    Fleet timm closure = **`timm==1.0.28`** (+ huggingface-hub / safetensors / hf-xet /
    anyio / httpx / tqdm / …). **LOW-RISK lock build** (do NOT naively `uv pip compile`
    the CPU lock — it pulls nvidia/triton via the wrong torch): reuse a timm-precedent
-   method's proven closure. CPU: `grep '^[A-Za-z]' methods/22_mocov3/requirements.lock.txt
+   method's proven closure. CPU: `grep '^[A-Za-z]' methods/mocov3/requirements.lock.txt
    | sed 's/ .*//' > /tmp/resolved.txt`, then
    `python3 bin/build-lock.py --resolved /tmp/resolved.txt --header <method-cpu-header> -o
    methods/<m>/requirements.lock.txt`. cu130: splice the method's existing cu130 header
-   onto `22_mocov3`'s cu130 entries (identical closure). Verify with
+   onto `mocov3`'s cu130 entries (identical closure). Verify with
    `python3 -m unittest tests.test_method_requirements`.
 
 ## 3. TDD bar (every method, every batch)
@@ -137,41 +137,41 @@ Backbone is timm `vit_base_patch16_224(num_classes=0)`, CLS token, unless noted.
 
 One family = one PR. Order by reuse (high → complex):
 
-- [x] **Pilot** — `06_rotation_prediction` (PR #84, merged). `Linear(768,4)` + CE.
-- [x] **Batch 1 — pretext+CE:** `05_jigsaw_puzzle`, `09_jigsaw_puzzle_pp`,
-  `01_context_prediction` (PR #85). 05/09 reassemble tiles into one image; 01 shares
+- [x] **Pilot** — `rotation_prediction` (PR #84, merged). `Linear(768,4)` + CE.
+- [x] **Batch 1 — pretext+CE:** `jigsaw_puzzle`, `jigsaw_puzzle_pp`,
+  `context_prediction` (PR #85). 05/09 reassemble tiles into one image; 01 shares
   the ViT over two patches + concat head. 01's eval (`evaluate_linear_official`)
   gained an optional pre-built-encoder path + dynamic feature dim.
-- [x] **Batch 2 — contrastive:** SimCLR `14_simclrv1`, `16_simclrv2` (stateless NT-Xent;
-  PR #86) and MoCo `13_mocov1`, `15_mocov2` (PR #87; EMA momentum encoder + 65536 FIFO
+- [x] **Batch 2 — contrastive:** SimCLR `simclrv1`, `simclrv2` (stateless NT-Xent;
+  PR #86) and MoCo `mocov1`, `mocov2` (PR #87; EMA momentum encoder + 65536 FIFO
   queue — both registered buffers/submodules, so they ride in `state_dict()` and resume
   restores them; InfoNCE in-model returning `(loss, logits, labels)`; AdamW betas
   (0.9, 0.95), no AMP/clip per the capture's ViT MoCo loop; mocov2 adds the 2-layer MLP
   head + the two-view dataset's Gaussian blur). The queue size must divide the batch.
-- [x] **Batch 3 — siamese + redundancy** (PR #88): `20_simsiam` (stop-grad on z, not p;
-  3-layer projector + 2-layer predictor; predictor gets warmup+cosine too), `19_byol`
+- [x] **Batch 3 — siamese + redundancy** (PR #88): `simsiam` (stop-grad on z, not p;
+  3-layer projector + 2-layer predictor; predictor gets warmup+cosine too), `byol`
   (EMA target encoder+projector, symmetric neg-cosine; **AMP + grad-clip**, unlike the
   MoCo/SimSiam ViT trainers; target-BN semantics reduce to `model.train()` + frozen
-  target params single-process), `21_barlow_twins` (cross-correlation loss in-model,
+  target params single-process), `barlow_twins` (cross-correlation loss in-model,
   reuses `off_diagonal`/`_build_projector`). SimSiam/Barlow eval hardcoded `in_dim=2048`
   → made arch-aware (`embed_dim`); BYOL eval was already dynamic. Reused-native-module
   imports (`vit_byol`, `vit_barlow`) use a package/standalone import fallback for the
   test's `load_from`.
-- [x] **Batch 4 — NCE memory-bank** (PR #89): `10_inst_disc` (single ViT + fc; bank in the
-  checkpoint), `12_cmc` (two ViT branches, in_chans 1/2, Lab split, two banks; probe
-  concatenates both CLS), `33_pirl` (jigsaw view = nine patches reassembled into one image,
+- [x] **Batch 4 — NCE memory-bank** (PR #89): `inst_disc` (single ViT + fc; bank in the
+  checkpoint), `cmc` (two ViT branches, in_chans 1/2, Lab split, two banks; probe
+  concatenates both CLS), `pirl` (jigsaw view = nine patches reassembled into one image,
   single ViT; memory bank + jigsaw NCE, grad-clip). All reuse each method's index-carrying
   dataset + NCE module; the bank rides in the checkpoint (10/12) or is re-seeded from the
   model (33, initialize_from_model). Eval `in_dim` is dynamic for all three (no eval change);
   10/12/33 native trainers/evals import no tensorboard, so the Batch-3 timm-only-venv hazard
   does not recur here. Gotcha: 33's load_encoder must default feature_dim/num_patches
   (they shape only the excluded projector), since the linear_eval config omits them.
-- [x] **Batch 5 — clustering (PR #91):** `18_sela` (single `top_layer=Linear(768,k)`
+- [x] **Batch 5 — clustering (PR #91):** `sela` (single `top_layer=Linear(768,k)`
   prototype head, per-epoch Sinkhorn-Knopp OT, AdamW+AMP; reuses
-  `compute_hard_sinkhorn_assignments`+`create_indexed_train_loader`), `17_swav`
+  `compute_hard_sinkhorn_assignments`+`create_indexed_train_loader`), `swav`
   (proj MLP + `prototypes`, multi-crop list-forward mirroring `ResNetSwAV` so the
   native `train_epoch`/`swav_loss`/distributed-Sinkhorn are reused; AdamW, milestone
-  ckpts), `07_deepcluster` (from-scratch ViT + reset-each-epoch head; reuses the port's
+  ckpts), `deepcluster` (from-scratch ViT + reset-each-epoch head; reuses the port's
   **faiss** `extract_features_for_clustering`+`run_kmeans` and `DeepClusterDataset`,
   AdamW+cosine+AMP). All three: `arch` absent == native (17/07 native carry no `arch`
   key; 18 native `arch: resnetv2`), disjoint ViT/native key sets, arch-aware eval
@@ -182,12 +182,12 @@ One family = one PR. Order by reuse (high → complex):
   regenerated with uv (constrained to the existing pins) rather than spliced: 07's
   CUDA closure already pinned `packaging==26.3` vs the fleet's `26.2`, which a splice
   cannot reconcile.
-- [x] **Batch 6 — dense/generative (PR #92):** `03_colorization` (a **self-contained,
+- [x] **Batch 6 — dense/generative (PR #92):** `colorization` (a **self-contained,
   hand-written** ViT-B/16 -- no timm -- reading the L channel + a CNN decoder for the same
   313-bin ab classification; trunk under `self.encoder`, `get_encoder()`->CLS, so the eval is
-  unchanged and the closure stays torch-only), `08_split_brain` (dual half-width ViT-B/16
+  unchanged and the closure stays torch-only), `split_brain` (dual half-width ViT-B/16
   branches, embed_dim 384/6 heads, per-branch in_chans 1/2; `net1.encoder.`/`net2.encoder.`
-  prefixes unchanged; ab-CE + L-CE reaches every parameter; needs timm), `04_context_encoder`
+  prefixes unchanged; ab-CE + L-CE reaches every parameter; needs timm), `context_encoder`
   (the one GAN: ViT-B/16 encoder + a transformer decoder predicting the hole patches, always
   adversarial with two AdamW optimisers, reusing the shared `Discriminator`; `encoder.pt` is
   `encoder.*` only -- the ViT has no `fc.`, so the native `("encoder.","fc.")` set still keeps
@@ -200,8 +200,8 @@ One family = one PR. Order by reuse (high → complex):
   was appended to its shared closure (blocks with `# wheel.whl` comments the coverage test reads).
 
 - [ ] **Batch 7 — ViT-native (config-alignment; pilot landed, fan-out pending):**
-  `22_mocov3` (already `vit_base`), `23_dino`, `24_beit`, `25_mae`, `26_simmim`,
-  `27_ibot`, `29_ijepa`, `31_dinov3`, `32_nepa`, `34_msn`, `35_vjepa`, `37_lejepa`.
+  `mocov3` (already `vit_base`), `dino`, `beit`, `mae`, `simmim`,
+  `ibot`, `ijepa`, `dinov3`, `nepa`, `msn`, `vjepa`, `lejepa`.
   Their pretrain is already a ViT but their paper's size (23/27 vit_small, 25 vit_large;
   22 already vit_base) and recipe, not the unified ViT-B/16 + Step-2 recipe. **Different
   from the fan-out:** same objective/head/dataloader, but `arch: vit_base` + the unified
@@ -209,7 +209,7 @@ One family = one PR. Order by reuse (high → complex):
   (absent = native) — because these methods already use `arch` for model size, so the
   fan-out's `arch: vit` selector can't apply. The capture ships a per-method
   `configs/step2_vit_b.yaml` + `train_step2_vit_b.py` (drop its DDP/`step2_protocol`
-  resume machinery). **Pilot: `23_dino` (PR #TBD)** — additive `configs/pretrain_vit.yaml`
+  resume machinery). **Pilot: `dino` (PR #TBD)** — additive `configs/pretrain_vit.yaml`
   (`recipe: unified`, `arch: vit_base`) + `train_pretrain_vit_dino.py` (reuses
   `build_dino`/`get_dino_dataloader`/in-model loss; fixed wd; milestone ckpts) + adapter
   `recipe`-branch (disjoint key sets: native `weight_decay_start/end` vs unified
@@ -221,15 +221,15 @@ One family = one PR. Order by reuse (high → complex):
   recipe/milestone alignment only).
 
   **Sub-PR progress (split into reviewable slices, ~2-4 methods each):**
-  - **7a (PR #93):** `23_dino` (pilot), `37_lejepa`. Establishes the `recipe: unified`
+  - **7a (PR #93):** `dino` (pilot), `lejepa`. Establishes the `recipe: unified`
     pattern. `load_encoder`/eval unchanged; DINO no timm, LeJEPA timm already a dep.
-  - **7b (pushed; PR after #93 merges):** `24_beit`, `22_mocov3`, `25_mae`. All
+  - **7b (pushed; PR after #93 merges):** `beit`, `mocov3`, `mae`. All
     `recipe: unified`, native paths byte-for-byte unchanged, no lock changes. 24 = same
     MIM/tokenizer, keep betas 0.9/0.999. 22 = fixed EMA momentum + direct `lr` (two-way
     disjoint keys: unified `{lr,clip_grad,save_at_epochs}` vs native `{learning_rate,
     momentum_cosine}`). 25 = vit_large→vit_base + **adds** cosine+warmup (native fixed-LR
     trainer lacks it); ships `configs/linear_eval_vit.yaml`.
-  - **7c (in progress):** `27_ibot` **DONE** (committed on `port/vit-step2-batch7c-vit-native`).
+  - **7c (in progress):** `ibot` **DONE** (committed on `port/vit-step2-batch7c-vit-native`).
     The nested config took `recipe` as a **top-level** key (stripped before the TOP_KEYS
     check); a fresh single-process `train_pretrain_vit_ibot.py` (the native loop bakes in
     `lr × batch/256`, so it could not be reused) reusing the native pure helpers
@@ -245,7 +245,7 @@ One family = one PR. Order by reuse (high → complex):
     needed. Ships `configs/pretrain_vit.yaml` + `configs/linear_eval_vit.yaml`. Full 27
     module 75 tests OK (255s < 300s CI bound); base gate EXIT=0; key-set-split guard
     mutation-killed by the both-ways leakage tests.
-    `29_ijepa` **DONE** (recipe: unified in `train`, flat-config like 22/25). Notable:
+    `ijepa` **DONE** (recipe: unified in `train`, flat-config like 22/25). Notable:
     the native `train_pretrain_ijepa.py` **already implements the recipe** — it uses
     `lr` directly (no ×bs/256), builds the config-named arch (`vit_base` is a builder),
     reads `augmentation: step2` from the config, and its cosine wd is constant when
@@ -259,7 +259,7 @@ One family = one PR. Order by reuse (high → complex):
     round trip. `captured_sha256` empty (nothing pinned), models/loader already carry
     `vit_base`/`step2`, so no model/loader/eval/lock change. Full 29 module 45 tests OK
     (62s); base gate EXIT=0; key-set-split mutation-killed.
-    `34_msn` **DONE** (recipe: unified in `train`, deit_base via the pinned
+    `msn` **DONE** (recipe: unified in `train`, deit_base via the pinned
     `third_party/msn` submodule — no upstream edit). Same shape as 29: the native
     `train_pretrain_msn.py` already implements the recipe (`src.msn_train.init_opt`
     takes `lr` directly; arch built from config dims → `deit_base` = embed_dim 768/
@@ -269,21 +269,21 @@ One family = one PR. Order by reuse (high → complex):
     capture's step2 changes only values, not the key set. Smoke keeps tiny dims for
     CPU speed; deit_base covered by config translation. Full 34 module 41 tests OK
     (65s); base gate EXIT=0; recipe-split mutation-killed.
-    `31_dinov3` **DONE** (milestone-only, **no `recipe` key** — this config is already
+    `dinov3` **DONE** (milestone-only, **no `recipe` key** — this config is already
     the unified ViT-B/16 Step 2). Added a required `save_at_epochs` key (declared in the
     sole pretrain key set), a guarded trainer milestone save (`checkpoint_epoch_{N}.pth`;
     empty list → only `checkpoint_latest.pth`, prior behaviour), and body extraction of
     `encoder_epoch{N}.pt` (teacher backbone, `backbone.` from `teacher_state_dict`). Full
     31 module 33 tests OK (56s); base gate EXIT=0; milestone-save mutation-killed by the
     milestone test.
-    `35_vjepa` **DONE** (milestone-only, **no `recipe` key** — already unified ViT-B/16
+    `vjepa` **DONE** (milestone-only, **no `recipe` key** — already unified ViT-B/16
     Step 2; pinned `third_party/jepa` submodule, `ENCODER_PREFIX=""` from
     `target_encoder_state_dict`). Same shape as 31: declared `save_at_epochs`, guarded
     trainer milestone save, body extraction of `encoder_epoch{N}.pt`. Full 35 module 34
     tests OK (73s); base gate EXIT=0; milestone-save mutation-killed.
 
-  **7c COMPLETE and MERGED** (PR #95: 27_ibot, 29_ijepa, 34_msn, 31_dinov3, 35_vjepa).
-  - **Separate PR — `26_simmim` DONE** (branch `port/vit-step2-simmim`). SimMIM's
+  **7c COMPLETE and MERGED** (PR #95: ibot, ijepa, msn, dinov3, vjepa).
+  - **Separate PR — `simmim` DONE** (branch `port/vit-step2-simmim`). SimMIM's
     native backbone is a **Swin**, so the unified Step 2 is a genuinely different
     backbone (a timm **ViT-B/16**), not a re-tune — the only **non-additive-to-eval**
     port. New `models/simmim_vit.py` (`build_simmim_vit` + `build_vit_encoder`, ViT
@@ -298,7 +298,7 @@ One family = one PR. Order by reuse (high → complex):
     key-set split). timm already a dep → no lock change.
 
   **ViT Step-2 fan-out COMPLETE**: all Step-1&2 methods that admit a unified ViT-B/16
-  Step 2 are ported (Batches 1–6 + 7a/7b/7c + 26_simmim). Remaining = the deferred
+  Step 2 are ported (Batches 1–6 + 7a/7b/7c + simmim). Remaining = the deferred
   generative / eval-only-download efforts below (different nature).
 
   Consistency (verified across 23/37/24/22/25): uniform `RECIPES`/recipe-strip/routing/
@@ -306,21 +306,21 @@ One family = one PR. Order by reuse (high → complex):
   `save_at_epochs` + the DATA_ROOT line; no native config gained a `recipe` key.
 
 **Eval-only-download methods — adding their from-scratch unified Step 2:**
-These three (`28_dinov2`, `30_aim`, `36_franca`) were first ported **eval-only**
+These three (`dinov2`, `aim`, `franca`) were first ported **eval-only**
 (the CSV's Step-1 "as-is" cell: download official weights → probe), because their
 *original* pretraining data is non-public. But the capture ships a **self-contained
 from-scratch ViT-B/16 Step 2** for each (`train_step2_vit.py` + own models), and the
 unified Step 2 trains on ImageNet-1k for everyone — so it removes the data confound
 and puts them on the same axis. Ported as full method-ports (add a `pretrain` stage
 + a Step-2 `linear_eval`, keeping the eval-only Step-1):
-- **`28_dinov2` DONE** (branch `port/vit-step2-dinov2`). DINO+iBOT+KoLeo ViT-B/16
+- **`dinov2` DONE** (branch `port/vit-step2-dinov2`). DINO+iBOT+KoLeo ViT-B/16
   from scratch; `models/`+`data/` ported from the capture (timm ViT); single-process
   `train_pretrain_vit_dinov2.py`; adapter grew a `pretrain` stage + a `recipe: unified`
   Step-2 eval (probes the trained `teacher_bb` encoder.pt at its CLS token) alongside
   the eval-only Step-1 download probe; **timm added to the lock at fleet `1.0.28`**.
   Full Step-2 paths verified (model round-trip, pretrain→contract+milestones,
   Step-2 eval→contract); base gate EXIT=0; eval recipe-split mutation-killed.
-- **`36_franca` DONE** (branch `port/vit-step2-franca`, stacked on 28). Reuses the
+- **`franca` DONE** (branch `port/vit-step2-franca`, stacked on 28). Reuses the
   DINOv2 ViT backbone + KoLeo (vendored into `models/`, since methods are isolated) and
   adds Franca's own contribution: nested **MatryoshkaHead** + **Sinkhorn-Knopp**
   DINO/iBOT losses (no centering). The capture's `franca_data` cross-imported 28's
@@ -330,7 +330,7 @@ and puts them on the same axis. Ported as full method-ports (add a `pretrain` st
   Step-1 download probe; **timm added to the lock at fleet `1.0.28`** (same closure as 28).
   Step-2 paths verified (model round-trip, pretrain→contract+milestones, Step-2 eval→
   contract+comparable); base gate EXIT=0; eval recipe-split mutation-killed.
-- **`30_aim` DONE** (branch `port/vit-step2-aim`, stacked on 36). Autoregressive
+- **`aim` DONE** (branch `port/vit-step2-aim`, stacked on 36). Autoregressive
   (prefix-LM next-patch pixel MSE) — a different family from DINOv2/Franca, so an
   independent port: `models/aim_vit.py` (the lab's own torch-only AIM re-impl) +
   `data/aim_dataset.py` copied verbatim, single-process `train_pretrain_vit_aim.py`,
@@ -348,7 +348,7 @@ and puts them on the same axis. Ported as full method-ports (add a `pretrain` st
   by the `linear_eval` stage of the two-stage methods, checked via any port that
   declares `_absent_reason` (non-vacuous; fails if no port declares the no-encoder path).
 
-  **Eval-only-download trio COMPLETE** (28_dinov2, 36_franca, 30_aim) — each now has
+  **Eval-only-download trio COMPLETE** (dinov2, franca, aim) — each now has
   its from-scratch unified Step 2 alongside the unchanged eval-only Step-1 probe.
 - **Generative** (`image_gpt`, `mar`, `var`): the from-scratch Step-2 is generative;
   the probe-target question (docs/EVAL_DOWNLOAD.md) is separate. Scope later.
@@ -356,7 +356,7 @@ and puts them on the same axis. Ported as full method-ports (add a `pretrain` st
 **Gap methods missed by the fan-out** (their native Step-1 landed after the batches,
 so the batches never touched them; the capture ships a `step2_vit.yaml` + `models/
 {cpc,nepa}_vit.py` + `train_step2_vit.py` for each):
-- **`11_cpc` DONE** (branch `port/vit-step2-cpc`). CPC on the ViT patch grid: a timm
+- **`cpc` DONE** (branch `port/vit-step2-cpc`). CPC on the ViT patch grid: a timm
   ViT-B/16's patch tokens are the CPC **z-grid** (14×14), a **column-wise GRU** gives
   the context, `pred_steps` linear predictors score **InfoNCE**; probed at the ViT
   **CLS** token. Additive `arch: vit` (native `visual_cpc2018` patch-encoder path
@@ -365,9 +365,9 @@ so the batches never touched them; the capture ships a `step2_vit.yaml` + `model
   trunk under `encoder.` (same prefix as the native encoder), milestones 100/200/300.
   The eval is **arch-aware** (the native eval reads a patch grid; the ViT reads plain
   224 images at the CLS token). **timm added to the lock at fleet `1.0.28`** (same
-  closure as `13_mocov1`). z_dim==embed_dim guard + arch key-set split both
-  mutation-killed; full 11_cpc module (43 tests) OK under a timm venv; base gate EXIT=0.
-- **`32_nepa` DONE** (branch `port/vit-step2-nepa`, PR #103). Milestone-only /
+  closure as `mocov1`). z_dim==embed_dim guard + arch key-set split both
+  mutation-killed; full cpc module (43 tests) OK under a timm venv; base gate EXIT=0.
+- **`nepa` DONE** (branch `port/vit-step2-nepa`, PR #103). Milestone-only /
   config-align (like 31/35): the native port already ports `NEPAModel`, so Step 2 is
   the **same model + trainer** at the unified setting — **no new model, no arch key,
   no timm**. `configs/pretrain_vit.yaml` (patch_size 16 vs step-1 14,
@@ -378,7 +378,7 @@ so the batches never touched them; the capture ships a `step2_vit.yaml` + `model
   optional `pool` (default `avg`); the adapter treats `save_at_epochs`/`pool` as
   **optional** keys (native and Step-2 share one key set) and extracts milestone
   `encoder_epoch{N}.pt`. Two guards mutation-killed (milestone save; optional-key
-  allowance); full 32_nepa module OK under torch; base gate EXIT=0. **No lock change**
+  allowance); full nepa module OK under torch; base gate EXIT=0. **No lock change**
   (torch-only).
 
 ## 6. Complexity flags (schedule carefully)
@@ -393,7 +393,7 @@ Exact capture specs (from `origin/snapshots`). All backbones: timm
 betas [0.9,0.999], 10-epoch warmup→cosine to min_lr 1e-6, grad-clip 1.0, AMP,
 `save_at_epochs 100/200/300`, seed 42, batch 1024.
 
-- **05_jigsaw_puzzle (100)** — the 9 permuted tiles are **reassembled into ONE
+- **jigsaw_puzzle (100)** — the 9 permuted tiles are **reassembled into ONE
   `[3,224,224]` image** in the dataset, then fed as a single image. Head:
   `LayerNorm(768)→Linear(768,2048)→GELU→Dropout(drop_rate)→Linear(2048,100)`,
   Linears `trunc_normal_(std=0.02)`, bias 0. Loss `CrossEntropy`. Config data:
@@ -403,13 +403,13 @@ betas [0.9,0.999], 10-epoch warmup→cosine to min_lr 1e-6, grad-clip 1.0, AMP,
   `[9,..]` and dropped the assembly path** → add a new ViT dataset that emits the
   assembled `[3,224,224]` + permutation label (native dataset untouched; not
   pinned). Reuse the permutation generation (derangements, min Hamming 3, seed 42).
-- **09_jigsaw_puzzle_pp (701)** — same shape/head (→701). Data: `tile_size 74,
+- **jigsaw_puzzle_pp (701)** — same shape/head (→701). Data: `tile_size 74,
   tile_gap 1, puzzle_size 224, image_size 256`, `grayscale_prob 0.7,
   max_occlusions 2`, drop_rate 0.0, **per-tile independent normalization** (own
   mean/std, NOT ImageNet), 701 perms cached. Local `data/jigsaw_pp_dataset.py`
   explicitly dropped the `puzzle_size` assembly → add a ViT dataset that assembles
   (70% grayscale grid, 0–2 occlusion tiles from another image, per-tile norm).
-- **01_context_prediction (8)** — **two patches share one ViT encoder**; each →
+- **context_prediction (8)** — **two patches share one ViT encoder**; each →
   CLS `[B,768]`; concat `[B,1536]`; head
   `LayerNorm(1536)→Linear(1536,2048)→GELU→Drop→Linear(2048,2048)→GELU→Drop→Linear(2048,8)`.
   Forward takes `(center, context)`; loss CE over 8 positions. Config data:
@@ -425,7 +425,7 @@ Trainer note: 05/09 are single-input (image,label); **01 is two-input**
 context)`. All three: milestone save + `checkpoint_latest.pth`, return final_loss.
 
 ## 7. Reference implementation
-`methods/06_rotation_prediction/` — `models/vit_rotation.py`,
+`methods/rotation_prediction/` — `models/vit_rotation.py`,
 `train_pretrain_vit_rotation.py`, `configs/pretrain_vit.yaml`, and the adapter's
 `arch`-branching + milestone extraction. Copy this shape; swap the head + loss + data
 per the table above.

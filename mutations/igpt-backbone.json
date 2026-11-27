@@ -58,7 +58,7 @@
   ],
   "_result": {
     "measured_on": "2026-08-31",
-    "measured_with": "an interpreter with torch + timm (.venvs/05_jigsaw_puzzle), which builds and loads the iGPT backbone in-process",
+    "measured_with": "an interpreter with torch + timm (.venvs/jigsaw_puzzle), which builds and loads the iGPT backbone in-process",
     "killed": 6,
     "total": 6,
     "equivalent": []

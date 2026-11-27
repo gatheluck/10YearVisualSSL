@@ -6,7 +6,7 @@
 # masked image modelling, many GPU-days) is the excluded step. The probed
 # representation is a genuine learned SSL feature -- so this number is comparable
 # (the "pretrained-backbone reuse" row, the autoregressive/MIM sibling of eva02 /
-# 36_franca). See docs/EVAL_DOWNLOAD.md.
+# franca). See docs/EVAL_DOWNLOAD.md.
 #
 # The backbone class is the author's, imported from the pinned microsoft/unilm
 # submodule (third_party/unilm/beit2, MIT). Two paths are passed at run time, not

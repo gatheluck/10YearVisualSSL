@@ -1,8 +1,9 @@
 {
+  "_result": {"measured_on": "2026-11-27", "killed": 45, "total": 45},
   "targets": [
     {
       "label": "student split aliases",
-      "file": "methods/31_dinov3/models/head_split.py",
+      "file": "methods/dinov3/models/head_split.py",
       "old": "student.ibot_head = copy.deepcopy(student.dino_head)",
       "new": "student.ibot_head = student.dino_head",
       "tests": [
@@ -11,7 +12,7 @@
     },
     {
       "label": "teacher split aliases",
-      "file": "methods/31_dinov3/models/head_split.py",
+      "file": "methods/dinov3/models/head_split.py",
       "old": "teacher.ibot_head = copy.deepcopy(teacher.dino_head)",
       "new": "teacher.ibot_head = teacher.dino_head",
       "tests": [
@@ -20,7 +21,7 @@
     },
     {
       "label": "Adam moments alias",
-      "file": "methods/31_dinov3/models/head_split.py",
+      "file": "methods/dinov3/models/head_split.py",
       "old": "states.append(copy.deepcopy(state))",
       "new": "states.append(dict(state))",
       "tests": [
@@ -29,7 +30,7 @@
     },
     {
       "label": "split loses moments",
-      "file": "methods/31_dinov3/models/head_split.py",
+      "file": "methods/dinov3/models/head_split.py",
       "old": "optimizer.state[parameter] = state",
       "new": "optimizer.state[parameter] = {}",
       "tests": [
@@ -38,7 +39,7 @@
     },
     {
       "label": "split no longer idempotent",
-      "file": "methods/31_dinov3/models/head_split.py",
+      "file": "methods/dinov3/models/head_split.py",
       "old": "if student.head_layout == teacher.head_layout == 'separate':\n        return False",
       "new": "if student.head_layout == teacher.head_layout == 'separate':\n        return True",
       "tests": [
@@ -47,7 +48,7 @@
     },
     {
       "label": "missing moments accepted",
-      "file": "methods/31_dinov3/models/head_split.py",
+      "file": "methods/dinov3/models/head_split.py",
       "old": "if id(parameter) not in ids or not {'step', 'exp_avg', 'exp_avg_sq'} <= state.keys():",
       "new": "if False:",
       "tests": [
@@ -56,7 +57,7 @@
     },
     {
       "label": "mixed layouts accepted",
-      "file": "methods/31_dinov3/models/head_split.py",
+      "file": "methods/dinov3/models/head_split.py",
       "old": "if student.head_layout != 'shared' or teacher.head_layout != 'shared':",
       "new": "if False:",
       "tests": [
@@ -65,7 +66,7 @@
     },
     {
       "label": "multiple groups accepted",
-      "file": "methods/31_dinov3/models/head_split.py",
+      "file": "methods/dinov3/models/head_split.py",
       "old": "if len(optimizer.param_groups) != 1:",
       "new": "if False:",
       "tests": [
@@ -74,7 +75,7 @@
     },
     {
       "label": "joint groups use unequal masses",
-      "file": "methods/31_dinov3/losses/joint_assignment.py",
+      "file": "methods/dinov3/losses/joint_assignment.py",
       "old": "(.5, .5) if gc and gp",
       "new": "(.25, .75) if gc and gp",
       "tests": [
@@ -83,7 +84,7 @@
     },
     {
       "label": "joint probabilities retain transport scale",
-      "file": "methods/31_dinov3/losses/joint_assignment.py",
+      "file": "methods/dinov3/losses/joint_assignment.py",
       "old": "probs = q.t().contiguous() / mass.clamp_min(1e-12).unsqueeze(1)",
       "new": "probs = q.t().contiguous()",
       "tests": [
@@ -92,7 +93,7 @@
     },
     {
       "label": "joint prototype marginal unbalanced",
-      "file": "methods/31_dinov3/losses/joint_assignment.py",
+      "file": "methods/dinov3/losses/joint_assignment.py",
       "old": "q = q * (prototype_mass / row_sum.clamp_min(1e-12))",
       "new": "q = q",
       "tests": [
@@ -101,7 +102,7 @@
     },
     {
       "label": "joint counts not global",
-      "file": "methods/31_dinov3/losses/joint_assignment.py",
+      "file": "methods/dinov3/losses/joint_assignment.py",
       "old": "reduce(counts)",
       "new": "pass",
       "tests": [
@@ -110,7 +111,7 @@
     },
     {
       "label": "joint prototype reductions omitted",
-      "file": "methods/31_dinov3/losses/joint_assignment.py",
+      "file": "methods/dinov3/losses/joint_assignment.py",
       "old": "reduce(row_sum)",
       "new": "pass",
       "tests": [
@@ -119,7 +120,7 @@
     },
     {
       "label": "invalid temperature accepted",
-      "file": "methods/31_dinov3/losses/joint_assignment.py",
+      "file": "methods/dinov3/losses/joint_assignment.py",
       "old": "if teacher_temp <= 0 or n_iters < 1:",
       "new": "if False:",
       "tests": [
@@ -128,7 +129,7 @@
     },
     {
       "label": "joint integration bypassed",
-      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "file": "methods/dinov3/train_pretrain_dinov3.py",
       "old": "if profile == 'step4_joint_components':",
       "new": "if False:",
       "tests": [
@@ -137,7 +138,7 @@
     },
     {
       "label": "core enters Gram EMA",
-      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "file": "methods/dinov3/train_pretrain_dinov3.py",
       "old": "momentum = step_protocol.CORE_TEACHER_MOMENTUM",
       "new": "momentum = schedule.teacher_momentum",
       "tests": [
@@ -146,7 +147,7 @@
     },
     {
       "label": "core local loss ramps",
-      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "file": "methods/dinov3/train_pretrain_dinov3.py",
       "old": "local_weight = step_protocol.DINO_LOCAL_WEIGHT_START",
       "new": "local_weight = schedule.dino_local_weight",
       "tests": [
@@ -155,7 +156,7 @@
     },
     {
       "label": "RNG restoration omitted: random.setstate",
-      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "file": "methods/dinov3/train_pretrain_dinov3.py",
       "old": "random.setstate(state['python'])",
       "new": "pass",
       "tests": [
@@ -164,7 +165,7 @@
     },
     {
       "label": "RNG restoration omitted: torch.set_rng_state",
-      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "file": "methods/dinov3/train_pretrain_dinov3.py",
       "old": "torch.set_rng_state(state['torch_cpu'])",
       "new": "pass",
       "tests": [
@@ -173,7 +174,7 @@
     },
     {
       "label": "RNG restoration omitted: np.random.set_state",
-      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "file": "methods/dinov3/train_pretrain_dinov3.py",
       "old": "np.random.set_state((ns[0], np.array(ns[1], dtype=np.uint32), *ns[2:]))",
       "new": "pass",
       "tests": [
@@ -182,7 +183,7 @@
     },
     {
       "label": "RNG restoration omitted: loader.generator.set_state",
-      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "file": "methods/dinov3/train_pretrain_dinov3.py",
       "old": "loader.generator.set_state(state['loader'])",
       "new": "pass",
       "tests": [
@@ -191,7 +192,7 @@
     },
     {
       "label": "optimizer state discarded",
-      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "file": "methods/dinov3/train_pretrain_dinov3.py",
       "old": "optimizer.load_state_dict(checkpoint['optimizer_state_dict'])",
       "new": "pass",
       "tests": [
@@ -200,7 +201,7 @@
     },
     {
       "label": "teacher state discarded",
-      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "file": "methods/dinov3/train_pretrain_dinov3.py",
       "old": "teacher.load_state_dict(checkpoint['teacher_state_dict'], strict=True)",
       "new": "pass",
       "tests": [
@@ -209,7 +210,7 @@
     },
     {
       "label": "resume clock resets",
-      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "file": "methods/dinov3/train_pretrain_dinov3.py",
       "old": "global_step = checkpoint['optimizer_step']",
       "new": "global_step = 0",
       "tests": [
@@ -218,7 +219,7 @@
     },
     {
       "label": "frozen Gram state discarded",
-      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "file": "methods/dinov3/train_pretrain_dinov3.py",
       "old": "gram_teacher.load_state_dict(checkpoint['gram_teacher_state_dict'], strict=True)",
       "new": "pass",
       "tests": [
@@ -227,7 +228,7 @@
     },
     {
       "label": "split lifecycle omitted",
-      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "file": "methods/dinov3/train_pretrain_dinov3.py",
       "old": "if profile == 'step4_split_components' and epoch + 1 == HEAD_SPLIT_AFTER_EPOCH:",
       "new": "if False:",
       "tests": [
@@ -236,7 +237,7 @@
     },
     {
       "label": "resume configuration mismatch ignored",
-      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "file": "methods/dinov3/train_pretrain_dinov3.py",
       "old": "if old != new:",
       "new": "if False:",
       "tests": [
@@ -245,7 +246,7 @@
     },
     {
       "label": "resume device mismatch ignored",
-      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "file": "methods/dinov3/train_pretrain_dinov3.py",
       "old": "if checkpoint['device_type'] != device.type:",
       "new": "if False:",
       "tests": [
@@ -254,7 +255,7 @@
     },
     {
       "label": "resume layout mismatch ignored",
-      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "file": "methods/dinov3/train_pretrain_dinov3.py",
       "old": "if checkpoint['head_layout'] != expected_layout:",
       "new": "if False:",
       "tests": [
@@ -263,7 +264,7 @@
     },
     {
       "label": "missing RNG accepted",
-      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "file": "methods/dinov3/train_pretrain_dinov3.py",
       "old": "if set(checkpoint['rng_state']) != {'python','torch_cpu','torch_cuda','numpy','loader'}:",
       "new": "if False:",
       "tests": [
@@ -272,7 +273,7 @@
     },
     {
       "label": "cross-profile epoch boundary ignored",
-      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "file": "methods/dinov3/train_pretrain_dinov3.py",
       "old": "and completed == HEAD_SPLIT_AFTER_EPOCH",
       "new": "and completed > 0",
       "tests": [
@@ -281,7 +282,7 @@
     },
     {
       "label": "source output overwritten",
-      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "file": "methods/dinov3/train_pretrain_dinov3.py",
       "old": "if resume_path and Path(resume_path).resolve().is_relative_to(Path(save_dir).resolve()):",
       "new": "if False:",
       "tests": [
@@ -290,7 +291,7 @@
     },
     {
       "label": "invalid schedule length accepted",
-      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "file": "methods/dinov3/train_pretrain_dinov3.py",
       "old": "if not 0 < int(cfg['training']['epochs']) <= step_protocol.SCHEDULE_EPOCHS:",
       "new": "if False:",
       "tests": [
@@ -299,7 +300,7 @@
     },
     {
       "label": "non-shared continuation accepted",
-      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "file": "methods/dinov3/train_pretrain_dinov3.py",
       "old": "if profile in component_profiles - {'step4_gram_components'} and cfg['model'].get('head_layout') != 'shared':",
       "new": "if False:",
       "tests": [
@@ -326,7 +327,7 @@
     },
     {
       "label": "incomplete checkpoint accepted",
-      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "file": "methods/dinov3/train_pretrain_dinov3.py",
       "old": "if required - checkpoint.keys() or checkpoint.get('component_checkpoint_version') != 1:",
       "new": "if False:",
       "tests": [
@@ -335,7 +336,7 @@
     },
     {
       "label": "inconsistent checkpoint clock accepted",
-      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "file": "methods/dinov3/train_pretrain_dinov3.py",
       "old": "if (checkpoint['steps_per_epoch'] != steps_per_epoch\n            or checkpoint['optimizer_step'] != completed * steps_per_epoch\n            or not 0 < completed < cfg['training']['epochs']):",
       "new": "if False:",
       "tests": [
@@ -344,7 +345,7 @@
     },
     {
       "label": "incomplete Adam state accepted",
-      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "file": "methods/dinov3/train_pretrain_dinov3.py",
       "old": "if (not isinstance(opt, dict) or not opt.get('state')\n            or len(opt.get('param_groups', [])) != 1\n            or any(not {'step','exp_avg','exp_avg_sq'} <= state.keys()\n                   for state in opt['state'].values())):",
       "new": "if False:",
       "tests": [
@@ -353,7 +354,7 @@
     },
     {
       "label": "unrelated resume profile accepted",
-      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "file": "methods/dinov3/train_pretrain_dinov3.py",
       "old": "if source_profile != profile and not transition:",
       "new": "if False:",
       "tests": [
@@ -362,7 +363,7 @@
     },
     {
       "label": "missing frozen teacher accepted",
-      "file": "methods/31_dinov3/train_pretrain_dinov3.py",
+      "file": "methods/dinov3/train_pretrain_dinov3.py",
       "old": "and 'gram_teacher_state_dict' not in checkpoint):",
       "new": "and False):",
       "tests": [
@@ -371,7 +372,7 @@
     },
     {
       "label": "DINO recomputes independent targets",
-      "file": "methods/31_dinov3/losses/dino_loss.py",
+      "file": "methods/dinov3/losses/dino_loss.py",
       "old": "if teacher_probs is None:",
       "new": "if True:",
       "tests": [
@@ -380,7 +381,7 @@
     },
     {
       "label": "iBOT recomputes independent targets",
-      "file": "methods/31_dinov3/losses/ibot_loss.py",
+      "file": "methods/dinov3/losses/ibot_loss.py",
       "old": "if teacher_probs is None:",
       "new": "if True:",
       "tests": [
@@ -389,7 +390,7 @@
     },
     {
       "label": "underflow returns raw logits",
-      "file": "methods/31_dinov3/losses/joint_assignment.py",
+      "file": "methods/dinov3/losses/joint_assignment.py",
       "old": "empty = torch.zeros_like(logits)",
       "new": "empty = logits",
       "tests": [
@@ -398,7 +399,7 @@
     },
     {
       "label": "sample mass uses input precision",
-      "file": "methods/31_dinov3/losses/joint_assignment.py",
+      "file": "methods/dinov3/losses/joint_assignment.py",
       "old": "cls_logits.new_full((nc,), cm / max(gc, 1), dtype=torch.float32)",
       "new": "cls_logits.new_full((nc,), cm / max(gc, 1))",
       "tests": [

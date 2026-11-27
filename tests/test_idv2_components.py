@@ -10,7 +10,7 @@ from unittest import mock
 
 if str(Path(__file__).parent) not in sys.path:
     sys.path.insert(0, str(Path(__file__).parent))
-import test_method_10_inst_disc as base
+import test_method_inst_disc as base
 
 PROFILES = ("twoview", "false_negative", "ema_bank", "koleo", "multicrop",
             "multi_prototype", "dense_id")

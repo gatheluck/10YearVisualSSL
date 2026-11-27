@@ -73,6 +73,12 @@ def runs_of(doc: dict, job: str) -> str:
     return "\n".join(str(st.get("run", "")) for st in spec.get("steps", []))
 
 
+def copy_selector(directory):
+    shutil.copy2(ROOT / "ci_selection.py", directory / "ci_selection.py")
+    shutil.copytree(ROOT / "adapterlib", directory / "adapterlib",
+                    ignore=shutil.ignore_patterns("__pycache__"), dirs_exist_ok=True)
+
+
 def discovery_script(doc: dict) -> str:
     """The python the discover job runs, lifted out of its heredoc."""
     text = runs_of(doc, "discover")
@@ -350,7 +356,7 @@ class TestEveryMethodIsExercised(unittest.TestCase):
         script = discovery_script(doc)
         d = Path(tempfile.mkdtemp(prefix="discover-"))
         self.addCleanup(shutil.rmtree, d, ignore_errors=True)
-        shutil.copy2(ROOT / 'ci_selection.py', d / 'ci_selection.py')
+        copy_selector(d)
         for m in ("aaa_first", "zzz_second"):
             (d / "methods" / m).mkdir(parents=True)
             (d / "methods" / m / "requirements.lock.txt").write_text("x==1\n")

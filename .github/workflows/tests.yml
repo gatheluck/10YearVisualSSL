@@ -72,8 +72,8 @@ jobs:
         run: |
           python3 - <<'PY' >> "$GITHUB_OUTPUT"
           import json, pathlib
-          found = sorted(p.parent.name for p in
-                         pathlib.Path("methods").glob("*/requirements.lock.txt"))
+          found = [p.parent.name for p in
+                        pathlib.Path("methods").glob("*/requirements.lock.txt")]
           if not found:
               raise SystemExit("no method declares a lock; nothing would run")
           from ci_selection import select, environment_groups
@@ -182,7 +182,7 @@ jobs:
             tests.test_attention_lora \
             tests.test_cvpr_adaptation_runtime tests.test_dpt_probe \
             tests.test_cvpr_bound_runtime tests.test_cvpr_hf_bindings \
-            tests.test_method_cvpr_native_bindings tests.test_cvpr_rae_bindings \
+            tests.test_method_cvpr_native_bindings tests.test_method_cvpr_rae_bindings \
             tests.test_revised_data tests.test_revised_recipe \
             tests.test_revised_engine tests.test_revised_task_cli \
             tests.test_revised_task_distributed \

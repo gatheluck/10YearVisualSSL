@@ -9,7 +9,7 @@ recur (a policy in a document does not hold; make it machinery -- CLAUDE.md).
 
 A method "has a Step 2" iff it ships `configs/pretrain_vit.yaml` OR its
 `configs/pretrain.yaml` declares `save_at_epochs` (the milestone-only methods
-31_dinov3 / 35_vjepa). For such a method, no sentence of its README.md or
+dinov3 / vjepa). For such a method, no sentence of its README.md or
 provenance.json may assert the Step 2 is absent.
 
 The detector is sentence-scoped (a step-2 mention and an exclusion word must land in
@@ -24,6 +24,7 @@ import json
 import re
 import unittest
 from pathlib import Path
+from adapterlib.method_names import HISTORICAL
 
 ROOT = Path(__file__).resolve().parent.parent
 METHODS = ROOT / "methods"
@@ -41,7 +42,7 @@ _EXCLUSION = re.compile(
 # eval-only ports" is the same whole-port claim.
 _EVAL_ONLY_PORT = re.compile(r"\beval-only ports?\b", re.IGNORECASE)
 
-# A WHOLE-PORT no-training / no-encoder claim. 28_dinov2 / 30_aim / 36_franca began
+# A WHOLE-PORT no-training / no-encoder claim. dinov2 / aim / franca began
 # as eval-only ports whose docs said the whole port "trains nothing" and that
 # "there is no encoder.pt". They gained a from-scratch Step-2 pretrain that DOES
 # train and DOES write encoder.pt, so such a whole-port claim is now false.
@@ -113,10 +114,10 @@ def has_step2(method_dir: Path) -> bool:
 
 def step2_methods() -> list:
     return sorted(m for m in METHODS.iterdir()
-                  if m.is_dir() and m.name[0].isdigit() and has_step2(m))
+                  if m.is_dir() and m.name in HISTORICAL and has_step2(m))
 
 
-_README_ROW = re.compile(r"^\|\s*`(\d+_[a-z0-9_]+)`\s*\|(.*)$")
+_README_ROW = re.compile(r"^\|\s*`([a-z0-9_]+)`\s*\|(.*)$")
 
 
 def readme_table_rows() -> dict:
@@ -141,12 +142,12 @@ def readme_table_rows() -> dict:
 STATUS_DOCS = ("README.md", "docs/PORTING_ROADMAP.md")
 
 # A Methods-table row -- `| `name` | ... |`. The row is ABOUT its first-column
-# method; a mention of another method in the notes ("analogous to `36_franca`") is
+# method; a mention of another method in the notes ("analogous to `franca`") is
 # a cross-reference, not a claim about that other method. So a table row's claim is
 # attributed to its subject alone, never to every method token on the line -- a
 # line-wide attribution is the "substring/scope too wide" mistake this repo keeps
-# re-making (a `36_franca` mention in eva02's eval-only row is not eva02 denying
-# 36_franca's Step 2). `name` may be numbered (`36_franca`) or unnumbered (`eva02`).
+# re-making (a `franca` mention in eva02's eval-only row is not eva02 denying
+# franca's Step 2).
 _TABLE_ROW_SUBJECT = re.compile(r"^\|\s*`([a-z0-9_]+)`\s*\|")
 
 
@@ -155,7 +156,7 @@ def _scan_status_lines(lines, names) -> list:
 
     A Methods-table row is attributed to its subject alone (and flagged only when
     that subject is itself a Step-2 method); any other prose line is attributed to
-    every Step-2 method it names by its `NN_name` token. Pure over its inputs so
+    every Step-2 method it names by its exact method name in backticks. Pure over its inputs so
     the detector can be driven by both a positive and a negative control."""
     tokens = {name: re.compile(r"`" + re.escape(name) + r"`") for name in names}
     out = []

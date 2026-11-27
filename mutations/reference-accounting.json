@@ -120,7 +120,7 @@
     {
       "label": "reference identity",
       "file": "downstream/reference_accounting.py",
-      "old": "if key not in result or canonical(result[key]) != canonical(expected):",
+      "old": "if key not in result or canonical(actual) != canonical(expected):",
       "new": "if False:",
       "tests": [
         "tests.test_reference_accounting.ReferenceAccounting"

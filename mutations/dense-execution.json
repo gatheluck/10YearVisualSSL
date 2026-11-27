@@ -190,8 +190,8 @@
       ]
     },
     {
-      "label": "31_dinov3 LP detection clipping",
-      "file": "methods/31_dinov3/downstream_backbone.py",
+      "label": "dinov3 LP detection clipping",
+      "file": "methods/dinov3/downstream_backbone.py",
       "old": "DENSE_EXECUTION = {\"tail_policy\": \"discard\", \"clip_frozen_detection\": False}",
       "new": "DENSE_EXECUTION = {\"tail_policy\": \"discard\", \"clip_frozen_detection\": True}",
       "tests": [
@@ -199,8 +199,8 @@
       ]
     },
     {
-      "label": "38_clip LP detection clipping",
-      "file": "methods/38_clip/downstream_backbone.py",
+      "label": "clip LP detection clipping",
+      "file": "methods/clip/downstream_backbone.py",
       "old": "\"clip_frozen_detection\": False",
       "new": "\"clip_frozen_detection\": True",
       "tests": [

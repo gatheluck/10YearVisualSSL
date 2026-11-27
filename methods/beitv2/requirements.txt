@@ -10,7 +10,7 @@
 # path). The pinned submodule's OWN runtime dep (timm, for timm.models.layers /
 # registry) is needed to import modeling_finetune.py, so it is pinned in the locks --
 # but it is the submodule's import, not this port's, so it is not declared here (the
-# import check reads this port's files, like the openai/CLIP submodule in 38_clip).
+# import check reads this port's files, like the openai/CLIP submodule in clip).
 torch>=2.1.0
 torchvision>=0.16.0
 numpy>=1.24.0

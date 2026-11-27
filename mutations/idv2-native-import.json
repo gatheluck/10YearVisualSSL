@@ -2,7 +2,7 @@
   "targets": [
     {
       "label": "source digest",
-      "file": "methods/10_inst_disc/models/scaling_encoder.py",
+      "file": "methods/inst_disc/models/scaling_encoder.py",
       "old": "if _sha256(source) != sha256:\n        raise ValueError(\"source sha256 mismatch\")",
       "new": "if False:\n        raise ValueError(\"source sha256 mismatch\")",
       "tests": [
@@ -11,7 +11,7 @@
     },
     {
       "label": "epoch identity",
-      "file": "methods/10_inst_disc/models/scaling_encoder.py",
+      "file": "methods/inst_disc/models/scaling_encoder.py",
       "old": "or blob[\"completed_epoch\"] != completed_epoch",
       "new": "or False",
       "tests": [
@@ -20,7 +20,7 @@
     },
     {
       "label": "boundary",
-      "file": "methods/10_inst_disc/models/scaling_encoder.py",
+      "file": "methods/inst_disc/models/scaling_encoder.py",
       "old": "or blob[\"step_in_epoch\"] != 0",
       "new": "or False",
       "tests": [
@@ -29,7 +29,7 @@
     },
     {
       "label": "tensor shape",
-      "file": "methods/10_inst_disc/models/scaling_encoder.py",
+      "file": "methods/inst_disc/models/scaling_encoder.py",
       "old": "value.shape != target.shape",
       "new": "False",
       "tests": [
@@ -38,7 +38,7 @@
     },
     {
       "label": "tensor dtype",
-      "file": "methods/10_inst_disc/models/scaling_encoder.py",
+      "file": "methods/inst_disc/models/scaling_encoder.py",
       "old": "value.dtype != target.dtype",
       "new": "False",
       "tests": [
@@ -47,7 +47,7 @@
     },
     {
       "label": "finite weights",
-      "file": "methods/10_inst_disc/models/scaling_encoder.py",
+      "file": "methods/inst_disc/models/scaling_encoder.py",
       "old": "not torch.isfinite(value).all()",
       "new": "False",
       "tests": [
@@ -56,7 +56,7 @@
     },
     {
       "label": "hash stability",
-      "file": "methods/10_inst_disc/models/scaling_encoder.py",
+      "file": "methods/inst_disc/models/scaling_encoder.py",
       "old": "if _sha256(source) != sha256:\n        raise ValueError(\"source changed during import\")",
       "new": "if False:\n        raise ValueError(\"source changed during import\")",
       "tests": [
@@ -74,7 +74,7 @@
     },
     {
       "label": "tensor identity",
-      "file": "methods/10_inst_disc/models/scaling_encoder.py",
+      "file": "methods/inst_disc/models/scaling_encoder.py",
       "old": "encoder.load_state_dict(state, strict=True)",
       "new": "pass",
       "tests": [
@@ -83,7 +83,7 @@
     },
     {
       "label": "no private config",
-      "file": "methods/10_inst_disc/models/scaling_encoder.py",
+      "file": "methods/inst_disc/models/scaling_encoder.py",
       "old": "\"tensor_count\": len(state),",
       "new": "\"tensor_count\": len(state), \"config\": blob.get(\"config\"),",
       "tests": [
@@ -92,7 +92,7 @@
     },
     {
       "label": "source evidence",
-      "file": "methods/10_inst_disc/models/scaling_encoder.py",
+      "file": "methods/inst_disc/models/scaling_encoder.py",
       "old": "\"source_sha256\": sha256,",
       "new": "\"source_sha256\": \"wrong\",",
       "tests": [
@@ -101,7 +101,7 @@
     },
     {
       "label": "export evidence",
-      "file": "methods/10_inst_disc/models/scaling_encoder.py",
+      "file": "methods/inst_disc/models/scaling_encoder.py",
       "old": "\"encoder_sha256\": _sha256(dest)",
       "new": "\"encoder_sha256\": \"wrong\"",
       "tests": [
@@ -110,7 +110,7 @@
     },
     {
       "label": "cli invokes conversion",
-      "file": "methods/10_inst_disc/models/scaling_encoder.py",
+      "file": "methods/inst_disc/models/scaling_encoder.py",
       "old": "import_native(**vars(parser.parse_args(argv)))",
       "new": "parser.parse_args(argv)",
       "tests": [
@@ -119,7 +119,7 @@
     },
     {
       "label": "direct CLI package bootstrap",
-      "file": "methods/10_inst_disc/models/scaling_encoder.py",
+      "file": "methods/inst_disc/models/scaling_encoder.py",
       "old": "sys.path.insert(0, str(Path(__file__).resolve().parents[3]))",
       "new": "pass",
       "tests": [

@@ -10,7 +10,7 @@ import unittest
 from pathlib import Path
 
 from tests import test_idv2_components as components
-from tests import test_method_10_inst_disc as base
+from tests import test_method_inst_disc as base
 
 
 def worker(root):

@@ -1,0 +1,669 @@
+#!/usr/bin/env python3
+"""Specification for mae (He et al., 2021; arXiv:2111.06377).
+
+MAE pretrains a masked autoencoder: mask 75% of patches, reconstruct them, and
+the encoder's features are the representation. A self-contained re-implementation
+(the lab's own MAE code, torch-only, trained from scratch -- no pretrained
+weights, no submodule), the same treatment the other re-implemented methods got.
+`linear_eval` reads the trained `encoder.pt`, so the number is a genuine,
+comparable linear probe.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+if str(Path(__file__).parent) not in sys.path:
+    sys.path.insert(0, str(Path(__file__).parent))
+from _method_import import load_from        # noqa: E402
+import _probe_aug                            # noqa: E402
+
+ROOT = Path(__file__).resolve().parent.parent
+METHOD = ROOT / "methods" / "mae"
+BIN = ROOT / "bin"
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+import adapterlib                            # noqa: E402
+
+try:
+    import torch                                       # noqa: F401
+    import numpy                                       # noqa: F401
+    import torchvision                                 # noqa: F401
+    HAVE_DEPS = True
+except ImportError:
+    HAVE_DEPS = False
+
+needs_deps = unittest.skipUnless(HAVE_DEPS, "mae needs torch, numpy, torchvision")
+
+
+def load(name: str, path: Path):
+    return load_from(METHOD, name, path)
+
+
+adapter = load("mae_adapter", METHOD / "adapter" / "__init__.py")
+
+# A model tiny enough to pretrain a step on a CPU: img 32 / patch 16 -> a 2x2
+# token grid, two tiny encoder blocks, a one-block decoder.
+MODEL = {"arch": "vit_base_patch16", "img_size": 32, "patch_size": 16,
+         "enc_embed_dim": 32, "enc_depth": 2, "enc_num_heads": 2,
+         "dec_embed_dim": 16, "dec_depth": 1, "dec_num_heads": 2,
+         "mlp_ratio": 2.0, "mask_ratio": 0.75, "norm_pix_loss": True}
+TRAIN = {**MODEL, "epochs": 1, "batch_size": 2, "num_workers": 0,
+         "lr": 1.5e-4, "weight_decay": 0.05}
+EVAL_TRAIN = {**MODEL, "pool": "avg", "epochs": 2, "batch_size": 2,
+              "num_workers": 0, "lr": 0.1, "momentum": 0.9, "weight_decay": 0.0}
+EMBED = 32
+
+
+def tiny_imagefolder(root: Path, n: int = 6) -> Path:
+    import numpy as np
+    from PIL import Image
+    cls = root / "train" / "class0"
+    cls.mkdir(parents=True, exist_ok=True)
+    rng = np.random.RandomState(0)
+    for i in range(n):
+        Image.fromarray(rng.randint(0, 256, (64, 64, 3), dtype="uint8")).save(
+            cls / f"{i}.png")
+    return root
+
+
+def tiny_split(root: Path, per: int = 3) -> Path:
+    import numpy as np
+    from PIL import Image
+    rng = np.random.RandomState(0)
+    for split in ("train", "val"):
+        for label, cls in enumerate(("c0", "c1")):
+            d = root / split / cls
+            d.mkdir(parents=True, exist_ok=True)
+            for i in range(per):
+                base = np.full((64, 64, 3), label * 120, dtype="uint8")
+                noise = rng.randint(0, 64, (64, 64, 3), dtype="uint8")
+                Image.fromarray((base + noise).astype("uint8")).save(
+                    d / f"{i}.png")
+    return root
+
+
+class Base(unittest.TestCase):
+    def setUp(self) -> None:
+        self.tmp = Path(tempfile.mkdtemp(prefix="mae-"))
+        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
+        self.out = self.tmp / "out"
+
+    def config(self, **over) -> dict:
+        cfg = {"stage": "pretrain", "seed": 0, "data_root": str(self.tmp / "data"),
+               "device": "cpu", "train": dict(TRAIN)}
+        for k, v in over.items():
+            if k == "train" and v:
+                cfg["train"] = {**cfg["train"], **v}
+            elif k != "train":
+                cfg[k] = v
+        return cfg
+
+    def eval_config(self, **over) -> dict:
+        cfg = {"stage": "linear_eval", "seed": 0,
+               "data_root": str(self.tmp / "data"), "device": "cpu",
+               "encoder": str(self.tmp / "encoder.pt"), "train": dict(EVAL_TRAIN)}
+        for k, v in over.items():
+            if k == "train" and v:
+                cfg["train"] = {**cfg["train"], **v}
+            elif k != "train":
+                cfg[k] = v
+        return cfg
+
+
+class TestTheModel(unittest.TestCase):
+    def models(self):
+        return load("mae_models", METHOD / "models" / "__init__.py")
+
+    @needs_deps
+    def test_the_encoder_returns_one_vector_per_image(self):
+        import torch
+        m = self.models()
+        mae = m.build_mae("vit_base_patch16", img_size=32, patch_size=16,
+                          enc_embed_dim=EMBED, enc_depth=2, enc_num_heads=2,
+                          dec_embed_dim=16, dec_depth=1, dec_num_heads=2,
+                          mlp_ratio=2.0)
+        enc = mae.get_encoder(pool="avg")
+        feats = enc(torch.zeros(2, 3, 32, 32))
+        self.assertEqual(tuple(feats.shape), (2, EMBED))
+
+
+class TestExtractingTheEncoder(unittest.TestCase):
+    def test_only_the_encoder_side_comes_out(self):
+        got = adapter.extract_encoder({
+            "patch_embed.proj.weight": 1, "cls_token": 2,
+            "enc_blocks.0.norm1.weight": 3, "enc_norm.weight": 4,
+            "dec_embed.weight": 5, "mask_token": 6, "dec_pred.weight": 7,
+            "dec_blocks.0.norm1.weight": 8})
+        self.assertEqual(set(got), {"patch_embed.proj.weight", "cls_token",
+                                    "enc_blocks.0.norm1.weight", "enc_norm.weight"})
+
+    def test_the_decoder_is_left_out(self):
+        got = adapter.extract_encoder({"enc_blocks.0.w": 1, "dec_pred.weight": 2,
+                                       "mask_token": 3})
+        self.assertNotIn("dec_pred.weight", got)
+        self.assertNotIn("mask_token", got)
+
+    def test_nothing_matching_is_refused(self):
+        with self.assertRaises(RuntimeError) as e:
+            adapter.extract_encoder({"dec_pred.weight": 1})
+        self.assertIn("encoder", str(e.exception).lower())
+
+
+class TestConfigTranslation(Base):
+    def test_step1_reaches_the_run_config(self):
+        built = adapter.to_run_config(self.config(), out=self.out)
+        self.assertEqual(built["model"]["enc_embed_dim"], EMBED)
+        self.assertEqual(built["training"]["epochs"], 1)
+
+    def test_a_missing_step1_setting_is_refused_by_name(self):
+        for key in TRAIN:
+            with self.subTest(key=key):
+                cfg = self.config()
+                cfg["train"] = {k: v for k, v in TRAIN.items() if k != key}
+                with self.assertRaises(adapter.ConfigError) as e:
+                    adapter.to_run_config(cfg, out=self.out)
+                self.assertIn(key, str(e.exception))
+
+    def test_an_unknown_step1_setting_is_refused(self):
+        with self.assertRaises(adapter.ConfigError) as e:
+            adapter.to_run_config(self.config(train={"pool": "avg"}),
+                                  out=self.out)
+        self.assertIn("pool", str(e.exception))
+
+    def test_an_unknown_stage_is_refused(self):
+        with self.assertRaises(adapter.ConfigError):
+            adapter.to_run_config(self.config(stage="step2"), out=self.out)
+
+    def test_output_is_refused(self):
+        cfg = self.config()
+        cfg["output"] = {"checkpoint_dir": "/anywhere"}
+        with self.assertRaises(adapter.ConfigError) as e:
+            adapter.to_run_config(cfg, out=self.out)
+        self.assertIn("--out", str(e.exception))
+
+
+class TestLinearEvalConfig(Base):
+    def test_linear_eval_is_accepted(self):
+        adapter.to_run_config(self.eval_config(), out=self.out)
+
+    def test_a_missing_eval_setting_is_refused_by_name(self):
+        for key in EVAL_TRAIN:
+            with self.subTest(key=key):
+                cfg = self.eval_config()
+                cfg["train"] = {k: v for k, v in EVAL_TRAIN.items() if k != key}
+                with self.assertRaises(adapter.ConfigError) as e:
+                    adapter.to_run_config(cfg, out=self.out)
+                self.assertIn(key, str(e.exception))
+
+    def test_the_encoder_must_be_named(self):
+        cfg = self.eval_config()
+        del cfg["encoder"]
+        with self.assertRaises(adapter.ConfigError) as e:
+            adapter.to_run_config(cfg, out=self.out)
+        self.assertIn("encoder", str(e.exception))
+
+
+class TestTheEvalProducesNoEncoder(Base):
+    def _reason(self, cfg):
+        p = self.tmp / "resolved.json"
+        p.write_text(json.dumps(cfg), encoding="utf-8")
+        return adapter._absent_reason(p)
+
+    def test_linear_eval_declares_no_encoder(self):
+        self.assertTrue(self._reason(self.eval_config()))
+
+    def test_step1_gives_no_reason(self):
+        self.assertIsNone(self._reason(self.config()))
+
+
+class TestTheMetricsAreInTheVocabulary(unittest.TestCase):
+    def test_step1_maps_a_pretext_loss(self):
+        self.assertEqual(adapter.PRETRAIN_METRIC_NAMES["final_loss"],
+                         "final_pretext_loss")
+        for target in adapter.PRETRAIN_METRIC_NAMES.values():
+            if target is not None:
+                self.assertIn(target, adapterlib.METRIC_VOCABULARY)
+
+    def test_eval_maps_the_comparable_probe_numbers(self):
+        mapped = set(adapter.LINEAR_EVAL_METRIC_NAMES.values())
+        for name in ("best_linear_probe_top1_accuracy",
+                     "final_linear_probe_top1_accuracy",
+                     "best_linear_probe_top5_accuracy",
+                     "final_linear_probe_top5_accuracy"):
+            self.assertIn(name, mapped)
+            self.assertEqual(adapterlib.METRIC_VOCABULARY[name],
+                             adapterlib.COMPARABLE)
+
+
+class TestTheDeviceIsResolved(Base):
+    def trainer(self):
+        return load("mae_trainer", METHOD / "train_pretrain_mae.py")
+
+    @needs_deps
+    def test_asking_for_cuda_without_one_is_refused(self):
+        from unittest import mock
+        t = self.trainer()
+        with mock.patch.object(t.torch.cuda, "is_available", return_value=False):
+            with self.assertRaises(RuntimeError):
+                t.resolve_device("cuda", 0)
+            self.assertEqual(t.resolve_device("cpu", 0).type, "cpu")
+            self.assertEqual(t.resolve_device("auto", 0).type, "cpu")
+
+    def test_run_resolves_the_device(self):
+        import ast
+        src = (METHOD / "train_pretrain_mae.py").read_text()
+        run_fn = next(n for n in ast.parse(src).body
+                      if isinstance(n, ast.FunctionDef) and n.name == "run")
+        called = {n.func.id for n in ast.walk(run_fn)
+                  if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)}
+        self.assertIn("resolve_device", called)
+        self.assertIn("make_deterministic", called)
+
+
+class TestAStep1Smoke(Base):
+    def run_adapter(self, **over):
+        tiny_imagefolder(self.tmp / "data")
+        cfg = self.tmp / "resolved.json"
+        cfg.write_text(json.dumps(self.config(**over)), encoding="utf-8")
+        env = {**os.environ, "PYTHONPATH": str(ROOT)}
+        return cfg, subprocess.run(
+            [sys.executable, "-m", "adapter", "--config", str(cfg),
+             "--out", str(self.out)],
+            cwd=METHOD, env=env, capture_output=True, text=True)
+
+    @needs_deps
+    def test_it_completes_and_satisfies_the_contract(self):
+        cfg, r = self.run_adapter()
+        self.assertEqual(r.returncode, 0, r.stdout[-3000:] + r.stderr[-3000:])
+        v = subprocess.run(
+            [sys.executable, str(BIN / "contract-test.py"), "--out",
+             str(self.out), "--config", str(cfg), "--exit-status", "0"],
+            capture_output=True, text=True)
+        self.assertEqual(v.returncode, 0, v.stdout + v.stderr)
+
+    @needs_deps
+    def test_it_writes_an_encoder_and_records_a_pretext_loss(self):
+        self.run_adapter()
+        self.assertTrue((self.out / "encoder.pt").is_file())
+        m = json.loads((self.out / "metrics.json").read_text())["metrics"]
+        self.assertIn("final_pretext_loss", m)
+
+    @needs_deps
+    def test_the_encoder_pt_it_wrote_loads_back(self):
+        self.run_adapter()
+        import torch
+        saved = torch.load(self.out / "encoder.pt", map_location="cpu",
+                           weights_only=True)
+        self.assertTrue(saved)
+        # Several methods define a `models` package; put this one's first.
+        load("this_methods_models", METHOD / "models" / "__init__.py")
+        model = adapter.load_encoder(saved, self.config())
+        loaded = model.state_dict()
+        pairs = 0
+        for key, want in saved.items():
+            got = loaded.get(key)
+            if got is None:
+                continue
+            pairs += 1
+            self.assertTrue(torch.equal(got, want), f"{key} came back changed")
+        self.assertGreater(pairs, 0, "no saved weight reached the model")
+
+    @needs_deps
+    def test_the_same_config_twice_gives_the_same_encoder(self):
+        digests = []
+        for name in ("a", "b"):
+            self.out = self.tmp / name
+            self.run_adapter()
+            digests.append(hashlib.sha256(
+                (self.out / "encoder.pt").read_bytes()).hexdigest())
+        self.assertEqual(digests[0], digests[1])
+
+    @unittest.skipUnless(HAVE_DEPS and torch.cuda.is_available(),
+                         "no CUDA device; the GPU path cannot be exercised here")
+    def test_a_real_run_on_cuda_produces_a_loadable_encoder(self):
+        cfg, r = self.run_adapter(device="cuda")
+        self.assertEqual(r.returncode, 0, r.stdout[-3000:] + r.stderr[-3000:])
+        self.assertIn("cuda", r.stdout.lower())
+
+
+class TestALinearEvalSmoke(Base):
+    def _step1(self):
+        tiny_split(self.tmp / "data")
+        step1_data = self.tmp / "s1data"
+        tiny_imagefolder(step1_data)
+        s1cfg = {"stage": "pretrain", "seed": 0, "data_root": str(step1_data),
+                 "device": "cpu", "train": dict(TRAIN)}
+        p = self.tmp / "s1.json"
+        p.write_text(json.dumps(s1cfg), encoding="utf-8")
+        env = {**os.environ, "PYTHONPATH": str(ROOT)}
+        s1out = self.tmp / "s1out"
+        r = subprocess.run(
+            [sys.executable, "-m", "adapter", "--config", str(p),
+             "--out", str(s1out)],
+            cwd=METHOD, env=env, capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stdout[-3000:] + r.stderr[-3000:])
+        return s1out
+
+    def run_eval(self, **over):
+        s1out = self._step1()
+        cfg = self.eval_config(encoder=str(s1out / "encoder.pt"), **over)
+        p = self.tmp / "resolved.json"
+        p.write_text(json.dumps(cfg), encoding="utf-8")
+        env = {**os.environ, "PYTHONPATH": str(ROOT)}
+        r = subprocess.run(
+            [sys.executable, "-m", "adapter", "--config", str(p),
+             "--out", str(self.out)],
+            cwd=METHOD, env=env, capture_output=True, text=True)
+        return p, r
+
+    @needs_deps
+    def test_it_completes_and_satisfies_the_contract(self):
+        cfg, r = self.run_eval()
+        self.assertEqual(r.returncode, 0, r.stdout[-3000:] + r.stderr[-3000:])
+        v = subprocess.run(
+            [sys.executable, str(BIN / "contract-test.py"), "--out",
+             str(self.out), "--config", str(cfg), "--exit-status", "0"],
+            capture_output=True, text=True)
+        self.assertEqual(v.returncode, 0, v.stdout + v.stderr)
+
+    @needs_deps
+    def test_it_reports_the_comparable_probe_numbers(self):
+        self.run_eval()
+        m = json.loads((self.out / "metrics.json").read_text())["metrics"]
+        for name in ("best_linear_probe_top1_accuracy",
+                     "final_linear_probe_top1_accuracy",
+                     "best_linear_probe_top5_accuracy",
+                     "final_linear_probe_top5_accuracy"):
+            self.assertIn(name, m)
+
+    @needs_deps
+    def test_it_produces_no_encoder_and_says_so(self):
+        self.run_eval()
+        self.assertFalse((self.out / "encoder.pt").exists())
+        man = json.loads((self.out / "run_manifest.json").read_text())
+        self.assertEqual(man["stage"], "linear_eval")
+        self.assertEqual(man["status"], "ok", man.get("error", ""))
+        self.assertIn("encoder_absent_reason", man)
+
+    @unittest.skipUnless(HAVE_DEPS and torch.cuda.is_available(),
+                         "no CUDA device; the GPU path cannot be exercised here")
+    def test_the_probe_runs_on_cuda(self):
+        cfg, r = self.run_eval(device="cuda")
+        self.assertEqual(r.returncode, 0, r.stdout[-3000:] + r.stderr[-3000:])
+        self.assertIn("cuda", r.stdout.lower())
+
+
+class TestTheOriginalIsReferencedNotCopied(unittest.TestCase):
+    def test_no_distributed_machinery_is_used(self):
+        import ast
+        tree = ast.parse((METHOD / "train_pretrain_mae.py").read_text())
+        used = set()
+        for n in ast.walk(tree):
+            if isinstance(n, ast.Attribute):
+                used.add(n.attr)
+            elif isinstance(n, ast.Name):
+                used.add(n.id)
+        self.assertNotIn("DistributedDataParallel", used)
+        self.assertNotIn("SummaryWriter", used)
+
+
+# --- Step 2: unified ViT-B/16 (recipe: unified), additive alongside the native
+# ViT-L/16 recipe. Same MAE objective on a ViT-B/16 encoder under the unified
+# recipe -- AdamW + a cosine LR schedule with warmup (which the native fixed-LR
+# trainer lacks) and milestone checkpoints. unified-only keys: warmup_epochs,
+# min_lr, save_at_epochs. The smoke reuses the tiny vit_base dims.
+UNIFIED_TRAIN = {"recipe": "unified", **MODEL, "epochs": 2, "batch_size": 2,
+                 "num_workers": 0, "lr": 6.0e-4, "weight_decay": 0.05,
+                 "warmup_epochs": 0, "min_lr": 0.0, "save_at_epochs": [1, 2]}
+
+
+class TestUnifiedConfigTranslation(Base):
+    def unified_config(self, train=None, **over) -> dict:
+        cfg = {"stage": "pretrain", "seed": 0,
+               "data_root": str(self.tmp / "data"), "device": "cpu",
+               "train": dict(train if train is not None else UNIFIED_TRAIN)}
+        for k, v in over.items():
+            cfg[k] = v
+        return cfg
+
+    def test_the_unified_step2_config_is_accepted(self):
+        built = adapter.to_run_config(self.unified_config(), self.out)
+        self.assertEqual(built["model"]["arch"], "vit_base_patch16")
+        self.assertEqual(built["training"]["warmup_epochs"], 0)
+        self.assertEqual(built["training"]["min_lr"], 0.0)
+        self.assertEqual(built["training"]["save_at_epochs"], [1, 2])
+
+    def test_the_native_run_config_has_no_recipe_key(self):
+        built = adapter.to_run_config(self.config(), self.out)
+        self.assertNotIn("recipe", built)
+        self.assertNotIn("save_at_epochs", built["training"])
+
+    def test_a_bad_recipe_is_refused_by_name(self):
+        with self.assertRaises(adapter.ConfigError) as e:
+            adapter.to_run_config(
+                self.unified_config(train={**UNIFIED_TRAIN, "recipe": "fancy"}),
+                self.out)
+        self.assertIn("recipe", str(e.exception))
+
+    def test_a_missing_unified_setting_is_refused_by_name(self):
+        for key in UNIFIED_TRAIN:
+            if key == "recipe":
+                continue
+            with self.subTest(key=key):
+                t = {k: v for k, v in UNIFIED_TRAIN.items() if k != key}
+                with self.assertRaises(adapter.ConfigError) as e:
+                    adapter.to_run_config(self.unified_config(train=t), self.out)
+                self.assertIn(key, str(e.exception))
+
+    def test_a_unified_only_key_is_refused_on_the_native_path(self):
+        for key in ("warmup_epochs", "min_lr", "save_at_epochs"):
+            with self.subTest(key=key):
+                with self.assertRaises(adapter.ConfigError) as e:
+                    adapter.to_run_config(self.config(train={key: 1}), self.out)
+                self.assertIn(key, str(e.exception))
+
+
+class TestAUnifiedStep2Smoke(Base):
+    def _adapter(self, cfg_dict, out):
+        cfg = self.tmp / (out.name + ".json")
+        cfg.write_text(json.dumps(cfg_dict), encoding="utf-8")
+        env = {**os.environ, "PYTHONPATH": str(ROOT)}
+        r = subprocess.run(
+            [sys.executable, "-m", "adapter", "--config", str(cfg),
+             "--out", str(out)], cwd=METHOD, env=env,
+            capture_output=True, text=True)
+        return cfg, r
+
+    @needs_deps
+    def test_pretrain_milestones_then_probe_passes_contract(self):
+        tiny_imagefolder(self.tmp / "data")
+        pre = self.tmp / "pre_out"
+        _, r = self._adapter(
+            {"stage": "pretrain", "seed": 0,
+             "data_root": str(self.tmp / "data"), "device": "cpu",
+             "train": dict(UNIFIED_TRAIN)}, pre)
+        self.assertEqual(r.returncode, 0, r.stdout[-3000:] + r.stderr[-3000:])
+        self.assertTrue((pre / "encoder.pt").is_file())
+        for n in (1, 2):
+            self.assertTrue((pre / f"encoder_epoch{n}.pt").is_file(),
+                            f"milestone encoder_epoch{n}.pt not written")
+
+        tiny_split(self.tmp / "eval")
+        ev = self.tmp / "eval_out"
+        cfg, r = self._adapter(
+            {"stage": "linear_eval", "seed": 0,
+             "data_root": str(self.tmp / "eval"), "device": "cpu",
+             "encoder": str(pre / "encoder_epoch2.pt"),
+             "train": dict(EVAL_TRAIN)}, ev)
+        self.assertEqual(r.returncode, 0, r.stdout[-3000:] + r.stderr[-3000:])
+        v = subprocess.run(
+            [sys.executable, str(BIN / "contract-test.py"), "--out", str(ev),
+             "--config", str(cfg), "--exit-status", "0"],
+            capture_output=True, text=True)
+        self.assertEqual(v.returncode, 0, v.stdout + v.stderr)
+        m = json.loads((ev / "metrics.json").read_text())["metrics"]
+        self.assertIn("final_linear_probe_top1_accuracy", m)
+        self.assertFalse((ev / "encoder.pt").exists())
+
+
+BACKBONE_DIM = 1024  # MAE ViT-L/16 enc_embed_dim; get_encoder(pool="avg") is the
+                     # mean of the patch tokens (CLS excluded), one enc_embed_dim
+                     # vector per image (measured from the shipped linear_eval config)
+
+
+class TestFeatureProvider(Base):
+    """`feature_provider.py` is what `bin/extract-features.py` discovers and
+    calls to obtain one raw feature vector per image. It reuses this method's
+    own encoder loader and eval pipeline, so the check is that it returns the
+    1024-d MAE encoder feature (get_encoder(pool="avg"): the mean of the patch
+    tokens with the CLS token excluded) -- raw, before the probe's normalise --
+    one row per val image, with honest meta.
+
+    The encoder.pt is built from the *shipped* linear_eval config's architecture
+    (the provider reads that config), via the same `extract_encoder` filter the
+    adapter writes with; random weights do not affect the shape-and-plumbing this
+    proves. Modules load through `load` (`load_from`), which purges any other
+    method's `adapter`/`models` first -- the whole suite runs many methods in one
+    interpreter.
+    """
+
+    def _shipped_config(self) -> dict:
+        import yaml
+        return yaml.safe_load(
+            (METHOD / "configs" / "linear_eval.yaml").read_text())
+
+    def _make_encoder(self, cfg: dict) -> Path:
+        import torch
+        models = load("mae_models", METHOD / "models" / "__init__.py")
+        trainer = load("mae_trainer", METHOD / "train_pretrain_mae.py")
+        train = cfg["train"]
+        model = models.build_mae(train["arch"], **trainer.model_kwargs(train))
+        state = adapter.extract_encoder(model.state_dict())
+        encoder_pt = self.tmp / "encoder.pt"
+        torch.save(state, encoder_pt)
+        return encoder_pt
+
+    def _provider(self):
+        return load("mae_feature_provider", METHOD / "feature_provider.py")
+
+    @needs_deps
+    def test_it_returns_raw_1024d_features_one_per_val_image(self):
+        prov_path = METHOD / "feature_provider.py"
+        if not prov_path.is_file():
+            self.skipTest("mae provider not yet present")
+        import numpy as np
+        data_root = tiny_split(self.tmp / "data")
+        cfg = self._shipped_config()
+        encoder_pt = self._make_encoder(cfg)
+
+        prov = self._provider()
+        feats, labels, meta = prov.extract_val_features(
+            encoder_path=str(encoder_pt), data_root=str(data_root),
+            split="val", device="cpu", batch_size=2, num_workers=0)
+
+        feats = np.asarray(feats)
+        self.assertEqual(feats.ndim, 2)
+        self.assertEqual(feats.shape[0], 6, "6 val images expected")
+        self.assertEqual(feats.shape[1], BACKBONE_DIM,
+                         "MAE avg-pooled patch-token feature is 1024-d")
+        self.assertEqual(np.asarray(labels).shape[0], 6)
+        self.assertEqual(meta["feat_dim"], BACKBONE_DIM)
+        self.assertEqual(meta["representation"], "raw")
+
+    @needs_deps
+    def test_the_driver_saves_it_under_a_per_method_directory(self):
+        """End to end through the driver's save path: the provider's output
+        lands as features.npy / labels.npy / meta.json where a figure reads it,
+        with the encoder's sha256 recorded in meta."""
+        prov_path = METHOD / "feature_provider.py"
+        if not prov_path.is_file():
+            self.skipTest("mae provider not yet present")
+        import numpy as np
+        driver = load("extract_features_driver", BIN / "extract-features.py")
+        data_root = tiny_split(self.tmp / "data")
+        encoder_pt = self._make_encoder(self._shipped_config())
+
+        record = {"method": METHOD.name, "status": "ready",
+                  "provider": str(prov_path), "encoder": str(encoder_pt)}
+        out = self.tmp / "features"
+        updated = driver.extract_one(
+            record, data_root=str(data_root), split="val", out=out,
+            device="cpu", batch_size=2, num_workers=0)
+
+        self.assertEqual(updated["status"], "ok", updated.get("reason", ""))
+        method_out = out / METHOD.name
+        feats = np.load(method_out / "features.npy")
+        labels = np.load(method_out / "labels.npy")
+        meta = json.loads((method_out / "meta.json").read_text())
+        self.assertEqual(feats.shape, (6, BACKBONE_DIM))
+        self.assertEqual(labels.shape[0], 6)
+        self.assertEqual(meta["encoder_sha256"],
+                         hashlib.sha256(encoder_pt.read_bytes()).hexdigest())
+
+    @needs_deps
+    def test_the_isolated_driver_run_extracts_this_method_end_to_end(self):
+        """The whole driver, real subprocess, real provider. This runs a method
+        whose adapter imports the shared `adapterlib` -- so it catches the class
+        of regression where the isolated worker cannot see a repository-root
+        module the provider needs (the worker puts ROOT on sys.path, as
+        bin/launch.py sets PYTHONPATH=ROOT)."""
+        if not (METHOD / "feature_provider.py").is_file():
+            self.skipTest("mae provider not yet present")
+        import numpy as np
+        driver = load("extract_features_driver", BIN / "extract-features.py")
+        data_root = tiny_split(self.tmp / "data")
+        encoder_pt = self._make_encoder(self._shipped_config())
+        out = self.tmp / "features"
+        manifest = driver.run(
+            METHOD.parent, data_root=str(data_root), split="val", out=out,
+            encoders={METHOD.name: str(encoder_pt)}, encoders_root=None,
+            device="cpu", batch_size=2, num_workers=0,
+            venvs_root=ROOT / ".venvs")
+
+        rec = {r["method"]: r for r in manifest["records"]}[METHOD.name]
+        self.assertEqual(rec["status"], "ok", rec.get("reason", ""))
+        feats = np.load(out / METHOD.name / "features.npy")
+        self.assertEqual(feats.shape, (6, BACKBONE_DIM))
+
+
+class TestTheProbeTrainAugmentation(Base):
+    """BASIC5_FAIR_v1 rule `aug`: the linear probe's train-time augmentation is
+    RandomResizedCrop + HorizontalFlip only. This method caches features, so it
+    historically read the train split with the deterministic eval transform --
+    no augmentation. The train loader must now apply RRC + HFlip; the val loader
+    (and the provider, which extracts val) must stay deterministic. The rule
+    itself lives in probe_transforms; these checks confirm this method wires it.
+    """
+
+    def evaluator(self):
+        return load("mae_eval", METHOD / "evaluate_linear_mae.py")
+
+    @needs_deps
+    def test_the_train_loader_applies_rrc_and_hflip(self):
+        tiny_split(self.tmp / "data")
+        _probe_aug.assert_train_augments(
+            self, self.evaluator()._build_loader, self.tmp / "data")
+
+    @needs_deps
+    def test_the_val_loader_stays_deterministic(self):
+        tiny_split(self.tmp / "data")
+        _probe_aug.assert_val_deterministic(
+            self, self.evaluator()._build_loader, self.tmp / "data",
+            must_include="CenterCrop")
+
+    def test_run_builds_the_train_loader_with_augmentation(self):
+        _probe_aug.assert_run_wires_train_split(
+            self, METHOD / "evaluate_linear_mae.py")
+
+
+if __name__ == "__main__":
+    unittest.main()

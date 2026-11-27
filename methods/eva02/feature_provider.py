@@ -22,7 +22,7 @@ shipped `configs/linear_eval.yaml` pins the base EVA-02-B/14 (768-d); a
 checkpoint fully determines its own architecture, and `build_model` requires the
 architecture it constructs to match the state dict strictly. So the timm arch
 name is derived from the checkpoint's embed dim (`patch_embed.proj.weight`'s
-first dimension), the way `28_dinov2`'s provider infers its ViT variant from the
+first dimension), the way `dinov2`'s provider infers its ViT variant from the
 checkpoint: the model built can never disagree with the weights it is handed, and
 both the real 768-d base and a tiny test checkpoint load. `img_size` stays the
 config's, and the test checkpoint is built at that same size (EVA-02 has a

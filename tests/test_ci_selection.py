@@ -1,7 +1,6 @@
 """Execute the workflow's selector against real commits, including deletions."""
 import json
 import os
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -9,7 +8,7 @@ import unittest
 from pathlib import Path
 
 from tests._checkout import needs_git
-from tests.test_ci import discovery_script, needs_yaml, parsed
+from tests.test_ci import copy_selector, discovery_script, needs_yaml, parsed
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -32,9 +31,7 @@ class Selection(unittest.TestCase):
             self.write(f'methods/{name}/model.py', 'VALUE = 1\n')
             self.write(f'methods/{name}/README.md', 'Example\n')
         self.write('README.md', 'Example\n')
-        helper = ROOT / 'ci_selection.py'
-        if helper.exists():
-            shutil.copy2(helper, self.root / helper.name)
+        copy_selector(self.root)
         self.commit()
         self.base = self.git('rev-parse', 'HEAD').strip()
 
@@ -53,9 +50,7 @@ class Selection(unittest.TestCase):
     def select(self, base=None, event='pull_request'):
         self.commit()
         # Use exactly the discovery code executed in Actions.
-        helper = ROOT / 'ci_selection.py'
-        if helper.exists():
-            shutil.copy2(helper, self.root / helper.name)
+        copy_selector(self.root)
         payload = self.root / '.git/event.json'
         payload.write_text(json.dumps({'pull_request': {'base': {'sha': base or self.base}}}))
         proc = subprocess.run(

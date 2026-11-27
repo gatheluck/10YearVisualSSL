@@ -364,19 +364,19 @@
       "relationship": "No submodule or runtime import of this upstream identified. The local PIRL implementation has separate recorded provenance; this is not proof of independent authorship.",
       "evidence": [
         {
-          "path": "methods/33_pirl/provenance.json",
+          "path": "methods/pirl/provenance.json",
           "sha256": "c8893ed765c3e8fd66abe57b25a8b0546ddc301c5db103772ed50f60d27527e7"
         },
         {
-          "path": "methods/33_pirl/models/resnet_pirl.py",
+          "path": "methods/pirl/models/resnet_pirl.py",
           "sha256": "cf678dda3f0dc4427391a49ac085e7229f503fcaa621ecbf9d6ac3b6b60ca3f8"
         },
         {
-          "path": "methods/33_pirl/loss/memory_nce.py",
+          "path": "methods/pirl/loss/memory_nce.py",
           "sha256": "cd1a7f67727276f467998ec94aead39c0b1043ead0acc049733e508772370a2b"
         },
         {
-          "path": "methods/33_pirl/data/pirl_dataset.py",
+          "path": "methods/pirl/data/pirl_dataset.py",
           "sha256": "f0841500004505c1de112dd7e28ef19d7e88a6c802fc08bd0b42eaf6b28fde09"
         }
       ]

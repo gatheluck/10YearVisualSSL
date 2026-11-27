@@ -27,7 +27,7 @@ are discovered here, never listed.
 
 **Not every port produces an `encoder.pt`.** An eval-only port -- one whose
 adapter has no `step1` stage -- trains nothing and probes a frozen, downloaded
-backbone (36_franca is the first). It writes no encoder, so the round-trip
+backbone (franca is the first). It writes no encoder, so the round-trip
 requirement does not apply to it; instead it must *declare* that it produces
 none (`_absent_reason`, which adapterlib enforces at run time). Which ports
 produce an encoder is discovered from each adapter's own `STAGES` -- `step1` is
@@ -291,7 +291,7 @@ class TestEveryPortAgreesOnWhatEncoderPtHolds(unittest.TestCase):
         One shape is a stage that produces an `encoder.pt` (a `pretrain` stage);
         the other is a stage that produces none and declares it via
         `_absent_reason`. Originally the no-encoder shape belonged to wholly
-        eval-only ports (28_dinov2 / 30_aim / 36_franca). Those gained a
+        eval-only ports (dinov2 / aim / franca). Those gained a
         from-scratch unified Step-2 `pretrain`, so the no-encoder shape is now
         carried by their `linear_eval` stage (which still writes a classifier, not
         an encoder) rather than a whole port -- checked here through the

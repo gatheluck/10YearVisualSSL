@@ -2,7 +2,7 @@
   "targets": [
     {
       "label": "light normalization",
-      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "file": "methods/split_brain/splitbrain_scaling.py",
       "old": "(lab[..., 0] - 50) / 50",
       "new": "lab[..., 0] / 100",
       "tests": [
@@ -11,7 +11,7 @@
     },
     {
       "label": "ab normalization",
-      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "file": "methods/split_brain/splitbrain_scaling.py",
       "old": "lab[..., 1:] / 128",
       "new": "lab[..., 1:] / 127",
       "tests": [
@@ -20,7 +20,7 @@
     },
     {
       "label": "Lab finite",
-      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "file": "methods/split_brain/splitbrain_scaling.py",
       "old": "if not np.isfinite(lab).all():",
       "new": "if False:",
       "tests": [
@@ -29,7 +29,7 @@
     },
     {
       "label": "target finite",
-      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "file": "methods/split_brain/splitbrain_scaling.py",
       "old": "if not torch.isfinite(light).all() or not torch.isfinite(ab).all():",
       "new": "if False:",
       "tests": [
@@ -38,7 +38,7 @@
     },
     {
       "label": "quantization input",
-      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "file": "methods/split_brain/splitbrain_scaling.py",
       "old": "* 128",
       "new": "* 127",
       "tests": [
@@ -47,7 +47,7 @@
     },
     {
       "label": "L bins",
-      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "file": "methods/split_brain/splitbrain_scaling.py",
       "old": ".div(2)",
       "new": ".div(3)",
       "tests": [
@@ -56,7 +56,7 @@
     },
     {
       "label": "target resize",
-      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "file": "methods/split_brain/splitbrain_scaling.py",
       "old": "mode=\"nearest\"",
       "new": "mode=\"bilinear\"",
       "tests": [
@@ -65,7 +65,7 @@
     },
     {
       "label": "gradient averaging",
-      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "file": "methods/split_brain/splitbrain_scaling.py",
       "old": "(loss / accumulation).backward()",
       "new": "loss.backward()",
       "tests": [
@@ -74,7 +74,7 @@
     },
     {
       "label": "tail update",
-      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "file": "methods/split_brain/splitbrain_scaling.py",
       "old": "if len(batches) == accumulation:",
       "new": "if True:",
       "tests": [
@@ -83,7 +83,7 @@
     },
     {
       "label": "update finite",
-      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "file": "methods/split_brain/splitbrain_scaling.py",
       "old": "if not torch.isfinite(value).all():",
       "new": "if False:",
       "tests": [
@@ -92,7 +92,7 @@
     },
     {
       "label": "precision guard",
-      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "file": "methods/split_brain/splitbrain_scaling.py",
       "old": "precision not in (\"float32\", \"bfloat16\")",
       "new": "False",
       "tests": [
@@ -101,7 +101,7 @@
     },
     {
       "label": "BF16 device",
-      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "file": "methods/split_brain/splitbrain_scaling.py",
       "old": "if precision == \"bfloat16\" and context.device.type != \"cuda\":",
       "new": "if False:",
       "tests": [
@@ -110,7 +110,7 @@
     },
     {
       "label": "epoch range",
-      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "file": "methods/split_brain/splitbrain_scaling.py",
       "old": "cfg[\"epochs\"] > 90",
       "new": "False",
       "tests": [
@@ -119,7 +119,7 @@
     },
     {
       "label": "config exact keys",
-      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "file": "methods/split_brain/splitbrain_scaling.py",
       "old": "if set(cfg) - {\"resume\"} != {",
       "new": "if False and set(cfg) - {\"resume\"} != {",
       "tests": [
@@ -128,7 +128,7 @@
     },
     {
       "label": "config Lab backend",
-      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "file": "methods/split_brain/splitbrain_scaling.py",
       "old": "if cfg[\"lab_backend\"] not in (\"fallback\", \"skimage\"):",
       "new": "if False:",
       "tests": [
@@ -137,7 +137,7 @@
     },
     {
       "label": "schedule advance",
-      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "file": "methods/split_brain/splitbrain_scaling.py",
       "old": "group[\"lr\"] = schedule(updates, 90 * steps)",
       "new": "group[\"lr\"] = schedule(0, 90 * steps)",
       "tests": [
@@ -146,7 +146,7 @@
     },
     {
       "label": "source factory selection",
-      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "file": "methods/split_brain/splitbrain_scaling.py",
       "old": "native_scaling=True",
       "new": "native_scaling=False",
       "tests": [
@@ -155,7 +155,7 @@
     },
     {
       "label": "source contiguous layout",
-      "file": "methods/08_split_brain/models/vit_split_brain.py",
+      "file": "methods/split_brain/models/vit_split_brain.py",
       "old": "return self.decoder(spatial.contiguous()).contiguous()",
       "new": "return self.decoder(spatial)",
       "tests": [
@@ -164,7 +164,7 @@
     },
     {
       "label": "distributed model synchronization",
-      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "file": "methods/split_brain/splitbrain_scaling.py",
       "old": "            if context.world > 1\n            else raw",
       "new": "            if False\n            else raw",
       "tests": [

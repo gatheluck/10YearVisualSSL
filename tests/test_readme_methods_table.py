@@ -1,23 +1,4 @@
-#!/usr/bin/env python3
-"""The README per-method table must list every ported method, and in order.
-
-Two separate failures this guards, both of which actually happened:
-
-  1. **Membership.** The layout *tree* and the `bin/` tools are checked against
-     the filesystem (tests/test_repo_hygiene.py), but the per-method **table**
-     -- the one under `## Methods` that says what is ported -- was not. A method
-     could be added under `methods/` and never appear in the table, or a row
-     could linger after a directory was removed, and nothing would complain.
-
-  2. **Order.** The table is documented as sorted "so they sort in numeric
-     order", but each port appended its row, and the order drifted into
-     `... 16, 18, 19, 22, 23, 26, 29, 33, 32, 17, 20, 21, ...` -- numeric at
-     first, then arbitrary. Care did not hold the order across many ports, so a
-     mechanism does: the rows must be sorted by numeric prefix, then the
-     non-numbered names (image_gpt, mar, var) alphabetically.
-
-Filesystem-only (no git), so it runs unchanged in the container image.
-"""
+"""The README lists every public method once and preserves the historical order."""
 
 from __future__ import annotations
 
@@ -30,11 +11,7 @@ METHODS = ROOT / "methods"
 EXEMPT = {"_reference"}
 
 
-def _order_key(name: str):
-    """Numeric-prefixed methods first, in numeric order; then the rest by name.
-    The single source of truth for how the table must be ordered."""
-    m = re.match(r"(\d+)_", name)
-    return (0, int(m.group(1)), "") if m else (1, 0, name)
+from adapterlib.method_names import HISTORICAL, order_key as _order_key
 
 
 def _table_dirs() -> "list[str]":
@@ -78,20 +55,20 @@ class TestTheMethodsTable(unittest.TestCase):
                          "methods on disk missing from the table")
         self.assertEqual(len(rows), len(set(rows)), "a method is listed twice")
 
-    def test_the_table_is_in_numeric_then_alphabetical_order(self):
+    def test_the_table_is_in_historical_then_alphabetical_order(self):
         rows = _table_dirs()
         self.assertEqual(rows, sorted(rows, key=_order_key),
                          "the methods table is out of order; sort rows by "
-                         "numeric prefix, then the non-numbered names by name")
+                         "historical order, then additional methods by name")
 
     def test_the_order_check_is_not_vacuous(self):
         """A negative control: a genuinely mis-ordered list must not satisfy the
         order rule (otherwise the assertion above could never fire). Built from
         discovered names, so no method is named here."""
-        numbered = sorted((d for d in _disk_methods() if re.match(r"\d+_", d)),
+        historical = sorted((d for d in _disk_methods() if d in HISTORICAL),
                           key=_order_key)
-        self.assertGreaterEqual(len(numbered), 2)
-        scrambled = [numbered[1], numbered[0]] + numbered[2:]   # swap first two
+        self.assertGreaterEqual(len(historical), 2)
+        scrambled = [historical[1], historical[0]] + historical[2:]   # swap first two
         self.assertNotEqual(scrambled, sorted(scrambled, key=_order_key))
 
 

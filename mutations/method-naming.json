@@ -1,0 +1,157 @@
+{
+  "targets": [
+    {
+      "label": "Historical IDs no longer match public names",
+      "file": "adapterlib/method_names.py",
+      "old": "return _LEGACY.get(value, value) if isinstance(value, str) else value",
+      "new": "return value",
+      "tests": [
+        "tests.test_method_naming.TestMethodNaming.test_saved_manifests_mix_only_exact_aliases"
+      ]
+    },
+    {
+      "label": "An unregistered numeric prefix aliases a real method",
+      "file": "adapterlib/method_names.py",
+      "old": "return _LEGACY.get(value, value) if isinstance(value, str) else value",
+      "new": "return value.split(\"_\", 1)[-1] if isinstance(value, str) and value[:2].isdigit() else value",
+      "tests": [
+        "tests.test_method_naming.TestMethodNaming.test_saved_manifests_mix_only_exact_aliases"
+      ]
+    },
+    {
+      "label": "The README omits its historical first entry",
+      "file": "README.md",
+      "old": "| `context_prediction` |",
+      "new": "| `vae` |",
+      "tests": [
+        "tests.test_method_naming.TestMethodNaming.test_physical_names_and_exact_table_order"
+      ]
+    },
+    {
+      "label": "Selected model records carry an archived identifier",
+      "file": "bin/matrix-run.py",
+      "old": "\"method\": method, \"stage\": None",
+      "new": "\"method\": \"99_\" + method, \"stage\": None",
+      "tests": [
+        "tests.test_method_naming.TestMethodNaming.test_matrix_selection_and_new_report"
+      ]
+    },
+    {
+      "label": "Drop archived checkpoint directories",
+      "file": "adapterlib/method_names.py",
+      "old": "return (name, _ARCHIVE_NAME[name]) if name in _ARCHIVE_NAME else (name,)",
+      "new": "return (name,)",
+      "tests": [
+        "tests.test_method_naming.TestMethodNaming.test_archived_encoders_and_venvs_keep_their_actual_paths"
+      ]
+    },
+    {
+      "label": "Merge conflicting source keys silently",
+      "file": "adapterlib/method_names.py",
+      "old": "if name in result:",
+      "new": "if False:",
+      "tests": [
+        "tests.test_method_naming.TestMethodNaming.test_archived_encoders_and_venvs_keep_their_actual_paths"
+      ]
+    },
+    {
+      "label": "Lose archived grid identity",
+      "file": "bin/matrix-audit.py",
+      "old": "method=public_name(cell.get(\"method\"))",
+      "new": "method=cell.get(\"method\")",
+      "tests": [
+        "tests.test_method_naming.TestMethodNaming.test_archived_matrix_paths_stay_readable"
+      ]
+    },
+    {
+      "label": "Alphabetize original CI model list",
+      "file": "ci_selection.py",
+      "old": "methods = sorted(methods, key=order_key)",
+      "new": "methods = sorted(methods)",
+      "tests": [
+        "tests.test_method_naming.TestMethodNaming.test_ci_discovers_all_locks_in_original_order"
+      ]
+    },
+    {
+      "label": "Ignore saved checkpoint map identifiers",
+      "file": "bin/prepare-native-encoders.py",
+      "old": "public_mapping(sources).items()",
+      "new": "sources.items()",
+      "tests": [
+        "tests.test_prepare_native_encoders.TestBatch.test_archived_batch_keys_resolve_to_new_output_paths"
+      ]
+    },
+    {
+      "label": "Write archived ID into a new cache",
+      "file": "bin/import-reference-cache.py",
+      "old": "method=public_name(profile[\"id\"])",
+      "new": "method=profile[\"id\"]",
+      "tests": [
+        "tests.test_import_reference_cache.TestCacheImport.test_restores_order_normalizes_and_keeps_sources_unchanged"
+      ]
+    },
+    {
+      "label": "Write archived ID into new extracted features",
+      "file": "bin/extract-reference.py",
+      "old": "'method': public_name(profile['id'])",
+      "new": "'method': profile['id']",
+      "tests": [
+        "tests.test_extract_reference.TestProfileRun.test_profile_runs_real_reference_and_refuses_overwrite_or_changed_source"
+      ]
+    },
+    {
+      "label": "Split a historical method into two comparison rows",
+      "file": "downstream/controlled_comparison.py",
+      "old": "method = public_name(record[\"method\"])",
+      "new": "method = record[\"method\"]",
+      "tests": [
+        "tests.test_control_comparison.ControlledComparison.test_saved_rows_use_public_ids_and_alias_collisions_fail"
+      ]
+    },
+    {
+      "label": "Reject matching historical record",
+      "file": "downstream/reference_accounting.py",
+      "old": "actual, expected = public_name(actual), public_name(expected)",
+      "new": "pass",
+      "tests": [
+        "tests.test_reference_accounting.ReferenceAccounting.test_archived_model_matches_current_plan_at_read_time"
+      ]
+    },
+    {
+      "label": "Separate a feature reference from its archived model",
+      "file": "downstream/representation_analysis.py",
+      "old": "dict(model, id=public_name(model['id']))",
+      "new": "dict(model)",
+      "tests": [
+        "tests.test_method_naming.TestMethodNaming.test_representation_files_keep_paths_and_match_public_references"
+      ]
+    },
+    {
+      "label": "Allow implementation code to hard-code other methods",
+      "file": "tests/test_no_hard_coded_methods.py",
+      "old": "return not (method_implementation and implementation_literals(text, method))",
+      "new": "return not method_implementation",
+      "tests": [
+        "tests.test_no_hard_coded_methods.TestSharedMachineryDiscoversMethods.test_the_matcher_ignores_substrings_prose_and_unrelated_paths"
+      ]
+    },
+    {
+      "label": "Leave an obsolete test module in the downstream CI job",
+      "file": ".github/workflows/tests.yml",
+      "old": "tests.test_method_cvpr_rae_bindings",
+      "new": "tests.test_missing_rae_bindings",
+      "tests": [
+        "tests.test_method_naming.TestMethodNaming.test_ci_discovers_all_locks_in_original_order"
+      ]
+    },
+    {
+      "label": "Rewrite an archived launch record during verification",
+      "file": "bin/launch.py",
+      "old": "if name == record[\"method\"]:",
+      "new": "if True:",
+      "tests": [
+        "tests.test_launch.TestVerifying.test_archived_launch_verification_preserves_both_records"
+      ]
+    }
+  ]
+}

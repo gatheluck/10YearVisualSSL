@@ -9,7 +9,7 @@ feature. BEiT v2's from-scratch pretraining (a VQ-KD visual tokenizer + masked
 image modelling, many GPU-days) is the excluded step, so the port reuses the
 released checkpoint, exactly as the capture's as-is comparison does. The probed
 representation is a genuine learned SSL feature, so the number is comparable -- the
-autoregressive/MIM sibling of `eva02` / `36_franca`.
+autoregressive/MIM sibling of `eva02` / `franca`.
 
 The backbone class is the author's, imported from the pinned `microsoft/unilm`
 submodule (`third_party/unilm/beit2`, **MIT**, imported not copied), so this adapter

@@ -3,7 +3,7 @@
   "targets": [
     {
       "label": "the wrong layers are read (the first N blocks instead of the last N)",
-      "file": "methods/30_aim/downstream_backbone.py",
+      "file": "methods/aim/downstream_backbone.py",
       "old": "        layer_ids = list(range(n_blocks - k, n_blocks))",
       "new": "        layer_ids = list(range(0, k))",
       "tests": [
@@ -12,7 +12,7 @@
     },
     {
       "label": "the middle-layer tokens are reshaped to the grid without the transpose, scrambling channels and positions",
-      "file": "methods/30_aim/downstream_backbone.py",
+      "file": "methods/aim/downstream_backbone.py",
       "old": "        return tokens.transpose(1, 2).reshape(b, d, grid_h, grid_w).contiguous()",
       "new": "        return tokens.reshape(b, d, grid_h, grid_w).contiguous()",
       "tests": [
@@ -21,7 +21,7 @@
     },
     {
       "label": "an encoder carrying keys this AIM does not have is half-loaded, not refused",
-      "file": "methods/30_aim/downstream_backbone.py",
+      "file": "methods/aim/downstream_backbone.py",
       "old": "        if result.unexpected_keys:",
       "new": "        if False:",
       "tests": [
@@ -30,7 +30,7 @@
     },
     {
       "label": "an encoder missing a trunk weight is silently accepted",
-      "file": "methods/30_aim/downstream_backbone.py",
+      "file": "methods/aim/downstream_backbone.py",
       "old": "        if absent:",
       "new": "        if False:",
       "tests": [
@@ -39,7 +39,7 @@
     },
     {
       "label": "the prediction head's absence is not tolerated (predictor.* keys are treated as missing trunk weights), so a valid encoder is wrongly refused",
-      "file": "methods/30_aim/downstream_backbone.py",
+      "file": "methods/aim/downstream_backbone.py",
       "old": "        absent = [k for k in result.missing_keys\n                  if not k.startswith(_PREDICTOR_PREFIX)]",
       "new": "        absent = list(result.missing_keys)",
       "tests": [
@@ -48,7 +48,7 @@
     },
     {
       "label": "the backbone leaves eval when train() is called",
-      "file": "methods/30_aim/downstream_backbone.py",
+      "file": "methods/aim/downstream_backbone.py",
       "old": "        return super().train(False)",
       "new": "        return super().train(mode)",
       "tests": [
@@ -58,7 +58,7 @@
   ],
   "_result": {
     "measured_on": "2026-09-01",
-    "measured_with": "an interpreter with torch (.venvs/05_jigsaw_puzzle), which builds and loads the AIM backbone in-process; the end-to-end ARSSL test is not among the referenced tests, so no timm subprocess is needed to kill these",
+    "measured_with": "an interpreter with torch (.venvs/jigsaw_puzzle), which builds and loads the AIM backbone in-process; the end-to-end ARSSL test is not among the referenced tests, so no timm subprocess is needed to kill these",
     "killed": 6,
     "total": 6,
     "equivalent": []

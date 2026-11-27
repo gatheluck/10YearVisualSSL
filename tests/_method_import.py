@@ -31,7 +31,7 @@ def _shared_names() -> "tuple[str, ...]":
 
     **Discovered by scanning `methods/`, not listed.** A hand-kept list was the
     original shape here (`data`, `models`), and it silently missed `nce` the
-    moment a second method (`12_cmc`, alongside `10_inst_disc`) defined one:
+    moment a second method (`cmc`, alongside `inst_disc`) defined one:
     `sys.modules["nce"]` then kept the first method's copy and the second's
     `from nce import ...` resolved against the wrong one. A name shared by two
     methods is exactly what must be purged, so the set is computed from the tree
@@ -79,7 +79,7 @@ def load_from(method: Path, name: str, path: Path):
     # from the previous method behind, so a relative `from .submodule import X`
     # in the new __init__ resolves against the old file. Two methods sharing an
     # alias (`this_methods_models`) and a submodule name (`vision_transformer`
-    # in both 23_dino and 27_ibot) then cross-import -- the second method's
+    # in both dino and ibot) then cross-import -- the second method's
     # `vit_large` is looked up in the first method's module and is not found.
     for key in [k for k in sys.modules if k == name or k.startswith(f"{name}.")]:
         del sys.modules[key]

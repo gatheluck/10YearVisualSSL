@@ -2,7 +2,7 @@
 """Specification for aimv2 (AIMv2; Fini et al., 2024; arXiv:2411.14402).
 
 A **pure eval-only** port: a single `linear_eval` stage and no pretraining at all,
-the timm-sourced sibling of the download-and-probe methods (eva02 / 36_franca).
+the timm-sourced sibling of the download-and-probe methods (eva02 / franca).
 AIMv2's "Step 3 as-is" comparison freezes the official autoregressively pretrained
 backbone (`aimv2_large_patch14_224.apple_pt`, a ViT built with RMSNorm, SwiGLU and
 average pooling over patch tokens) and fits a linear probe on its pooled features,

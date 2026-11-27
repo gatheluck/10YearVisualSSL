@@ -3,7 +3,7 @@
 
 A **pure eval-only** port: a single `linear_eval` stage and no pretraining at all,
 the timm-sourced multimodal sibling of the download-and-probe methods
-(38_clip / eva02). SigLIP's "as-is" comparison freezes the official
+(clip / eva02). SigLIP's "as-is" comparison freezes the official
 sigmoid-loss image-text pretrained image tower (`vit_base_patch16_siglip_224.webli`,
 a ViT with no class token and a MAP attention-pooling head) and fits a linear probe
 on its pooled image embedding, because the from-scratch pretraining (the WebLI
