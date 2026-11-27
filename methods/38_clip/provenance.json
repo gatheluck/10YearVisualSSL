@@ -1,6 +1,6 @@
 {
   "captured_at": "2026-08-20",
-  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
+  "captured_from": "private experiment archive",
   "captured_note": "Ported from the capture's methods/38_clip, which references the official openai/CLIP repo (it ships no model of its own; clip_utils.py imports the official constructor, BPE tokenizer and ImageNet prompt metadata). The capture has two comparisons: a Step-1 as-is probe of the released OpenAI ViT-B/32 (frozen image tower, ImageNet linear probe) and a Step-2 from-scratch training of the official CLIP ViT-B/16 on ImageNet-1k, pairing each labeled image with an official OpenAI ImageNet class-name prompt (a symmetric image-text contrastive loss). This port covers BOTH: the Step-1 as-is download probe (like 28_dinov2 / 30_aim / 36_franca) and the Step-2 from-scratch label-text adaptation (a milestone 100/200/300 encoder sweep, like the other unified Step-2 ports). It pins openai/CLIP as the submodule third_party/CLIP and IMPORTS its CLIP/VisionTransformer constructor, its BPE tokenizer (clip.tokenize) and its ImageNet class names + 80 prompt templates (from the pinned notebook), never copying or installing them. The port keeps the capture directory numbering (38).",
   "paper": {
     "title": "Learning Transferable Visual Models From Natural Language Supervision (CLIP)",

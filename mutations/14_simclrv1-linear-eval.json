@@ -1,5 +1,5 @@
 {
-  "_note": "Run: .venvs/14_simclrv1/bin/python bin/mutate.py --spec mutations/14_simclrv1-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/14_simclrv1/bin/python. Proves the model/loss/eval guards are not vacuous: the projection is L2-normalised, NT-Xent masks self-similarity and pairs view i with view i, encoder.pt excludes the projection head, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
+  "_note": "Run: .venvs/14_simclrv1/bin/python bin/mutate.py --spec mutations/14_simclrv1-linear-eval.json --python \"$PWD/.venvs/14_simclrv1/bin/python\". Proves the model/loss/eval guards are not vacuous: the projection is L2-normalised, NT-Xent masks self-similarity and pairs view i with view i, encoder.pt excludes the projection head, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
   "targets": [
     {
       "label": "the projection is no longer L2-normalised",

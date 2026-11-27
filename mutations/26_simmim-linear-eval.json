@@ -1,5 +1,5 @@
 {
-  "_note": "Run: .venvs/26_simmim/bin/python bin/mutate.py --spec mutations/26_simmim-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/26_simmim/bin/python. Proves the SimMIM model/schedule/eval guards are not vacuous: the L1 loss is taken only on masked pixels, the mask token is applied, encode_global mean-pools, encoder.pt excludes the mask token + decoder, the LR warms up then multistep-decays, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
+  "_note": "Run: .venvs/26_simmim/bin/python bin/mutate.py --spec mutations/26_simmim-linear-eval.json --python \"$PWD/.venvs/26_simmim/bin/python\". Proves the SimMIM model/schedule/eval guards are not vacuous: the L1 loss is taken only on masked pixels, the mask token is applied, encode_global mean-pools, encoder.pt excludes the mask token + decoder, the LR warms up then multistep-decays, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
   "targets": [
     {
       "label": "the loss ignores the mask (taken over all pixels, not just masked)",

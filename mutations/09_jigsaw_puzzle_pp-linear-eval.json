@@ -1,5 +1,5 @@
 {
-  "_note": "Run: .venvs/09_jigsaw_puzzle_pp/bin/python bin/mutate.py --spec mutations/09_jigsaw_puzzle_pp-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/09_jigsaw_puzzle_pp/bin/python. Proves the model/dataset/two-stage guards are not vacuous: the encoder pools to one vector per image, the permutation set is deterministic and high-Hamming, encoder.pt excludes the classifier, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
+  "_note": "Run: .venvs/09_jigsaw_puzzle_pp/bin/python bin/mutate.py --spec mutations/09_jigsaw_puzzle_pp-linear-eval.json --python \"$PWD/.venvs/09_jigsaw_puzzle_pp/bin/python\". Proves the model/dataset/two-stage guards are not vacuous: the encoder pools to one vector per image, the permutation set is deterministic and high-Hamming, encoder.pt excludes the classifier, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
   "targets": [
     {
       "label": "the encoder feature is not pooled to one vector per image",

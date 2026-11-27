@@ -1,5 +1,5 @@
 {
-  "_note": "Run: .venvs/15_mocov2/bin/python bin/mutate.py --spec mutations/15_mocov2-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/15_mocov2/bin/python. Proves the model/MoCo/v2/two-stage guards are not vacuous: the query embedding is L2-normalised, the projection head is a 2-layer MLP (the v2 change), the encoder returns one flat vector per image, the key encoder is momentum-updated, the queue is actually written, encoder.pt excludes the head/key/queue, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
+  "_note": "Run: .venvs/15_mocov2/bin/python bin/mutate.py --spec mutations/15_mocov2-linear-eval.json --python \"$PWD/.venvs/15_mocov2/bin/python\". Proves the model/MoCo/v2/two-stage guards are not vacuous: the query embedding is L2-normalised, the projection head is a 2-layer MLP (the v2 change), the encoder returns one flat vector per image, the key encoder is momentum-updated, the queue is actually written, encoder.pt excludes the head/key/queue, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
   "targets": [
     {
       "label": "the query embedding is not L2-normalised",

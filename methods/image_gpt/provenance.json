@@ -1,6 +1,6 @@
 {
   "captured_at": "2026-08-05",
-  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
+  "captured_from": "private experiment archive",
   "captured_note": "Ported from the lab's ARSSL scratch trainer (methods_step3/ARSSL/src/models/train_igpt_scratch.py), which defines its iGPT model inline rather than importing the image-gpt-pytorch submodule. So this is a self-contained re-implementation of lab code, the same treatment the six official methods received -- there is no third_party submodule for image_gpt.",
   "paper": {
     "title": "Generative Pretraining from Pixels (Image GPT)",

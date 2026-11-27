@@ -1,6 +1,6 @@
 {
   "captured_at": "2026-08-02",
-  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
+  "captured_from": "private experiment archive",
   "captured_note": "The inventory (docs/INVENTORY.md) classifies mar as submodule+adapter. The captured lab wrapper's `from models_mar import mar_base` is stale against the pinned upstream, whose module is `models.mar`; the port writes the correct import.",
   "upstream": {
     "repo": "https://github.com/gatheluck/mar",

@@ -1,6 +1,6 @@
 {
   "captured_at": "2026-08-29",
-  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
+  "captured_from": "private experiment archive",
   "captured_note": "BEiT v2 appears in the capture's Step-3 Autoreg SSL (ARSSL) evaluation as an as-is comparison: the official self-supervised pretrained backbone is downloaded and a linear probe is fit on its frozen pooled patch-token feature, because the from-scratch pretraining (a VQ-KD visual tokenizer + masked image modelling, many GPU-days) is not reproduced. This port carries that as-is comparison only. The backbone class is the author's modeling_finetune.VisionTransformer, imported (never copied) from the pinned microsoft/unilm submodule; the weights are a sha256-pinned download.",
   "paper": {
     "title": "BEiT v2: Masked Image Modeling with Vector-Quantized Visual Tokenizers",

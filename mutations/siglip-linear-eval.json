@@ -1,5 +1,5 @@
 {
-  "_note": "Run: .venvs/37_lejepa/bin/python bin/mutate.py --spec mutations/siglip-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/37_lejepa/bin/python (an interpreter with torch/torchvision/timm==1.0.28, so the device tests run in-process). siglip is a pure eval-only port: these guards prove the config refusals are not vacuous, a downstream probe number cannot borrow a pretext name, the absent encoder is declared, and the device is resolved rather than assumed.",
+  "_note": "Run: .venvs/37_lejepa/bin/python bin/mutate.py --spec mutations/siglip-linear-eval.json --python \"$PWD/.venvs/37_lejepa/bin/python\" (an interpreter with torch/torchvision/timm==1.0.28, so the device tests run in-process). siglip is a pure eval-only port: these guards prove the config refusals are not vacuous, a downstream probe number cannot borrow a pretext name, the absent encoder is declared, and the device is resolved rather than assumed.",
   "targets": [
     {
       "label": "a config that fixes the output location is no longer refused",

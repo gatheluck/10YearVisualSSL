@@ -48,7 +48,7 @@
     {
       "label": "historical evidence no longer matches",
       "file": "docs/THIRD_PARTY_LICENSES.json",
-      "old": "\"b2d33c570479fd56cab6fdc8d57507b522947c4157aaefe4868ecdb3bb1f8b2c\"",
+      "old": "\"c8893ed765c3e8fd66abe57b25a8b0546ddc301c5db103772ed50f60d27527e7\"",
       "new": "\"0000000000000000000000000000000000000000000000000000000000000000\"",
       "tests": [
         "tests.test_license_inventory.LicenseInventory.test_historical_findings_have_current_evidence_not_a_clearance"

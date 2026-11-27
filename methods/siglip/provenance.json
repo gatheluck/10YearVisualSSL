@@ -1,6 +1,6 @@
 {
   "captured_at": "2026-08-27",
-  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
+  "captured_from": "private experiment archive",
   "captured_note": "SigLIP appears in the capture's Step-3 CompEval (multimodal) evaluation as an as-is comparison: the official sigmoid-loss image-text pretrained image tower is downloaded and a linear probe is fit on its frozen pooled image embedding, because the from-scratch pretraining (the WebLI image-text corpus, many TPU-days) is not reproduced. This port carries that as-is comparison only. There is NO author submodule: the SigLIP model class is timm's (a pinned pip dependency, timm==1.0.28), imported not copied, and the weights are a sha256-pinned download.",
   "paper": {
     "title": "Sigmoid Loss for Language Image Pre-Training",

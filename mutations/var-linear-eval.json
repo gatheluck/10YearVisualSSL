@@ -1,5 +1,5 @@
 {
-  "_note": "Run: .venvs/var/bin/python bin/mutate.py --spec mutations/var-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/var/bin/python (an interpreter with this method's lock, so the deps-gated probe/smoke tests actually run). Proves the linear_eval guards are not vacuous: that the probe reads the VQVAE tokeniser and pools it to a fixed vector, that a downstream number cannot borrow a pretext name, that the stage's own key set and its absent-encoder declaration hold, and that bin/fetch-weights.py verifies the sha256 it downloads. See docs/EVAL_DOWNLOAD.md.",
+  "_note": "Run: .venvs/var/bin/python bin/mutate.py --spec mutations/var-linear-eval.json --python \"$PWD/.venvs/var/bin/python\" (an interpreter with this method's lock, so the deps-gated probe/smoke tests actually run). Proves the linear_eval guards are not vacuous: that the probe reads the VQVAE tokeniser and pools it to a fixed vector, that a downstream number cannot borrow a pretext name, that the stage's own key set and its absent-encoder declaration hold, and that bin/fetch-weights.py verifies the sha256 it downloads. See docs/EVAL_DOWNLOAD.md.",
   "targets": [
     {
       "label": "the probe feature is not fully spatial-pooled, so it is not the fixed VQVAE vector",

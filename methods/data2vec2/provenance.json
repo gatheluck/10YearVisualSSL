@@ -1,6 +1,6 @@
 {
   "captured_at": "2026-08-30",
-  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
+  "captured_from": "private experiment archive",
   "captured_note": "data2vec 2.0 appears in the capture's Step-3 Autoreg-SSL evaluation (methods_step3/ARSSL, docs/data2vec.md) as an as-is SSL comparison: the official pretrained vision backbone is downloaded and a linear probe is fit on its frozen CLS token, because the from-scratch self-distillation pretraining (IN-1k, many GPU-days) is not reproduced. The capture doc specifies the HuggingFace checkpoint facebook/data2vec-vision-base with transformers' Data2VecVisionModel and the CLS token. This port carries that as-is comparison only. There is NO author submodule: the model class is transformers' (a pinned pip dependency), imported not copied, and the weights are a sha256-pinned download.",
   "paper": {
     "title": "Efficient Self-supervised Learning with Contextualized Target Representations for Vision, Speech and Language (data2vec 2.0)",

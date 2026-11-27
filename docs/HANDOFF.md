@@ -1364,9 +1364,8 @@ Virtual environments and compiled caches should be recreated for the new Mac.
    repositories. Configure ABCI SSH separately using the owner's approved
    credentials and host verification. Do not disable host-key verification.
 2. Use fresh destination directories for the following recipe. Set `PORT_DIR`
-   and `CAPTURE_DIR` to absolute, nonexistent paths outside each other. The two
-   remotes are `git@github.com:gatheluck/10YearVisualSSL.git` and
-   `git@github.com:gatheluck/10YearVisualSSLCapturePrivate.git`, respectively.
+   and `CAPTURE_DIR` to absolute, nonexistent paths outside each other. Use the port remote for `PORT_REMOTE` and obtain `CAPTURE_REMOTE`
+   from the approved private configuration.
    For example set the four shell variables in your current shell, then run:
 
 <!-- handoff-fresh-clone -->

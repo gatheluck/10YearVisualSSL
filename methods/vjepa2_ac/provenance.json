@@ -1,6 +1,6 @@
 {
   "captured_at": "2026-09-02",
-  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
+  "captured_from": "private experiment archive",
   "captured_note": "V-JEPA 2-AC appears in the capture's Step-3 VideoSSL series (methods_step3/VideoSSL/07_vjepa2ac) as an as-is SSL comparison: the pretrained (action-conditioned) video encoder is frozen and a linear probe is fit on its features. Like the sibling 05_vjepa2 / 03_videomae, it uses the authors' official public checkpoint (vjepa2-ac-vitg.pt, downloaded via scripts). The capture's backbone/__init__.py builds the ViT from a cached facebookresearch/vjepa2 hub checkout (src/models/vision_transformer.py, vit_giant_xformers, use_rope=True) and loads the checkpoint's 'encoder' sub-dict (module. prefix stripped); its ImageNet linear eval feeds a still image duplicated to a 2-frame clip (tubelet 2 -> one temporal token) and mean-pools the tokens (never PyAV / a video dataset).",
   "paper": {
     "title": "V-JEPA 2: Self-Supervised Video Models Enable Understanding, Prediction and Planning",

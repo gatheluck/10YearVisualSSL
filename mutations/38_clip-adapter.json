@@ -1,5 +1,5 @@
 {
-  "_note": "Run: .venvs/38_clip/bin/python bin/mutate.py --spec mutations/38_clip-adapter.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/38_clip/bin/python (an interpreter with this method's lock, ftfy/regex, and the openai/CLIP submodule checked out, so the probe/smoke/round-trip tests run). Proves the guards are not vacuous: the supervised-label-text disclosure cannot be dropped or claimed comparable, a downstream probe number cannot borrow a pretext name, the trained image tower is what encoder.pt saves, and the device is resolved rather than assumed.",
+  "_note": "Run: .venvs/38_clip/bin/python bin/mutate.py --spec mutations/38_clip-adapter.json --python \"$PWD/.venvs/38_clip/bin/python\" (an interpreter with this method's lock, ftfy/regex, and the openai/CLIP submodule checked out, so the probe/smoke/round-trip tests run). Proves the guards are not vacuous: the supervised-label-text disclosure cannot be dropped or claimed comparable, a downstream probe number cannot borrow a pretext name, the trained image tower is what encoder.pt saves, and the device is resolved rather than assumed.",
   "targets": [
     {
       "label": "the supervised-label-text disclosure can be dropped",

@@ -1,5 +1,5 @@
 {
-  "_note": "Run: .venvs/24_beit/bin/python bin/mutate.py --spec mutations/24_beit-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/24_beit/bin/python. Proves the BEiT model/eval guards are not vacuous: the mask token is applied at masked positions, the forward returns logits only at those positions, the MIM targets are read at the masked positions (aligned with the logits), the encoder mean-pools the patch tokens, encoder.pt excludes the mask token + MIM head, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
+  "_note": "Run: .venvs/24_beit/bin/python bin/mutate.py --spec mutations/24_beit-linear-eval.json --python \"$PWD/.venvs/24_beit/bin/python\". Proves the BEiT model/eval guards are not vacuous: the mask token is applied at masked positions, the forward returns logits only at those positions, the MIM targets are read at the masked positions (aligned with the logits), the encoder mean-pools the patch tokens, encoder.pt excludes the mask token + MIM head, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
   "targets": [
     {
       "label": "the mask token is not applied (masked positions keep their patch embedding)",

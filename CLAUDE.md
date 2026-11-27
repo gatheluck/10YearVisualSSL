@@ -169,8 +169,7 @@ domain.
 **A publishable package of ten years of visual SSL methods, ported to run in
 ordinary environments.**
 
-- The originals live on ABCI, and the Capture repository
-  `gatheluck/10YearVisualSSLCapturePrivate` (private forever) records them
+- The originals live on ABCI, and the private Capture repository records them
   append-only. **Touch neither the originals nor that repository from here**
 - **The design of record is `docs/DESIGN.md` and `docs/CONTRACT.md` on the
   Capture side.** On finding a contradiction, compare against the code and fix

@@ -1,6 +1,6 @@
 {
   "captured_at": "2026-08-02",
-  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate, branch snapshots",
+  "captured_from": "private experiment archive, branch snapshots",
   "captured_path": "methods/04_context_encoder",
   "captured_sha256": {},
   "note": "Nothing came across byte-for-byte. Unlike the earlier ports, whose captured model and loader were self-contained pretrain files, this method's captured code interleaves step 1 (AlexNet) and step 2 (ViT) in single files (train.py 1161 lines, utils.py 812 lines, models/context_encoder.py, datasets.py, evaluate_linear.py), so extracting a clean port required rewriting each. captured_sha256 is therefore empty; every file's captured digest is recorded below so a reviewer can diff against the capture. The unified ViT-B/16 Step 2 (arch: vit) is ported additively in NEW files (models/vit_context_encoder.py, train_pretrain_vit.py, configs/pretrain_vit.yaml), port-authored from the capture's ContextEncoderViT + train.py: the same centre-hole inpainting on a ViT-B/16 encoder + a transformer decoder, always adversarial (two AdamW optimisers), reusing the shared Discriminator. The capture's cluster-only STEP2 machinery (DDP, bfloat16, the 812-line utils.py resume contract) is omitted; the ViT path adds timm (imported lazily on arch: vit) and the native AlexNet path is byte-for-byte unchanged.",

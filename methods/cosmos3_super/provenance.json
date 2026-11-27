@@ -1,6 +1,6 @@
 {
   "captured_at": "2026-09-02",
-  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
+  "captured_from": "private experiment archive",
   "captured_note": "NVIDIA Cosmos3-Super (nvidia/Cosmos3-Super) appears in the capture's Step-3 VideoGen evaluation (methods_step3/VideoGen/Cosmos3-Super/adapter.py) as an as-is comparison: only the released model's Qwen3-VL vision encoder is loaded (the 64B MoT / DiT / VAE are never read) and frozen, then a linear probe is fit on its mean-pooled patch tokens, because Cosmos3-Super's from-scratch training is not reproduced. The capture loads the vision tower directly with transformers' Qwen3VLVisionModel.from_pretrained on the vision_encoder/ directory. This port carries that as-is comparison only. There is NO author submodule: the model class is transformers' (a pinned pip dependency), imported not copied, and the weights are a sha256-pinned, public download.",
   "paper": {
     "title": "NVIDIA Cosmos3-Super (Cosmos world foundation models)",
@@ -18,7 +18,7 @@
     "size_bytes": 1190568352,
     "license": "OpenMDW-1.1",
     "gated": false,
-    "sha256_source": "recorded in the capture's methods_step3/VideoGen/Cosmos3-Super/SOURCE_SNAPSHOT.json (read 2026-09-02 from gatheluck/10YearVisualSSLCapturePrivate origin/snapshots), which hashed vision_encoder/model.safetensors at its source; the same value and byte count (1190568352) are reported by the Hugging Face LFS metadata for nvidia/Cosmos3-Super at revision fe77b66696d645f663b8f27e942b3b43e4629e23. bin/fetch-weights.py re-verifies this sha256 against any copy you supply. The weight is public (OpenMDW-1.1); a real run also needs the sibling config.json in the same vision_encoder/ directory (small metadata, not a weight), which from_pretrained reads to build the tower. The full model.safetensors was NOT re-downloaded and re-hashed during this port; the sha256 is the contract that fetch-weights.py checks."
+    "sha256_source": "recorded in the capture's methods_step3/VideoGen/Cosmos3-Super/SOURCE_SNAPSHOT.json (read 2026-09-02 from private experiment archive origin/snapshots), which hashed vision_encoder/model.safetensors at its source; the same value and byte count (1190568352) are reported by the Hugging Face LFS metadata for nvidia/Cosmos3-Super at revision fe77b66696d645f663b8f27e942b3b43e4629e23. bin/fetch-weights.py re-verifies this sha256 against any copy you supply. The weight is public (OpenMDW-1.1); a real run also needs the sibling config.json in the same vision_encoder/ directory (small metadata, not a weight), which from_pretrained reads to build the tower. The full model.safetensors was NOT re-downloaded and re-hashed during this port; the sha256 is the contract that fetch-weights.py checks."
   },
   "rewritten_during_the_port": [
     "the model class is transformers' Qwen3VLVisionModel, not a copied or submoduled author repository; the released weights are a sha256-pinned, public download (backbone_artifact) rather than an auto-download, so CI never fetches and a real run is hash-verified",

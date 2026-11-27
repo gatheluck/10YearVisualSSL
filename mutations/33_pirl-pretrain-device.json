@@ -1,5 +1,5 @@
 {
-  "_note": "Run: .venvs/33_pirl/bin/python bin/mutate.py --spec mutations/33_pirl-pretrain-device.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/33_pirl/bin/python (an interpreter with this method's lock and a CUDA device). Proves the device guard is not vacuous. See docs/GPU.md section 4.",
+  "_note": "Run: .venvs/33_pirl/bin/python bin/mutate.py --spec mutations/33_pirl-pretrain-device.json --python \"$PWD/.venvs/33_pirl/bin/python\" (an interpreter with this method's lock and a CUDA device). Proves the device guard is not vacuous. See docs/GPU.md section 4.",
   "targets": [
     {
       "label": "cpu is not honoured -- the requested cpu returns a cuda device",

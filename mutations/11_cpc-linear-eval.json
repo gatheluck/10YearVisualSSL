@@ -1,5 +1,5 @@
 {
-  "_note": "Run: .venvs/11_cpc/bin/python bin/mutate.py --spec mutations/11_cpc-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/11_cpc/bin/python. Proves the model/dataset/two-stage guards are not vacuous: the encoder averages the patch grid to one avg_z per image, the InfoNCE loss reduces to a single scalar over prediction steps, an image becomes the configured patch grid, encoder.pt excludes the context and predictors, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
+  "_note": "Run: .venvs/11_cpc/bin/python bin/mutate.py --spec mutations/11_cpc-linear-eval.json --python \"$PWD/.venvs/11_cpc/bin/python\". Proves the model/dataset/two-stage guards are not vacuous: the encoder averages the patch grid to one avg_z per image, the InfoNCE loss reduces to a single scalar over prediction steps, an image becomes the configured patch grid, encoder.pt excludes the context and predictors, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
   "targets": [
     {
       "label": "the encoder no longer averages the patch grid to one avg_z per image",

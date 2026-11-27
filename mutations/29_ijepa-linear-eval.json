@@ -1,5 +1,5 @@
 {
-  "_note": "Run: .venvs/29_ijepa/bin/python bin/mutate.py --spec mutations/29_ijepa-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/29_ijepa/bin/python. Proves the I-JEPA model/schedule/eval guards are not vacuous: the EMA target moves toward the source, the LR warms up, the EMA momentum rises, the context encoder gathers only the context patches, the predictor projects back to encoder_dim, encoder.pt excludes the context encoder + predictor, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
+  "_note": "Run: .venvs/29_ijepa/bin/python bin/mutate.py --spec mutations/29_ijepa-linear-eval.json --python \"$PWD/.venvs/29_ijepa/bin/python\". Proves the I-JEPA model/schedule/eval guards are not vacuous: the EMA target moves toward the source, the LR warms up, the EMA momentum rises, the context encoder gathers only the context patches, the predictor projects back to encoder_dim, encoder.pt excludes the context encoder + predictor, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
   "targets": [
     {
       "label": "the EMA update drops the source term (target only decays)",

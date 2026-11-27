@@ -1,6 +1,6 @@
 {
   "captured_at": "2026-08-06",
-  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
+  "captured_from": "private experiment archive",
   "captured_note": "Ported from the capture's self-contained methods/9_jigsaw_puzzle_pp. The VGG16 pretext (paper stage a) and the knowledge-transfer stage (capture stages b + d) are brought across: models/vgg_jigsaw_pp.py, models/alexnet_cluster_cls.py, data/jigsaw_pp_dataset.py and the clustering are the lab's own implementation of Noroozi et al. (2018), so it ports self-contained (no third_party submodule). step 1 is torch/torchvision only; the knowledge-transfer clustering uses faiss (GPU / x86_64-linux only). The capture directory number (9) equals this method's number in the Step 1&2 list (see docs/PORTING_ROADMAP.md).",
   "paper": {
     "title": "Boosting Self-Supervised Learning via Knowledge Transfer",

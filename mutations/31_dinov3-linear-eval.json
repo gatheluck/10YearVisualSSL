@@ -1,5 +1,5 @@
 {
-  "_note": "Run: .venvs/31_dinov3/bin/python bin/mutate.py --spec mutations/31_dinov3-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/31_dinov3/bin/python. Proves the DINOv3 model/eval guards are not vacuous: the EMA teacher moves toward the student (not pure decay), KoLeo guards a single sample, encoder.pt strips the backbone prefix and excludes the heads, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
+  "_note": "Run: .venvs/31_dinov3/bin/python bin/mutate.py --spec mutations/31_dinov3-linear-eval.json --python \"$PWD/.venvs/31_dinov3/bin/python\". Proves the DINOv3 model/eval guards are not vacuous: the EMA teacher moves toward the student (not pure decay), KoLeo guards a single sample, encoder.pt strips the backbone prefix and excludes the heads, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
   "targets": [
     {
       "label": "the EMA teacher only decays (the student term is dropped)",

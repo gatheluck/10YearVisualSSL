@@ -569,7 +569,7 @@ class TestTheLinearEvaluationRuns(Base):
 class TestWhatCameFromTheCapture(unittest.TestCase):
     def test_the_provenance_records_the_capture(self):
         doc = json.loads((METHOD / "provenance.json").read_text())
-        self.assertIn("CapturePrivate", doc["captured_from"])
+        self.assertEqual(doc["captured_from"], "private experiment archive, branch snapshots")
 
     def test_nothing_is_pinned_because_everything_was_rewritten(self):
         """This method's captured files interleave step1 and step2, so none came

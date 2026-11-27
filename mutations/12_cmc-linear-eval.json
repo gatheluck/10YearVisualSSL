@@ -1,5 +1,5 @@
 {
-  "_note": "Run: .venvs/12_cmc/bin/python bin/mutate.py --spec mutations/12_cmc-linear-eval.json --python /home/yoshihiro_fukuhara_caddi_jp/10YearVisualSSL/.venvs/12_cmc/bin/python. Proves the model/NCE/two-stage guards are not vacuous: the embedding is L2-normalised, the encoder returns one flat vector per image, the memory bank is actually updated, encoder.pt excludes the memory banks, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
+  "_note": "Run: .venvs/12_cmc/bin/python bin/mutate.py --spec mutations/12_cmc-linear-eval.json --python \"$PWD/.venvs/12_cmc/bin/python\". Proves the model/NCE/two-stage guards are not vacuous: the embedding is L2-normalised, the encoder returns one flat vector per image, the memory bank is actually updated, encoder.pt excludes the memory banks, a downstream number cannot borrow a pretext name, and the absent encoder is declared.",
   "targets": [
     {
       "label": "the layer-8 embedding is not L2-normalised",

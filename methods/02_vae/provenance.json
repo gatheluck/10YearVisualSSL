@@ -1,6 +1,6 @@
 {
   "captured_at": "2026-07-30",
-  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate, branch snapshots",
+  "captured_from": "private experiment archive, branch snapshots",
   "captured_path": "methods/02_vae",
   "captured_sha256": {
     "data/vae_dataset.py": "803a2e1a14474ab2c300d25cf4a2f65d254ba30006aa398e7c0618f36e42a0ef",

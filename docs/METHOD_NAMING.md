@@ -28,7 +28,7 @@ This is the state on disk today (mixed numbered + unnumbered), and it is
    numeric order, then the unnumbered ones by name. That mechanism already
    handles the mixed state, so nothing about ordering needs to change.
 2. **They are the shared vocabulary with the design-of-record.** The Capture
-   repository (`gatheluck/10YearVisualSSLCapturePrivate`, private forever, the
+   repository (the private home of the
    design of record: `DESIGN.md` / `CONTRACT.md` / `INVENTORY.md` and its
    manifests) uses the numbered names and is **fixed numbered and not editable
    from this repository**. Renaming here would create a permanent, one-way

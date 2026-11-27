@@ -1,6 +1,6 @@
 {
   "captured_at": "2026-08-03",
-  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate",
+  "captured_from": "private experiment archive",
   "captured_note": "The inventory (docs/INVENTORY.md) classifies VAR as submodule+adapter, MIT.",
   "upstream": {
     "repo": "https://github.com/FoundationVision/VAR",

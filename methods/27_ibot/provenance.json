@@ -1,6 +1,6 @@
 {
   "captured_at": "2026-08-02",
-  "captured_from": "gatheluck/10YearVisualSSLCapturePrivate, branch snapshots",
+  "captured_from": "private experiment archive, branch snapshots",
   "captured_path": "methods/27_ibot",
   "captured_sha256": {
     "models/ibot.py": "13d6290e575b2d417facdfd8f3797eacab2dd6cbffc8e3b4b5f9da53de18d226",
