@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class ReviewerNavigation(unittest.TestCase):
     def test_quick_check_selects_source_only_then_full_probe_coverage(self):
-        text = (ROOT / 'README.md').read_text()
+        text = (ROOT / 'OPERATING_GUIDE.md').read_text()
         section = text.split('## Quick verification\n', 1)[1].split('\n## ', 1)[0]
         blocks = re.findall(r'^```sh\n(.*?)^```$', section, re.M | re.S)
         suites = [line.split()[3:] for block in blocks for line in block.splitlines()
@@ -28,13 +28,14 @@ class ReviewerNavigation(unittest.TestCase):
                         commands.index('python -m unittest ' + ' '.join(suites[1])))
 
     def test_overview_links_to_protocols_and_appendix_before_quick_check(self):
-        for page in ('README.md', 'docs/templates/CVPR_REVIEWER_README.md'):
+        for page in ('OPERATING_GUIDE.md', 'docs/templates/CVPR_REVIEWER_README.md'):
             with self.subTest(page=page):
                 text = (ROOT / page).read_text()
                 overview, *sections = re.split(r'^## ', text, flags=re.M)
                 self.assertEqual(sections[0].splitlines()[0], 'Quick verification')
                 for anchor in ('evaluation-protocols', 'files-cited-in-appendix-e'):
-                    self.assertIn(f'](#{anchor})', overview)
+                    prefix = 'README.md' if page == 'OPERATING_GUIDE.md' else ''
+                    self.assertIn(f']({prefix}#{anchor})', overview)
                 self.assertIn('python -m unittest', sections[0])
 
     def test_review_archive_reading_order(self):

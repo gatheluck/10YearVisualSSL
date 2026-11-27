@@ -1,4 +1,4 @@
-"""The README lists every public method once and preserves the historical order."""
+"""The operating guide lists every public method once and preserves the historical order."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ from adapterlib.method_names import HISTORICAL, order_key as _order_key
 
 def _table_dirs() -> "list[str]":
     """The directory keys of the per-method table rows, in the order written."""
-    text = (ROOT / "README.md").read_text(encoding="utf-8")
+    text = (ROOT / "OPERATING_GUIDE.md").read_text(encoding="utf-8")
     hdr = text.index("| Directory | Method | Stages | Notes |")
     lines = text[hdr:].splitlines()
     rows = []

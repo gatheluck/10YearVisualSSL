@@ -335,7 +335,7 @@
     },
     {
       "label": "README example writes stdout instead of file",
-      "file": "README.md",
+      "file": "OPERATING_GUIDE.md",
       "old": "> configs/base.json",
       "new": "--out configs/base.json",
       "tests": [

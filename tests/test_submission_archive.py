@@ -469,7 +469,7 @@ class TestSubmissionArchive(unittest.TestCase):
         self.assert_blocked('unused-license-authorization')
 
     def test_readme_config_examples_create_resolvable_files(self):
-        readme = (TOOL.parents[1]/'README.md').read_text()
+        readme = (TOOL.parents[1]/'OPERATING_GUIDE.md').read_text()
         commands = [line for line in readme.splitlines()
                     if line.startswith('mkdir -p configs && printf') or line.startswith('printf ')]
         self.assertEqual(len(commands), 2)
@@ -507,15 +507,28 @@ class TestSubmissionArchive(unittest.TestCase):
 
     def test_root_readme_can_reference_license_without_duplicating_notice(self):
         source = (TOOL.parents[1]/'README.md').read_text()
+        reviewer = (TOOL.parents[1]/'docs/templates/CVPR_REVIEWER_README.md').read_text()
+        self.assertIn('https://gatheluck.github.io/10YearVisualSSL/', source)
+        citation = source.split('## Citation\n', 1)[1].lstrip().split('. *', 1)[0]
+        authors = re.split(r', | and ', citation)
+        self.assertEqual(len(authors), 7)
+        self.policy['forbidden'].extend(['gatheluck', *authors])
+        self.assertNotIn('gatheluck', reviewer)
+        urls = set(re.findall(r'https?://[^\s)]+', reviewer))
+        self.assertEqual(urls, {'https://download.pytorch.org/whl/cpu', 'https://pypi.org/simple'})
+        self.policy['approvals']['README.md'] = {
+            'sha256': hashlib.sha256(reviewer.encode()).hexdigest(),
+            'rules': ['external-link'], 'reason': 'Checked dependency indexes in reviewer template.'}
         self.write('README.md', source); self.commit()
         self.policy['include'].append('README.md')
         self.policy['replacements']['README.md'] = {
             'sha256': hashlib.sha256(source.encode()).hexdigest(),
-            'text': '# Anonymous source\n\nSee [LICENSE](LICENSE).\n',
+            'text': reviewer,
             'reason': 'Replace first-party introduction while preserving LICENSE.'}
         self.assertTrue(self.run_build())
         with zipfile.ZipFile(self.out) as z:
             self.assertEqual(z.read('code/LICENSE'), (self.repo/'LICENSE').read_bytes())
+            self.assertEqual(z.read('code/README.md'), reviewer.encode())
             self.assertIn('code/LICENSE', z.namelist())
 
     def test_repository_only_workflow_assertions_require_a_checkout(self):

@@ -1,0 +1,76 @@
+{
+  "targets": [
+    {
+      "label": "Wrong figure instructions",
+      "file": "README.md",
+      "old": "figure-7--representation-geometry",
+      "new": "figure-6--frontier-matched-subsets",
+      "tests": [
+        "tests.test_public_readme"
+      ]
+    },
+    {
+      "label": "Wrong implementation",
+      "file": "README.md",
+      "old": "(downstream/controlled_comparison.py)",
+      "new": "(downstream/frontier.py)",
+      "tests": [
+        "tests.test_public_readme"
+      ]
+    },
+    {
+      "label": "Missing method index",
+      "file": "README.md",
+      "old": "(OPERATING_GUIDE.md#methods)",
+      "new": "(OPERATING_GUIDE.md#training-a-method)",
+      "tests": [
+        "tests.test_public_readme"
+      ]
+    },
+    {
+      "label": "Broken local fragment",
+      "file": "README.md",
+      "old": "OPERATING_GUIDE.md#reproducibility-the-resolved-config",
+      "new": "OPERATING_GUIDE.md#missing",
+      "tests": [
+        "tests.test_public_readme"
+      ]
+    },
+    {
+      "label": "Incorrect citation",
+      "file": "README.md",
+      "old": "Manuscript, 2026.",
+      "new": "Manuscript, 2025.",
+      "tests": [
+        "tests.test_public_readme"
+      ]
+    },
+    {
+      "label": "Wrong CI branch",
+      "file": "README.md",
+      "old": "badge.svg?branch=main",
+      "new": "badge.svg?branch=dev",
+      "tests": [
+        "tests.test_public_readme"
+      ]
+    },
+    {
+      "label": "Unusable example",
+      "file": "README.md",
+      "old": "--paths configs/figure3-lora-paths.example.json",
+      "new": "--paths configs/missing.json",
+      "tests": [
+        "tests.test_public_readme"
+      ]
+    },
+    {
+      "label": "Public identity in reviewer template",
+      "file": "docs/templates/CVPR_REVIEWER_README.md",
+      "old": "# Supplementary code for review",
+      "new": "# Supplementary code for review by gatheluck",
+      "tests": [
+        "tests.test_submission_archive.TestSubmissionArchive.test_root_readme_can_reference_license_without_duplicating_notice"
+      ]
+    }
+  ]
+}
