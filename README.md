@@ -2,6 +2,8 @@
 
 The local website follows the November manuscript, *Revisiting Vision Model Baselines in the Deep Learning Era*. Figure 3 (page 4) reports means and standard deviations across three runs for five checkpoints. LP, AP and LoRA each contribute 25 cells; DPT contributes 10. The two daggers denote shortened schedules. Values are transcribed at their printed precision. Independent reruns belong to a separate source version.
 
+The Overview links each author to their personal website or institutional profile. Use **Authors and related project** in the Leaderboard footer to jump directly to the Overview byline and the [FRONTia project website](https://frontia-ai.go.jp/). The byline follows the site's manuscript citation. Research affiliations can be added once the author list and affiliation mapping are confirmed for this study.
+
 Open `paper-site/index.html` directly in a browser. For local HTTP preview, run the following command from the repository root and open http://127.0.0.1:8765/.
 
 ```sh
