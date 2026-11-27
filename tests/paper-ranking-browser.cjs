@@ -139,3 +139,106 @@ test("comparisons open on demand and existing fragments restore the right panel"
     }
   } finally { await page.close(); }
 });
+
+test("heatmap clicks and taps identify the exact cell and keep its model details local", async () => {
+  for (const width of [320, 390, 768, 1280]) {
+    const page = await browser.newPage({ viewport: { width, height: 850 }, hasTouch: width <= 390 });
+    try {
+      await page.goto(base);
+      const visual = page.locator(".rank-visuals");
+      const cell = visual.locator(".matrix-column").nth(1).locator(".matrix-cell").nth(1);
+      await (width <= 390 ? cell.tap() : cell.click());
+      const readout = visual.getByRole("status");
+      assert.equal(await readout.count(), 1, "A cell selection needs a local, announced readout");
+      const expected = await page.evaluate(() => historicalRanks[1]);
+      assert.match(await readout.innerText(), new RegExp(expected.name + ".*COCO 2017.*[Rr]ank " + expected.ranks[1] + "\\b", "s"));
+      for (const item of [cell, readout]) {
+        assert.ok(await item.evaluate(el => {
+          const box = el.getBoundingClientRect();
+          return box.top >= 0 && box.bottom <= innerHeight && box.left >= 0 && box.right <= innerWidth;
+        }), "Both the selected cell and its readout are visible immediately at " + width);
+      }
+      assert.equal(await page.locator("#leaderboard #selected-model").isVisible(), false);
+      await visual.getByRole("button", { name: "Model results" }).press("Enter");
+      const details = visual.getByRole("region", { name: "Heatmap model results" });
+      assert.match(await details.innerText(), /DINOv2/);
+      assert.equal(await details.locator("dl > div").count(), 5);
+      const score = details.getByRole("button", { name: /COCO 2017.*bbox AP/ });
+      await score.press("Enter");
+      assert.match(await page.getByRole("dialog").innerText(), /COCO 2017.*Bounding-box AP/s);
+      await page.keyboard.press("Escape");
+      assert.ok(await score.evaluate(el => el === document.activeElement));
+      assert.equal(new URL(page.url()).hash, "");
+    } finally { await page.close(); }
+  }
+});
+
+test("the heatmap scrolls to keyboard cells and preserves the selected task on reload", async () => {
+  const page = await browser.newPage({ viewport: { width: 320, height: 640 } });
+  try {
+    await page.goto(base);
+    const matrix = page.locator("#rank-matrix");
+    const first = matrix.getByRole("button").filter({ hasText: /^$/ }).first();
+    assert.equal(await first.count(), 1, "Heatmap marks need keyboard-accessible controls");
+    assert.equal(await matrix.locator("button[tabindex='0']").count(), 1);
+    await first.focus();
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("ArrowRight");
+    await page.keyboard.press("Enter");
+    const cell = page.locator(".matrix-column").nth(1).locator(".matrix-cell").nth(1);
+    assert.ok(await cell.evaluate(el => el === document.activeElement));
+    assert.equal(await cell.getAttribute("aria-pressed"), "true");
+    await cell.press("End");
+    await page.keyboard.press("Space");
+    const last = page.locator(".matrix-column").last().locator(".matrix-cell").nth(1);
+    assert.equal(await last.getAttribute("aria-pressed"), "true");
+    assert.ok(await last.evaluate(el => {
+      const cell = el.getBoundingClientRect();
+      const viewport = el.closest(".matrix-viewport").getBoundingClientRect();
+      return cell.left >= viewport.left && cell.right <= viewport.right;
+    }));
+    await page.reload();
+    assert.equal(await last.getAttribute("aria-pressed"), "true");
+    assert.match(await page.locator(".rank-visuals [role=status]").innerText(), /COCO 2017/);
+  } finally { await page.close(); }
+});
+
+test("ranking models open directly below the selected row and close without losing the filter or focus", async () => {
+  for (const width of [320, 390, 768, 1280]) {
+    const page = await browser.newPage({ viewport: { width, height: 750 } });
+    try {
+      await page.goto(base);
+      const rankings = page.locator("#leaderboard");
+      await rankings.getByLabel("Rank by").selectOption("coco");
+      await rankings.getByLabel("Find a model").fill("dino");
+      const row = rankings.locator("tbody tr[data-legend-id]").last();
+      const model = row.locator("th button");
+      const name = await model.innerText();
+      await model.press("Enter");
+      assert.equal(await model.getAttribute("aria-expanded"), "true", "Opening a model should expand its own row");
+      const profile = rankings.getByRole("region", { name: "Selected model" });
+      assert.equal(await profile.locator("h3").innerText(), name);
+      assert.ok(await profile.evaluate(el =>
+        el.closest("tr").previousElementSibling.querySelector("th button").textContent === el.querySelector("h3").textContent));
+      assert.ok(await profile.locator("h3").evaluate(el => {
+        const box = el.getBoundingClientRect();
+        return box.top >= 0 && box.bottom <= innerHeight;
+      }));
+      await profile.getByRole("button", { name: "Close model profile" }).press("Enter");
+      const restored = rankings.getByRole("button", { name, exact: true });
+      assert.ok(await restored.evaluate(el => el === document.activeElement));
+      assert.equal(await rankings.getByLabel("Find a model").inputValue(), "dino");
+      assert.equal(await rankings.getByLabel("Rank by").inputValue(), "coco");
+      await restored.press("Space");
+      await profile.getByRole("button", { name: /COCO 2017/ }).press("Enter");
+      await page.getByRole("dialog").getByRole("link", { name: "Figure 2 manuscript scores" }).press("Enter");
+      assert.equal(new URL(page.url()).hash, "#scores");
+      await page.goBack();
+      assert.equal(new URL(page.url()).hash, "");
+      assert.ok(await profile.isVisible());
+      assert.equal(await rankings.getByLabel("Find a model").inputValue(), "dino");
+      await rankings.getByLabel("Find a model").fill("no-match");
+      assert.equal(await profile.isVisible(), false);
+    } finally { await page.close(); }
+  }
+});

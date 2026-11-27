@@ -45,7 +45,7 @@ const { chromium } = require("playwright");
     );
     await p.locator("#inspect-config").selectOption("FLUX.2");
     assert.match(
-      await p.locator("#rank-profile a").getAttribute("title"),
+      await p.locator("#matrix-model-profile a").getAttribute("title"),
       /official release/i,
     );
     for (const [file, count] of [

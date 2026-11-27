@@ -225,19 +225,86 @@ header nav[aria-label=Primary] a:not([aria-current]):hover {background:#e4efeb;}
 .rank-scroll .inspect-model { padding:0; text-align:left; font:inherit; color:#155752; cursor:pointer; }
 .rank-scroll .inspect-model:hover { text-decoration:underline; }
 .rank-scroll th > .paper-link { display:inline-block; margin-inline-start:6px; padding:2px; }
-.ranked-model { margin-block:16px; border-radius:8px; }
+.ranked-model { border-radius:8px; text-align:left; min-width:0; }
 .ranked-model[hidden] { display:none; }
-.ranked-model dl { flex-wrap:wrap; }
-.ranked-model #rank-profile dl > div { flex:1 0 120px; }
+.ranked-model .model-profile-body dl {
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(min(112px, 100%), 1fr));
+  width:100%;
+  gap:10px;
+}
 .ranked-model dd { display:grid; gap:3px; }
-.ranked-model dd button { text-align:left; padding:0; color:#dbf7ef; border:0; background:none; font:inherit; text-decoration:underline; cursor:pointer; }
+.ranked-model dd button,
+#leaderboard .rank-scroll .ranked-model dd button {
+  text-align:left;
+  padding:0;
+  color:#dbf7ef;
+  border:0;
+  background:none;
+  font:inherit;
+  text-decoration:underline;
+  cursor:pointer;
+}
 .ranked-model dd small { color:#c8dfde; font-size:.75rem; }
-#close-model { margin-top:12px; color:#dbf7ef; background:transparent; border:1px solid #779794; border-radius:4px; padding:6px 10px; cursor:pointer; }
+.profile-toggle,
+#leaderboard .rank-scroll .profile-toggle {
+  color:#dbf7ef;
+  background:transparent;
+  border:1px solid #779794;
+  border-radius:4px;
+  padding:7px 10px;
+  font:inherit;
+  cursor:pointer;
+  text-decoration:none;
+}
+.profile-toggle:hover,
+#leaderboard .rank-scroll .profile-toggle:hover {
+  background:#21434b;
+}
+#close-model { margin-top:12px; }
+#leaderboard .rank-scroll .rank-detail-row > td { padding:0 5px 8px; }
+.rank-detail-row .ranked-model { display:block; }
+button .disclosure-mark::after { content:" ＋"; font-weight:400; }
+button[aria-expanded="true"] .disclosure-mark::after { content:" −"; }
+.matrix-model-profile { border-radius:0; border-top:1px solid #536770; }
+.matrix-inspector .profile-toggle { margin-inline-start:auto; }
+.rank-map .matrix-key {
+  min-height:30px;
+  flex-wrap:wrap;
+  gap:4px 7px;
+  scroll-margin-top:60px;
+}
+#matrix-task-result {
+  color:#155752;
+  font-weight:700;
+}
+#matrix-task-result:empty { display:none; }
+.matrix-cell {
+  display:block;
+  min-width:0;
+  padding:0;
+  border:0;
+  border-right:1px solid #ffffff70;
+  cursor:pointer;
+}
+.matrix-cell:hover,
+.matrix-cell:focus-visible,
+.matrix-column.picked .matrix-cell[aria-pressed="true"] {
+  outline:2px solid #3c2a00;
+  outline-offset:-2px;
+  box-shadow:inset 0 0 0 4px #ffc700;
+}
+.matrix-scroll-cue {
+  color:#155752;
+  font-weight:700;
+  text-align:right;
+  white-space:nowrap;
+}
 .comparison-panel { margin-block:12px; border-block:1px solid #c4d9d2; padding:12px 0; }
 .comparison-panel + .comparison-panel { border-top:0; }
 .comparison-panel > summary { color:#155752; cursor:pointer; font-weight:650; }
 .rank-visuals .rank-spread { display:block; }
-.rank-visuals .profile-panel { display:flex; align-items:center; flex-wrap:wrap; gap:12px; }
+.rank-visuals .matrix-inspector { display:flex; align-items:center; flex-wrap:wrap; gap:12px; }
 .rank-visuals .profile-panel select { margin:0; width:min(100%, 260px); }
 #rank-score-dialog dl { line-height:1.5; }
 #rank-score-dialog dt { margin-top:.65em; font-weight:700; }
@@ -293,6 +360,13 @@ header nav[aria-label=Primary] a:not([aria-current]):hover {background:#e4efeb;}
 @media (max-width: 700px) {
   .rank-visuals .matrix-shell { --column-width: 13px; --tick-height: 112px; }
   .rank-visuals .model-tick { font-size: 10px; }
+  .rank-visuals .matrix-inspector {
+    display:grid;
+    grid-template-columns:minmax(0, 1fr) auto;
+  }
+  .matrix-inspector label { grid-column:1 / -1; }
+  .rank-visuals .matrix-inspector select { width:100%; }
+  #leaderboard.overall-ranks .rank-scroll .rank-detail-row > td { grid-column:1 / -1; }
   .overall-ranks .rank-scroll :is(table, thead, tbody) { display: block; }
   .overall-ranks .rank-scroll tr {
     display: grid;

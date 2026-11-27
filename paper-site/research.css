@@ -11,10 +11,10 @@
   color: #175cc3;
   text-decoration-color: currentColor;
 }
-#rank-profile .paper-link {
+.model-profile-body .paper-link {
   text-decoration-color: #77b4b8;
 }
-#rank-profile .paper-link:hover {
+.model-profile-body .paper-link:hover {
   color: var(--cyan);
 }
 dialog .paper-link {
@@ -358,8 +358,8 @@ footer {
 .model-result dt {font:500 11px var(--mono);color:#a8cfce;}
 .model-result dd {font-size:clamp(15px,1.45vw,22px);font-weight:650;line-height:1.3;margin:2px 0 0;}
 #figure-five .transfer-facts p {margin-block:8px 20px;}
-#rank-profile dl > div {flex:1;min-width:0;}
-#rank-profile dl {gap:6px;}
+.model-profile-body dl > div {flex:1;min-width:0;}
+.model-profile-body dl {gap:6px;}
 .rank-rail {display:block;height:3px;margin:6px 4px 0 0;background:#45616a;position:relative;}
 .rank-rail::after {content:"";position:absolute;left:var(--position);transform:translateX(-50%);top:-1px;width:5px;height:5px;border-radius:50%;background:var(--series);}
 @media(max-width:760px) {

@@ -19,20 +19,34 @@ function buildRankBoard(rows, familyByName, families) {
   const search = get("rank-search");
   const task = get("rank-task");
   const expand = get("rank-expand");
-  const profile = get("selected-model");
+  const viewport = matrix.parentElement;
+  const readout = get("matrix-readout");
+  const matrixProfile = get("matrix-model-profile");
+  const matrixToggle = get("matrix-model-results");
+  const resultRow = get("rank-profile-template").content.firstElementChild.cloneNode(true);
+  const tableProfile = resultRow.querySelector("#selected-model");
   const dialog = get("rank-score-dialog");
   const modelByName = new Map(rows.map(row => [row.name, row]));
   const elements = new Map();
-  let lastModelButton;
+  let tableTrigger;
+  let activeCell;
+  let pickedCell;
+  let pickedColumn;
   const saved = window.history.state?.modelRankings;
   let all = saved?.all ?? false;
+  let tableModel = saved?.tableModel ?? null;
+  let matrixRow = modelByName.get(saved?.matrixModel ?? saved?.model) ?? rows[0];
+  let matrixTask = saved?.matrixTask ?? null;
   search.value = saved?.query ?? "";
   if (Array.from(task.options).some(option => option.value === saved?.task)) task.value = saved.task;
 
   function remember() {
     window.history.replaceState({
       ...window.history.state,
-      modelRankings: { all, query: search.value, task: task.value, model: profile.hidden ? null : select.value },
+      modelRankings: {
+        all, query: search.value, task: task.value, tableModel,
+        matrixModel: matrixRow.name, matrixTask, matrixOpen: !matrixProfile.hidden,
+      },
     }, "");
   }
 
@@ -83,11 +97,8 @@ function buildRankBoard(rows, familyByName, families) {
     dialog.showModal();
   }
 
-  function inspect(row, trigger = null, moveFocus = false) {
-    select.value = row.name;
-    get("matrix-selection").textContent = row.name;
-    for (const [name, col] of elements) col.classList.toggle("picked", name === row.name);
-    const panel = get("rank-profile");
+  function renderProfile(container, row) {
+    const panel = container.querySelector(".model-profile-body");
     const record = manuscriptScoreForRank(row);
     panel.replaceChildren();
     const { label, color } = familyStyles.get(familyByName.get(row.name));
@@ -114,48 +125,141 @@ function buildRankBoard(rows, familyByName, families) {
       rail.setAttribute("aria-hidden", "true");
       rail.style.setProperty("--position", ((rank - 1) * 100 / (rows.length - 1)) + "%");
     });
-    lastModelButton = trigger;
-    profile.hidden = false;
-    if (moveFocus) profile.focus();
-    remember();
   }
 
-  for (const row of rows) {
+  function moveMatrixFocus(cell, focus = false) {
+    if (activeCell) activeCell.tabIndex = -1;
+    activeCell = cell;
+    cell.tabIndex = 0;
+    if (focus) cell.focus({ preventScroll: true });
+    const frame = viewport.getBoundingClientRect();
+    const box = cell.getBoundingClientRect();
+    if (box.left < frame.left || box.right > frame.right) {
+      viewport.scrollLeft += (box.left + box.right - frame.left - frame.right) / 2;
+    }
+  }
+
+  function showMatrixSelection(row, index, reveal = false) {
+    matrixRow = row;
+    matrixTask = index;
+    select.value = row.name;
+    get("matrix-selection").textContent = row.name;
+    get("matrix-task-result").textContent = index === null
+      ? "" : benchmarks[index].name + " · Rank " + row.ranks[index];
+    pickedColumn?.classList.remove("picked");
+    pickedColumn = elements.get(row.name);
+    pickedColumn.classList.add("picked");
+    pickedCell?.setAttribute("aria-pressed", "false");
+    pickedCell = index === null ? null : pickedColumn.children[index];
+    pickedCell?.setAttribute("aria-pressed", "true");
+    moveMatrixFocus(pickedCell ?? pickedColumn.firstElementChild);
+    if (!matrixProfile.hidden) renderProfile(matrixProfile, row);
+    if (reveal) readout.scrollIntoView({ block: "nearest" });
+  }
+
+  function setMatrixProfile(open, reveal = false) {
+    matrixProfile.hidden = !open;
+    matrixToggle.setAttribute("aria-expanded", String(open));
+    if (open) {
+      renderProfile(matrixProfile, matrixRow);
+      if (reveal) matrixProfile.querySelector("h3").scrollIntoView({ block: "nearest" });
+    }
+  }
+
+  for (const [column, row] of rows.entries()) {
     select.add(new Option(row.name, row.name));
     const col = add(matrix, "div");
     col.className = "matrix-column";
     col.title = row.name + " · overall #" + row.place;
-    for (const rank of row.ranks) {
-      const cell = add(col, "i");
+    for (const [index, rank] of row.ranks.entries()) {
+      const cell = add(col, "button");
+      cell.type = "button";
       cell.className = "matrix-cell";
+      cell.tabIndex = -1;
+      cell.setAttribute("aria-label", row.name + " · " + benchmarks[index].name + " · Rank " + rank);
+      cell.setAttribute("aria-pressed", "false");
       cell.style.backgroundColor = taskRankColor(rank);
+      cell.onclick = () => {
+        showMatrixSelection(row, index, true);
+        remember();
+      };
+      cell.onkeydown = event => {
+        let x = column, y = index;
+        switch (event.key) {
+          case "ArrowLeft": x--; break;
+          case "ArrowRight": x++; break;
+          case "ArrowUp": y--; break;
+          case "ArrowDown": y++; break;
+          case "Home": x = 0; break;
+          case "End": x = rows.length - 1; break;
+          default: return;
+        }
+        event.preventDefault();
+        if (x >= 0 && x < rows.length && y >= 0 && y < benchmarks.length) {
+          moveMatrixFocus(matrix.children[x].children[y], true);
+        }
+      };
     }
-    add(col, "span", row.name).className = "model-tick";
-    col.onclick = () => inspect(row, select);
+    const tick = add(col, "span", row.name);
+    tick.className = "model-tick";
+    tick.onclick = () => {
+      showMatrixSelection(row, null, true);
+      remember();
+    };
     elements.set(row.name, col);
   }
   select.onchange = () => {
-    inspect(modelByName.get(select.value), select);
-    const viewport = matrix.parentElement;
-    const frame = viewport.getBoundingClientRect();
-    const cell = elements.get(select.value).getBoundingClientRect();
-    if (cell.left < frame.left || cell.right > frame.right) {
-      viewport.scrollLeft += (cell.left + cell.right - frame.left - frame.right) / 2;
-    }
-  };
-  const initial = modelByName.get(saved?.model) ?? rows[0];
-  get("matrix-selection").textContent = initial.name;
-  elements.get(initial.name).classList.add("picked");
-  if (saved?.model && modelByName.has(saved.model)) inspect(initial);
-  get("close-model").onclick = () => {
-    profile.hidden = true;
-    (lastModelButton?.isConnected ? lastModelButton : search).focus();
+    showMatrixSelection(modelByName.get(select.value), null);
+    setMatrixProfile(true);
     remember();
+  };
+  matrixToggle.onclick = () => {
+    setMatrixProfile(matrixProfile.hidden, true);
+    remember();
+  };
+  showMatrixSelection(matrixRow, matrixTask);
+  setMatrixProfile(saved?.matrixOpen ?? false);
+  const scrollCue = document.querySelector(".matrix-scroll-cue");
+  new ResizeObserver(() => {
+    scrollCue.hidden = viewport.scrollWidth <= viewport.clientWidth + 1;
+  }).observe(viewport);
+
+  function closeTableProfile(restoreFocus = false) {
+    const previous = tableTrigger;
+    previous?.setAttribute("aria-expanded", "false");
+    resultRow.remove();
+    tableTrigger = null;
+    tableModel = null;
+    if (restoreFocus && previous?.isConnected) previous.focus();
+  }
+
+  function openTableProfile(row, trigger, reveal = false) {
+    tableTrigger?.setAttribute("aria-expanded", "false");
+    tableTrigger = trigger;
+    tableModel = row.name;
+    trigger.setAttribute("aria-expanded", "true");
+    const parent = trigger.closest("tr");
+    resultRow.cells[0].colSpan = parent.cells.length;
+    parent.after(resultRow);
+    renderProfile(tableProfile, row);
+    if (reveal) tableProfile.querySelector("h3").scrollIntoView({ block: "nearest" });
+  }
+
+  resultRow.querySelector("#close-model").onclick = () => {
+    closeTableProfile(true);
+    remember();
+  };
+  tableProfile.onkeydown = event => {
+    if (event.key === "Escape") {
+      closeTableProfile(true);
+      remember();
+    }
   };
 
   function draw() {
     const body = board.querySelector("tbody");
     body.replaceChildren();
+    let openRow;
     const index = benchmarks.findIndex(benchmark => benchmark.key === task.value);
     const rank = row => index < 0 ? row.place : row.ranks[index];
     const overall = index < 0;
@@ -187,7 +291,16 @@ function buildRankBoard(rows, familyByName, families) {
       const model = add(add(name, "b"), "button", row.name);
       model.type = "button";
       model.className = "inspect-model";
-      model.onclick = () => inspect(row, model, true);
+      add(model, "span").className = "disclosure-mark";
+      model.lastElementChild.setAttribute("aria-hidden", "true");
+      model.setAttribute("aria-controls", "selected-model");
+      model.setAttribute("aria-expanded", "false");
+      model.onclick = () => {
+        if (tableModel === row.name) closeTableProfile(true);
+        else openTableProfile(row, model, true);
+        remember();
+      };
+      if (tableModel === row.name) openRow = [row, model];
       const link = sourceLink(row.name);
       link.textContent = "↗";
       link.setAttribute("aria-label", "Original source for " + row.name);
@@ -217,6 +330,8 @@ function buildRankBoard(rows, familyByName, families) {
         button.onclick = () => showScore(row, index);
       }
     }
+    if (openRow) openTableProfile(...openRow);
+    else closeTableProfile();
     get("rank-count").textContent = shown.length
       ? shown.length + " of " + rows.length + " models"
       : "No matching models";

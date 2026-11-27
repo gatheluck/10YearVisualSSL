@@ -10,18 +10,18 @@
     <link rel="stylesheet" href="history.css" />
     <link rel="stylesheet" href="control.css" />
     <link rel="stylesheet" href="study.css" />
-    <link rel="stylesheet" href="research.css?v=da7d773a07" />
+    <link rel="stylesheet" href="research.css?v=e6c500b313" />
     <script defer src="sources.js"></script>
     <script defer src="history-data.js?v=b179a62c5b"></script>
     <script defer src="rank-records.js?v=59faa88a80"></script>
-    <script defer src="rankboard.js?v=fcdff3fa81"></script>
+    <script defer src="rankboard.js?v=db65a1ea98"></script>
     <script defer src="comparison-panels.js?v=d97235181c"></script>
     <script defer src="ranking-families.js"></script>
     <script defer src="overview.js?v=688f139bb9"></script>
     <script defer src="results.js"></script>
 
     <script defer src="site.js?v=a8d18aff21"></script>
-  <script defer src="extended-data.js"></script><script defer src="figure-five-vector.js"></script><script defer src="figure-five.js?v=d336f524c1"></script><link rel="stylesheet" href="publication.css?v=cf1862c2dc">
+  <script defer src="extended-data.js"></script><script defer src="figure-five-vector.js"></script><script defer src="figure-five.js?v=d336f524c1"></script><link rel="stylesheet" href="publication.css?v=f4b18f1bc4">
     <script defer src="control-data.js"></script>
     <script defer src="history.js?v=abb07694dc"></script>
     <script defer src="control.js"></script>
@@ -63,9 +63,9 @@
               <span class="scale">Darker is better <i aria-hidden="true"></i></span>
             </figcaption>
             <p class="matrix-guide">Columns are models in overall rank order. Rows are tasks. Each cell is a published task rank, with 1 best.</p>
-            <p class="matrix-key">
-              <span class="selection-tag">Selected</span
-              ><strong id="matrix-selection"></strong>
+            <p class="matrix-key" id="matrix-readout" role="status" aria-atomic="true">
+              <span class="selection-tag">Selected</span>
+              <strong id="matrix-selection"></strong><span id="matrix-task-result"></span>
             </p>
             <div class="matrix-shell">
               <div class="matrix-labels">
@@ -74,19 +74,26 @@
               </div>
               <div
                 class="matrix-viewport"
-                tabindex="0"
                 role="region"
-                aria-label="Model configurations in overall rank order, scroll horizontally"
+                aria-label="Model configurations in overall rank order"
               >
-                <div id="rank-matrix" aria-hidden="true"></div>
+                <div id="rank-matrix" role="group" aria-label="Task ranks" aria-describedby="matrix-instructions"></div>
               </div>
             </div>
-            <div class="matrix-axis">Models · best overall rank first →</div>
+            <div class="matrix-axis">
+              <span>Models · best overall rank first →</span>
+              <span class="matrix-scroll-cue" hidden>Scroll →</span>
+            </div>
+            <p id="matrix-instructions" class="sr">Use arrow keys to move between cells and Enter or Space to select a rank. Home and End move to the first or last model.</p>
           </figure>
-          <aside class="profile-panel">
-            <label for="inspect-config">Inspect model</label
-            ><select id="inspect-config"></select>
-          </aside>
+          <div class="profile-panel matrix-inspector">
+            <label for="inspect-config">Inspect model</label>
+            <select id="inspect-config"></select>
+            <button class="profile-toggle" type="button" id="matrix-model-results" aria-expanded="false" aria-controls="matrix-model-profile">Model results<span class="disclosure-mark" aria-hidden="true"></span></button>
+          </div>
+          <section class="profile-panel ranked-model matrix-model-profile" id="matrix-model-profile" aria-label="Heatmap model results" hidden>
+            <div class="model-profile-body"></div>
+          </section>
         </div>
       </section>
       <section id="leaderboard" class="rank-board" aria-labelledby="rank-title">
@@ -115,10 +122,16 @@
           </div>
         </div>
         <p id="ranking-method" class="ranking-method"></p>
-        <section class="profile-panel ranked-model" id="selected-model" aria-label="Selected model" tabindex="-1" hidden>
-          <div id="rank-profile"></div>
-          <button type="button" id="close-model">Close model profile</button>
-        </section>
+        <template id="rank-profile-template">
+          <tr class="rank-detail-row" role="row">
+            <td role="cell">
+              <section class="profile-panel ranked-model" id="selected-model" aria-label="Selected model">
+                <div class="model-profile-body" id="rank-profile"></div>
+                <button type="button" class="profile-toggle" id="close-model">Close model profile</button>
+              </section>
+            </td>
+          </tr>
+        </template>
         <div class="rank-scroll" role="region" aria-label="Figure 1 standings" tabindex="0">
           <table aria-label="Model rankings" role="table">
             <thead role="rowgroup"><tr role="row">

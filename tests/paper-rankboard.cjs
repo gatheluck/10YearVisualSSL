@@ -30,7 +30,7 @@ const { chromium } = require("playwright");
     const cellColors = () =>
       columns
         .nth(6)
-        .locator("i")
+        .locator(".matrix-cell")
         .evaluateAll((cells) =>
           cells.map((c) => getComputedStyle(c).backgroundColor),
         );
@@ -71,7 +71,7 @@ const { chromium } = require("playwright");
           ticks.every((t) => {
             const a = t.getBoundingClientRect(),
               b = t.parentElement
-                .querySelector("i.matrix-cell:last-of-type")
+                .querySelector(".matrix-cell:nth-child(5)")
                 .getBoundingClientRect();
             return (
               a.width > 0 &&
@@ -95,18 +95,18 @@ const { chromium } = require("playwright");
       assert.equal(await select.inputValue(), "DINOv2");
     }
     await select.selectOption({ label: "RAEv2" });
-    assert.match(await board.locator("#rank-profile").innerText(), /RAEv2/);
-    assert.equal(await board.locator("#rank-profile .rank-rail").count(),5);
-    assert.ok(await board.locator("#rank-profile .rank-rail").evaluateAll(rails =>
+    assert.match(await heatmap.locator("#matrix-model-profile").innerText(), /RAEv2/);
+    assert.equal(await heatmap.locator("#matrix-model-profile .rank-rail").count(),5);
+    assert.ok(await heatmap.locator("#matrix-model-profile .rank-rail").evaluateAll(rails =>
       rails.every(rail => Number.parseFloat(rail.style.getPropertyValue("--position")) ===
         (Number(rail.parentElement.querySelector("dd small").textContent.replace("Rank ", ""))-1)*100/108)));
     assert.deepEqual(
-      await board.locator("#rank-profile dd small").allTextContents(),
+      await heatmap.locator("#matrix-model-profile dd small").allTextContents(),
       ["Rank 2", "Rank 5", "Rank 1", "Rank 8", "Rank 100"],
     );
-    await page.locator(".rank-visuals .matrix-column").first().click();
+    await columns.first().locator(".matrix-cell").first().click();
     assert.equal(await select.inputValue(), "DINOv3-7B");
-    assert.match(await board.locator("#rank-profile").innerText(), /6\.2/);
+    assert.match(await heatmap.locator("#matrix-model-profile").innerText(), /6\.2/);
     const rows = board.locator("tbody tr");
     assert.equal(await rows.count(), 10);
     await board
