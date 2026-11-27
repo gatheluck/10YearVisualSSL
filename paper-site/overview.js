@@ -1,14 +1,5 @@
 "use strict";
 (() => {
-  const families = [
-    ["VSSL", "VSSL", "teal"],
-    ["3D/4D Geometric Models", "3D/4D geometry", "coral"],
-    ["Vision Generative Models", "Vision generative", "purple"],
-    ["VideoSSL", "VideoSSL", "green"],
-    ["Supervised Models", "Supervised", "gold"],
-    ["Multimodal World / Video Generative", "World / video gen.", "blue"],
-    ["VLM, MLLM and Other Models", "VLM / other", "sky"],
-  ];
   const byName = new Map(historicalScores.map((row) => [row.name, row.family]));
   byName.set("V-JEPA (ViT-H)", "VSSL");
   byName.set("V-JEPA (ViT-L)", "VideoSSL");
@@ -51,7 +42,7 @@
       ? count + " highlighted"
       : "All 109 shown";
   }
-  for (const [family, label, token] of families) {
+  for (const [family, label, token] of rankingFamilies) {
     const button = document.createElement("button");
     button.type = "button";
     button.value = family;
@@ -64,7 +55,7 @@
   }
   for (const row of historicalRanks) {
     const family = byName.get(row.name);
-    const token = families.find(([key]) => key === family)[2];
+    const token = rankingFamilies.find(([key]) => key === family)[2];
     const points = row.ranks.map((r, i) => [100 * i, r].join(",")).join(" ");
     const trace = mark("polyline", {
       points,
@@ -77,5 +68,5 @@
     traces.push(trace);
   }
   highlight(null);
-  buildRankBoard(historicalRanks, byName, families);
+  buildRankBoard(historicalRanks, byName, rankingFamilies);
 })();

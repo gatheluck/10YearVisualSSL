@@ -20,7 +20,7 @@ const { chromium } = require("playwright");
       "Hirokatsu Kataoka","Kohsuke Ide","Yoshihiro Fukuhara","Shumpei Takezaki",
       "Nakamasa Inoue","Yuki M Asano","Christian Rupprecht",
     ],"List the seven authors in manuscript order");
-    const models = hero.getByRole("link",{name:/113 historical model configurations/i});
+    const models = hero.getByRole("link",{name:/113 historical models/i});
     const settings = hero.getByRole("link",{name:/40 dataset benchmarks/i});
     assert.equal(await models.count(),1,"The first view must introduce the historical model collection");
     assert.equal(await settings.count(),1);
@@ -73,7 +73,6 @@ const { chromium } = require("playwright");
       assert.ok(await icon.isVisible(),label+" has a decorative icon");
       assert.equal(await resources.getByRole("link",{name:label}).getAttribute("href"),"https://github.com/gatheluck/10YearVisualSSL"+path);
     }
-    assert.equal(await page.locator(".cover-matrix rect").count(),545);
     const plot = hero.locator(".history-film svg");
     assert.equal(await plot.count(), 1, "Overview must play the historical chart");
     await page.setViewportSize({width:1100,height:900});

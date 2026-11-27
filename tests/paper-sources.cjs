@@ -13,7 +13,7 @@ const { chromium } = require("playwright");
       pathToFileURL(path.resolve(__dirname, "../paper-site/leaderboard.html")).href;
     await p.goto(base);
     await p
-      .getByRole("button", { name: "Show all 109 configurations" })
+      .getByRole("button", { name: "Show all 109 models" })
       .click();
     async function verify(selector, n) {
       const links = p.locator(selector + " a");

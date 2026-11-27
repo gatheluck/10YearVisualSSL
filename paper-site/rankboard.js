@@ -98,10 +98,10 @@ function buildRankBoard(rows, familyByName, families) {
       }
     }
     get("rank-count").textContent = shown.length
-      ? shown.length + " of " + rows.length + " configurations"
-      : "No matching configurations";
+      ? shown.length + " of " + rows.length + " models"
+      : "No matching models";
     expand.hidden = Boolean(q);
-    expand.textContent = all ? "Show top 10" : "Show all 109 configurations";
+    expand.textContent = all ? "Show top 10" : "Show all 109 models";
     expand.setAttribute("aria-expanded", String(all));
   }
   expand.onclick = () => {

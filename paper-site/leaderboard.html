@@ -13,8 +13,9 @@
     <link rel="stylesheet" href="research.css" />
     <script defer src="sources.js"></script>
     <script defer src="history-data.js?v=b179a62c5b"></script>
-    <script defer src="rankboard.js"></script>
-    <script defer src="overview.js"></script>
+    <script defer src="rankboard.js?v=e4e859e137"></script>
+    <script defer src="ranking-families.js"></script>
+    <script defer src="overview.js?v=4058a795ee"></script>
     <script defer src="results.js"></script>
 
     <script defer src="site.js"></script>
@@ -45,7 +46,7 @@
             <p class="kicker"><span></span> Visual representation learning</p>
             <h1 id="title">Visual transfer <em>leaderboard</em></h1>
             <p class="opening-deck">
-              Rank 109 configurations across the Basic Five, then inspect individual scores and protocols.
+              Compare 109 models across the Basic Five. Model variants and feature readouts are listed separately.
             </p>
             <div class="opening-actions"><a class="opening-cta" href="#leaderboard">Explore leaderboard <span aria-hidden="true">↓</span></a>
               <a href="#experiments">Browse experiments</a></div>
@@ -54,7 +55,7 @@
       </section>
       <section id="leaderboard" class="rank-board" aria-labelledby="rank-title">
         <div class="eyebrow">
-          <span class="dash"></span> Figure 1 · 109 configurations · 5
+          <span class="dash"></span> Figure 1 · 109 models · 5
           benchmarks
         </div>
         <h2 id="rank-title" class="sr">The Basic Five rankings</h2>
@@ -115,7 +116,7 @@
             <thead>
               <tr>
                 <th scope="col">Overall</th>
-                <th scope="col">Configuration</th>
+                <th scope="col">Model</th>
                 <th scope="col">Mean rank</th>
                 <th scope="col">ImageNet</th>
                 <th scope="col">COCO</th>
@@ -130,7 +131,7 @@
         <div class="rank-table-foot">
           <span id="rank-count" aria-live="polite"></span
           ><button type="button" id="rank-expand">
-            Show all 109 configurations
+            Show all 109 models
           </button>
         </div>
       </section>
@@ -143,10 +144,10 @@
         <figure class="atlas">
           <figcaption>
             <span class="kicker">Figure 1</span>
-            <h2>109 configurations, five ranks</h2>
+            <h2>109 models, five ranks</h2>
           </figcaption>
           <p class="atlas-note">
-            Each line traces one of 109 configurations across the Basic Five.
+            Each line traces one of 109 models across the Basic Five.
             Higher positions indicate better ranks.
           </p>
           <div class="axis-labels" aria-hidden="true">
@@ -158,7 +159,7 @@
             viewBox="-3 -2 406 114"
             preserveAspectRatio="none"
             role="img"
-            aria-label="Figure 1 benchmark ranks for 109 configurations. Rank 1 at the top, 109 at the bottom."
+            aria-label="Figure 1 benchmark ranks for 109 models. Rank 1 at the top, 109 at the bottom."
           ></svg>
           <div class="rank-caption">
             <span>Benchmark rank · 1–109</span
@@ -312,7 +313,7 @@
           ><span>Figures 1–2 · Historical evaluation</span>
           <h2>A decade of transfer</h2>
           <p>
-            Follow 113 configurations through the five benchmarks by year of
+            Follow 113 models through the five benchmarks by year of
             release.
           </p>
           <div class="result-example">
