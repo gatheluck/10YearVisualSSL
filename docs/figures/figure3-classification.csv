@@ -1,0 +1,11 @@
+dataset,model,lp_top1_pct,ap_top1_pct
+ImageNet-1K,DINOv3-7B,86.54,87.82
+ImageNet-1K,VGGT-Ω,10.68,81.62
+ImageNet-1K,RAEv2,75.41,86.26
+ImageNet-1K,V-JEPA 2.1-G,57.61,81.39
+ImageNet-1K,SigLIP 2-G,84.61,87.36
+SSv2,DINOv3-7B,14.90,47.43
+SSv2,VGGT-Ω,4.70,44.57
+SSv2,RAEv2,8.20,40.69
+SSv2,V-JEPA 2.1-G,21.51,69.21
+SSv2,SigLIP 2-G,22.96,40.90

@@ -4,6 +4,16 @@ Which advances in visual representation learning transfer across tasks, and how 
 
 **Paper** (arXiv forthcoming) · [Project Page](https://gatheluck.github.io/10YearVisualSSL/) · [Citation](#citation) · [![Tests on main](https://github.com/gatheluck/10YearVisualSSL/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/gatheluck/10YearVisualSSL/actions/workflows/tests.yml?query=branch%3Amain)
 
+## Key results
+
+![Figure 3 classification comparison. Top-1 accuracy for five frozen backbones on ImageNet-1K and SSv2, using linear and attentive probing. The SSv2 leader changes from SigLIP 2-G to V-JEPA 2.1-G.](docs/figures/figure3-classification.svg)
+
+Figure 3 classification results (§6, Supplement Tables 22 and 23). Bars show top-1 accuracy (%) means across three runs, with standard deviations omitted. See the [plotted values](docs/figures/figure3-classification.csv) and [reproduction guide](docs/PAPER_REPRODUCTION_GUIDE.md#figure-3--unified-readout-and-adaptation).
+
+- **Figure 2.** The historical ASIS comparison covers 113 configurations evaluated under family-specific protocols. Among the 32 selected self-supervised methods, ImageNet-1K top-1 accuracy ranges from 2.83% for the evaluated VAE to 84.47% for DINOv3 ViT-B/16.
+- **Figure 3.** Rankings by reported mean differ between linear and attentive probing for 4/10 model pairs on SSv2 and 1/10 on ImageNet-1K. On SSv2, DINOv3-7B goes from below SigLIP 2-G (14.90% vs. 22.96%) to above it (47.43% vs. 40.90%).
+- **Figure 7.** Adding patch-level agreement to image-level agreement raises pooled leave-one-family-out Spearman rank correlation from 0.19 to 0.75 on ADE20K and from 0.01 to 0.67 on NYUv2 across the seven evaluated model families.
+
 ## Find a figure or table
 
 Section 3 defines three evaluation settings. **ASIS** evaluates released or reproduced models with family-specific protocols (Section 4). **CTRL** compares 32 visual self-supervised learning (VSSL) methods under controlled pre-training (Section 5). **Unified** evaluates selected checkpoints under shared downstream protocols (Section 6).
