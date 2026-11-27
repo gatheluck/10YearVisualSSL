@@ -1,8 +1,6 @@
-# rotation_prediction — rotation pretext (AlexNet + unified ViT-B/16) + linear evaluation
+# rotation_prediction — rotation pretext (AlexNet + controlled ViT-B/16) + linear evaluation
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+> See the [guide to original settings (ASIS), controlled pre-training (CTRL) and Unified evaluation](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
@@ -12,7 +10,7 @@ Gidaris, Singh & Komodakis, *Unsupervised Representation Learning by Predicting
 Image Rotations*, ICLR 2018 ([arXiv:1803.07728](https://arxiv.org/abs/1803.07728)).
 
 An image is rotated by one of {0°, 90°, 180°, 270°} and an **AlexNet-BN**
-predicts which rotation was applied (a 4-class pretext). Step 1 is that pretext.
+predicts which rotation was applied (a 4-class pretext).
 
 ## Why this method, and what is new here
 
@@ -21,9 +19,8 @@ predicts which rotation was applied (a 4-class pretext). Step 1 is that pretext.
 official RotNet AlexNet-BN, torch/torchvision only) — no `third_party/`
 submodule, the same treatment the other re-implemented methods got.
 
-This method is also the **pilot for the capture's Step 2** — the unified,
-from-scratch **ViT-B/16** comparison, where every method plugs its SSL objective
-into the *same* backbone. Rotation plugs in its 4-way pretext. That path is ported
+In the controlled comparison, methods train a **ViT-B/16** from scratch with
+their own SSL objective. Rotation plugs in its 4-way pretext. That path is ported
 here (`configs/pretrain_vit.yaml`, `models/vit_rotation.py`,
 `train_pretrain_vit_rotation.py`) and adds a `timm` dependency; the native AlexNet
 pretrain (`configs/pretrain.yaml`) is unchanged and still needs no timm.
@@ -54,28 +51,28 @@ could select an earlier conv layer for the probe; the port fixes the
 representation at the trained encoder's output so the number is a single,
 comparable linear probe, as in every other self-contained port here.
 
-## Step 2: the unified ViT-B/16 backbone
+## Controlled pre-training with ViT-B/16
 
-`configs/pretrain_vit.yaml` (`arch: vit`) trains the capture's Step-2 backbone: a
+`configs/pretrain_vit.yaml` (`arch: vit`) trains the capture's controlled recipe backbone: a
 **timm ViT-B/16 from scratch**, the 4-way rotation pretext on the CLS token,
 AdamW with a linear warmup then cosine decay to `min_lr`, gradient clipping, and
 mixed precision on CUDA. It checkpoints at `save_at_epochs` — **100/200/300** —
 and the adapter hands out the frozen backbone at each milestone as
 `encoder_epoch{100,200,300}.pt`, so the ImageNet `linear_eval` can be run once per
-milestone (the CSV's Step-2 sweep); `encoder.pt` is the final 300-epoch backbone.
+milestone (the CSV's controlled recipe sweep); `encoder.pt` is the final 300-epoch backbone.
 The stage token stays `pretrain` and the metric vocabulary is unchanged (ImageNet
 Top-1/5) — only the backbone and recipe differ from the native path, which is
 untouched. See docs/EVALUATION.md.
 
 ## What has and has not been exercised
 
-- **Exercised (step 1):** a hermetic smoke — a small AlexNet-BN, a few fabricated
+- **Exercised (original recipe):** a hermetic smoke — a small AlexNet-BN, a few fabricated
   images, the four rotations — runs through `python -m adapter` on a CPU, passes
   `contract-test`, and the encoder round-trip and a determinism check pass.
 - **Exercised (linear_eval):** a hermetic smoke fits the probe on a pretrain
   encoder over a two-class ImageFolder, passes `contract-test`, writes the
   comparable `linear_probe` accuracies, and writes **no** `encoder.pt`.
-- **Exercised (Step 2 ViT):** a hermetic smoke trains a tiny ViT-B/16-shaped
+- **Exercised (controlled recipe ViT):** a hermetic smoke trains a tiny ViT-B/16-shaped
   model for two epochs with `save_at_epochs: [1, 2]`, writes `encoder.pt` plus
   `encoder_epoch1.pt` / `encoder_epoch2.pt`, then probes a milestone through
   `python -m adapter` and passes `contract-test`.
@@ -88,7 +85,7 @@ untouched. See docs/EVALUATION.md.
 ## Environment
 
 torch / torchvision / numpy / PyYAML — the self-contained methods' stack. The
-Step-2 ViT path adds **timm** (`models/vit_rotation.py` builds timm's
+controlled recipe ViT path adds **timm** (`models/vit_rotation.py` builds timm's
 VisionTransformer); the native AlexNet pretrain and the linear probe import no
 timm. `requirements.lock.txt` (CPU) and `requirements.lock.cu130.txt` (CUDA 13.0)
 are the hashed closures.
@@ -100,13 +97,13 @@ are the hashed closures.
 
 ## Running
 
-    # step 1: DATA_ROOT is an ImageFolder of training images
+    # original recipe: DATA_ROOT is an ImageFolder of training images
     python bin/resolve-config.py --config methods/rotation_prediction/configs/pretrain.yaml \
         --set DATA_ROOT=/path/to/images --out resolved.json
     cd methods/rotation_prediction && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/s1
 
-    # step 2 (unified ViT-B/16): checkpoints at 100/200/300 -> encoder_epoch{N}.pt
+    # Controlled ViT-B/16 pre-training: checkpoints at 100/200/300 -> encoder_epoch{N}.pt
     python bin/resolve-config.py --config methods/rotation_prediction/configs/pretrain_vit.yaml \
         --set DATA_ROOT=/path/to/imagenet --out resolved_vit.json
     cd methods/rotation_prediction && PYTHONPATH="$PWD/../.." \
@@ -128,6 +125,6 @@ carries `encoder_absent_reason`.
 
 The [indexed 90-epoch scaling entry](../../docs/ROTATION_SCALING.md) supports
 ViT-B/L with its own optimizer-update schedule, accumulation, DDP and portable
-epoch continuation. It does not change the historical or Step-2 adapters.
+epoch continuation. It does not change the historical or controlled recipe adapters.
 Its exports connect to the frozen BasicFive provider; full-data paper scores
 remain unverified.

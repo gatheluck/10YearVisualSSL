@@ -1,8 +1,6 @@
 # Evaluating generative methods: downloaded backbones, and what their probes measure
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+See the [manuscript terminology guide](PAPER_TERMINOLOGY.md) for the correspondence between historical artifact names and paper settings.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](SUBMISSION_SCOPE.md)
@@ -10,7 +8,7 @@ for the distinction from original experimental implementations and results.
 
 Last updated: 2026-08-05
 
-The contract's `linear_eval` stage was designed for methods whose step 1 trains
+The contract's `linear_eval` stage was designed for methods whose pre-training stage trains
 an encoder from scratch: freeze that `encoder.pt`, fit a linear classifier, and
 the accuracy measures the *learned* representation. The generative ports —
 `var` and `mar` — do not fit that shape cleanly, and CONTRACT section 7
@@ -121,21 +119,19 @@ features the probe reads. This port establishes the reusable pieces:
   than `encoder.pt`, keeping CI hermetic via a random stand-in and declaring
   `encoder_absent_reason`.
 
-## 4a. Franca — the first eval-only port (no step 1)
+## 4a. Franca: ASIS probing and controlled pre-training
 
-`franca` is the first method built on that shape end to end, and the first
-with **no step 1 at all**. Measured from the capture (`methods/36_franca/`): its
-"Step 1" is a frozen-backbone linear probe on the official pretrained Franca
-ViT-B/14 In21K checkpoint ("analogous to DINOv2 ... not local Franca
-pretraining"), and its "Step 2" is the from-scratch SSL pretraining (H100-class),
-excluded like every method's step 2. So the port has only a `linear_eval` stage.
+The ASIS probe freezes the official pretrained Franca ViT-B/14 In21K
+checkpoint and fits an ImageNet classifier. The separate CTRL route trains
+a ViT-B/16 from scratch. See the [Franca adapter](../methods/franca/README.md)
+for both configurations.
 
 Unlike `var`, the probed representation is a **genuine SSL representation** —
 Franca's pretrained ViT CLS token (`forward_features(x)["x_norm_clstoken"]`) — so
 the number is comparable (the "pretrained-backbone reuse" row). Measured upstream
 facts that made this clean: the checkpoint is a fixed public GitHub-release URL
 (pinned by sha256 as `provenance.json: backbone_artifact`); the backbone import
-needs only torch (the heavy `requirements.txt` deps are step-2 training); and the
+needs only torch (the heavy `requirements.txt` deps support controlled pre-training); and the
 frozen forward has no hardcoded device, so the upstream is pinned **directly**
 (no fork). The hermetic smoke builds a random ViT-B/14 (`pretrained=False`) at a
 tiny resolution, so CI downloads nothing.
@@ -164,13 +160,6 @@ are asserted present so the exemption cannot silently cover everything.
 > evaluation path (`models_mar`/`forward_encoder`) is absent from both the pinned
 > upstream and the Capture snapshot, so it cannot be reproduced faithfully.
 >
-> **Eval-only methods (resolved for `franca`, 2026-08-05).** A method may have
-> **no step 1** — a frozen, pretrained backbone probed by `linear_eval` and
-> nothing trained (Franca's capture Step 1; its from-scratch pretraining is the
-> excluded Step 2). Such a port produces no `encoder.pt`, sets
-> `encoder_absent_reason`, and pins its backbone as a sha256 `backbone_artifact`.
-> Whether a port produces an encoder is discovered from its `STAGES` (`pretrain` is
-> the encoder-producing stage), so the encoder-convention checks apply only to
-> encoder-producing ports; eval-only ports are checked instead for the absent
-> declaration. For `franca` the CLS representation is Franca's own pretrained
-> ViT, so the number is comparable (unlike `var`'s tokeniser probe).
+A frozen-backbone probe may consume a released checkpoint without writing an
+encoder checkpoint of its own. Franca's ASIS probe uses the pretrained ViT CLS
+representation; its controlled pre-training route produces its own encoder.

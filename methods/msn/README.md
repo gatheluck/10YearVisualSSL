@@ -1,8 +1,6 @@
-# msn — step 1 (MSN pretext) + unified deit_base/16 step 2 + linear evaluation
+# msn — MSN pretext + controlled deit_base/16 pre-training + linear evaluation
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+> See the [guide to original settings (ASIS), controlled pre-training (CTRL) and Unified evaluation](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
@@ -18,8 +16,6 @@ un-dropped random view (`imgs[0]`); both are mapped to a set of learnable
 cross-entropy plus a **me-max** entropy regulariser:
 
     loss = ploss + memax_weight · me_max + ent_weight · ent
-
-Step 1 is that pretext.
 
 ## Scope — a submodule-import port of the official MSN
 
@@ -42,17 +38,17 @@ Two things are rewritten in the port (documented in `provenance.json`):
 - the linear probe is the shared **ARSSL** probe rather than the official cyanure
   logistic probe (the same deviation as every port).
 
-## Step 2 (unified deit_base/16), added additively
+## Controlled deit_base/16 pre-training
 
-The capture's Step 2 plugs the **same** MSN objective into the unified
+The capture's controlled recipe plugs the **same** MSN objective into the controlled
 **deit_base/16** backbone (embed_dim 768, depth 12, heads 12; 300 epochs, `lr`
 6e-4, fixed weight decay 0.05, checkpointed at 100/200/300). It is selected by a
 `recipe: unified` key in `train`; **absent `recipe` is the native deit_small
-step-1 path, unchanged**, and the unified recipe's only extra key over the native
+recipe, unchanged**, and the controlled recipe's only extra key over the native
 set is `save_at_epochs` (the milestone knob), refused by name on the native path.
 
 **No separate trainer was needed — the native `train_pretrain_msn.py` already
-implements the unified recipe.** The official `src.msn_train.init_opt` takes the
+implements the controlled recipe.** The official `src.msn_train.init_opt` takes the
 `lr` directly (the capture baked `lr = 1.5e-4 × 1024/256 = 6e-4` into the config,
 so there is nothing to rescale), the arch is built from the config dims
 (`deit_base` is just `embed_dim: 768`, `num_heads: 12`), and its cosine
@@ -63,7 +59,7 @@ config (which never sets that key), so the native behaviour is byte-for-byte
 unchanged — the DRY choice over duplicating the loop into a second file. The
 adapter writes `encoder.pt` (the final anchor trunk) plus
 `encoder_epoch{100,200,300}.pt`, one frozen backbone per milestone; probe a
-unified encoder with `configs/linear_eval_vit.yaml` (deit_base dims).
+controlled encoder with `configs/linear_eval_vit.yaml` (deit_base dims).
 
 ## Licence — non-commercial research use only
 
@@ -90,7 +86,7 @@ L2-normalised, a single linear layer trained with SGD under a cosine schedule).
 
 ## What has and has not been exercised
 
-- **Exercised (step 1):** a hermetic smoke — a tiny ViT at 32px rand / 16px focal
+- **Exercised (original recipe):** a hermetic smoke — a tiny ViT at 32px rand / 16px focal
   (a 2×2 patch grid, embed_dim 32, 2 blocks), 1 rand + 2 focal views, 8
   prototypes, a few fabricated images — runs through `python -m adapter` on a CPU
   (exercising the multi-view forward, the patch-drop masking, the Sinkhorn MSN
@@ -119,13 +115,13 @@ installed, so it is not in the lock.
 
 ## Running
 
-    # step 1: DATA_ROOT contains a train/ subdirectory of images
+    # original recipe: DATA_ROOT contains a train/ subdirectory of images
     python bin/resolve-config.py --config methods/msn/configs/pretrain.yaml \
         --set DATA_ROOT=/path/to/imagenet/train --out resolved.json
     cd methods/msn && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/s1
 
-    # linear eval: DATA_ROOT has train/ and val/; ENCODER is step 1's encoder.pt
+    # linear eval: DATA_ROOT has train/ and val/; ENCODER is the encoder.pt from pre-training
     python bin/resolve-config.py --config methods/msn/configs/linear_eval.yaml \
         --set DATA_ROOT=/path/to/imagenet \
         --set ENCODER=/path/to/s1/encoder.pt --out eval.json

@@ -22,7 +22,7 @@ For a native COCO run, use the [bounding-box evaluation path](BASIC5_NATIVE_PATH
 
 ## Figure 3 — Unified readout and adaptation
 
-Use Supplement C.3 Tables 22–26 for linear probing (LP), attentive probing (AP), dense prediction transformer probing (DPT), low-rank adaptation (LoRA) and full fine-tuning (FT). Original seed files reproduced 91 of the 104 reported cells. Other contemporaneous per-seed records reproduced 12 more at printed precision. VGGT-Ω COCO LP has only aggregate support. Preserve six unreported FT cells and the single reported VGGT-Ω SSv2 FT seed. For RAEv2, Unified uses seven tokenizer layers. The ASIS detection run used a separate frozen generator readout.
+Figure 3 compares three frozen-backbone readouts (linear probing, attentive probing and DPT) with low-rank adaptation (LoRA). Supplement C.3 Tables 22–26 also report full fine-tuning (FT). Original seed files reproduced 91 of the 104 reported cells. Other contemporaneous per-seed records reproduced 12 more at printed precision. VGGT-Ω COCO LP has only aggregate support. Preserve six unreported FT cells and the single reported VGGT-Ω SSv2 FT seed. For RAEv2 LP/AP, manuscript Section 6 names diffusion-generator block 29 at timestep 0.1. The [run attribution audit](CVPR_ADAPTATION.md) identifies a seven-layer tokenizer readout in the recorded Unified runs. These feature tensors come from different components. Identify the target run before comparing scores. The ASIS detection run used a separate frozen generator readout.
 
 To train or compare, use the [LoRA and DPT run instructions](LORA_FULL_REPRODUCTION.md), the [LP/AP/FT protocols](../README.md#evaluation-protocols) and the [SSv2 encoder-specific AP readers](SSV2_EXECUTION.md#figure-3-attentive-probes). Generate 45 LoRA configs for three tasks, five encoders and three seeds from the [example path mapping](../configs/figure3-lora-paths.example.json):
 
@@ -76,7 +76,7 @@ All 20 plotted values agree with Table 29. The recovered DINO outputs gave 429/5
 
 ## Figure 7 — Representation geometry
 
-Use the [feature, plot and nested-analysis formats](REPRESENTATION_ANALYSIS.md). From the original coordinate and score tables, all 10 pooled Spearman correlations in Figure 7b matched at four decimals. Each of the five tasks contributes two correlations, one using image agreement alone and one using both image and patch agreement (104 fitted models, 94 with COCO). To start earlier, provide aligned frozen image and patch feature arrays:
+Use the [feature, plot and nested-analysis formats](REPRESENTATION_ANALYSIS.md). From the original coordinate and score tables, all 10 pooled Spearman correlations in the Figure 7 agreement analysis matched at four decimals. Each of the five tasks contributes two correlations, one using image agreement alone and one using both image and patch agreement (104 fitted models, 94 with COCO). To start earlier, provide aligned frozen image and patch feature arrays:
 
 ```sh
 python -m downstream.representation_analysis --config analysis-config.json --out new-analysis

@@ -1,8 +1,6 @@
-# barlow_twins — step 1 and linear evaluation
+# barlow_twins — pre-training and linear evaluation
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+> See the [guide to original settings (ASIS), controlled pre-training (CTRL) and Unified evaluation](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
@@ -27,7 +25,7 @@ port did not have to solve.
 
 ## The linear evaluation
 
-The second stage freezes the encoder step 1 produced and fits a linear
+The second stage freezes the encoder produced by pre-training and fits a linear
 classifier on real labels. **These are the numbers this project exists to
 compare**, and this port adds them for a fourth method.
 
@@ -40,7 +38,7 @@ evaluation rebuilds the whole model from a training checkpoint with
 `strict=True` and takes its backbone; the contract's artifact is `encoder.pt`,
 the backbone alone. Rather than teach the evaluation a second way to recognise
 a file, the adapter builds the encoder with `load_encoder` and hands it in.
-This is also how the ViT Step-2 path probes its backbone: the adapter builds the
+This is also how the controlled ViT path probes its backbone: the adapter builds the
 ViT encoder and passes `in_dim=embed_dim`, so `evaluate_linear.py` is unchanged
 by that path — its internal `model_type='vit'` loader stays intentionally unused
 (it still refuses by name).
@@ -86,7 +84,7 @@ Recorded in full in `provenance.json`; `models/barlow_resnet.py` and
   `run(args, encoder, in_dim)` returning its metrics, and its encoder handed in
   rather than rebuilt from a training checkpoint. Its `run(in_dim=...)` sizes the
   linear head, so the ViT path passes `embed_dim` (768) and the ResNet path 2048
-- **the unified ViT-B/16 Step 2 is ported, additively** (`configs/pretrain_vit.yaml`,
+- **the controlled ViT-B/16 pre-training is ported, additively** (`configs/pretrain_vit.yaml`,
   `arch: vit`): the same ViT-B/16 backbone every method shares, trained from
   scratch with the Barlow cross-correlation loss, the CLS token through a 3-layer
   projector (`build_barlow_vit` reuses the native `off_diagonal` and
@@ -111,11 +109,11 @@ that would sit outside the hash.
 ## What has and has not been exercised
 
 - **A real training step ran on the GPU.** On an NVIDIA A100 (driver CUDA 13.0)
-  step 1 completes a training step and writes a loadable `encoder.pt` — the test
+  the original recipe completes a training step and writes a loadable `encoder.pt` — the test
   `test_a_real_run_on_cuda_produces_a_loadable_encoder`, on a handful of
   synthetic images at 32 pixels
 - **The linear evaluation runs, but on the CPU.** Its smoke test uses
-  `device: cpu` (through the same `resolve_device` path step 1 uses), and a
+  `device: cpu` (through the same `resolve_device` path the original recipe uses), and a
   separate test checks it refuses `cuda` when no GPU is visible. The probe has
   not been exercised on a GPU here
 - **The full recipe has never been run.** 100 epochs of ResNet-50 on

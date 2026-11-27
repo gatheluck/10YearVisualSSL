@@ -3,7 +3,9 @@
 The revised 15-page manuscript and its 38-page supplement specify the current
 comparisons. Tables 22–26 cover the Unified Basic Five and supplementary FT.
 See the [run attribution audit](BASIC5_V1_AUDIT.md#run-attribution-checked-against-the-revised-supplement)
-for the RAEv2 representation used in the experiments. See
+for the RAEv2 representation in the recorded Basic Five runs. Section 6 of
+the November 18 manuscript describes block-29 generator features at t = 0.1
+for LP/AP; the run records identify the K7 tokenizer for those Basic Five cells. See
 [package scope](SUBMISSION_SCOPE.md) for the distinction between experimental
 implementations, portable components and result reproduction.
 
@@ -128,8 +130,8 @@ normalization exactly once; loading local checkpoints is unchanged.
 | VGGT-Omega | Both frame and inter-frame block lists | Cached layers 4, 11, 17, 23; concatenate features as returned by the aggregator and remove its prefix |
 | RAEv2 K7 tokenizer | The tokenizer's 24 blocks | Official normalized intermediate-layer maps at evenly spaced indices; not raw hooks or the K7 aggregate |
 
-The RAEv2 row implements the **K7 tokenizer** used by the adopted Unified
-experiments. The ASIS profile uses the diffusion generator at block 29 and
+The RAEv2 row implements the **K7 tokenizer** identified in the recorded Basic Five
+runs. The ASIS profile uses the diffusion generator at block 29 and
 timestep 0.1. The projected-CLS HF family has no new binding in this change.
 
 After building and placing a frozen provider, call
@@ -409,7 +411,7 @@ must not be treated as interchangeable environment certifications.
 | --- | --- |
 | LoRA task integration | The revised CLI connects all five inspected task profiles, with portable completed-epoch continuation. Full-data NYUv2 results appear below and the [ADE20K comparison](ADE20K_REPRODUCTION.md) covers all five models. ImageNet, SSv2 and COCO still require full-data released-weight validation; small component updates do not complete them. Earlier LoRA recipes remain historical. |
 | DPT | The revised CLI connects ADE20K and NYUv2 to the frozen four-tap head and v2 schedule. NYUv2 full-data executions are reported below. The [ADE20K report](ADE20K_REPRODUCTION.md) compares all five released models over three seeds. Dense execution follows the inspected single-device source; distributed dense training is not claimed. |
-| RAEv2 readout | The adopted Unified experiments use the tokenizer K7 readout. Generator block 29 at time 0.1 applies to ASIS. See the run attribution audit above. |
+| RAEv2 readout | Basic Five run records identify the K7 tokenizer. Section 6 describes generator block 29 at t = 0.1 for LP/AP; that generator setting is also documented under ASIS. See the run attribution audit above. |
 | COCO | Basic5 uses Faster R-CNN bounding-box AP. The existing portable COCO runner already performs detection; historical category-presence scores must not be relabeled as detection AP. The run attribution audit records the completed 15-target correction and its correspondence to the displayed tables. |
 | NYUv2 | The LoRA/DPT run record stores median-aligned RMSE as primary. The author-supplied v2 descriptions select the unaligned field for manuscript reporting. Other tracks require their own provenance. |
 | Geometry analysis | The [feature-array analysis CLI](REPRESENTATION_ANALYSIS.md) adds source-compared image/patch agreement and held-family task-direction fits. The original Figure 7b table statistics matched across five tasks. The reference-free correlations come from nested coordinate selection. Extraction identity requires separate validation. |

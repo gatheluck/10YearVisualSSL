@@ -1,8 +1,6 @@
-# simclrv2 — SimCLR v2 pretext (ResNet-50 + unified ViT-B/16 Step 2) + linear evaluation
+# simclrv2 — SimCLR v2 pretext (ResNet-50 + controlled ViT-B/16 pre-training) + linear evaluation
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+> See the [guide to original settings (ASIS), controlled pre-training (CTRL) and Unified evaluation](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
@@ -16,14 +14,14 @@ Two independently-augmented views of an image feed a shared **ResNet-50** encode
 and a **3-layer MLP** projection head (2048→2048→2048→`out_dim`, BN + ReLU,
 L2-normalised). The **NT-Xent** loss (temperature 0.1) pulls the two views of an
 image together and pushes every other view in the batch apart. Training uses
-**LARS** under a cosine schedule with linear warmup. Step 1 is that pretext.
+**LARS** under a cosine schedule with linear warmup.
 
-## Scope — the ResNet-50 pretext only
+## Scope — ResNet-50 and controlled ViT-B/16 pre-training
 
-This port covers the paper-faithful **ResNet-50** step 1. **SimCLR v2 = SimCLR v1
+This port covers the paper-faithful **ResNet-50** original recipe. **SimCLR v2 = SimCLR v1
 + a 3-layer MLP head** (v1 used 2), τ=0.1 (v1 0.07), and an optional
 `width_multiplier` (1 = ResNet-50; 2 = `wide_resnet50_2`). The capture's ViT
-variant (`models/vit_simclrv2.py`, step 2) is ported as part of the Step-2 fan-out
+variant (`models/vit_simclrv2.py`, controlled recipe) is available
 (`arch: vit`: 3-layer projector on the ViT CLS token, NT-Xent temperature 0.1) and
 imports `timm`; the native ResNet-50 pretrain does not. The paper's semi-supervised
 **distillation** stage remains excluded, and `tensorboard`/`tqdm` unported. See
@@ -61,7 +59,7 @@ across the ported methods.
 
 ## What has and has not been exercised
 
-- **Exercised (step 1):** a hermetic smoke — a small ResNet-50 SimCLR v2, a few
+- **Exercised (original recipe):** a hermetic smoke — a small ResNet-50 SimCLR v2, a few
   fabricated images, a 32px input and `out_dim=32` — runs through `python -m
   adapter` on a CPU, passes `contract-test`, and the encoder round-trip and a
   determinism check pass.
@@ -76,7 +74,7 @@ across the ported methods.
 ## Environment
 
 torch / torchvision / numpy / PyYAML — the self-contained methods' stack, no
-submodule; the Step-2 ViT path adds `timm` (the native ResNet-50 path needs none).
+submodule; the controlled recipe ViT path adds `timm` (the native ResNet-50 path needs none).
 `requirements.lock.txt` (CPU) and `requirements.lock.cu130.txt` (CUDA 13.0) are
 the hashed closures (the same closure as `simclrv1`: identical floors,
 identical resolution).
@@ -88,13 +86,13 @@ identical resolution).
 
 ## Running
 
-    # step 1: DATA_ROOT is a folder of training images (searched recursively)
+    # original recipe: DATA_ROOT is a folder of training images (searched recursively)
     python bin/resolve-config.py --config methods/simclrv2/configs/pretrain.yaml \
         --set DATA_ROOT=/path/to/images --out resolved.json
     cd methods/simclrv2 && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/s1
 
-    # linear eval: DATA_ROOT has train/ and val/; ENCODER is step 1's encoder.pt
+    # linear eval: DATA_ROOT has train/ and val/; ENCODER is the encoder.pt from pre-training
     python bin/resolve-config.py --config methods/simclrv2/configs/linear_eval.yaml \
         --set DATA_ROOT=/path/to/imagenet \
         --set ENCODER=/path/to/s1/encoder.pt --out eval.json

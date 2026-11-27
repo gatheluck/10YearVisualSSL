@@ -1,13 +1,13 @@
 # Portable-package porting and validation ledger
 
+The table numbers in this guide refer to the earlier submission. For the current manuscript, see the [figure and table index](PAPER_REPRODUCTION_GUIDE.md).
+
 Current update (2026-09-27): [explicit five-family AP/native detection](BASIC5_NATIVE_PATHS.md)
 and [final submitted manuscript coverage](FINAL_PAPER_COVERAGE.md) supersede
 earlier provider limits and table numbering below. Dated sections retain their
 historical scope; they do not certify current full-paper reproduction.
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+For the current manuscript, use the [figure-by-figure reproduction guide](PAPER_REPRODUCTION_GUIDE.md) and [terminology map](PAPER_TERMINOLOGY.md).
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](SUBMISSION_SCOPE.md)
@@ -31,9 +31,9 @@ support do not imply complete experiment coverage.
 
 | Priority | Package gap and reference evidence | Next porting/validation boundary | Package status |
 | --- | --- | --- | --- |
-| 1 | Step-4 DINOv3 Tables 34–35 have several head layouts and a Gram training stage; the public trainer previously only ran independent heads and the core objective | Sharing ownership, projection gradients, EMA, checkpoint/export, weighted objectives, clean-crop Gram lifecycle | [Implemented components and limits](DINOV3_STEP4.md); CPU comparisons and stage-boundary tests; no validated full ImageNet score rerun using this port |
-| 2 | Step-4 continuation and joint-assignment coverage | H1S200 checkpoint split at epoch 200; H1CORE continuation without Gram; H1JA joint assignment/mass logic | Component paths include DDP, global assignments and rank-specific portable resume, with reduced two-rank parity; CUDA BF16/full-scale scores remain unverified, and native full-state continuation is not integrated |
-| 3 | IDv2 Step-4 configurations use two-view/multicrop bank behavior beyond the public path | Capture-aligned bank initialization, update order, sample identities and loss/update parity | [Seven component profiles implemented](IDV2_COMPONENTS.md), including adapter execution and checkpoint resume; native distributed integration and full-run score matching remain unvalidated in this package |
+| 1 | DINOv3 diagnostic Tables 34–35 have several head layouts and a Gram training stage; the public trainer previously only ran independent heads and the core objective | Sharing ownership, projection gradients, EMA, checkpoint/export, weighted objectives, clean-crop Gram lifecycle | [Implemented components and limits](DINOV3_STEP4.md); CPU comparisons and stage-boundary tests; no validated full ImageNet score rerun using this port |
+| 2 | DINOv3 continuation and joint-assignment coverage | H1S200 checkpoint split at epoch 200; H1CORE continuation without Gram; H1JA joint assignment/mass logic | Component paths include DDP, global assignments and rank-specific portable resume, with reduced two-rank parity; CUDA BF16/full-scale scores remain unverified, and native full-state continuation is not integrated |
+| 3 | IDv2 objective and memory-bank configurations use two-view/multicrop bank behavior beyond the public path | Capture-aligned bank initialization, update order, sample identities and loss/update parity | [Seven component profiles implemented](IDV2_COMPONENTS.md), including adapter execution and checkpoint resume; native distributed integration and full-run score matching remain unvalidated in this package |
 | 4 | The Basic5 port covers only part of the inspected experimental model/task/adaptation pipelines | Extend the [provider support matrix](BASIC5_VISION_PROVIDERS.md), integrate remaining family-specific forward/gradient/optimizer paths in groups | [SAM3/Cosmos3 added 14 component paths on 2026-09-26](BASIC5_PATCH_PROVIDERS.md); remaining family-specific/AP/COCO paths and recipes are not fully ported or reconciled here; full-workbook reruns in this package remain unvalidated |
 | 5 | Extend LP/AP/FT reference trainers exist; their full catalog is not integrated in this package, and per-result correspondence needs separate verification | Port supported task protocols, require actual checkpoint/config/data identities, then aggregate repeated runs | Porting and result-to-run correspondence remain incomplete here; this is not a claim that the original trainers are absent |
 

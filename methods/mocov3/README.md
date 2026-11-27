@@ -1,8 +1,6 @@
-# mocov3 — step 1 (MoCo v3 ViT pretext) + linear evaluation
+# mocov3 — MoCo v3 ViT pretext + linear evaluation
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+> See the [guide to original settings (ASIS), controlled pre-training (CTRL) and Unified evaluation](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
@@ -17,20 +15,20 @@ projector) and a **momentum** encoder (an exponential-moving-average copy of the
 base + projector, no gradient). A 2-layer MLP **predictor** sits on the base
 encoder. The loss is a **symmetric InfoNCE**: each predicted query is contrasted
 against the other view's momentum key (temperature-scaled). The EMA momentum
-follows a cosine schedule from its base to 1.0. Step 1 is that pretext.
+follows a cosine schedule from its base to 1.0.
 
-## Scope — the ViT step 1 and the unified ViT-B/16 Step 2
+## Scope — the ViT original recipe and controlled ViT-B/16 pre-training
 
-This port covers MoCo v3's **ViT-B/16** step 1 (`configs/pretrain.yaml`, the paper
-recipe) **and** the capture's unified **ViT-B/16 Step 2** (`configs/pretrain_vit.yaml`,
-`recipe: unified`). MoCo v3 is already ViT-B/16, so the unified Step 2 is the *same*
-objective/backbone under the unified recipe: a direct `lr` 6e-4 (step 1 uses
-`learning_rate` = base LR × batch/256), a **fixed** EMA momentum (step 1 cosine-
-anneals it to 1.0), gradient clipping, and the unified schedule (300 epochs, batch
+This port covers MoCo v3's **ViT-B/16** original recipe (`configs/pretrain.yaml`, the paper
+recipe) **and** the **controlled ViT-B/16 recipe** (`configs/pretrain_vit.yaml`,
+`recipe: unified`). MoCo v3 is already ViT-B/16, so the controlled recipe is the *same*
+objective/backbone under the controlled recipe: a direct `lr` 6e-4 (the original recipe uses
+`learning_rate` = base LR × batch/256), a **fixed** EMA momentum (the original recipe cosine-
+anneals it to 1.0), gradient clipping, and the controlled schedule (300 epochs, batch
 1024, wd 0.05, 10-epoch warmup) with milestone checkpoints at 100/200/300, each
 probed by the same frozen-backbone `linear_eval`. It is selected by an explicit
 `recipe: unified` key (absent = the native paper recipe, byte-for-byte unchanged).
-Unlike the ResNet ports, MoCo v3's step 1 is
+Unlike the ResNet ports, MoCo v3's original recipe is
 genuinely ViT-based, so **`timm` is a real dependency** here — it supplies the
 `VisionTransformer` base class. This is the **first ported method that needs
 `timm`**. The ViT is built **from scratch** (no pretrained download), so the run
@@ -75,7 +73,7 @@ across the ported methods.
 
 ## What has and has not been exercised
 
-- **Exercised (step 1):** a hermetic smoke — a small `vit_small` at 32px (a 2×2
+- **Exercised (original recipe):** a hermetic smoke — a small `vit_small` at 32px (a 2×2
   token grid), a narrow projector/predictor, a few fabricated images — runs
   through `python -m adapter` on a CPU (exercising the EMA momentum-encoder
   update), passes `contract-test`, and the encoder round-trip and a determinism
@@ -86,7 +84,7 @@ across the ported methods.
 - **Not a full run:** `configs/pretrain.yaml` is the MoCo v3 recipe (`vit_base`,
   projector 4096→256, predictor, 300 epochs, batch 4096, AdamW, warmup 40), a
   recipe, not a completed run.
-- **Exercised (unified Step 2):** a hermetic smoke — `recipe: unified`,
+- **Exercised (controlled recipe):** a hermetic smoke — `recipe: unified`,
   `arch: vit_base` at 32px, two epochs with `save_at_epochs: [1, 2]` — runs
   through `python -m adapter` on a CPU, writes `encoder.pt` and both
   `encoder_epoch{1,2}.pt` milestones, and a milestone probe passes `contract-test`.
@@ -109,13 +107,13 @@ the hashed closures.
 
 ## Running
 
-    # step 1: DATA_ROOT is a folder of training images (searched recursively)
+    # original recipe: DATA_ROOT is a folder of training images (searched recursively)
     python bin/resolve-config.py --config methods/mocov3/configs/pretrain.yaml \
         --set DATA_ROOT=/path/to/images --out resolved.json
     cd methods/mocov3 && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/s1
 
-    # linear eval: DATA_ROOT has train/ and val/; ENCODER is step 1's encoder.pt
+    # linear eval: DATA_ROOT has train/ and val/; ENCODER is the encoder.pt from pre-training
     python bin/resolve-config.py --config methods/mocov3/configs/linear_eval.yaml \
         --set DATA_ROOT=/path/to/imagenet \
         --set ENCODER=/path/to/s1/encoder.pt --out eval.json

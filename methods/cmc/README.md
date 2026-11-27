@@ -1,8 +1,6 @@
-# cmc — step 1 (CMC AlexNet pretext) + linear evaluation
+# cmc — CMC AlexNet pretext + linear evaluation
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+> See the [guide to original settings (ASIS), controlled pre-training (CTRL) and Unified evaluation](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
@@ -15,14 +13,14 @@ An RGB image is converted to CIE **Lab** and split into its **L** (1-channel) an
 **ab** (2-channel) views. A two-branch half-size AlexNet maps each view to an
 L2-normalised embedding, and an **NCE** loss over two momentum **memory banks**
 (one per view, scored cross-view) pulls the two views of an image together and
-apart from K negatives. Step 1 is that pretext.
+apart from K negatives.
 
-## Scope — the paper-faithful AlexNet path and the unified ViT-B/16 Step 2
+## Scope — the paper-faithful AlexNet path and controlled ViT-B/16 pre-training
 
-The capture ships a CMC AlexNet step 1, a ViT step 2, and an optional ResNet
+The capture ships a CMC AlexNet original recipe, a controlled ViT recipe, and an optional ResNet
 linear-classifier variant. This port brings across the **AlexNet** path (the
 two-branch encoder, the two-bank NCE loss with alias-method negative sampling,
-and the Lab dataset) **and** the capture's unified **ViT-B/16 Step 2**
+and the Lab dataset) **and** the **controlled ViT-B/16 recipe**
 (`configs/pretrain_vit.yaml`, `arch: vit`): two ViT branches — one for the L
 channel (`in_chans` 1), one for ab (`in_chans` 2) — each with a 3-layer MLP
 projector, trained from scratch by the same cross-view NCE memory-bank objective;
@@ -70,7 +68,7 @@ trained with SGD under a cosine schedule).
 
 ## What has and has not been exercised
 
-- **Exercised (step 1):** a hermetic smoke — a narrow encoder, a 64px input, a
+- **Exercised (original recipe):** a hermetic smoke — a narrow encoder, a 64px input, a
   handful of negatives, a few fabricated images — runs through `python -m adapter`
   on a CPU, passes `contract-test`, and the encoder round-trip and a determinism
   check pass.
@@ -79,7 +77,7 @@ trained with SGD under a cosine schedule).
   comparable `linear_probe` accuracies, and writes **no** `encoder.pt`.
 - **Not a full run:** `configs/pretrain.yaml` is the paper-target recipe (feat_dim
   128, K 16384, T 0.07, 240 epochs, 224px), a recipe, not a completed run.
-- **Exercised (ViT Step 2):** a hermetic smoke trains the two-branch ViT under
+- **Exercised (controlled ViT recipe):** a hermetic smoke trains the two-branch ViT under
   the two-bank NCE objective, writes milestone encoders, and probes the
   concatenated CLS features through `contract-test` (tiny ViT dims, CPU).
 - **Not ported:** the optional ResNet linear-classifier variant.
@@ -90,7 +88,7 @@ trained with SGD under a cosine schedule).
 
 torch / torchvision / numpy / PyYAML — the self-contained methods' stack, no
 submodule (the Lab conversion is numpy, not scikit-image) — plus `timm` for the
-unified ViT-B/16 Step-2 path (imported lazily, so the native AlexNet path never
+controlled ViT-B/16 pre-training path (imported lazily, so the native AlexNet path never
 needs it). `requirements.lock.txt` (CPU) and `requirements.lock.cu130.txt`
 (CUDA 13.0) are the hashed closures (the same closure as `simclrv1`: identical
 floors, identical resolution).
@@ -102,13 +100,13 @@ floors, identical resolution).
 
 ## Running
 
-    # step 1: DATA_ROOT is an ImageFolder of training images
+    # original recipe: DATA_ROOT is an ImageFolder of training images
     python bin/resolve-config.py --config methods/cmc/configs/pretrain.yaml \
         --set DATA_ROOT=/path/to/images --out resolved.json
     cd methods/cmc && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/s1
 
-    # linear eval: DATA_ROOT has train/ and val/; ENCODER is step 1's encoder.pt
+    # linear eval: DATA_ROOT has train/ and val/; ENCODER is the encoder.pt from pre-training
     python bin/resolve-config.py --config methods/cmc/configs/linear_eval.yaml \
         --set DATA_ROOT=/path/to/imagenet \
         --set ENCODER=/path/to/s1/encoder.pt --out eval.json

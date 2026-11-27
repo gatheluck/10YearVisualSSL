@@ -1,5 +1,7 @@
 # IDv2 ImageNet-21k scaling components
 
+The table numbers in this guide refer to the earlier submission. For the current manuscript, see the [figure and table index](PAPER_REPRODUCTION_GUIDE.md).
+
 See [scope and terminology](SUBMISSION_SCOPE.md) for the distinction between
 original experiments, portable implementation coverage and score reproduction.
 

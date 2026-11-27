@@ -1,8 +1,6 @@
-# mocov1 — step 1 (MoCo v1 ResNet-50 pretext) + linear evaluation
+# mocov1 — MoCo v1 ResNet-50 pretext + linear evaluation
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+> See the [guide to original settings (ASIS), controlled pre-training (CTRL) and Unified evaluation](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
@@ -16,15 +14,15 @@ Two augmented views of an image feed a **query encoder** (ResNet-50 + a single
 Linear(2048, 128) projection, L2-normalised — no MLP, that is v2) and a
 **momentum key encoder** (an EMA copy of the query, no gradient). An **InfoNCE**
 loss contrasts the query against the matching key (the positive) and a FIFO
-**queue** of K past keys (the negatives). Step 1 is that pretext.
+**queue** of K past keys (the negatives).
 
-## Scope — the ResNet-50 path and the unified ViT-B/16 Step 2
+## Scope — the ResNet-50 path and controlled ViT-B/16 pre-training
 
 This port brings across the **ResNet-50** path: the query/key encoders, the
 momentum queue, and the InfoNCE loss (`configs/pretrain.yaml`, SGD, the
 paper-faithful recipe).
 
-It also ports the capture's **unified Step 2** (`configs/pretrain_vit.yaml`,
+It also ports the capture's **controlled recipe** (`configs/pretrain_vit.yaml`,
 `arch: vit`): the same ViT-B/16 backbone every method shares, trained from
 scratch with the momentum queue + InfoNCE, the CLS token through a single
 `Linear(768, 128)` projection. Optimiser AdamW (betas 0.9, 0.95) with a
@@ -65,7 +63,7 @@ ported methods use, so the number is comparable across them.
 
 ## What has and has not been exercised
 
-- **Exercised (step 1):** a hermetic smoke — a narrow projection, a 32px input, a
+- **Exercised (original recipe):** a hermetic smoke — a narrow projection, a 32px input, a
   tiny queue, a few fabricated images — runs through `python -m adapter` on a CPU,
   passes `contract-test`, and the encoder round-trip and a determinism check pass.
 - **Exercised (linear_eval):** a hermetic smoke fits the probe on a pretrain
@@ -73,7 +71,7 @@ ported methods use, so the number is comparable across them.
   comparable `linear_probe` accuracies, and writes **no** `encoder.pt`.
 - **Not a full run:** `configs/pretrain.yaml` is the paper-target recipe (feature_dim
   128, K 65536, m 0.999, 200 epochs, 224px), a recipe, not a completed run.
-- **Exercised (ViT Step 2):** a hermetic smoke trains the unified ViT-B/16 under
+- **Exercised (controlled ViT recipe):** a hermetic smoke trains the controlled ViT-B/16 under
   the momentum-queue InfoNCE objective, writes milestone encoders, and probes the
   CLS feature through `contract-test` (tiny ViT dims, CPU).
 - **GPU:** the device resolution is verified on real hardware; see the device
@@ -82,7 +80,7 @@ ported methods use, so the number is comparable across them.
 ## Environment
 
 torch / torchvision / numpy / PyYAML — the self-contained methods' stack, no
-submodule; the Step-2 ViT path adds `timm` (the native ResNet-50 path needs
+submodule; the controlled recipe ViT path adds `timm` (the native ResNet-50 path needs
 none). `requirements.lock.txt` (CPU) and `requirements.lock.cu130.txt`
 (CUDA 13.0) are the hashed closures (the same closure as `mocov2`: identical
 floors, identical resolution).
@@ -94,13 +92,13 @@ floors, identical resolution).
 
 ## Running
 
-    # step 1: DATA_ROOT is an ImageFolder of training images
+    # original recipe: DATA_ROOT is an ImageFolder of training images
     python bin/resolve-config.py --config methods/mocov1/configs/pretrain.yaml \
         --set DATA_ROOT=/path/to/images --out resolved.json
     cd methods/mocov1 && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/s1
 
-    # linear eval: DATA_ROOT has train/ and val/; ENCODER is step 1's encoder.pt
+    # linear eval: DATA_ROOT has train/ and val/; ENCODER is the encoder.pt from pre-training
     python bin/resolve-config.py --config methods/mocov1/configs/linear_eval.yaml \
         --set DATA_ROOT=/path/to/imagenet \
         --set ENCODER=/path/to/s1/encoder.pt --out eval.json

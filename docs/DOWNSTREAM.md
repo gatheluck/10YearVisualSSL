@@ -11,9 +11,7 @@ plus [K7](BASIC5_K7.md), [Omega](BASIC5_OMEGA.md), [C-RADIO](BASIC5_RADIO.md),
 earlier provider limits and table numbering below. Dated sections retain their
 historical scope; they do not certify current full-paper reproduction.
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+See the [manuscript terminology guide](PAPER_TERMINOLOGY.md) for the correspondence between historical artifact names and paper settings.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](SUBMISSION_SCOPE.md)
@@ -81,7 +79,7 @@ attaches a small task head, trains only the head, and reports the task metric.
   `dataset_root`, `load_ready_artifact`) and
   `configs/step{1,2}_downstream_registry.yaml` list the datasets (each with a
   `root_env` such as `COCO_ROOT` and a `required:` path list) and the per-method
-  accepted artifacts. Step 2 lists every method under one family, `step2_vit`
+  accepted artifacts. The controlled-training registry lists every method under one family, `step2_vit`
   (the unified ViT-B/16), pointing at `checkpoint_epoch_{100,200,300}.pth`.
 - **Metric honesty** — every runner takes `max_train_samples` /
   `max_val_samples` / `max_steps_per_epoch`, records `subset_or_smoke` and sets
@@ -102,7 +100,7 @@ transplanted verbatim**; the port drives downstream tasks from its own
 `encoder.pt` — not new per-method contract stages.** The alternative (adding
 `coco_detection`/`ade20k_segmentation`/… stages to every method's `adapter`)
 would copy the *same* task code across all 38 adapters, because every method's
-Step-2 backbone is the one unified ViT-B/16. That violates the repository rule
+controlled-pretraining backbone is the one unified ViT-B/16. That violates the repository rule
 "never implement the same rule twice" (CLAUDE.md, DESIGN §best-practice). The
 capture itself keeps `downstream/` separate from `methods/` for the same reason.
 The port mirrors that: **one implementation, imported, registry-driven.**
@@ -112,10 +110,10 @@ Concretely the port grows:
 - a top-level `downstream/` package (task runners + backbone adapters +
   registry), added to the README `## Repository layout` tree;
 - a **backbone interface** the runners depend on and each method's `encoder.pt`
-  satisfies via one shared adapter — for Step 2 that is a single ViT-B/16 spatial
+  satisfies via one shared adapter — for controlled pre-training that is a single ViT-B/16 spatial
   adapter (`forward_features -> [B,C,h,w]`, `out_channels`), plus a CLIP branch
   (CLIP's `VisionTransformer` has no `patch_embed.proj`, so its conv-patch tap
-  differs), and a ResNet-layer4 adapter for the ResNet Step-1 backbones;
+  differs), and a ResNet-layer4 adapter for the original-setting ResNet backbones;
 - a **downstream contract** of the *same shape* as the method contract — a run
   emits `run_manifest.json` + `metrics.json` and a checker decides "the task ran"
   by machine (exit 0 **and** `status: ok`, neither trusted alone). It is a
@@ -181,7 +179,7 @@ than the fleet's bare `2.13.0`. Regenerate with `uv pip compile` against the cpu
 index (cp312, x86_64, `--generate-hashes`), held to the fleet pins. To run a smoke
 locally, use any environment that has the task's dependency.
 
-## 5. Migration order (portable/light first, the ViT-Step-2-pilot pattern)
+## 5. Migration order (portable/light first, the controlled ViT pilot)
 
 1. **Scaffolding + ADE20K segmentation (pilot). DONE.** No new heavy dependency.
    Stood up the `downstream/` package: `contract.py` (the downstream
@@ -217,7 +215,7 @@ locally, use any environment that has the task's dependency.
    ViT + synthetic vp9 `.webm` clips; 5/5 mutation-killed.
 
 5. **ARSSL harness (the driver over them all). DONE.** `downstream/arssl.py`: the
-   Step-3 A1 unit (`docs/STEP3_PORTING_PLAN.md`). A thin, **pure-stdlib** driver
+   autoregressive model-family evaluation harness (`docs/STEP3_PORTING_PLAN.md`). A thin, **pure-stdlib** driver
    that takes one **frozen backbone** and a battery of task keys and runs each task
    as a subprocess (`python -m downstream.<task> --config … --out …`), checks every
    cell against the downstream `contract.verify`, and aggregates into one
@@ -468,7 +466,7 @@ As of October 6, [explicit FT source profiles](IMAGENET_FINETUNE.md) execute
 ImageNet FT for eight BasicFive providers and export the final model state.
 An exact provider-owned `finetune_recipe` is mandatory. Source/protocol
 augmentation differences remain explicit; this does not establish one canonical
-recipe or a reproduced score. The separate per-method ImageNet probe and Step-3
+recipe or a reproduced score. The separate per-method ImageNet probe and model-family
 A1 driver remain unchanged.
 
 ### Additional local vision providers (2026-09-24)

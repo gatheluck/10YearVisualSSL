@@ -1,8 +1,6 @@
 # Placing ImageNet-1k val on disk
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+See the [manuscript terminology guide](PAPER_TERMINOLOGY.md) for the correspondence between historical artifact names and paper settings.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](SUBMISSION_SCOPE.md)

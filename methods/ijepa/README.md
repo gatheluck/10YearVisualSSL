@@ -1,8 +1,6 @@
-# ijepa — step 1 (I-JEPA ViT pretext) + unified ViT-B/16 step 2 + linear evaluation
+# ijepa — I-JEPA ViT pretext + controlled ViT-B/16 pre-training + linear evaluation
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+> See the [guide to original settings (ASIS), controlled pre-training (CTRL) and Unified evaluation](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
@@ -17,29 +15,29 @@ a large context block of patches; a narrow **predictor** predicts the
 representations of several masked **target blocks**; the targets come from an
 **EMA target encoder** (a momentum copy of the context encoder, no gradient),
 layer-normalised, and the loss is a **smooth-L1** in latent space. No pixel
-reconstruction, no hand-crafted augmentation invariances. Step 1 is that pretext.
+reconstruction, no hand-crafted augmentation invariances.
 
-## Scope — the ViT step 1 and the unified step 2
+## Scope — the ViT original recipe and the controlled recipe
 
-This port covers I-JEPA's ViT step 1 (the native ViT-H/14 recipe) and, added
-additively, the capture's unified **ViT-B/16 step 2** (see the Step 2 section
+This port covers I-JEPA's ViT original recipe (the native ViT-H/14 recipe) and, added
+additively, the **controlled ViT-B/16 recipe** (see the controlled pre-training section
 below). I-JEPA ships **its own** Vision Transformer
 (`models/vision_transformer.py` — measured: it imports only `torch`, **not
 `timm`**) and trains **from scratch on ImageNet-1k**, so this port is
 **torch-only** and hermetic.
 
-## Step 2 (unified ViT-B/16), added additively
+## Controlled ViT-B/16 pre-training
 
-The capture's Step 2 plugs the **same** I-JEPA objective into the unified
+The capture's controlled recipe plugs the **same** I-JEPA objective into the controlled
 **ViT-Base/16** backbone (300 epochs, batch 1024, `lr` 6e-4, fixed weight decay
 0.05, checkpointed at 100/200/300). It is selected by a `recipe: unified` key in
-`train`; **absent `recipe` is the native ViT-H/14 step-1 path, unchanged**, and
-the native and unified key sets are disjoint (native-only `use_horizontal_flip`,
-which the step-2 augmentation ignores, versus unified-only `save_at_epochs`), so a
+`train`; **absent `recipe` is the native ViT-H/14 original recipe path, unchanged**, and
+the native and controlled key sets are disjoint (native-only `use_horizontal_flip`,
+which the controlled recipe augmentation ignores, versus controlled-recipe-only `save_at_epochs`), so a
 knob from one recipe on the other is refused by name.
 
 **No separate trainer was needed — the native `train_pretrain_ijepa.py` already
-implements the unified recipe.** It uses the `lr` directly (the capture baked
+implements the controlled recipe.** It uses the `lr` directly (the capture baked
 `lr = 1.5e-4 × 1024/256 = 6e-4` into the config, so there is nothing to rescale),
 it builds the arch named in the config (`vit_base` is one of its builders), its
 augmentation is read from the config (`augmentation: step2` — crop + flip +
@@ -51,7 +49,7 @@ config, which never sets that key. Duplicating the training loop into a second
 file to add two lines would have been a second copy of one rule; extending it,
 guarded, keeps one implementation. The adapter writes `encoder.pt` (the final
 target encoder) plus `encoder_epoch{100,200,300}.pt`, one frozen target ViT per
-milestone; probe a unified encoder with `configs/linear_eval_vit.yaml`
+milestone; probe an encoder from controlled pre-training with `configs/linear_eval_vit.yaml`
 (`name: vit_base`).
 
 ## Why this method, and what is new here
@@ -95,7 +93,7 @@ across the ported methods.
 
 ## What has and has not been exercised
 
-- **Exercised (step 1):** a hermetic smoke — a tiny ViT at 32px / patch 8 (a 4×4
+- **Exercised (original recipe):** a hermetic smoke — a tiny ViT at 32px / patch 8 (a 4×4
   token grid, embed_dim 48), a narrow predictor, 2 target blocks, a few fabricated
   images — runs through `python -m adapter` on a CPU (exercising the mask
   collator, the context/predictor/target forward and the EMA update), passes
@@ -123,13 +121,13 @@ resolution).
 
 ## Running
 
-    # step 1: DATA_ROOT contains a train/ subdirectory of images
+    # original recipe: DATA_ROOT contains a train/ subdirectory of images
     python bin/resolve-config.py --config methods/ijepa/configs/pretrain.yaml \
         --set DATA_ROOT=/path/to/imagenet --out resolved.json
     cd methods/ijepa && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/s1
 
-    # linear eval: DATA_ROOT has train/ and val/; ENCODER is step 1's encoder.pt
+    # linear eval: DATA_ROOT has train/ and val/; ENCODER is the encoder.pt from pre-training
     python bin/resolve-config.py --config methods/ijepa/configs/linear_eval.yaml \
         --set DATA_ROOT=/path/to/imagenet \
         --set ENCODER=/path/to/s1/encoder.pt --out eval.json

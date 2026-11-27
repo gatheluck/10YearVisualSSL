@@ -98,8 +98,9 @@ VGGT-Omega on SSv2 has n=1 (63.17, without a sample SD), and six are blank.
 
 ### Run attribution checked against the revised supplement
 
-The adoption record and completed results identify RAEv2's DINOv3-L K7 tokenizer
-for the Unified experiments. For 22 cells (LP 5, AP 5, FT 5, LoRA 5, DPT 2),
+Section 6 of the November 18 manuscript describes RAEv2 LP/AP as diffusion-generator
+features from block 29 at t = 0.1. The adoption record and completed results instead
+identify RAEv2's DINOv3-L K7 tokenizer for the following Basic Five cells. For 22 cells (LP 5, AP 5, FT 5, LoRA 5, DPT 2),
 the three original final values per cell reproduce the printed mean and sample
 SD in Tables 22–26. LP/AP/FT records explicitly disable the diffusion transformer
 and decoder. Keep the generator block-29, timestep-0.1 setting for historical

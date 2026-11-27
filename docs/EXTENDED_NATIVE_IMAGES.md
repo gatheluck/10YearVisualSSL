@@ -1,5 +1,7 @@
 # Native image inputs
 
+The table numbers in this guide refer to the earlier submission. For the current manuscript, see the [figure and table index](PAPER_REPRODUCTION_GUIDE.md).
+
 See [package scope](SUBMISSION_SCOPE.md). These converters connect six reported
 CLUE/SUN397 datasets, eight prepared-folder datasets and Flowers102 in Tables 39–40 to the
 existing five-provider [image LP/AP runner](EXTENDED_CLASSIFICATION.md).

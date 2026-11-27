@@ -32,7 +32,10 @@ METHODS = ROOT / "methods"
 # A step-2 mention, and an assertion of absence. Both must occur in one sentence.
 # "step 2", "step2" and "step-2" all count (a hyphen must not be a way past the
 # guard).
-_STEP2 = re.compile(r"\bstep[\s-]?2\b", re.IGNORECASE)
+_STEP2 = re.compile(
+    r"\b(?:step[\s-]?2|CTRL|controlled\s+(?:ViT-B/16\s+)?(?:recipe|pre[ -]?training))\b",
+    re.IGNORECASE,
+)
 _EXCLUSION = re.compile(
     r"\b(exclud\w*|not ported|not brought across|no place in this port|"
     r"has no place|is not part of this port)\b", re.IGNORECASE)
@@ -283,6 +286,12 @@ class TestStep2DocsDoNotDenyTheStep2(unittest.TestCase):
             "Step 2 (ViT-B) has no place in this port."))
         self.assertTrue(stale_step2_claims(
             "So this is an eval-only port, the DINOv2 sibling."))
+
+    def test_controlled_recipe_denials_use_current_manuscript_terms(self):
+        for recipe in ("controlled recipe", "controlled pre-training", "CTRL"):
+            with self.subTest(recipe=recipe):
+                self.assertTrue(stale_step2_claims(f"The {recipe} is not ported."))
+                self.assertFalse(stale_step2_claims(f"The {recipe} writes checkpoints."))
 
     def test_detector_ignores_legitimate_text(self):
         # step 2 present, but it is ported -- not a denial

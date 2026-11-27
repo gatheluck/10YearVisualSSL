@@ -1,8 +1,6 @@
-# context_encoder — step 1 and linear evaluation
+# context_encoder — pre-training and linear evaluation
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+> See the [guide to original settings (ASIS), controlled pre-training (CTRL) and Unified evaluation](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
@@ -19,17 +17,16 @@ which sharpens the inpainting. The representation the rest of the project wants
 is the encoder plus its 4096-d bottleneck; the decoder and the discriminator are
 training machinery.
 
-## Why this method, and what "step 1" means here
+## Why this method, and what "original recipe" means here
 
 The last of the six official-style candidates measured in the Capture
 repository's design notes (DESIGN 5.41), and the only one still portable as a
 self-contained method. It is the one GAN of the six — two networks, two
 optimisers — so it exercises a training shape the other ports do not.
 
-**A labelling caveat worth stating.** In the capture, `model_type='alexnet'` is
-Step 1 and `model_type='vit'` is Step 2. This port brings across **both**: the
-native AlexNet Step 1 (`configs/pretrain.yaml`, no arch) and the unified
-**ViT-B/16 Step 2** (`configs/pretrain_vit.yaml`, `arch: vit`). The Step-2 path
+The original recipe uses AlexNet (`configs/pretrain.yaml`, `model_type='alexnet'`).
+The controlled recipe uses ViT-B/16 (`configs/pretrain_vit.yaml`, `arch: vit`;
+`model_type='vit'` in the experimental code). Both train an inpainting model. The controlled path
 keeps the same centre-hole inpainting task on a ViT-B/16 encoder + a transformer
 decoder, always adversarial (two AdamW optimisers, generator + centre-hole
 discriminator), AdamW + warmup/cosine to `min_lr`, AMP on CUDA, gradient
@@ -41,7 +38,7 @@ dropped, as in every port; the ViT path needs `timm` (imported lazily on
 
 ## The linear evaluation
 
-The second stage freezes the encoder step 1 produced, extracts its 4096-d
+The second stage freezes the encoder produced by pre-training, extracts its 4096-d
 bottleneck features once, and fits a single linear classifier on ImageNet
 labels. **These are the numbers this project exists to compare**, and this port
 adds them for a sixth method.
@@ -54,11 +51,11 @@ The probe is arch-aware: the AlexNet path reads the 4096-d bottleneck
 (`model(x) -> (_, features)`), the ViT path the mean patch-token feature
 (`model.get_features(x)`, `embed_dim`). The stand-alone CLI path can only rebuild
 the fixed AlexNet (the ViT needs its config dimensions; the official Caffe
-features stay step 2), so it refuses a bare `model_type='vit'` by name.
+features stay controlled recipe), so it refuses a bare `model_type='vit'` by name.
 
 ## What was new here
 
-**A GAN, ported as step 1.** The generator is the encoder-decoder; when
+**Adversarial pre-training.** The generator is the encoder-decoder; when
 adversarial training is on, a centre-hole `Discriminator` is trained alongside
 it with its own Adam optimiser (BCE-with-logits on real vs generated holes). The
 reconstruction and adversarial losses are real measurements that belong to no
@@ -75,8 +72,8 @@ discriminator are left out.
 ## What changed during the port
 
 Recorded in full in `provenance.json`. **Nothing came across byte-for-byte:**
-the capture interleaves step 1 and step 2 in single files, so each ported file
-was rewritten to extract a clean step 1, and each file's captured digest is
+the capture interleaves original recipe and controlled recipe in single files, so each ported file
+was rewritten to extract a clean original recipe, and each file's captured digest is
 recorded in `provenance.json` rather than pinned.
 
 - **The device is resolved instead of assumed.** The captured trainer and
@@ -87,9 +84,9 @@ recorded in `provenance.json` rather than pinned.
   the evaluation, returning the metrics the captured versions discarded
 - **Single process.** The captured DDP and the 812-line `utils.py` resume
   contract were not brought across; the native pretrain loop is plain fp32, and
-  the ViT Step-2 loop uses AMP only on CUDA (fp32 on CPU) so both run unchanged
+  the controlled ViT recipe loop uses AMP only on CUDA (fp32 on CPU) so both run unchanged
   on a CPU or a GPU
-- **The unified ViT-B/16 Step 2 was added** (`models/vit_context_encoder.py`,
+- **The controlled ViT-B/16 pre-training was added** (`models/vit_context_encoder.py`,
   `train_pretrain_vit.py`, `configs/pretrain_vit.yaml`). The encoder is built as
   a `VisionTransformer` (configurable, so a tiny model runs a CPU smoke; the
   shipped config is ViT-B/16) under `self.encoder`, with a transformer decoder
@@ -119,7 +116,7 @@ python3 bin/launch.py --config methods/context_encoder/configs/linear_eval.yaml 
 ## What has and has not been exercised
 
 - **A real training step ran on the GPU.** On an NVIDIA A100 (driver CUDA 13.0)
-  step 1 completes a training step (generator + discriminator) and writes a
+  the original recipe completes a training step (generator + discriminator) and writes a
   loadable `encoder.pt` — the test
   `test_a_real_run_on_cuda_produces_a_loadable_encoder`, on a handful of
   synthetic images
@@ -128,19 +125,19 @@ python3 bin/launch.py --config methods/context_encoder/configs/linear_eval.yaml 
   checks it refuses `cuda` when no GPU is visible
 - **The full recipe has never been run.** 300 epochs of AlexNet inpainting on
   ImageNet needs the GPUs it was written for
-- **The ViT Step-2 path ran a hermetic CPU smoke.** A tiny ViT (16-d embed, one
+- **The controlled ViT recipe path ran a hermetic CPU smoke.** A tiny ViT (16-d embed, one
   block, 32px image, 16px hole) trains two epochs with `save_at_epochs: [1, 2]`
   through `python -m adapter`, writes `encoder.pt` and both
   `encoder_epoch{1,2}.pt` milestones (each an adversarial generator+discriminator
   step), and a milestone probe passes `contract-test`. The full 300-epoch
   ViT-B/16 recipe (bfloat16, DDP) has not been run here
 - **No multi-process run.** The captured DDP path was not brought across; AMP is
-  used on the ViT Step-2 path on CUDA only
+  used on the controlled ViT path on CUDA only
 - **The container definition has never been built** on this machine
 - The numbers in the configs are the recipe, not results; no accuracy from this
   port has been measured against anything
 
-## Official Step-1 feature profile
+## Features from the official pretrained checkpoint
 
 `official_caffe_pool5` adds the evaluated convolution-only Caffe feature release.
 It uses grouped AlexNet convolutions and LRN, and returns flattened pool5

@@ -1,8 +1,6 @@
-# ibot — step 1, unified ViT-B/16 step 2, and linear evaluation
+# ibot — original recipe, controlled ViT-B/16 pre-training, and linear evaluation
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+> See the [guide to original settings (ASIS), controlled pre-training (CTRL) and Unified evaluation](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
@@ -36,7 +34,7 @@ port faithfully.
 
 ## The linear evaluation
 
-The second stage freezes the encoder step 1 produced and fits a linear
+The second stage freezes the encoder produced by pre-training and fits a linear
 classifier on real labels. **These are the numbers this project exists to
 compare.**
 
@@ -101,20 +99,20 @@ and are pinned by hash.
   the same config twice gives the same `encoder.pt` — checked by test
 - **The backbone is chosen from `model.arch`** rather than hard-coded, so the
   resolved config says which architecture ran. The native pretrain accepts
-  `vit_small`; the unified Step 2 (below) accepts `vit_base`
+  `vit_small`; the controlled recipe (below) accepts `vit_base`
 
-## Step 2 (unified ViT-B/16), added additively
+## Controlled ViT-B/16 pre-training
 
-The capture's Step 2 plugs the **same** iBOT objective into the unified
+The capture's controlled recipe plugs the **same** iBOT objective into the controlled
 **ViT-Base/16** backbone (300 epochs, batch 1024, `lr` 6e-4, fixed weight decay
 0.05, checkpointed at 100/200/300). It is ported additively, selected by a
-top-level `recipe: unified` key; **absent `recipe` is the native step-1 path,
-byte-for-byte unchanged**, and the native and unified config key sets are
+top-level `recipe: unified` key; **absent `recipe` is the native original recipe path,
+byte-for-byte unchanged**, and the native and controlled config key sets are
 disjoint so a knob from one recipe on the other is refused by name.
 
 `train_pretrain_vit_ibot.py` is faithful to the capture's `train_step2_vit.py`
-but single process, exactly as `train_pretrain.py` was for step 1. It differs
-from step 1 only where the capture's step-2 config does: the `lr` is used
+but single process, exactly as `train_pretrain.py` was for original recipe. It differs
+from original recipe only where the capture's controlled recipe config does: the `lr` is used
 directly (the capture baked `lr = 1.5e-4 × 1024/256 = 6e-4` into the config, so
 it is **not** rescaled a second time), weight decay is **fixed** (not the
 0.04→0.4 cosine), masking is set by `ibot.mask_ratio_min`/`mask_ratio_max`,
@@ -122,15 +120,15 @@ it is **not** rescaled a second time), weight decay is **fixed** (not the
 settings), and a milestone `checkpoint_epoch_{N}.pth` is written at each
 `training.save_at_epochs`. The device resolution, seeding, the cosine schedule,
 the LR setter, the gradient clip and the meter are imported from
-`train_pretrain.py` — one implementation per method. The capture's step-2
+`train_pretrain.py` — one implementation per method. The capture's controlled recipe
 multi-GPU DDP, its per-rank RNG-state checkpointing and its anti-collapse health
 gate are production-only and dropped for a single-process run.
 
 The adapter writes `encoder.pt` (the final teacher backbone) plus
 `encoder_epoch{100,200,300}.pt`, one frozen ViT-Base/16 teacher per milestone,
-so the linear probe can be run at each. Probe a unified encoder with
+so the linear probe can be run at each. Probe an encoder from controlled pre-training with
 `configs/linear_eval_vit.yaml` (arch `vit_base`). The production-only artefacts
-of the capture's step 2 — the shell script and `tests/test_step2_protocol.py`,
+of the capture's controlled recipe — the shell script and `tests/test_step2_protocol.py`,
 its protocol-version validation and its resume machinery — are omitted; the
 contract's stages are `pretrain` and `linear_eval`.
 
@@ -159,7 +157,7 @@ Then the linear evaluation, on the `encoder.pt` the first stage wrote:
 python3 bin/launch.py --config methods/ibot/configs/linear_eval.yaml --method ibot --set DATA_ROOT=/path/to/imagenet --set ENCODER=runs/<pretrain-run>/out/encoder.pt
 ```
 
-The adapter writes `encoder.pt` (step 1), `metrics.json` and
+The adapter writes `encoder.pt` (original recipe), `metrics.json` and
 `run_manifest.json` under `--out`, with the original's checkpoints, its config
 copy and its TensorBoard events under `work/`.
 
@@ -169,7 +167,7 @@ copy and its TensorBoard events under `work/`.
   the pretrain trainer completes a training step, writes a loadable `encoder.pt`,
   and the linear evaluation runs to a number — the tests
   `test_a_real_run_on_cuda_produces_a_loadable_encoder` and the linear-eval
-  smoke test, on a handful of synthetic images (step 1 at 32-pixel crops; the
+  smoke test, on a handful of synthetic images (original recipe at 32-pixel crops; the
   linear probe on 64-pixel images upscaled to 224). The CPU path runs the same
   chain
 - **The full recipe has never been run.** 800 epochs of ViT-S/16 on

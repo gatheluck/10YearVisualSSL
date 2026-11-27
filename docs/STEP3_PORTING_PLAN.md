@@ -1,8 +1,6 @@
-# Step 3 porting plan (on `main`, and enforced)
+# Porting plan for model-family evaluation adapters
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+For the current manuscript, use the [figure-by-figure reproduction guide](PAPER_REPRODUCTION_GUIDE.md) and [terminology map](PAPER_TERMINOLOGY.md).
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](SUBMISSION_SCOPE.md)
@@ -10,7 +8,7 @@ for the distinction from original experimental implementations and results.
 
 Last updated: 2026-09-02
 
-This is the **sequenced, authoritative plan** for porting the "Step 3" methods
+This is the **sequenced, authoritative plan** for porting additional model-family comparison adapters
 into this repository. It lives on `main`, in the working tree, so it is present
 every session -- and it is enforced by `tests/test_step3_plan.py`, so a
 deviation goes RED rather than unnoticed.
@@ -98,12 +96,12 @@ The machine-readable block at the end is the single source of truth for state.
    `next` (ported ahead of their turn) may not exceed `grandfathered_ceiling`,
    whose value is frozen in the test. A new out-of-turn port makes it RED.
 4. **Partition** -- every directory outside the original 38-method cohort is either a
-   Step-3 port listed here or an explicit `non_step3_additions` exception (the
-   off-decade Step-1&2 ports `image_gpt` / `mar` / `var`, and `_reference`). A
-   ported Step-3 method cannot go unlisted.
+   model-family port listed here or an explicit `non_step3_additions` exception (the
+   generative model ports `image_gpt` / `mar` / `var`, and `_reference`). A
+   ported family-specific method cannot go unlisted.
 
 Naming follows the 2026-08-27 decision (see the audit): **un-numbered
-snake_case** directory names (`methods/eva02`, ...); the word "step 3" never
+snake_case** directory names (`methods/eva02`, ...); the historical label `step 3` never
 appears in a code identifier. The dir names for not-yet-ported methods below are
 the planned names; when a method is actually ported, its `status` becomes `done`
 and the accuracy test forces the dir to match.
@@ -145,7 +143,7 @@ ImageNet-100 is a separate future port), not A1.
   *EVA-02, AIMv2, BEiT v2 are done (as single-`linear_eval` ports, ahead of A1);
   data2vec 2.0 and CAE remain.*
 - **A3** -- wire the lineage backbones (**MAE, I-JEPA, LeJEPA, iGPT, AIM, VAR**),
-  already present as Step-1&2 ports, into the A1 harness so their Step-3 numbers
+  already present as original adapter ports, into the A1 harness so their family-specific evaluation results
   are reproducible here. *MAE is done:* the method declares a `mae_vit`
   spatial-backbone provider in its **own** directory
   (`methods/mae/downstream_backbone.py`, a module-level `KIND` + `build`), and
@@ -201,7 +199,7 @@ ImageNet-100 is a separate future port), not A1.
   (`methods/var/downstream_backbone.py`, `var_vqvae`) -- and it completes Phase A.
   Measurement (not the name) shows VAR's probed representation is the **VQVAE
   tokeniser's encoder** output, global-average-pooled (`evaluate_linear_var.encode`)
-  -- not the VAR transformer step 1 trains, and not `encoder.pt`. `vae.encoder(x)`
+  -- not the transformer trained by the VAR adapter, and not `encoder.pt`. `vae.encoder(x)`
   already returns a `[B, Cvae, H/16, W/16]` map (the VQGAN encoder is fully
   convolutional, stride 16), so unlike the ViT providers there is no token grid to
   reshape: the provider returns that map directly, and pooling it reproduces VAR's
@@ -361,7 +359,7 @@ method adapter or CompEval recipe. Its two plan items intentionally remain
 
 ### 2026-09-27: K7 and Omega component progress
 
-September 28 addition: `cradiov4_h` is an explicit non-Step-3 namespace entry
+September 28 addition: `cradiov4_h` is an explicit addition outside the original family-port list
 for the final-paper BasicFive downstream provider, not a completed method adapter
 in this historical queue. Its [14 component routes](BASIC5_RADIO.md) do not
 change the completion definitions or mark full experimental results reproduced.

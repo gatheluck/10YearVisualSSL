@@ -1,8 +1,6 @@
-# inst_disc — step 1 (ResNet-50 + NCE memory bank) + linear evaluation
+# inst_disc — original recipe (ResNet-50 + NCE memory bank) + linear evaluation
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+> See the [guide to original settings (ASIS), controlled pre-training (CTRL) and Unified evaluation](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
@@ -15,14 +13,14 @@ Instance-level Discrimination*, CVPR 2018
 Every image is treated as its own class. A ResNet-50 maps each image to a 128-d
 L2-normalised embedding, and a **non-parametric NCE loss** over a momentum
 **memory bank** (one row per training instance) pulls an image's embedding toward
-its own bank row and away from `m` random negatives. Step 1 is that pretext.
+its own bank row and away from `m` random negatives.
 
 ## Why this method, and what is new here
 
 **A self-contained re-implementation** ported from the capture's own
 `methods/inst_disc` (the lab's own ResNet-50 model, NCE memory-bank loss and
 dataset, torch/torchvision only) — no `third_party/` submodule. The capture's
-unified Step 2 (`configs/pretrain_vit.yaml`, `arch: vit`) is also ported
+controlled recipe (`configs/pretrain_vit.yaml`, `arch: vit`) is also ported
 additively: the same ViT-B/16 backbone every method shares, its CLS token through
 `Linear(768, 128)`, trained from scratch under the same NCE memory-bank objective
 (AdamW + warmup/cosine, no AMP/clip; checkpoints at 100/200/300, each probed by
@@ -60,7 +58,7 @@ L2-normalised, a single linear layer trained with SGD under a cosine schedule).
 
 ## What has and has not been exercised
 
-- **Exercised (step 1):** a hermetic smoke — a ResNet-50, a few fabricated
+- **Exercised (original recipe):** a hermetic smoke — a ResNet-50, a few fabricated
   images, a 4-negative NCE memory bank — runs through `python -m adapter` on a
   CPU, passes `contract-test`, and the encoder round-trip and a determinism check
   pass.
@@ -74,7 +72,7 @@ L2-normalised, a single linear layer trained with SGD under a cosine schedule).
 
 ## Environment
 
-The optional [IDv2 Step-4 profiles](../../docs/IDV2_COMPONENTS.md) add two-view,
+The optional [IDv2 training profiles](../../docs/IDV2_COMPONENTS.md) add two-view,
 false-negative, EMA-bank, KoLeo, multicrop, multi-prototype and dense-ID component
 training through `arch: vit`. They include complete component checkpoint resume
 and backbone export. The explicit torchrun entry also supports FP32 DDP and
@@ -82,7 +80,7 @@ same-world-size component continuation for all seven profiles. These are not ver
 ImageNet scores or the native distributed recipes. The default path is unchanged.
 
 torch / torchvision / numpy / PyYAML — the self-contained methods' stack, no
-submodule — plus `timm` for the unified ViT-B/16 Step-2 path (imported lazily, so
+submodule — plus `timm` for the controlled ViT-B/16 pre-training path (imported lazily, so
 the native ResNet-50 path never needs it). `requirements.lock.txt` (CPU) and
 `requirements.lock.cu130.txt` (CUDA 13.0) are the hashed closures (the same
 closure as `simclrv1`: identical floors, identical resolution).
@@ -94,13 +92,13 @@ closure as `simclrv1`: identical floors, identical resolution).
 
 ## Running
 
-    # step 1: DATA_ROOT is an ImageFolder of training images
+    # original recipe: DATA_ROOT is an ImageFolder of training images
     python bin/resolve-config.py --config methods/inst_disc/configs/pretrain.yaml \
         --set DATA_ROOT=/path/to/images --out resolved.json
     cd methods/inst_disc && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/s1
 
-    # linear eval: DATA_ROOT has train/ and val/; ENCODER is step 1's encoder.pt
+    # linear eval: DATA_ROOT has train/ and val/; ENCODER is the encoder.pt from pre-training
     python bin/resolve-config.py --config methods/inst_disc/configs/linear_eval.yaml \
         --set DATA_ROOT=/path/to/imagenet \
         --set ENCODER=/path/to/s1/encoder.pt --out eval.json

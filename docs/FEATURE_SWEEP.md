@@ -1,8 +1,6 @@
 # ImageNet-val feature sweep — reproducibility record
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+See the [manuscript terminology guide](PAPER_TERMINOLOGY.md) for the correspondence between historical artifact names and paper settings.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](SUBMISSION_SCOPE.md)
@@ -64,13 +62,13 @@ align, but confirm `count` and the class histogram (each class appears exactly
 
 This run covers exactly the methods whose frozen encoder is a **pinned external
 download** (an off-the-shelf backbone), because this environment does not train
-Step-1/Step-2 encoders. It does **not** cover methods that probe a locally
+original-setting and controlled-pretraining encoders. It does **not** cover methods that probe a locally
 *trained* `encoder.pt`.
 
 - **Runnable now (pinned download backbone)** — extracted in this sweep. See the
   measured table in §7.
 - **Blocked (needs a trained `encoder.pt` this environment does not have):**
-  `24_beit`, `30_aim`, `38_clip`. These providers load a trained Step-2 trunk via
+  `24_beit`, `30_aim`, `38_clip`. These providers load a trunk from controlled pre-training via
   the adapter, *not* the download artifact. Note the trap: `30_aim`/`38_clip` do
   carry a `backbone_artifact` in provenance, but their providers ignore it and
   require the trained checkpoint — so a present download does not make them

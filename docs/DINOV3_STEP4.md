@@ -1,8 +1,6 @@
-# DINOv3 Step-4 components
+# DINOv3 head sharing, Gram loss and checkpoint continuation
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+See the [manuscript terminology guide](PAPER_TERMINOLOGY.md) for the correspondence between historical artifact names and paper settings.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](SUBMISSION_SCOPE.md)
@@ -217,7 +215,7 @@ Use a free rendezvous port and only allocated compute resources. Multi-node
 launches must supply the usual matching node count, node rank and rendezvous
 address. `train.batch_size` is **per rank**: the captured physical batch of 1024
 uses 8 ranks of 128. Smaller explicit batches test components, not the original
-experimental condition. The entry requires a Step-4 component profile; legacy
+experimental condition. The entry requires an explicit component profile; legacy
 `core` is refused. All ranks must see the same immutable dataset and config.
 
 Rank seeds are `seed + rank`. Student parameters and buffers synchronize before

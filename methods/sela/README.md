@@ -1,8 +1,6 @@
-# sela — step 1 (SeLa ResNet pretext) + linear evaluation
+# sela — SeLa ResNet pretext + linear evaluation
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+> See the [guide to original settings (ASIS), controlled pre-training (CTRL) and Unified evaluation](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
@@ -16,13 +14,13 @@ A ResNet backbone with `num_heads` linear **prototype heads** is trained to
 predict pseudo-labels. The labels are (re)computed with **Sinkhorn-Knopp optimal
 transport**, which forces a balanced (equipartitioned) assignment over K clusters,
 and the network is trained with cross-entropy on the resulting hard targets,
-averaged over the heads. Step 1 is that self-labelling pretext.
+averaged over the heads.
 
-## Scope — the ResNet path and the unified ViT-B/16 Step 2
+## Scope — the ResNet path and controlled ViT-B/16 pre-training
 
-This port covers the paper-faithful **ResNet** step 1 (the official ResNetV2-50 by
+This port covers the paper-faithful **ResNet** original recipe (the official ResNetV2-50 by
 default, or a torchvision ResNet-50 via `arch`; multi-head, SGD) **and** the
-capture's unified **ViT-B/16 Step 2** (`configs/pretrain_vit.yaml`, `arch: vit`):
+capture's **controlled ViT-B/16 pre-training** (`configs/pretrain_vit.yaml`, `arch: vit`):
 the same ViT-B/16 backbone every method shares with a **single** linear prototype
 head, self-labelled from scratch by per-epoch Sinkhorn-Knopp optimal transport,
 cross-entropy on the hard assignments. Optimiser AdamW (betas 0.9, 0.999) with
@@ -65,7 +63,7 @@ across the ported methods.
 
 ## What has and has not been exercised
 
-- **Exercised (step 1):** a hermetic smoke — a small ResNetV2, a few fabricated
+- **Exercised (original recipe):** a hermetic smoke — a small ResNetV2, a few fabricated
   images, K=8, two heads, a short Sinkhorn schedule at 32px — runs through
   `python -m adapter` on a CPU (exercising the Sinkhorn reassignment path),
   passes `contract-test`, and the encoder round-trip and a determinism check
@@ -81,8 +79,8 @@ across the ported methods.
 ## Environment
 
 torch / torchvision / numpy / PyYAML — the self-contained methods' stack, no
-submodule (the Sinkhorn is pure torch) — plus `timm` for the unified ViT-B/16
-Step-2 path (imported lazily, so the native ResNet path never needs it).
+submodule (the Sinkhorn is pure torch) — plus `timm` for the controlled ViT-B/16
+controlled recipe path (imported lazily, so the native ResNet path never needs it).
 `requirements.lock.txt` (CPU) and `requirements.lock.cu130.txt` (CUDA
 13.0) are the hashed closures (the same closure as `simclrv1`: identical
 floors, identical resolution).
@@ -94,13 +92,13 @@ floors, identical resolution).
 
 ## Running
 
-    # step 1: DATA_ROOT is a folder of training images (searched recursively)
+    # original recipe: DATA_ROOT is a folder of training images (searched recursively)
     python bin/resolve-config.py --config methods/sela/configs/pretrain.yaml \
         --set DATA_ROOT=/path/to/images --out resolved.json
     cd methods/sela && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/s1
 
-    # linear eval: DATA_ROOT has train/ and val/; ENCODER is step 1's encoder.pt
+    # linear eval: DATA_ROOT has train/ and val/; ENCODER is the encoder.pt from pre-training
     python bin/resolve-config.py --config methods/sela/configs/linear_eval.yaml \
         --set DATA_ROOT=/path/to/imagenet \
         --set ENCODER=/path/to/s1/encoder.pt --out eval.json

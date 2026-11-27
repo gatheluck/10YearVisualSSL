@@ -1,8 +1,6 @@
 # siglip — as-is linear eval on the frozen pretrained image tower (eval-only)
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+> See the [guide to original settings (ASIS), controlled pre-training (CTRL) and Unified evaluation](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
@@ -24,10 +22,10 @@ learned feature, so the number **is** comparable — the multimodal
 
 ## Why this method, and what is new here
 
-**siglip is the third pure eval-only Step-3 port** (after `eva02` and `aimv2`), and
+**siglip is the third evaluation-only adapter** (after `eva02` and `aimv2`), and
 the first from the **CompEval / multimodal** family: it probes an image-text
 backbone rather than a self-supervised one, the same as-is shape `clip` uses for
-its Step-1 row (`docs/EVAL_DOWNLOAD.md`). It is a new **unnumbered** port under the
+its released-checkpoint comparison row (`docs/EVAL_DOWNLOAD.md`). It is a new **unnumbered** port under the
 naming decision that new methods take a bare name (`methods/siglip`, like `eva02` /
 `aimv2` / `image_gpt` / `mar` / `var`) rather than a capture number.
 

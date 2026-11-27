@@ -1,9 +1,11 @@
 # Rotation scaling training
 
+Table and appendix numbers in this scaling guide refer to the earlier submission. For the revised manuscript see the [figure-by-figure guide](PAPER_REPRODUCTION_GUIDE.md).
+
 See [submission scope](SUBMISSION_SCOPE.md) and [paper terminology](PAPER_TERMINOLOGY.md).
 This is an explicit portable component for the indexed ImageNet-21K 90-epoch
 rotation experiment in Appendix B.9 and Table 21. It does not replace the
-historical AlexNet or Step-2 ViT paths and does not certify a reproduced score.
+historical AlexNet or controlled ViT-B/16 paths and does not certify a reproduced score.
 
 ## Supported behavior
 
@@ -45,7 +47,7 @@ Outputs include `checkpoint_latest.pth`, `encoder.pt`, membership records,
 metrics, `results.json` and a contract manifest. Epochs 30/60/90 retain separate
 checkpoint and encoder files. The head-free export loads directly through the
 [frozen rotation provider](SCALING_BASIC5_EVALUATION.md); it is distinct from
-legacy Step-2 exports. Existing output directories and overlapping input/output
+legacy controlled ViT-B/16 exports. Existing output directories and overlapping input/output
 roots are refused.
 
 To continue, set `resume` to a previous portable `checkpoint_latest.pth`, increase

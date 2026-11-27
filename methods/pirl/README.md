@@ -1,8 +1,6 @@
-# pirl — step 1 (PIRL ResNet-50 pretext) + linear evaluation
+# pirl — PIRL ResNet-50 pretext + linear evaluation
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+> See the [guide to original settings (ASIS), controlled pre-training (CTRL) and Unified evaluation](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
@@ -18,12 +16,12 @@ jigsaw-shuffled view of the same image (nine patches through the shared trunk,
 projected and concatenated). Both are contrasted against a momentum-updated
 **memory bank** (one row per training image) with an **NCE** cross-entropy, and
 the loss is a convex combination of the image-NCE and the jigsaw-NCE. The bank is
-updated with the image representation each step. Step 1 is that pretext.
+updated with the image representation each step.
 
-## Scope — the ResNet-50 step 1 and the unified ViT-B/16 Step 2
+## Scope — the ResNet-50 original recipe and controlled ViT-B/16 pre-training
 
-This port covers PIRL's ResNet-50 step 1 (`configs/pretrain.yaml`, SGD) **and**
-the capture's unified **ViT-B/16 Step 2** (`configs/pretrain_vit.yaml`,
+This port covers PIRL's ResNet-50 original recipe (`configs/pretrain.yaml`, SGD) **and**
+the **controlled ViT-B/16 recipe** (`configs/pretrain_vit.yaml`,
 `arch: vit`): the same ViT-B/16 backbone every method shares, trained from scratch
 with the jigsaw pretext + memory-bank NCE. The jigsaw view reassembles the nine
 shuffled patches into one image (resized to the ViT input) and encodes it with the
@@ -71,7 +69,7 @@ across the ported methods.
 
 ## What has and has not been exercised
 
-- **Exercised (step 1):** a hermetic smoke — a ResNet-50 at 32px images / 16px
+- **Exercised (original recipe):** a hermetic smoke — a ResNet-50 at 32px images / 16px
   jigsaw patches (3×3 grid), a narrow feature_dim, few negatives, a few fabricated
   images — runs through `python -m adapter` on a CPU (exercising the jigsaw view,
   the memory-bank NCE, the bank initialisation and the bank update), passes
@@ -88,7 +86,7 @@ across the ported methods.
 ## Environment
 
 torch / torchvision / numpy / Pillow / PyYAML — the self-contained stack, no
-submodule — plus `timm` for the unified ViT-B/16 Step-2 path (imported lazily, so
+submodule — plus `timm` for the controlled ViT-B/16 pre-training path (imported lazily, so
 the native ResNet-50 path never needs it). `requirements.lock.txt` (CPU) and
 `requirements.lock.cu130.txt` (CUDA 13.0) are the hashed closures (the same
 closure as `simclrv1`: identical floors, identical resolution).
@@ -100,13 +98,13 @@ closure as `simclrv1`: identical floors, identical resolution).
 
 ## Running
 
-    # step 1: DATA_ROOT is a folder of training images (searched recursively)
+    # original recipe: DATA_ROOT is a folder of training images (searched recursively)
     python bin/resolve-config.py --config methods/pirl/configs/pretrain.yaml \
         --set DATA_ROOT=/path/to/images --out resolved.json
     cd methods/pirl && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/s1
 
-    # linear eval: DATA_ROOT has train/ and val/; ENCODER is step 1's encoder.pt
+    # linear eval: DATA_ROOT has train/ and val/; ENCODER is the encoder.pt from pre-training
     python bin/resolve-config.py --config methods/pirl/configs/linear_eval.yaml \
         --set DATA_ROOT=/path/to/imagenet \
         --set ENCODER=/path/to/s1/encoder.pt --out eval.json

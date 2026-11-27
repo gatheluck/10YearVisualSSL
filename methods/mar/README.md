@@ -1,8 +1,6 @@
-# mar — step 1 (masked autoregressive pretraining)
+# mar — masked autoregressive pretraining
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+> See the [guide to original settings (ASIS), controlled pre-training (CTRL) and Unified evaluation](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
@@ -15,7 +13,7 @@ without Vector Quantization*, NeurIPS 2024
 MAR predicts image tokens in a random order in a VAE's continuous latent space,
 without a discrete codebook: a masked autoencoder produces a conditioning vector
 per token and a small diffusion head (DiffLoss) models the token's continuous
-distribution. Step 1 is that pretraining. The representation the rest of the
+distribution. The representation the rest of the
 project wants is the MAE encoder; the decoder and the diffusion head are training
 machinery.
 

@@ -1,5 +1,7 @@
 # RAEv2 K7 downstream components
 
+The table numbers in this guide refer to the earlier submission. For the current manuscript, see the [figure and table index](PAPER_REPRODUCTION_GUIDE.md).
+
 This is the BasicFive tokenizer profile used in final Tables 36–38, not the
 historical last-seven-layer sum or the final-layer-only reconstruction proposal.
 It uses the pinned DINOv3 author encoder; no decoder or diffusion transformer is

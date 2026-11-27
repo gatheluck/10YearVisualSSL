@@ -1,8 +1,6 @@
-# context_prediction — pretext (AlexNet + unified ViT-B/16 Step 2) and linear evaluation
+# context_prediction — pretext (AlexNet + controlled ViT-B/16 pre-training) and linear evaluation
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+> See the [guide to original settings (ASIS), controlled pre-training (CTRL) and Unified evaluation](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
@@ -36,9 +34,9 @@ that every checkpoint carries:
 
 | Setting | Value | Source |
 |---|---|---|
-| patch size | 96 px | paper Section 3, and the release |
-| gap between patches | 48 px | paper Section 3 ("approximately half the patch width") |
-| jitter | ±7 px | paper Section 3 |
+| patch size | 96 px | Doersch et al., Section 3, and the release |
+| gap between patches | 48 px | Doersch et al., Section 3 ("approximately half the patch width") |
+| jitter | ±7 px | Doersch et al., Section 3 |
 | image resize | random target area in 150K–450K pixels | release |
 | optimizer | SGD, **lr 1e-5 fixed, momentum 0, weight decay 0** | release |
 | loss | cross-entropy, `reduction="sum"` | matches Caffe `SoftmaxWithLoss` with normalization NONE |
@@ -162,7 +160,7 @@ original flags, so `torchrun ... train_pretrain_alexnet_official.py --data_path
 The standard frozen-features protocol: the encoder is frozen, features are
 extracted once, and a single linear layer is trained on top.
 
-**This is the first stage that consumes another stage's output.** Step 1 emits
+**This is the first stage that consumes another stage's output.** Pre-training emits
 `encoder.pt` because the contract says so; if nothing can read it, the
 contract is decorative. This reads it.
 
@@ -203,7 +201,7 @@ Anything else is refused. Loading the wrong one would evaluate an
 untrained encoder and report a number that looks like a result.
 
 It needed no device work — the original already chose CPU when no GPU was
-present. It did need seeding, for the same reason step 1 did.
+present. It did need seeding, for the same reason that pre-training did.
 
 `torchvision` entered the method's dependencies here (`ImageFolder` and the
 standard transforms), which `tests/test_method_requirements.py` caught as an
@@ -220,7 +218,7 @@ imports fails too.
 
 The file that came across from the capture also listed `timm`, `PyYAML`,
 `tensorboard` and `tqdm`. `tensorboard` and `tqdm` belong to the legacy track
-and are never imported here; `timm` and `PyYAML` ARE imported by the Step-2 ViT
+and are never imported here; `timm` and `PyYAML` ARE imported by the controlled recipe ViT
 path (`models/vit_context.py` builds timm's VisionTransformer; the ViT trainer's
 stand-alone path reads a YAML config), so they are declared, while the native
 AlexNet pretrain imports neither.
@@ -406,9 +404,9 @@ machine has no GPU.
 against**, which is an honest lock but a different one. Closing the gap needs
 the versions read off the cluster; that has not been done.
 
-## Step 2: the unified ViT-B/16 backbone
+## Controlled pre-training with ViT-B/16
 
-`configs/pretrain_vit.yaml` (`arch: vit`) trains the capture's Step-2 backbone: a
+`configs/pretrain_vit.yaml` (`arch: vit`) trains the capture's controlled recipe backbone: a
 timm ViT-B/16 from scratch where the two patches share the encoder, their CLS
 tokens are concatenated and an 8-way head predicts the relative position. AdamW +
 warmup/cosine + grad-clip + AMP(CUDA); checkpoints at 100/200/300

@@ -6,14 +6,16 @@ Which advances in visual representation learning transfer across tasks, and how 
 
 ## Find a figure or table
 
+Section 3 defines three evaluation settings. **ASIS** evaluates released or reproduced models with family-specific protocols (Section 4). **CTRL** compares 32 visual self-supervised learning (VSSL) methods under controlled pre-training (Section 5). **Unified** evaluates selected checkpoints under shared downstream protocols (Section 6).
+
 Explore the [interactive rankings](https://gatheluck.github.io/10YearVisualSSL/leaderboard.html#leaderboard). For each figure, the instructions identify the inputs, the checks performed and any unresolved differences.
 
 | Figure | Question and companion tables | Instructions | Code or protocol |
 | --- | --- | --- | --- |
-| Figure 1 | Which configurations rank well across five tasks? | [Five-task ranks](docs/PAPER_REPRODUCTION_GUIDE.md#figure-1--five-task-ranks) | [ASIS recipes](docs/initial_protocols/INITIAL_STEP1_v1.md) |
+| Figure 1 | Which configurations rank well across five tasks? | [Five-task ranks](docs/PAPER_REPRODUCTION_GUIDE.md#figure-1--five-task-ranks) | [Historical VSSL protocols (ASIS subset)](docs/initial_protocols/INITIAL_STEP1_v1.md) |
 | Figure 2 | How has historical transfer changed? Tables 10, 12–18 | [Historical transfer](docs/PAPER_REPRODUCTION_GUIDE.md#figure-2--historical-transfer) | [Native detection](downstream/native_detection.py) |
-| Figure 3 | How does adapting the readout change transfer? Tables 22–26 | [Unified readout and adaptation](docs/PAPER_REPRODUCTION_GUIDE.md#figure-3--unified-readout-and-adaptation) | [LoRA configurations](downstream/figure3_lora_configs.py) |
-| Figure 4 | What changes under controlled pre-training? Tables 19–21 | [Controlled pre-training](docs/PAPER_REPRODUCTION_GUIDE.md#figure-4--controlled-pre-training) | [Paired comparison](downstream/controlled_comparison.py) |
+| Figure 3 | How do readouts on frozen backbones (LP, AP and DPT) and LoRA compare? Tables 22–26 | [Unified readout and adaptation](docs/PAPER_REPRODUCTION_GUIDE.md#figure-3--unified-readout-and-adaptation) | [LoRA configurations](downstream/figure3_lora_configs.py) |
+| Figure 4 | How do scores change between ASIS and CTRL when architecture, pre-training and downstream evaluation differ? Tables 19–21 | [Controlled pre-training](docs/PAPER_REPRODUCTION_GUIDE.md#figure-4--controlled-pre-training) | [Paired comparison](downstream/controlled_comparison.py) |
 | Figure 5 | How do models transfer across 40 settings? Tables 27–28 | [Extended transfer](docs/PAPER_REPRODUCTION_GUIDE.md#figure-5--extended-transfer) | [Transfer comparison](downstream/transfer_comparison.py) |
 | Figure 6 | How do frontier systems compare on matched examples? Table 29 | [Frontier matched subsets](docs/PAPER_REPRODUCTION_GUIDE.md#figure-6--frontier-matched-subsets) | [Prediction scorer](downstream/frontier.py) |
 | Figure 7 | How does representation geometry relate to task scores? Tables 31–32 | [Representation geometry](docs/PAPER_REPRODUCTION_GUIDE.md#figure-7--representation-geometry) | [Nested analysis](downstream/representation_nested.py) |
@@ -32,7 +34,7 @@ The command finishes silently and writes **45 JSON files** in `figure3-configs/`
 
 ## Methods
 
-Use the [method index](OPERATING_GUIDE.md#methods) to select an adapter and its supported stages. The operating guide also covers [resolving a configuration](OPERATING_GUIDE.md#reproducibility-the-resolved-config), [training](OPERATING_GUIDE.md#training-a-method) and [checking the outputs](OPERATING_GUIDE.md#checking-an-adapters-output-against-the-contract).
+Use the [method index](OPERATING_GUIDE.md#methods) to select an adapter and see which training or evaluation operations it supports. The operating guide also covers [resolving a configuration](OPERATING_GUIDE.md#reproducibility-the-resolved-config), [training](OPERATING_GUIDE.md#training-a-method) and [checking the outputs](OPERATING_GUIDE.md#checking-an-adapters-output-against-the-contract).
 
 ## Evaluation protocols
 
@@ -40,7 +42,7 @@ The following are the primary Basic Five protocols for the experiments in this p
 
 | Method | Protocol | Implementation and adopted run details |
 | --- | --- | --- |
-| Linear probing (LP) | [Markdown](docs/current_protocols/BASIC5_LINEAR_v1.md) · [JSON](docs/current_protocols/BASIC5_LINEAR_v1.json) | Frozen encoder and task head. See the [optimization and evaluation audit](docs/BASIC5_V1_AUDIT.md#what-was-compared). |
+| Linear probing (LP) | [Markdown](docs/current_protocols/BASIC5_LINEAR_v1.md) · [JSON](docs/current_protocols/BASIC5_LINEAR_v1.json) | Frozen encoder with a trained task-specific head, including Faster R-CNN for COCO object detection. See the [optimization and evaluation audit](docs/BASIC5_V1_AUDIT.md#what-was-compared). |
 | Attentive probing (AP) | [Markdown](docs/current_protocols/BASIC5_ATTENTIVE_v1.md) · [JSON](docs/current_protocols/BASIC5_ATTENTIVE_v1.json) | For Figure 3 SSv2, see the [adopted reader and input tokens for each encoder](docs/SSV2_EXECUTION.md#figure-3-attentive-probes). |
 | Full fine-tuning (FT) | [Markdown](docs/current_protocols/BASIC5_FINETUNE_v1.md) · [JSON](docs/current_protocols/BASIC5_FINETUNE_v1.json) | End-to-end training. The [execution audit](docs/BASIC5_V1_AUDIT.md#what-was-compared) records deviations, including ImageNet label smoothing. |
 | LoRA | [Markdown](docs/current_protocols/BASIC5_LORA_v2.md) · [JSON](docs/current_protocols/BASIC5_LORA_v2.json) | [Task-specific schedules](docs/CVPR_ADAPTATION.md#revised-image-and-semantic-task-cli) and [DINOv3 shorter runs](docs/CVPR_ADAPTATION.md#author-supplied-november-v2-run-descriptions). |
@@ -68,7 +70,7 @@ Use this table to open a filename cited in the supplement. The Evaluation protoc
 
 The [figure guide](docs/PAPER_REPRODUCTION_GUIDE.md) distinguishes three starting points. Original run records can recover reported aggregates. Saved predictions can exercise a scorer, while checkpoint replay also exercises inference. Independent training starts with a new run and requires the corresponding data, model and recipe. Each figure's guide identifies which comparisons have been verified.
 
-Use the [package scope](docs/SUBMISSION_SCOPE.md) and [manuscript terminology](docs/PAPER_TERMINOLOGY.md) to match historical settings (ASIS), controlled pre-training (CTRL) and unified evaluation. See the [downstream task guide](docs/DOWNSTREAM.md) for execution and the Extended guides for [image classification](docs/EXTENDED_CLASSIFICATION.md), [semantic segmentation](docs/EXTENDED_SEGMENTATION.md) and [video](docs/EXTENDED_VIDEO.md).
+Use the [package scope](docs/SUBMISSION_SCOPE.md) and [manuscript terminology](docs/PAPER_TERMINOLOGY.md) to match ASIS, CTRL and Unified evaluation. See the [downstream task guide](docs/DOWNSTREAM.md) for execution and the Extended guides for [image classification](docs/EXTENDED_CLASSIFICATION.md), [semantic segmentation](docs/EXTENDED_SEGMENTATION.md) and [video](docs/EXTENDED_VIDEO.md).
 
 ## Citation
 

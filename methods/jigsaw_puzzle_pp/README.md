@@ -1,8 +1,6 @@
-# jigsaw_puzzle_pp — VGG16 Jigsaw++ pretext (+ unified ViT-B/16 Step 2) + knowledge transfer + linear evaluation
+# jigsaw_puzzle_pp — VGG16 Jigsaw++ pretext (+ controlled ViT-B/16 pre-training) + knowledge transfer + linear evaluation
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+> See the [guide to original settings (ASIS), controlled pre-training (CTRL) and Unified evaluation](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
@@ -16,7 +14,7 @@ An image is cut into a 3×3 grid of tiles; up to two tiles may be replaced with
 tiles from another image (**occlusions**), 70% of images are converted to
 grayscale, the tiles are permuted by one of a fixed high-Hamming-distance
 permutation set (701 in the paper), and a **shared VGG16 encoder** predicts which
-permutation was applied. Step 1 is that pretext.
+permutation was applied.
 
 ## Scope — the pretext, the knowledge transfer, and the probe
 
@@ -34,8 +32,7 @@ This port covers the paper's two headline stages:
   in the CUDA lock, marked `# gpu-only`; see `deepcluster`, which shares the
   mechanism).
 
-The capture's **Step 2** (unified from-scratch **ViT-B/16**) is ported here as part
-of the Step-2 fan-out (`configs/pretrain_vit.yaml`, `models/vit_jigsaw_pp.py`,
+The controlled recipe trains a **ViT-B/16** from scratch (`configs/pretrain_vit.yaml`, `models/vit_jigsaw_pp.py`,
 `train_pretrain_vit_jigsaw_pp.py`, `data/jigsaw_pp_vit_dataset.py`): the 9 processed
 tiles are reassembled into one 224x224 image and the ViT's CLS token feeds the
 701-way permutation head. Selected by `arch: vit`; the native VGG16 pretrain and the
@@ -81,7 +78,7 @@ a cosine schedule).
 
 ## What has and has not been exercised
 
-- **Exercised (step 1):** a hermetic smoke — a small VGG16, a few fabricated
+- **Exercised (original recipe):** a hermetic smoke — a small VGG16, a few fabricated
   images, a 4-permutation puzzle with grayscale and occlusions — runs through
   `python -m adapter` on a CPU, passes `contract-test`, and the encoder
   round-trip and a determinism check pass.
@@ -108,10 +105,10 @@ torch / torchvision / numpy / Pillow / PyYAML — the self-contained methods' st
 — plus **faiss** for the knowledge-transfer clustering. Because faiss-gpu is
 linux-x86_64-only, it is **not** in the cross-platform `requirements.lock.txt`
 (CPU); it lives only in `requirements.lock.cu130.txt` (CUDA 13.0), via the
-`# gpu-only` marker in `requirements.txt`. step 1 and the default `arch=vgg16`
+`# gpu-only` marker in `requirements.txt`. The original recipe and the default `arch=vgg16`
 probe run from the CPU lock; the `knowledge_transfer` stage needs the CUDA lock.
 
-    # CPU (step 1 + arch=vgg16 probe; no faiss)
+    # CPU (original recipe + arch=vgg16 probe; no faiss)
     pip install --require-hashes \
         --index-url https://download.pytorch.org/whl/cpu \
         --extra-index-url https://pypi.org/simple \
@@ -125,20 +122,20 @@ probe run from the CPU lock; the `knowledge_transfer` stage needs the CUDA lock.
 
 ## Running
 
-    # step 1: DATA_ROOT is a folder of training images (searched recursively)
+    # original recipe: DATA_ROOT is a folder of training images (searched recursively)
     python bin/resolve-config.py --config methods/jigsaw_puzzle_pp/configs/pretrain.yaml \
         --set DATA_ROOT=/path/to/images --out resolved.json
     cd methods/jigsaw_puzzle_pp && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/s1
 
-    # knowledge transfer (faiss / GPU / x86_64-linux): ENCODER is step 1's encoder.pt
+    # knowledge transfer (faiss / GPU / x86_64-linux): ENCODER is the encoder.pt from pre-training
     python bin/resolve-config.py --config methods/jigsaw_puzzle_pp/configs/knowledge_transfer.yaml \
         --set DATA_ROOT=/path/to/images \
         --set ENCODER=/path/to/s1/encoder.pt --out kt.json
     cd methods/jigsaw_puzzle_pp && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/kt.json --out /path/to/kt
 
-    # linear eval: DATA_ROOT has train/ and val/; ENCODER is a step 1 or KT encoder.pt.
+    # linear eval: DATA_ROOT has train/ and val/; ENCODER is a an encoder.pt from pre-training or knowledge transfer.
     # configs/linear_eval.yaml probes the VGG16 (arch=vgg16);
     # configs/linear_eval_cluster_cls.yaml probes the AlexNet (arch=alexnet_cluster_cls).
     python bin/resolve-config.py --config methods/jigsaw_puzzle_pp/configs/linear_eval.yaml \

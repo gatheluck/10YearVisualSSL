@@ -3,8 +3,8 @@
     {
       "label": "A public document links to a private capture remote",
       "file": "docs/EVALUATION.md",
-      "old": "step1_downstream_registry.yaml` (snapshots) states the rule",
-      "new": "projectCapturePrivate` (snapshots) states the rule",
+      "old": "README.md) |",
+      "new": "projectCapturePrivate) |",
       "tests": [
         "tests.test_public_source_disclosures.PublicSourceDisclosures.test_capture_provenance_does_not_publish_the_private_repository_address"
       ]

@@ -1,8 +1,6 @@
-# dinov2 — as-is Step-1 probe + unified ViT-B/16 Step-2 pretrain + linear eval
+# dinov2 — released-checkpoint probe + controlled ViT-B/16 pre-training + linear eval
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+> See the [guide to original settings (ASIS), controlled pre-training (CTRL) and Unified evaluation](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
@@ -13,20 +11,17 @@ Oquab et al., *DINOv2: Learning Robust Visual Features without Supervision*, 202
 
 Two comparisons live here:
 
-- **Step 1 (as-is)** — a `linear_eval` with no `recipe`: the official pretrained
+- **Original settings (ASIS)** — a `linear_eval` with no `recipe`: the official pretrained
   **ViT-g/14** (LVD-142M) is downloaded (`third_party/dinov2`) and a linear probe
   is fit on its frozen **CLS token**. DINOv2's from-scratch SSL data (LVD-142M) is
   not public, so the as-is row reuses the official backbone. This trains nothing.
 
-- **Step 2 (unified)** — `pretrain` trains a **ViT-B/16 from scratch** on
+- **Controlled pre-training** — `pretrain` trains a **ViT-B/16 from scratch** on
   ImageNet-1k with the DINOv2 objective (DINO + iBOT + KoLeo), then `linear_eval`
   with `recipe: unified` freezes that trained `encoder.pt` and probes its CLS
-  token. This is what removes the data confound: every method's Step 2 trains on
-  the same ImageNet-1k with the same unified ViT-B/16 recipe, so the numbers sit
-  on one axis. (Added after the initial port, which probed only the downloaded
-  Step-1 backbone; see the Step 2 section.)
+  token. The common backbone and dataset let the paper compare training objectives under CTRL.
 
-## Step 2 (unified ViT-B/16), from scratch
+## Controlled ViT-B/16 pre-training, from scratch
 
 `train_pretrain_vit_dinov2.py` is a single-process port of the capture's
 `train_step2_vit.py`: a student and its EMA teacher (timm ViT-B/16), the shared
@@ -36,12 +31,12 @@ warmup, `freeze_last_layer` for the first epoch and gradient-norm clipping — a
 faithful. The capture's DDP, TensorBoard and distributed collapse-gate are dropped
 for a single-process fp32 run; the device is resolved rather than assumed CUDA. The
 DINOv2 model/loss/data are the capture's own (`models/`, `data/`), timm-based, so
-**timm is a Step-2 dependency** (built from scratch, no download → hermetic).
+**timm is a controlled recipe dependency** (built from scratch, no download → hermetic).
 
-`encoder.pt` (Step 2) is the EMA **teacher backbone** (`teacher_bb.*`, prefix
+`encoder.pt` (controlled recipe) is the EMA **teacher backbone** (`teacher_bb.*`, prefix
 stripped so it loads into a plain `DINOv2Backbone`); the heads, the student and the
 centering buffers are excluded. The adapter also writes `encoder_epoch{100,200,300}.pt`
-for the milestone probe sweep. Probe a Step-2 encoder with
+for the milestone probe sweep. Probe an encoder from controlled pre-training with
 `configs/linear_eval_vit.yaml` (`recipe: unified`, CLS token).
 
 ## What is probed, and why it's comparable
@@ -84,9 +79,9 @@ resolution, so nothing is fetched and only the pipeline is exercised.
 
 ## Environment
 
-torch / torchvision / numpy / PyYAML, plus `timm` for the Step-2 ViT-B/16 backbone
+torch / torchvision / numpy / PyYAML, plus `timm` for the controlled recipe ViT-B/16 backbone
 (same closure as `franca`; the pinned upstream adds `tqdm`, imported through
-`PYTHONPATH` and never installed, so it is not in the lock). The Step-1 backbone
+`PYTHONPATH` and never installed, so it is not in the lock). The original backbone
 under `third_party/dinov2` runs torch-only, with `xformers` disabled.
 
     git submodule update --init third_party/dinov2   # populate the pinned model

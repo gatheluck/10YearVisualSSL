@@ -1,49 +1,33 @@
 # Manuscript terminology and legacy labels
 
-The manuscript organizes its comparisons by scientific question, not numbered
-implementation steps. Use the terminology below when reading this package.
-This guide supersedes numbered-step wording for reviewer navigation; it does
-not change historical records, executable recipes, checkpoints or scores.
+Section 3, *Models and Evaluation Framework*, introduces three evaluation settings.
+The numbered labels found in earlier recipes are repository identifiers. To find
+an experiment in the current manuscript, start with its setting and figure.
 
-| Legacy internal label | Corresponding manuscript context | Important boundary |
-| --- | --- | --- |
-| Step 1 / step1 | Original-setting evaluation (ASIS), Section 3; Appendix E.2 | Released weights or reproduced original architectures and learning procedures. The legacy VSSL files cover only part of the section. ASIS does not mean download-only. |
-| Step 2 / step2 | CTRL: Revisiting VSSL under Controlled Conditions, Section 5.1; Appendix E.2 | Controlled pre-training with ViT-B/16 on unlabeled ImageNet-1K, 300 epochs and checkpoints at 100/200/300. This is not the unified downstream LP/AP/FT protocol. |
-| Step 3 / step3 | Category-specific comparisons in Section 3 and model/component records in Appendices B and C | Includes geometric, generative and Video SSL models, plus language-aligned and multimodal reference systems. Some families reappear as representatives in Section 4; the specific checkpoint, component and protocol determine the correspondence. |
-| Step 4 / step4 | Learning-design diagnostic experiments in Section 5.2 and related appendix records | In this package the label appears around Instance Discrimination and DINOv3 components. It is not a one-to-one mapping to every experiment in Section 5.2, nor evidence that a component reproduced a reported result. |
+| Manuscript section | What is compared |
+| --- | --- |
+| Section 4: Historical Transfer of Vision Models (ASIS) | Released or reproduced models evaluated on shared benchmarks using family-specific features and downstream protocols. Figure 2 shows 113 configurations. Figure 1 ranks 109 on the Basic Five. |
+| Section 5: Controlled VSSL Pre-training (CTRL) | A comparison of 32 methods trained on unlabeled ImageNet-1K with ViT-B/16 for 300 epochs. Figure 4 compares ASIS with CTRL; changing the architecture, pre-training and downstream recipe can all affect the result. |
+| Section 6: Unified and Extended Evaluation | Five representative checkpoints evaluated on shared tasks, splits and metrics, with model-specific feature interfaces. Figure 3 covers Basic Five readouts and adaptation; Figure 5 covers 40 extended settings. Figure 6 is a frontier-system reference on matched subsets with adapted task formulations. |
+| Section 7: The Basic Five in a Representation Plane | Figure 7 relates task performance to image- and patch-level agreement. Its planes and held-out prediction analyses use frozen representations. |
 
-## Separate comparison axes
+## Reading older identifiers
 
-Section 4, *Present: Unified and Extended Evaluation*, compares selected
-representative models under downstream protocols. Appendix E defines LP
-(frozen-feature probing), AP (attentive probing), and FT (fine-tuning).
-These are not replacement names for the four legacy steps. In particular,
-`BASIC5_FAIR_v1` is a legacy downstream-probing identifier, not CTRL pre-training.
-LP names an evaluation track; detection and dense task heads need not be linear
-classifiers. Historical category-specific probes retain their own metric,
-resolution, feature readout and seed conventions.
+| Earlier repository label | How to interpret it |
+| --- | --- |
+| Step 1 / step1 | For the initial VSSL comparisons, the original-setting recipes contribute to ASIS. Check the method: the adapter can train a model, extract features or evaluate released weights. |
+| Step 2 / step2 | The initial controlled VSSL recipes are relevant to CTRL. Check the method and run against the 32-method comparison; additional adapter training options also exist. |
+| Step 3 / step3 | Family-specific configurations and component comparisons, including geometric, generative, video and language-aligned models. Some models also appear in Unified with a different readout or checkpoint. |
+| Step 4 / step4 | Repository diagnostics for components such as Instance Discrimination objectives and DINOv3 training components. There is not a one-to-one correspondence with a manuscript section or figure. |
 
-Section 5.2 also discusses scaling and a frontier-model reference. The
-[frontier prompts](submission_protocols/BASIC5_FRONTIER_SYSTEM_PROMPTS.md)
-relate to that reference and Appendix C.15 (final submitted manuscript), rather than a numbered code stage.
-Section 6 uses representation features from ImageNet-1K validation for its map;
-a path containing `step1` identifies a legacy artifact group, not the manuscript
-section in which that artifact is analyzed.
+Use the [figure guide](PAPER_REPRODUCTION_GUIDE.md) for the input, metric and verification
+status of each comparison, and the [package scope](SUBMISSION_SCOPE.md) for the limits of public reproduction. LP (linear probing), AP (attentive probing), DPT (dense
+prediction transformer probing), LoRA (low-rank adaptation) and FT (full fine-tuning)
+describe downstream protocols. The trained task head used with a frozen backbone in an LP track depends on the task;
+for COCO detection use its documented bounding-box evaluator.
 
-## Reading retained names safely
-
-Executable identifiers, checkpoint keys, filenames such as `INITIAL_STEP2_v1.md`,
-and historical code comments are retained for compatibility and provenance.
-A generic training step, optimizer step or adapter stage (`pretrain`,
-`linear_eval`) is a computational operation, not this manuscript crosswalk.
-The [initial protocol index](initial_protocols/README.md) and
-[supplied protocol index](submission_protocols/README.md) preserve the separate
-historical and unified specifications. Reconstructed proposals must not be
-retroactively substituted for measured settings. Match each claim through its
-checkpoint/component and protocol to Appendices B, C and E; the old label alone
-cannot establish that match. Unresolved recipe differences remain unresolved.
-
-This is a documentation-only terminology update. It adds no executable support,
-changes no experimental result, and does not resolve previously identified
-feature-extraction numerical issues. Source availability, porting and score
-verification remain distinct as explained in the [scope guide](SUBMISSION_SCOPE.md).
+Appendix E and the [initial](initial_protocols/README.md) and
+[supplementary protocol indices](submission_protocols/README.md) preserve names
+such as `INITIAL_STEP2_v1.md`. Keep these exact names when opening a file or using
+a saved configuration. An optimizer step counts parameter updates; the adapter
+stages `pretrain` and `linear_eval` select executable operations.

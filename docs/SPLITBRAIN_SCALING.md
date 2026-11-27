@@ -1,7 +1,9 @@
 # Indexed SplitBrain scaling training
 
+Table and appendix numbers in this scaling guide refer to the earlier submission. For the revised manuscript see the [figure-by-figure guide](PAPER_REPRODUCTION_GUIDE.md).
+
 This separate entry integrates the original scaling implementation for Appendix
-B.9 / Table 22. It does not replace the older AlexNet or unified Step-2 entry.
+B.9 / Table 22. It does not replace the older AlexNet or controlled ViT-B/16 recipe.
 See [scope](SUBMISSION_SCOPE.md), [paper terminology](PAPER_TERMINOLOGY.md)
 and [frozen evaluation](SCALING_BASIC5_EVALUATION.md).
 

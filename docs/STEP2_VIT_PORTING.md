@@ -1,26 +1,22 @@
-# Porting the Step-2 unified ViT-B/16 pretraining (playbook + progress)
+# Controlled ViT-B/16 pre-training recipes and porting record
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+For the current manuscript, use the [figure-by-figure reproduction guide](PAPER_REPRODUCTION_GUIDE.md) and [terminology map](PAPER_TERMINOLOGY.md).
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](SUBMISSION_SCOPE.md)
 for the distinction from original experimental implementations and results.
 
-This is the **source of truth** for adding the capture's **Step 2** to each method.
-It is written to survive context loss: it records *why*, the *reusable pattern*, the
-*per-method facts from the capture*, the *batch plan*, *progress*, and the
-*gotchas*. Keep it updated as batches land.
+Section 5 trains 32 VSSL methods from scratch under controlled conditions
+(CTRL). The porting record below also covers related adapters; inclusion in the
+record alone does not establish inclusion among the 32 methods in Figure 4.
 
-## 1. What Step 2 is (fact, verified)
+## 1. Controlled VSSL pre-training
 
-The capture's paper axis has two comparisons:
-- **Step 1** — as-is frozen native/official backbone, evaluated on 5 downstream tasks.
-- **Step 2** — from-scratch **unified ViT-B/16** (timm `vit_base_patch16_224`,
-  `pretrained=False`, `num_classes=0` → 768-d CLS), 300 epochs, checkpointed at
-  **100/200/300**, evaluated frozen. Every method plugs *its own SSL objective*
-  into the **same** backbone; only the objective differs.
+The shared backbone is a ViT-B/16 on unlabeled ImageNet-1K, trained for 300
+epochs. The recipes retain method-specific objectives and mechanisms. The
+adapter saves checkpoints at 100, 200 and 300 epochs. ASIS instead evaluates
+released or reproduced models using family-specific feature interfaces and
+downstream protocols (Section 4).
 
 Verified from the capture (`origin/snapshots`): all `methods/*/configs/step2_vit*.yaml`
 build `vit_base_patch16*`; none is a ResNet; registry `family: step2_vit`; unified
@@ -29,7 +25,7 @@ min_lr 1e-6, grad-clip 1.0, AMP, global batch 1024**. Consistent with the result
 CSV. See docs/EVALUATION.md.
 
 This repo previously ported only **native-arch, single-epoch** pretraining (neither
-CSV Step 1 nor Step 2). The fan-out adds the unified ViT-B/16 Step-2 path per method,
+the recorded ASIS nor CTRL configuration). The fan-out adds the controlled ViT-B/16 path per method,
 **evaluated by the existing ImageNet linear probe** (the other 4 downstream tasks
 stay out of scope).
 
@@ -50,7 +46,7 @@ Per method, add:
    lazily** (module top-level of this file only) so the native path never needs timm.
 2. **`train_pretrain_vit_<name>.py`** — faithful to the capture's `train_step2_vit.py`:
    the unified AdamW + warmup→cosine + grad-clip + AMP(CUDA-only) recipe, the method's
-   objective/loss (reuse the already-ported loss where the objective matches Step 1),
+   objective/loss (reuse the already-ported loss where the objective matches the native recipe),
    from scratch (load only on `--resume`). Reuse `resolve_device` + `make_deterministic`
    from the native `train_pretrain_<name>.py`. Save `checkpoint_epoch_{N}.pth` at each
    `save_at_epochs` milestone + `checkpoint_latest.pth`. Return `final_loss` (+acc).
@@ -110,7 +106,7 @@ docs/EVALUATION.md) for consistency. No AI attribution in commits/PRs.
 ## 4. Per-method capture facts (CNN-pretrain methods) — from `origin/snapshots`
 
 Backbone is timm `vit_base_patch16_224(num_classes=0)`, CLS token, unless noted.
-"Reuse Step-1 loss" = the objective equals the method's already-ported Step-1 loss.
+"Reuse the native loss" = the objective equals the method's already-ported native loss.
 
 | # | Method | Family | Head on ViT | Loss | Notes / data |
 |---|--------|--------|-------------|------|--------------|
@@ -128,7 +124,7 @@ Backbone is timm `vit_base_patch16_224(num_classes=0)`, CLS token, unless noted.
 | 19 | byol | siamese | proj + `predictor`; **EMA target enc/proj (deepcopy, frozen)** | `-0.5(⟨p1,z2⟩+⟨p2,z1⟩)` L2-normed, target detached | two-view; EMA teacher + SyncBN; `test_step2_vit_target_bn_fix.py` |
 | 20 | simsiam | siamese | proj(3×Linear+BN) + predictor | neg-cosine + **stop-grad** | two-view |
 | 21 | barlow_twins | redundancy | `_build_projector(768,…)` + BN | cross-corr `(C-1)²+λ·offdiag²`, C=BN(z1)ᵀBN(z2) | two-view; all_reduce over C |
-| 33 | pirl | contrastive (NCE bank) | `Linear(768,feat)`; forward_original / forward_jigsaw | PIRLMemoryBankNCE (image + jigsaw_weight·jigsaw) | original + 9 jigsaw patches; the capture reuses its PIRL pretext trainer script as the Step-2 entry |
+| 33 | pirl | contrastive (NCE bank) | `Linear(768,feat)`; forward_original / forward_jigsaw | PIRLMemoryBankNCE (image + jigsaw_weight·jigsaw) | original + 9 jigsaw patches; the capture reuses its PIRL pretext trainer script as the controlled recipe entry |
 | 3 | colorization | dense/gen | **hand-rolled ViT (not timm)** + CNN decoder → `[B,313,H,W]` | weighted CE over 313 ab-bins | reads **patch tokens**; bespoke |
 | 4 | context_encoder | dense/gen | timm enc `global_pool=''` + `TransformerDecoder` + `Linear(512,16²·3)` | recon L2 on hole + **adversarial** | patch tokens + mask; discriminator; via `train.py --model_type vit` |
 | 8 | split_brain | dense/gen | **two half-ViTs** `in_chans=1/2` + ConvTranspose decoders | CE(l)+CE(ab) | patch tokens; via `train.py --backbone vit` |
@@ -203,7 +199,7 @@ One family = one PR. Order by reuse (high → complex):
   `mocov3` (already `vit_base`), `dino`, `beit`, `mae`, `simmim`,
   `ibot`, `ijepa`, `dinov3`, `nepa`, `msn`, `vjepa`, `lejepa`.
   Their pretrain is already a ViT but their paper's size (23/27 vit_small, 25 vit_large;
-  22 already vit_base) and recipe, not the unified ViT-B/16 + Step-2 recipe. **Different
+  22 already vit_base) and recipe, not the controlled ViT-B/16 recipe recipe. **Different
   from the fan-out:** same objective/head/dataloader, but `arch: vit_base` + the unified
   recipe (fixed wd, milestones). **Selector is a new explicit `recipe: unified` key**
   (absent = native) — because these methods already use `arch` for model size, so the
@@ -240,7 +236,7 @@ One family = one PR. Order by reuse (high → complex):
     `{weight_decay_start/end,checkpoint_health,fail_fast_after_epoch,save_freq,pred_ratio,
     pred_ratio_var,pred_start_epoch}`); widened `ARCHS`(native vit_small only)/`UNIFIED_ARCHS`
     (vit_base)/`EVAL_ARCHS`(both)/`ARCH_EMBED_DIM`/`load_encoder`. The models (`vit_base`),
-    the loader (step2) and the eval (`_EMBED_DIMS`/`_VIT_BUILDERS` already list vit_base)
+    the loader (controlled recipe) and the eval (`_EMBED_DIMS`/`_VIT_BUILDERS` already list vit_base)
     were all already carried, so **no model/loader/eval edits and no lock change** were
     needed. Ships `configs/pretrain_vit.yaml` + `configs/linear_eval_vit.yaml`. Full 27
     module 75 tests OK (255s < 300s CI bound); base gate EXIT=0; key-set-split guard
@@ -253,7 +249,7 @@ One family = one PR. Order by reuse (high → complex):
     trainer was extended with a **guarded** milestone save (`checkpoint_epoch_{N}.pth` at
     `save_at_epochs`, empty for the native config → byte-for-byte unchanged), the DRY
     choice over duplicating an identical loop (the playbook's "or can be extended" case).
-    Two-way disjoint keys: native-only `use_horizontal_flip` (step2 aug ignores it) vs
+    Two-way disjoint keys: native-only `use_horizontal_flip` (controlled recipe aug ignores it) vs
     unified-only `save_at_epochs`. Smoke keeps `vit_tiny` for CPU speed (arch is a shared
     key, not the selector); `vit_base` covered by config translation + a `load_encoder`
     round trip. `captured_sha256` empty (nothing pinned), models/loader already carry
@@ -266,25 +262,25 @@ One family = one PR. Order by reuse (high → complex):
     heads 12; cosine wd constant when `weight_decay==final_weight_decay`), so **no
     separate trainer** — extended with a guarded milestone save. `save_at_epochs` is
     the sole unified-only key (one-way leakage guard, refused on native), since the
-    capture's step2 changes only values, not the key set. Smoke keeps tiny dims for
+    capture's controlled recipe changes only values, not the key set. Smoke keeps tiny dims for
     CPU speed; deit_base covered by config translation. Full 34 module 41 tests OK
     (65s); base gate EXIT=0; recipe-split mutation-killed.
     `dinov3` **DONE** (milestone-only, **no `recipe` key** — this config is already
-    the unified ViT-B/16 Step 2). Added a required `save_at_epochs` key (declared in the
+    the controlled ViT-B/16 recipe). Added a required `save_at_epochs` key (declared in the
     sole pretrain key set), a guarded trainer milestone save (`checkpoint_epoch_{N}.pth`;
     empty list → only `checkpoint_latest.pth`, prior behaviour), and body extraction of
     `encoder_epoch{N}.pt` (teacher backbone, `backbone.` from `teacher_state_dict`). Full
     31 module 33 tests OK (56s); base gate EXIT=0; milestone-save mutation-killed by the
     milestone test.
     `vjepa` **DONE** (milestone-only, **no `recipe` key** — already unified ViT-B/16
-    Step 2; pinned `third_party/jepa` submodule, `ENCODER_PREFIX=""` from
+    controlled recipe; pinned `third_party/jepa` submodule, `ENCODER_PREFIX=""` from
     `target_encoder_state_dict`). Same shape as 31: declared `save_at_epochs`, guarded
     trainer milestone save, body extraction of `encoder_epoch{N}.pt`. Full 35 module 34
     tests OK (73s); base gate EXIT=0; milestone-save mutation-killed.
 
   **7c COMPLETE and MERGED** (PR #95: ibot, ijepa, msn, dinov3, vjepa).
   - **Separate PR — `simmim` DONE** (branch `port/vit-step2-simmim`). SimMIM's
-    native backbone is a **Swin**, so the unified Step 2 is a genuinely different
+    native backbone is a **Swin**, so the controlled recipe is a genuinely different
     backbone (a timm **ViT-B/16**), not a re-tune — the only **non-additive-to-eval**
     port. New `models/simmim_vit.py` (`build_simmim_vit` + `build_vit_encoder`, ViT
     dims threaded through `timm.create_model` so a tiny CPU smoke runs), new
@@ -297,48 +293,47 @@ One family = one PR. Order by reuse (high → complex):
     OK (90s); base gate EXIT=0; two guards mutation-killed (pool decision; recipe
     key-set split). timm already a dep → no lock change.
 
-  **ViT Step-2 fan-out COMPLETE**: all Step-1&2 methods that admit a unified ViT-B/16
-  Step 2 are ported (Batches 1–6 + 7a/7b/7c + simmim). Remaining = the deferred
+  **Controlled ViT porting complete**: all methods in the original porting list that admit a controlled ViT-B/16
+  recipe are ported (Batches 1–6 + 7a/7b/7c + simmim). Remaining = the deferred
   generative / eval-only-download efforts below (different nature).
 
   Consistency (verified across 23/37/24/22/25): uniform `RECIPES`/recipe-strip/routing/
   milestone `encoder_epoch{N}.pt`; each `pretrain_vit.yaml` carries `recipe: unified` +
   `save_at_epochs` + the DATA_ROOT line; no native config gained a `recipe` key.
 
-**Eval-only-download methods — adding their from-scratch unified Step 2:**
+**Eval-only-download methods — adding their from-scratch controlled recipe:**
 These three (`dinov2`, `aim`, `franca`) were first ported **eval-only**
-(the CSV's Step-1 "as-is" cell: download official weights → probe), because their
+(the ASIS result: download official weights → probe), because their
 *original* pretraining data is non-public. But the capture ships a **self-contained
-from-scratch ViT-B/16 Step 2** for each (`train_step2_vit.py` + own models), and the
-unified Step 2 trains on ImageNet-1k for everyone — so it removes the data confound
-and puts them on the same axis. Ported as full method-ports (add a `pretrain` stage
-+ a Step-2 `linear_eval`, keeping the eval-only Step-1):
+from-scratch controlled ViT-B/16 recipe** for each (`train_step2_vit.py` + own models), and the
+three adapters train on the same unlabeled ImageNet-1K dataset. Ported as full method-ports (add a `pretrain` stage
++ a controlled recipe `linear_eval`, keeping the eval-only native recipe):
 - **`dinov2` DONE** (branch `port/vit-step2-dinov2`). DINO+iBOT+KoLeo ViT-B/16
   from scratch; `models/`+`data/` ported from the capture (timm ViT); single-process
   `train_pretrain_vit_dinov2.py`; adapter grew a `pretrain` stage + a `recipe: unified`
-  Step-2 eval (probes the trained `teacher_bb` encoder.pt at its CLS token) alongside
-  the eval-only Step-1 download probe; **timm added to the lock at fleet `1.0.28`**.
-  Full Step-2 paths verified (model round-trip, pretrain→contract+milestones,
-  Step-2 eval→contract); base gate EXIT=0; eval recipe-split mutation-killed.
+  controlled evaluation (probes the trained `teacher_bb` encoder.pt at its CLS token) alongside
+  the eval-only native-backbone download probe; **timm added to the lock at fleet `1.0.28`**.
+  Full controlled recipe paths verified (model round-trip, pretrain→contract+milestones,
+  controlled evaluation→contract); base gate EXIT=0; eval recipe-split mutation-killed.
 - **`franca` DONE** (branch `port/vit-step2-franca`, stacked on 28). Reuses the
   DINOv2 ViT backbone + KoLeo (vendored into `models/`, since methods are isolated) and
   adds Franca's own contribution: nested **MatryoshkaHead** + **Sinkhorn-Knopp**
   DINO/iBOT losses (no centering). The capture's `franca_data` cross-imported 28's
   augmentation — vendored here to avoid a `data` package collision. Single-process
   `train_pretrain_vit_franca.py`; adapter grew a `pretrain` stage + a `recipe: unified`
-  Step-2 eval (probes the trained `teacher_bb` encoder.pt at CLS) alongside the eval-only
-  Step-1 download probe; **timm added to the lock at fleet `1.0.28`** (same closure as 28).
-  Step-2 paths verified (model round-trip, pretrain→contract+milestones, Step-2 eval→
+  controlled evaluation (probes the trained `teacher_bb` encoder.pt at CLS) alongside the eval-only
+  native-backbone download probe; **timm added to the lock at fleet `1.0.28`** (same closure as 28).
+  controlled recipe paths verified (model round-trip, pretrain→contract+milestones, controlled evaluation→
   contract+comparable); base gate EXIT=0; eval recipe-split mutation-killed.
 - **`aim` DONE** (branch `port/vit-step2-aim`, stacked on 36). Autoregressive
   (prefix-LM next-patch pixel MSE) — a different family from DINOv2/Franca, so an
   independent port: `models/aim_vit.py` (the lab's own torch-only AIM re-impl) +
   `data/aim_dataset.py` copied verbatim, single-process `train_pretrain_vit_aim.py`,
-  adapter `pretrain` + `recipe: unified` Step-2 eval (probes the trained trunk;
+  adapter `pretrain` + `recipe: unified` controlled evaluation (probes the trained trunk;
   `encoder.pt` excludes `predictor.`; the eval averages the last N blocks + mean-pool).
   **No lock change** (AIM is torch/numpy only — no timm). **Licence marked**: the
-  Step-2 uses the lab's own from-scratch code (not apple's), so apple-amlr binds only
-  Step-1. TDD caught a `grad_clip`/`clip_grad` key mismatch (fixed). Step-2 paths
+  The controlled recipe uses the lab's own from-scratch code (not apple's), so apple-amlr binds only
+  to the native recipe. TDD caught a `grad_clip`/`clip_grad` key mismatch (fixed). Controlled training and evaluation paths
   verified; base gate EXIT=0; eval recipe-split mutation-killed.
 
   **Cross-cutting fix in this PR:** converting all three eval-only ports to two-stage
@@ -349,11 +344,11 @@ and puts them on the same axis. Ported as full method-ports (add a `pretrain` st
   declares `_absent_reason` (non-vacuous; fails if no port declares the no-encoder path).
 
   **Eval-only-download trio COMPLETE** (dinov2, franca, aim) — each now has
-  its from-scratch unified Step 2 alongside the unchanged eval-only Step-1 probe.
-- **Generative** (`image_gpt`, `mar`, `var`): the from-scratch Step-2 is generative;
+  its from-scratch controlled recipe alongside the unchanged eval-only native recipe probe.
+- **Generative** (`image_gpt`, `mar`, `var`): the from-scratch controlled recipe is generative;
   the probe-target question (docs/EVAL_DOWNLOAD.md) is separate. Scope later.
 
-**Gap methods missed by the fan-out** (their native Step-1 landed after the batches,
+**Gap methods missed by the fan-out** (their native recipes landed after the batches,
 so the batches never touched them; the capture ships a `step2_vit.yaml` + `models/
 {cpc,nepa}_vit.py` + `train_step2_vit.py` for each):
 - **`cpc` DONE** (branch `port/vit-step2-cpc`). CPC on the ViT patch grid: a timm
@@ -368,15 +363,15 @@ so the batches never touched them; the capture ships a `step2_vit.yaml` + `model
   closure as `mocov1`). z_dim==embed_dim guard + arch key-set split both
   mutation-killed; full cpc module (43 tests) OK under a timm venv; base gate EXIT=0.
 - **`nepa` DONE** (branch `port/vit-step2-nepa`, PR #103). Milestone-only /
-  config-align (like 31/35): the native port already ports `NEPAModel`, so Step 2 is
+  config-align (like 31/35): the native port already ports `NEPAModel`, so the controlled recipe is
   the **same model + trainer** at the unified setting — **no new model, no arch key,
-  no timm**. `configs/pretrain_vit.yaml` (patch_size 16 vs step-1 14,
+  no timm**. `configs/pretrain_vit.yaml` (patch_size 16 vs 14 in the native recipe,
   `augmentation: step2`, SwiGLU, unified AdamW, `save_at_epochs: [100,200,300]`) +
-  `configs/linear_eval_vit.yaml` (`pool: embed`, the capture's step2
+  `configs/linear_eval_vit.yaml` (`pool: embed`, the capture's controlled recipe
   raw-patch-embedding probe). Additive: the trainer honours `save_at_epochs` (absent =
   native, unchanged); the dataset gained a `step2` augmentation; the eval gained an
   optional `pool` (default `avg`); the adapter treats `save_at_epochs`/`pool` as
-  **optional** keys (native and Step-2 share one key set) and extracts milestone
+  **optional** keys (native and controlled recipes share one key set) and extracts milestone
   `encoder_epoch{N}.pt`. Two guards mutation-killed (milestone save; optional-key
   allowance); full nepa module OK under torch; base gate EXIT=0. **No lock change**
   (torch-only).

@@ -1,8 +1,6 @@
-# Reproducing Step-1 features from identified checkpoints
+# Feature extraction from identified original-setting checkpoints
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+See the [manuscript terminology guide](PAPER_TERMINOLOGY.md) for the correspondence between historical artifact names and paper settings.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](SUBMISSION_SCOPE.md)
@@ -24,7 +22,7 @@ This copies the input into a separate destination after verifying its bytes. It 
 
 ## Native export: first verified checkpoint
 
-SimCLR v1's recorded Step-1 result names its 1000-epoch ResNet-50 checkpoint. The native file records zero-based epoch 999 and seed 42; its SHA-256 is pinned under `step1_native_artifact`.
+SimCLR v1's recorded original-setting result names its 1000-epoch ResNet-50 checkpoint. The native file records zero-based epoch 999 and seed 42; its SHA-256 is pinned under `step1_native_artifact`.
 
 Run the exporter in the method's dependency environment. It verifies the source hash, unwraps only the explicit state key, removes only a leading prefix, refuses key collisions, delegates encoder selection and loading to the existing method adapter, and writes to a new output directory:
 
@@ -34,7 +32,7 @@ Run the exporter in the method's dependency environment. It verifies the source 
 
 ## Extract with the existing driver
 
-Use a fresh output root for this Step-1 checkpoint; preserve previous runs. This driver records other providers without supplied weights as skipped:
+Use a fresh output root for this original-setting checkpoint; preserve previous runs. This driver records other providers without supplied weights as skipped:
 
 `python3 bin/extract-features.py --data-root /path/to/imagenet --split val --out /path/to/new-step1-features --device cuda --batch-size 128 --num-workers 8 --representation l2 --encoder simclrv1=.weights/14_simclrv1-step1-export/encoder.pt --allow-missing`
 
@@ -81,7 +79,7 @@ To retry failures, supply only those models and choose a new output root.
 Sources files, output metadata and logs may contain private paths; keep them
 outside the repository.
 
-The checkpoints above are lab-trained, selected from the recorded Step-1
+The checkpoints above are lab-trained, selected from the recorded original-setting
 linear evaluations at their configured training endpoints. Their exact hashes
 are pinned in provenance. No public URL for those exact bytes is verified;
 obtain them from the lab and use the checksum-verified local acquisition path.

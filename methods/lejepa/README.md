@@ -1,8 +1,6 @@
-# lejepa — step 1 (LeJEPA pretext) + linear evaluation
+# lejepa — LeJEPA pretext + linear evaluation
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+> See the [guide to original settings (ASIS), controlled pre-training (CTRL) and Unified evaluation](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
@@ -23,20 +21,20 @@ invariance** loss:
 **SIGReg** is an Epps-Pulley Gaussian regularizer: it pushes the projected
 features toward an isotropic Gaussian by comparing the empirical characteristic
 function of random 1-D **slices** of the batch against the standard-normal
-`exp(−t²/2)` on a trapezoidal quadrature grid. Step 1 is that pretext.
+`exp(−t²/2)` on a trapezoidal quadrature grid.
 
-## Scope — the ViT-B/16 step 1 and the unified Step 2
+## Scope — the ViT-B/16 original recipe and the controlled recipe
 
-This port covers LeJEPA's **ViT-B/16** step 1 (`configs/pretrain.yaml`, the paper
-recipe) **and** the capture's unified **ViT-B/16 Step 2** (`configs/pretrain_vit.yaml`,
+This port covers LeJEPA's **ViT-B/16** original recipe (`configs/pretrain.yaml`, the paper
+recipe) **and** the **controlled ViT-B/16 recipe** (`configs/pretrain_vit.yaml`,
 `recipe: unified`). Because LeJEPA's backbone is already `vit_base_patch16_224` and
 its optimiser is already AdamW + fixed weight decay + cosine-to-`min_lr`, the
-unified Step 2 is the *same* objective/backbone under the unified schedule (epochs
+controlled recipe is the *same* objective/backbone under the controlled schedule (epochs
 100→300, lr 5e-4→6e-4, min_lr 5e-7→1e-6) with milestone checkpoints at 100/200/300,
 each probed by the same frozen-backbone `linear_eval`. It is selected by an explicit
 `recipe: unified` key (absent = the native paper recipe, byte-for-byte unchanged).
 `timm` supplies the ViT, built **from scratch** (no pretrained download), so the run
-stays hermetic — no new dependency for the Step-2 path. **SIGReg is
+stays hermetic — no new dependency for the controlled path. **SIGReg is
 reimplemented locally** — the capture's README states *"No external LeJEPA package
 is imported at runtime"*, and the only third-party imports are torch / torchvision
 / timm / yaml (measured), so this ports **self-contained**: no `third_party/`
@@ -82,7 +80,7 @@ single-feature probe instead is a documented deviation, the same as every port.)
 
 ## What has and has not been exercised
 
-- **Exercised (step 1):** a hermetic smoke — a tiny ViT at 32px, 2 views, a few
+- **Exercised (original recipe):** a hermetic smoke — a tiny ViT at 32px, 2 views, a few
   fabricated images — runs through `python -m adapter` on a CPU (exercising the
   multi-view forward, the SIGReg slicing/quadrature and the invariance loss),
   passes `contract-test`, and the encoder round-trip and a determinism check pass.
@@ -92,7 +90,7 @@ single-feature probe instead is a documented deviation, the same as every port.)
 - **Not a full run:** `configs/pretrain.yaml` is the LeJEPA recipe (ViT-B/16, 224px,
   4 views, λ=0.02, 100 epochs, batch 1024, AdamW, warmup 10 → cosine), a recipe,
   not a completed run.
-- **Exercised (unified Step 2):** a hermetic smoke — `recipe: unified`, a tiny ViT
+- **Exercised (controlled recipe):** a hermetic smoke — `recipe: unified`, a tiny ViT
   (the `name` key), two epochs with `save_at_epochs: [1, 2]` — runs through
   `python -m adapter` on a CPU, writes `encoder.pt` and both `encoder_epoch{1,2}.pt`
   milestones, and a milestone probe passes `contract-test`. The full 300-epoch
@@ -114,13 +112,13 @@ as `simmim` / `mocov3`: identical timm resolution).
 
 ## Running
 
-    # step 1: DATA_ROOT contains a train/ subdirectory of images
+    # original recipe: DATA_ROOT contains a train/ subdirectory of images
     python bin/resolve-config.py --config methods/lejepa/configs/pretrain.yaml \
         --set DATA_ROOT=/path/to/imagenet --out resolved.json
     cd methods/lejepa && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/s1
 
-    # linear eval: DATA_ROOT has train/ and val/; ENCODER is step 1's encoder.pt
+    # linear eval: DATA_ROOT has train/ and val/; ENCODER is the encoder.pt from pre-training
     python bin/resolve-config.py --config methods/lejepa/configs/linear_eval.yaml \
         --set DATA_ROOT=/path/to/imagenet \
         --set ENCODER=/path/to/s1/encoder.pt --out eval.json

@@ -1,8 +1,6 @@
-# simclrv1 — SimCLR v1 pretext (ResNet-50 + unified ViT-B/16 Step 2) + linear evaluation
+# simclrv1 — SimCLR v1 pretext (ResNet-50 + controlled ViT-B/16 pre-training) + linear evaluation
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+> See the [guide to original settings (ASIS), controlled pre-training (CTRL) and Unified evaluation](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
@@ -16,12 +14,11 @@ Two independently-augmented views of an image feed a shared **ResNet-50** encode
 and a 2-layer MLP projection head (2048→2048→`out_dim`, BN + ReLU, L2-normalised).
 The **NT-Xent** loss pulls the two views of an image together and pushes every
 other view in the batch apart. Training uses **LARS** under a cosine schedule with
-linear warmup. Step 1 is that pretext.
+linear warmup.
 
-## Scope — the ResNet-50 path only
+## Scope — ResNet-50 and controlled ViT-B/16 pre-training
 
-This port covers the paper-faithful **ResNet-50** pretext and, as part of the
-Step-2 fan-out, the capture's unified from-scratch **ViT-B/16** (`arch: vit`:
+This port covers the paper-faithful **ResNet-50** pretext and the controlled from-scratch **ViT-B/16** (`arch: vit`:
 `configs/pretrain_vit.yaml`, `models/vit_simclr.py`, `train_pretrain_vit_simclr.py`)
 — NT-Xent on two views, the ViT's CLS token through a 2-layer projector. The ViT
 path imports `timm`; the native ResNet-50 pretrain does not. `tensorboard` and
@@ -60,7 +57,7 @@ comparable across the ported methods.
 
 ## What has and has not been exercised
 
-- **Exercised (step 1):** a hermetic smoke — a small ResNet-50 SimCLR, a few
+- **Exercised (original recipe):** a hermetic smoke — a small ResNet-50 SimCLR, a few
   fabricated images, a 32px input and `out_dim=32` — runs through `python -m
   adapter` on a CPU, passes `contract-test`, and the encoder round-trip and a
   determinism check pass.
@@ -75,7 +72,7 @@ comparable across the ported methods.
 ## Environment
 
 torch / torchvision / numpy / PyYAML — the self-contained methods' stack, no
-submodule; the Step-2 ViT path adds `timm` (the native ResNet-50 path needs none).
+submodule; the controlled recipe ViT path adds `timm` (the native ResNet-50 path needs none).
 `requirements.lock.txt` (CPU) and `requirements.lock.cu130.txt` (CUDA 13.0) are
 the hashed closures (the same closure as `mocov1`: identical floors, identical
 resolution).
@@ -87,13 +84,13 @@ resolution).
 
 ## Running
 
-    # step 1: DATA_ROOT is a folder of training images (searched recursively)
+    # original recipe: DATA_ROOT is a folder of training images (searched recursively)
     python bin/resolve-config.py --config methods/simclrv1/configs/pretrain.yaml \
         --set DATA_ROOT=/path/to/images --out resolved.json
     cd methods/simclrv1 && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/s1
 
-    # linear eval: DATA_ROOT has train/ and val/; ENCODER is step 1's encoder.pt
+    # linear eval: DATA_ROOT has train/ and val/; ENCODER is the encoder.pt from pre-training
     python bin/resolve-config.py --config methods/simclrv1/configs/linear_eval.yaml \
         --set DATA_ROOT=/path/to/imagenet \
         --set ENCODER=/path/to/s1/encoder.pt --out eval.json

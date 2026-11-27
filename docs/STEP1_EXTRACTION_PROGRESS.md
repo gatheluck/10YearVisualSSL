@@ -1,6 +1,8 @@
-# Step-1 extraction progress
+# Original-setting checkpoint extraction log
 
-For ASIS, CTRL and legacy numbered labels, see the [manuscript terminology guide](PAPER_TERMINOLOGY.md).
+In these dated extraction records, `Step 1` identifies checkpoints selected for the original-setting evaluations. A checkpoint identifier does not specify a paper figure.
+
+For the current manuscript, use the [figure-by-figure reproduction guide](PAPER_REPRODUCTION_GUIDE.md) and [terminology map](PAPER_TERMINOLOGY.md).
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](SUBMISSION_SCOPE.md)

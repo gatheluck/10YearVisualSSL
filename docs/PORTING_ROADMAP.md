@@ -1,8 +1,6 @@
-# Porting roadmap — the 38 Step 1&2 methods, order, and status
+# Porting record for 38 historical visual SSL methods
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+For the current manuscript, use the [figure-by-figure reproduction guide](PAPER_REPRODUCTION_GUIDE.md) and [terminology map](PAPER_TERMINOLOGY.md).
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](SUBMISSION_SCOPE.md)
@@ -10,22 +8,22 @@ for the distinction from original experimental implementations and results.
 
 Last updated: 2026-08-11
 
-This is the fact-based plan for porting the **Step 1&2** visual-SSL methods. It is
+This is the fact-based plan for porting the original group of visual SSL methods. It is
 externalised here so the plan survives across sessions. Generative-AR methods
-(`var`, `mar`, `image_gpt`) belong to **other steps**, not this list, and are
+(`var`, `mar`, `image_gpt`) belong to a separate generative-model group, not this list, and are
 already ported as pilots for the submodule / eval-only / download machinery.
 
 ## DINOv3 scope update (2026-09-25)
 
 The historical rows below describe the original core-only port. The optional
-[Step-4 components](DINOV3_STEP4.md) now integrate four sharing layouts and a
+[DINOv3 head and Gram components](DINOV3_STEP4.md) now integrate four sharing layouts and a
 frozen-teacher Gram stage. They do not establish distributed or paper-score
 reproduction; see the [current gap ledger](PAPER_REPRODUCTION_GAPS.md).
 
-## The 38 methods (Step 1&2), and how the capture holds them
+## The 38 methods, and how the capture holds them
 
 IDv2 update (2026-09-25): the existing InstDisc ViT adapter now has seven
-explicit [Step-4 component profiles](IDV2_COMPONENTS.md), including complete
+explicit [bank and objective profiles](IDV2_COMPONENTS.md), including complete
 component checkpoint continuation. Historical core-only descriptions below do
 not cover this addition. Native distributed integration and full-score reruns in this port remain
 unverified.
@@ -101,15 +99,15 @@ The third column records the original source directory, including its historical
 | 27 | SimMIM | `26_simmim` | no | ported (`simmim`; needs timm for Swin -- reuses the `mocov3` lock; the `transformers` dep was docstring-only, measured; encoder.pt is the bare Swin) |
 | 28 | iBOT | `27_ibot` | no | ported (`ibot`) |
 | 29 | MSN | `34_msn` | no | ported (`msn`; **submodule-import**: pins `facebookresearch/msn` (third_party/msn @4388dc1, CC BY-NC 4.0, research-use) and imports its ViT (src/deit) + MSN loss (src/losses) + optimiser (src/msn_train.init_opt) into a single-process trainer; anchor/target EMA + prototypes + me-max; encoder.pt = anchor ViT trunk (fc excluded). The multi-view aug is reimplemented (upstream trips Pillow 12.x); DDP/submitit/cyanure dropped, shared ARSSL probe; torch-only closure. Nothing under the licence is copied) |
-| 30 | DINOv2 | `28_dinov2` | no | ported (`dinov2`; **two comparisons**. Step-1 (as-is): pinned `third_party/dinov2` submodule (xformers disabled -> torch-only), official ViT-g/14 LVD-142M weights hash-pinned via `bin/fetch-weights.py` (the original LVD-142M data is not public, so the as-is row reuses the official backbone). Step-2 (unified): a from-scratch ViT-B/16 (DINO+iBOT+KoLeo) on ImageNet-1k, ported additively) |
+| 30 | DINOv2 | `28_dinov2` | no | ported (`dinov2`; **two comparisons**. ASIS: pinned `third_party/dinov2` submodule (xformers disabled -> torch-only), official ViT-g/14 LVD-142M weights hash-pinned via `bin/fetch-weights.py` (the original LVD-142M data is not public, so the as-is row reuses the official backbone). Controlled pre-training: a from-scratch ViT-B/16 (DINO+iBOT+KoLeo) on ImageNet-1k, ported additively) |
 | 31 | I-JEPA | `29_ijepa` | no | ported (`ijepa`; torch-only -- I-JEPA ships its own ViT, NOT timm, measured; trains from scratch on ImageNet; encoder.pt is the EMA target encoder) |
-| 32 | AIM | `30_aim` | no | ported (`aim`; **two comparisons**. Step-1 (as-is): pinned `third_party/ml-aim` submodule (Apple's `aim`), official AIM-600M ViT-H/14 (DFN-2B+) backbone hash-pinned via `bin/fetch-weights.py`, probed on the last-6-block average patch-mean-pooled (DFN-2B+ is not public, so the as-is row reuses the official backbone). Step-2 (unified): a from-scratch ViT-B/16 (prefix-LM next-patch MSE) on ImageNet-1k, ported additively (the lab's own torch-only AIM re-impl, not apple's code/weights). Licence apple-amlr binds only the Step-1 probe = non-commercial research; nothing under it copied (submodule + download), academic-research use only) |
-| 33 | V-JEPA | `35_vjepa` | no | ported (`vjepa`; **submodule-import** of `facebookresearch/jepa` (third_party/jepa @51c59d5, CC BY-NC 4.0, research-use). Ports the capture's step-2 image adaptation (num_frames=1 image ViT-B/16, from scratch on ImageNet) -- a genuine comparable row, NOT the pretrain caveat probe of the released video model. Imports init_video_model + 3D MaskCollator + apply_masks; context/target EMA + latent smooth-L1 prediction; encoder.pt = EMA target encoder. torch-only closure; single-process (DDP/TensorBoard dropped); shared ARSSL probe. Nothing under the licence is copied) |
+| 32 | AIM | `30_aim` | no | ported (`aim`; **two comparisons**. ASIS: pinned `third_party/ml-aim` submodule (Apple's `aim`), official AIM-600M ViT-H/14 (DFN-2B+) backbone hash-pinned via `bin/fetch-weights.py`, probed on the last-6-block average patch-mean-pooled (DFN-2B+ is not public, so the as-is row reuses the official backbone). Controlled pre-training: a from-scratch ViT-B/16 (prefix-LM next-patch MSE) on ImageNet-1k, ported additively (the lab's own torch-only AIM re-impl, not apple's code/weights). Licence apple-amlr binds only the native recipe probe = non-commercial research; nothing under it copied (submodule + download), academic-research use only) |
+| 33 | V-JEPA | `35_vjepa` | no | ported (`vjepa`; **submodule-import** of `facebookresearch/jepa` (third_party/jepa @51c59d5, CC BY-NC 4.0, research-use). Ports the capture's controlled recipe image adaptation (num_frames=1 image ViT-B/16, from scratch on ImageNet) -- a genuine comparable row, NOT the pretrain caveat probe of the released video model. Imports init_video_model + 3D MaskCollator + apply_masks; context/target EMA + latent smooth-L1 prediction; encoder.pt = EMA target encoder. torch-only closure; single-process (DDP/TensorBoard dropped); shared ARSSL probe. Nothing under the licence is copied) |
 | 34 | Franca | `36_franca` | no | ported (`franca`) |
-| 35 | DINOv3 | `31_dinov3` | no | ported (`dinov3`; torch-only, from-scratch on ImageNet -- the capture's **step 2** unified SSL comparison, DINOv3 **core** objective: own ViT (register tokens + axial RoPE) + DINO (Sinkhorn centring) + iBOT + KoLeo, EMA teacher, multi-crop; encoder.pt = teacher backbone (prefix stripped). The capture's step 1 (HF-**gated** official weights) and the released **Gram anchoring** stage (`gram.mode: core_only`) are excluded; a from-scratch re-implementation, so no Meta code/weights are used) |
+| 35 | DINOv3 | `31_dinov3` | no | ported (`dinov3`; torch-only, from-scratch on ImageNet -- the controlled-pretraining comparison, DINOv3 **core** objective: own ViT (register tokens + axial RoPE) + DINO (Sinkhorn centring) + iBOT + KoLeo, EMA teacher, multi-crop; encoder.pt = teacher backbone (prefix stripped). The capture's native recipe (HF-**gated** official weights) and the released **Gram anchoring** stage (`gram.mode: core_only`) are excluded; a from-scratch re-implementation, so no Meta code/weights are used) |
 | 36 | LeJEPA | `37_lejepa` | no | ported (`lejepa`; torch+timm, from-scratch on ImageNet -- a timm ViT + projector trained by SIGReg (Epps-Pulley quadrature + random slicing, reimplemented locally, no external package) + a cross-view invariance loss; encoder.pt is the bare backbone, prefix stripped) |
 | 37 | NEPA | `32_nepa` | no | ported (`nepa`; torch-only -- its own ViT with 2D RoPE / QK-norm / causal autoregressive predictor, from scratch on ImageNet; encoder.pt is the EMA model) |
-| 38 | CLIP | `38_clip` | **yes** | ported (`clip`; a 38th method added to the capture after the original decade list. **submodule-import** of `openai/CLIP` (third_party/CLIP @d05afc4, **MIT**, imported not copied). **two comparisons**: Step-1 (as-is) freezes the released official ViT-B/32 image tower (a sha256-pinned download via `bin/fetch-weights.py`) and probes its pooled image embedding (CLIP's 400M image-text data is not public, so the as-is row reuses the released checkpoint); Step-2 trains a CLIP ViT-B/16 from scratch on ImageNet-1k, pairing each labeled image with an official ImageNet class-name prompt (symmetric image-text contrastive loss), probed frozen at milestones 100/200/300. Step-2 is a **supervised label-text adaptation**, stamped `supervised_label_text_adaptation=true` / `main_vssl_comparability=false` -- a CLIP-adaptation reference, not a comparable unlabeled number. Model constructor + BPE tokenizer + ImageNet prompts imported from the submodule; single-process (DDP/all-gather dropped); shared ARSSL probe. MIT, so nothing under a noncommercial licence and nothing copied) |
+| 38 | CLIP | `38_clip` | **yes** | ported (`clip`; a 38th method added to the capture after the original decade list. **submodule-import** of `openai/CLIP` (third_party/CLIP @d05afc4, **MIT**, imported not copied). **two comparisons**: ASIS freezes the released official ViT-B/32 image tower (a sha256-pinned download via `bin/fetch-weights.py`) and probes its pooled image embedding (CLIP's 400M image-text data is not public, so the as-is row reuses the released checkpoint); controlled recipe trains a CLIP ViT-B/16 from scratch on ImageNet-1k, pairing each labeled image with an official ImageNet class-name prompt (symmetric image-text contrastive loss), probed frozen at milestones 100/200/300. This separate recipe is a **supervised label-text adaptation**, stamped `supervised_label_text_adaptation=true` / `main_vssl_comparability=false` -- a CLIP-adaptation reference, not a comparable unlabeled number. Model constructor + BPE tokenizer + ImageNet prompts imported from the submodule; single-process (DDP/all-gather dropped); shared ARSSL probe. MIT, so nothing under a noncommercial licence and nothing copied) |
 
 ## Historical source identifiers
 
@@ -127,9 +125,9 @@ a clean torch+timm self-contained port. It is **now ported** (`lejepa`). With
 it done, the genuinely-clean from-scratch tier is exhausted. On 2026-08-10 the user
 ruled that **non-commercial-licensed code may be used for academic research** (with
 careful licence documentation), which unblocks the remaining eval-only /
-non-commercial tier. `aim` is **now ported** (an as-is Step-1 download probe plus a from-scratch unified Step-2; see below).
+non-commercial tier. `aim` is **now ported** (an as-is native-backbone download probe plus a from-scratch controlled recipe; see below).
 `dinov3` is **now ported** (2026-08-10): its eval-only download path is blocked
-(HF login-gated weights), but its capture **step 2** -- the from-scratch unified SSL
+(HF login-gated weights), but its capture **controlled recipe** -- the from-scratch unified SSL
 comparison -- is self-contained torch-only code (own ViT + DINO/iBOT/KoLeo losses,
 measured no timm/transformers), so it ports as a clean from-scratch method (DINOv3
 **core**; the released Gram anchoring stage is excluded via the capture's
@@ -141,11 +139,11 @@ torch/torchvision/numpy/PIL only -- no apex/opencv/submitit/cyanure), reimplemen
 the multi-view aug (the upstream one trips Pillow 12.x with a Tensor blur radius),
 and uses the shared ARSSL probe; CC-BY-NC documented as research-use, nothing
 copied. `vjepa` is **now ported** (2026-08-11), the LAST method: rather than the
-pretrain caveat probe of the released video model, it ports the capture's step-2 image
+pretrain caveat probe of the released video model, it ports the capture's controlled recipe image
 adaptation -- pin `facebookresearch/jepa` as a submodule and import init_video_model
 + the 3D mask collator to train a V-JEPA-objective image ViT-B/16 (num_frames=1) from
 scratch on ImageNet, a genuine comparable row; CC-BY-NC documented, nothing copied.
-**ALL 38 Step-1&2 methods are now ported** (the original 37-method decade list
+**ALL 38 methods in the original porting list are now ported** (the original 37-method decade list
 plus `clip`, a CLIP method the capture added afterwards; the three
 generative-AR pilots `image_gpt`, `mar`, `var` are separate — see the intro —
 bringing the repository to 41 ported methods in total). `beit` is ported (torch-only ViT + a hash-pinned DALL-E dVAE
@@ -161,10 +159,10 @@ capture before porting, never from the label; ViT/Swin-based ones need care —
 and `simmim` (wraps timm's Swin) needed it, but `dino`, `ijepa` and
 `nepa` do NOT (they ship their own ViT), so the label "ViT/Swin ⇒ timm" is not
 evidence. When timm is needed, reuse the `mocov3` lock; when not, reuse the
-torch-only `jigsaw_puzzle` / `byol` closure). **Also measure whether "step 1"
+torch-only `jigsaw_puzzle` / `byol` closure). **Also measure whether the native recipe
 is genuine from-scratch training or a pretrained download**: `dinov2`, `aim`
 and `dinov3` all turned out to be eval-only downloads (their pretraining data is
-not public, so step 1 loads official checkpoints via torch.hub / HuggingFace /
+not public, so the native recipe loads official checkpoints via torch.hub / HuggingFace /
 `ml-aim`) -- ported (`dinov2`) or to be ported in the Franca-style
 frozen-backbone-download tier (CONTRACT §7, `bin/fetch-weights.py`).
 Ported under this decision so far: `simclrv1` (list #15), `mocov2`
@@ -201,10 +199,10 @@ under the 2026-08-09 keep-capture-numbering decision.
 6. GPU verify on the available device; `verify-environment` exact.
 7. Commit gated on the suite; open a PR; confirm CI green (incl. container).
 
-## Step-4 continuation update (2026-09-25)
+## Component continuation update (2026-09-25)
 
 H1S200, H1CORE and H1JA now have single-process component paths and versioned
-checkpoint continuation. See [the Step-4 guide](DINOV3_STEP4.md) for exact
+checkpoint continuation. See [the DINOv3 component guide](DINOV3_STEP4.md) for exact
 interfaces and limits. Native distributed checkpoint conversion, full distributed
 training/BF16 and score reproduction remain open; IDv2 banks and the remaining
 Basic5/Extend work are the next major integration groups.
