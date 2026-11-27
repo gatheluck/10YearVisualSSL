@@ -55,6 +55,40 @@
           </div>
         </div>
       </section>
+      <section class="rank-visuals" aria-labelledby="rank-matrix-title">
+        <div class="rank-spread">
+          <figure class="rank-map">
+            <figcaption>
+              <h2 id="rank-matrix-title">Task transfer rank matrix</h2>
+              <span class="scale">Darker is better <i aria-hidden="true"></i></span>
+            </figcaption>
+            <p class="matrix-guide">Columns are models in overall rank order. Rows are tasks. Each cell is a published task rank, with 1 best.</p>
+            <p class="matrix-key">
+              <span class="selection-tag">Selected</span
+              ><strong id="matrix-selection"></strong>
+            </p>
+            <div class="matrix-shell">
+              <div class="matrix-labels">
+                <span>ImageNet</span><span>COCO</span><span>ADE20K</span
+                ><span>NYUv2</span><span>SSv2</span>
+              </div>
+              <div
+                class="matrix-viewport"
+                tabindex="0"
+                role="region"
+                aria-label="Model configurations in overall rank order, scroll horizontally"
+              >
+                <div id="rank-matrix" aria-hidden="true"></div>
+              </div>
+            </div>
+            <div class="matrix-axis">Models · best overall rank first →</div>
+          </figure>
+          <aside class="profile-panel">
+            <label for="inspect-config">Inspect model</label
+            ><select id="inspect-config"></select>
+          </aside>
+        </div>
+      </section>
       <section id="leaderboard" class="rank-board" aria-labelledby="rank-title">
         <div class="eyebrow">
           <span class="dash"></span> Figure 1 · 109 models · 5
@@ -80,18 +114,20 @@
             <label>Find a model<input id="rank-search" type="search" placeholder="Model name"></label>
           </div>
         </div>
+        <p id="ranking-method" class="ranking-method"></p>
         <section class="profile-panel ranked-model" id="selected-model" aria-label="Selected model" tabindex="-1" hidden>
           <div id="rank-profile"></div>
           <button type="button" id="close-model">Close model profile</button>
         </section>
         <div class="rank-scroll" role="region" aria-label="Figure 1 standings" tabindex="0">
-          <table aria-label="Model rankings">
-            <thead><tr>
+          <table aria-label="Model rankings" role="table">
+            <thead role="rowgroup"><tr role="row">
               <th scope="col" id="rank-order">Overall rank</th>
               <th scope="col">Model</th>
               <th scope="col" id="rank-value">Mean rank</th>
+              <th scope="col" id="rank-components">Task ranks</th>
             </tr></thead>
-            <tbody></tbody>
+            <tbody role="rowgroup"></tbody>
           </table>
         </div>
         <div class="rank-table-foot">
@@ -101,40 +137,7 @@
           </button>
         </div>
       </section>
-      <details class="comparison-panel rank-visuals">
-        <summary>Show the rank heatmap</summary>
-        <div class="rank-spread">
-          <figure class="rank-map">
-            <figcaption>
-              <h3>Task transfer rank matrix</h3>
-              <span class="scale">Better <i></i> Worse</span>
-            </figcaption>
-            <p class="matrix-key">
-              <span class="selection-tag">Selected</span
-              ><strong id="matrix-selection"></strong>
-            </p>
-            <div class="matrix-shell">
-              <div class="matrix-labels">
-                <span>ImageNet</span><span>COCO</span><span>ADE20K</span
-                ><span>NYUv2</span><span>SSv2</span>
-              </div>
-              <div
-                class="matrix-viewport"
-                tabindex="0"
-                role="region"
-                aria-label="Model configurations in overall rank order, scroll horizontally"
-              >
-                <div id="rank-matrix" aria-hidden="true"></div>
-              </div>
-            </div>
-            <div class="matrix-axis">Models · best overall rank first →</div>
-          </figure>
-          <aside class="profile-panel">
-            <label for="inspect-config">Inspect configuration</label
-            ><select id="inspect-config"></select>
-          </aside>
-        </div>
-      <details class="trajectories">
+      <details class="comparison-panel trajectories">
         <summary>Compare rank trajectories</summary>
         <figure class="atlas">
           <figcaption>
@@ -169,8 +172,6 @@
             >Explore all 109 rankings <span aria-hidden="true">↗</span></a
           >
         </figure>
-      </details>
-
       </details>
 <nav class="results-directory" id="experiments" aria-label="Leaderboard comparisons"><div><h2>Explore the experiments</h2><a href="#protocols">Evaluation protocols ↓</a></div><div class="route-cards"><a aria-label="History" href="#history"><small>Figures 1–2</small><strong>History</strong><span>Compare release years →</span></a>
 <a aria-label="Basic Five probes" href="#unified"><small>Figure 3</small><strong>Basic Five probes</strong><span>Compare readout protocols →</span></a>
@@ -333,7 +334,7 @@
         </p>
         <h2>ASIS <em>vs</em> CTRL</h2>
         <p class="summary">
-          Compare 32 methods before and after standardizing the backbone, dataset and training duration.
+          Compare the same 32 methods on the selected benchmark under their original settings (ASIS) and a controlled pre-training recipe (CTRL).
         </p>
       </section>
       <section id="control-compare" aria-label="Paired scores">
@@ -341,26 +342,27 @@
           <label
             >Benchmark
             <select id="benchmark"></select></label
-          ><span class="source">32 paired configurations</span>
+          >
         </div>
+        <p id="chart-note">Horizontal axis: ASIS. Vertical axis: CTRL. Each point is one method. The diagonal marks a tie.</p>
+        <p id="control-direction"></p>
         <div class="comparison">
           <figure>
             <figcaption><h2 id="control-chart-title"></h2></figcaption>
             <svg
               id="paired"
-              viewBox="0 0 370 240"
+              viewBox="0 0 294 280"
               role="img"
-              aria-labelledby="control-chart-title chart-note"
+              aria-labelledby="control-chart-title chart-note control-direction"
             ></svg>
-            <p id="chart-note">
-              Each point is one method. Shading marks a better CTRL score; the
-              diagonal marks equality.
-            </p>
           </figure>
           <div class="reading">
-            <p class="eyebrow">Under the controlled recipe</p>
-            <p id="control-finding" aria-live="polite"></p>
-            <div id="outcome-strip" aria-hidden="true"></div>
+            <h3>Outcomes under CTRL</h3>
+            <dl id="control-outcomes" aria-live="polite">
+              <div class="better"><dt>Better</dt><dd></dd></div>
+              <div class="tied"><dt>Tied</dt><dd></dd></div>
+              <div class="worse"><dt>Worse</dt><dd></dd></div>
+            </dl>
             <details>
               <summary>Evaluation conditions</summary>
               <dl>

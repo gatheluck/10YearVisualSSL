@@ -237,8 +237,8 @@ header nav[aria-label=Primary] a:not([aria-current]):hover {background:#e4efeb;}
 .comparison-panel + .comparison-panel { border-top:0; }
 .comparison-panel > summary { color:#155752; cursor:pointer; font-weight:650; }
 .rank-visuals .rank-spread { display:block; }
-.rank-visuals .profile-panel { display:flex; align-items:center; gap:12px; }
-.rank-visuals .profile-panel select { margin:0; max-width:260px; }
+.rank-visuals .profile-panel { display:flex; align-items:center; flex-wrap:wrap; gap:12px; }
+.rank-visuals .profile-panel select { margin:0; width:min(100%, 260px); }
 #rank-score-dialog dl { line-height:1.5; }
 #rank-score-dialog dt { margin-top:.65em; font-weight:700; }
 #rank-score-dialog dd { margin:0; }
@@ -250,4 +250,57 @@ header nav[aria-label=Primary] a:not([aria-current]):hover {background:#e4efeb;}
   .ranking-filters input, .ranking-filters select { width:100%; box-sizing:border-box; margin:0; }
   #leaderboard .rank-scroll :is(th,td) { padding:8px 5px; font-size:13px; }
   #leaderboard .rank-scroll td button { white-space:normal; }
+}
+
+.rank-visuals .rank-map h2 {
+  margin: 0;
+  font: 400 clamp(24px, 2.7vw, 39px)/1.1 Georgia, serif;
+  letter-spacing: -.04em;
+}
+.rank-visuals .matrix-guide { margin: 6px 0; }
+.rank-visuals .model-tick { font-size: 9px; }
+.rank-visuals .matrix-shell { --column-width: 9px; --tick-height: 101px; }
+.rank-visuals + .rank-board { padding-top: 6px; }
+.ranking-method { color: var(--muted); font-size: .875rem; margin: 4px 0 12px; }
+#leaderboard #rank-components[hidden] { display: none; }
+.task-ranks-list {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
+}
+#leaderboard .rank-scroll .task-ranks button {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  min-width: 0;
+  width: 100%;
+  min-height: 35px;
+  padding: 4px 1px;
+  font-size: 13px;
+  color: #1b554e;
+  text-decoration: none;
+  background: #edf5f1;
+  border: 1px solid #d3e4df;
+  border-radius: 4px;
+  cursor: pointer;
+}
+#leaderboard .rank-scroll .task-ranks button:hover,
+#leaderboard .rank-scroll .task-ranks button:focus-visible {
+  background: #d1ebe3;
+  text-decoration: underline;
+}
+.task-ranks button span { font-size: .72rem; overflow-wrap: anywhere; }
+@media (max-width: 700px) {
+  .rank-visuals .matrix-shell { --column-width: 13px; --tick-height: 112px; }
+  .rank-visuals .model-tick { font-size: 10px; }
+  .overall-ranks .rank-scroll :is(table, thead, tbody) { display: block; }
+  .overall-ranks .rank-scroll tr {
+    display: grid;
+    grid-template-columns: 75px minmax(0, 1fr) 72px;
+    align-items: center;
+  }
+  #leaderboard.overall-ranks .rank-scroll th:first-child { width: auto; }
+  #leaderboard.overall-ranks .rank-scroll :is(#rank-components, .task-ranks) { grid-column: 1 / -1; }
+  #leaderboard.overall-ranks .rank-scroll #rank-components { text-align: left; }
+  #leaderboard.overall-ranks .rank-scroll .task-ranks { padding-top: 4px; }
 }

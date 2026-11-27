@@ -13,20 +13,36 @@ before(async () => {
 after(async () => { await browser.close(); });
 
 test("the first ranking view is compact and opens COCO conditions from a model with the keyboard", async () => {
-  for (const width of [320, 390, 1280]) {
+  for (const width of [320, 390, 768, 1280]) {
     const page = await browser.newPage({viewport:{width,height:850}});
     try {
       await page.goto(base);
+      const heatmap = page.getByRole("figure").filter({has:page.locator("#rank-matrix")});
+      assert.ok(await heatmap.isVisible(), "Figure 1 heatmap must be visible without opening a panel");
+      assert.match(await heatmap.innerText(), /Columns.*models.*overall.*Rows.*tasks.*cell.*task rank/s);
+      assert.match(await heatmap.innerText(), /Darker is better/);
+      assert.ok(await heatmap.locator(".matrix-cell").first().evaluate(el => {
+        const box = el.getBoundingClientRect();
+        return box.top >= 0 && box.bottom <= innerHeight;
+      }));
       const rankings = page.locator("#leaderboard");
       const table = rankings.getByRole("table", {name:"Model rankings"});
       assert.equal(await table.count(), 1);
-      assert.deepEqual(await table.locator("thead th").allTextContents(), ["Overall rank", "Model", "Mean rank"]);
+      assert.deepEqual(await table.locator("thead th:visible").allTextContents(), ["Overall rank", "Model", "Mean rank", "Task ranks"]);
       assert.equal(await rankings.locator("tbody tr").count(), 10);
       assert.equal(await rankings.getByRole("region", { name: "Selected model" }).isVisible(), false);
-      assert.equal(await rankings.getByText("Task transfer rank matrix").isVisible(), false);
+      assert.match(await rankings.locator("#ranking-method").innerText(), /mean of the five published task ranks/i);
+      const overallRow = table.locator("tbody tr").first();
+      const published = await page.evaluate(() => historicalRanks[0].ranks);
+      assert.deepEqual(await overallRow.locator(".task-ranks button strong").allTextContents(), published.map(String));
+      assert.ok(await table.evaluate(el => el.parentElement.scrollWidth <= el.parentElement.clientWidth));
+      await overallRow.getByRole("button", {name:/COCO 2017.*rank 1/i}).press("Enter");
+      assert.match(await page.getByRole("dialog").innerText(), /Figure 2 v45.*40\.77/s);
+      await page.keyboard.press("Escape");
       const task = rankings.getByLabel("Rank by");
       await task.selectOption("coco");
-      assert.deepEqual(await table.locator("thead th").allTextContents(), ["Task rank", "Model", "COCO 2017 score"]);
+      assert.deepEqual(await table.locator("thead th:visible").allTextContents(), ["Task rank", "Model", "COCO 2017 score"]);
+      assert.match(await rankings.locator("#ranking-method").innerText(), /Bounding-box AP.*higher is better/i);
       const row = table.locator("tbody tr").first();
       assert.match(await row.innerText(), /#1.*DINOv3-7B.*40\.77 bbox AP/s);
       assert.ok(await table.evaluate(el => el.parentElement.scrollWidth <= el.parentElement.clientWidth));
@@ -55,6 +71,9 @@ test("every published rank is joined to its own v45 configuration and missing sc
     const ranks = page.locator("#leaderboard");
     await ranks.getByRole("button",{name:"Show all 109 models"}).click();
     const { ranked, v45 } = await page.evaluate(() => ({ ranked: historicalRanks, v45: historicalScores }));
+    const displayedTaskRanks = await ranks.locator(".task-ranks-list").evaluateAll(groups =>
+      groups.map(group => [...group.querySelectorAll("strong")].map(rank => Number(rank.textContent))));
+    assert.deepEqual(displayedTaskRanks, ranked.map(model => model.ranks));
     const ids = new Set();
     for (const model of ranked) {
       const score = model.name === "V-JEPA (ViT-H)" ? v45.find(row => row.id === 29)

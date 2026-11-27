@@ -6,8 +6,8 @@ function buildRankBoard(rows, familyByName, families) {
     [key, { label, color: `var(--${token})` }],
   ));
   const benchmarks = [
-    { key: "in1k", name: "ImageNet-1K", task: "Image classification", metric: "Top-1 accuracy (%)", suffix: "%" },
-    { key: "coco", name: "COCO 2017", task: "Object detection", metric: "Bounding-box AP", suffix: " bbox AP" },
+    { key: "in1k", name: "ImageNet-1K", shortName: "ImageNet", task: "Image classification", metric: "Top-1 accuracy (%)", suffix: "%" },
+    { key: "coco", name: "COCO 2017", shortName: "COCO", task: "Object detection", metric: "Bounding-box AP", suffix: " bbox AP" },
     { key: "ade20k", name: "ADE20K", task: "Semantic segmentation", metric: "Mean intersection over union (%)", suffix: "%" },
     { key: "nyuv2", name: "NYUv2", task: "Depth estimation", metric: "RMSE (m)", suffix: " m", lower: true },
     { key: "ssv2", name: "SSv2", task: "Video classification", metric: "Top-1 accuracy (%)", suffix: "%" },
@@ -158,8 +158,15 @@ function buildRankBoard(rows, familyByName, families) {
     body.replaceChildren();
     const index = benchmarks.findIndex(benchmark => benchmark.key === task.value);
     const rank = row => index < 0 ? row.place : row.ranks[index];
-    get("rank-order").textContent = index < 0 ? "Overall rank" : "Task rank";
-    get("rank-value").textContent = index < 0 ? "Mean rank" : benchmarks[index].name + " score";
+    const overall = index < 0;
+    const benchmark = benchmarks[index];
+    board.classList.toggle("overall-ranks", overall);
+    get("rank-components").hidden = !overall;
+    get("rank-order").textContent = overall ? "Overall rank" : "Task rank";
+    get("rank-value").textContent = overall ? "Mean rank" : benchmark.name + " score";
+    get("ranking-method").textContent = overall
+      ? "Overall standings use the mean of the five published task ranks. Select a rank for its score and evaluation conditions."
+      : benchmark.task + " · " + benchmark.metric + " · " + (benchmark.lower ? "Lower is better" : "Higher is better");
     const query = search.value.trim().toLowerCase();
     const matches = rows.filter(row => row.name.toLowerCase().includes(query))
       .sort((a, b) => rank(a) - rank(b));
@@ -168,10 +175,14 @@ function buildRankBoard(rows, familyByName, families) {
       const result = manuscriptScoreForRank(row);
       const tr = body.insertRow();
       tr.dataset.legendId = result.id;
+      tr.setAttribute("role", "row");
       const { label, color } = familyStyles.get(result.family);
-      tr.insertCell().textContent = "#" + rank(row);
+      const position = tr.insertCell();
+      position.setAttribute("role", "cell");
+      position.textContent = "#" + rank(row);
       const name = add(tr, "th");
       name.scope = "row";
+      name.setAttribute("role", "rowheader");
       name.style.setProperty("--series", color);
       const model = add(add(name, "b"), "button", row.name);
       model.type = "button";
@@ -183,8 +194,23 @@ function buildRankBoard(rows, familyByName, families) {
       name.append(link);
       add(name, "small", label);
       const value = tr.insertCell();
-      if (index < 0) {
+      value.setAttribute("role", "cell");
+      if (overall) {
         value.textContent = mean(row);
+        const ranks = tr.insertCell();
+        ranks.className = "task-ranks";
+        ranks.setAttribute("role", "cell");
+        const list = add(ranks, "div");
+        list.className = "task-ranks-list";
+        row.ranks.forEach((rank, taskIndex) => {
+          const taskInfo = benchmarks[taskIndex];
+          const button = add(list, "button");
+          button.type = "button";
+          button.setAttribute("aria-label", taskInfo.name + ", rank " + rank + ". View score details");
+          add(button, "span", taskInfo.shortName ?? taskInfo.name);
+          add(button, "strong", rank);
+          button.onclick = () => showScore(row, taskIndex);
+        });
       } else {
         const button = add(value, "button", scoreText(result, index));
         button.type = "button";

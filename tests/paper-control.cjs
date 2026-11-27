@@ -19,13 +19,23 @@ const path = require("node:path");
     const link = page.getByRole("link", { name: "ASIS vs CTRL", exact: true });
     assert.equal(await link.count(), 1, "The home page must link to Figure 4");
     await link.click();
-    const task = page.locator("#controlled").getByLabel("Benchmark");
+    const control = page.locator("#controlled");
+    const task = control.getByLabel("Benchmark");
+    assert.match(await control.locator(".summary").innerText(), /same 32 methods.*selected benchmark.*original.*controlled/is);
+    assert.match(await control.locator("#chart-note").innerText(), /horizontal.*ASIS.*vertical.*CTRL.*one method.*diagonal.*tie/is);
     const panels = [];
     for (const name of ["ImageNet-1K", "COCO", "ADE20K", "NYUv2", "SSv2"]) {
       await task.selectOption(name);
       const rows = page.locator("#controlled tbody tr");
       assert.equal(await rows.count(), 32);
       assert.equal(await page.locator("#paired circle").count(), 32);
+      for (const outcome of ["Better", "Tied", "Worse"]) {
+        const expected = await rows.locator("td").getByText(outcome, {exact:true}).count();
+        const counter = control.locator("#control-outcomes div").filter({hasText:outcome});
+        assert.equal(await counter.count(), 1, outcome + " needs a readable count");
+        assert.equal(await counter.getByRole("term").innerText(), outcome);
+        assert.equal(await counter.getByRole("definition").innerText(), String(expected));
+      }
       panels.push(
         ...(await rows.evaluateAll((rs) =>
           rs.map((r) => [...r.cells].map((c) => c.textContent).join("|")),
@@ -61,6 +71,24 @@ const path = require("node:path");
         () => document.documentElement.scrollWidth <= innerWidth,
       ),
     );
+    assert.match(await control.locator("#control-direction").innerText(), /Lower RMSE is better/i);
+    for (const width of [320, 390, 768, 1280]) {
+      await page.setViewportSize({ width, height: 900 });
+      assert.ok(await control.evaluate(section => {
+        const inside = (el, outer) => {
+          const rect = el.getBoundingClientRect();
+          return rect.left >= outer.left - 1 && rect.right <= outer.right + 1 &&
+            rect.top >= outer.top - 1 && rect.bottom <= outer.bottom + 1;
+        };
+        const chart = section.querySelector("#paired");
+        const summary = section.querySelector(".reading");
+        const card = document.querySelector('[href="#controlled"][aria-label]');
+        return [...chart.querySelectorAll("text,circle")].every(mark => inside(mark, chart.getBoundingClientRect())) &&
+          [...summary.querySelectorAll("dt,dd,summary")].every(text => inside(text, summary.getBoundingClientRect())) &&
+          [...card.children].every(el => inside(el, card.getBoundingClientRect())) &&
+          section.getBoundingClientRect().right <= innerWidth;
+      }), "Figure 4 and its summary fit at " + width);
+    }
     assert.deepEqual(errors, []);
     console.log(
       "Figure 4: navigation, 160 pairs and changes, score direction, chart, protocols and mobile passed.",

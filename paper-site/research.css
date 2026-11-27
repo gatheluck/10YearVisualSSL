@@ -230,22 +230,6 @@ dialog .paper-link {
 .reading details {
   border-color: #536770;
 }
-#outcome-strip {
-  display: grid;
-  grid-template-columns: repeat(32, 1fr);
-  gap: 2px;
-  margin: 12px 0 24px;
-}
-#outcome-strip i {
-  height: 20px;
-  background: #c9cdd4;
-}
-#outcome-strip .better {
-  background: var(--cyan);
-}
-#outcome-strip .worse {
-  background: var(--coral);
-}
 footer {
   background: #102332;
   color: #e6f4f1;

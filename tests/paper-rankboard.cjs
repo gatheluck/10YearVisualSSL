@@ -23,9 +23,8 @@ const { chromium } = require("playwright");
     );
     assert.equal(await page.locator(".rank-visuals .matrix-column").count(), 109);
     assert.equal(await page.locator(".rank-visuals .matrix-cell").count(), 545);
-    await page.getByText("Show the rank heatmap", { exact: true }).click();
     const heatmap = page.locator(".rank-visuals");
-    const select = heatmap.getByLabel("Inspect configuration");
+    const select = heatmap.getByLabel("Inspect model");
     const selectedName = page.locator(".rank-visuals #matrix-selection");
     const columns = page.locator(".rank-visuals .matrix-column");
     const cellColors = () =>
