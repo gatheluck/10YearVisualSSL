@@ -32,6 +32,22 @@ class LicenseInventory(unittest.TestCase):
         self.assertTrue(INDEX.is_file(), 'public license inventory is missing')
         return json.loads(INDEX.read_text())
 
+    def test_inventory_links_to_each_bundled_constant(self):
+        guide = ROOT / 'docs/THIRD_PARTY_LICENSES.md'
+        links = re.findall(r'\]\(([^)]+)\)', guide.read_text())
+        documented = {(guide.parent / link).resolve() for link in links
+                      if '://' not in link and link.endswith('.npy')}
+        bundled = set()
+        for record in (ROOT / 'methods').glob('*/provenance.json'):
+            constant = json.loads(record.read_text()).get('vendored_constant')
+            if constant:
+                path = record.parent / constant['file']
+                self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(),
+                                 constant['sha256'], str(path))
+                bundled.add(path)
+        self.assertTrue(bundled)
+        self.assertSetEqual(documented, bundled)
+
     def test_every_submodule_has_one_record(self):
         rows = self.inventory()['modules']
         paths = [row['path'] for row in rows]

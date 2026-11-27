@@ -397,6 +397,12 @@
   ],
   "additional_upstream_notices": [
     {
+      "path": "docs/notices/COLORIZATION_LICENSE.txt",
+      "sha256": "0df922ed99775db79b6f3c40b9d1d0b4d95194dcead6a5cac6cff2cf4006fade",
+      "source": "https://github.com/richzhang/colorization/blob/a1642d6ac6fc80fe08885edba34c166da09465f6/LICENSE",
+      "reason": "The parent repository includes two copies of the color-bin table from this revision."
+    },
+    {
       "path": "docs/notices/PROBE3D_LICENSE.txt",
       "sha256": "332671bf60d23f5b36eb1e095ced17b40dd5fc005687baa18a0c157bc473619f",
       "source": "https://github.com/mbanani/probe3d/blob/a1f14640076e38b8bc07b66d0fe2d01d15691e9d/LICENSE",

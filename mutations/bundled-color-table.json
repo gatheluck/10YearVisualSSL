@@ -1,0 +1,18 @@
+{
+  "targets": [
+    {
+      "label": "both links point to the same copy of the table",
+      "file": "docs/THIRD_PARTY_LICENSES.md",
+      "old": "../methods/08_split_brain/data/pts_in_hull.npy",
+      "new": "../methods/03_colorization/data/pts_in_hull.npy",
+      "tests": ["tests.test_license_inventory.LicenseInventory.test_inventory_links_to_each_bundled_constant"]
+    },
+    {
+      "label": "the bundled notice loses the authors' names",
+      "file": "docs/notices/COLORIZATION_LICENSE.txt",
+      "old": "Copyright (c) 2016, Richard Zhang, Phillip Isola, Alexei A. Efros",
+      "new": "Copyright (c) 2016",
+      "tests": ["tests.test_license_inventory.LicenseInventory.test_additional_upstream_notices_are_preserved"]
+    }
+  ]
+}
