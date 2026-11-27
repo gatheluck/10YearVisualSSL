@@ -22,6 +22,8 @@ For a native COCO run, use the [bounding-box evaluation path](BASIC5_NATIVE_PATH
 
 ## Figure 3 — Unified readout and adaptation
 
+Rebuild the README's ImageNet-1K and SSv2 chart from the [reported LP and AP means](figures/figure3-classification.csv) with `python3 bin/render-readme-figure3.py > docs/figures/figure3-classification.svg` from the repository root.
+
 Figure 3 compares three frozen-backbone readouts (linear probing, attentive probing and DPT) with low-rank adaptation (LoRA). Supplement C.3 Tables 22–26 also report full fine-tuning (FT). Original seed files reproduced 91 of the 104 reported cells. Other contemporaneous per-seed records reproduced 12 more at printed precision. VGGT-Ω COCO LP has only aggregate support. Preserve six unreported FT cells and the single reported VGGT-Ω SSv2 FT seed. For RAEv2 LP/AP, manuscript Section 6 names diffusion-generator block 29 at timestep 0.1. The [run attribution audit](CVPR_ADAPTATION.md) identifies a seven-layer tokenizer readout in the recorded Unified runs. These feature tensors come from different components. Identify the target run before comparing scores. The ASIS detection run used a separate frozen generator readout.
 
 To train or compare, use the [LoRA and DPT run instructions](LORA_FULL_REPRODUCTION.md), the [LP/AP/FT protocols](../README.md#evaluation-protocols) and the [SSv2 encoder-specific AP readers](SSV2_EXECUTION.md#figure-3-attentive-probes). Generate 45 LoRA configs for three tasks, five encoders and three seeds from the [example path mapping](../configs/figure3-lora-paths.example.json):

@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 442" width="420" role="img" aria-labelledby="title description" font-family="system-ui, sans-serif" font-size="13" fill="#192b40">
+  <title id="title">Classification with frozen backbones</title>
+  <desc id="description">Figure 3 classification results. Outlined bars show linear probing and solid bars show attentive probing. Each bar shows mean top-1 accuracy across three runs.</desc>
+  <rect x="0.5" y="0.5" width="319" height="441" rx="8" fill="#ffffff" stroke="#bcc9d6" />
+  <rect x="14" y="17" width="12.000" height="8" fill="none" stroke="#354d66" />
+  <text x="32" y="25" font-size="12">Linear probing (LP)</text>
+  <rect x="162" y="17" width="12.000" height="8" fill="#2453a6" />
+  <text x="180" y="25" font-size="12">Attentive probing (AP)</text>
+  <line x1="14" x2="306" y1="36" y2="36" stroke="#c6d0dc" />
+  <g aria-label="ImageNet-1K" transform="translate(0 45)">
+    <text x="14" y="18" font-size="17" font-weight="bold">ImageNet-1K</text>
+    <text x="306" y="18" font-size="12" text-anchor="end">Top-1 accuracy (%)</text>
+    <line x1="112" x2="112" y1="28" y2="174" stroke="#c6d0dc" />
+    <text x="112" y="188" font-size="12" text-anchor="middle">0</text>
+    <line x1="193" x2="193" y1="28" y2="174" stroke="#c6d0dc" />
+    <text x="193" y="188" font-size="12" text-anchor="middle">50</text>
+    <line x1="274" x2="274" y1="28" y2="174" stroke="#c6d0dc" />
+    <text x="274" y="188" font-size="12" text-anchor="middle">100</text>
+    <g aria-label="DINOv3-7B">
+      <text x="14" y="45">DINOv3-7B</text>
+      <rect x="112" y="32" width="140.195" height="8" fill="none" stroke="#354d66" />
+      <text x="257.195" y="40" stroke="white" stroke-width="3" paint-order="stroke">86.54</text>
+      <rect x="112" y="45" width="142.268" height="8" fill="#2453a6" />
+      <text x="259.268" y="53" stroke="white" stroke-width="3" paint-order="stroke">87.82</text>
+    </g>
+    <g aria-label="VGGT-Ω">
+      <text x="14" y="74">VGGT-Ω</text>
+      <rect x="112" y="61" width="17.302" height="8" fill="none" stroke="#354d66" />
+      <text x="134.302" y="69" stroke="white" stroke-width="3" paint-order="stroke">10.68</text>
+      <rect x="112" y="74" width="132.224" height="8" fill="#2453a6" />
+      <text x="249.224" y="82" stroke="white" stroke-width="3" paint-order="stroke">81.62</text>
+    </g>
+    <g aria-label="RAEv2">
+      <text x="14" y="103">RAEv2</text>
+      <rect x="112" y="90" width="122.164" height="8" fill="none" stroke="#354d66" />
+      <text x="239.164" y="98" stroke="white" stroke-width="3" paint-order="stroke">75.41</text>
+      <rect x="112" y="103" width="139.741" height="8" fill="#2453a6" />
+      <text x="256.741" y="111" stroke="white" stroke-width="3" paint-order="stroke">86.26</text>
+    </g>
+    <g aria-label="V-JEPA 2.1-G">
+      <text x="14" y="132">V-JEPA 2.1-G</text>
+      <rect x="112" y="119" width="93.328" height="8" fill="none" stroke="#354d66" />
+      <text x="210.328" y="127" stroke="white" stroke-width="3" paint-order="stroke">57.61</text>
+      <rect x="112" y="132" width="131.852" height="8" fill="#2453a6" />
+      <text x="248.852" y="140" stroke="white" stroke-width="3" paint-order="stroke">81.39</text>
+    </g>
+    <g aria-label="SigLIP 2-G">
+      <text x="14" y="161">SigLIP 2-G</text>
+      <rect x="112" y="148" width="137.068" height="8" fill="none" stroke="#354d66" />
+      <text x="254.068" y="156" stroke="white" stroke-width="3" paint-order="stroke">84.61</text>
+      <rect x="112" y="161" width="141.523" height="8" fill="#2453a6" />
+      <text x="258.523" y="169" stroke="white" stroke-width="3" paint-order="stroke">87.36</text>
+    </g>
+  </g>
+  <g aria-label="SSv2" transform="translate(0 240)">
+    <text x="14" y="18" font-size="17" font-weight="bold">SSv2</text>
+    <text x="306" y="18" font-size="12" text-anchor="end">Top-1 accuracy (%)</text>
+    <line x1="112" x2="112" y1="28" y2="174" stroke="#c6d0dc" />
+    <text x="112" y="188" font-size="12" text-anchor="middle">0</text>
+    <line x1="193" x2="193" y1="28" y2="174" stroke="#c6d0dc" />
+    <text x="193" y="188" font-size="12" text-anchor="middle">50</text>
+    <line x1="274" x2="274" y1="28" y2="174" stroke="#c6d0dc" />
+    <text x="274" y="188" font-size="12" text-anchor="middle">100</text>
+    <g aria-label="DINOv3-7B">
+      <text x="14" y="45">DINOv3-7B</text>
+      <rect x="112" y="32" width="24.138" height="8" fill="none" stroke="#354d66" />
+      <text x="141.138" y="40" stroke="white" stroke-width="3" paint-order="stroke">14.90</text>
+      <rect x="112" y="45" width="76.837" height="8" fill="#2453a6" />
+      <text x="193.837" y="53" stroke="white" stroke-width="3" paint-order="stroke">47.43</text>
+    </g>
+    <g aria-label="VGGT-Ω">
+      <text x="14" y="74">VGGT-Ω</text>
+      <rect x="112" y="61" width="7.614" height="8" fill="none" stroke="#354d66" />
+      <text x="124.614" y="69" stroke="white" stroke-width="3" paint-order="stroke">4.70</text>
+      <rect x="112" y="74" width="72.203" height="8" fill="#2453a6" />
+      <text x="189.203" y="82" stroke="white" stroke-width="3" paint-order="stroke">44.57</text>
+    </g>
+    <g aria-label="RAEv2">
+      <text x="14" y="103">RAEv2</text>
+      <rect x="112" y="90" width="13.284" height="8" fill="none" stroke="#354d66" />
+      <text x="130.284" y="98" stroke="white" stroke-width="3" paint-order="stroke">8.20</text>
+      <rect x="112" y="103" width="65.918" height="8" fill="#2453a6" />
+      <text x="182.918" y="111" stroke="white" stroke-width="3" paint-order="stroke">40.69</text>
+    </g>
+    <g aria-label="V-JEPA 2.1-G">
+      <text x="14" y="132">V-JEPA 2.1-G</text>
+      <rect x="112" y="119" width="34.846" height="8" fill="none" stroke="#354d66" />
+      <text x="151.846" y="127" stroke="white" stroke-width="3" paint-order="stroke">21.51</text>
+      <rect x="112" y="132" width="112.120" height="8" fill="#2453a6" />
+      <text x="229.120" y="140" stroke="white" stroke-width="3" paint-order="stroke">69.21</text>
+    </g>
+    <g aria-label="SigLIP 2-G">
+      <text x="14" y="161">SigLIP 2-G</text>
+      <rect x="112" y="148" width="37.195" height="8" fill="none" stroke="#354d66" />
+      <text x="154.195" y="156" stroke="white" stroke-width="3" paint-order="stroke">22.96</text>
+      <rect x="112" y="161" width="66.258" height="8" fill="#2453a6" />
+      <text x="183.258" y="169" stroke="white" stroke-width="3" paint-order="stroke">40.90</text>
+    </g>
+  </g>
+</svg>

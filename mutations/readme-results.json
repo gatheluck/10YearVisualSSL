@@ -1,0 +1,53 @@
+{
+  "targets": [
+    {
+      "label": "Chart removed from the introduction",
+      "file": "README.md",
+      "old": "![Figure 3 classification comparison.",
+      "new": "[Figure 3 classification comparison.",
+      "tests": ["tests.test_readme_results.ReadmeResults.test_accessible_results_precede_figure_index"]
+    },
+    {
+      "label": "Omitted uncertainty described as plotted",
+      "file": "README.md",
+      "old": "with standard deviations omitted",
+      "new": "with standard deviations shown",
+      "tests": ["tests.test_readme_results.ReadmeResults.test_accessible_results_precede_figure_index"]
+    },
+    {
+      "label": "Wrong ASIS configuration count",
+      "file": "README.md",
+      "old": "113 configurations evaluated",
+      "new": "109 configurations evaluated",
+      "tests": ["tests.test_readme_results.ReadmeResults.test_findings_correspond_to_the_three_figures"]
+    },
+    {
+      "label": "Wrong SSv2 reversal count",
+      "file": "README.md",
+      "old": "4/10 model pairs on SSv2",
+      "new": "1/10 model pairs on SSv2",
+      "tests": ["tests.test_readme_results.ReadmeResults.test_findings_correspond_to_the_three_figures"]
+    },
+    {
+      "label": "Wrong held-out family correlation",
+      "file": "README.md",
+      "old": "0.19 to 0.75 on ADE20K",
+      "new": "0.19 to 0.69 on ADE20K",
+      "tests": ["tests.test_readme_results.ReadmeResults.test_findings_correspond_to_the_three_figures"]
+    },
+    {
+      "label": "Different adopted score",
+      "file": "docs/figures/figure3-classification.csv",
+      "old": "21.51,69.21",
+      "new": "21.51,69.12",
+      "tests": ["tests.test_readme_results.ReadmeResults.test_linked_data_has_all_twenty_reported_means"]
+    },
+    {
+      "label": "Different SVG than the documented generator",
+      "file": "docs/figures/figure3-classification.svg",
+      "old": ">86.54</text>",
+      "new": ">86.50</text>",
+      "tests": ["tests.test_readme_results.ReadmeResults.test_documented_command_regenerates_chart_with_correct_geometry"]
+    }
+  ]
+}

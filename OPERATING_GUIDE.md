@@ -171,6 +171,7 @@ shown so the shape is visible before it is built.
 │   ├── extract-reference.py         extract validation through an audited reference evaluator
 │   ├── import-reference-cache.py    validate pinned caches and restore sample order
 │   ├── prepare-imagenet-val.py      ImageNet-1k val parquet -> val/<wnid>/*.JPEG
+│   ├── render-readme-figure3.py      draw the public README chart from the reported means
 │   └── aggregate-seeds.py           seeds 0,1,2 -> mean +/- std (BASIC5 rule seed)
 ├── adapterlib/                     the one place a run_manifest.json is written
 │   └── __init__.py                                                    exists
