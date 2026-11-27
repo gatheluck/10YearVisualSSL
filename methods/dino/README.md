@@ -1,8 +1,6 @@
-# dino — step 1 (DINO ViT-S/16 pretext) + linear evaluation
+# dino — DINO ViT-S/16 pretext + linear evaluation
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+> See the [guide to original settings (ASIS), controlled pre-training (CTRL) and Unified evaluation](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
@@ -17,18 +15,18 @@ exponential-moving-average copy of the student, no gradient) sees only the two
 global crops. The loss is the **cross-entropy** between the teacher's *centred +
 sharpened* output and the student's *sharpened* output, averaged over the crop
 pairs where the views differ. An online **centre** (EMA) prevents collapse; the
-teacher momentum follows a cosine schedule 0.996 → 1.0. Step 1 is that pretext.
+teacher momentum follows a cosine schedule 0.996 → 1.0.
 
-## Scope — the ViT-S/16 step 1 and the unified ViT-B/16 Step 2
+## Scope — the ViT-S/16 original recipe and controlled ViT-B/16 pre-training
 
-This port covers DINO's **ViT-S/16** step 1 (`configs/pretrain.yaml`, the paper
-recipe) **and** the capture's unified **ViT-B/16 Step 2** (`configs/pretrain_vit.yaml`,
+This port covers DINO's **ViT-S/16** original recipe (`configs/pretrain.yaml`, the paper
+recipe) **and** the **controlled ViT-B/16 recipe** (`configs/pretrain_vit.yaml`,
 `recipe: unified`): the *same* DINO objective, head and multi-crop, but on
-`arch: vit_base` under the unified recipe — AdamW lr 6e-4, a **fixed** weight
-decay (step 1 cosine-schedules it), betas (0.9, 0.95), per-iteration cosine LR
+`arch: vit_base` under the controlled recipe — AdamW lr 6e-4, a **fixed** weight
+decay (the original recipe cosine-schedules it), betas (0.9, 0.95), per-iteration cosine LR
 with a 10-epoch warmup, 300 epochs, milestone checkpoints at 100/200/300, each
 probed by the same frozen-teacher `linear_eval`. Because these ViT-native methods
-already use `arch` for the model *size*, the Step-2 path is selected by an
+already use `arch` for the model *size*, the controlled path is selected by an
 explicit `recipe: unified` key (absent = the native ViT-S/16 recipe, byte-for-byte
 unchanged). DINO ships **its own** Vision Transformer
 (`models/vision_transformer.py` — measured: it imports only `torch`, **not
@@ -76,7 +74,7 @@ probe instead is a documented deviation, the same as every other port.)
 
 ## What has and has not been exercised
 
-- **Exercised (step 1):** a hermetic smoke — a small `vit_small` at 32px global /
+- **Exercised (original recipe):** a hermetic smoke — a small `vit_small` at 32px global /
   16px local (a 2×2 / 1×1 token grid), a narrow head, 2 local crops, a few
   fabricated images — runs through `python -m adapter` on a CPU (exercising the
   EMA teacher update and the centring), passes `contract-test`, and the encoder
@@ -87,7 +85,7 @@ probe instead is a documented deviation, the same as every other port.)
 - **Not a full run:** `configs/pretrain.yaml` is the DINO recipe (`vit_small`,
   out_dim 65536, 100 epochs, batch 1024, AdamW, warmup 10, multi-crop 2+8), a
   recipe, not a completed run.
-- **Exercised (unified ViT-B/16 Step 2):** a hermetic smoke — `recipe: unified`,
+- **Exercised (controlled ViT-B/16 pre-training):** a hermetic smoke — `recipe: unified`,
   `arch: vit_base` at 32px, a narrow head, 2 local crops, two epochs with
   `save_at_epochs: [1, 2]` — runs through `python -m adapter` on a CPU, writes
   `encoder.pt` and both `encoder_epoch{1,2}.pt` milestones, and a milestone probe
@@ -109,13 +107,13 @@ same closure as `jigsaw_puzzle`: identical floors, identical resolution).
 
 ## Running
 
-    # step 1: DATA_ROOT is a folder of training images (searched recursively)
+    # original recipe: DATA_ROOT is a folder of training images (searched recursively)
     python bin/resolve-config.py --config methods/dino/configs/pretrain.yaml \
         --set DATA_ROOT=/path/to/images --out resolved.json
     cd methods/dino && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/s1
 
-    # linear eval: DATA_ROOT has train/ and val/; ENCODER is step 1's encoder.pt
+    # linear eval: DATA_ROOT has train/ and val/; ENCODER is the encoder.pt from pre-training
     python bin/resolve-config.py --config methods/dino/configs/linear_eval.yaml \
         --set DATA_ROOT=/path/to/imagenet \
         --set ENCODER=/path/to/s1/encoder.pt --out eval.json

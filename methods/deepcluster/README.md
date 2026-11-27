@@ -1,8 +1,6 @@
-# deepcluster — step 1 (DeepCluster pretext) + linear evaluation
+# deepcluster — DeepCluster pretext + linear evaluation
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+> See the [guide to original settings (ASIS), controlled pre-training (CTRL) and Unified evaluation](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
@@ -14,13 +12,13 @@ Visual Features*, ECCV 2018 ([arXiv:1807.05520](https://arxiv.org/abs/1807.05520
 Each epoch, the whole training set's **fc7** features are extracted, reduced by
 **PCA + whitening** and clustered by **k-means**; the cluster assignments become
 **pseudo-labels** that a reset classification head is trained to predict. The
-backbone is an **AlexNet-BN** with a fixed 2-channel **Sobel** front-end. Step 1
+backbone is an **AlexNet-BN** with a fixed 2-channel **Sobel** front-end. The original recipe
 is that pretext.
 
-## Scope — the AlexNet-BN path and the unified ViT-B/16 Step 2
+## Scope — the AlexNet-BN path and controlled ViT-B/16 pre-training
 
-This port covers the paper-faithful **AlexNet-BN** step 1 (`configs/pretrain.yaml`,
-Sobel + SGD) **and** the capture's unified **ViT-B/16 Step 2**
+This port covers the paper-faithful **AlexNet-BN** original recipe (`configs/pretrain.yaml`,
+Sobel + SGD) **and** the **controlled ViT-B/16 recipe**
 (`configs/pretrain_vit.yaml`, `arch: vit`): the same ViT-B/16 backbone every method
 shares plus a reset-each-epoch linear head, self-labelled by the **same per-epoch
 faiss k-means** (CLS features, PCA-whitened, k clusters), cross-entropy on the
@@ -46,7 +44,7 @@ x86_64-linux only**. faiss lives in `requirements.lock.cu130.txt`; the
 cross-platform `requirements.lock.txt` carries only the torch (and timm) parts and
 is **not, by itself, a runnable pretrain environment**. (Verified: `faiss-gpu==1.14.3`
 installs on py3.12 and coexists with torch 2.13.0+cu130 on an NVIDIA Tesla T4,
-both using the GPU in one process.) The unified ViT-B/16 Step 2 (`arch: vit`) reuses
+both using the GPU in one process.) The controlled ViT-B/16 pre-training (`arch: vit`) reuses
 this same faiss clustering, so it is GPU / x86_64-linux only too.
 
 ## `encoder.pt`, and a linear evaluation that reads it
@@ -67,7 +65,7 @@ methods use, so the number is comparable across them.
 
 ## What has and has not been exercised
 
-- **Exercised (step 1):** a hermetic smoke — k=4 clusters, pca_dim=4, a 64px
+- **Exercised (original recipe):** a hermetic smoke — k=4 clusters, pca_dim=4, a 64px
   crop, one epoch, a few fabricated images — runs the full extract→cluster→train
   loop through `python -m adapter` (with faiss) on a CPU, passes `contract-test`,
   and the encoder round-trip and a determinism check pass.
@@ -76,7 +74,7 @@ methods use, so the number is comparable across them.
   comparable `linear_probe` accuracies, and writes **no** `encoder.pt`.
 - **Not a full run:** `configs/pretrain.yaml` is the paper-target recipe (k=10000,
   pca_dim=256, 224px, 500 epochs), a recipe, not a completed run.
-- **Exercised (ViT Step 2):** a hermetic smoke — a tiny ViT (16-d embed, one
+- **Exercised (controlled ViT recipe):** a hermetic smoke — a tiny ViT (16-d embed, one
   block), k=4, pca_dim=4, two epochs with `save_at_epochs: [1, 2]` — runs the
   same extract→faiss-cluster→train loop through `python -m adapter` (with faiss
   and timm) on a CPU, writes `encoder.pt` and both `encoder_epoch{1,2}.pt`
@@ -87,7 +85,7 @@ methods use, so the number is comparable across them.
 
 ## Environment (GPU / x86_64-linux)
 
-torch / torchvision / numpy / PyYAML / **timm** (the ViT Step-2 backbone, lazy)
+torch / torchvision / numpy / PyYAML / **timm** (the controlled ViT recipe backbone, lazy)
 **+ faiss-gpu** (CUDA lock only). `requirements.lock.cu130.txt` is the runnable GPU
 closure (adds `faiss-gpu` and the nvidia CUDA wheels). `requirements.lock.txt` is
 the torch + timm CPU closure (no faiss — faiss-gpu has no cross-platform wheel).
@@ -100,13 +98,13 @@ the torch + timm CPU closure (no faiss — faiss-gpu has no cross-platform wheel
 
 ## Running
 
-    # step 1: DATA_ROOT is an ImageFolder of training images (needs a GPU + faiss)
+    # original recipe: DATA_ROOT is an ImageFolder of training images (needs a GPU + faiss)
     python bin/resolve-config.py --config methods/deepcluster/configs/pretrain.yaml \
         --set DATA_ROOT=/path/to/images --out resolved.json
     cd methods/deepcluster && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/s1
 
-    # linear eval: DATA_ROOT has train/ and val/; ENCODER is step 1's encoder.pt
+    # linear eval: DATA_ROOT has train/ and val/; ENCODER is the encoder.pt from pre-training
     python bin/resolve-config.py --config methods/deepcluster/configs/linear_eval.yaml \
         --set DATA_ROOT=/path/to/imagenet \
         --set ENCODER=/path/to/s1/encoder.pt --out eval.json

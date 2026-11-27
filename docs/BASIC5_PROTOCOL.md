@@ -6,9 +6,7 @@ and [final submitted manuscript coverage](FINAL_PAPER_COVERAGE.md) supersede
 earlier provider limits and table numbering below. Dated sections retain their
 historical scope; they do not certify current full-paper reproduction.
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+See the [manuscript terminology guide](PAPER_TERMINOLOGY.md) for the correspondence between historical artifact names and paper settings.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](SUBMISSION_SCOPE.md)
@@ -851,7 +849,7 @@ compositions through three updates. They use small identical encoder copies,
 not independently loaded released-weight benchmarks. Source provenance stays
 in private evidence. Full dataset scores, seed aggregates, GPU validation of
 this update, model-family generalization, distributed execution and broader
-Step-4 tasks are not established by these component tests. Workbook numbers
+Additional diagnostic tasks are not established by these component tests. Workbook numbers
 remain reference evidence, never fabricated test outputs.
 
 ## Additional vision families (2026-09-24)
@@ -862,4 +860,4 @@ and FT-group limitation above. The depth+1 endpoint described above applies to
 the prior provider and the new register-token family; the projected-CLS and MAP
 families use the captured depth endpoint instead. Classification features and
 normalization are now provider-owned. No AP ambiguity, distributed requirement,
-Step-4 gap or workbook-score requirement is resolved merely by this integration.
+diagnostic evaluation gap or workbook-score requirement is resolved merely by this integration.

@@ -1,5 +1,7 @@
 # Extended image classification components
 
+The table numbers in this guide refer to the earlier submission. For the current manuscript, see the [figure and table index](PAPER_REPRODUCTION_GUIDE.md).
+
 See [submission scope](SUBMISSION_SCOPE.md) and [final-paper coverage](FINAL_PAPER_COVERAGE.md).
 This is a portable component execution path for the image-classification part
 of final Tables 39-40, not a claim that the paper scores have been reproduced.

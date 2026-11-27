@@ -1,5 +1,7 @@
 # Frozen evaluation of three scaling families
 
+Table and appendix numbers in this scaling guide refer to the earlier submission. For the revised manuscript see the [figure-by-figure guide](PAPER_REPRODUCTION_GUIDE.md).
+
 For manuscript labels see the [terminology guide](PAPER_TERMINOLOGY.md).
 Support claims refer to the portable package; see [scope and terminology](SUBMISSION_SCOPE.md).
 
@@ -18,7 +20,7 @@ results.
 
 Both presets have total feature width 768 (base) or 1024 (large). Split-brain
 uses two branches of width 384/512, with 6/8 attention heads each; it does not
-reuse the existing Step-2 branch constructor, whose normalization differs.
+reuse the existing controlled ViT-B/16 branch constructor, whose normalization differs.
 Colorization reuses the existing custom encoder implementation. All three
 encoders stay frozen and in evaluation mode. ImageNet uses L2-normalized CLS;
 SSv2 averages raw frame CLS vectors. Dense tasks read final patch grids.

@@ -1,8 +1,6 @@
 # cosmos3_super — as-is linear eval on the frozen Cosmos3-Super vision encoder (eval-only)
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+> See the [guide to original settings (ASIS), controlled pre-training (CTRL) and Unified evaluation](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
@@ -24,7 +22,7 @@ and `sam3`.
 
 ## The checkpoint, stated plainly
 
-The capture's Step-3 VideoGen comparison
+The capture's video generation model comparison
 (`methods_step3/VideoGen/Cosmos3-Super/adapter.py`) loads only the released
 `nvidia/Cosmos3-Super` **vision encoder** (revision `fe77b66…`) and reads it through
 `transformers`' `Qwen3VLVisionModel`. Unlike SAM 3, the released layout **matches**

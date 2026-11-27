@@ -8,9 +8,7 @@ For the revised manuscript inspected in November, start with the
 [representation analysis components](REPRESENTATION_ANALYSIS.md).
 Historical protocol counts below do not define the revised manuscript's scope.
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+See the [manuscript terminology guide](PAPER_TERMINOLOGY.md) for the correspondence between historical artifact names and paper settings.
 
 This package is a selected, portable integration of experimental implementations
 and public model dependencies. It is not an export of the entire original
@@ -66,7 +64,7 @@ experiments.
   package does not yet integrate their full task catalog. Exact per-dataset
   coverage and correspondence to reported cells require the included companion
   registries and actual run records; the existence of those trainers alone is insufficient.
-- **Step-4 components:** reduced tests compare selected heads, losses, updates
+- **DINOv3 and Instance Discrimination components:** reduced tests compare selected heads, losses, updates
   and checkpoint transitions with inspected experimental implementations. Native
   distributed execution, full-scale reruns and score matching have separate
   validation boundaries in this package. “Not validated here” concerns the port,

@@ -1,8 +1,6 @@
-# colorization — step 1 (colorization pretext) + linear evaluation
+# colorization — colorization pretext + linear evaluation
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+> See the [guide to original settings (ASIS), controlled pre-training (CTRL) and Unified evaluation](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
@@ -14,14 +12,14 @@ Zhang, Isola & Efros, *Colorful Image Colorization*, ECCV 2016
 An image is converted to CIE **Lab**. The **L** (lightness) channel is the input,
 and a VGG-style CNN predicts the **ab** colour channels — quantised into **313**
 in-gamut bins — as a per-pixel classification, trained with a (class-rebalanced)
-cross-entropy. Step 1 is that pretext.
+cross-entropy.
 
-## Scope — the CNN path and the unified ViT-B/16 Step 2
+## Scope — the CNN path and controlled ViT-B/16 pre-training
 
 This port brings across the paper-faithful **CNN** path (`configs/pretrain.yaml`,
 no arch): the VGG-style encoder/decoder, the numpy Lab conversion and 313-bin
 quantisation, and the class-rebalanced loss. It **also** ports the capture's
-unified **ViT-B/16 Step 2** (`configs/pretrain_vit.yaml`, `arch: vit`): a
+**controlled ViT-B/16 pre-training** (`configs/pretrain_vit.yaml`, `arch: vit`): a
 from-scratch ViT-B/16 (hand-written attention — **no timm**) reads the L channel
 (`in_chans=1`), and a lightweight CNN decoder upsamples the patch grid back to the
 same 313-bin per-pixel ab classification. Optimiser AdamW (betas 0.9, 0.999) with
@@ -77,7 +75,7 @@ number is comparable across them.
 
 ## What has and has not been exercised
 
-- **Exercised (step 1):** a hermetic smoke — a 32px crop, one epoch, class
+- **Exercised (original recipe):** a hermetic smoke — a 32px crop, one epoch, class
   rebalancing off, a few fabricated images — runs through `python -m adapter` on
   a CPU, passes `contract-test`, and the encoder round-trip and a determinism
   check pass.
@@ -86,7 +84,7 @@ number is comparable across them.
   comparable `linear_probe` accuracies, and writes **no** `encoder.pt`.
 - **Not a full run:** `configs/pretrain.yaml` is the paper-target recipe (313 bins,
   224px crop, 300 epochs, class rebalancing on), a recipe, not a completed run.
-- **Exercised (ViT Step 2):** a hermetic smoke — a tiny ViT (16-d embed, one
+- **Exercised (controlled ViT recipe):** a hermetic smoke — a tiny ViT (16-d embed, one
   block), 32px crop, two epochs with `save_at_epochs: [1, 2]` — runs through
   `python -m adapter` on a CPU, writes `encoder.pt` and both `encoder_epoch{1,2}.pt`
   milestones, and a milestone probe passes `contract-test`. The full 300-epoch
@@ -98,7 +96,7 @@ number is comparable across them.
 
 torch / torchvision / numpy / PyYAML — the self-contained methods' stack, no
 submodule and no extra (the Lab conversion and ab quantisation are numpy, not
-opencv/scikit-image; the ViT Step-2 backbone is hand-written, so it adds **no**
+opencv/scikit-image; the controlled ViT recipe backbone is hand-written, so it adds **no**
 timm dependency). `requirements.lock.txt` (CPU) and `requirements.lock.cu130.txt`
 (CUDA 13.0) are the hashed closures (the same closure as `image_gpt`).
 
@@ -112,17 +110,17 @@ timm dependency). `requirements.lock.txt` (CPU) and `requirements.lock.cu130.txt
 The separate [indexed ImageNet-21K scaling entry](../../docs/COLORIZATION_SCALING.md)
 supports fresh 90-epoch ViT-B/L training and 30/60/90 frozen encoder exports.
 It preserves the original scaling initialization, Lab conversion, class weights
-and epoch schedule; it does not replace the historical or Step-2 paths below.
+and epoch schedule; it does not replace the historical or controlled recipe paths below.
 Checkpoint continuation and full-data numerical reproduction remain separate
 validation/integration work.
 
-    # step 1: DATA_ROOT is an ImageFolder of training images
+    # original recipe: DATA_ROOT is an ImageFolder of training images
     python bin/resolve-config.py --config methods/colorization/configs/pretrain.yaml \
         --set DATA_ROOT=/path/to/images --out resolved.json
     cd methods/colorization && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/s1
 
-    # linear eval: DATA_ROOT has train/ and val/; ENCODER is step 1's encoder.pt
+    # linear eval: DATA_ROOT has train/ and val/; ENCODER is the encoder.pt from pre-training
     python bin/resolve-config.py --config methods/colorization/configs/linear_eval.yaml \
         --set DATA_ROOT=/path/to/imagenet \
         --set ENCODER=/path/to/s1/encoder.pt --out eval.json

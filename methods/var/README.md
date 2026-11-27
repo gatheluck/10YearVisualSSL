@@ -1,8 +1,6 @@
-# var — step 1 (next-scale autoregressive pretraining)
+# var — next-scale autoregressive pretraining
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+> See the [guide to original settings (ASIS), controlled pre-training (CTRL) and Unified evaluation](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
@@ -14,8 +12,7 @@ Generation via Next-Scale Prediction*, NeurIPS 2024
 
 VAR reframes autoregressive image generation as **next-scale prediction**: a
 VQVAE tokenises an image into a pyramid of code maps at increasing resolutions,
-and a transformer predicts each scale from the coarser ones, class-conditioned.
-Step 1 is that pretraining. The representation the rest of the project wants is
+and a transformer predicts each scale from the coarser ones, class-conditioned. The representation the rest of the project wants is
 the transformer; the output head is generation machinery.
 
 ## Why this method, and what is new here
@@ -36,7 +33,7 @@ so `train_pretrain_var.py` owns a thin loop over the model's own forward. Flash 
 fused attention are forced off, so a run does not depend on whether
 flash-attention happens to be installed.
 
-## `encoder.pt` (step 1)
+## `encoder.pt` (original recipe)
 
 `encoder.pt` is the **representation side** of VAR — the token, class,
 positional and level embeddings, and the transformer blocks. The generative head
@@ -51,7 +48,7 @@ CONTRACT section 7 left open which representation a downstream probe reads from 
 ARSSL harness** (`methods_step3/ARSSL/src/features/extract.py`): its VAR linear
 probe reads the **VQVAE tokeniser** — the tokeniser encoder's continuous feature
 map, global-average-pooled to `Cvae` dims — and *not* the VAR transformer that
-step 1 trains.
+the original recipe trains.
 
 Two consequences, stated plainly so the number is not misread:
 
@@ -66,12 +63,12 @@ Two consequences, stated plainly so the number is not misread:
 
 A real number needs the pretrained tokeniser, which is a download pinned by
 sha256 in `provenance.json` and fetched with `bin/fetch-weights.py`. The hermetic
-smoke builds a **random** VQVAE instead (as step 1 does), so it exercises the
+smoke builds a **random** VQVAE instead (as the original recipe does), so it exercises the
 pipeline only; its accuracy is meaningless.
 
 ## What has and has not been exercised
 
-- **Exercised (step 1):** a hermetic smoke that builds a **tiny random VQVAE**
+- **Exercised (original recipe):** a hermetic smoke that builds a **tiny random VQVAE**
   (no download) over a few fabricated images runs through `python -m adapter` on
   a CPU and passes `contract-test`, plus the encoder round-trip. Real training
   reads an ImageFolder and needs the pretrained VQVAE tokeniser (`VQVAE_CKPT`).

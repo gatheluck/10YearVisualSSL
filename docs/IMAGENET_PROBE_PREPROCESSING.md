@@ -1,5 +1,7 @@
 # ImageNet LP/AP source preprocessing
 
+The table numbers in this guide refer to the earlier submission. For the current manuscript, see the [figure and table index](PAPER_REPRODUCTION_GUIDE.md).
+
 See [package scope](SUBMISSION_SCOPE.md). Set
 `preprocessing_profile: captured_provider_v1` in the online ImageNet component
 configuration to select the inspected provider's LP/AP image geometry. This

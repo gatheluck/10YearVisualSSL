@@ -1,8 +1,6 @@
-# byol — step 1 (BYOL ResNet-50 pretext) + linear evaluation
+# byol — BYOL ResNet-50 pretext + linear evaluation
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+> See the [guide to original settings (ASIS), controlled pre-training (CTRL) and Unified evaluation](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
@@ -17,14 +15,14 @@ the other view. The target is an exponential-moving-average (EMA) copy of the
 online backbone + projector, with no predictor and no gradient. The loss is a
 **symmetric negative cosine similarity** with a stop-gradient on the target —
 **no negatives, no queue**. The EMA momentum τ follows a cosine schedule from
-0.996 to 1.0. Step 1 is that pretext.
+0.996 to 1.0.
 
-## Scope — the ResNet-50 path and the unified ViT-B/16 Step 2
+## Scope — the ResNet-50 path and controlled ViT-B/16 pre-training
 
-This port covers the paper-faithful **ResNet-50** step 1 (`configs/pretrain.yaml`,
+This port covers the paper-faithful **ResNet-50** original recipe (`configs/pretrain.yaml`,
 `arch: resnet50`, LARS).
 
-It also ports the capture's **unified Step 2** (`configs/pretrain_vit.yaml`,
+It also ports the capture's **controlled recipe** (`configs/pretrain_vit.yaml`,
 `arch: vit`): the same ViT-B/16 backbone every method shares, trained from
 scratch as the BYOL online encoder — projector (768→4096→256) and predictor
 (256→4096→256), an EMA target encoder+projector, the symmetric negative-cosine
@@ -66,7 +64,7 @@ across the ported methods.
 
 ## What has and has not been exercised
 
-- **Exercised (step 1):** a hermetic smoke — a small BYOL ResNet-50, a few
+- **Exercised (original recipe):** a hermetic smoke — a small BYOL ResNet-50, a few
   fabricated images, narrow projector/predictor at 32px — runs through `python -m
   adapter` on a CPU (exercising the EMA target update), passes `contract-test`,
   and the encoder round-trip and a determinism check pass.
@@ -81,7 +79,7 @@ across the ported methods.
 ## Environment
 
 torch / torchvision / numpy / PyYAML — the self-contained methods' stack, no
-submodule — plus `timm` for the unified ViT-B/16 Step-2 path (imported lazily, so
+submodule — plus `timm` for the controlled ViT-B/16 pre-training path (imported lazily, so
 the native ResNet-50 path never needs it).
 `requirements.lock.txt` (CPU) and `requirements.lock.cu130.txt` (CUDA 13.0) are
 the hashed closures (the same closure as `simclrv1`: identical floors,
@@ -94,13 +92,13 @@ identical resolution).
 
 ## Running
 
-    # step 1: DATA_ROOT is a folder of training images (searched recursively)
+    # original recipe: DATA_ROOT is a folder of training images (searched recursively)
     python bin/resolve-config.py --config methods/byol/configs/pretrain.yaml \
         --set DATA_ROOT=/path/to/images --out resolved.json
     cd methods/byol && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/s1
 
-    # linear eval: DATA_ROOT has train/ and val/; ENCODER is step 1's encoder.pt
+    # linear eval: DATA_ROOT has train/ and val/; ENCODER is the encoder.pt from pre-training
     python bin/resolve-config.py --config methods/byol/configs/linear_eval.yaml \
         --set DATA_ROOT=/path/to/imagenet \
         --set ENCODER=/path/to/s1/encoder.pt --out eval.json

@@ -1,8 +1,6 @@
-# mae — step 1 (masked-autoencoder pretraining) + linear evaluation
+# mae — masked-autoencoder pretraining + linear evaluation
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+> See the [guide to original settings (ASIS), controlled pre-training (CTRL) and Unified evaluation](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
@@ -13,19 +11,19 @@ Learners*, CVPR 2022 ([arXiv:2111.06377](https://arxiv.org/abs/2111.06377)).
 
 MAE learns by reconstruction: 75% of an image's patches are masked, the encoder
 sees only the visible tokens, and a lightweight decoder reconstructs the masked
-pixels (MSE loss). Step 1 is that pretraining. The representation is the
+pixels (MSE loss). The representation is the
 encoder, global-average-pooled over patch tokens.
 
-## Scope — the ViT-L/16 step 1 and the unified ViT-B/16 Step 2
+## Scope — the ViT-L/16 original recipe and controlled ViT-B/16 pre-training
 
-This port covers MAE's **ViT-L/16** step 1 (`configs/pretrain.yaml`, the paper
-recipe) **and** the capture's unified **ViT-B/16 Step 2** (`configs/pretrain_vit.yaml`,
+This port covers MAE's **ViT-L/16** original recipe (`configs/pretrain.yaml`, the paper
+recipe) **and** the **controlled ViT-B/16 recipe** (`configs/pretrain_vit.yaml`,
 `recipe: unified`): the *same* MAE objective on a ViT-B/16 encoder (`build_mae`
-supports it) under the unified recipe — AdamW (betas 0.9/0.95, fixed wd 0.05) with
+supports it) under the controlled recipe — AdamW (betas 0.9/0.95, fixed wd 0.05) with
 a **cosine LR schedule + 10-epoch warmup to min_lr**, which the native fixed-LR
-Step-1 trainer does not have — with milestone checkpoints at 100/200/300. It is
+original-recipe trainer does not have — with milestone checkpoints at 100/200/300. It is
 selected by an explicit `recipe: unified` key (absent = the native ViT-L/16 recipe,
-byte-for-byte unchanged). A unified encoder is probed with
+byte-for-byte unchanged). An encoder from controlled pre-training is probed with
 `configs/linear_eval_vit.yaml` (the ViT-B/16 dimensions).
 
 ## Why this method, and what is new here
@@ -58,7 +56,7 @@ L2-normalised, a single linear layer trained with SGD under a cosine schedule).
 
 ## What has and has not been exercised
 
-- **Exercised (step 1):** a hermetic smoke — a tiny MAE, a few fabricated images
+- **Exercised (original recipe):** a hermetic smoke — a tiny MAE, a few fabricated images
   — runs through `python -m adapter` on a CPU, passes `contract-test`, and the
   encoder round-trip and a determinism check pass.
 - **Exercised (linear_eval):** a hermetic smoke fits the probe on a pretrain
@@ -66,7 +64,7 @@ L2-normalised, a single linear layer trained with SGD under a cosine schedule).
   comparable `linear_probe` accuracies, and writes **no** `encoder.pt`.
 - **Not a full run:** `configs/pretrain.yaml` is the ViT-L/16 recipe (MAE pretrains
   for 1600 epochs); it is a recipe, not a completed run.
-- **Exercised (unified Step 2):** a hermetic smoke — `recipe: unified`, the tiny
+- **Exercised (controlled recipe):** a hermetic smoke — `recipe: unified`, the tiny
   vit_base dims, two epochs with `save_at_epochs: [1, 2]` — runs through
   `python -m adapter` on a CPU, writes `encoder.pt` and both `encoder_epoch{1,2}.pt`
   milestones, and a milestone probe passes `contract-test`. The full 300-epoch
@@ -87,13 +85,13 @@ submodule and no extra. `requirements.lock.txt` (CPU) and
 
 ## Running
 
-    # step 1: DATA_ROOT is an ImageFolder of training images
+    # original recipe: DATA_ROOT is an ImageFolder of training images
     python bin/resolve-config.py --config methods/mae/configs/pretrain.yaml \
         --set DATA_ROOT=/path/to/images --out resolved.json
     cd methods/mae && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/s1
 
-    # linear eval: DATA_ROOT has train/ and val/; ENCODER is step 1's encoder.pt
+    # linear eval: DATA_ROOT has train/ and val/; ENCODER is the encoder.pt from pre-training
     python bin/resolve-config.py --config methods/mae/configs/linear_eval.yaml \
         --set DATA_ROOT=/path/to/imagenet \
         --set ENCODER=/path/to/s1/encoder.pt --out eval.json

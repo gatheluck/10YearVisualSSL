@@ -1,8 +1,6 @@
-# dinov3 — step 1 (DINOv3 core pretext) + linear evaluation
+# dinov3 — DINOv3 core pretext + linear evaluation
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+> See the [guide to original settings (ASIS), controlled pre-training (CTRL) and Unified evaluation](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
@@ -19,20 +17,19 @@ combines three losses:
 
 **L_DINO** is a cross-view distillation with **Sinkhorn-Knopp (SwAV) centering** of
 the teacher assignments; **L_iBOT** is a masked-patch distillation (block masks on
-the global crops); **L_KoLeo** spreads the batch's CLS features. Step 1 is that
-pretext.
+the global crops); **L_KoLeo** spreads the batch's CLS features.
 
-## Scope — the from-scratch step 2, core objective
+## Scope — core training objective under the controlled recipe
 
-The capture's DINOv3 "step 1" **downloads the official pretrained weights** (the
+The DINOv3 original-setting comparison **downloads the official pretrained weights** (the
 from-scratch data, LVD-1689M, is not public) — and those weights are **HuggingFace
 login-gated**. Acquisition of the exact checkpoint is user-supplied. The training path covers the
-capture's **step 2**: the from-scratch **unified SSL comparison** that trains a
+controlled pre-training recipe: from scratch, it trains a
 DINOv3 representation on ImageNet-1k. It is **self-contained torch-only** code (the
 ViT, the losses and the multi-crop dataset are the lab's own; no timm/transformers).
 
 The default profile remains `core`, excluding Gram. As of 2026-09-25,
-[Step-4 components](../../docs/DINOV3_STEP4.md) add four selectable sharing
+[optional training components](../../docs/DINOV3_STEP4.md) add four selectable sharing
 layouts, weighted DINO/iBOT objectives and an explicit frozen-teacher Gram
 profile. This supersedes the earlier blanket Gram-exclusion statement.
 The adapter uses single-process float32; an explicit distributed component
@@ -66,7 +63,7 @@ using the shared single-feature probe instead is a documented deviation.)
 ## Milestone checkpoints for the frozen-backbone sweep
 
 The default config contains the earlier core-only ViT-B/16 recipe.
-The optional `training_profile` selects the Gram component schedule. To support the Step-2 protocol's 100/200/300
+The optional `training_profile` selects the Gram component schedule. To support the controlled recipe's 100/200/300
 frozen-backbone probe sweep, `train.save_at_epochs` lists the epochs at which the
 trainer writes a `checkpoint_epoch_{N}.pth` (in addition to
 `checkpoint_latest.pth`); the adapter hands each over as `encoder_epoch{N}.pt`,
@@ -76,7 +73,7 @@ this key existed is unchanged.
 
 ## What has and has not been exercised
 
-- **Exercised (step 1):** a hermetic smoke — a tiny ViT at 32px (a 2×2 patch grid,
+- **Exercised (core training objective):** a hermetic smoke — a tiny ViT at 32px (a 2×2 patch grid,
   embed_dim 32, 2 blocks, 2 register tokens), 2 global + 2 local crops, a few
   fabricated images — runs through `python -m adapter` on a CPU (exercising the
   multi-crop forward, the Sinkhorn-centred DINO loss, the block-masked iBOT loss,
@@ -105,13 +102,13 @@ download path, so they are not dependencies here. The official feature profile i
 
 ## Running
 
-    # step 1: DATA_ROOT contains a train/ subdirectory of images
+    # core pre-training: DATA_ROOT contains a train/ subdirectory of images
     python bin/resolve-config.py --config methods/dinov3/configs/pretrain.yaml \
         --set DATA_ROOT=/path/to/imagenet/train --out resolved.json
     cd methods/dinov3 && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/s1
 
-    # linear eval: DATA_ROOT has train/ and val/; ENCODER is step 1's encoder.pt
+    # linear eval: DATA_ROOT has train/ and val/; ENCODER is the encoder.pt from pre-training
     python bin/resolve-config.py --config methods/dinov3/configs/linear_eval.yaml \
         --set DATA_ROOT=/path/to/imagenet \
         --set ENCODER=/path/to/s1/encoder.pt --out eval.json
@@ -122,22 +119,22 @@ Success is exit status 0 and `status: "ok"` in `out/run_manifest.json`. The
 linear_eval stage writes `metrics.json` and **no** `encoder.pt`; the manifest
 carries `encoder_absent_reason`.
 
-## Official Step-1 feature profile
+## Features from the official pretrained checkpoint
 
 `official_vitb16_cls512` requires the exact checkpoint hash in
 `step1_native_artifact`. Use the existing batch export and extraction commands
 in `docs/STEP1_WEIGHTS.md`, preserving `export.json` next to `encoder.pt`.
 The profile uses bicubic resize 585, centre crop 512, ImageNet normalization,
 and the official normalized CLS token (768 dimensions). GPU inference uses
-float16 autocast, as the evaluated Step-1 extractor did; CPU uses float32.
+float16 autocast, as the original feature extractor did; CPU uses float32.
 The exported arrays are float32. No substitute model or random-weight fallback
 is allowed. The default from-scratch representation remains a separate path.
 The original evaluator did not record its upstream commit; matching checkpoint
 identity and the newly pinned implementation do not recover that historical pin.
 
-## Step-4 continuation components
+## Optional continuation components
 
-The [Step-4 guide](../../docs/DINOV3_STEP4.md#continuation-and-joint-assignment-components)
+The [component guide](../../docs/DINOV3_STEP4.md#continuation-and-joint-assignment-components)
 documents H1S200 splitting, H1CORE continuation, H1JA joint assignment and
 version-1 full-checkpoint resume via `train.resume_checkpoint`. Use a new output
 directory. The [distributed entry](../../docs/DINOV3_STEP4.md#explicit-distributed-execution)

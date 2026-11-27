@@ -1,8 +1,6 @@
-# swav — step 1 (SwAV ResNet-50 pretext) + linear evaluation
+# swav — SwAV ResNet-50 pretext + linear evaluation
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+> See the [guide to original settings (ASIS), controlled pre-training (CTRL) and Unified evaluation](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
@@ -18,11 +16,11 @@ Sinkhorn-Knopp normalisation keeps the prototypes evenly used, which is what
 stops the representation collapsing. The encoder is what the rest of the
 project wants; the prototypes are training machinery.
 
-## Scope — the ResNet-50 path and the unified ViT-B/16 Step 2
+## Scope — the ResNet-50 path and controlled ViT-B/16 pre-training
 
-This port covers the paper-faithful **ResNet-50** step 1 (`configs/pretrain.yaml`,
+This port covers the paper-faithful **ResNet-50** original recipe (`configs/pretrain.yaml`,
 LARC-SGD, multi-crop, the online Sinkhorn-Knopp assignment) **and** the capture's
-unified **ViT-B/16 Step 2** (`configs/pretrain_vit.yaml`, `arch: vit`): the same
+**controlled ViT-B/16 pre-training** (`configs/pretrain_vit.yaml`, `arch: vit`): the same
 ViT-B/16 backbone every method shares, plus a projection head
 (`Linear(768, 2048) -> BN -> ReLU -> Linear(2048, 128)`, L2-normalised) and 3000
 learnable **prototypes**, trained from scratch with the multi-crop
@@ -35,7 +33,7 @@ checkpoints at 100/200/300 epochs, each probed by the same frozen-backbone
 
 ## The linear evaluation
 
-The second stage freezes the encoder step 1 produced and fits a linear
+The second stage freezes the encoder produced by pre-training and fits a linear
 classifier on real labels. **These are the numbers this project exists to
 compare**, and this port adds them for a fifth method.
 
@@ -78,17 +76,17 @@ are pinned by hash.
 - `main()` split into `build_parser()` and `run(args, config)`, which returns
   the epoch loss and the epoch count. The captured version computed them and
   discarded them
-- `models/__init__.py` advertised the step 2 ViT through a lazy `__getattr__`
+- `models/__init__.py` advertised the controlled recipe ViT through a lazy `__getattr__`
   over a module that was not brought across — a name the package could not
   import. It is now a real lazy accessor: `build_vit_swav` builds the ported
-  `models/vit_swav.py` (needs `timm`), so the promise is kept for the unified
-  ViT-B/16 Step-2 path and the native ResNet-50 path never imports it
+  `models/vit_swav.py` (needs `timm`), so the promise is kept for the controlled
+  ViT-B/16 controlled recipe path and the native ResNet-50 path never imports it
 - **the linear evaluation was added.** `evaluate_linear.py` came across with its
   device resolved, its `main()` split into `build_parser()` and
   `run(args, encoder, in_dim)` returning its metrics, and its encoder handed in
   rather than rebuilt from a training checkpoint. `in_dim` is arch-aware: 2048
   for the ResNet-50 backbone, the ViT's `embed_dim` for an `arch: vit` encoder
-- **the unified ViT-B/16 Step 2 was added** (`models/vit_swav.py`,
+- **the controlled ViT-B/16 pre-training was added** (`models/vit_swav.py`,
   `train_pretrain_vit_swav.py`, `configs/pretrain_vit.yaml`). A timm
   `VisionTransformer` (dynamic image size, so it takes the 224 global and 96
   local crops) carries the projection head + prototypes and mirrors
@@ -108,14 +106,14 @@ missing process group.
 ## What has and has not been exercised
 
 - **A real training step ran on the GPU.** On an NVIDIA A100 (driver CUDA 13.0)
-  step 1 completes a training step and writes a loadable `encoder.pt` — the test
+  the original recipe completes a training step and writes a loadable `encoder.pt` — the test
   `test_a_real_run_on_cuda_produces_a_loadable_encoder`, on four synthetic
   images with two crop sizes of 32 and 16 pixels
 - **The linear evaluation runs, but on the CPU.** Its smoke test uses
-  `device: cpu` (through the same `resolve_device` path step 1 uses), and a
+  `device: cpu` (through the same `resolve_device` path the original recipe uses), and a
   separate test checks it refuses `cuda` when no GPU is visible. The probe has
   not been exercised on a GPU here
-- **The ViT Step-2 path ran a hermetic CPU smoke.** A tiny ViT (16-d embed, one
+- **The controlled ViT recipe path ran a hermetic CPU smoke.** A tiny ViT (16-d embed, one
   block) pretrains two epochs with `save_at_epochs: [1, 2]` through
   `python -m adapter`, writes `encoder.pt` and both `encoder_epoch{1,2}.pt`
   milestones, and a milestone probe passes `contract-test` — the test

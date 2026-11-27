@@ -1,8 +1,6 @@
 # eva02 — as-is linear eval on the frozen pretrained backbone (eval-only)
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+> See the [guide to original settings (ASIS), controlled pre-training (CTRL) and Unified evaluation](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
@@ -25,7 +23,7 @@ representation is a genuine SSL feature, so the number **is** comparable — the
 
 **eva02 is the first pure eval-only port** — its only stage is `linear_eval`,
 with no `pretrain` at all (`mar` is pretrain-only; the download-and-probe siblings
-`franca` / `clip` carry a Step-2 pretrain alongside the probe). It is also
+`franca` / `clip` provide controlled pre-training alongside the probe). It is also
 the **first unnumbered new port** under the naming decision that new methods take
 a bare name (`methods/eva02`, like `image_gpt` / `mar` / `var`) rather than a
 capture number.

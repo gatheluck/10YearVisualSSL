@@ -1,8 +1,6 @@
-# nepa — step 1 (NEPA ViT pretext) + unified ViT-B/16 step 2 + linear evaluation
+# nepa — NEPA ViT pretext + controlled ViT-B/16 pre-training + linear evaluation
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+> See the [guide to original settings (ASIS), controlled pre-training (CTRL) and Unified evaluation](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
@@ -16,28 +14,28 @@ Patch embeddings `z = f(x)` run through a **causal** transformer predictor `h` t
 give `z_hat`; the loss is the **negative cosine similarity** between `z_hat[:, :-1]`
 and a **stop-gradient** shifted target `z[:, 1:]` (SimSiam style). An EMA copy of
 the whole model is kept for evaluation. The ViT uses **2D RoPE**, **QK-norm**,
-**LayerScale** and GeLU (optionally SwiGLU). Step 1 is that pretext.
+**LayerScale** and GeLU (optionally SwiGLU).
 
-## Scope — the ViT step 1 and the unified ViT-B/16 step 2
+## Scope — the ViT original recipe and controlled ViT-B/16 pre-training
 
-This port covers NEPA's ViT step 1 **and** the capture's unified ViT-B/16 Step 2
-(see the Step 2 section below). NEPA ships **its own** Vision Transformer
+This port covers NEPA's ViT original recipe **and** the capture's controlled ViT-B/16 pre-training
+(see the controlled pre-training section below). NEPA ships **its own** Vision Transformer
 (`models/nepa_vit.py` — measured: it imports only `torch`, **not `timm`**, despite
 `timm` appearing as a floor in the capture's `requirements.txt`) and trains **from
 scratch on ImageNet-1k**, so this port is **torch-only** and hermetic for both.
 
-## Step 2 (unified ViT-B/16), added additively
+## Controlled ViT-B/16 pre-training
 
-The unified Step 2 is the **same `NEPAModel`** at the unified setting — no new
+The controlled recipe is the **same `NEPAModel`** with the controlled hyperparameters — no new
 model, no `arch` key. `configs/pretrain_vit.yaml` selects it: standard **ViT-B/16**
-(`patch_size: 16` vs step 1's 14), the **step2** augmentation (RandomResizedCrop +
-flip + ColorJitter), SwiGLU, AdamW with the unified recipe (peak LR =
+(`patch_size: 16` vs original recipe's 14), the controlled pre-training augmentation (RandomResizedCrop +
+flip + ColorJitter), SwiGLU, AdamW with the controlled recipe (peak LR =
 `base_lr × batch/256` = 6e-4, wd 0.05, 10-epoch warmup → cosine), and milestone
 checkpoints via `save_at_epochs: [100, 200, 300]` (absent in the native config, so
-step 1 is unchanged). The adapter writes `encoder.pt` plus `encoder_epoch{100,200,
-300}.pt`, one frozen EMA model per milestone. The Step-2 linear probe pools the
+the original recipe is unchanged). The adapter writes `encoder.pt` plus `encoder_epoch{100,200,
+300}.pt`, one frozen EMA model per milestone. The controlled recipe linear probe pools the
 **raw patch embeddings** (`configs/linear_eval_vit.yaml`, `pool: embed`, the
-capture's step2 choice) rather than the native AR-output average (`pool: avg`).
+capture's controlled recipe choice) rather than the native AR-output average (`pool: avg`).
 
 ## Why this method, and what is new here
 
@@ -78,7 +76,7 @@ a cosine schedule), which makes the number comparable across the ported methods.
 
 ## What has and has not been exercised
 
-- **Exercised (step 1):** a hermetic smoke — a tiny ViT at 32px / patch 8 (a 4×4
+- **Exercised (original recipe):** a hermetic smoke — a tiny ViT at 32px / patch 8 (a 4×4
   token grid + CLS, embed_dim 32, head_dim 8, depth 2), a few fabricated images —
   runs through `python -m adapter` on a CPU (exercising the 2D RoPE, the causal
   predictor, the stop-gradient loss and the EMA update), passes `contract-test`,
@@ -86,7 +84,7 @@ a cosine schedule), which makes the number comparable across the ported methods.
 - **Exercised (linear_eval):** a hermetic smoke fits the probe on a pretrain
   encoder over a two-class ImageFolder, passes `contract-test`, writes the
   comparable `linear_probe` accuracies, and writes **no** `encoder.pt`.
-- **Exercised (ViT Step 2):** a hermetic smoke trains the unified ViT-B/16 (tiny
+- **Exercised (controlled ViT recipe):** a hermetic smoke trains the controlled ViT-B/16 (tiny
   dims) with `save_at_epochs`, writes milestone encoders, and probes the raw patch
   embeddings (`pool: embed`) through `contract-test` on a CPU.
 - **Not a full run:** `configs/pretrain.yaml` is the NEPA recipe (ViT-B/14, 224px,
@@ -109,13 +107,13 @@ resolution).
 
 ## Running
 
-    # step 1: DATA_ROOT contains a train/ subdirectory of images
+    # original recipe: DATA_ROOT contains a train/ subdirectory of images
     python bin/resolve-config.py --config methods/nepa/configs/pretrain.yaml \
         --set DATA_ROOT=/path/to/imagenet --out resolved.json
     cd methods/nepa && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/s1
 
-    # linear eval: DATA_ROOT has train/ and val/; ENCODER is step 1's encoder.pt
+    # linear eval: DATA_ROOT has train/ and val/; ENCODER is the encoder.pt from pre-training
     python bin/resolve-config.py --config methods/nepa/configs/linear_eval.yaml \
         --set DATA_ROOT=/path/to/imagenet \
         --set ENCODER=/path/to/s1/encoder.pt --out eval.json

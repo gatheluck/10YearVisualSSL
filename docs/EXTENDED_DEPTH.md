@@ -1,5 +1,7 @@
 # Extended NYUv2 depth execution
 
+The table numbers in this guide refer to the earlier submission. For the current manuscript, see the [figure and table index](PAPER_REPRODUCTION_GUIDE.md).
+
 This is the NYUv2 LP/AP execution path for the Extended experiment family in
 Tables 39–40. It integrates the five existing spatial providers, captured
 depth head and loss, AdamW schedule, accumulation, distributed execution,

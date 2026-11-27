@@ -1,8 +1,6 @@
-# vae — step 1
+# vae — original recipe
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+> See the [guide to original settings (ASIS), controlled pre-training (CTRL) and Unified evaluation](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
@@ -115,7 +113,7 @@ their digests pinned in `provenance.json`. Otherwise:
    and the loader shuffles with torch's generator. They are set defensively
    and because the first method genuinely needed them
 5. `__init__.py`, `models/__init__.py` and `data/__init__.py` were rewritten;
-   they re-exported `VAE_ViT`, which belongs to step 2 and is not here
+   they re-exported `VAE_ViT`, which belongs to controlled recipe and is not here
 
 ## Linear evaluation
 
@@ -142,4 +140,4 @@ docs/EVALUATION.md.
 
 ## What is not here yet
 
-Step 2 (the unified ViT-B/16 backbone).
+The controlled ViT-B/16 pre-training recipe is outside this adapter.

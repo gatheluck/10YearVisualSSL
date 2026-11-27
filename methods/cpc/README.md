@@ -1,8 +1,6 @@
-# cpc — step 1 (visual CPC 2018 pretext) + unified ViT-B/16 step 2 + linear evaluation
+# cpc — visual CPC 2018 pretext + controlled ViT-B/16 pre-training + linear evaluation
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+> See the [guide to original settings (ASIS), controlled pre-training (CTRL) and Unified evaluation](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
@@ -14,21 +12,21 @@ Coding*, 2018 ([arXiv:1807.03748](https://arxiv.org/abs/1807.03748)).
 An image becomes a grid of overlapping patches. A patch encoder maps each patch
 to a z-vector, a **PixelCNN-style masked-convolution context** autoregresses over
 the grid, and a log-bilinear **InfoNCE** loss predicts future rows' z-vectors
-from the context. Step 1 is that pretext.
+from the context.
 
-## Scope — the paper-faithful `visual_cpc2018` path only
+## Scope — original CPC implementation and controlled ViT-B/16 pre-training
 
-The capture ships **two** step-1 variants. The older local baseline
+The capture ships **two** original recipe variants. The older local baseline
 (`cpc_resnet`: a custom residual encoder with BatchNorm and a column-wise GRU) is
 flagged by the capture's own `CPC_STEP1_PAPER_READY_BLOCK.md` as a **structural
-protocol mismatch** that "must not be submitted as a paper-ready Step 1 job" (its
+protocol mismatch** unsuitable for the original-setting comparison (its
 ImageNet linear-eval reaches only 6.4% top-1 vs the paper's ~48.7%). It is
 **excluded**. This port brings across the **corrected `visual_cpc2018`** path: a
 ResNet-v2-101-style no-BN patch encoder, a PixelCNN masked-conv context, and
-InfoNCE over future rows of the patch grid. The capture's unified ViT-B/16 Step 2
-is ported additively alongside it (see the Step 2 section below).
+InfoNCE over future rows of the patch grid. The capture's controlled ViT-B/16 pre-training
+is ported additively alongside it (see the controlled pre-training section below).
 
-## Step 2 (unified ViT-B/16), added additively
+## Controlled ViT-B/16 pre-training
 
 Selected by `arch: vit` in `configs/pretrain_vit.yaml` (absent = the native
 `visual_cpc2018` path, unchanged). The capture's `train_step2_vit.py` reworks CPC
@@ -76,14 +74,14 @@ single linear layer trained with SGD under a cosine schedule).
 
 ## What has and has not been exercised
 
-- **Exercised (step 1):** a hermetic smoke — a narrow encoder, a 2×2 patch grid,
+- **Exercised (original recipe):** a hermetic smoke — a narrow encoder, a 2×2 patch grid,
   one prediction step, a few fabricated images — runs through `python -m adapter`
   on a CPU, passes `contract-test`, and the encoder round-trip and a determinism
   check pass.
-- **Exercised (linear_eval):** a hermetic smoke fits the probe on a step-1
+- **Exercised (linear_eval):** a hermetic smoke fits the probe on an original recipe
   encoder over a two-class ImageFolder, passes `contract-test`, writes the
   comparable `linear_probe` accuracies, and writes **no** `encoder.pt`.
-- **Exercised (ViT Step 2):** a hermetic smoke trains the unified ViT-B/16 on a
+- **Exercised (controlled ViT recipe):** a hermetic smoke trains the controlled ViT-B/16 on a
   2×2 patch grid (tiny dims), writes milestone encoders, and probes the CLS
   feature through `contract-test` on a CPU.
 - **Not a full run:** `configs/pretrain.yaml` is the paper-target recipe (1024-d,
@@ -95,7 +93,7 @@ single linear layer trained with SGD under a cosine schedule).
 ## Environment
 
 torch / torchvision / numpy / PyYAML — the self-contained methods' stack, no
-submodule; the Step-2 ViT path adds `timm` (the native visual-CPC-2018 path needs
+submodule; the controlled recipe ViT path adds `timm` (the native visual-CPC-2018 path needs
 none). `requirements.lock.txt` (CPU) and `requirements.lock.cu130.txt` (CUDA 13.0)
 are the hashed closures (the same closure as `mocov1`: identical floors,
 identical resolution).
@@ -107,13 +105,13 @@ identical resolution).
 
 ## Running
 
-    # step 1: DATA_ROOT is an ImageFolder of training images
+    # original recipe: DATA_ROOT is an ImageFolder of training images
     python bin/resolve-config.py --config methods/cpc/configs/pretrain.yaml \
         --set DATA_ROOT=/path/to/images --out resolved.json
     cd methods/cpc && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/s1
 
-    # linear eval: DATA_ROOT has train/ and val/; ENCODER is step 1's encoder.pt
+    # linear eval: DATA_ROOT has train/ and val/; ENCODER is the encoder.pt from pre-training
     python bin/resolve-config.py --config methods/cpc/configs/linear_eval.yaml \
         --set DATA_ROOT=/path/to/imagenet \
         --set ENCODER=/path/to/s1/encoder.pt --out eval.json

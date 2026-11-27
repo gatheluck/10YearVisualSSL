@@ -1,8 +1,6 @@
-# CLIP (method 38)
+# CLIP — released image tower and supervised label-text adaptation
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+> See the [guide to original settings (ASIS), controlled pre-training (CTRL) and Unified evaluation](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
@@ -15,7 +13,7 @@ submodule `third_party/CLIP` and imported, never copied.
 
 Two comparisons live here, selected by the stage (and, for the eval, a `recipe`):
 
-## Step 1 (as-is)
+## Original settings (ASIS)
 
 `linear_eval` with no recipe. Freeze the released OpenAI **ViT-B/32** image tower
 and linear-probe its pooled image embedding. CLIP's 400M image-text training data
@@ -24,7 +22,7 @@ sha256-pinned download, `provenance.json: backbone_artifact`, fetched by
 `bin/fetch-weights.py`). This trains nothing and writes no `encoder.pt`. See
 `docs/EVAL_DOWNLOAD.md`.
 
-## Step 2 (label-text adaptation)
+## Supervised label-text adaptation
 
 `pretrain` trains a CLIP **ViT-B/16** (image tower + 12-layer text tower) from
 scratch on ImageNet-1k, pairing each labeled image with an official OpenAI
@@ -33,7 +31,7 @@ global batch 1024, AdamW, milestone frozen-backbone probes at 100/200/300. Then
 `linear_eval` with `recipe: unified` probes the trained image tower (`encoder.pt`).
 
 **This is a supervised label-text adaptation, not unlabeled VSSL.** Exact CLIP
-pretraining is undefined under the ImageNet-1k Step-2 restriction (no captions),
+pretraining is undefined on unlabeled ImageNet-1K (no captions),
 so each labeled image is paired with a class-name prompt. Every config, checkpoint
 and result records `supervised_label_text_adaptation=true` and
 `main_vssl_comparability=false`; the number is a CLIP-adaptation reference and must
@@ -48,8 +46,8 @@ cd methods/clip && PYTHONPATH="$PWD/../.." python -m adapter \
 
 Resolve a config first with `bin/resolve-config.py` (it fills `${DATA_ROOT}`,
 `${CLIP_VITB32_CKPT}`, `${ENCODER}`). The hermetic smokes build a random tiny CLIP
-and download nothing; a real Step-1 run needs the pinned ViT-B/32 download and a
-real Step-2 run needs ImageNet-1k. The from-scratch pretraining is GPU-class work
+and download nothing; a real released-checkpoint comparison run needs the pinned ViT-B/32 download and a
+real label-text adaptation run needs ImageNet-1k. The from-scratch pretraining is GPU-class work
 and has not been executed here; the settings in `configs/pretrain_vit.yaml` are the
 captured recipe, not a result.
 

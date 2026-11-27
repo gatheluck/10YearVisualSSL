@@ -1,8 +1,6 @@
-# simsiam — step 1 and linear evaluation
+# simsiam — pre-training and linear evaluation
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+> See the [guide to original settings (ASIS), controlled pre-training (CTRL) and Unified evaluation](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
@@ -40,7 +38,7 @@ a shell script and a config.
 
 ## The linear evaluation
 
-The second stage freezes the encoder step 1 produced and fits a linear
+The second stage freezes the encoder produced by pre-training and fits a linear
 classifier on real labels. **These are the numbers this project exists to
 compare**, and this is the first method other than the first port to produce
 them — so it is the first real test of whether the contract's metric
@@ -55,7 +53,7 @@ from a training checkpoint with `strict=True`, while the contract's artifact
 is `encoder.pt` — the backbone alone. Rather than teach the evaluation a
 second way to recognise a file, the adapter builds the encoder with
 `load_encoder` and hands it in, so one place knows how an encoder is loaded.
-This is also how the ViT Step-2 path probes its backbone: the adapter builds
+This is also how the controlled ViT path probes its backbone: the adapter builds
 the ViT encoder and passes `in_dim=embed_dim`, so the captured file's internal
 `model_type='vit'` loader stays intentionally unused (it still refuses by name).
 
@@ -95,7 +93,7 @@ Recorded in full in `provenance.json`; `models/simsiam_resnet.py` and
   and those draw from torch's generator — measured, not assumed, which is why
   the captured `data/simsiam_dataset.py` needed no change. `random` is seeded
   as well, so a transform added later cannot break reproducibility in silence
-- **The unified ViT-B/16 Step 2 is ported, additively.** `configs/pretrain_vit.yaml`
+- **The controlled ViT-B/16 pre-training is ported, additively.** `configs/pretrain_vit.yaml`
   (`arch: vit`) trains the same ViT-B/16 backbone every method shares — from
   scratch, the CLS token through a 3-layer projector and 2-layer predictor, the
   negative-cosine objective with stop-gradient on the projector output — with

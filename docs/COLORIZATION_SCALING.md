@@ -1,5 +1,7 @@
 # Indexed colorization scaling training
 
+Table and appendix numbers in this scaling guide refer to the earlier submission. For the revised manuscript see the [figure-by-figure guide](PAPER_REPRODUCTION_GUIDE.md).
+
 See [submission scope](SUBMISSION_SCOPE.md), [paper terminology](PAPER_TERMINOLOGY.md)
 and the [frozen scaling evaluation providers](SCALING_BASIC5_EVALUATION.md).
 This entry implements fresh and portable-continuation ImageNet-21K Winter 2021 colorization training for
@@ -12,7 +14,7 @@ not a claim that the paper's numerical results have been reproduced here.
 - Explicit ViT-B/16 or ViT-L/16, one-channel input and a 313-class spatial
   decoder. Reuse the existing model components while selecting the original
   scaling initialization order: construct the decoder before initializing CLS
-  and position tokens, then initialize module weights. Existing Step-2 defaults
+  and position tokens, then initialize module weights. Existing controlled ViT-B/16 defaults
   retain their previous initialization behavior.
 - Resize 256, random crop 224 and horizontal flip; original float32 gamma
   conversion followed by float64 Lab arithmetic; L/100 input and the bundled

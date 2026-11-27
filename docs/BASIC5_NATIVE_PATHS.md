@@ -1,5 +1,7 @@
 # Explicit experimental readers and native detection
 
+The table numbers in this guide refer to the earlier submission. For the current manuscript, see the [figure and table index](PAPER_REPRODUCTION_GUIDE.md).
+
 Status: 2026-09-27. See the [final-paper coverage audit](FINAL_PAPER_COVERAGE.md)
 and [terminology map](PAPER_TERMINOLOGY.md). These are ports of inspected
 experimental components, not certification of the reported scores.

@@ -1,8 +1,6 @@
-# jigsaw_puzzle — jigsaw pretext (AlexNet/CFN + unified ViT-B/16) + linear evaluation
+# jigsaw_puzzle — jigsaw pretext (AlexNet/CFN + controlled ViT-B/16) + linear evaluation
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+> See the [guide to original settings (ASIS), controlled pre-training (CTRL) and Unified evaluation](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
@@ -14,7 +12,7 @@ Jigsaw Puzzles*, ECCV 2016 ([arXiv:1603.09246](https://arxiv.org/abs/1603.09246)
 An image is cut into a 3×3 grid of tiles, the tiles are reordered by one of a
 fixed set of high-Hamming-distance permutations, and a **Context-Free Network**
 (a siamese AlexNet whose FC layers are 1×1 convolutions, shared over the 9 tiles)
-predicts which permutation was applied. Step 1 is that pretext.
+predicts which permutation was applied.
 
 ## Why this method, and what is new here
 
@@ -23,8 +21,7 @@ predicts which permutation was applied. Step 1 is that pretext.
 — no `third_party/` submodule, the same treatment the other re-implemented
 methods got.
 
-The capture's **Step 2** (unified from-scratch **ViT-B/16**) is ported here as part
-of Batch 1 of the Step-2 fan-out (`configs/pretrain_vit.yaml`, `models/vit_jigsaw.py`,
+The controlled recipe trains a **ViT-B/16** from scratch (`configs/pretrain_vit.yaml`, `models/vit_jigsaw.py`,
 `train_pretrain_vit_jigsaw.py`, `data/jigsaw_vit_dataset.py`): the 9 permuted tiles are
 reassembled into one 224x224 image and the ViT's CLS token feeds the permutation head.
 Selected by `arch: vit`; the native AlexNet/CFN pretrain is unchanged and needs no timm.
@@ -51,7 +48,7 @@ trained with SGD under a cosine schedule).
 
 ## What has and has not been exercised
 
-- **Exercised (step 1):** a hermetic smoke — a tiny CFN, a few fabricated images,
+- **Exercised (original recipe):** a hermetic smoke — a tiny CFN, a few fabricated images,
   a 4-permutation puzzle — runs through `python -m adapter` on a CPU, passes
   `contract-test`, and the encoder round-trip and a determinism check pass.
 - **Exercised (linear_eval):** a hermetic smoke fits the probe on a pretrain
@@ -65,7 +62,7 @@ trained with SGD under a cosine schedule).
 ## Environment
 
 torch / torchvision / numpy / Pillow / PyYAML — the self-contained methods' stack,
-no submodule. The Step-2 ViT path adds **timm** (`models/vit_jigsaw.py`); the
+no submodule. The controlled recipe ViT path adds **timm** (`models/vit_jigsaw.py`); the
 native CFN pretrain and the linear probe import no timm. `requirements.lock.txt`
 (CPU) and `requirements.lock.cu130.txt` (CUDA 13.0) are the hashed closures.
 
@@ -76,13 +73,13 @@ native CFN pretrain and the linear probe import no timm. `requirements.lock.txt`
 
 ## Running
 
-    # step 1: DATA_ROOT is an ImageFolder of training images
+    # original recipe: DATA_ROOT is an ImageFolder of training images
     python bin/resolve-config.py --config methods/jigsaw_puzzle/configs/pretrain.yaml \
         --set DATA_ROOT=/path/to/images --out resolved.json
     cd methods/jigsaw_puzzle && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/s1
 
-    # linear eval: DATA_ROOT has train/ and val/; ENCODER is step 1's encoder.pt
+    # linear eval: DATA_ROOT has train/ and val/; ENCODER is the encoder.pt from pre-training
     python bin/resolve-config.py --config methods/jigsaw_puzzle/configs/linear_eval.yaml \
         --set DATA_ROOT=/path/to/imagenet \
         --set ENCODER=/path/to/s1/encoder.pt --out eval.json

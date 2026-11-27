@@ -1,8 +1,6 @@
-# aim — as-is Step-1 probe + unified ViT-B/16 Step-2 pretrain + linear eval
+# aim — released-checkpoint probe + controlled ViT-B/16 pre-training + linear eval
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+> See the [guide to original settings (ASIS), controlled pre-training (CTRL) and Unified evaluation](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
@@ -14,18 +12,15 @@ El-Nouby et al., *Scalable Pre-training of Large Autoregressive Image Models*,
 AIM pretrains a ViT **autoregressively** (predict image patches in raster order).
 Two comparisons live here:
 
-- **Step 1 (as-is)** — a `linear_eval` with no `recipe`: fit a linear probe on the
+- **Original settings (ASIS)** — a `linear_eval` with no `recipe`: fit a linear probe on the
   **frozen official pretrained backbone** (AIM-600M, ViT-H/14, downloaded from
   `apple/AIM`), because AIM's from-scratch data (DFN-2B+, ~2B images) is not public.
 
-- **Step 2 (unified)** — `pretrain` trains an AIM **ViT-B/16 from scratch** on
+- **Controlled pre-training** — `pretrain` trains an AIM **ViT-B/16 from scratch** on
   ImageNet-1k with the prefix-LM next-patch objective, then `linear_eval` with
-  `recipe: unified` probes the trained `encoder.pt`. This puts AIM on the same axis
-  as every other method's Step 2 (all train on ImageNet-1k, so the data confound is
-  gone). (Added after the initial port, which probed only the downloaded Step-1
-  backbone; see the Step 2 section.)
+  `recipe: unified` probes the trained `encoder.pt`. The common backbone and dataset let the paper compare training objectives under CTRL.
 
-## Step 2 (unified ViT-B/16), from scratch
+## Controlled ViT-B/16 pre-training, from scratch
 
 `train_pretrain_vit_aim.py` is a single-process port of the capture's
 `train_step2_vit.py`. AIM is autoregressive: a prefix-LM ViT trunk sees a random
@@ -35,28 +30,27 @@ normalised pixels, MSE). There is no teacher, no multi-crop and no masking colla
 per-epoch warmup→cosine LR, gradient-norm clipping, milestone saves; DDP / bf16
 autocast / TensorBoard dropped, device resolved. `encoder.pt` is the AIM **trunk**
 (the MLP prediction head, `predictor.*`, is excluded); the adapter also writes
-`encoder_epoch{100,200,300}.pt`. The Step-2 probe is AIM's own: the last
+`encoder_epoch{100,200,300}.pt`. The controlled recipe probe is AIM's own: the last
 `num_feature_layers` blocks averaged (bidirectional, no causal mask) then
-mean-pooled. Probe a Step-2 encoder with `configs/linear_eval_vit.yaml`.
+mean-pooled. Probe an encoder from controlled pre-training with `configs/linear_eval_vit.yaml`.
 
-**Licence — the Step-2 pretraining is not bound by apple-amlr.** `models/aim_vit.py`
+**Licence — the controlled pre-training is not bound by apple-amlr.** `models/aim_vit.py`
 is the lab's **own** from-scratch re-implementation (torch-only, following the AIM
 paper's Appendix D), trained on ImageNet-1k. It uses no apple code or weights. The
-apple-amlr non-commercial licence applies **only** to the Step-1 as-is probe, which
+apple-amlr non-commercial licence applies **only** to the released-checkpoint probe, which
 imports the official `apple/ml-aim` package and downloads the AIM-600M weights
 (both pinned, never copied). See the Licence section below and `provenance.json`.
 
-## Scope — two comparisons on the unified axis
+## Released weights and controlled pre-training
 
-The capture's AIM **Step 1** is a frozen-backbone probe: download the official
+The capture's AIM **released-checkpoint comparison** is a frozen-backbone probe: download the official
 AIM-600M and probe it. AIM's from-scratch autoregressive pretraining used the
-unavailable DFN-2B+, so the as-is Step-1 row reuses that official downloaded
-backbone (this Step-1 comparison **trains nothing** and writes **no `encoder.pt`**;
+unavailable DFN-2B+, so the released-checkpoint row reuses that official downloaded
+backbone (this released-checkpoint probe **trains nothing** and writes **no `encoder.pt`**;
 it probes a frozen, hash-pinned downloaded backbone). The capture's own
-from-scratch **Step 2** (`models/aim_vit.py`) is ported additively: a ViT-B/16
+from-scratch **controlled recipe** (`models/aim_vit.py`) is ported additively: a ViT-B/16
 trained from scratch on ImageNet-1k with the prefix-LM next-patch objective, then
-linear-probed (`recipe: unified`), so AIM sits on the same unified axis as every
-other method. The eval-only Step-1 download path is unchanged.
+linear-probed (`recipe: unified`) for the controlled comparison. The eval-only pretrained-weight download path is unchanged.
 
 ## Licence — non-commercial research use only
 

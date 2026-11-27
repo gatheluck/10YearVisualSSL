@@ -1,8 +1,6 @@
 # V-JEPA 2.1 downstream encoder integration
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+> See the [guide to original settings (ASIS), controlled pre-training (CTRL) and Unified evaluation](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
@@ -43,7 +41,7 @@ The captured Basic5 wrapper at snapshot
 `806ea3061ea499c75fd15fcaf15dfdeec5c19303` is the behavioral source. The category
 VideoSSL wrapper additionally resizes inputs to 384; that **different** profile
 is not silently substituted here. ViT-L's key is established by the category
-wrapper; the captured unified Basic5 experiment uses ViT-g.
+wrapper; the captured Unified downstream evaluation uses ViT-g.
 
 Reduced official encoder tests cover outputs, image/video routing, strict keys,
 frozen/FT gradients and updates, and all four actual task CLIs in all three
@@ -52,7 +50,7 @@ and compares image/video outputs, input/parameter gradients and SGD updates.
 Tests using random reduced weights do not reproduce full-checkpoint scores.
 
 This is an encoder/downstream integration, **not a completed method adapter**.
-The Step-3/CompEval port remains incomplete relative to the inspected
+The family-specific evaluation port remains incomplete relative to the inspected
 experimental pipelines; this describes package integration, not absence of
 the original implementations. ImageNet FT,
 video augmentation, distributed training, seed aggregation and full-data score

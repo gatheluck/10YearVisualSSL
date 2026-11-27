@@ -1,8 +1,6 @@
 # Execution platform separation
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+See the [manuscript terminology guide](PAPER_TERMINOLOGY.md) for the correspondence between historical artifact names and paper settings.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](SUBMISSION_SCOPE.md)
@@ -131,7 +129,7 @@ activation** — is injected at run time and never committed.
 **root**: a directory that contains a `train/` subdirectory (and `val/` for
 linear evaluation), each holding the usual per-class image folders
 (`train/<class>/*.JPEG`). Pretraining reads `train/`; linear evaluation reads
-`train/` and `val/`. You pass the same `DATA_ROOT=<imagenet>` for step 1 and for
+`train/` and `val/`. You pass the same `DATA_ROOT=<imagenet>` for pre-training and for
 linear evaluation — never the `train` directory itself. This is resolved in one
 place (`adapterlib.dataset_split_dir`) and held uniform by
 `tests/test_data_root_convention.py`. Two methods are inherent exceptions and

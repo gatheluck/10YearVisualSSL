@@ -1,8 +1,6 @@
-# image_gpt — step 1 (generative pretraining from pixels) + linear evaluation
+# image_gpt — generative pretraining from pixels + linear evaluation
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+> See the [guide to original settings (ASIS), controlled pre-training (CTRL) and Unified evaluation](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
@@ -13,7 +11,7 @@ Pixels*, ICML 2020 ([arXiv:2006.14671](https://arxiv.org/abs/2006.14671)).
 
 iGPT pretrains a GPT on **pixels**: an image is quantised to a sequence of
 colour-cluster tokens, and a causal transformer is trained to predict the next
-token. Step 1 is that pretraining. The representation is a middle transformer
+token. The representation is a middle transformer
 layer, mean-pooled.
 
 ## Why this method, and what is new here
@@ -48,7 +46,7 @@ trained with SGD under a cosine schedule; top-1 and top-5 reported).
 
 ## The colour clusters
 
-iGPT feeds the transformer discrete colour tokens, so step 1 fits colour clusters
+iGPT feeds the transformer discrete colour tokens, so the original recipe fits colour clusters
 (a deterministic numpy k-means -- see `provenance.json` for why not sklearn) from
 the training images and saves them beside `encoder.pt` as `clusters.npy`. The
 probe reads those same clusters, because it must quantise images into the colour
@@ -56,7 +54,7 @@ space the model was trained on.
 
 ## What has and has not been exercised
 
-- **Exercised (step 1):** a hermetic smoke -- a tiny model, a few fabricated
+- **Exercised (original recipe):** a hermetic smoke -- a tiny model, a few fabricated
   images, a handful of clusters -- runs through `python -m adapter` on a CPU and
   passes `contract-test`, plus the encoder round-trip and a determinism check.
 - **Exercised (linear_eval):** a hermetic smoke fits the probe on a pretrain
@@ -80,13 +78,13 @@ methods' dependencies, with no submodule and no extra. `requirements.lock.txt`
 
 ## Running
 
-    # step 1: DATA_ROOT is an ImageFolder of training images
+    # original recipe: DATA_ROOT is an ImageFolder of training images
     python bin/resolve-config.py --config methods/image_gpt/configs/pretrain.yaml \
         --set DATA_ROOT=/path/to/images --out resolved.json
     cd methods/image_gpt && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/s1
 
-Step 1 writes `encoder.pt`, `clusters.npy` and `metrics.json` under `--out`.
+Pre-training writes `encoder.pt`, `clusters.npy` and `metrics.json` under `--out`.
 
     # linear eval: DATA_ROOT has train/ and val/; ENCODER and CLUSTERS come from
     # the pretrain run above

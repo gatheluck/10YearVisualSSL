@@ -1,8 +1,6 @@
 # Local vision providers for Basic5 components
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+See the [manuscript terminology guide](PAPER_TERMINOLOGY.md) for the correspondence between historical artifact names and paper settings.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](SUBMISSION_SCOPE.md)
@@ -84,7 +82,7 @@ supported. Existing schedule/batch constraints apply. Results always report
   [native detector profile](BASIC5_NATIVE_PATHS.md) now preserves their actual
   grids and family-specific normalization, and supports LP/AP/FT components.
 - No distributed/FSDP, accumulation, new GPU run, released 7B-weight execution,
-  full dataset score, seed aggregate, Extend or additional Step-4 implementation
+  full dataset score, seed aggregate, Extend or additional diagnostic implementation
   is certified by this change. A CPU fixture score is never a workbook value.
 - Existing method adapters and feature-extraction artifacts are unchanged.
 

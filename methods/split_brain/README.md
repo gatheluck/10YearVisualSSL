@@ -1,8 +1,6 @@
-# split_brain — step 1 (Split-Brain cross-channel pretext) + linear evaluation
+# split_brain — Split-Brain cross-channel pretext + linear evaluation
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+> See the [guide to original settings (ASIS), controlled pre-training (CTRL) and Unified evaluation](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
@@ -15,14 +13,14 @@ Cross-Channel Prediction*, CVPR 2017
 An image is converted to CIE **Lab** and split into its **L** and **ab**
 channels. Two cross-channel AlexNet branches predict one from the other: **net1**
 maps L → the quantised ab channels (313 bins), **net2** maps ab → the quantised L
-channel (50 bins), each a per-pixel classification. Step 1 is that pretext.
+channel (50 bins), each a per-pixel classification.
 
-## Scope — the AlexNet path and the unified ViT-B/16 Step 2
+## Scope — the AlexNet path and controlled ViT-B/16 pre-training
 
 This port brings across the **AlexNet** path (`configs/pretrain.yaml`, no arch):
 the two cross-channel branches, the numpy Lab conversion and L/ab quantisation,
-and the summed cross-entropy loss. It **also** ports the capture's unified
-**ViT-B/16 Step 2** (`configs/pretrain_vit.yaml`, `arch: vit`): the two branches
+and the summed cross-entropy loss. It **also** ports the capture's controlled
+**ViT-B/16 controlled recipe** (`configs/pretrain_vit.yaml`, `arch: vit`): the two branches
 keep their roles, but each backbone is a from-scratch **half-width ViT-B/16**
 (`embed_dim` 384, 6 heads, per-branch `in_chans` 1/2) + a conv decoder. `net1`
 predicts the ab bins from L, `net2` the L bins from ab; the loss is the same
@@ -53,7 +51,7 @@ published CIE Lab values) and the L/ab quantisation in **pure numpy**, depending
 on neither scipy nor scikit-image — the torch-only closure holds.
 
 The capture ships **no AlexNet pretrain recipe** (its `train.py` trains the ViT
-step 2 under DistributedDataParallel + AdamW with a canonical contract), so
+controlled recipe under DistributedDataParallel + AdamW with a canonical contract), so
 `train_pretrain_split_brain.py` owns a thin single-process fp32 loop with a plain
 Adam optimiser (its knobs exposed in the config). The device is **resolved**
 rather than assumed CUDA; TensorBoard is dropped.
@@ -85,7 +83,7 @@ methods use, so the number is comparable across them.
 
 ## What has and has not been exercised
 
-- **Exercised (step 1):** a hermetic smoke — a 32px crop, one epoch, a few
+- **Exercised (original recipe):** a hermetic smoke — a 32px crop, one epoch, a few
   fabricated images — runs through `python -m adapter` on a CPU, passes
   `contract-test`, and the encoder round-trip and a determinism check pass.
 - **Exercised (linear_eval):** a hermetic smoke fits the probe on a pretrain
@@ -94,7 +92,7 @@ methods use, so the number is comparable across them.
 - **Not a full run:** `configs/pretrain.yaml` is a recipe (224px crop, 200 epochs),
   not a completed run; its optimiser is the port's single-process choice (the
   capture ships no AlexNet pretrain recipe).
-- **Exercised (ViT Step 2):** a hermetic smoke — two tiny half-ViTs (16-d embed,
+- **Exercised (controlled ViT recipe):** a hermetic smoke — two tiny half-ViTs (16-d embed,
   one block), 32px crop, two epochs with `save_at_epochs: [1, 2]` — runs through
   `python -m adapter` on a CPU, writes `encoder.pt` and both `encoder_epoch{1,2}.pt`
   milestones, and a milestone probe passes `contract-test`. A model test also
@@ -108,7 +106,7 @@ methods use, so the number is comparable across them.
 
 torch / torchvision / numpy / PyYAML — the self-contained methods' stack (the Lab
 conversion and quantisation are numpy, not scipy/scikit-image) — **plus `timm`**
-for the unified ViT-B/16 Step-2 path (imported lazily, so the native AlexNet path
+for the controlled ViT-B/16 pre-training path (imported lazily, so the native AlexNet path
 never needs it). `requirements.lock.txt` (CPU) and `requirements.lock.cu130.txt`
 (CUDA 13.0) are the hashed closures.
 
@@ -119,13 +117,13 @@ never needs it). `requirements.lock.txt` (CPU) and `requirements.lock.cu130.txt`
 
 ## Running
 
-    # step 1: DATA_ROOT is an ImageFolder of training images
+    # original recipe: DATA_ROOT is an ImageFolder of training images
     python bin/resolve-config.py --config methods/split_brain/configs/pretrain.yaml \
         --set DATA_ROOT=/path/to/images --out resolved.json
     cd methods/split_brain && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/s1
 
-    # linear eval: DATA_ROOT has train/ and val/; ENCODER is step 1's encoder.pt
+    # linear eval: DATA_ROOT has train/ and val/; ENCODER is the encoder.pt from pre-training
     python bin/resolve-config.py --config methods/split_brain/configs/linear_eval.yaml \
         --set DATA_ROOT=/path/to/imagenet \
         --set ENCODER=/path/to/s1/encoder.pt --out eval.json

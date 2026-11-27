@@ -25,10 +25,13 @@ class PaperTerminology(unittest.TestCase):
         for p in paths:
             if p == GUIDE or 'submission_protocols' in p.parts or 'templates' in p.parts:
                 continue  # supplied protocol originals remain unchanged
-            if not LEGACY.search(p.read_text()):
+            source = p.read_text()
+            # Check both retained labels and navigation in the renamed guides.
+            if not (LEGACY.search(source) or GUIDE.name in source or
+                    re.search(r"\[[^]\n]*manuscript terminology[^]\n]*\]", source, re.I)):
                 continue
             checked += 1
-            links = re.findall(r'\]\(([^)]+)\)', p.read_text())
+            links = re.findall(r'\]\(([^)]+)\)', source)
             self.assertTrue(any((p.parent / unquote(x.split('#')[0])).resolve() == GUIDE.resolve()
                                 and (p.parent / unquote(x.split('#')[0])).is_file()
                                 for x in links), str(p))
@@ -37,8 +40,17 @@ class PaperTerminology(unittest.TestCase):
     def test_mapping_covers_scope_without_renaming_interfaces(self):
         self.assertTrue(GUIDE.is_file(), "paper terminology guide is missing")
         text = GUIDE.read_text()
-        for term in ('ASIS', 'CTRL', 'Section 3', 'Section 4', 'Section 5.1', 'Section 5.2', 'Appendix E', 'LP', 'AP', 'FT'):
+        chapters = {
+            'Section 4': 'Historical Transfer of Vision Models (ASIS)',
+            'Section 5': 'Controlled VSSL Pre-training (CTRL)',
+            'Section 6': 'Unified and Extended Evaluation',
+            'Section 7': 'The Basic Five in a Representation Plane',
+        }
+        for section, title in chapters.items():
+            self.assertIn(f'{section}: {title}', text)
+        for term in ('Section 3', 'Appendix E', 'LP', 'AP', 'FT'):
             self.assertIn(term, text)
+        self.assertNotRegex(text, r'Section 5\.[12]\b')
         self.assertIn('not a one-to-one', text)
         self.assertIn('identifiers', text)
 

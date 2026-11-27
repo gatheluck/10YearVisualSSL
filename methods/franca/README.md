@@ -1,8 +1,6 @@
-# franca — as-is Step-1 probe + unified ViT-B/16 Step-2 pretrain + linear eval
+# franca — released-checkpoint probe + controlled ViT-B/16 pre-training + linear eval
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+> See the [guide to original settings (ASIS), controlled pre-training (CTRL) and Unified evaluation](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
@@ -13,19 +11,16 @@ ViT foundation model in the DINOv2 lineage.
 
 Two comparisons live here:
 
-- **Step 1 (as-is)** — a `linear_eval` with no `recipe`: freeze the official
+- **Original settings (ASIS)** — a `linear_eval` with no `recipe`: freeze the official
   pretrained Franca **ViT-B/14 In21K** backbone (downloaded, `third_party/franca`)
   and probe its frozen CLS token, "analogous to DINOv2 ... **not local Franca
   pretraining**". This trains nothing and produces no `encoder.pt`.
 
-- **Step 2 (unified)** — `pretrain` trains a **ViT-B/16 from scratch** on
+- **Controlled pre-training** — `pretrain` trains a **ViT-B/16 from scratch** on
   ImageNet-1k with Franca's objective, then `linear_eval` with `recipe: unified`
-  probes the trained `encoder.pt` at its CLS token. This puts Franca on the same
-  axis as every other method's Step 2 (all train on ImageNet-1k, so the data
-  confound is gone). (Added after the initial port, which probed only the
-  downloaded Step-1 backbone; see the Step 2 section.)
+  probes the trained `encoder.pt` at its CLS token. The common backbone and dataset let the paper compare training objectives under CTRL.
 
-## Step 2 (unified ViT-B/16), from scratch
+## Controlled ViT-B/16 pre-training, from scratch
 
 Franca shares DINOv2's DINO+iBOT+KoLeo core but is a distinct method: its
 contribution is the **nested Matryoshka projection heads** (coarse-to-fine
@@ -38,14 +33,14 @@ capture's DDP / bf16 autocast / TensorBoard / health-gate are dropped; the devic
 is resolved. `models/` reuses the DINOv2 ViT backbone (shared design with
 dinov2, vendored so the method is self-contained) and adds `MatryoshkaHead` +
 the Sinkhorn losses; the multi-crop / cyclic-mask data is vendored too. **timm is a
-Step-2 dependency** (the ViT is built from scratch, so CI stays hermetic).
+controlled recipe dependency** (the ViT is built from scratch, so CI stays hermetic).
 
-`encoder.pt` (Step 2) is the EMA **teacher backbone** (`teacher_bb.*`), with the
+`encoder.pt` (controlled recipe) is the EMA **teacher backbone** (`teacher_bb.*`), with the
 nested heads and student excluded; the adapter also writes
-`encoder_epoch{100,200,300}.pt` for the milestone sweep. Probe a Step-2 encoder
+`encoder_epoch{100,200,300}.pt` for the milestone sweep. Probe an encoder from controlled pre-training
 with `configs/linear_eval_vit.yaml` (`recipe: unified`, CLS token).
 
-## The eval-only Step 1 (unchanged)
+## Probing the released checkpoint
 
 This is the frozen-backbone / weight-download shape that CONTRACT section 7 left
 open — see `docs/EVAL_DOWNLOAD.md`. Unlike var (which probes a tokeniser), the
@@ -55,8 +50,8 @@ representation is a genuine SSL ViT (Franca's pretrained CLS token), so the numb
 The model is the pinned upstream `valeoai/Franca` under `third_party/franca`,
 imported and never copied, and pinned **directly** (no fork): the frozen forward
 has no hardcoded device. The inventory's `submodule+patch` (9984B) is the
-capture's own Step-2 implementation; this port re-implements the unified Step 2
-additively as port-authored files (see the Step 2 section) rather than applying
+capture's own controlled recipe implementation; this port re-implements the controlled recipe
+additively as port-authored files (see the controlled pre-training section) rather than applying
 that patch.
 
 Changed during the port (see `provenance.json`): the device is resolved rather
@@ -91,8 +86,8 @@ downloaded and its accuracy is meaningless — only the pipeline is exercised.
 The eval stack is torch / torchvision / numpy / PyYAML; the pinned upstream also
 imports tqdm, which is in the lock (`requirements.lock.in`). The heavier
 dependencies in the upstream's own `requirements.txt` (pytorch-lightning,
-omegaconf, webdataset, …) drive the capture's own Step-2 training pipeline; this
-port's additive Step 2 is port-authored and does not use them (it needs only
+omegaconf, webdataset, …) drive the capture's own controlled recipe training pipeline; this
+port's additive controlled recipe is port-authored and does not use them (it needs only
 `timm`), so they are absent from the lock.
 
     git submodule update --init third_party/franca

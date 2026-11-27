@@ -1,8 +1,6 @@
-# simmim — step 1 (SimMIM Swin-B pretext) + unified ViT-B/16 step 2 + linear evaluation
+# simmim — SimMIM Swin-B pretext + controlled ViT-B/16 pre-training + linear evaluation
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+> See the [guide to original settings (ASIS), controlled pre-training (CTRL) and Unified evaluation](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
@@ -15,31 +13,31 @@ SimMIM is **masked image modeling**. Images are patch-embedded by a Swin encoder
 a random block of patch tokens (mask units of 32×32 pixels, 60% masked) is
 replaced by a learned **mask token**; the full token grid is encoded; a
 lightweight **1×1 conv + PixelShuffle** decoder reconstructs pixels; an **L1
-loss** is taken only on the masked pixels. Step 1 is that pretext.
+loss** is taken only on the masked pixels.
 
-## Scope — the Swin-B step 1 and the unified ViT-B/16 step 2
+## Scope — the Swin-B original recipe and controlled ViT-B/16 pre-training
 
-This port covers SimMIM's **Swin-B** step 1 and, added additively, the capture's
-unified **ViT-B/16** step 2 (see the Step 2 section below). SimMIM's step 1 is
+This port covers SimMIM's **Swin-B** original recipe and, the capture's
+**controlled ViT-B/16 recipe** (see the controlled pre-training section below). SimMIM's original recipe is
 genuinely **Swin**-based, so **`timm` is a pretrain dependency** (it supplies the
-`SwinTransformer`, and — for step 2 — the `VisionTransformer`) — this is the repo's
+`SwinTransformer`, and — for controlled recipe — the `VisionTransformer`) — this is the repo's
 **first Swin backbone**. The `transformers` package in the capture's
 `requirements.txt` is **docstring-only** (a note about HuggingFace pretrained
 weights) and is **never imported** (measured), so it is not a dependency here. Both
 backbones are built **from scratch** (no pretrained download), so the run stays
 hermetic.
 
-## Step 2 (unified ViT-B/16), added additively
+## Controlled ViT-B/16 pre-training
 
-Unlike the other ViT Step-2 ports, SimMIM's native backbone is a **Swin**, not a
-ViT — so the unified Step 2 is a genuinely **different backbone**, not a re-tuning
+Unlike the other controlled ViT recipe ports, SimMIM's native backbone is a **Swin**, not a
+ViT — so the controlled recipe is a genuinely **different backbone**, not a re-tuning
 of the same one. The capture plugs the same masked-image-modelling objective into
 a **timm ViT-B/16** (`models/simmim_vit.py`): 300 epochs, batch 1024, a direct
 `lr` 6e-4, betas (0.9, 0.95), fixed weight decay 0.05, 10-epoch warmup then cosine
 to `min_lr`, checkpointed at 100/200/300. It is selected by a `recipe: unified`
 key in `train`; **absent `recipe` is the native Swin-B path, unchanged**, and the
-native and unified config key sets are disjoint (native-only `window_size`/`depths`
-/multistep-decay knobs ↔ unified-only `depth`/`mlp_ratio`/`min_lr`/`save_at_epochs`).
+native and controlled config key sets are disjoint (native-only `window_size`/`depths`
+/multistep-decay knobs ↔ controlled-recipe-only `depth`/`mlp_ratio`/`min_lr`/`save_at_epochs`).
 
 The masking is pixel-space, as in the Swin variant (masked pixels replaced by a
 learned mask token, one mask unit = one ViT patch); the dataloader already
@@ -47,12 +45,12 @@ supports the pixel-mask path (`return_pixel_mask=True`). `train_pretrain_vit_sim
 is single-process, reusing the native trainer's device resolution and seeding
 (one implementation per method). `encoder.pt` is the bare timm ViT (`encoder.*`).
 
-**This is the only Step-2 port that is non-additive to the linear evaluation.**
+**This is the only controlled recipe port that is non-additive to the linear evaluation.**
 The native probe mean-pools the Swin tokens; the ViT's representation is its **CLS
 token** (the capture's own choice), so `evaluate_linear_simmim.py` gains a `pool`
 argument (`cls` for the ViT, `mean` for the Swin), fixed from the recipe by the
 adapter. The adapter writes `encoder.pt` plus `encoder_epoch{100,200,300}.pt`, one
-frozen ViT per milestone; probe a unified encoder with `configs/linear_eval_vit.yaml`.
+frozen ViT per milestone; probe an encoder from controlled pre-training with `configs/linear_eval_vit.yaml`.
 
 ## Why this method, and what is new here
 
@@ -93,7 +91,7 @@ documented deviation, the same as every other port.)
 
 ## What has and has not been exercised
 
-- **Exercised (step 1):** a hermetic smoke — a tiny 2-stage Swin at 16px (an 8×8
+- **Exercised (original recipe):** a hermetic smoke — a tiny 2-stage Swin at 16px (an 8×8
   token grid, encoder_dim 32), a few fabricated images — runs through `python -m
   adapter` on a CPU (exercising the mask generation, the mask-token replacement
   and the masked-pixel L1 loss), passes `contract-test`, and the encoder
@@ -110,7 +108,7 @@ documented deviation, the same as every other port.)
 ## Environment
 
 torch / torchvision / numpy / PyYAML **plus `timm`** (and its transitive closure)
-— SimMIM's step 1 is genuinely Swin-based. `requirements.lock.txt` (CPU) and
+— SimMIM's original recipe is genuinely Swin-based. `requirements.lock.txt` (CPU) and
 `requirements.lock.cu130.txt` (CUDA 13.0) are the hashed closures (the same closure
 as `mocov3`: identical timm resolution).
 
@@ -121,13 +119,13 @@ as `mocov3`: identical timm resolution).
 
 ## Running
 
-    # step 1: DATA_ROOT contains a train/ subdirectory of images
+    # original recipe: DATA_ROOT contains a train/ subdirectory of images
     python bin/resolve-config.py --config methods/simmim/configs/pretrain.yaml \
         --set DATA_ROOT=/path/to/imagenet --out resolved.json
     cd methods/simmim && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/s1
 
-    # linear eval: DATA_ROOT has train/ and val/; ENCODER is step 1's encoder.pt
+    # linear eval: DATA_ROOT has train/ and val/; ENCODER is the encoder.pt from pre-training
     python bin/resolve-config.py --config methods/simmim/configs/linear_eval.yaml \
         --set DATA_ROOT=/path/to/imagenet \
         --set ENCODER=/path/to/s1/encoder.pt --out eval.json

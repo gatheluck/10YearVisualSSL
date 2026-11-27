@@ -1,8 +1,8 @@
-# Step-2 consistency audit & remediation (source of truth, survives context loss)
+# Historical consistency audit of controlled pre-training recipes
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+In these August 2026 findings, `Step 2` means the controlled ViT recipe and `Step 1` refers to a native recipe or original-setting probe. Quotations reproduce the original descriptions that the audit checked.
+
+For the current manuscript, use the [figure-by-figure reproduction guide](PAPER_REPRODUCTION_GUIDE.md) and [terminology map](PAPER_TERMINOLOGY.md).
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](SUBMISSION_SCOPE.md)

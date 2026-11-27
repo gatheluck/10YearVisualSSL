@@ -1,5 +1,7 @@
 # ImageNet fine-tuning source profiles
 
+The table numbers in this guide refer to the earlier submission. For the current manuscript, see the [figure and table index](PAPER_REPRODUCTION_GUIDE.md).
+
 See [package scope](SUBMISSION_SCOPE.md). The eight BasicFive families now have
 explicit ImageNet FT component execution. This ports inspected experimental
 behavior; it does **not** reconcile the supplied protocol with historical runs

@@ -1,8 +1,6 @@
-# vjepa — step 1 (V-JEPA pretext) + linear evaluation
+# vjepa — V-JEPA pretext + linear evaluation
 
-> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
-> code/experiment identifiers, not manuscript section numbers. See the
-> [ASIS, CTRL and manuscript comparison map](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+> See the [guide to original settings (ASIS), controlled pre-training (CTRL) and Unified evaluation](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
 
 Status, support and validation statements describe this portable package at the
 date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
@@ -18,16 +16,14 @@ tokens of an input, an EMA **target** encoder encodes the whole input, and a nar
     loss = mean_over_masks( mean|z_pred − layernorm(target)|^loss_exp / loss_exp )
            + reg_coeff · mean(relu(1 − std(z_pred)))
 
-Step 1 is that pretext.
-
-## Scope — the from-scratch image adaptation (step 2), not the video caveat
+## Scope — controlled image pre-training and released video weights
 
 V-JEPA is a **video** method (pretrained on VideoMix2M). The capture has two paths:
-a **pretrain caveat** row (probe the released video ViT-H/16 on ImageNet images —
+a **released-checkpoint** comparison (probe the released video ViT-H/16 on ImageNet images —
 which the capture itself marks an appendix result, "very low accuracy, not a
-main-table success"), and a **step-2** unified-comparison that trains a
+main-table success"), and a controlled comparison that trains a
 V-JEPA-objective **image** ViT-B/16 from scratch on ImageNet at `num_frames=1`.
-This port covers the **step-2** path — a genuine comparable row, like `dinov3`.
+This adapter trains the image model under the controlled protocol.
 
 It's a **submodule-import** port: it pins
 [`facebookresearch/jepa`](https://github.com/facebookresearch/jepa) as
@@ -61,8 +57,8 @@ L2-normalised, a single linear layer trained with SGD under a cosine schedule).
 
 ## Milestone checkpoints for the frozen-backbone sweep
 
-This config **is** the unified ViT-B/16 Step 2 already, so there is a single
-recipe and no `recipe` selector. To support the Step-2 protocol's 100/200/300
+This config **is** the controlled ViT-B/16 pre-training already, so there is a single
+recipe and no `recipe` selector. To support the controlled recipe's 100/200/300
 frozen-backbone probe sweep, `train.save_at_epochs` lists the epochs at which the
 trainer writes a `checkpoint_epoch_{N}.pth` (in addition to
 `checkpoint_latest.pth`); the adapter hands each over as `encoder_epoch{N}.pt`, one
@@ -72,7 +68,7 @@ existed is unchanged.
 
 ## What has and has not been exercised
 
-- **Exercised (step 1):** a hermetic smoke — a tiny `vit_tiny` at 64px
+- **Exercised (original recipe):** a hermetic smoke — a tiny `vit_tiny` at 64px
   (`num_frames=1`, a 4×4 patch grid so the block masks fit), 2 mask configs, a few
   fabricated images — runs through `python -m adapter` on a CPU (exercising the
   context/target forward, the 3D masks, `apply_masks`, the latent-prediction loss
@@ -100,13 +96,13 @@ torch / torchvision / numpy / PyYAML (the same torch closure as `dinov3` /
 
 ## Running
 
-    # step 1: DATA_ROOT contains a train/ subdirectory of images
+    # original recipe: DATA_ROOT contains a train/ subdirectory of images
     python bin/resolve-config.py --config methods/vjepa/configs/pretrain.yaml \
         --set DATA_ROOT=/path/to/imagenet/train --out resolved.json
     cd methods/vjepa && PYTHONPATH="$PWD/../.." \
         python -m adapter --config /path/to/resolved.json --out /path/to/s1
 
-    # linear eval: DATA_ROOT has train/ and val/; ENCODER is step 1's encoder.pt
+    # linear eval: DATA_ROOT has train/ and val/; ENCODER is the encoder.pt from pre-training
     python bin/resolve-config.py --config methods/vjepa/configs/linear_eval.yaml \
         --set DATA_ROOT=/path/to/imagenet \
         --set ENCODER=/path/to/s1/encoder.pt --out eval.json

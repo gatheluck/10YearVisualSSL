@@ -1,5 +1,7 @@
 # Supplementary code: reviewer guide
 
+This guide and its section numbers accompany the earlier submission. For the revised CVPR manuscript in this repository use the current figure-by-figure guide.
+
 This archive accompanies the paper's visual representation learning experiments.
 It contains model implementations, feature extraction tools, evaluation and
 training components, tests, **16 protocol and scope documents**, and **three Extend JSON
