@@ -19,8 +19,8 @@
       ]
     },
     {
-      "label": "The README omits its historical first entry",
-      "file": "README.md",
+      "label": "The method index omits its historical first entry",
+      "file": "OPERATING_GUIDE.md",
       "old": "| `context_prediction` |",
       "new": "| `vae` |",
       "tests": [

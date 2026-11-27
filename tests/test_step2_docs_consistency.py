@@ -121,11 +121,11 @@ _README_ROW = re.compile(r"^\|\s*`([a-z0-9_]+)`\s*\|(.*)$")
 
 
 def readme_table_rows() -> dict:
-    """The root README Methods table, as {method_name: row_text}. The root table
+    """The operating guide Methods table, as {method_name: row_text}. The root table
     is a separate file from the per-method READMEs, so the per-method guard above
     does not cover it -- a row can still deny a Step 2 the method now ships."""
     rows = {}
-    for line in (ROOT / "README.md").read_text(encoding="utf-8").splitlines():
+    for line in (ROOT / "OPERATING_GUIDE.md").read_text(encoding="utf-8").splitlines():
         m = _README_ROW.match(line)
         if m:
             rows[m.group(1)] = m.group(2)
@@ -139,7 +139,7 @@ def readme_table_rows() -> dict:
 # in STEP2_VIT_PORTING.md / STEP2_CONSISTENCY_AUDIT.md ("were first ported
 # eval-only", "converting the trio to two-stage"), which are deliberately NOT
 # scanned.
-STATUS_DOCS = ("README.md", "docs/PORTING_ROADMAP.md")
+STATUS_DOCS = ("OPERATING_GUIDE.md", "docs/PORTING_ROADMAP.md")
 
 # A Methods-table row -- `| `name` | ... |`. The row is ABOUT its first-column
 # method; a mention of another method in the notes ("analogous to `franca`") is

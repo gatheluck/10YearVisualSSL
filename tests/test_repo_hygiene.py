@@ -215,7 +215,7 @@ class TestTheReadmeLayoutIsComplete(unittest.TestCase):
     """
 
     def layout(self) -> str:
-        text = (ROOT / "README.md").read_text(encoding="utf-8")
+        text = (ROOT / "OPERATING_GUIDE.md").read_text(encoding="utf-8")
         start = text.index("## Repository layout")
         return text[start:text.index("```", text.index("```", start) + 3)]
 
