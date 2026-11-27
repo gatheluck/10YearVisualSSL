@@ -178,9 +178,37 @@ header nav[aria-label=Primary] a:not([aria-current]):hover {background:#e4efeb;}
 .standings-cta:hover { text-decoration:underline; }
 @media(max-width:600px) {
   .rank-preview .standings-cta { margin-left:0; }
+  .preview-standings :is(thead th:first-child, tbody th) {
+    box-sizing: border-box;
+    width: 140px;
+    max-width: 140px;
+    overflow-wrap: anywhere;
+  }
 }
 
 .rank-preview > .standings-scroll-hint { display:none; }
 @media(max-width:900px) {
   .rank-preview > .standings-scroll-hint { display:block; margin:0 0 6px; }
 }
+
+.study .paper-cover p.study-question {
+  margin: 10px clamp(12px, 3.4vw, 48px);
+  color: #e4f4f3;
+  font: 500 .9rem/1.45 system-ui;
+}
+.study-question a, .film-source {
+  color: #aceddc;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.film-source { display: inline-block; margin-top: 4px; font-size: .8rem; }
+.historical-evaluation {
+  margin-block: 0 20px;
+  padding: clamp(12px, 2vw, 20px);
+  border-left: 3px solid #75bdb3;
+  background: #edf5f1;
+  border-radius: 6px;
+}
+.historical-evaluation p { max-width: 78ch; margin: 8px 0; }
+.evaluation-links { display: flex; flex-wrap: wrap; gap: 8px 18px; }
+.evaluation-links a { text-decoration: underline; text-underline-offset: 3px; }
