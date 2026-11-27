@@ -6,15 +6,14 @@ function buildRankBoard(rows, familyByName, families) {
     [key, { label, color: `var(--${token})` }],
   ));
   const benchmarks = [
-    { key: "in1k", name: "ImageNet-1K", shortName: "ImageNet", task: "Image classification", metric: "Top-1 accuracy (%)", suffix: "%" },
-    { key: "coco", name: "COCO 2017", shortName: "COCO", task: "Object detection", metric: "Bounding-box AP", suffix: " bbox AP" },
-    { key: "ade20k", name: "ADE20K", task: "Semantic segmentation", metric: "Mean intersection over union (%)", suffix: "%" },
-    { key: "nyuv2", name: "NYUv2", task: "Depth estimation", metric: "RMSE (m)", suffix: " m", lower: true },
-    { key: "ssv2", name: "SSv2", task: "Video classification", metric: "Top-1 accuracy (%)", suffix: "%" },
+    { key: "in1k", name: "ImageNet-1K", shortName: "ImageNet", task: "Image classification", metric: "Top-1 accuracy (%)", profileMetric: "Top-1 accuracy", suffix: "%" },
+    { key: "coco", name: "COCO 2017", shortName: "COCO", task: "Object detection", metric: "Bounding-box AP", profileMetric: "Bounding-box AP", suffix: " bbox AP" },
+    { key: "ade20k", name: "ADE20K", task: "Semantic segmentation", metric: "Mean intersection over union (%)", profileMetric: "mIoU", suffix: "%" },
+    { key: "nyuv2", name: "NYUv2", task: "Depth estimation", metric: "RMSE (m)", profileMetric: "RMSE", suffix: " m", lower: true },
+    { key: "ssv2", name: "SSv2", task: "Video classification", metric: "Top-1 accuracy (%)", profileMetric: "Top-1 accuracy", suffix: "%" },
   ];
   const mean = model =>
     (model.ranks.reduce((sum, rank) => sum + rank, 0) / model.ranks.length).toFixed(1);
-  const select = get("inspect-config");
   const matrix = get("rank-matrix");
   const search = get("rank-search");
   const task = get("rank-task");
@@ -22,7 +21,6 @@ function buildRankBoard(rows, familyByName, families) {
   const viewport = matrix.parentElement;
   const readout = get("matrix-readout");
   const matrixProfile = get("matrix-model-profile");
-  const matrixToggle = get("matrix-model-results");
   const resultRow = get("rank-profile-template").content.firstElementChild.cloneNode(true);
   const tableProfile = resultRow.querySelector("#selected-model");
   const dialog = get("rank-score-dialog");
@@ -45,7 +43,7 @@ function buildRankBoard(rows, familyByName, families) {
       ...window.history.state,
       modelRankings: {
         all, query: search.value, task: task.value, tableModel,
-        matrixModel: matrixRow.name, matrixTask, matrixOpen: !matrixProfile.hidden,
+        matrixModel: matrixRow.name, matrixTask,
       },
     }, "");
   }
@@ -113,7 +111,8 @@ function buildRankBoard(rows, familyByName, families) {
     row.ranks.forEach((rank, index) => {
       const benchmark = benchmarks[index];
       const group = add(metrics, "div");
-      add(group, "dt", benchmark.name);
+      const label = add(group, "dt", benchmark.name);
+      add(label, "span", benchmark.profileMetric).className = "profile-metric";
       const detail = add(group, "dd");
       const button = add(detail, "button", scoreText(record, index));
       button.type = "button";
@@ -142,7 +141,6 @@ function buildRankBoard(rows, familyByName, families) {
   function showMatrixSelection(row, index, reveal = false) {
     matrixRow = row;
     matrixTask = index;
-    select.value = row.name;
     get("matrix-selection").textContent = row.name;
     get("matrix-task-result").textContent = index === null
       ? "" : benchmarks[index].name + " · Rank " + row.ranks[index];
@@ -153,21 +151,11 @@ function buildRankBoard(rows, familyByName, families) {
     pickedCell = index === null ? null : pickedColumn.children[index];
     pickedCell?.setAttribute("aria-pressed", "true");
     moveMatrixFocus(pickedCell ?? pickedColumn.firstElementChild);
-    if (!matrixProfile.hidden) renderProfile(matrixProfile, row);
+    renderProfile(matrixProfile, row);
     if (reveal) readout.scrollIntoView({ block: "nearest" });
   }
 
-  function setMatrixProfile(open, reveal = false) {
-    matrixProfile.hidden = !open;
-    matrixToggle.setAttribute("aria-expanded", String(open));
-    if (open) {
-      renderProfile(matrixProfile, matrixRow);
-      if (reveal) matrixProfile.querySelector("h3").scrollIntoView({ block: "nearest" });
-    }
-  }
-
   for (const [column, row] of rows.entries()) {
-    select.add(new Option(row.name, row.name));
     const col = add(matrix, "div");
     col.className = "matrix-column";
     col.title = row.name + " · overall #" + row.place;
@@ -208,17 +196,7 @@ function buildRankBoard(rows, familyByName, families) {
     };
     elements.set(row.name, col);
   }
-  select.onchange = () => {
-    showMatrixSelection(modelByName.get(select.value), null);
-    setMatrixProfile(true);
-    remember();
-  };
-  matrixToggle.onclick = () => {
-    setMatrixProfile(matrixProfile.hidden, true);
-    remember();
-  };
   showMatrixSelection(matrixRow, matrixTask);
-  setMatrixProfile(saved?.matrixOpen ?? false);
   const scrollCue = document.querySelector(".matrix-scroll-cue");
   new ResizeObserver(() => {
     scrollCue.hidden = viewport.scrollWidth <= viewport.clientWidth + 1;

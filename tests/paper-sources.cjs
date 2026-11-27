@@ -43,7 +43,9 @@ const { chromium } = require("playwright");
         .getAttribute("href"),
       "https://proceedings.mlr.press/v119/chen20s.html",
     );
-    await p.locator("#inspect-config").selectOption("FLUX.2");
+    await p.locator("#rank-matrix").getByRole("button", {
+      name: /^FLUX\.2 · ImageNet-1K · Rank/,
+    }).click();
     assert.match(
       await p.locator("#matrix-model-profile a").getAttribute("title"),
       /official release/i,

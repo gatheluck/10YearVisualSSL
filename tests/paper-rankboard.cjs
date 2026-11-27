@@ -24,7 +24,6 @@ const { chromium } = require("playwright");
     assert.equal(await page.locator(".rank-visuals .matrix-column").count(), 109);
     assert.equal(await page.locator(".rank-visuals .matrix-cell").count(), 545);
     const heatmap = page.locator(".rank-visuals");
-    const select = heatmap.getByLabel("Inspect model");
     const selectedName = page.locator(".rank-visuals #matrix-selection");
     const columns = page.locator(".rank-visuals .matrix-column");
     const cellColors = () =>
@@ -35,7 +34,7 @@ const { chromium } = require("playwright");
           cells.map((c) => getComputedStyle(c).backgroundColor),
         );
     const before = await cellColors();
-    await select.selectOption({ label: "RAEv2" });
+    await columns.nth(6).locator(".matrix-cell").first().click();
     await columns.nth(7).hover();
     assert.equal(
       await selectedName.allTextContents().then((t) => t.join("")),
@@ -56,12 +55,12 @@ const { chromium } = require("playwright");
     assert.notEqual(active.base, "none");
     assert.equal(hovered.pointer, "none");
     assert.deepEqual(await cellColors(), before);
-    await select.selectOption({ index: 0 });
+    await columns.first().locator(".matrix-cell").first().click();
     assert.equal((await marker(columns.nth(6))).pointer, "none");
     const names = page.locator(".rank-visuals .model-tick");
     assert.deepEqual(
       await names.allTextContents(),
-      await select.locator("option").allTextContents(),
+      await page.evaluate(() => historicalRanks.map(model => model.name)),
       "Each heatmap column must have its published configuration name on the axis",
     );
     for (const width of [1440, 390]) {
@@ -83,18 +82,19 @@ const { chromium } = require("playwright");
         ),
         "Axis text must stay centered below the cells",
       );
-      await select.selectOption({ index: 108 });
+      await columns.first().locator(".matrix-cell").first().press("End");
+      await page.keyboard.press("Enter");
       const last = await names.last().boundingBox(),
         end = await page.locator(".rank-visuals .matrix-viewport").boundingBox();
       assert.ok(
         last.x >= end.x && last.x + last.width <= end.x + end.width + 1,
         "Selected model must be visible",
       );
-      await select.selectOption({ index: 0 });
+      await columns.first().locator(".matrix-cell").first().click();
       await names.nth(1).click();
-      assert.equal(await select.inputValue(), "DINOv2");
+      assert.equal(await selectedName.innerText(), "DINOv2");
     }
-    await select.selectOption({ label: "RAEv2" });
+    await columns.nth(6).locator(".matrix-cell").first().click();
     assert.match(await heatmap.locator("#matrix-model-profile").innerText(), /RAEv2/);
     assert.equal(await heatmap.locator("#matrix-model-profile .rank-rail").count(),5);
     assert.ok(await heatmap.locator("#matrix-model-profile .rank-rail").evaluateAll(rails =>
@@ -105,7 +105,7 @@ const { chromium } = require("playwright");
       ["Rank 2", "Rank 5", "Rank 1", "Rank 8", "Rank 100"],
     );
     await columns.first().locator(".matrix-cell").first().click();
-    assert.equal(await select.inputValue(), "DINOv3-7B");
+    assert.equal(await selectedName.innerText(), "DINOv3-7B");
     assert.match(await heatmap.locator("#matrix-model-profile").innerText(), /6\.2/);
     const rows = board.locator("tbody tr");
     assert.equal(await rows.count(), 10);

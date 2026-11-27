@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#f8f8f3" />
     <title>Leaderboard · Vision Baselines</title>
     <link rel="stylesheet" href="style.css" />
-    <link rel="stylesheet" href="overview.css" />
+    <link rel="stylesheet" href="overview.css?v=a25935ea6f" />
     <link rel="stylesheet" href="history.css" />
     <link rel="stylesheet" href="control.css" />
     <link rel="stylesheet" href="study.css" />
@@ -14,14 +14,14 @@
     <script defer src="sources.js"></script>
     <script defer src="history-data.js?v=b179a62c5b"></script>
     <script defer src="rank-records.js?v=59faa88a80"></script>
-    <script defer src="rankboard.js?v=db65a1ea98"></script>
+    <script defer src="rankboard.js?v=28f33e7ba1"></script>
     <script defer src="comparison-panels.js?v=d97235181c"></script>
     <script defer src="ranking-families.js"></script>
     <script defer src="overview.js?v=688f139bb9"></script>
     <script defer src="results.js"></script>
 
     <script defer src="site.js?v=a8d18aff21"></script>
-  <script defer src="extended-data.js"></script><script defer src="figure-five-vector.js"></script><script defer src="figure-five.js?v=d336f524c1"></script><link rel="stylesheet" href="publication.css?v=f4b18f1bc4">
+  <script defer src="extended-data.js"></script><script defer src="figure-five-vector.js"></script><script defer src="figure-five.js?v=d336f524c1"></script><link rel="stylesheet" href="publication.css?v=c47aec1820">
     <script defer src="control-data.js"></script>
     <script defer src="history.js?v=abb07694dc"></script>
     <script defer src="control.js"></script>
@@ -60,9 +60,9 @@
           <figure class="rank-map">
             <figcaption>
               <h2 id="rank-matrix-title">Task transfer rank matrix</h2>
-              <span class="scale">Darker is better <i aria-hidden="true"></i></span>
+              <span class="scale">Darker is better · 1 is best <i aria-hidden="true"></i></span>
             </figcaption>
-            <p class="matrix-guide">Columns are models in overall rank order. Rows are tasks. Each cell is a published task rank, with 1 best.</p>
+            <p class="matrix-guide">Columns are models in overall order. Rows are tasks. Select a cell to see its published task rank and the model’s scores.</p>
             <p class="matrix-key" id="matrix-readout" role="status" aria-atomic="true">
               <span class="selection-tag">Selected</span>
               <strong id="matrix-selection"></strong><span id="matrix-task-result"></span>
@@ -81,17 +81,12 @@
               </div>
             </div>
             <div class="matrix-axis">
-              <span>Models · best overall rank first →</span>
+              <span>Models · overall rank →</span>
               <span class="matrix-scroll-cue" hidden>Scroll →</span>
             </div>
             <p id="matrix-instructions" class="sr">Use arrow keys to move between cells and Enter or Space to select a rank. Home and End move to the first or last model.</p>
           </figure>
-          <div class="profile-panel matrix-inspector">
-            <label for="inspect-config">Inspect model</label>
-            <select id="inspect-config"></select>
-            <button class="profile-toggle" type="button" id="matrix-model-results" aria-expanded="false" aria-controls="matrix-model-profile">Model results<span class="disclosure-mark" aria-hidden="true"></span></button>
-          </div>
-          <section class="profile-panel ranked-model matrix-model-profile" id="matrix-model-profile" aria-label="Heatmap model results" hidden>
+          <section class="profile-panel ranked-model matrix-model-profile" id="matrix-model-profile" aria-label="Heatmap model results">
             <div class="model-profile-body"></div>
           </section>
         </div>

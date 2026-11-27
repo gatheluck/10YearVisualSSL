@@ -140,17 +140,52 @@ test("comparisons open on demand and existing fragments restore the right panel"
   } finally { await page.close(); }
 });
 
-test("heatmap clicks and taps identify the exact cell and keep its model details local", async () => {
+test("the heatmap shows five exact scores before interaction and updates them in place", async () => {
   for (const width of [320, 390, 768, 1280]) {
     const page = await browser.newPage({ viewport: { width, height: 850 }, hasTouch: width <= 390 });
     try {
       await page.goto(base);
       const visual = page.locator(".rank-visuals");
+      const details = visual.getByRole("region", { name: "Heatmap model results" });
+      const readout = visual.getByRole("status");
+      assert.ok(await details.isVisible(), "The five scores must be visible before selecting or opening anything");
+      assert.equal(await visual.getByRole("combobox", { name: "Inspect model" }).count(), 0);
+      assert.equal(await visual.getByRole("button", { name: "Model results", exact: true }).count(), 0);
+      assert.ok(await details.evaluate(panel => panel.previousElementSibling.matches("figure") &&
+        Boolean(panel.compareDocumentPosition(document.querySelector("#leaderboard")) & Node.DOCUMENT_POSITION_FOLLOWING)));
+      const reference = await page.evaluate(() => historicalRanks.slice(0, 2).map(rank => ({
+        ...rank, scores: historicalScores.find(record => record.name === rank.name).scores,
+      })));
+      const suffixes = ["%", " bbox AP", "%", " m", "%"];
+      const taskNames = ["ImageNet-1K", "COCO 2017", "ADE20K", "NYUv2", "SSv2"];
+      const metrics = [/Top-1 accuracy/, /Bounding-box AP/, /mIoU/, /RMSE/, /Top-1 accuracy/];
+      const checkProfile = async expected => {
+        assert.equal(await details.locator("h3").innerText(), expected.name);
+        assert.equal(await visual.locator("#matrix-selection").innerText(), expected.name);
+        const scores = details.locator("dl > div");
+        assert.equal(await scores.count(), 5);
+        for (const [index, name] of taskNames.entries()) {
+          const score = scores.nth(index);
+          assert.match(await score.locator("dt").innerText(), metrics[index]);
+          assert.ok((await score.locator("dt").innerText()).startsWith(name));
+          assert.equal(await score.getByRole("button").innerText(), expected.scores[index] + suffixes[index]);
+          assert.equal(await score.locator("dd small").innerText(), "Rank " + expected.ranks[index]);
+        }
+        assert.ok(await details.evaluate(panel => {
+          const frame = panel.getBoundingClientRect();
+          return [...panel.querySelectorAll("h3,dt,dt span,dd button")].every(element => {
+            const box = element.getBoundingClientRect();
+            return box.left >= frame.left && box.right <= frame.right &&
+              element.scrollWidth <= element.clientWidth + 1 && parseFloat(getComputedStyle(element).fontSize) >= 12;
+          });
+        }), "Model and metric labels and their values fit at " + width);
+      };
+      await checkProfile(reference[0]);
+      const profileNode = await details.elementHandle();
       const cell = visual.locator(".matrix-column").nth(1).locator(".matrix-cell").nth(1);
       await (width <= 390 ? cell.tap() : cell.click());
-      const readout = visual.getByRole("status");
       assert.equal(await readout.count(), 1, "A cell selection needs a local, announced readout");
-      const expected = await page.evaluate(() => historicalRanks[1]);
+      const expected = reference[1];
       assert.match(await readout.innerText(), new RegExp(expected.name + ".*COCO 2017.*[Rr]ank " + expected.ranks[1] + "\\b", "s"));
       for (const item of [cell, readout]) {
         assert.ok(await item.evaluate(el => {
@@ -159,10 +194,8 @@ test("heatmap clicks and taps identify the exact cell and keep its model details
         }), "Both the selected cell and its readout are visible immediately at " + width);
       }
       assert.equal(await page.locator("#leaderboard #selected-model").isVisible(), false);
-      await visual.getByRole("button", { name: "Model results" }).press("Enter");
-      const details = visual.getByRole("region", { name: "Heatmap model results" });
-      assert.match(await details.innerText(), /DINOv2/);
-      assert.equal(await details.locator("dl > div").count(), 5);
+      assert.ok(await details.evaluate((panel, original) => panel === original, profileNode));
+      await checkProfile(expected);
       const score = details.getByRole("button", { name: /COCO 2017.*bbox AP/ });
       await score.press("Enter");
       assert.match(await page.getByRole("dialog").innerText(), /COCO 2017.*Bounding-box AP/s);
@@ -188,6 +221,9 @@ test("the heatmap scrolls to keyboard cells and preserves the selected task on r
     const cell = page.locator(".matrix-column").nth(1).locator(".matrix-cell").nth(1);
     assert.ok(await cell.evaluate(el => el === document.activeElement));
     assert.equal(await cell.getAttribute("aria-pressed"), "true");
+    const profile = page.getByRole("region", { name: "Heatmap model results" });
+    assert.ok(await profile.isVisible(), "Keyboard selection keeps the score panel visible");
+    assert.equal(await profile.locator("h3").innerText(), "DINOv2");
     await cell.press("End");
     await page.keyboard.press("Space");
     const last = page.locator(".matrix-column").last().locator(".matrix-cell").nth(1);
@@ -197,9 +233,16 @@ test("the heatmap scrolls to keyboard cells and preserves the selected task on r
       const viewport = el.closest(".matrix-viewport").getBoundingClientRect();
       return cell.left >= viewport.left && cell.right <= viewport.right;
     }));
+    const lastModel = await page.evaluate(() => historicalRanks.at(-1).name);
+    assert.equal(await profile.locator("h3").innerText(), lastModel);
     await page.reload();
     assert.equal(await last.getAttribute("aria-pressed"), "true");
+    assert.equal(await profile.locator("h3").innerText(), lastModel);
     assert.match(await page.locator(".rank-visuals [role=status]").innerText(), /COCO 2017/);
+    await matrix.getByRole("button", { name: /^Highway Networks · COCO 2017 · Rank/ }).click();
+    assert.equal(await profile.getByRole("button", { name: /^COCO 2017 Unavailable/ }).innerText(), "Unavailable");
+    await matrix.getByRole("button", { name: /^AlayaWorld v1\.1 · NYUv2 · Rank/ }).click();
+    assert.equal(await profile.getByRole("button", { name: /^NYUv2 Excluded/ }).innerText(), "Excluded");
   } finally { await page.close(); }
 });
 

@@ -267,7 +267,24 @@ header nav[aria-label=Primary] a:not([aria-current]):hover {background:#e4efeb;}
 button .disclosure-mark::after { content:" ＋"; font-weight:400; }
 button[aria-expanded="true"] .disclosure-mark::after { content:" −"; }
 .matrix-model-profile { border-radius:0; border-top:1px solid #536770; }
-.matrix-inspector .profile-toggle { margin-inline-start:auto; }
+.matrix-model-profile .model-profile-body {
+  display:flex;
+  align-items:baseline;
+  flex-wrap:wrap;
+  gap:2px 12px;
+}
+.matrix-model-profile .model-profile-body h3 { margin:0; overflow-wrap:anywhere; }
+.matrix-model-profile .spotlight { margin:0; }
+.matrix-model-profile .spotlight strong { font-size:clamp(20px, 2vw, 28px); }
+.ranked-model .model-profile-body dt {
+  font:600 13px/1.3 system-ui, sans-serif;
+}
+.profile-metric {
+  display:block;
+  color:#c4dce2;
+  font-size:12px;
+  font-weight:400;
+}
 .rank-map .matrix-key {
   min-height:30px;
   flex-wrap:wrap;
@@ -304,8 +321,6 @@ button[aria-expanded="true"] .disclosure-mark::after { content:" −"; }
 .comparison-panel + .comparison-panel { border-top:0; }
 .comparison-panel > summary { color:#155752; cursor:pointer; font-weight:650; }
 .rank-visuals .rank-spread { display:block; }
-.rank-visuals .matrix-inspector { display:flex; align-items:center; flex-wrap:wrap; gap:12px; }
-.rank-visuals .profile-panel select { margin:0; width:min(100%, 260px); }
 #rank-score-dialog dl { line-height:1.5; }
 #rank-score-dialog dt { margin-top:.65em; font-weight:700; }
 #rank-score-dialog dd { margin:0; }
@@ -360,12 +375,6 @@ button[aria-expanded="true"] .disclosure-mark::after { content:" −"; }
 @media (max-width: 700px) {
   .rank-visuals .matrix-shell { --column-width: 13px; --tick-height: 112px; }
   .rank-visuals .model-tick { font-size: 10px; }
-  .rank-visuals .matrix-inspector {
-    display:grid;
-    grid-template-columns:minmax(0, 1fr) auto;
-  }
-  .matrix-inspector label { grid-column:1 / -1; }
-  .rank-visuals .matrix-inspector select { width:100%; }
   #leaderboard.overall-ranks .rank-scroll .rank-detail-row > td { grid-column:1 / -1; }
   .overall-ranks .rank-scroll :is(table, thead, tbody) { display: block; }
   .overall-ranks .rank-scroll tr {

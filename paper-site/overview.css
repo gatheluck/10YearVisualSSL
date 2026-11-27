@@ -271,7 +271,6 @@
 }
 .scale,
 .matrix-axis,
-.profile-panel label,
 .rank-table-top label,
 .rank-table-foot {
   font: 12px var(--mono);
@@ -418,15 +417,6 @@
   background: #112231;
   color: #edf6fa;
   padding: clamp(16px, 2vw, 28px);
-}
-.profile-panel label {
-  color: #b9d2d7;
-}
-.profile-panel select {
-  color: var(--ink);
-  background: white;
-  margin: 4px 0 10px;
-  width: 100%;
 }
 .family-name {
   font: 11px var(--mono);
@@ -677,13 +667,6 @@
     grid-template-columns: auto minmax(0, 1fr);
     align-items: center;
     gap: 3px 12px;
-  }
-  .profile-panel select {
-    margin: 0;
-    padding: 4px;
-  }
-  .profile-panel label {
-    font-size: 11px;
   }
   .model-profile-body {
     grid-column: 1/-1;
