@@ -12,7 +12,7 @@ python -m unittest tests.test_transfer_comparison tests.test_frontier
 
 Start with Supplement C.1 and Appendix D Figure 1. Use the 109 representative configurations, omitting DINOv3 ViT-B/16, MAGE, JiT and Wan2.2 from the 113 in Figure 2. Compare each task's printed ranks with the plotting table before averaging the five ranks per configuration. All 545 ranks and 109 means agreed. Preserve the adopted COCO tie at rank 97, which includes HighwayNet and twelve printed zeros. No general rank recalculation from rounded scores or missing-value substitution was verified.
 
-The checkout provides [ASIS protocols](initial_protocols/INITIAL_STEP1_v1.md) and [model-specific execution guides](../README.md#methods). The adopted rank table and an end-to-end Figure 1 plotting command are outside this checkout. Checkpoint replay and public retraining of all 109 configurations remain unverified.
+The checkout provides [ASIS protocols](initial_protocols/INITIAL_STEP1_v1.md) and [model-specific execution guides](../README.md#methods). The public repository includes the adopted rank table. The end-to-end Figure 1 plotting command is outside this checkout. Checkpoint replay and public retraining of all 109 configurations remain unverified.
 
 ## Figure 2 — Historical transfer
 
@@ -22,7 +22,7 @@ For a native COCO run, use the [bounding-box evaluation path](BASIC5_NATIVE_PATH
 
 ## Figure 3 — Unified readout and adaptation
 
-Rebuild the README's ImageNet-1K and SSv2 chart from the [reported LP and AP means](figures/figure3-classification.csv) with `python3 bin/render-readme-figure3.py > docs/figures/figure3-classification.svg` from the repository root.
+Rebuild the ImageNet-1K and SSv2 LP/AP chart from the [reported LP and AP means](figures/figure3-classification.csv) with `python3 bin/render-readme-figure3.py > docs/figures/figure3-classification.svg` from the repository root.
 
 Figure 3 compares three frozen-backbone readouts (linear probing, attentive probing and DPT) with low-rank adaptation (LoRA). Supplement C.3 Tables 22–26 also report full fine-tuning (FT). Original seed files reproduced 91 of the 104 reported cells. Other contemporaneous per-seed records reproduced 12 more at printed precision. VGGT-Ω COCO LP has only aggregate support. Preserve six unreported FT cells and the single reported VGGT-Ω SSv2 FT seed. For RAEv2 LP/AP, manuscript Section 6 names diffusion-generator block 29 at timestep 0.1. The [run attribution audit](CVPR_ADAPTATION.md) identifies a seven-layer tokenizer readout in the recorded Unified runs. These feature tensors come from different components. Identify the target run before comparing scores. The ASIS detection run used a separate frozen generator readout.
 

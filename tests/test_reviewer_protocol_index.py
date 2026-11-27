@@ -8,6 +8,16 @@ ROOT = Path(__file__).resolve().parents[1]
 TEMPLATE = ROOT / 'docs/templates/CVPR_REVIEWER_README.md'
 
 
+def protocol_section(page):
+    text = page.read_text()
+    heading = '<summary>Evaluation protocols</summary>' if page == ROOT / 'README.md' else '## Evaluation protocols'
+    _, found, rest = text.partition(heading + '\n')
+    if not found:
+        raise AssertionError(f'{page.name} has no evaluation protocol index')
+    end = '\n</details>' if page == ROOT / 'README.md' else '\n## '
+    return rest.split(end, 1)[0]
+
+
 class ReviewerProtocolIndex(unittest.TestCase):
     def test_paper_metric_and_completed_repeat_notes_are_reachable(self):
         for page in (ROOT / 'README.md', TEMPLATE):
@@ -23,7 +33,7 @@ class ReviewerProtocolIndex(unittest.TestCase):
     def test_readers_can_distinguish_completed_table_26_runs_from_scheduled_seeds(self):
         for page in (ROOT / 'README.md', TEMPLATE):
             with self.subTest(page=page.name):
-                section = page.read_text().split('## Evaluation protocols\n')[1].split('\n## ')[0]
+                section = protocol_section(page)
                 note = next((line for line in section.splitlines() if 'Table 26' in line), '')
                 self.assertRegex(note, r'18 of 25[^.]*three runs')
                 self.assertRegex(note, r'VGGT-Omega on SSv2[^.]*one run')
@@ -33,9 +43,7 @@ class ReviewerProtocolIndex(unittest.TestCase):
         indexes = []
         for page in (ROOT / 'README.md', TEMPLATE):
             self.assertTrue(page.is_file(), page.name)
-            text = page.read_text()
-            self.assertIn('## Evaluation protocols\n', text)
-            section = text.split('## Evaluation protocols\n', 1)[1].split('\n## ', 1)[0]
+            section = protocol_section(page)
             rows = [line for line in section.splitlines() if line.startswith('| ')]
             self.assertEqual([r.split('|')[1].strip().split(' (')[0] for r in rows[2:]],
                              ['Linear probing', 'Attentive probing', 'Full fine-tuning',
@@ -52,7 +60,8 @@ class ReviewerProtocolIndex(unittest.TestCase):
                 tasks = {'ade20k', 'nyuv2'} if track == 'DPT' else {
                     'imagenet1k', 'ssv2', 'coco', 'ade20k', 'nyuv2'}
                 self.assertEqual(set(spec['tasks']), tasks)
-            for link in re.findall(r'\]\(([^)]+)\)', section):
+            links = re.findall(r'\]\(([^)]+)\)', section)
+            for link in links:
                 path, _, anchor = link.partition('#')
                 target = ROOT / path
                 self.assertTrue(target.is_file(), link)
@@ -60,5 +69,5 @@ class ReviewerProtocolIndex(unittest.TestCase):
                     headings = re.findall(r'^#+ (.+)$', target.read_text(), re.M)
                     self.assertIn(anchor, [re.sub(r'[^\w -]', '', heading.lower()).replace(' ', '-')
                                            for heading in headings], link)
-            indexes.append(section.strip())
+            indexes.append(links)
         self.assertEqual(*indexes)

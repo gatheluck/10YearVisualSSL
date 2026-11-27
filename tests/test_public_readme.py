@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PAGE = 'https://gatheluck.github.io/10YearVisualSSL/'
 TITLE = 'Revisiting Vision Model Baselines in the Deep Learning Era'
 LINK = re.compile(r'\[([^]\n]+)\]\(([^)]+)\)')
+HTML_LINK = re.compile(r'<a href="([^"]+)">([^<]+)</a>')
 
 
 def anchors(text):
@@ -25,17 +26,18 @@ class PublicReadme(unittest.TestCase):
         self.text = (ROOT / 'README.md').read_text()
 
     def test_published_identity_and_resources(self):
-        self.assertEqual(self.text.splitlines()[0], '# ' + TITLE)
+        self.assertEqual(re.sub(r'<[^>]+>', '', self.text.splitlines()[0]), TITLE)
         links = dict(LINK.findall(self.text))
+        links.update((label, target) for target, label in HTML_LINK.findall(self.text))
         self.assertEqual(links.get('Project Page'), PAGE)
         self.assertEqual(links.get('Citation'), '#citation')
         self.assertEqual(links.get('BibTeX'), PAGE + '#citation')
+        self.assertEqual(links.get('Tests on main'),
+                         'https://github.com/gatheluck/10YearVisualSSL/actions/workflows/tests.yml?query=branch%3Amain')
         citation = self.text.split('## Citation\n')[1].split('\n## ')[0]
         self.assertIn('Hirokatsu Kataoka, Kohsuke Ide, Yoshihiro Fukuhara, Shumpei Takezaki, '
                       'Nakamasa Inoue, Yuki M Asano and Christian Rupprecht.', citation)
         self.assertIn(f'*{TITLE}*. Manuscript, 2026.', citation)
-        self.assertIn('tests.yml/badge.svg?branch=main)', self.text)
-        self.assertIn('actions/workflows/tests.yml?query=branch%3Amain)', self.text)
 
     def test_figures_open_their_own_instructions_and_sources(self):
         rows = [line for line in self.text.splitlines() if re.match(r'^\| Figure \d+ \|', line)]
@@ -60,7 +62,8 @@ class PublicReadme(unittest.TestCase):
     def test_local_links_and_full_operating_guide(self):
         links = dict(LINK.findall(self.text))
         self.assertIn('OPERATING_GUIDE.md#methods', links.values())
-        for _, target in LINK.findall(self.text):
+        for target in [url for _, url in LINK.findall(self.text)] + [
+                url for url, _ in HTML_LINK.findall(self.text)]:
             if '://' in target:
                 continue
             path, _, fragment = target.partition('#')
@@ -68,6 +71,11 @@ class PublicReadme(unittest.TestCase):
             self.assertTrue(file.exists(), target)
             if fragment:
                 self.assertIn(fragment, anchors(file.read_text()), target)
+
+    def test_previous_readme_links_still_open(self):
+        old_fragments = {'key-results', 'find-a-figure-or-table', 'quick-verification', 'methods',
+                         'evaluation-protocols', 'files-cited-in-appendix-e', 'reproduction-scope'}
+        self.assertEqual(set(re.findall(r'<a name="([^"]+)"></a>', self.text)), old_fragments)
 
     def test_first_example_writes_documented_three_seed_configs(self):
         block = re.search(r'^```sh\n(.*?)\n```', self.text, re.M | re.S)

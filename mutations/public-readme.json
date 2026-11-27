@@ -3,8 +3,8 @@
     {
       "label": "Wrong figure instructions",
       "file": "README.md",
-      "old": "figure-7--representation-geometry",
-      "new": "figure-6--frontier-matched-subsets",
+      "old": "[Representation geometry](docs/PAPER_REPRODUCTION_GUIDE.md#figure-7--representation-geometry)",
+      "new": "[Representation geometry](docs/PAPER_REPRODUCTION_GUIDE.md#figure-6--frontier-matched-subsets)",
       "tests": [
         "tests.test_public_readme"
       ]
@@ -48,8 +48,8 @@
     {
       "label": "Wrong CI branch",
       "file": "README.md",
-      "old": "badge.svg?branch=main",
-      "new": "badge.svg?branch=dev",
+      "old": "actions/workflows/tests.yml?query=branch%3Amain",
+      "new": "actions/workflows/tests.yml?query=branch%3Adev",
       "tests": [
         "tests.test_public_readme"
       ]
