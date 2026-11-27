@@ -2,12 +2,13 @@
 // Each host page supplies a heading that fits its part of the paper.
 const broadTransfer = document.getElementById("figure-five");
 const figureHeading = broadTransfer.querySelector("h2");
+const scoresPage = document.getElementById("matrix") ? "" : "leaderboard.html";
 figureHeading.insertAdjacentHTML("beforebegin", '<p class="eyebrow">Figure 5 · Broad transfer</p>');
 figureHeading.insertAdjacentHTML("afterend", `
   <div class="transfer-facts">
-    <p><strong>29<span>/40</span></strong>DINOv3-7B leads · LP</p>
-    <p><strong>20<span>/40</span></strong>DINOv3-7B leads · AP</p>
-    <p><strong>6<span>/9</span></strong>RAEv2 leads · detection &amp; segmentation, AP</p>
+    <p><strong>29<span>/40</span></strong>DINOv3-7B leads with frozen-feature probing (LP)</p>
+    <p><strong>20<span>/40</span></strong>DINOv3-7B leads with attentive probing (AP)</p>
+    <p><strong>6<span>/9</span></strong>RAEv2 leads in detection and segmentation with attentive probing</p>
   </div>
   <figure>
     <div class="task-readout">
@@ -15,7 +16,11 @@ figureHeading.insertAdjacentHTML("afterend", `
       <output aria-live="polite"></output>
     </div>
     <div class="radar-comparison">
-      <p class="radar-guide">40 tasks clockwise from the top. The outer ring marks each task’s best score for that probe.</p>
+      <p class="radar-guide">40 tasks clockwise from the top. Scores are scaled to the best of the five models for each task and probe. The outer ring marks that best score.</p>
+      <div class="transfer-foot">
+        <a href="${scoresPage}#matrix">Inspect task scores</a>
+        <a href="${scoresPage}#holds">2 settings pending</a>
+      </div>
       <div class="plot-toolbar">
         <fieldset class="profile-switch"><legend class="sr">Visible profiles</legend>
           <label><input type="radio" name="radar-probe" value="Both" checked><span>Both</span></label>
@@ -28,9 +33,7 @@ figureHeading.insertAdjacentHTML("afterend", `
       <div class="transfer-pan" role="region" tabindex="0" aria-label="Five interactive radar charts">${transferVector}</div>
     </div>
     <section class="task-key" aria-label="Numbered task key"><h3>Task key</h3><div></div></section>
-  </figure>
-  <div class="transfer-foot"><p>38 settings with score details · 2 pending</p>
-  <a href="${document.getElementById("matrix") ? "#matrix" : "leaderboard.html#matrix"}">Inspect task scores</a></div>`);
+  </figure>`);
 
 const source = broadTransfer.querySelector(".transfer-pan svg");
 const chart = source.parentElement;

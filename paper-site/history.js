@@ -50,7 +50,7 @@
   function showDetails(row, i) {
     const [, name, description, metric] = benchmarks[i];
     el("source").textContent = scores
-      ? "Figure 2 · ASIS score"
+      ? "Figure 2 v45 · ASIS score"
       : "Figure 1 · Published rank";
     el("history-detail-title").textContent = row.name;
     const details = el("details");
@@ -165,7 +165,7 @@
     if (scores) rows.sort((a, b) => a.year - b.year || a.id - b.id);
     el("ranking").setAttribute("aria-pressed", String(!scores));
     el("scores").setAttribute("aria-pressed", String(scores));
-    el("heading").textContent = scores ? "Historical scores" : "Overall ranking";
+    el("heading").textContent = scores ? "Historical scores · Figure 2 v45" : "Overall ranking";
     el("history-count").textContent =
       rows.length + " of " + all.length + " configurations";
     el("context").textContent = scores

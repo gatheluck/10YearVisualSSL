@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<script src="legacy-board-links.js"></script><script defer src="history-data.js?v=b179a62c5b"></script><script defer src="film-data.js?v=01c7793222"></script><script defer src="history-film.js?v=03a9bd9ea0"></script><title>Overview · Vision Baselines</title><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="research.css"><link rel="stylesheet" href="study.css"><script defer src="extended-data.js"></script><script defer src="figure-five-vector.js"></script><script defer src="figure-five.js"></script><script defer src="sources.js"></script><script defer src="ranking-families.js"></script><script defer src="rank-preview.js?v=b838e808c8"></script><link rel="stylesheet" href="publication.css?v=18ba14b269"><script defer src="citation.js"></script></head>
+<script src="legacy-board-links.js"></script><script defer src="history-data.js?v=b179a62c5b"></script><script defer src="film-data.js?v=01c7793222"></script><script defer src="history-film.js?v=03a9bd9ea0"></script><title>Overview · Vision Baselines</title><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="research.css?v=da7d773a07"><link rel="stylesheet" href="study.css"><script defer src="extended-data.js"></script><script defer src="figure-five-vector.js"></script><script defer src="figure-five.js?v=d336f524c1"></script><script defer src="sources.js"></script><script defer src="ranking-families.js"></script><script defer src="rank-preview.js?v=fe85017695"></script><link rel="stylesheet" href="publication.css?v=dab9566474"><script defer src="citation.js"></script></head>
 <body id="overview"><a href="#study" class="skip">Skip to content</a><header>
       <div class="wrap nav">
         <a class="brand" href="index.html"
@@ -24,10 +24,12 @@
   <a href="leaderboard.html#figure-five" aria-label="40 dataset benchmarks · Explore Figure 5" title="Includes separate ImageNet 1% and 10% benchmarks"><b>40</b> <span>dataset benchmarks</span></a>
   <span title="Training and evaluation experiments"><b>2,500+</b> <span>experiments</span></span>
 </div>
-<figure class="history-film" aria-label="Figure 2 · Historical transfer over time">
-  <figcaption><div><small>FIGURE 2 · HISTORICAL TRANSFER</small><h2>Image classification on ImageNet-1K</h2><span class="film-metric"></span></div><div class="film-status"><strong class="film-year"></strong><button type="button" class="motion-toggle" hidden>Play motion</button></div></figcaption>
+<p class="study-question">Which vision models transfer best across tasks? <a href="#rankings">RAEv2 ranks first on ADE20K and seventh overall.</a></p>
+<figure class="history-film" id="history-animation" aria-label="Figure 2 · Historical transfer over time">
+  <figcaption><div><small>FIGURE 2 v46</small><h2>Image classification on ImageNet-1K</h2><span class="film-metric"></span></div><div class="film-status"><strong class="film-year"></strong><button type="button" class="motion-toggle" hidden>Play motion</button></div></figcaption>
   <svg role="img" aria-label="Scores by release date. The teal line shows the best score observed across all configurations up to that date."></svg>
   <div class="film-footer"><ul class="film-key" role="list" aria-label="Model families"></ul><strong class="film-best"></strong></div>
+  <a class="film-source" href="leaderboard.html#historical-evaluation">Source and evaluation conditions</a>
 </figure>
 <nav class="release-resources" aria-label="Reproduction resources">
   <a role="link" aria-disabled="true"><svg aria-hidden="true" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M5 2h9l5 5v15H5z M14 2v6h5 M8 12h8 M8 16h7"/></svg>arXiv paper · Coming soon</a>
@@ -65,7 +67,7 @@
     </td></tr></tfoot>
   </table>
 </div>
-<p id="standings-note">Separate model variants and feature readouts count as separate entries. The Figure 1 overall ranking uses the mean of the five task ranks. Scores are the reported ASIS results in Figure 2 of the November manuscript. A dash indicates a missing score.</p>
+<p id="standings-note">Separate model variants and feature readouts count as separate entries. The Figure 1 overall ranking uses the mean of the five task ranks. Scores come from the <a href="leaderboard.html#scores">manuscript’s Figure 2 (v45)</a> under original-setting evaluation (ASIS). A dash indicates a missing score.</p>
 <a class="rankings-rationale" href="#geometry">Why the Basic Five?</a>
 </figure>
 <section id="figure-five" aria-labelledby="transfer-head"><h2 id="transfer-head">Forty settings expose different strengths.</h2></section>

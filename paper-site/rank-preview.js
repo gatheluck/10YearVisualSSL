@@ -1,5 +1,6 @@
 const taskPicker = document.getElementById("preview-task");
 const standings = document.querySelector(".preview-standings");
+const viewport = standings.parentElement;
 const rankKeys = ["in1k", "coco", "ade20k", "nyuv2", "ssv2"];
 const familyColors = new Map(rankingFamilies.map(([family, , token]) => [family, "var(--" + token + ")"]));
 const resultsByModel = new Map(historicalScores.map(result => [result.name, result]));
@@ -15,7 +16,8 @@ function showStandings() {
     .sort((a, b) => rank(a) - rank(b));
   standings.caption.textContent = taskPicker.selectedOptions[0].text + " · Top 10 including ties";
   standings.querySelector("[aria-sort]")?.removeAttribute("aria-sort");
-  standings.querySelector(`[data-rank="${taskPicker.value}"]`).setAttribute("aria-sort", "ascending");
+  const selectedHeader = standings.querySelector(`[data-rank="${taskPicker.value}"]`);
+  selectedHeader.setAttribute("aria-sort", "ascending");
   const body = standings.tBodies[0];
   body.replaceChildren();
 
@@ -43,6 +45,12 @@ function showStandings() {
       taskRank.textContent = "Rank " + place;
       cell.append(score, taskRank);
     }
+  }
+
+  if (viewport.scrollWidth > viewport.clientWidth) {
+    const modelHeader = standings.tHead.rows[0].cells[0];
+    viewport.scrollLeft += selectedHeader.getBoundingClientRect().left -
+      modelHeader.getBoundingClientRect().right;
   }
 }
 taskPicker.addEventListener("change", showStandings);

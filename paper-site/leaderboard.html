@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="history.css" />
     <link rel="stylesheet" href="control.css" />
     <link rel="stylesheet" href="study.css" />
-    <link rel="stylesheet" href="research.css" />
+    <link rel="stylesheet" href="research.css?v=da7d773a07" />
     <script defer src="sources.js"></script>
     <script defer src="history-data.js?v=b179a62c5b"></script>
     <script defer src="rankboard.js?v=e4e859e137"></script>
@@ -19,9 +19,9 @@
     <script defer src="results.js"></script>
 
     <script defer src="site.js"></script>
-  <script defer src="extended-data.js"></script><script defer src="figure-five-vector.js"></script><script defer src="figure-five.js"></script><link rel="stylesheet" href="publication.css?v=935ba5ac04">
+  <script defer src="extended-data.js"></script><script defer src="figure-five-vector.js"></script><script defer src="figure-five.js?v=d336f524c1"></script><link rel="stylesheet" href="publication.css?v=dab9566474">
     <script defer src="control-data.js"></script>
-    <script defer src="history.js"></script>
+    <script defer src="history.js?v=4c04fa0ef3"></script>
     <script defer src="control.js"></script>
     <script defer src="extended.js"></script>
   </head>
@@ -186,6 +186,16 @@
           Compare Basic Five results by release year. Each checkpoint uses its original evaluation protocol.
         </p>
       </section>
+      <aside id="historical-evaluation" class="historical-evaluation" aria-labelledby="historical-evaluation-title">
+        <h3 id="historical-evaluation-title">Source and evaluation conditions</h3>
+        <p>The historical score table uses Figure 2 v45 from the November manuscript. The Overview animation uses v46, which includes later reported results. For COCO, MAGE is unavailable in v45 and plotted at 42.71 in v46. The v46 source notes describe a multilabel evaluation for some reruns, so the animation labels the COCO scores as mixed protocols.</p>
+        <p>Original-setting evaluation (ASIS) uses released or reproduced checkpoints. Feature extraction and downstream evaluation vary by model family.</p>
+        <div class="evaluation-links">
+          <a href="#scores">View manuscript scores</a>
+          <a href="index.html#history-animation">View v46 animation</a>
+          <a href="https://github.com/gatheluck/10YearVisualSSL/blob/main/docs/PAPER_REPRODUCTION_GUIDE.md#figure-2--historical-transfer">Historical transfer reproduction guide</a>
+        </div>
+      </aside>
       <section id="history-compare" aria-label="Compare historical results">
         <div class="toolbar">
           <div id="history-tracks" aria-label="Comparison view">
@@ -431,7 +441,7 @@
 <div class="study" id="transfer-details"><section><h2>Transfer across tasks</h2><p>Each highlighted cell marks a first-place score among the five models in that row. Select a task for its metric, probe conditions and original model papers.</p>
 <div class="filters"><label>Probe <select id="probe"><option>LP</option><option>AP</option></select></label><label>Task family <select id="family"><option>All</option></select></label><span aria-live="polite" id="transfer-count"></span></div>
 <div class="matrix-scroll" role="region" aria-label="Scrollable task scores" tabindex="0"><table id="matrix"><caption>Measured scores in the original metric</caption><thead><tr><th scope="col">Task / metric</th></tr></thead><tbody></tbody></table></div>
-<p id="holds">SpaceNet 2 and SUN RGB-D are on hold pending confirmation of their tasks and metrics. The table covers the other 38 of the paper’s 40 settings.</p></section>
+<p id="holds">The score table covers 38 of the paper’s 40 settings. SpaceNet 2 and SUN RGB-D are pending in this table. See the <a href="https://github.com/gatheluck/10YearVisualSSL/blob/main/docs/CVPR_EXTENDED_COVERAGE.md">evaluation guide</a> for their executed semantic metrics.</p></section>
 <section><p class="eyebrow">Evaluation conditions</p><h2>How to read the scores</h2><p>LP denotes linear or frozen-backbone probing with a task-specific head. AP denotes attentive probing. Each setting uses one seed. Subsets and related tasks count separately; a win count does not measure statistical significance.</p>
 <p>The paper plots percentages divided by 100 and errors mapped to 1/(1 + error), then scales each five-model group to its own maximum separately for LP and AP. This table preserves the source scores before normalization. SigLIP 2-G is the vision-language reference. The plotting source labels the RAEv2 series RAEv2-K7; exact feature-to-run correspondence remains unverified.</p></section>
 <dialog><form method="dialog"><button aria-label="Close details">Close ×</button></form><p class="eyebrow">Figure 5 · Evaluation detail</p><h2></h2><p id="conditions"></p><ul id="transfer-scores"></ul></dialog>

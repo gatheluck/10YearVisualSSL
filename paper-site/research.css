@@ -430,3 +430,10 @@ footer {
     transform: scale(1.4);
   }
 }
+
+#figure-five .radar-comparison .transfer-foot {
+  justify-content: flex-start;
+  gap: 6px 20px;
+  margin: 0 0 12px;
+  font-size: .85rem;
+}
