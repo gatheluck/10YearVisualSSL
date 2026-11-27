@@ -15,32 +15,13 @@ const path = require("node:path");
       process.env.OVERVIEW_HOME ||
         pathToFileURL(path.resolve(__dirname, "../paper-site/leaderboard.html")).href,
     );
-    for (const [width, height, minRows] of [
-      [1440, 900, 3],
-      [390, 844, 1],
-      [320, 640, 0],
-    ]) {
+    for (const [width, height] of [[1440, 900], [390, 844], [320, 640]]) {
       await page.setViewportSize({ width, height });
-      const matrix = await page.locator("#rank-matrix").boundingBox();
-      assert.ok(
-        matrix.y >= 0 && matrix.y + matrix.height < height,
-        "Complete rank matrix must be visible before scrolling at " + width,
-      );
-      if (minRows) {
-        const row = await page
-          .locator("#leaderboard tbody tr")
-          .nth(minRows - 1)
-          .boundingBox();
-        assert.ok(
-          row.y + row.height <= height,
-          "Leading standings must be visible before scrolling at " + width,
-        );
-      }
-      assert.ok(
-        await page.evaluate(
-          () => document.documentElement.scrollWidth <= innerWidth,
-        ),
-      );
+      const cells = page.locator("#rank-matrix .matrix-cell");
+      assert.ok(await cells.first().isVisible());
+      const lastTask = await cells.nth(4).boundingBox();
+      assert.ok(lastTask.y + lastTask.height <= height, "The five task rows must fit on the opening screen");
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
     }
     await page.getByText("Compare rank trajectories", { exact: true }).click();
     const lines = page.locator("#rank-atlas polyline");

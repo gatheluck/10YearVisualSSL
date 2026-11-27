@@ -1,46 +1,77 @@
 @scope (#controlled) {
 .comparison {
   display: grid;
-  grid-template-columns: minmax(275px, 1fr) minmax(240px, 1fr);
-  gap: clamp(20px, 4vw, 60px);
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: clamp(12px, 2vw, 28px);
   align-items: start;
-  margin: 24px 0 36px;
+  margin: 16px 0 36px;
 }
 .comparison figure {
   border: 1px solid #bfd1d3;
   border-radius: 8px;
   background: linear-gradient(120deg, #eef6f2, #eef1fb);
-  padding: 20px;
+  padding: clamp(12px, 2vw, 24px);
 }
-.comparison h2,
-.reading #control-finding {
+.comparison h2 {
   font:
     400 clamp(25px, 3vw, 38px) / 1.1 Georgia,
     serif;
   letter-spacing: -0.04em;
 }
 #paired {
-  width: 100%;
-  height: clamp(185px, 25vw, 250px);
-  margin: 8px 0;
+  display: block;
+  width: min(100%, 360px);
+  height: auto;
+  margin: 4px auto 0;
 }
+#paired text { font: 13px var(--sans, system-ui); }
 #chart-note,
+#control-direction,
 #rule,
 dd {
   color: var(--muted);
   font-size: 14px;
   line-height: 1.5;
 }
+#chart-note,
+#control-direction {
+  margin: 4px 0;
+}
 #rule {
   margin: 8px 0 14px;
 }
 .reading {
-  padding: 15px 0;
+  align-self: start;
+  min-width: 0;
+  padding: clamp(12px, 2vw, 26px);
 }
-.reading #control-finding {
-  margin: 15px 0 24px;
-  color: var(--ink);
+.reading h3 {
+  margin: 0;
+  font-size: 18px;
 }
+#control-outcomes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin: 14px 0;
+}
+#control-outcomes div {
+  padding: 8px 4px;
+  border: 1px solid #536770;
+  border-radius: 5px;
+  text-align: center;
+  color: #e8f5f3;
+}
+#control-outcomes dd {
+  margin: 4px 0 0;
+  font-size: clamp(23px, 4vw, 36px);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: inherit;
+}
+#control-outcomes .better dd { color: #83e5df; }
+#control-outcomes .worse dd { color: #ffb1ae; }
+.reading details dd { color: #d4e4e3; }
 details {
   border-block: 1px solid var(--line);
   padding: 16px 0;

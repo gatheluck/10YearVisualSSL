@@ -222,3 +222,178 @@ header nav[aria-label=Primary] a:not([aria-current]):hover {background:#e4efeb;}
 .historical-evaluation p { max-width: 78ch; margin: 8px 0; }
 .evaluation-links { display: flex; flex-wrap: wrap; gap: 8px 18px; }
 .evaluation-links a { text-decoration: underline; text-underline-offset: 3px; }
+
+.ranking-filters { display:flex; gap:12px; flex-wrap:wrap; }
+.rank-table-top .ranking-filters label { display:grid; gap:4px; }
+.ranking-filters select { min-height:34px; max-width:100%; border:1px solid #9aafa8; border-radius:5px; background:white; padding-inline:8px; }
+#leaderboard .rank-scroll table { min-width:0; table-layout:auto; }
+#leaderboard .rank-scroll :is(th,td) { padding:10px 8px; }
+#leaderboard .rank-scroll tbody th { white-space:normal; overflow-wrap:anywhere; vertical-align:middle; }
+#leaderboard .rank-scroll thead th:first-child { width:clamp(82px, 10vw, 120px); }
+#leaderboard .rank-scroll th:nth-child(2) { text-align:left; }
+#leaderboard .rank-scroll td button { font:inherit; color:#155752; text-decoration:underline; text-underline-offset:3px; }
+.rank-scroll .inspect-model { padding:0; text-align:left; font:inherit; color:#155752; cursor:pointer; }
+.rank-scroll .inspect-model:hover { text-decoration:underline; }
+.rank-scroll th > .paper-link { display:inline-block; margin-inline-start:6px; padding:2px; }
+.ranked-model { border-radius:8px; text-align:left; min-width:0; }
+.ranked-model[hidden] { display:none; }
+.ranked-model .model-profile-body dl {
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(min(112px, 100%), 1fr));
+  width:100%;
+  gap:10px;
+}
+.ranked-model dd { display:grid; gap:3px; }
+.ranked-model dd button,
+#leaderboard .rank-scroll .ranked-model dd button {
+  text-align:left;
+  padding:0;
+  color:#dbf7ef;
+  border:0;
+  background:none;
+  font:inherit;
+  text-decoration:underline;
+  cursor:pointer;
+}
+.ranked-model dd small { color:#c8dfde; font-size:.75rem; }
+.profile-toggle,
+#leaderboard .rank-scroll .profile-toggle {
+  color:#dbf7ef;
+  background:transparent;
+  border:1px solid #779794;
+  border-radius:4px;
+  padding:7px 10px;
+  font:inherit;
+  cursor:pointer;
+  text-decoration:none;
+}
+.profile-toggle:hover,
+#leaderboard .rank-scroll .profile-toggle:hover {
+  background:#21434b;
+}
+#close-model { margin-top:12px; }
+#leaderboard .rank-scroll .rank-detail-row > td { padding:0 5px 8px; }
+.rank-detail-row .ranked-model { display:block; }
+button .disclosure-mark::after { content:" ＋"; font-weight:400; }
+button[aria-expanded="true"] .disclosure-mark::after { content:" −"; }
+.matrix-model-profile { border-radius:0; border-top:1px solid #536770; }
+.matrix-model-profile .model-profile-body {
+  display:flex;
+  align-items:baseline;
+  flex-wrap:wrap;
+  gap:2px 12px;
+}
+.matrix-model-profile .model-profile-body h3 { margin:0; overflow-wrap:anywhere; }
+.matrix-model-profile .spotlight { margin:0; }
+.matrix-model-profile .spotlight strong { font-size:clamp(20px, 2vw, 28px); }
+.ranked-model .model-profile-body dt {
+  font:600 13px/1.3 system-ui, sans-serif;
+}
+.profile-metric {
+  display:block;
+  color:#c4dce2;
+  font-size:12px;
+  font-weight:400;
+}
+.rank-map .matrix-key {
+  min-height:30px;
+  flex-wrap:wrap;
+  gap:4px 7px;
+  scroll-margin-top:60px;
+}
+#matrix-task-result {
+  color:#155752;
+  font-weight:700;
+}
+#matrix-task-result:empty { display:none; }
+.matrix-cell {
+  display:block;
+  min-width:0;
+  padding:0;
+  border:0;
+  border-right:1px solid #ffffff70;
+  cursor:pointer;
+}
+.matrix-cell:hover,
+.matrix-cell:focus-visible,
+.matrix-column.picked .matrix-cell[aria-pressed="true"] {
+  outline:2px solid #3c2a00;
+  outline-offset:-2px;
+  box-shadow:inset 0 0 0 4px #ffc700;
+}
+.matrix-scroll-cue {
+  color:#155752;
+  font-weight:700;
+  text-align:right;
+  white-space:nowrap;
+}
+.comparison-panel { margin-block:12px; border-block:1px solid #c4d9d2; padding:12px 0; }
+.comparison-panel + .comparison-panel { border-top:0; }
+.comparison-panel > summary { color:#155752; cursor:pointer; font-weight:650; }
+.rank-visuals .rank-spread { display:block; }
+#rank-score-dialog dl { line-height:1.5; }
+#rank-score-dialog dt { margin-top:.65em; font-weight:700; }
+#rank-score-dialog dd { margin:0; }
+#rank-score-dialog a { color:#155752; text-decoration:underline; text-underline-offset:3px; }
+#rank-score-dialog form button { min-width:36px; min-height:36px; padding:4px; color:#155752; background:#edf5f1; border:1px solid #9aafa8; border-radius:6px; cursor:pointer; }
+@media (max-width:550px) {
+  .ranking-filters { width:100%; }
+  .ranking-filters label { flex:1; min-width:0; }
+  .ranking-filters input, .ranking-filters select { width:100%; box-sizing:border-box; margin:0; }
+  #leaderboard .rank-scroll :is(th,td) { padding:8px 5px; font-size:13px; }
+  #leaderboard .rank-scroll td button { white-space:normal; }
+}
+
+.rank-visuals .rank-map h2 {
+  margin: 0;
+  font: 400 clamp(24px, 2.7vw, 39px)/1.1 Georgia, serif;
+  letter-spacing: -.04em;
+}
+.rank-visuals .matrix-guide { margin: 6px 0; }
+.rank-visuals .model-tick { font-size: 9px; }
+.rank-visuals .matrix-shell { --column-width: 9px; --tick-height: 101px; }
+.rank-visuals + .rank-board { padding-top: 6px; }
+.ranking-method { color: var(--muted); font-size: .875rem; margin: 4px 0 12px; }
+#leaderboard #rank-components[hidden] { display: none; }
+.task-ranks-list {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
+}
+#leaderboard .rank-scroll .task-ranks button {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  min-width: 0;
+  width: 100%;
+  min-height: 35px;
+  padding: 4px 1px;
+  font-size: 13px;
+  color: #1b554e;
+  text-decoration: none;
+  background: #edf5f1;
+  border: 1px solid #d3e4df;
+  border-radius: 4px;
+  cursor: pointer;
+}
+#leaderboard .rank-scroll .task-ranks button:hover,
+#leaderboard .rank-scroll .task-ranks button:focus-visible {
+  background: #d1ebe3;
+  text-decoration: underline;
+}
+.task-ranks button span { font-size: .72rem; overflow-wrap: anywhere; }
+@media (max-width: 700px) {
+  .rank-visuals .matrix-shell { --column-width: 13px; --tick-height: 112px; }
+  .rank-visuals .model-tick { font-size: 10px; }
+  #leaderboard.overall-ranks .rank-scroll .rank-detail-row > td { grid-column:1 / -1; }
+  .overall-ranks .rank-scroll :is(table, thead, tbody) { display: block; }
+  .overall-ranks .rank-scroll tr {
+    display: grid;
+    grid-template-columns: 75px minmax(0, 1fr) 72px;
+    align-items: center;
+  }
+  #leaderboard.overall-ranks .rank-scroll th:first-child { width: auto; }
+  #leaderboard.overall-ranks .rank-scroll :is(#rank-components, .task-ranks) { grid-column: 1 / -1; }
+  #leaderboard.overall-ranks .rank-scroll #rank-components { text-align: left; }
+  #leaderboard.overall-ranks .rank-scroll .task-ranks { padding-top: 4px; }
+}

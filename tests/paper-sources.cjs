@@ -39,13 +39,15 @@ const { chromium } = require("playwright");
     assert.equal(
       await p
         .locator("#leaderboard tbody")
-        .getByRole("link", { name: "iGPT", exact: true })
+        .getByRole("link", { name: "Original source for iGPT", exact: true })
         .getAttribute("href"),
       "https://proceedings.mlr.press/v119/chen20s.html",
     );
-    await p.locator("#inspect-config").selectOption("FLUX.2");
+    await p.locator("#rank-matrix").getByRole("button", {
+      name: /^FLUX\.2 · ImageNet-1K · Rank/,
+    }).click();
     assert.match(
-      await p.locator("#rank-profile a").getAttribute("title"),
+      await p.locator("#matrix-model-profile a").getAttribute("title"),
       /official release/i,
     );
     for (const [file, count] of [

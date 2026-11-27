@@ -14,10 +14,11 @@ const path = require("node:path");
     await page.setViewportSize({ width: 390, height: 844 });
     assert.ok(
       await page
-        .getByRole("link", { name: /Explore historical results/ })
+        .getByRole("link", { name: "History", exact: true })
         .isVisible(),
       "Both experiment paths must stay visible on mobile",
     );
+    await page.getByRole("link", { name: "Basic Five probes" }).click();
     const story = page.locator(".readout-story");
     assert.equal(
       await story.count(),
@@ -28,16 +29,13 @@ const path = require("node:path");
     assert.equal(await story.locator("#reversal-count").innerText(), "0 / 10");
     await story.getByRole("button", { name: "SSv2", exact: true }).click();
     assert.equal(await story.locator("#reversal-count").innerText(), "4 / 10");
-    await page.getByRole("link", { name: /Explore paired results/ }).click();
+    await page.getByRole("link", { name: "ASIS vs CTRL" }).click();
     await page.waitForURL("**/leaderboard.html#controlled");
     for (const benchmark of ["ImageNet-1K", "NYUv2"]) {
       await page.locator("#controlled").getByLabel("Benchmark").selectOption(benchmark);
-      const better = await page.locator("td.better").count();
-      assert.equal(
-        await page.locator("#outcome-strip .better").count(),
-        better,
-      );
-      assert.equal(await page.locator("#outcome-strip i").count(), 32);
+      const total = await page.locator("#control-outcomes dd").allTextContents();
+      assert.equal(total.map(Number).reduce((a, b) => a + b, 0), 32);
+      assert.equal(Number(total[0]), await page.locator("#controlled td.better").count());
     }
     await page.setViewportSize({ width: 390, height: 844 });
     assert.ok(

@@ -1,8 +1,6 @@
 "use strict";
 (() => {
-  const byName = new Map(historicalScores.map((row) => [row.name, row.family]));
-  byName.set("V-JEPA (ViT-H)", "VSSL");
-  byName.set("V-JEPA (ViT-L)", "VideoSSL");
+  const byName = new Map(historicalRanks.map(row => [row.name, manuscriptScoreForRank(row).family]));
   const svg = document.getElementById("rank-atlas");
   const legend = document.querySelector(".family-legend");
   function mark(tag, attrs, parent = svg) {

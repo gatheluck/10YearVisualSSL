@@ -32,13 +32,11 @@ const paperDigests = {
       await page.locator("h1").innerText(),
       /Visual transfer leaderboard/i,
     );
+    await page.getByRole("link", { name: "Basic Five probes" }).click();
     await page.getByRole("button", { name: "COCO", exact: true }).click();
     assert.match(await page.locator("#finding").innerText(), /0 of 10/);
     await page.getByRole("button", { name: "SSv2", exact: true }).click();
     assert.match(await page.locator("#finding").innerText(), /4 of 10/);
-    await page
-      .getByRole("link", { name: "Explore leaderboard", exact: true })
-      .click();
     assert.equal(await page.locator("#unified tbody tr").count(), 5);
     let total = 0;
     for (const [protocol, n] of [

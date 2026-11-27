@@ -6,7 +6,7 @@ const path = require("node:path");
  const b=await chromium.launch({executablePath:process.env.CHROME_PATH});
  try {
   const p=await b.newPage({viewport:{width:1280,height:900}});
-  await p.goto(process.env.BOARD_HOME || pathToFileURL(path.resolve(__dirname,"../paper-site/leaderboard.html")).href);
+  await p.goto(process.env.BOARD_HOME || pathToFileURL(path.resolve(__dirname,"../paper-site/leaderboard.html")).href + "#figure-five");
   const section=p.locator("#figure-five");
   await section.screenshot({path:"/tmp/web-radar-desktop.png"});
   await p.setViewportSize({width:390,height:844});
