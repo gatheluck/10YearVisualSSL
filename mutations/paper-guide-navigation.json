@@ -1,0 +1,58 @@
+{
+  "targets": [
+    {
+      "label": "missing guide entry",
+      "file": "docs/SUBMISSION_SCOPE.md",
+      "old": "(PAPER_REPRODUCTION_GUIDE.md)",
+      "new": "(SUBMISSION_SCOPE.md)",
+      "tests": [
+        "tests.test_paper_guide_navigation"
+      ]
+    },
+    {
+      "label": "unreachable figure",
+      "file": "docs/PAPER_REPRODUCTION_GUIDE.md",
+      "old": "## Figure 4 \u2014",
+      "new": "## Figure 3 \u2014",
+      "tests": [
+        "tests.test_paper_guide_navigation"
+      ]
+    },
+    {
+      "label": "broken protocol link",
+      "file": "docs/PAPER_REPRODUCTION_GUIDE.md",
+      "old": "(initial_protocols/INITIAL_STEP2_v1.md)",
+      "new": "(absent-protocol.md)",
+      "tests": [
+        "tests.test_paper_guide_navigation"
+      ]
+    },
+    {
+      "label": "missing archive methods heading",
+      "file": "docs/templates/CVPR_REVIEWER_README.md",
+      "old": "### Methods",
+      "new": "### Model adapters",
+      "tests": [
+        "tests.test_paper_guide_navigation"
+      ]
+    },
+    {
+      "label": "archive starts with all probe tests",
+      "file": "docs/templates/CVPR_REVIEWER_README.md",
+      "old": ".DenseProbe.test_missing_submodule_reports_actionable_error",
+      "new": "",
+      "tests": [
+        "tests.test_paper_guide_navigation"
+      ]
+    },
+    {
+      "label": "incomplete count of correlations",
+      "file": "docs/PAPER_REPRODUCTION_GUIDE.md",
+      "old": "10 pooled Spearman correlations",
+      "new": "5 pooled Spearman correlations",
+      "tests": [
+        "tests.test_paper_guide_navigation"
+      ]
+    }
+  ]
+}

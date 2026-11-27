@@ -178,6 +178,7 @@ installed as `code/README.md`, not read with template-relative links. Its links
 resolve from the export root. Use its exact UTF-8 text as the private policy's
 `replacements["README.md"].text`, with the SHA-256 of the selected commit's
 original README. The exporter does not select this template automatically.
+Include `docs/PAPER_REPRODUCTION_GUIDE.md` and its linked documents and configs in the archive policy. Check the extracted guide against the replacement README, including its Methods heading, and exercise the quick checks using the sources actually bundled.
 Include the five Markdown/JSON pairs in `docs/current_protocols/` for the CVPR guide, along with the linked guides, protocol documents and JSON registries
 in the allowlist. Review any hash-bound approvals after source changes and
 inspect the final ZIP; a checked template does not certify a future archive.

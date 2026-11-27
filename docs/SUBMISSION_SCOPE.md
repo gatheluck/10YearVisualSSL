@@ -1,5 +1,7 @@
 # Experimental implementations and the portable submission package
 
+Start with the [figure-by-figure reproduction guide](PAPER_REPRODUCTION_GUIDE.md) for the submitted CVPR paper and supplement. It identifies the inputs for each route and where measured results differ.
+
 For the revised manuscript inspected in November, start with the
 [LoRA/DPT task profiles](CVPR_ADAPTATION.md), the
 [40-setting Extended coverage ledger](CVPR_EXTENDED_COVERAGE.md) and the
