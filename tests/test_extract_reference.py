@@ -102,7 +102,7 @@ def main():
     extract_features(None, SimpleNamespace(dataset=SimpleNamespace(root=DATA_ROOT+'/val', targets=[0,1], samples=[(Path('a'),0),(Path('b'),1)], classes=['a','b'], transform='fixture')), 'cpu')
     raise AssertionError('training started')
 ''')
-            profile = {'source': str(source), 'source_sha256': hashlib.sha256(source.read_bytes()).hexdigest(), 'data_root': str(root/'data'), 'count': 2, 'id': 'fixture', 'argv': [], 'checkpoint': str(source)}
+            profile = {'source': str(source), 'source_sha256': hashlib.sha256(source.read_bytes()).hexdigest(), 'data_root': str(root/'data'), 'count': 2, 'id': '28_dinov2', 'method': 'fixture', 'argv': [], 'checkpoint': str(source)}
             # The fixture provides its root without relying on private configuration.
             source.write_text('DATA_ROOT = '+repr(profile['data_root'])+'\n'+source.read_text())
             profile['source_sha256'] = hashlib.sha256(source.read_bytes()).hexdigest()
@@ -112,6 +112,7 @@ def main():
             np.testing.assert_array_equal(np.load(out/'labels.npy'), [0,1])
             self.assertEqual(json.loads((out/'result.json').read_text())['status'], 'ok')
             meta = json.loads((out/'meta.json').read_text())
+            self.assertEqual(meta['method'], profile['id'].split('_', 1)[1])
             self.assertEqual(meta['arch'], 'fixture')
             self.assertEqual(meta['preprocessing'], 'fixture')
             self.assertEqual(len(meta['sample_order_sha256']), 64)

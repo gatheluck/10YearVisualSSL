@@ -17,7 +17,7 @@ checkpoint, recover training state, or convert a released HF model.
 ## Importing a native teacher checkpoint
 
 From the repository root with the downstream environment active, run
-`python -m methods.31_dinov3.downstream_backbone_ablation --source native.pth --sha256 VERIFIED_SHA256 --arch vit_base_patch16 --epoch 300 --out new-teacher-export`.
+`python -m methods.dinov3.downstream_backbone_ablation --source native.pth --sha256 VERIFIED_SHA256 --arch vit_base_patch16 --epoch 300 --out new-teacher-export`.
 Replace the hash with independently verified source provenance; use
 `vit_large_patch16` only for a matching native large model. `--epoch` matches
 the literal saved `epoch` field, not a number inferred from the filename.

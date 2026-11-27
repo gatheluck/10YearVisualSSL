@@ -64,7 +64,7 @@ experiments from these connections or silently substitute the generic ViT kind.
 
 ### Importing a native epoch-boundary checkpoint
 
-Run `python methods/10_inst_disc/models/scaling_encoder.py --source /path/to/native.pth --sha256 SOURCE_SHA256 --arch vit_large_patch16_224 --completed-epoch 100 --state-key state_dict --prefix vit. --out /path/to/new-export`.
+Run `python methods/inst_disc/models/scaling_encoder.py --source /path/to/native.pth --sha256 SOURCE_SHA256 --arch vit_large_patch16_224 --completed-epoch 100 --state-key state_dict --prefix vit. --out /path/to/new-export`.
 
 The source hash must be independently recorded before conversion. Choose the
 architecture, mapping and epoch from inspected checkpoint metadata, not its

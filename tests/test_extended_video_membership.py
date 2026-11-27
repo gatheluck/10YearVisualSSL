@@ -8,7 +8,7 @@ import unittest
 class TestVideoMembership(unittest.TestCase):
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup);self.root=Path(self.tmp.name)
-    def put(self,name,data='clip'):
+    def put(self,name,data='video bytes'):
         p=self.root/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_text(data);return p
     def hmdb(self):
         for cls in ('z','a'):

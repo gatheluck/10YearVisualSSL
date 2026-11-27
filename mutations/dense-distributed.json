@@ -109,8 +109,8 @@
       ]
     },
     {
-      "label": "38_clip dense DDP policy",
-      "file": "methods/38_clip/downstream_backbone.py",
+      "label": "clip dense DDP policy",
+      "file": "methods/clip/downstream_backbone.py",
       "old": "\"distributed\": True",
       "new": "\"distributed\": False",
       "tests": [

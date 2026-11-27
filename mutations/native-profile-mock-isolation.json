@@ -29,7 +29,7 @@
     },
     {
       "label": "catch reintroduced process-wide importer patch",
-      "file": "tests/test_method_02_vae_native_options.py",
+      "file": "tests/test_method_vae_native_options.py",
       "old": "patch.object(provider, 'importlib', SimpleNamespace(import_module=Mock(side_effect=sibling)))",
       "new": "patch('importlib.import_module', side_effect=sibling)",
       "tests": [

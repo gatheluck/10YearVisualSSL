@@ -31,7 +31,7 @@ exactly, so the feature is the same one the linear probe is fit on.
 The shipped `configs/linear_eval.yaml` pins the official ViT-L/16 (embed_dim
 1024, depth 24). `build_model` builds strictly from architecture keys and loads
 the checkpoint strict, so those keys must match the weights handed in. As
-`eva02` / `28_dinov2` do, the architecture-shaping keys (`embed_dim`,
+`eva02` / `dinov2` do, the architecture-shaping keys (`embed_dim`,
 `tubelet_size`, `patch_size` from `encoder.embeddings.patch_embeddings.proj.weight`
 of shape `(embed_dim, 3, tubelet_size, patch_size, patch_size)`, and `depth`
 from the `encoder.layer.N.*` indices) are read from the checkpoint, so the model

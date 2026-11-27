@@ -36,7 +36,13 @@ import json
 import sys
 from pathlib import Path
 
+
 ROOT = Path(__file__).resolve().parent.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from adapterlib.method_names import public_name
+
 SCHEMA_VERSION = 1
 
 
@@ -117,7 +123,7 @@ def audit(matrix: dict, specs) -> dict:
     each method's stage chain. Returns a report; status ok only when nothing is
     wrong and the matrix's own status agrees."""
     by_name = {method: spec for method, spec in specs}
-    cells = matrix.get("cells", [])
+    cells = [dict(cell, method=public_name(cell.get("method"))) for cell in matrix.get("cells", [])]
     top_problems = []
     if not cells:
         top_problems.append("the matrix names no cells; nothing was produced")

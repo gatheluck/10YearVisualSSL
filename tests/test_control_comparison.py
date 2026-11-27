@@ -58,6 +58,20 @@ class ControlledComparison(unittest.TestCase):
             self.assertNotEqual(self.invoke(data, directory).returncode, 0)
             self.assertEqual(before, out.read_bytes())
 
+    def test_saved_rows_use_public_ids_and_alias_collisions_fail(self):
+        from downstream.controlled_comparison import compare_controlled
+
+        data = source()
+        old = "38_clip"
+        name = old.split("_", 1)[1]
+        data["records"][0]["method"] = old
+        report = compare_controlled(data)
+        self.assertIn(name, report["tasks"]["COCO"]["methods"])
+        self.assertEqual(data["records"][0]["method"], old)
+        data["records"][1]["method"] = name
+        with self.assertRaisesRegex(ValueError, "distinct"):
+            compare_controlled(data)
+
     def test_refuses_wrong_or_partial_panels_without_creating_report(self):
         for change in ('method', 'task', 'track', 'count', 'unit', 'nonfinite', 'classification', 'wrong_metric'):
             data = source()

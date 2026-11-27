@@ -2,7 +2,7 @@
   "targets": [
     {
       "label": "native image geometry",
-      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "file": "methods/inst_disc/downstream_backbone.py",
       "old": "spec.get(\"img_size\") != 224",
       "new": "False",
       "tests": [
@@ -11,7 +11,7 @@
     },
     {
       "label": "native patch geometry",
-      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "file": "methods/inst_disc/downstream_backbone.py",
       "old": "spec.get(\"patch_size\") != 16",
       "new": "False",
       "tests": [
@@ -20,7 +20,7 @@
     },
     {
       "label": "no dimension overrides",
-      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "file": "methods/inst_disc/downstream_backbone.py",
       "old": "any(key in spec for key in (\"embed_dim\", \"depth\", \"num_heads\"))",
       "new": "False",
       "tests": [
@@ -29,7 +29,7 @@
     },
     {
       "label": "local file required",
-      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "file": "methods/inst_disc/downstream_backbone.py",
       "old": "if not spec.get(\"encoder\") or not Path(spec[\"encoder\"]).is_file():",
       "new": "if False:",
       "tests": [
@@ -38,7 +38,7 @@
     },
     {
       "label": "matching preset",
-      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "file": "methods/inst_disc/downstream_backbone.py",
       "old": "if spec.get(\"arch\") != export[\"model\"]:",
       "new": "if False:",
       "tests": [
@@ -47,7 +47,7 @@
     },
     {
       "label": "strict state",
-      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "file": "methods/inst_disc/downstream_backbone.py",
       "old": "strict=True",
       "new": "strict=False",
       "tests": [
@@ -56,7 +56,7 @@
     },
     {
       "label": "intrinsic frozen params",
-      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "file": "methods/inst_disc/downstream_backbone.py",
       "old": "self.requires_grad_(False)",
       "new": "self.requires_grad_(True)",
       "tests": [
@@ -65,7 +65,7 @@
     },
     {
       "label": "remain eval",
-      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "file": "methods/inst_disc/downstream_backbone.py",
       "old": "return super().train(False)",
       "new": "return super().train(mode)",
       "tests": [
@@ -74,7 +74,7 @@
     },
     {
       "label": "spatial excludes cls",
-      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "file": "methods/inst_disc/downstream_backbone.py",
       "old": "self.tokens(images)[:, 1:]",
       "new": "self.tokens(images)[:, :-1]",
       "tests": [
@@ -83,7 +83,7 @@
     },
     {
       "label": "global cls readout",
-      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "file": "methods/inst_disc/downstream_backbone.py",
       "old": "F.normalize(self.tokens(images)[:, 0], dim=-1)",
       "new": "F.normalize(self.tokens(images)[:, 1], dim=-1)",
       "tests": [
@@ -92,7 +92,7 @@
     },
     {
       "label": "global normalization",
-      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "file": "methods/inst_disc/downstream_backbone.py",
       "old": "return F.normalize(self.tokens(images)[:, 0], dim=-1)",
       "new": "return self.tokens(images)[:, 0]",
       "tests": [
@@ -101,7 +101,7 @@
     },
     {
       "label": "video average",
-      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "file": "methods/inst_disc/downstream_backbone.py",
       "old": "return cls.reshape(images.shape[0], images.shape[1], -1).mean(1)",
       "new": "return cls.reshape(images.shape[0], images.shape[1], -1)[:, 0]",
       "tests": [
@@ -110,7 +110,7 @@
     },
     {
       "label": "video no normalization",
-      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "file": "methods/inst_disc/downstream_backbone.py",
       "old": "return cls.reshape(images.shape[0], images.shape[1], -1).mean(1)",
       "new": "return F.normalize(cls.reshape(images.shape[0], images.shape[1], -1).mean(1), dim=-1)",
       "tests": [
@@ -119,7 +119,7 @@
     },
     {
       "label": "already normalized inputs",
-      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "file": "methods/inst_disc/downstream_backbone.py",
       "old": "return self.encoder.forward_features(images.to(device=param.device, dtype=param.dtype)).float()",
       "new": "return self.encoder.forward_features(images.to(device=param.device, dtype=param.dtype) + 1).float()",
       "tests": [
@@ -128,7 +128,7 @@
     },
     {
       "label": "nonempty batch",
-      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "file": "methods/inst_disc/downstream_backbone.py",
       "old": "images.shape[0] == 0",
       "new": "False",
       "tests": [
@@ -137,7 +137,7 @@
     },
     {
       "label": "image rank",
-      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "file": "methods/inst_disc/downstream_backbone.py",
       "old": "images.ndim != 4",
       "new": "False",
       "tests": [
@@ -146,7 +146,7 @@
     },
     {
       "label": "channels",
-      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "file": "methods/inst_disc/downstream_backbone.py",
       "old": "images.shape[1] != 3",
       "new": "False",
       "tests": [
@@ -155,7 +155,7 @@
     },
     {
       "label": "positive grid",
-      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "file": "methods/inst_disc/downstream_backbone.py",
       "old": "min(images.shape[-2:]) < 16",
       "new": "False",
       "tests": [
@@ -164,7 +164,7 @@
     },
     {
       "label": "divisible grid",
-      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "file": "methods/inst_disc/downstream_backbone.py",
       "old": "any(size % 16 for size in images.shape[-2:])",
       "new": "False",
       "tests": [
@@ -173,7 +173,7 @@
     },
     {
       "label": "video rank",
-      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "file": "methods/inst_disc/downstream_backbone.py",
       "old": "images.ndim != 5",
       "new": "False",
       "tests": [
@@ -182,7 +182,7 @@
     },
     {
       "label": "video frames",
-      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "file": "methods/inst_disc/downstream_backbone.py",
       "old": "images.shape[1] == 0",
       "new": "False",
       "tests": [
@@ -191,7 +191,7 @@
     },
     {
       "label": "frozen only",
-      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "file": "methods/inst_disc/downstream_backbone.py",
       "old": "if adaptation != \"frozen\":",
       "new": "if False:",
       "tests": [
@@ -200,7 +200,7 @@
     },
     {
       "label": "explicit component",
-      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "file": "methods/inst_disc/downstream_backbone.py",
       "old": "COMPONENT_ONLY = True",
       "new": "COMPONENT_ONLY = False",
       "tests": [
@@ -209,7 +209,7 @@
     },
     {
       "label": "reject finetune",
-      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "file": "methods/inst_disc/downstream_backbone.py",
       "old": "SUPPORTED_ADAPTATIONS = (\"frozen\",)",
       "new": "SUPPORTED_ADAPTATIONS = (\"frozen\", \"finetune\")",
       "tests": [
@@ -218,7 +218,7 @@
     },
     {
       "label": "temporal rng",
-      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "file": "methods/inst_disc/downstream_backbone.py",
       "old": "\"temporal_rng\": \"python\"",
       "new": "\"temporal_rng\": \"torch\"",
       "tests": [
@@ -227,7 +227,7 @@
     },
     {
       "label": "video interpolation",
-      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "file": "methods/inst_disc/downstream_backbone.py",
       "old": "VIDEO_RECIPE = {\"interpolation\": \"bicubic\"",
       "new": "VIDEO_RECIPE = {\"interpolation\": \"bilinear\"",
       "tests": [
@@ -236,7 +236,7 @@
     },
     {
       "label": "distributed deferred",
-      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "file": "methods/inst_disc/downstream_backbone.py",
       "old": "\"distributed\": False",
       "new": "\"distributed\": True",
       "tests": [
@@ -245,7 +245,7 @@
     },
     {
       "label": "discard tail",
-      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "file": "methods/inst_disc/downstream_backbone.py",
       "old": "\"tail_policy\": \"discard\"",
       "new": "\"tail_policy\": \"flush\"",
       "tests": [
@@ -254,7 +254,7 @@
     },
     {
       "label": "rank seed policy",
-      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "file": "methods/inst_disc/downstream_backbone.py",
       "old": "\"rank_seed_stride\": 1000",
       "new": "\"rank_seed_stride\": 1",
       "tests": [
@@ -263,7 +263,7 @@
     },
     {
       "label": "head initialization",
-      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "file": "methods/inst_disc/downstream_backbone.py",
       "old": "classifier_init_std = .01",
       "new": "classifier_init_std = 0.",
       "tests": [
@@ -272,7 +272,7 @@
     },
     {
       "label": "preset allowlist",
-      "file": "methods/10_inst_disc/models/scaling_encoder.py",
+      "file": "methods/inst_disc/models/scaling_encoder.py",
       "old": "if arch not in PRESETS:",
       "new": "if False:",
       "tests": [
@@ -281,7 +281,7 @@
     },
     {
       "label": "export mapping",
-      "file": "methods/10_inst_disc/models/scaling_encoder.py",
+      "file": "methods/inst_disc/models/scaling_encoder.py",
       "old": "not isinstance(export, dict)",
       "new": "False",
       "tests": [
@@ -290,7 +290,7 @@
     },
     {
       "label": "integer version",
-      "file": "methods/10_inst_disc/models/scaling_encoder.py",
+      "file": "methods/inst_disc/models/scaling_encoder.py",
       "old": "type(export.get(\"scaling_encoder_version\")) is not int",
       "new": "False",
       "tests": [
@@ -299,7 +299,7 @@
     },
     {
       "label": "export version",
-      "file": "methods/10_inst_disc/models/scaling_encoder.py",
+      "file": "methods/inst_disc/models/scaling_encoder.py",
       "old": "export[\"scaling_encoder_version\"] != 1",
       "new": "False",
       "tests": [
@@ -308,7 +308,7 @@
     },
     {
       "label": "cls identity",
-      "file": "methods/10_inst_disc/models/scaling_encoder.py",
+      "file": "methods/inst_disc/models/scaling_encoder.py",
       "old": "export.get(\"readout\") != \"cls\"",
       "new": "False",
       "tests": [
@@ -317,7 +317,7 @@
     },
     {
       "label": "model identity",
-      "file": "methods/10_inst_disc/models/scaling_encoder.py",
+      "file": "methods/inst_disc/models/scaling_encoder.py",
       "old": "export.get(\"model\") not in PRESETS",
       "new": "False",
       "tests": [
@@ -326,7 +326,7 @@
     },
     {
       "label": "image capability",
-      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "file": "methods/inst_disc/downstream_backbone.py",
       "old": "IMAGE_CLASSIFICATION = True",
       "new": "IMAGE_CLASSIFICATION = False",
       "tests": [
@@ -335,7 +335,7 @@
     },
     {
       "label": "native detector capability",
-      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "file": "methods/inst_disc/downstream_backbone.py",
       "old": "NATIVE_DETECTION = True",
       "new": "NATIVE_DETECTION = False",
       "tests": [
@@ -344,7 +344,7 @@
     },
     {
       "label": "native learned pyramid",
-      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "file": "methods/inst_disc/downstream_backbone.py",
       "old": "native_pyramid_style = \"transposed\"",
       "new": "native_pyramid_style = \"bilinear\"",
       "tests": [
@@ -353,7 +353,7 @@
     },
     {
       "label": "gradient barrier",
-      "file": "methods/10_inst_disc/downstream_backbone.py",
+      "file": "methods/inst_disc/downstream_backbone.py",
       "old": "@torch.no_grad()",
       "new": "",
       "tests": [
@@ -362,7 +362,7 @@
     },
     {
       "label": "preset module type",
-      "file": "methods/10_inst_disc/models/scaling_encoder.py",
+      "file": "methods/inst_disc/models/scaling_encoder.py",
       "old": "not isinstance(encoder, VisionTransformer)",
       "new": "False",
       "tests": [

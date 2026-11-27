@@ -97,8 +97,8 @@ The machine-readable block at the end is the single source of truth for state.
 3. **No new out-of-order work** -- the count of `done` items sitting *after*
    `next` (ported ahead of their turn) may not exceed `grandfathered_ceiling`,
    whose value is frozen in the test. A new out-of-turn port makes it RED.
-4. **Partition** -- every un-numbered directory under `methods/` is either a
-   Step-3 port listed here or an explicit `non_step3_unnumbered` exception (the
+4. **Partition** -- every directory outside the original 38-method cohort is either a
+   Step-3 port listed here or an explicit `non_step3_additions` exception (the
    off-decade Step-1&2 ports `image_gpt` / `mar` / `var`, and `_reference`). A
    ported Step-3 method cannot go unlisted.
 
@@ -148,7 +148,7 @@ ImageNet-100 is a separate future port), not A1.
   already present as Step-1&2 ports, into the A1 harness so their Step-3 numbers
   are reproducible here. *MAE is done:* the method declares a `mae_vit`
   spatial-backbone provider in its **own** directory
-  (`methods/25_mae/downstream_backbone.py`, a module-level `KIND` + `build`), and
+  (`methods/mae/downstream_backbone.py`, a module-level `KIND` + `build`), and
   the shared layer (`downstream/spatial_backbones.py`) **discovers** it by
   structure -- the shared machinery names no method
   (`tests/test_no_hard_coded_methods.py`). The provider **reuses** MAE's own model
@@ -158,7 +158,7 @@ ImageNet-100 is a separate future port), not A1.
   cross-method `models` collision) and the patch grid is read with a forward hook
   on the encoder norm (MAEEncoder.forward reused verbatim). This establishes the
   discovered lineage-provider pattern the remaining A3 items reuse. *I-JEPA is
-  done:* `methods/29_ijepa/downstream_backbone.py` adds an `ijepa_vit` provider
+  done:* `methods/ijepa/downstream_backbone.py` adds an `ijepa_vit` provider
   the shared layer discovers with no edit -- simpler than MAE because I-JEPA's own
   `VisionTransformer.forward` returns raster-order patch tokens with no
   masking/shuffling and no CLS token, its pos-embed ships in `encoder.pt`, and the
@@ -170,7 +170,7 @@ ImageNet-100 is a separate future port), not A1.
   arch is that very `vit_base_patch16_224`. A dedicated provider would be an empty
   duplicate of the `vit` kind (never implement the same rule twice; a guard with no
   killed mutant is not a guard), so the wiring is
-  `methods/37_lejepa/configs/downstream_arssl.json` -- discovered by structure
+  `methods/lejepa/configs/downstream_arssl.json` -- discovered by structure
   (`methods/*/configs/downstream_arssl.json`, naming no method) and run through the
   dense-task probes by the JSON-native ARSSL driver. *iGPT is done, and it is the
   first A3 provider whose input is **not an image tensor**:*
@@ -184,7 +184,7 @@ ImageNet-100 is a separate future port), not A1.
   the four task runners stay unchanged: the colour vocabulary is inferred from
   `encoder.pt` (its token-embedding rows) and the colour clusters are read from
   `clusters.npy` beside it (a missing/mismatched set is refused). *AIM is done,
-  the third provider* (`methods/30_aim/downstream_backbone.py`, `aim_vit`):
+  the third provider* (`methods/aim/downstream_backbone.py`, `aim_vit`):
   measurement shows AIM is a hand-written, non-timm ViT (a `nn.Linear` patch
   embedding, bias-free, no CLS token, a sincos position buffer), so its
   `encoder.pt` cannot load into the shared `vit` kind -- it needs a provider, not a
@@ -219,7 +219,7 @@ ImageNet-100 is a separate future port), not A1.
 ### Phase B -- Multimodal / CompEval (reuse frozen backbones)
 
 - **B1** -- **SigLIP, SAM3, DINOv3-7B, Cosmos3 Super**: frozen-backbone adapters
-  (the `38_clip` / `docs/EVAL_DOWNLOAD.md` pattern). *SigLIP is done (it was
+  (the `clip` / `docs/EVAL_DOWNLOAD.md` pattern). *SigLIP is done (it was
   ported ahead of Phase A; now that Phase A has landed it is back in turn, the
   first Phase-B item). SAM3 is done: a pure eval-only `linear_eval` probe on the
   frozen SAM 3 vision encoder (mean-pooled patch tokens), the transformers-sourced
@@ -269,7 +269,7 @@ ImageNet-100 is a separate future port), not A1.
   to **Video MAE** (order 19), which uses official public HuggingFace weights
   (`MCG-NJU/videomae-base`, CC-BY-NC-4.0) and is portable as an eval-only
   frozen-backbone probe.
-- **C2** -- **V-JEPA 2, V-JEPA 2-AC, V-JEPA 2.1** (extend the `35_vjepa`
+- **C2** -- **V-JEPA 2, V-JEPA 2-AC, V-JEPA 2.1** (extend the `vjepa`
   submodule).
 - **C3** -- **Cosmos3, WAN2.2** (video-generative backbones as frozen probes).
 
@@ -294,7 +294,7 @@ ImageNet-100 is a separate future port), not A1.
 {
   "next": "C2:vjepa2_1",
   "grandfathered_ceiling": 0,
-  "non_step3_unnumbered": ["_reference", "image_gpt", "mar", "var", "cradiov4_h"],
+  "non_step3_additions": ["_reference", "image_gpt", "mar", "var", "cradiov4_h"],
   "items": [
     {"id": "A1", "phase": "A", "subphase": "A1", "order": 1, "kind": "task", "title": "ARSSL eval harness (driver over the downstream task probes)", "artifact": "downstream/arssl.py", "status": "done"},
     {"id": "A2:eva02", "phase": "A", "subphase": "A2", "order": 2, "kind": "method", "dir": "eva02", "title": "EVA-02", "status": "done"},
@@ -302,11 +302,11 @@ ImageNet-100 is a separate future port), not A1.
     {"id": "A2:beitv2", "phase": "A", "subphase": "A2", "order": 4, "kind": "method", "dir": "beitv2", "title": "BEiT v2", "status": "done"},
     {"id": "A2:data2vec2", "phase": "A", "subphase": "A2", "order": 5, "kind": "method", "dir": "data2vec2", "title": "data2vec 2.0", "status": "done"},
     {"id": "A2:cae", "phase": "A", "subphase": "A2", "order": 6, "kind": "method", "dir": "cae", "title": "CAE", "status": "done"},
-    {"id": "A3:mae", "phase": "A", "subphase": "A3", "order": 7, "kind": "task", "title": "wire MAE into the A1 harness", "artifact": "methods/25_mae/downstream_backbone.py", "status": "done"},
-    {"id": "A3:ijepa", "phase": "A", "subphase": "A3", "order": 8, "kind": "task", "title": "wire I-JEPA into the A1 harness", "artifact": "methods/29_ijepa/downstream_backbone.py", "status": "done"},
-    {"id": "A3:lejepa", "phase": "A", "subphase": "A3", "order": 9, "kind": "task", "title": "wire LeJEPA into the A1 harness", "artifact": "methods/37_lejepa/configs/downstream_arssl.json", "status": "done"},
+    {"id": "A3:mae", "phase": "A", "subphase": "A3", "order": 7, "kind": "task", "title": "wire MAE into the A1 harness", "artifact": "methods/mae/downstream_backbone.py", "status": "done"},
+    {"id": "A3:ijepa", "phase": "A", "subphase": "A3", "order": 8, "kind": "task", "title": "wire I-JEPA into the A1 harness", "artifact": "methods/ijepa/downstream_backbone.py", "status": "done"},
+    {"id": "A3:lejepa", "phase": "A", "subphase": "A3", "order": 9, "kind": "task", "title": "wire LeJEPA into the A1 harness", "artifact": "methods/lejepa/configs/downstream_arssl.json", "status": "done"},
     {"id": "A3:igpt", "phase": "A", "subphase": "A3", "order": 10, "kind": "task", "title": "wire iGPT into the A1 harness", "artifact": "methods/image_gpt/downstream_backbone.py", "status": "done"},
-    {"id": "A3:aim", "phase": "A", "subphase": "A3", "order": 11, "kind": "task", "title": "wire AIM into the A1 harness", "artifact": "methods/30_aim/downstream_backbone.py", "status": "done"},
+    {"id": "A3:aim", "phase": "A", "subphase": "A3", "order": 11, "kind": "task", "title": "wire AIM into the A1 harness", "artifact": "methods/aim/downstream_backbone.py", "status": "done"},
     {"id": "A3:var", "phase": "A", "subphase": "A3", "order": 12, "kind": "task", "title": "wire VAR into the A1 harness", "artifact": "methods/var/downstream_backbone.py", "status": "done"},
     {"id": "B1:siglip", "phase": "B", "subphase": "B1", "order": 13, "kind": "method", "dir": "siglip", "title": "SigLIP", "status": "done"},
     {"id": "B1:sam3", "phase": "B", "subphase": "B1", "order": 14, "kind": "method", "dir": "sam3", "title": "SAM3", "status": "done"},

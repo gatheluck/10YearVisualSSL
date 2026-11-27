@@ -56,29 +56,29 @@
     },
     {
       "label": "native bicubic",
-      "file": "methods/19_byol/data/byol_dataset.py",
+      "file": "methods/byol/data/byol_dataset.py",
       "old": "transforms.Resize(math.ceil(img_size / 0.875),\n                          interpolation=transforms.InterpolationMode.BICUBIC)",
       "new": "transforms.Resize(math.ceil(img_size / 0.875),\n                          interpolation=transforms.InterpolationMode.BILINEAR)",
       "tests": [
-        "tests.test_method_19_byol.TestNativeValPreprocessing"
+        "tests.test_method_byol.TestNativeValPreprocessing"
       ]
     },
     {
       "label": "native resize ceiling",
-      "file": "methods/19_byol/data/byol_dataset.py",
+      "file": "methods/byol/data/byol_dataset.py",
       "old": "math.ceil(img_size / 0.875)",
       "new": "round(img_size / 0.875)",
       "tests": [
-        "tests.test_method_19_byol.TestNativeValPreprocessing"
+        "tests.test_method_byol.TestNativeValPreprocessing"
       ]
     },
     {
       "label": "native colour precision",
-      "file": "methods/03_colorization/data/colorization_dataset.py",
+      "file": "methods/colorization/data/colorization_dataset.py",
       "old": "_lab_components(rgb_img, native_eval=True)",
       "new": "_lab_components(rgb_img, native_eval=False)",
       "tests": [
-        "tests.test_method_03_colorization.TestNativeProbePixels"
+        "tests.test_method_colorization.TestNativeProbePixels"
       ]
     }
   ]

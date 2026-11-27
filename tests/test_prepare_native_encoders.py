@@ -40,6 +40,19 @@ class TestBatch(unittest.TestCase):
             self.assertEqual(command[command.index("--sha256") + 1], "a" * 64)
             self.assertEqual(command[command.index("--out") + 1], str(self.out / name))
 
+    def test_archived_batch_keys_resolve_to_new_output_paths(self):
+        old = "14_simclrv1"
+        name = old.split("_", 1)[1]
+        (self.methods / "example_a").rename(self.methods / name)
+        source = self.sources["example_a"]
+        jobs = self.mod.plan({old: source}, self.methods, self.out, "python")
+        [(public, command)] = jobs
+        self.assertEqual(public, name)
+        self.assertEqual(command[command.index("--source") + 1], source)
+        self.assertEqual(command[command.index("--out") + 1], str(self.out / name))
+        with self.assertRaisesRegex(ValueError, "duplicate method"):
+            self.mod.plan({old: source, name: source}, self.methods, self.out, "python")
+
     def test_bad_later_entry_prevents_every_worker(self):
         self.sources["example_b"] = str(self.root / "missing")
         with patch.object(self.mod.subprocess, "run") as run:

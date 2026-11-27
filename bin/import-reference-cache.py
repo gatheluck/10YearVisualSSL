@@ -8,6 +8,13 @@ This verifies cache integrity, not the scientific identity of its producer.
 import importlib.util
 import json
 from pathlib import Path
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from adapterlib.method_names import public_name
 
 
 def _tool(filename, name):
@@ -55,7 +62,7 @@ def import_cache(profile, output):
     if not np.allclose(np.linalg.norm(normalized, axis=1), 1., atol=1e-5):
         raise ValueError("features cannot be normalized to unit length")
     output.mkdir(parents=True, exist_ok=False)
-    meta = dict(method=profile["id"], count=len(y), feat_dim=x.shape[1],
+    meta = dict(method=public_name(profile["id"]), count=len(y), feat_dim=x.shape[1],
                 representation="l2", source_profile=profile,
                 arch=profile.get("method", profile["id"]))
     writer.save_features(output, normalized, y, meta)

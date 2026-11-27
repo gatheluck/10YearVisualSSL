@@ -67,7 +67,7 @@ def build_checkpoints(root):
     torch.save({"aggregator." + n: p for n, p in body.aggregator.state_dict().items()}, path)
     result["vggt_omega"] = {"kind": "vggt_omega", "arch": "fixture", "encoder": str(path),
                                "img_size": 224, "patch_size": 16, "embed_dim": 64, "depth": 24, "num_heads": 4}
-    tokenizer = _fixture_module("test_cvpr_rae_bindings").TokenizerBindings()
+    tokenizer = _fixture_module("test_method_cvpr_rae_bindings").TokenizerBindings()
     tokenizer.setUp()
     state = tokenizer.body.model.state_dict()
     # The builder strips final affine norm; the complete checkpoint loader

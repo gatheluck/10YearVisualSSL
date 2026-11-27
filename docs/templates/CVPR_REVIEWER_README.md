@@ -55,7 +55,7 @@ Start with the [reproduction guide for Figures 1–7 and Appendices A–E](docs/
 
 ### Methods
 
-Each method directory contains its adapter and experiment configurations. For example, the [Context Prediction pre-training configuration](methods/01_context_prediction/configs/pretrain.yaml) selects its original-setting recipe. Use the [ASIS protocol](docs/initial_protocols/INITIAL_STEP1_v1.md) to identify the evaluation settings.
+Each method directory contains its adapter and experiment configurations. For example, the [Context Prediction pre-training configuration](methods/context_prediction/configs/pretrain.yaml) selects its original-setting recipe. Use the [ASIS protocol](docs/initial_protocols/INITIAL_STEP1_v1.md) to identify the evaluation settings.
 
 ## Reading the results
 

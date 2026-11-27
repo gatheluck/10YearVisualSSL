@@ -84,7 +84,7 @@ facebookresearch/vjepa2 submodule (imported via `src.models.vision_transformer`,
 never copied), with the `src`/`app` imports lazy and the path prepared (`src*` /
 `app*` purged from `sys.modules`, other `third_party` roots stripped,
 `third_party/vjepa2` inserted first) so the two submodule ports (this one and
-`35_vjepa`) do not collide in the in-process test suite; the forward runs the
+`vjepa`) do not collide in the in-process test suite; the forward runs the
 **real rotary attention** (`use_rope=True`); the checkpoint is read with
 `torch.load` (a `.pt` training-state dict), the `encoder` sub-dict loaded and the
 predictor/opt/scaler/target_encoder dropped, any missing/unexpected key a hard

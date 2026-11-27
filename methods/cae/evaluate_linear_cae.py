@@ -4,7 +4,7 @@ CAE (Context Autoencoder)'s as-is comparison freezes the pretrained vision
 backbone (a BEiT-architecture ViT-B/16) and fits a single linear layer on its
 CLS token. The representation is a genuine SSL feature, so the number is
 comparable (the "pretrained-backbone reuse" row, analogous to eva02 / data2vec2
-/ 36_franca).
+/ franca).
 
 The checkpoint, stated plainly. Neither timm nor transformers carries a CAE model
 class, and the official weights are not publicly downloadable (the capture logged

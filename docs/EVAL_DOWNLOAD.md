@@ -123,7 +123,7 @@ features the probe reads. This port establishes the reusable pieces:
 
 ## 4a. Franca — the first eval-only port (no step 1)
 
-`36_franca` is the first method built on that shape end to end, and the first
+`franca` is the first method built on that shape end to end, and the first
 with **no step 1 at all**. Measured from the capture (`methods/36_franca/`): its
 "Step 1" is a frozen-backbone linear probe on the official pretrained Franca
 ViT-B/14 In21K checkpoint ("analogous to DINOv2 ... not local Franca
@@ -164,7 +164,7 @@ are asserted present so the exemption cannot silently cover everything.
 > evaluation path (`models_mar`/`forward_encoder`) is absent from both the pinned
 > upstream and the Capture snapshot, so it cannot be reproduced faithfully.
 >
-> **Eval-only methods (resolved for `36_franca`, 2026-08-05).** A method may have
+> **Eval-only methods (resolved for `franca`, 2026-08-05).** A method may have
 > **no step 1** — a frozen, pretrained backbone probed by `linear_eval` and
 > nothing trained (Franca's capture Step 1; its from-scratch pretraining is the
 > excluded Step 2). Such a port produces no `encoder.pt`, sets
@@ -172,5 +172,5 @@ are asserted present so the exemption cannot silently cover everything.
 > Whether a port produces an encoder is discovered from its `STAGES` (`pretrain` is
 > the encoder-producing stage), so the encoder-convention checks apply only to
 > encoder-producing ports; eval-only ports are checked instead for the absent
-> declaration. For `36_franca` the CLS representation is Franca's own pretrained
+> declaration. For `franca` the CLS representation is Franca's own pretrained
 > ViT, so the number is comparable (unlike `var`'s tokeniser probe).

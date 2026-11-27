@@ -85,7 +85,7 @@
   ],
   "_result": {
     "measured_on": "2026-09-02 (re-measured after the reset_parameters undo was moved out of this provider's _hermetic_build into train_pretrain_var.restore_default_init -- the one place the eight-class no-op is undone, now shared by the pretraining, encoder-extraction and downstream paths, which was necessary because the pretrain/eval paths call build_vae_var directly and were still leaking. Those two mutations moved to mutations/var-hermetic-init.json; this spec keeps the provider's own import/RNG isolation guards. The provider inherits the reset_parameters undo by building through build_vqvae, and test_building_restores_torchs_default_parameter_init still holds it end to end)",
-    "measured_with": "an interpreter with torch (.venvs/05_jigsaw_puzzle), which builds and loads the VAR VQVAE backbone in-process; the end-to-end ARSSL test is not among the referenced tests, so no timm subprocess is needed to kill these",
+    "measured_with": "an interpreter with torch (.venvs/jigsaw_puzzle), which builds and loads the VAR VQVAE backbone in-process; the end-to-end ARSSL test is not among the referenced tests, so no timm subprocess is needed to kill these",
     "killed": 9,
     "total": 9,
     "equivalent": []

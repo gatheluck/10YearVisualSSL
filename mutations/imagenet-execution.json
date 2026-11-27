@@ -199,8 +199,8 @@
       ]
     },
     {
-      "label": "38_clip rank policy",
-      "file": "methods/38_clip/downstream_backbone.py",
+      "label": "clip rank policy",
+      "file": "methods/clip/downstream_backbone.py",
       "old": "rank_seed_stride=1000",
       "new": "rank_seed_stride=1001",
       "tests": [
@@ -235,8 +235,8 @@
       ]
     },
     {
-      "label": "31_dinov3 rank policy",
-      "file": "methods/31_dinov3/downstream_backbone.py",
+      "label": "dinov3 rank policy",
+      "file": "methods/dinov3/downstream_backbone.py",
       "old": "rank_seed_stride=17",
       "new": "rank_seed_stride=18",
       "tests": [

@@ -47,9 +47,12 @@ import subprocess
 import sys
 from pathlib import Path
 
+
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+
+from adapterlib.method_names import order_key, public_name
 
 from platforms import JobSpec, available_backends, load_backend  # noqa: E402
 
@@ -141,8 +144,8 @@ def job_environment(gpus: int, processes: int = 1) -> dict:
 def method_dir(name: str) -> Path:
     d = ROOT / "methods" / name
     if not (d / "adapter").is_dir():
-        known = sorted(p.name for p in (ROOT / "methods").iterdir()
-                       if (p / "adapter").is_dir())
+        known = sorted((p.name for p in (ROOT / "methods").iterdir()
+                        if (p / "adapter").is_dir()), key=order_key)
         raise LaunchError(
             f"no method {name!r} with an adapter. Known: {', '.join(known)}")
     return d
@@ -259,8 +262,13 @@ def verify_only(run: Path) -> tuple[int, dict]:
             "nothing to verify yet")
     contract_ok, report = verify(run, status)
     record.update(summarise(status, contract_ok))
-    rec_path.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n",
-                        encoding="utf-8")
+    name = public_name(record["method"])
+    if name == record["method"]:
+        rec_path.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n",
+                            encoding="utf-8")
+    else:
+        # A saved historical run is evidence. Report today's verdict in memory.
+        record["method"] = name
     if report:
         print(report)
     return (0 if record["outcome"] == "ok" else 1), record

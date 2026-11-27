@@ -2,7 +2,7 @@
   "targets": [
     {
       "label": "legacy schema",
-      "file": "methods/03_colorization/color_scaling.py",
+      "file": "methods/colorization/color_scaling.py",
       "old": "or state[\"format\"] != \"color_scaling_epoch_v2\"",
       "new": "or False",
       "tests": [
@@ -11,7 +11,7 @@
     },
     {
       "label": "recorded config identity",
-      "file": "methods/03_colorization/color_scaling.py",
+      "file": "methods/colorization/color_scaling.py",
       "old": "!= identity\n    ):\n        raise ValueError(\"color continuation recorded recipe differs\")",
       "new": "== \"never\"\n    ):\n        raise ValueError(\"color continuation recorded recipe differs\")",
       "tests": [
@@ -20,7 +20,7 @@
     },
     {
       "label": "update counter",
-      "file": "methods/03_colorization/color_scaling.py",
+      "file": "methods/colorization/color_scaling.py",
       "old": "if scaler is None and updates != attempts:",
       "new": "if False:",
       "tests": [
@@ -29,7 +29,7 @@
     },
     {
       "label": "attempt counter",
-      "file": "methods/03_colorization/color_scaling.py",
+      "file": "methods/colorization/color_scaling.py",
       "old": "or attempts != epoch * len(loader)",
       "new": "or False",
       "tests": [
@@ -38,7 +38,7 @@
     },
     {
       "label": "slot completeness",
-      "file": "methods/03_colorization/color_scaling.py",
+      "file": "methods/colorization/color_scaling.py",
       "old": "if len(saved[\"state\"]) != expected_slots:",
       "new": "if False:",
       "tests": [
@@ -47,7 +47,7 @@
     },
     {
       "label": "moment finite",
-      "file": "methods/03_colorization/color_scaling.py",
+      "file": "methods/colorization/color_scaling.py",
       "old": "not torch.isfinite(v).all() for v in item.values()",
       "new": "False for v in item.values()",
       "tests": [
@@ -56,7 +56,7 @@
     },
     {
       "label": "saved rate",
-      "file": "methods/03_colorization/color_scaling.py",
+      "file": "methods/colorization/color_scaling.py",
       "old": "if any(g[\"lr\"] != schedule(epoch - 1, batch) for g in saved[\"param_groups\"]):",
       "new": "if False:",
       "tests": [
@@ -65,7 +65,7 @@
     },
     {
       "label": "FP32 scaler",
-      "file": "methods/03_colorization/color_scaling.py",
+      "file": "methods/colorization/color_scaling.py",
       "old": "if state[\"scaler\"] is not None:",
       "new": "if False:",
       "tests": [
@@ -74,7 +74,7 @@
     },
     {
       "label": "buffer dtype",
-      "file": "methods/03_colorization/color_scaling.py",
+      "file": "methods/colorization/color_scaling.py",
       "old": "or tensor.dtype != expected.dtype",
       "new": "or False",
       "tests": [
@@ -83,7 +83,7 @@
     },
     {
       "label": "buffer finite",
-      "file": "methods/03_colorization/color_scaling.py",
+      "file": "methods/colorization/color_scaling.py",
       "old": "or not torch.isfinite(tensor).all()",
       "new": "or False",
       "tests": [
@@ -92,7 +92,7 @@
     },
     {
       "label": "restore model",
-      "file": "methods/03_colorization/color_scaling.py",
+      "file": "methods/colorization/color_scaling.py",
       "old": "validate_state(model, state[\"model\"])",
       "new": "pass",
       "tests": [
@@ -101,7 +101,7 @@
     },
     {
       "label": "restore optimizer",
-      "file": "methods/03_colorization/color_scaling.py",
+      "file": "methods/colorization/color_scaling.py",
       "old": "optimizer.load_state_dict(saved)",
       "new": "pass",
       "tests": [
@@ -110,7 +110,7 @@
     },
     {
       "label": "restore random stream",
-      "file": "methods/03_colorization/color_scaling.py",
+      "file": "methods/colorization/color_scaling.py",
       "old": "_restore_rng(state[\"rng\"][context.rank], loader, context.device)",
       "new": "pass",
       "tests": [
@@ -119,7 +119,7 @@
     },
     {
       "label": "restore scaler",
-      "file": "methods/03_colorization/color_scaling.py",
+      "file": "methods/colorization/color_scaling.py",
       "old": "scaler.load_state_dict(state[\"scaler\"])",
       "new": "pass",
       "tests": [
@@ -128,7 +128,7 @@
     },
     {
       "label": "scaler bounds",
-      "file": "methods/03_colorization/color_scaling.py",
+      "file": "methods/colorization/color_scaling.py",
       "old": "or not math.isfinite(scale)\n            or not 0 < scale <= torch.finfo(torch.float32).max",
       "new": "or False",
       "tests": [
@@ -137,7 +137,7 @@
     },
     {
       "label": "scaler policy",
-      "file": "methods/03_colorization/color_scaling.py",
+      "file": "methods/colorization/color_scaling.py",
       "old": "value[k] != expected[k]",
       "new": "False",
       "tests": [
@@ -146,7 +146,7 @@
     },
     {
       "label": "scaler tracker",
-      "file": "methods/03_colorization/color_scaling.py",
+      "file": "methods/colorization/color_scaling.py",
       "old": "or not 0 <= value[\"_growth_tracker\"] < value[\"growth_interval\"]",
       "new": "or False",
       "tests": [
@@ -155,7 +155,7 @@
     },
     {
       "label": "per-rank buffer restore",
-      "file": "methods/03_colorization/color_scaling.py",
+      "file": "methods/colorization/color_scaling.py",
       "old": "expected_buffers[key].copy_(tensor)",
       "new": "pass",
       "tests": [

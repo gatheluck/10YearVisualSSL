@@ -1,5 +1,5 @@
 {
-  "_note": "Run: .venvs/06_rotation_prediction/bin/python bin/mutate.py --spec mutations/downstream-coco.json --python \"$PWD/.venvs/06_rotation_prediction/bin/python\" (an interpreter with torch/torchvision/timm/pycocotools). Proves the downstream COCO guards are not vacuous: the device is resolved not assumed, a config that names the output is refused, a subset/smoke run is stamped non-recordable, and the COCO mAP is reported under its contract name.",
+  "_note": "Run: .venvs/rotation_prediction/bin/python bin/mutate.py --spec mutations/downstream-coco.json --python \"$PWD/.venvs/rotation_prediction/bin/python\" (an interpreter with torch/torchvision/timm/pycocotools). Proves the downstream COCO guards are not vacuous: the device is resolved not assumed, a config that names the output is refused, a subset/smoke run is stamped non-recordable, and the COCO mAP is reported under its contract name.",
   "targets": [
     {
       "label": "cpu is not honoured -- the requested cpu returns a cuda device",
@@ -32,7 +32,7 @@
   ],
   "_result": {
     "measured_on": "2026-08-21",
-    "measured_with": ".venvs/06_rotation_prediction (torch/torchvision/timm/pycocotools) on a CPU-only machine",
+    "measured_with": ".venvs/rotation_prediction (torch/torchvision/timm/pycocotools) on a CPU-only machine",
     "killed": 4,
     "total": 4,
     "equivalent": []

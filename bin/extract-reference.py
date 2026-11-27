@@ -8,6 +8,13 @@ Only evaluators with train-then-validation extraction before probe training
 are supported. Run each reference in a separate, read-only sandbox process.
 """
 from pathlib import Path
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from adapterlib.method_names import public_name
 
 
 class _ExtractionComplete(BaseException):
@@ -137,7 +144,6 @@ def run_profile(profile, output):
     import importlib.util
     import json
     import os
-    import sys
     import numpy as np
 
     def load(path, name):
@@ -170,7 +176,7 @@ def run_profile(profile, output):
         features = np.asarray(features, dtype=np.float32)
         labels = np.asarray(labels, dtype=np.int64)
         validate_features(features, labels, loader.dataset.targets, profile['count'])
-        meta = {'method': profile['id'], 'count': len(labels),
+        meta = {'method': public_name(profile['id']), 'count': len(labels),
                 'feat_dim': features.shape[1], 'representation': 'l2',
                 'source_sha256': profile['source_sha256'],
                 'encoder_sha256': shared.sha256_of(Path(profile['checkpoint'])),

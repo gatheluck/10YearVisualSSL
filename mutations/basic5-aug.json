@@ -1,5 +1,5 @@
 {
-  "_note": "Run under a torch venv (the tests need torchvision): .venvs/14_simclrv1/bin/python bin/mutate.py --spec mutations/basic5-aug.json --python \"$PWD/.venvs/14_simclrv1/bin/python\". probe_transforms.basic5_train_transform is the single implementation of BASIC5_FAIR_v1 rule `aug` (the linear probe's train-time augmentation is RandomResizedCrop + HorizontalFlip only). These mutations prove tests/test_probe_transforms.py is not vacuous: swapping the horizontal flip for a vertical one, replacing the random crop with a deterministic centre crop, or dropping the normalisation tail must each be caught.",
+  "_note": "Run under a torch venv (the tests need torchvision): .venvs/simclrv1/bin/python bin/mutate.py --spec mutations/basic5-aug.json --python \"$PWD/.venvs/simclrv1/bin/python\". probe_transforms.basic5_train_transform is the single implementation of BASIC5_FAIR_v1 rule `aug` (the linear probe's train-time augmentation is RandomResizedCrop + HorizontalFlip only). These mutations prove tests/test_probe_transforms.py is not vacuous: swapping the horizontal flip for a vertical one, replacing the random crop with a deterministic centre crop, or dropping the normalisation tail must each be caught.",
   "targets": [
     {
       "label": "the horizontal flip is swapped for a vertical flip, which is not part of rule aug",

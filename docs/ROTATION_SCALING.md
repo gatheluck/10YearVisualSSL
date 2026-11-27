@@ -35,7 +35,7 @@ source images per rank; the effective source batch is
 that number. The original inspected recipe used seed 42 and 1,024 source images
 across 32 ranks. Other explicit geometries are component configurations.
 
-`PYTHONPATH=. python methods/06_rotation_prediction/rotation_scaling.py --config /path/to/resolved.json --out /path/to/new-output`
+`PYTHONPATH=. python methods/rotation_prediction/rotation_scaling.py --config /path/to/resolved.json --out /path/to/new-output`
 
 For a verified allocation, launch the same script with `torchrun`, preserving
 `PYTHONPATH=.` and selecting `device: cuda`. The tool does not submit jobs or

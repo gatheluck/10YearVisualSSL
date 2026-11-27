@@ -7,6 +7,8 @@ import subprocess
 import sys
 from pathlib import Path, PurePosixPath
 
+from adapterlib.method_names import order_key
+
 
 def _lock_input(path):
     """Exact non-comment input for our narrow hashed-lock grammar, or None.
@@ -52,7 +54,7 @@ def environment_groups(methods, root=Path('.')):
     """
     tools = _lock_input(root / 'requirements-tools.lock.txt')
     groups = {}
-    for method in sorted(methods):
+    for method in sorted(methods, key=order_key):
         lock = _lock_input(root / 'methods' / method / 'requirements.lock.txt')
         key = (tools, lock) if tools is not None and lock is not None else method
         groups.setdefault(key, []).append(method)
@@ -71,6 +73,7 @@ def select(methods):
     updates. Disable rename detection so both sides of a move are considered.
     Missing history, metadata and unexpected paths always request full coverage.
     """
+    methods = sorted(methods, key=order_key)
     full = (methods, True)
     if os.environ.get('GITHUB_EVENT_NAME') != 'pull_request':
         return full
@@ -105,7 +108,7 @@ def select(methods):
                 selected.add(parts[1])
             else:
                 return full
-        return sorted(selected), bool(selected)
+        return sorted(selected, key=order_key), bool(selected)
     except (OSError, subprocess.CalledProcessError, ValueError, KeyError, TypeError) as exc:
         print(f'CI selection unavailable; running all environments: {type(exc).__name__}',
               file=sys.stderr)

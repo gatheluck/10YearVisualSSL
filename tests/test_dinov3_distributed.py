@@ -14,8 +14,8 @@ from unittest import mock
 
 if str(Path(__file__).parent) not in sys.path:
     sys.path.insert(0, str(Path(__file__).parent))
-import test_dinov3_head_designs as heads
-import test_method_31_dinov3 as fixture
+import test_method_dinov3_head_designs as heads
+import test_method_dinov3 as fixture
 
 
 def worker(rank, root, rendezvous):

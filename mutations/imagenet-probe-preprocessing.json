@@ -1,8 +1,8 @@
 {
   "targets": [
     {
-      "label": "38_clip geometry ownership",
-      "file": "methods/38_clip/downstream_backbone.py",
+      "label": "clip geometry ownership",
+      "file": "methods/clip/downstream_backbone.py",
       "old": "IMAGENET_PROBE_INTERPOLATION = \"bicubic\"",
       "new": "IMAGENET_PROBE_INTERPOLATION = \"bilinear\"",
       "tests": [
@@ -37,8 +37,8 @@
       ]
     },
     {
-      "label": "31_dinov3 geometry ownership",
-      "file": "methods/31_dinov3/downstream_backbone.py",
+      "label": "dinov3 geometry ownership",
+      "file": "methods/dinov3/downstream_backbone.py",
       "old": "IMAGENET_PROBE_INTERPOLATION = \"bilinear\"",
       "new": "IMAGENET_PROBE_INTERPOLATION = \"bicubic\"",
       "tests": [

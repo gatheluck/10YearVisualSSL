@@ -350,6 +350,20 @@ class TestVerifying(Base):
         self.assertFalse(rec["contract_ok"])
         self.assertNotEqual(rec["exit_status"], 0)
 
+    def test_archived_launch_verification_preserves_both_records(self):
+        self.launch_reference()
+        run = next(self.runs.iterdir())
+        old = "02_vae"
+        files = [run / "launch.json", run / "out" / "run_manifest.json"]
+        for path in files:
+            data = json.loads(path.read_bytes())
+            data["method"] = old
+            path.write_text(json.dumps(data) + "\n")
+        before = [p.read_bytes() for p in files]
+        result = self.run_tool("--verify-only", run, expect=0)
+        self.assertIn("ok: " + old.split("_", 1)[1] + " ", result.stdout)
+        self.assertEqual([p.read_bytes() for p in files], before)
+
     def test_a_broken_output_makes_the_launch_fail(self):
         """The launcher must not report success for a run whose outputs do
         not satisfy the contract, whatever the exit status said."""

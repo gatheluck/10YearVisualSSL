@@ -2,7 +2,7 @@
   "targets": [
     {
       "label": "resume schema",
-      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "file": "methods/split_brain/splitbrain_scaling.py",
       "old": "if cfg.get(\"resume\") is not None and (",
       "new": "if False and (",
       "tests": [
@@ -11,7 +11,7 @@
     },
     {
       "label": "format",
-      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "file": "methods/split_brain/splitbrain_scaling.py",
       "old": "or state[\"format\"] != \"splitbrain_scaling_epoch_v2\"",
       "new": "or False",
       "tests": [
@@ -20,7 +20,7 @@
     },
     {
       "label": "identity",
-      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "file": "methods/split_brain/splitbrain_scaling.py",
       "old": "or state[\"identity\"] != identity",
       "new": "or False",
       "tests": [
@@ -29,7 +29,7 @@
     },
     {
       "label": "recorded recipe",
-      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "file": "methods/split_brain/splitbrain_scaling.py",
       "old": "continuation_identity(state[\"config\"], state[\"membership\"], loader, context)\n        != identity",
       "new": "False",
       "tests": [
@@ -38,7 +38,7 @@
     },
     {
       "label": "epoch",
-      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "file": "methods/split_brain/splitbrain_scaling.py",
       "old": "or not 1 <= epoch < target",
       "new": "or False",
       "tests": [
@@ -47,7 +47,7 @@
     },
     {
       "label": "counter",
-      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "file": "methods/split_brain/splitbrain_scaling.py",
       "old": "or updates != epoch * steps",
       "new": "or False",
       "tests": [
@@ -56,7 +56,7 @@
     },
     {
       "label": "slots",
-      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "file": "methods/split_brain/splitbrain_scaling.py",
       "old": "if len(saved[\"state\"]) != len(list(model.parameters())):",
       "new": "if False:",
       "tests": [
@@ -65,7 +65,7 @@
     },
     {
       "label": "optimizer recipe",
-      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "file": "methods/split_brain/splitbrain_scaling.py",
       "old": "continuation_validation.optimizer_state(optimizer, saved, updates)",
       "new": "pass",
       "tests": [
@@ -74,7 +74,7 @@
     },
     {
       "label": "finite moments",
-      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "file": "methods/split_brain/splitbrain_scaling.py",
       "old": "not torch.isfinite(v).all() for v in item.values()",
       "new": "False for v in item.values()",
       "tests": [
@@ -83,7 +83,7 @@
     },
     {
       "label": "learning rate",
-      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "file": "methods/split_brain/splitbrain_scaling.py",
       "old": "if any(g[\"lr\"] != schedule(updates, 90 * steps) for g in saved[\"param_groups\"]):",
       "new": "if False:",
       "tests": [
@@ -92,7 +92,7 @@
     },
     {
       "label": "rng validation",
-      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "file": "methods/split_brain/splitbrain_scaling.py",
       "old": "continuation_validation.rng_states(state[\"rng\"], loader, context.device)",
       "new": "pass",
       "tests": [
@@ -101,7 +101,7 @@
     },
     {
       "label": "model restore",
-      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "file": "methods/split_brain/splitbrain_scaling.py",
       "old": "validate_state(model, state[\"model\"])",
       "new": "pass",
       "tests": [
@@ -110,7 +110,7 @@
     },
     {
       "label": "optimizer restore",
-      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "file": "methods/split_brain/splitbrain_scaling.py",
       "old": "optimizer.load_state_dict(saved)",
       "new": "pass",
       "tests": [
@@ -119,7 +119,7 @@
     },
     {
       "label": "rng restore",
-      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "file": "methods/split_brain/splitbrain_scaling.py",
       "old": "_restore_rng(state[\"rng\"][context.rank], loader, context.device)",
       "new": "pass",
       "tests": [
@@ -128,7 +128,7 @@
     },
     {
       "label": "start epoch",
-      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "file": "methods/split_brain/splitbrain_scaling.py",
       "old": "for epoch in range(start, cfg[\"epochs\"]):",
       "new": "for epoch in range(cfg[\"epochs\"]):",
       "tests": [
@@ -137,7 +137,7 @@
     },
     {
       "label": "epoch type",
-      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "file": "methods/split_brain/splitbrain_scaling.py",
       "old": "type(epoch) is not int",
       "new": "False",
       "tests": [
@@ -146,7 +146,7 @@
     },
     {
       "label": "counter type",
-      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "file": "methods/split_brain/splitbrain_scaling.py",
       "old": "or type(updates) is not int",
       "new": "or False",
       "tests": [
@@ -155,7 +155,7 @@
     },
     {
       "label": "optimizer schema",
-      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "file": "methods/split_brain/splitbrain_scaling.py",
       "old": "if not isinstance(saved, dict) or set(saved) != {\"state\", \"param_groups\"}:",
       "new": "if False:",
       "tests": [
@@ -164,7 +164,7 @@
     },
     {
       "label": "rank count",
-      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "file": "methods/split_brain/splitbrain_scaling.py",
       "old": "if not isinstance(state[\"rng\"], list) or len(state[\"rng\"]) != context.world:",
       "new": "if False:",
       "tests": [
@@ -173,7 +173,7 @@
     },
     {
       "label": "world identity",
-      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "file": "methods/split_brain/splitbrain_scaling.py",
       "old": "\"world\": context.world,",
       "new": "\"world\": 1,",
       "tests": [
@@ -182,7 +182,7 @@
     },
     {
       "label": "loader identity",
-      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "file": "methods/split_brain/splitbrain_scaling.py",
       "old": "\"microbatches\": len(loader),",
       "new": "\"microbatches\": 2,",
       "tests": [
@@ -191,7 +191,7 @@
     },
     {
       "label": "crop identity",
-      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "file": "methods/split_brain/splitbrain_scaling.py",
       "old": "\"crop\": CROP,",
       "new": "\"crop\": 224,",
       "tests": [
@@ -200,7 +200,7 @@
     },
     {
       "label": "preset identity",
-      "file": "methods/08_split_brain/splitbrain_scaling.py",
+      "file": "methods/split_brain/splitbrain_scaling.py",
       "old": "\"preset\": PRESETS[cfg[\"model\"]],",
       "new": "\"preset\": \"constant\",",
       "tests": [

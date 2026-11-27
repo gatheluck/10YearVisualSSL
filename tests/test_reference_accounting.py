@@ -169,6 +169,14 @@ class ReferenceAccounting(unittest.TestCase):
             with self.subTest(key=key):
                 self.assertEqual(self.audit()["completed_seeds"], [])
 
+    def test_archived_model_matches_current_plan_at_read_time(self):
+        old = "28_dinov2"
+        self.identity["model"] = old.split("_", 1)[1]
+        self.cell["runs"] = [self.run_record(0, 91, changes={"model": old})]
+        self.assertEqual(len(self.audit()["valid_runs"]), 1)
+        self.cell["runs"] = [self.run_record(0, 91, changes={"model": "99_dinov2"})]
+        self.assertEqual(len(self.audit()["valid_runs"]), 0)
+
     def test_final_epoch_metadata_and_completion_must_agree(self):
         for epoch in (99, 101, True):
             run = self.run_record(0, 10)

@@ -1,0 +1,133 @@
+# rotation_prediction — rotation pretext (AlexNet + unified ViT-B/16) + linear evaluation
+
+> **Legacy terminology:** numbered Step 1-4 labels in this file are historical
+> code/experiment identifiers, not manuscript section numbers. See the
+> [ASIS, CTRL and manuscript comparison map](../../docs/PAPER_TERMINOLOGY.md) before matching a recipe to a paper result.
+
+Status, support and validation statements describe this portable package at the
+date recorded; see [scope and terminology](../../docs/SUBMISSION_SCOPE.md)
+for the distinction from original experimental implementations and results.
+
+Gidaris, Singh & Komodakis, *Unsupervised Representation Learning by Predicting
+Image Rotations*, ICLR 2018 ([arXiv:1803.07728](https://arxiv.org/abs/1803.07728)).
+
+An image is rotated by one of {0°, 90°, 180°, 270°} and an **AlexNet-BN**
+predicts which rotation was applied (a 4-class pretext). Step 1 is that pretext.
+
+## Why this method, and what is new here
+
+**A self-contained re-implementation** ported from the capture's own
+`methods/6_rotation_prediction` (the lab's own model + dataset following the
+official RotNet AlexNet-BN, torch/torchvision only) — no `third_party/`
+submodule, the same treatment the other re-implemented methods got.
+
+This method is also the **pilot for the capture's Step 2** — the unified,
+from-scratch **ViT-B/16** comparison, where every method plugs its SSL objective
+into the *same* backbone. Rotation plugs in its 4-way pretext. That path is ported
+here (`configs/pretrain_vit.yaml`, `models/vit_rotation.py`,
+`train_pretrain_vit_rotation.py`) and adds a `timm` dependency; the native AlexNet
+pretrain (`configs/pretrain.yaml`) is unchanged and still needs no timm.
+
+The lab wrapper trains under `DistributedDataParallel` and logs to TensorBoard;
+neither is needed for a single-process run, so `train_pretrain_rotation.py` owns a
+thin loop, the device is **resolved** rather than assumed CUDA, and TensorBoard
+is dropped.
+
+One thing is added in the port: an `AdaptiveAvgPool2d((6, 6))` before the FC
+block, so the encoder accepts any input size. At the paper's 224px input the
+pool5 map is already 6×6, so the adaptive pool is an **identity** there; it only
+matters for the smaller inputs a CPU smoke uses.
+
+## `encoder.pt`, and a linear evaluation that reads it
+
+`encoder.pt` is the **AlexNet-BN encoder** (`encoder.*`) — the five convolutional
+blocks and the two FC blocks, giving one 4096-d feature per image. The 4-class
+rotation head is pretext machinery and is excluded, and the round trip (write it,
+load it back into a rebuilt model, compare the weights) is tested.
+
+`linear_eval` reads this `encoder.pt`: the representation is the model this port
+trains, so the probe number is a genuine, comparable linear probe. Images are
+resized to the encoder's training input size; the probe follows the lab's ARSSL
+protocol (features cached once, mean-centred and L2-normalised, a single linear
+layer trained with SGD under a cosine schedule). The capture's research eval
+could select an earlier conv layer for the probe; the port fixes the
+representation at the trained encoder's output so the number is a single,
+comparable linear probe, as in every other self-contained port here.
+
+## Step 2: the unified ViT-B/16 backbone
+
+`configs/pretrain_vit.yaml` (`arch: vit`) trains the capture's Step-2 backbone: a
+**timm ViT-B/16 from scratch**, the 4-way rotation pretext on the CLS token,
+AdamW with a linear warmup then cosine decay to `min_lr`, gradient clipping, and
+mixed precision on CUDA. It checkpoints at `save_at_epochs` — **100/200/300** —
+and the adapter hands out the frozen backbone at each milestone as
+`encoder_epoch{100,200,300}.pt`, so the ImageNet `linear_eval` can be run once per
+milestone (the CSV's Step-2 sweep); `encoder.pt` is the final 300-epoch backbone.
+The stage token stays `pretrain` and the metric vocabulary is unchanged (ImageNet
+Top-1/5) — only the backbone and recipe differ from the native path, which is
+untouched. See docs/EVALUATION.md.
+
+## What has and has not been exercised
+
+- **Exercised (step 1):** a hermetic smoke — a small AlexNet-BN, a few fabricated
+  images, the four rotations — runs through `python -m adapter` on a CPU, passes
+  `contract-test`, and the encoder round-trip and a determinism check pass.
+- **Exercised (linear_eval):** a hermetic smoke fits the probe on a pretrain
+  encoder over a two-class ImageFolder, passes `contract-test`, writes the
+  comparable `linear_probe` accuracies, and writes **no** `encoder.pt`.
+- **Exercised (Step 2 ViT):** a hermetic smoke trains a tiny ViT-B/16-shaped
+  model for two epochs with `save_at_epochs: [1, 2]`, writes `encoder.pt` plus
+  `encoder_epoch1.pt` / `encoder_epoch2.pt`, then probes a milestone through
+  `python -m adapter` and passes `contract-test`.
+- **Not a full run:** `configs/pretrain.yaml` (AlexNet-BN, 224px, 50 epochs) and
+  `configs/pretrain_vit.yaml` (ViT-B/16, 300 epochs, 100/200/300) are recipes,
+  not completed runs.
+- **GPU:** the device resolution is verified on real hardware; see the device
+  mutation spec (`mutations/rotation_prediction-pretrain-device.json`).
+
+## Environment
+
+torch / torchvision / numpy / PyYAML — the self-contained methods' stack. The
+Step-2 ViT path adds **timm** (`models/vit_rotation.py` builds timm's
+VisionTransformer); the native AlexNet pretrain and the linear probe import no
+timm. `requirements.lock.txt` (CPU) and `requirements.lock.cu130.txt` (CUDA 13.0)
+are the hashed closures.
+
+    pip install --require-hashes \
+        --index-url https://download.pytorch.org/whl/cpu \
+        --extra-index-url https://pypi.org/simple \
+        -r methods/rotation_prediction/requirements.lock.txt -r requirements-tools.lock.txt
+
+## Running
+
+    # step 1: DATA_ROOT is an ImageFolder of training images
+    python bin/resolve-config.py --config methods/rotation_prediction/configs/pretrain.yaml \
+        --set DATA_ROOT=/path/to/images --out resolved.json
+    cd methods/rotation_prediction && PYTHONPATH="$PWD/../.." \
+        python -m adapter --config /path/to/resolved.json --out /path/to/s1
+
+    # step 2 (unified ViT-B/16): checkpoints at 100/200/300 -> encoder_epoch{N}.pt
+    python bin/resolve-config.py --config methods/rotation_prediction/configs/pretrain_vit.yaml \
+        --set DATA_ROOT=/path/to/imagenet --out resolved_vit.json
+    cd methods/rotation_prediction && PYTHONPATH="$PWD/../.." \
+        python -m adapter --config /path/to/resolved_vit.json --out /path/to/s2
+
+    # linear eval: DATA_ROOT has train/ and val/; ENCODER is a pretrain encoder.pt
+    # (native encoder.pt, or a ViT milestone encoder_epoch{100,200,300}.pt)
+    python bin/resolve-config.py --config methods/rotation_prediction/configs/linear_eval.yaml \
+        --set DATA_ROOT=/path/to/imagenet \
+        --set ENCODER=/path/to/s1/encoder.pt --out eval.json
+    cd methods/rotation_prediction && PYTHONPATH="$PWD/../.." \
+        python -m adapter --config /path/to/eval.json --out /path/to/eval
+
+Success is exit status 0 and `status: "ok"` in `out/run_manifest.json`. The
+linear_eval stage writes `metrics.json` and **no** `encoder.pt`; the manifest
+carries `encoder_absent_reason`.
+
+## Separate scaling recipe
+
+The [indexed 90-epoch scaling entry](../../docs/ROTATION_SCALING.md) supports
+ViT-B/L with its own optimizer-update schedule, accumulation, DDP and portable
+epoch continuation. It does not change the historical or Step-2 adapters.
+Its exports connect to the frozen BasicFive provider; full-data paper scores
+remain unverified.

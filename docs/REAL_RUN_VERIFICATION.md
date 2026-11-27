@@ -150,7 +150,7 @@ weight/eval lands in the right place" holds by machine.
      **This per-method spec is the registry step 3 reads**, so the foundation
      seeds the matrix driver. The spec lists ordered `stages`
      (`config`/`sets`/`overrides`/`produces`/`produces_metric`), a `data_shape`,
-     and the `needs` imports that gate it. `06_rotation_prediction` ships the
+     and the `needs` imports that gate it. `rotation_prediction` ships the
      first spec.
    - **On CPU vs GPU:** on a GPU host the run resolves `device: auto` to CUDA and
      exercises the GPU path too; on a CPU host it runs on CPU. Both were measured
@@ -243,36 +243,36 @@ shrunk for the momentum-queue and NCE-bank methods -- including `train.num_negat
 for PIRL's memory bank (33) -- `train.k` shrunk for SeLa's self-labelling clusters,
 and `train.rebalance_sample_size` shrunk for colorization's class-rebalancing prior
 (03)). The matrix now spans both architecture families: eight ViT methods declare a
-spec. Some own their ViT (`23_dino`, DINO's ViT-S/16, and `31_dinov3`, ViT-B/16 with
+spec. Some own their ViT (`dino`, DINO's ViT-S/16, and `dinov3`, ViT-B/16 with
 registers + RoPE -- `train.img_size`/`train.global_size`/`train.local_size` stay
 divisible by the patch size 16, `train.n_local_crops` shrunk, temperature/LR warmups
-zeroed); some are timm-backed (`22_mocov3`, ViT-Base, and `37_lejepa`,
+zeroed); some are timm-backed (`mocov3`, ViT-Base, and `lejepa`,
 `vit_base_patch16_224` -- timm interpolates its position embedding to `img_size=64`),
-whose specs therefore list `timm` in `needs`. `25_mae` shows the masked-autoencoder
+whose specs therefore list `timm` in `needs`. `mae` shows the masked-autoencoder
 shape: its model is parameterisable (`models/mae_vit.py` says so explicitly), so the
 default ViT-Large is shrunk to a tiny encoder/decoder via the dim keys -- applied
 identically in both stages so `linear_eval` rebuilds the encoder `encoder.pt` holds.
-The patch-14 JEPA family shrinks the same way: `29_ijepa` builds the tiny `vit_tiny`
+The patch-14 JEPA family shrinks the same way: `ijepa` builds the tiny `vit_tiny`
 variant its port added to `models/vision_transformer.py` (`train.name=vit_tiny`), and
-`32_nepa` is built from explicit dims (`train.embed_dim`/`depth`/`num_heads`), both
+`nepa` is built from explicit dims (`train.embed_dim`/`depth`/`num_heads`), both
 kept identical across the two stages; each runs at `train.img_size=70`, divisible by
-the patch size 14 (a 5x5 patch grid), with `train.warmup_epochs=0`. `11_cpc` (visual
+the patch size 14 (a 5x5 patch grid), with `train.warmup_epochs=0`. `cpc` (visual
 CPC 2018) is the patch-grid predictive-coding shape: its dataset relaxes the paper's
 7x7 grid to any `>=2x2` grid for a hermetic smoke, so `train.img_size`/`patch_size`/
 `stride` shrink to a 2x2 grid (at which the InfoNCE loss still predicts one future
 row, `train.pred_steps=1`) and the ResNet-v2-101 patch encoder is narrowed with
 `train.z_dim`/`train.encoder_width_mult` -- every model and patch-grid key set
 identically in both stages so `linear_eval` rebuilds the encoder `encoder.pt` holds.
-Two jigsaw methods keep a large input on purpose: `05_jigsaw_puzzle` and
-`09_jigsaw_puzzle_pp` cannot shrink `train.image_size` below `3*tile_size` (their 3x3
+Two jigsaw methods keep a large input on purpose: `jigsaw_puzzle` and
+`jigsaw_puzzle_pp` cannot shrink `train.image_size` below `3*tile_size` (their 3x3
 grid of 75px tiles), so both run at the default 255 (the AlexNet/CFN encoder is light
-enough at that resolution). `04_context_encoder` is the one GAN (AlexNet inpainting):
+enough at that resolution). `context_encoder` is the one GAN (AlexNet inpainting):
 its geometry is fixed by the architecture rather than shrunk -- the decoder
 reconstructs a 128x128 centre hole and the discriminator sees that same 128x128, so
 `mask_size` stays 128 and `img_size` stays 227, while the encoder's terminal
 `AdaptiveAvgPool2d((7,7))` accepts any input so `linear_eval` need not match the
 pretrain size; only the run-length knobs are overridden and the adversarial path runs.
-`26_simmim` is the Swin masked-image-modeling shape: the default Swin-B is shrunk to a
+`simmim` is the Swin masked-image-modeling shape: the default Swin-B is shrunk to a
 tiny four-stage tower (`train.embed_dim=32`, `train.depths=[2,2,2,2]`,
 `train.num_heads=[2,4,8,16]`) whose geometry still satisfies every divisibility the
 port asserts -- `encoder_stride = train.patch_size * 2^(len(depths)-1) = 32`, and
@@ -302,7 +302,7 @@ named failure, never a silently empty `--set`. The iGPT-S recipe (`vocab_size=51
 `img_size=32`, `n_layer=24`, `n_head=8`, `n_embd=512`) is shrunk to the tiny
 architecture the method's own test exercises on CPU (`vocab_size=8`, `img_size=8`,
 `n_layer=2`, `n_head=2`, `n_embd=32`), every model key set identically in both
-stages so `load_encoder` rebuilds the same model. `24_beit` (BEiT masked image
+stages so `load_encoder` rebuilds the same model. `beit` (BEiT masked image
 modeling with dVAE visual tokens) follows the standard shape -- its probe reads the
 model `pretrain` trains (the frozen BEiT backbone's mean-pooled patch tokens), so
 `linear_eval` consumes `encoder.pt` via `@encoder`. Its MIM targets come from a dVAE
@@ -318,47 +318,47 @@ grid, `token_size=16` -> a matching 2x2 token grid, `embed_dim=32`, `depth=2`,
 `num_heads=4`, `vocab_size=16`, `num_masking_patches=2` of 4); every model key is set
 identically in both stages so `load_encoder` rebuilds the same trunk, while the
 tokenizer and masking keys are pretrain-only (the `linear_eval` config rejects them).
-`28_dinov2` (DINOv2 self-distillation) is the first `EVAL_DOWNLOAD` eval-only shape in
+`dinov2` (DINOv2 self-distillation) is the first `EVAL_DOWNLOAD` eval-only shape in
 this list (`docs/EVAL_DOWNLOAD.md`): the capture's "Step 1" is a linear probe on the
 official pretrained DINOv2 ViT backbone -- a genuine SSL representation, so the number
 is comparable -- and the from-scratch pretraining on the unavailable LVD-142M is the
 excluded step, so the port has no `pretrain` stage at all and its smoke is a single
 `linear_eval` that reads a frozen backbone and produces no `encoder.pt`. The official
 ViT-g/14 checkpoint is a pinned sha256 download (`bin/fetch-weights.py`); like `var`
-and `24_beit`, the hermetic smoke leaves `DINOV2_CKPT` empty so the backbone is built
+and `beit`, the hermetic smoke leaves `DINOV2_CKPT` empty so the backbone is built
 `pretrained=False` (random), downloading nothing (its accuracy is meaningless by
 design). The default `dinov2_vitg14` builder is swapped for the smallest,
 `dinov2_vits14`, at `train.resolution=28` (a 2x2 patch14 grid) -- the tiny backbone the
 method's own test exercises on CPU; the ViT's `embed_dim`/`depth`/`patch_size` are
 fixed by the named builder and are not config keys, so only the builder name,
 resolution and run-length knobs are overridden.
-`30_aim` (AIM autoregressive image modeling) is the same eval-only shape, and reuses the
+`aim` (AIM autoregressive image modeling) is the same eval-only shape, and reuses the
 official AIM-600M backbone because AIM's from-scratch pretraining is on the non-public
-DFN-2B+ -- so, like `28_dinov2`, it has no `pretrain` stage and its smoke is a single
+DFN-2B+ -- so, like `dinov2`, it has no `pretrain` stage and its smoke is a single
 `linear_eval` reading a frozen backbone, producing no `encoder.pt`, with `CKPT` left
-empty so the backbone is random and nothing is downloaded. Unlike `28_dinov2` (whose ViT
+empty so the backbone is random and nothing is downloaded. Unlike `dinov2` (whose ViT
 is fixed by a named builder), AIM's dims are explicit config keys, so the AIM-600M recipe
 (ViT-H/14, `embed_dim=1536`, 24 blocks, 12 heads) is shrunk directly to the tiny
 architecture the method's own test exercises on CPU (`img_size=32`, `patch_size=16`,
 `embed_dim=32`, `num_blocks=4`, `num_heads=4`, `num_feature_layers=2`), keeping
 `num_feature_layers <= num_blocks`.
-`36_franca` (Franca self-supervised ViT) is the same eval-only shape as `28_dinov2`: its
+`franca` (Franca self-supervised ViT) is the same eval-only shape as `dinov2`: its
 capture "Step 1" is a linear probe on the official pretrained Franca ViT-B/14 In21K
 backbone -- a genuine SSL representation, so the number is comparable -- and its
 from-scratch SSL pretraining is the excluded Step 2, so the port has no `pretrain` stage
 and its smoke is a single `linear_eval` reading a frozen backbone, producing no
 `encoder.pt`, with `FRANCA_CKPT` left empty so the backbone is random and nothing is
-downloaded. Like `28_dinov2`, the architecture is fixed by the named builder
+downloaded. Like `dinov2`, the architecture is fixed by the named builder
 (`franca_vitb14`, the smallest, `embed_dim=768`), not by config dims, so only
 `train.resolution` (518 -> 28, a 2x2 patch14 grid) and the run-length knobs are
 overridden.
-`38_clip` (CLIP contrastive image-text, Radford et al. 2021) is the same eval-only shape:
+`clip` (CLIP contrastive image-text, Radford et al. 2021) is the same eval-only shape:
 its capture "Step 1" reuses the released OpenAI ViT-B/32 image tower, freezes it and probes
 its pooled `encode_image` embedding -- a genuine learned representation, so the number is
-comparable, like `36_franca` -- because CLIP's from-scratch training is on the non-public
+comparable, like `franca` -- because CLIP's from-scratch training is on the non-public
 400M image-text WIT dataset, so the port has no `pretrain` stage and its smoke is a single
 `linear_eval` reading a frozen backbone, producing no `encoder.pt`, with `CLIP_VITB32_CKPT`
-left empty so the tower is built random (no `clip.load`, no download). Unlike `28_dinov2`
+left empty so the tower is built random (no `clip.load`, no download). Unlike `dinov2`
 (named builder), CLIP's image-tower dims are explicit config keys, so the ViT-B/32 recipe
 (`resolution=224`, `patch=32`, `width=768`, 12 layers/heads, `output_dim=512`) is shrunk
 directly to the tiny tower the method's own test exercises on CPU (`resolution=32`,
@@ -367,36 +367,36 @@ directly to the tiny tower the method's own test exercises on CPU (`resolution=3
 instantiates its BPE tokenizer at import time, so `ftfy` and `regex` are needed even on this
 eval-only path, which is why its spec lists them in `needs`.
 Declaring a spec today (measured
-2026-08-27, all but one on `imagefolder_2class`; `02_vae` is the exception -- it trains
+2026-08-27, all but one on `imagefolder_2class`; `vae` is the exception -- it trains
 on MNIST, so its spec's `data_shape` is `mnist` and `build_data` fabricates a valid
 `MNIST/raw` IDX directory rather than an ImageFolder; most are `pretrain -> linear_eval`,
-the eval-only `28_dinov2`, `30_aim`, `36_franca` and `38_clip` are a single `linear_eval`
-stage each, and `01_context_prediction` is a single `pretrain` stage -- its distributed
+the eval-only `dinov2`, `aim`, `franca` and `clip` are a single `linear_eval`
+stage each, and `context_prediction` is a single `pretrain` stage -- its distributed
 init lives only in pretrain and its native AlexNet `linear_eval` is not yet tiny-tested):
 
-- `01_context_prediction`, `02_vae`, `03_colorization`, `04_context_encoder`,
-  `05_jigsaw_puzzle`, `06_rotation_prediction` (the pilot), `08_split_brain`,
-  `09_jigsaw_puzzle_pp`, `10_inst_disc`, `11_cpc`, `12_cmc`, `13_mocov1`, `14_simclrv1`,
-  `15_mocov2`, `16_simclrv2`, `17_swav`, `18_sela`, `19_byol`, `20_simsiam`,
-  `21_barlow_twins`, `22_mocov3`, `23_dino`, `25_mae`, `26_simmim`,
-  `24_beit`, `27_ibot`, `28_dinov2`, `29_ijepa`, `30_aim`, `31_dinov3`, `32_nepa`, `33_pirl`,
-  `36_franca`, `37_lejepa`, `38_clip`, `var`, `image_gpt` -- thirty-seven methods, each
+- `context_prediction`, `vae`, `colorization`, `context_encoder`,
+  `jigsaw_puzzle`, `rotation_prediction` (the pilot), `split_brain`,
+  `jigsaw_puzzle_pp`, `inst_disc`, `cpc`, `cmc`, `mocov1`, `simclrv1`,
+  `mocov2`, `simclrv2`, `swav`, `sela`, `byol`, `simsiam`,
+  `barlow_twins`, `mocov3`, `dino`, `mae`, `simmim`,
+  `beit`, `ibot`, `dinov2`, `ijepa`, `aim`, `dinov3`, `nepa`, `pirl`,
+  `franca`, `lejepa`, `clip`, `var`, `image_gpt` -- thirty-seven methods, each
   verified green.
 
 **Every discovered spec runs under every method's `locked` venv, gated on `needs`.**
 The smoke test runs a spec only when its `needs` import in the current venv:
 twenty-six of the thirty-seven need the same four (`torch`/`torchvision`/`numpy`/`PIL`)
-and run everywhere, while `22_mocov3`, `26_simmim` and `37_lejepa` also need `timm`,
-`var` and `30_aim` also need `huggingface_hub`, `38_clip` also needs `ftfy` and
+and run everywhere, while `mocov3`, `simmim` and `lejepa` also need `timm`,
+`var` and `aim` also need `huggingface_hub`, `clip` also needs `ftfy` and
 `regex` (the pinned OpenAI `clip` package builds its BPE tokenizer at import), and
-`02_vae`, `17_swav`, `20_simsiam`, `21_barlow_twins` and `27_ibot` also need
+`vae`, `swav`, `simsiam`, `barlow_twins` and `ibot` also need
 `tensorboard` (their trainers write TensorBoard summaries via `torch.utils.tensorboard`),
 so those eleven run only under a venv carrying the extra dep and are skipped -- by the
 gate, not silently -- elsewhere. Thirty-one of the thirty-seven were measured green
-together under the `26_simmim` venv (which carries `timm` and `huggingface_hub` but not
+together under the `simmim` venv (which carries `timm` and `huggingface_hub` but not
 `tensorboard` or `ftfy`/`regex`), landing in ~547 s (measured 2026-08-27); the six
-gate-skips there -- `38_clip` (needs `ftfy`/`regex`) and `02_vae`/`17_swav`/`20_simsiam`/
-`21_barlow_twins`/`27_ibot` (need `tensorboard`) -- were each verified green under their
+gate-skips there -- `clip` (needs `ftfy`/`regex`) and `vae`/`swav`/`simsiam`/
+`barlow_twins`/`ibot` (need `tensorboard`) -- were each verified green under their
 own `.venvs/<method>` via `matrix-run -> matrix-audit`. No single venv carries every
 extra, so the whole thirty-seven cannot land in one run; together the venvs cover all of them -- a ported
 method runs under another method's pinned deps, across both architecture families. The
@@ -407,7 +407,7 @@ for now.
 **The single-process trap, and what is left.** `launch.py` always sets
 `LOCAL_RANK=0`/`RANK=0`/`WORLD_SIZE=1` for a single-process local run
 (`bin/launch.py`) but no `MASTER_ADDR`, and five methods' trainers --
-`01_context_prediction`, `17_swav`, `20_simsiam`, `21_barlow_twins`, `27_ibot` --
+`context_prediction`, `swav`, `simsiam`, `barlow_twins`, `ibot` --
 used to call `dist.init_process_group(backend="nccl")` as soon as `LOCAL_RANK` was
 present, which failed on a CPU host with `MASTER_ADDR expected, but not set`. The
 harness surfaced this as a failed cell (never a silent pass). The fix keys "go
@@ -417,18 +417,18 @@ invariant, `docs/GPU.md`); every downstream DDP/`SyncBatchNorm`/`DistributedSamp
 path was already guarded behind `if distributed:`. Each guard is measured with a
 mutation that must kill it (the two predicate shapes -- the shared
 `if WORLD_SIZE<=1: return` and `01`'s `or WORLD_SIZE<=1` clause -- were each mutated
-and confirmed to fail the smoke). `20_simsiam` also stood up a process group in its
+and confirmed to fail the smoke). `simsiam` also stood up a process group in its
 `linear_eval` (`evaluate_linear_official.py`); it is fixed in both sites. The other
 four's `linear_eval` never touched `dist`, so `01`'s smoke is a single pretrain stage
 (the only stage the fix touches).
 
-`02_vae` completes the local backend from a different direction. Its adapter already
-forces `distributed=False` (`methods/02_vae/adapter/__init__.py`), so it was never
+`vae` completes the local backend from a different direction. Its adapter already
+forces `distributed=False` (`methods/vae/adapter/__init__.py`), so it was never
 nccl-blocked; it was blocked only because it trains on MNIST, not an ImageFolder, and
 `tests/_real_run.py::build_data` had no `mnist` shape. That shape is now added: it
 fabricates a valid `MNIST/raw` IDX directory (the layout
 `torchvision.datasets.MNIST(download=False)` reads, mirroring the proven `tiny_mnist`
-fixture in `tests/test_method_02_vae.py`, stdlib only, no download), and `02_vae`'s
+fixture in `tests/test_method_vae.py`, stdlib only, no download), and `vae`'s
 spec asks for it. Both stages read the same MNIST (the dataset-agnostic loader,
 `data/vae_dataset.py`, picks MNIST over ImageFolder when a `MNIST/` subdirectory is
 present); the default recipe (latent_dim 20, hidden_dim 500, 100 epochs) is shrunk to

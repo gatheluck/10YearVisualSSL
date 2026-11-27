@@ -7,6 +7,7 @@ import math
 import re
 from pathlib import Path
 
+from adapterlib.method_names import public_name
 from downstream.accounting import summarize, validate_seeds
 
 IDENTITY = frozenset(
@@ -234,7 +235,10 @@ def inspect_run(cell, run):
     if type(result.get("seed")) is not int or result["seed"] != run["seed"]:
         raise InvalidRecord("result seed differs")
     for key, expected in cell["identity"].items():
-        if key not in result or canonical(result[key]) != canonical(expected):
+        actual = result.get(key)
+        if key in {"model", "method_id"}:
+            actual, expected = public_name(actual), public_name(expected)
+        if key not in result or canonical(actual) != canonical(expected):
             raise InvalidRecord("reference identity differs")
     if (
         schema == "extended_lp_ap_v1"

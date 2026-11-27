@@ -282,7 +282,7 @@ CPU fixtures validate components; they do not validate these full-size runs.
 ]
 ```
 
-From `methods/10_inst_disc`, run `PYTHONPATH=../.. python -m adapter --config /path/to/resolved.json --out /path/to/new-run`.
+From `methods/inst_disc`, run `PYTHONPATH=../.. python -m adapter --config /path/to/resolved.json --out /path/to/new-run`.
 The input root contains `train/CLASS/IMAGE`; class labels are unused in pretraining.
 
 `epochs` is the desired completed-epoch endpoint (1..300), while the LR schedule
@@ -314,7 +314,7 @@ format is unchanged and does not acquire this component resume guarantee.
 
 ## Explicit distributed FP32 execution
 
-From `methods/10_inst_disc`, use the same resolved profile configuration, an
+From `methods/inst_disc`, use the same resolved profile configuration, an
 explicit `device` of `cpu` or `cuda`, and a new output directory:
 
 `PYTHONPATH=../.. python -m torch.distributed.run --master-addr=127.0.0.1 --master-port=29500 --nproc-per-node=2 --module idv2_distributed --config /path/to/resolved.json --out /path/to/new-run`
@@ -367,7 +367,7 @@ Behavioral RED/GREEN tests cover the seven routes, sampling/update ordering,
 prototype lifecycle, dense gradients, source protection and real interrupted
 training. Reduced private-reference comparisons cover three optimizer updates
 per profile, including gradients and NCE/AdamW state. Run
-`OMP_NUM_THREADS=1 PYTHONPATH=tests:. .venvs/downstream/bin/python -m unittest test_idv2_components test_method_10_inst_disc`.
+`OMP_NUM_THREADS=1 PYTHONPATH=tests:. .venvs/downstream/bin/python -m unittest test_idv2_components test_method_inst_disc`.
 Mutation and full-suite results are recorded in the task PR. Private sources,
 run paths and comparison artifacts remain outside Git. Matching this package's outputs to paper/workbook results remains unverified,
 and source protocol contradictions remain unresolved. No reported score is

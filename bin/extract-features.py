@@ -57,7 +57,13 @@ import subprocess
 import sys
 from pathlib import Path
 
+
 ROOT = Path(__file__).resolve().parent.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from adapterlib.method_names import order_key, public_mapping, read_names
+
 METHODS_DIR = ROOT / "methods"
 PROVIDER_FILE = "feature_provider.py"
 DEFAULT_VENVS_ROOT = ROOT / ".venvs"
@@ -74,7 +80,7 @@ def discover_providers(methods_dir: Path) -> "dict[str, Path]":
     not providers.
     """
     out: "dict[str, Path]" = {}
-    for child in sorted(Path(methods_dir).iterdir()):
+    for child in sorted(Path(methods_dir).iterdir(), key=lambda p: order_key(p.name)):
         if not child.is_dir():
             continue
         provider = child / PROVIDER_FILE
@@ -91,8 +97,10 @@ def _resolve_encoder(method: str, encoders: "dict[str, str]",
         p = Path(encoders[method])
         return p if p.is_file() else None
     if encoders_root is not None:
-        p = Path(encoders_root) / method / "encoder.pt"
-        return p if p.is_file() else None
+        for name in read_names(method):
+            p = Path(encoders_root) / name / "encoder.pt"
+            if p.is_file():
+                return p
     return None
 
 
@@ -100,6 +108,7 @@ def plan(methods_dir: Path, encoders: "dict[str, str]",
          encoders_root: "Path | None" = None) -> "list[dict]":
     """One record per discovered method. `ready` carries an encoder path;
     `skipped` carries a reason. Nothing discovered is dropped."""
+    encoders = public_mapping(encoders)
     records = []
     for method, provider in discover_providers(methods_dir).items():
         enc = _resolve_encoder(method, encoders, encoders_root)
@@ -253,9 +262,10 @@ def python_for(method: str, venvs_root: "Path | None") -> str:
     (`<venvs_root>/<method>/bin/python`) if it exists, else the current one.
     Discovered from the tree, not listed."""
     if venvs_root is not None:
-        cand = Path(venvs_root) / method / "bin" / "python"
-        if cand.is_file():
-            return str(cand)
+        for name in read_names(method):
+            cand = Path(venvs_root) / name / "bin" / "python"
+            if cand.is_file():
+                return str(cand)
     return sys.executable
 
 
@@ -369,12 +379,6 @@ def worker_main(argv: "list[str]") -> int:
     p.add_argument("--num-workers", type=int, default=8)
     p.add_argument("--representation", default="l2", choices=["l2", "raw"])
     a = p.parse_args(argv)
-    # The repo root on sys.path, so a method's adapter can import the shared
-    # `adapterlib` (bin/launch.py sets PYTHONPATH=ROOT for the same reason).
-    # The provider adds its own method directory; that stays ahead of this, so
-    # the method's `adapter`/`models` win over anything at the root.
-    if str(ROOT) not in sys.path:
-        sys.path.insert(0, str(ROOT))
     out_dir = Path(a.out)
     result_path = out_dir / "result.json"
     try:

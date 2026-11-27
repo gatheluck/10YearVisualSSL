@@ -18,10 +18,10 @@ class TestSplitScaling(unittest.TestCase):
     def entry(self):
         path = (
             Path(__file__).resolve().parents[1]
-            / "methods/08_split_brain/splitbrain_scaling.py"
+            / "methods/split_brain/splitbrain_scaling.py"
         )
         self.assertTrue(path.is_file(), "indexed SplitBrain training is missing")
-        return importlib.import_module("methods.08_split_brain.splitbrain_scaling")
+        return importlib.import_module("methods.split_brain.splitbrain_scaling")
 
     def test_documented_config(self):
         import json
@@ -396,7 +396,7 @@ class TestContinuation(unittest.TestCase):
 
         from tests.test_method_color_scaling import TestColorScaling
 
-        m = importlib.import_module("methods.08_split_brain.splitbrain_scaling")
+        m = importlib.import_module("methods.split_brain.splitbrain_scaling")
         with tempfile.TemporaryDirectory() as tmp:
             cfg = dict(
                 TestColorScaling().fixture(Path(tmp)), accum=1, lab_backend="fallback"
@@ -435,7 +435,7 @@ class TestContinuation(unittest.TestCase):
 
         from tests.test_method_color_scaling import TestColorScaling
 
-        m = importlib.import_module("methods.08_split_brain.splitbrain_scaling")
+        m = importlib.import_module("methods.split_brain.splitbrain_scaling")
         torch.set_num_threads(1)
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -595,7 +595,7 @@ class TestContinuation(unittest.TestCase):
 
         from tests.test_method_color_scaling import TestColorScaling
 
-        m = importlib.import_module("methods.08_split_brain.splitbrain_scaling")
+        m = importlib.import_module("methods.split_brain.splitbrain_scaling")
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             cfg = dict(
@@ -701,7 +701,7 @@ def worker(root):
     from downstream.extended_distributed import session
     from downstream.indexed_tar import IndexedTarDataset
 
-    m = importlib.import_module("methods.08_split_brain.splitbrain_scaling")
+    m = importlib.import_module("methods.split_brain.splitbrain_scaling")
     m.PRESETS["vit_base_patch16_224"] = (16, 1, 2)
     m.CROP = 16
     cfg = json.loads((root / "config.json").read_text())

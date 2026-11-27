@@ -17,7 +17,7 @@ backbone (a BEiT-architecture ViT-B/16) and fits a linear probe on its CLS token
 because the from-scratch context-autoencoder pretraining (IN-1k, many GPU-days) is
 the excluded step. The probed representation is a genuine SSL feature, so the number
 **is** comparable — the "pretrained-backbone reuse" row, analogous to `eva02` /
-`aimv2` / `data2vec2` / `36_franca`.
+`aimv2` / `data2vec2` / `franca`.
 
 ## The checkpoint, stated plainly
 

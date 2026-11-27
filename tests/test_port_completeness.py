@@ -4,9 +4,9 @@ ships a config to run it.
 Two structural gaps went unnoticed until an audit found them by hand, which is
 the failure this file turns into machinery (CLAUDE.md, "make it machinery"):
 
-- `01_context_prediction` was the only method of forty with **no mutation
+- `context_prediction` was the only method of forty with **no mutation
   spec** -- its guards were never proved non-vacuous. Nothing required one.
-- `20_simsiam` declared a `linear_eval` stage but shipped **no
+- `simsiam` declared a `linear_eval` stage but shipped **no
   `configs/linear_eval.yaml`** -- the only two-stage method that could not be
   run from a shipped config. Its test built the config inline, so nothing on
   disk revealed the gap.
@@ -32,7 +32,7 @@ METHODS_DIR = ROOT / "methods"
 MUTATIONS_DIR = ROOT / "mutations"
 
 # Stages that are runnable training/eval work and therefore need a shipped
-# config. `knowledge_transfer` is a real stage (09_jigsaw_puzzle_pp) but is not
+# config. `knowledge_transfer` is a real stage (jigsaw_puzzle_pp) but is not
 # required to ship its own top-level config, so it is not in this set.
 CONFIG_STAGES = ("pretrain", "linear_eval")
 
@@ -81,7 +81,7 @@ def specs_for(method: str, mutations_dir: Path) -> list[Path]:
 
     Matched on the `<method>-` prefix (whole method name plus a separator), not
     a substring, so `mar` does not swallow `mar`-prefixed siblings only, and
-    `01_context_prediction` is never matched by a bare `01`.
+    `context_prediction` is never matched by a bare `01`.
     """
     return sorted(Path(p) for p in glob.glob(
         str(mutations_dir / f"{method}-*.json")))

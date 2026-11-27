@@ -1,8 +1,9 @@
 {
+  "_result": {"measured_on": "2026-11-27", "killed": 17, "total": 17},
   "targets": [
     {
       "label": "source digest",
-      "file": "methods/31_dinov3/downstream_backbone_ablation.py",
+      "file": "methods/dinov3/downstream_backbone_ablation.py",
       "old": "if sha256_file(source) != sha256:\n        raise ValueError(\"source sha256 mismatch\")",
       "new": "if False:\n        raise ValueError(\"source sha256 mismatch\")",
       "tests": [
@@ -11,7 +12,7 @@
     },
     {
       "label": "source race",
-      "file": "methods/31_dinov3/downstream_backbone_ablation.py",
+      "file": "methods/dinov3/downstream_backbone_ablation.py",
       "old": "if sha256_file(source) != sha256:\n        raise ValueError(\"source changed during import\")",
       "new": "if False:\n        raise ValueError(\"source changed during import\")",
       "tests": [
@@ -20,7 +21,7 @@
     },
     {
       "label": "epoch comparison",
-      "file": "methods/31_dinov3/downstream_backbone_ablation.py",
+      "file": "methods/dinov3/downstream_backbone_ablation.py",
       "old": "or blob[\"epoch\"] != epoch",
       "new": "or False",
       "tests": [
@@ -29,7 +30,7 @@
     },
     {
       "label": "architecture config",
-      "file": "methods/31_dinov3/downstream_backbone_ablation.py",
+      "file": "methods/dinov3/downstream_backbone_ablation.py",
       "old": "or model.get(\"arch\") != arch",
       "new": "or False",
       "tests": [
@@ -38,7 +39,7 @@
     },
     {
       "label": "configuration match",
-      "file": "methods/31_dinov3/downstream_backbone_ablation.py",
+      "file": "methods/dinov3/downstream_backbone_ablation.py",
       "old": "if any(model.get(key, value) != value for key, value in expected_config.items()):",
       "new": "if False:",
       "tests": [
@@ -47,7 +48,7 @@
     },
     {
       "label": "namespace boundary",
-      "file": "methods/31_dinov3/downstream_backbone_ablation.py",
+      "file": "methods/dinov3/downstream_backbone_ablation.py",
       "old": "key.startswith(head + \".\")",
       "new": "key.startswith(head)",
       "tests": [
@@ -56,7 +57,7 @@
     },
     {
       "label": "teacher selection",
-      "file": "methods/31_dinov3/downstream_backbone_ablation.py",
+      "file": "methods/dinov3/downstream_backbone_ablation.py",
       "old": "raw = blob.get(\"teacher_state_dict\")",
       "new": "raw = blob.get(\"student_state_dict\")",
       "tests": [
@@ -65,7 +66,7 @@
     },
     {
       "label": "key population",
-      "file": "methods/31_dinov3/downstream_backbone_ablation.py",
+      "file": "methods/dinov3/downstream_backbone_ablation.py",
       "old": "if set(state) != set(expected):",
       "new": "if False:",
       "tests": [
@@ -74,7 +75,7 @@
     },
     {
       "label": "tensor shape",
-      "file": "methods/31_dinov3/downstream_backbone_ablation.py",
+      "file": "methods/dinov3/downstream_backbone_ablation.py",
       "old": "or value.shape != target.shape",
       "new": "or False",
       "tests": [
@@ -83,7 +84,7 @@
     },
     {
       "label": "tensor dtype",
-      "file": "methods/31_dinov3/downstream_backbone_ablation.py",
+      "file": "methods/dinov3/downstream_backbone_ablation.py",
       "old": "value.dtype != target.dtype",
       "new": "False",
       "tests": [
@@ -92,7 +93,7 @@
     },
     {
       "label": "tensor finite",
-      "file": "methods/31_dinov3/downstream_backbone_ablation.py",
+      "file": "methods/dinov3/downstream_backbone_ablation.py",
       "old": "not torch.isfinite(value).all()",
       "new": "False",
       "tests": [
@@ -101,7 +102,7 @@
     },
     {
       "label": "restricted loader",
-      "file": "methods/31_dinov3/downstream_backbone_ablation.py",
+      "file": "methods/dinov3/downstream_backbone_ablation.py",
       "old": "weights_only=True, mmap=True",
       "new": "weights_only=False, mmap=True",
       "tests": [
@@ -110,7 +111,7 @@
     },
     {
       "label": "load exported weights",
-      "file": "methods/31_dinov3/downstream_backbone_ablation.py",
+      "file": "methods/dinov3/downstream_backbone_ablation.py",
       "old": "encoder.load_state_dict(state, strict=True)\n    if sha256_file(source)",
       "new": "pass\n    if sha256_file(source)",
       "tests": [
@@ -119,7 +120,7 @@
     },
     {
       "label": "private payload exclusion",
-      "file": "methods/31_dinov3/downstream_backbone_ablation.py",
+      "file": "methods/dinov3/downstream_backbone_ablation.py",
       "old": "torch.save(encoder.state_dict(), dest)",
       "new": "torch.save(blob, dest)",
       "tests": [
@@ -128,7 +129,7 @@
     },
     {
       "label": "encoder digest",
-      "file": "methods/31_dinov3/downstream_backbone_ablation.py",
+      "file": "methods/dinov3/downstream_backbone_ablation.py",
       "old": "\"encoder_sha256\": sha256_file(dest)",
       "new": "\"encoder_sha256\": sha256",
       "tests": [
@@ -137,7 +138,7 @@
     },
     {
       "label": "epoch argument type",
-      "file": "methods/31_dinov3/downstream_backbone_ablation.py",
+      "file": "methods/dinov3/downstream_backbone_ablation.py",
       "old": "type(epoch) is not int",
       "new": "False",
       "tests": [
@@ -146,7 +147,7 @@
     },
     {
       "label": "head exclusion",
-      "file": "methods/31_dinov3/downstream_backbone_ablation.py",
+      "file": "methods/dinov3/downstream_backbone_ablation.py",
       "old": "state[key[len(\"backbone.\"):]] = value",
       "new": "state[key] = value",
       "tests": [

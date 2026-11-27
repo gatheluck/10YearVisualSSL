@@ -82,8 +82,8 @@
       ]
     },
     {
-      "label": "provider 38_clip",
-      "file": "methods/38_clip/downstream_backbone.py",
+      "label": "provider clip",
+      "file": "methods/clip/downstream_backbone.py",
       "old": "ACTIVATION_CHECKPOINTING = ('hf', 'model')",
       "new": "ACTIVATION_CHECKPOINTING = None",
       "tests": [
@@ -100,8 +100,8 @@
       ]
     },
     {
-      "label": "provider 31_dinov3",
-      "file": "methods/31_dinov3/downstream_backbone.py",
+      "label": "provider dinov3",
+      "file": "methods/dinov3/downstream_backbone.py",
       "old": "ACTIVATION_CHECKPOINTING = ('hf', 'model')",
       "new": "ACTIVATION_CHECKPOINTING = None",
       "tests": [

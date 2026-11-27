@@ -1,0 +1,21 @@
+{
+  "_note": "Run under the method venv (the test needs torchvision): .venvs/rotation_prediction/bin/python bin/mutate.py --spec mutations/rotation_prediction-probe-eval.json --python \"$PWD/.venvs/rotation_prediction/bin/python\". Proves the BASIC5 rule `b` wiring in this evaluator is not vacuous: the val split must route through probe_transforms.basic5_eval_transform (Resize shorter side + CenterCrop). The rule itself is proven in mutations/basic5-eval.json; this target proves this method wires it, by reverting to the historical square resize with no centre crop.",
+  "targets": [
+    {
+      "label": "the val transform reverts to the historical square resize with no centre crop, so rule b is violated",
+      "file": "methods/rotation_prediction/evaluate_linear_rotation.py",
+      "old": "        transform = probe_transforms.basic5_eval_transform(size, normalize=None)",
+      "new": "        transform = T.Compose([T.Resize((size, size)), T.ToTensor()])",
+      "tests": [
+        "tests.test_method_rotation_prediction.TestTheProbeEvalPreprocessing.test_the_val_loader_is_resize_then_centercrop"
+      ]
+    }
+  ],
+  "_result": {
+    "measured_on": "2026-09-10",
+    "measured_with": ".venvs/rotation_prediction (cu130) on this host (CPU tests)",
+    "killed": 1,
+    "total": 1,
+    "equivalent": []
+  }
+}

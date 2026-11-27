@@ -41,6 +41,13 @@ import math
 import sys
 from pathlib import Path
 
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from adapterlib.method_names import public_name
+
+
 SCHEMA_VERSION = 1
 MANIFEST = "run_manifest.json"
 METRICS = "metrics.json"
@@ -87,7 +94,7 @@ def read_run(run_dir) -> dict:
     return {
         "seed": manifest["seed"],
         "status": manifest["status"],
-        "method": manifest["method"],
+        "method": public_name(manifest["method"]),
         "stage": manifest["stage"],
         "config_sha256": manifest.get("config_sha256"),
         "aggregation_identity": manifest.get("aggregation_identity"),

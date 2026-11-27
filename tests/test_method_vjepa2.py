@@ -385,7 +385,7 @@ class TestFeatureProvider(Base):
     """`feature_provider.py` is what `bin/extract-features.py` discovers and
     calls to obtain one raw feature vector per image. vjepa2 is eval-only, so it
     has no `adapter.load_encoder`: the provider reads the architecture-shaping
-    keys from the handed-in checkpoint (as eva02 / 28_dinov2 do), sets the
+    keys from the handed-in checkpoint (as eva02 / dinov2 do), sets the
     shipped config's `ckpt` to it, and lets the eval module's `build_model` load
     its `encoder.*` tensors (dropping `predictor.*`), then extracts the pooled
     feature (V-JEPA 2's mean over all patch tokens -- the ViT has no CLS) -- raw,

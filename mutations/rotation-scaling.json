@@ -2,7 +2,7 @@
   "targets": [
     {
       "label": "warmup offset",
-      "file": "methods/06_rotation_prediction/rotation_scaling.py",
+      "file": "methods/rotation_prediction/rotation_scaling.py",
       "old": "if step < 10000:",
       "new": "if step < 1:",
       "tests": [
@@ -11,7 +11,7 @@
     },
     {
       "label": "rotation direction",
-      "file": "methods/06_rotation_prediction/rotation_scaling.py",
+      "file": "methods/rotation_prediction/rotation_scaling.py",
       "old": "torch.rot90(image, k, (1, 2))",
       "new": "torch.rot90(image, -k, (1, 2))",
       "tests": [
@@ -20,7 +20,7 @@
     },
     {
       "label": "native dropout",
-      "file": "methods/06_rotation_prediction/rotation_scaling.py",
+      "file": "methods/rotation_prediction/rotation_scaling.py",
       "old": "drop_rate=0.1,",
       "new": "drop_rate=0.0,",
       "tests": [
@@ -29,7 +29,7 @@
     },
     {
       "label": "loss accumulation",
-      "file": "methods/06_rotation_prediction/rotation_scaling.py",
+      "file": "methods/rotation_prediction/rotation_scaling.py",
       "old": "(loss / accumulation).backward()",
       "new": "loss.backward()",
       "tests": [
@@ -38,7 +38,7 @@
     },
     {
       "label": "clipping omitted",
-      "file": "methods/06_rotation_prediction/rotation_scaling.py",
+      "file": "methods/rotation_prediction/rotation_scaling.py",
       "old": "clip_grad_norm_(model.parameters(), 1.0)",
       "new": "clip_grad_norm_(model.parameters(), 1000000.0)",
       "tests": [
@@ -47,7 +47,7 @@
     },
     {
       "label": "tail updates admitted",
-      "file": "methods/06_rotation_prediction/rotation_scaling.py",
+      "file": "methods/rotation_prediction/rotation_scaling.py",
       "old": "if len(batches) == accumulation:",
       "new": "if True:",
       "tests": [
@@ -56,7 +56,7 @@
     },
     {
       "label": "loss finite guard removed",
-      "file": "methods/06_rotation_prediction/rotation_scaling.py",
+      "file": "methods/rotation_prediction/rotation_scaling.py",
       "old": "require_finite(loss)",
       "new": "pass",
       "tests": [
@@ -65,7 +65,7 @@
     },
     {
       "label": "unknown config admitted",
-      "file": "methods/06_rotation_prediction/rotation_scaling.py",
+      "file": "methods/rotation_prediction/rotation_scaling.py",
       "old": "if set(cfg) != keys:",
       "new": "if False:",
       "tests": [
@@ -74,7 +74,7 @@
     },
     {
       "label": "boolean config admitted",
-      "file": "methods/06_rotation_prediction/rotation_scaling.py",
+      "file": "methods/rotation_prediction/rotation_scaling.py",
       "old": "type(cfg[key]) is not int",
       "new": "not isinstance(cfg[key], int)",
       "tests": [
@@ -83,7 +83,7 @@
     },
     {
       "label": "resume counters identity ignored",
-      "file": "methods/06_rotation_prediction/rotation_scaling.py",
+      "file": "methods/rotation_prediction/rotation_scaling.py",
       "old": "state[\"format\"] != \"rotation_scaling_epoch_v1\"",
       "new": "False",
       "tests": [
@@ -92,7 +92,7 @@
     },
     {
       "label": "rank RNG extras admitted",
-      "file": "methods/06_rotation_prediction/rotation_scaling.py",
+      "file": "methods/rotation_prediction/rotation_scaling.py",
       "old": "len(state[\"rng\"]) != context.world",
       "new": "False",
       "tests": [
@@ -101,7 +101,7 @@
     },
     {
       "label": "incomplete Adam state admitted",
-      "file": "methods/06_rotation_prediction/rotation_scaling.py",
+      "file": "methods/rotation_prediction/rotation_scaling.py",
       "old": "if len(saved[\"state\"]) != len(list(model.parameters())):",
       "new": "if False:",
       "tests": [
@@ -110,7 +110,7 @@
     },
     {
       "label": "Adam recipe validation removed",
-      "file": "methods/06_rotation_prediction/rotation_scaling.py",
+      "file": "methods/rotation_prediction/rotation_scaling.py",
       "old": "continuation_validation.optimizer_state(optimizer, saved, updates)",
       "new": "pass",
       "tests": [
@@ -119,7 +119,7 @@
     },
     {
       "label": "model preflight removed",
-      "file": "methods/06_rotation_prediction/rotation_scaling.py",
+      "file": "methods/rotation_prediction/rotation_scaling.py",
       "old": "validate_state(model, state[\"model\"])",
       "new": "model.load_state_dict(state[\"model\"])",
       "tests": [
@@ -128,7 +128,7 @@
     },
     {
       "label": "continuation RNG removed",
-      "file": "methods/06_rotation_prediction/rotation_scaling.py",
+      "file": "methods/rotation_prediction/rotation_scaling.py",
       "old": "_restore_rng(state[\"rng\"][context.rank], loader, context.device)",
       "new": "pass",
       "tests": [
@@ -137,7 +137,7 @@
     },
     {
       "label": "DDP training wrapper removed",
-      "file": "methods/06_rotation_prediction/rotation_scaling.py",
+      "file": "methods/rotation_prediction/rotation_scaling.py",
       "old": "if context.world > 1\n            else raw",
       "new": "if False\n            else raw",
       "tests": [
@@ -146,7 +146,7 @@
     },
     {
       "label": "partial group loss unweighted",
-      "file": "methods/06_rotation_prediction/rotation_scaling.py",
+      "file": "methods/rotation_prediction/rotation_scaling.py",
       "old": "sum(value * count for value, count in losses) / len(loader)",
       "new": "sum(value for value, count in losses) / len(losses)",
       "tests": [
@@ -155,7 +155,7 @@
     },
     {
       "label": "nonfinite gradient guard removed",
-      "file": "methods/06_rotation_prediction/rotation_scaling.py",
+      "file": "methods/rotation_prediction/rotation_scaling.py",
       "old": "require_finite(norm)",
       "new": "pass",
       "tests": [
@@ -164,7 +164,7 @@
     },
     {
       "label": "retained epoch omitted",
-      "file": "methods/06_rotation_prediction/rotation_scaling.py",
+      "file": "methods/rotation_prediction/rotation_scaling.py",
       "old": "if epoch + 1 in (30, 60, 90):",
       "new": "if epoch + 1 in (60, 90):",
       "tests": [

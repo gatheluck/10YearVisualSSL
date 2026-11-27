@@ -3,7 +3,7 @@
 
 A **pure eval-only** port: a single `linear_eval` stage and no pretraining at all,
 the HuggingFace-sourced sibling of the download-and-probe methods (eva02 / aimv2 /
-36_franca). data2vec 2.0's "Step 3 as-is" comparison freezes the official
+franca). data2vec 2.0's "Step 3 as-is" comparison freezes the official
 pretrained vision backbone (`facebook/data2vec-vision-base`, a BEiT-architecture
 ViT) and fits a linear probe on its **CLS token**, because the from-scratch
 self-distillation pretraining (IN-1k/IN-22k, many GPU-days) is the excluded step.

@@ -75,7 +75,7 @@ Merge these overrides into `train` in an otherwise resolved pretraining config:
 }
 ```
 
-For example, after resolving `methods/31_dinov3/configs/pretrain.yaml` with the
+For example, after resolving `methods/dinov3/configs/pretrain.yaml` with the
 existing resolver, save that JSON as `resolved.json`, then run:
 
 ```bash
@@ -83,12 +83,12 @@ python -c 'import json; from pathlib import Path; p=Path("resolved.json"); c=jso
 ```
 
 Pass the absolute `step4.json` path to the existing `python -m adapter` invocation
-in the [method guide](../methods/31_dinov3/README.md). Use a new output directory.
+in the [method guide](../methods/dinov3/README.md). Use a new output directory.
 The executable documentation test merges the JSON block into a tiny training
 fixture and verifies the saved profile, layout and noncanonical status.
 
 This profile selects the fixed optimizer-step schedule in
-`methods/31_dinov3/protocol.py`: 300-epoch clock, 10-epoch LR warmup from zero
+`methods/dinov3/protocol.py`: 300-epoch clock, 10-epoch LR warmup from zero
 to 0.0006 then decay to 0.000001, 25-epoch teacher-temperature warmup from 0.04
 to 0.07, teacher EMA 0.994 before Gram and 0.999 during Gram. The profile rejects
 LR, temperature and EMA settings that disagree with these values before
@@ -210,7 +210,7 @@ objectives, stored parameters and AdamW state remain FP32. No gradient scaler
 or accumulation is introduced. A single-node example from the repository root:
 
 ```bash
-PYTHONPATH=. python -m torch.distributed.run --nproc_per_node=8 --master_addr=127.0.0.1 --master_port=29500 methods/31_dinov3/dinov3_distributed.py --config /path/to/resolved-distributed.json --out /path/to/new-run
+PYTHONPATH=. python -m torch.distributed.run --nproc_per_node=8 --master_addr=127.0.0.1 --master_port=29500 methods/dinov3/dinov3_distributed.py --config /path/to/resolved-distributed.json --out /path/to/new-run
 ```
 
 Use a free rendezvous port and only allocated compute resources. Multi-node

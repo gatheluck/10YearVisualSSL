@@ -22,7 +22,7 @@
   ],
   "_result": {
     "measured_on": "2026-09-02 (added when the reset_parameters undo was moved out of the downstream provider's _hermetic_build into train_pretrain_var.restore_default_init, so the pretraining and encoder-extraction paths -- which call build_vae_var directly, not through the provider -- stop leaking too; the videomae/vjepa2 CI failures were those uncovered paths)",
-    "measured_with": ".venvs/05_jigsaw_puzzle (an interpreter with torch), which builds the VAR VQVAE in-process; no GPU or timm subprocess is needed to kill these",
+    "measured_with": ".venvs/jigsaw_puzzle (an interpreter with torch), which builds the VAR VQVAE in-process; no GPU or timm subprocess is needed to kill these",
     "killed": 2,
     "total": 2,
     "equivalent": []

@@ -1,5 +1,5 @@
 {
-  "_note": "Run: PYTHONPATH=. .venvs/06_rotation_prediction/bin/python bin/mutate.py --spec mutations/matrix-run.json --python \"$PWD/.venvs/06_rotation_prediction/bin/python\". Proves the grid's verdict is not vacuous: the whole grid is 'ok' (and exits 0) only when every cell is 'ok'. Each mutation is killed by the negative control in tests/test_matrix_run.py, which forces one cell to fail with an empty data root. Needs a torch venv, since a real cell must actually run for the negative control to have a failing cell. See docs/REAL_RUN_VERIFICATION.md step 3.",
+  "_note": "Run: PYTHONPATH=. .venvs/rotation_prediction/bin/python bin/mutate.py --spec mutations/matrix-run.json --python \"$PWD/.venvs/rotation_prediction/bin/python\". Proves the grid's verdict is not vacuous: the whole grid is 'ok' (and exits 0) only when every cell is 'ok'. Each mutation is killed by the negative control in tests/test_matrix_run.py, which forces one cell to fail with an empty data root. Needs a torch venv, since a real cell must actually run for the negative control to have a failing cell. See docs/REAL_RUN_VERIFICATION.md step 3.",
   "targets": [
     {
       "label": "the grid calls itself ok regardless of any cell's outcome",

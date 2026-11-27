@@ -33,7 +33,7 @@ CANONICAL_LINE = ("#   --set DATA_ROOT=<path>   the dataset root; pretraining "
 
 # An inherent exception is one the config *declares*, so a new special method
 # announces itself rather than being added to a list here. The two that remain:
-# 02_vae trains on MNIST, and mar reads pre-encoded cached VAE latents (not an
+# vae trains on MNIST, and mar reads pre-encoded cached VAE latents (not an
 # ImageNet image folder at all).
 EXCEPTION_MARKERS = ("MNIST", "cached latents")
 

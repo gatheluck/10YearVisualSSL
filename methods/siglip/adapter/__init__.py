@@ -9,7 +9,7 @@ image embedding. SigLIP's from-scratch pretraining (the WebLI image-text corpus,
 many TPU-days) is the excluded step, so the port reuses the released checkpoint,
 exactly as the capture's as-is multimodal comparison (CompEval) does. The probed
 representation is a genuine learned feature, so the number is comparable -- the
-multimodal sibling of `38_clip`.
+multimodal sibling of `clip`.
 
 There is **no author submodule**: the model class is timm's (a pinned pip
 dependency), and the weights are a sha256-pinned download recorded as

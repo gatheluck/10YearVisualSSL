@@ -42,6 +42,7 @@ class TestCacheImport(unittest.TestCase):
         return dict(path=str(path), sha256=hashlib.sha256(path.read_bytes()).hexdigest())
 
     def test_restores_order_normalizes_and_keeps_sources_unchanged(self):
+        self.profile["id"] = "28_dinov2"
         before = {p: p.read_bytes() for p in self.root.glob("*.npy")}
         out = self.root / "out"
         self.module.import_cache(self.profile, out)
@@ -51,6 +52,7 @@ class TestCacheImport(unittest.TestCase):
         np.testing.assert_array_equal(np.load(out / "labels.npy"), self.labels)
         self.assertEqual(json.loads((out / "result.json").read_text())["status"], "ok")
         self.assertEqual(json.loads((out / "meta.json").read_text())["source_profile"], self.profile)
+        self.assertEqual(json.loads((out / "meta.json").read_text())["method"], self.profile["id"].split("_", 1)[1])
         for path, data in before.items():
             self.assertEqual(path.read_bytes(), data)
 

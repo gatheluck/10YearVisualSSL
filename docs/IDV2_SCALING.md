@@ -14,10 +14,10 @@ completed or reported. Figure 5 instead compares IN-1K runs at 300 epochs.
 
 ## Recipe and invocation
 
-Copy the [ViT-B configuration](../methods/10_inst_disc/configs/idv2_scaling_vitb.json)
-or [ViT-L configuration](../methods/10_inst_disc/configs/idv2_scaling_vitl.json),
+Copy the [ViT-B configuration](../methods/inst_disc/configs/idv2_scaling_vitb.json)
+or [ViT-L configuration](../methods/inst_disc/configs/idv2_scaling_vitl.json),
 replace both input paths, and use the existing method environment. From
-`methods/10_inst_disc`, run:
+`methods/inst_disc`, run:
 
 `PYTHONPATH=../.. python -m torch.distributed.run --master-addr=127.0.0.1 --master-port=29500 --nproc-per-node=2 --module idv2_scaling --config /path/to/scaling.json --out /path/to/new-run`
 
@@ -143,7 +143,7 @@ DINO scaling and visualization/result-accounting pipelines remain separate.
 Added 2026-10-12 for the separate Table 19 IN-1K ViT-L rows at epochs
 100/200/300. Original experimental code and configuration exist and were
 compared read-only with the current workspace (14 files matched the capture).
-Use [the IN-1K configuration](../methods/10_inst_disc/configs/idv2_scaling_in1k_vitl.json)
+Use [the IN-1K configuration](../methods/inst_disc/configs/idv2_scaling_in1k_vitl.json)
 with the same module invocation above. This profile requires
 `profile: in1k300_vitl` and `model: vit_large_patch16_224`. Here `prepared_root`
 is the ImageFolder **training split**, not an indexed-tar root;

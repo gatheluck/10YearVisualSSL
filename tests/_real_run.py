@@ -70,9 +70,9 @@ def build_data(shape: str, root: Path) -> Path:
         # with download=False), fabricated rather than downloaded so no test
         # reaches the network. The IDX format is a short header then raw bytes,
         # so a real one small enough to train on is cheap to write. This is the
-        # shape 02_vae asks for -- its dataset-agnostic loader picks MNIST over
+        # shape vae asks for -- its dataset-agnostic loader picks MNIST over
         # ImageFolder when a MNIST/ subdirectory is present. Mirrors the proven
-        # tiny_mnist fixture in tests/test_method_02_vae.py; stdlib only.
+        # tiny_mnist fixture in tests/test_method_vae.py; stdlib only.
         n = 8
         raw = root / "MNIST" / "raw"
         raw.mkdir(parents=True, exist_ok=True)

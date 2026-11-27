@@ -19,6 +19,10 @@ document does not restate the driver's contract â€” see the code and its tests â
 it records the **exact invocation, environment, and inputs** used for this run
 and the **honest scope** of what was and was not extracted.
 
+The commands below record the historical run. For a new run, select the current
+[public method names](METHOD_NAMING.md) and choose a fresh output directory.
+Existing encoder keys and checkpoint paths can still be read from the archive.
+
 ## 1. What you get
 
 For every method that ran successfully, `<out>/<method>/` contains:

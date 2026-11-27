@@ -47,7 +47,13 @@ import subprocess
 import sys
 from pathlib import Path
 
+
 ROOT = Path(__file__).resolve().parent.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from adapterlib.method_names import order_key
+
 LAUNCH = ROOT / "bin" / "launch.py"
 METHODS = ROOT / "methods"
 SPEC_NAME = "real_run_smoke.json"
@@ -64,7 +70,7 @@ def discover_specs(methods_dir: Path = METHODS) -> list[tuple[str, dict]]:
     found = []
     if not methods_dir.is_dir():
         return found
-    for spec_path in sorted(methods_dir.glob(f"*/{SPEC_NAME}")):
+    for spec_path in sorted(methods_dir.glob(f"*/{SPEC_NAME}"), key=lambda p: order_key(p.parent.name)):
         found.append((spec_path.parent.name,
                       json.loads(spec_path.read_text(encoding="utf-8"))))
     return found

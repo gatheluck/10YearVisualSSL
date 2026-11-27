@@ -73,7 +73,7 @@ _VJEPA2_SUBMODULE = (Path(__file__).resolve().parents[2] / "third_party"
 
 def _prepare_vjepa2_path() -> None:
     """Make `src`/`app` resolve to THIS submodule only. Another submodule port
-    (35_vjepa's third_party/jepa) also exposes a top-level `src`, and `src` is a
+    (vjepa's third_party/jepa) also exposes a top-level `src`, and `src` is a
     PEP 420 namespace package that would otherwise merge both submodules' `src/`
     dirs. So: drop any cached `src*`/`app*`, remove every other third_party root
     from sys.path, and put third_party/vjepa2 first. Purge-before-import keeps this

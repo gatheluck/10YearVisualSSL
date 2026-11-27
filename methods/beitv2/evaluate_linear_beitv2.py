@@ -4,7 +4,7 @@ BEiT v2's as-is comparison freezes the official self-supervised pretrained backb
 (`beitv2_base_patch16_224_pt1k`) and fits a single linear layer on its pooled
 patch-token feature. The representation is a genuine learned SSL feature, so the
 number is comparable (the "pretrained-backbone reuse" row, the autoregressive/MIM
-sibling of `eva02` / `36_franca`).
+sibling of `eva02` / `franca`).
 
 The model class is the author's -- `modeling_finetune.VisionTransformer` imported
 from the pinned `microsoft/unilm` submodule (`third_party/unilm/beit2`), never

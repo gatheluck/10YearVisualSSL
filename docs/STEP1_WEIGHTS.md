@@ -14,11 +14,11 @@ The extraction driver already discovers feature providers, but an original train
 
 Artifact entries in method provenance specify a filename and SHA-256. A verified public URL can be fetched using the existing tool:
 
-`python3 bin/fetch-weights.py --provenance methods/28_dinov2/provenance.json --artifact backbone_artifact --out .weights/28_dinov2`
+`python3 bin/fetch-weights.py --provenance methods/dinov2/provenance.json --artifact backbone_artifact --out .weights/28_dinov2`
 
 When no public URL has been verified, an entry records `availability: user_supplied` and acquisition instructions. The command fails with those instructions until the exact file is supplied. It never invents a URL or silently uses different weights:
 
-`python3 bin/fetch-weights.py --provenance methods/14_simclrv1/provenance.json --artifact step1_native_artifact --source /path/to/checkpoint_epoch_1000.pth --out .weights/14_simclrv1-step1`
+`python3 bin/fetch-weights.py --provenance methods/simclrv1/provenance.json --artifact step1_native_artifact --source /path/to/checkpoint_epoch_1000.pth --out .weights/14_simclrv1-step1`
 
 This copies the input into a separate destination after verifying its bytes. It never modifies the source. Public release/access to lab-trained weights is not established by adding a provenance entry. Retraining with the same seed is not a guarantee of the same checkpoint bytes.
 
@@ -28,7 +28,7 @@ SimCLR v1's recorded Step-1 result names its 1000-epoch ResNet-50 checkpoint. Th
 
 Run the exporter in the method's dependency environment. It verifies the source hash, unwraps only the explicit state key, removes only a leading prefix, refuses key collisions, delegates encoder selection and loading to the existing method adapter, and writes to a new output directory:
 
-`python3 bin/export-native-encoder.py --source .weights/14_simclrv1-step1/checkpoint_epoch_1000.pth --sha256 e945c6bd144640f174e90ef924890fd47280f522a10d20ee01054be234d83b13 --method-dir methods/14_simclrv1 --config methods/14_simclrv1/configs/linear_eval.yaml --state-key state_dict --strip-prefix module. --out .weights/14_simclrv1-step1-export`
+`python3 bin/export-native-encoder.py --source .weights/14_simclrv1-step1/checkpoint_epoch_1000.pth --sha256 e945c6bd144640f174e90ef924890fd47280f522a10d20ee01054be234d83b13 --method-dir methods/simclrv1 --config methods/simclrv1/configs/linear_eval.yaml --state-key state_dict --strip-prefix module. --out .weights/14_simclrv1-step1-export`
 
 `export.json` records the source and exported hashes, wrapper mapping, configuration and torch version. A successful load is not sufficient evidence of feature parity: compare the exported encoder with the recorded native model before full extraction. Different torch versions may serialize identical tensors into different file bytes; the original checkpoint hash and tensor/feature checks remain essential.
 
@@ -36,7 +36,7 @@ Run the exporter in the method's dependency environment. It verifies the source 
 
 Use a fresh output root for this Step-1 checkpoint; preserve previous runs. This driver records other providers without supplied weights as skipped:
 
-`python3 bin/extract-features.py --data-root /path/to/imagenet --split val --out /path/to/new-step1-features --device cuda --batch-size 128 --num-workers 8 --representation l2 --encoder 14_simclrv1=.weights/14_simclrv1-step1-export/encoder.pt --allow-missing`
+`python3 bin/extract-features.py --data-root /path/to/imagenet --split val --out /path/to/new-step1-features --device cuda --batch-size 128 --num-workers 8 --representation l2 --encoder simclrv1=.weights/14_simclrv1-step1-export/encoder.pt --allow-missing`
 
 For the SimCLR target, evaluation uses bicubic resize of the shorter side to 256, center crop 224, ToTensor and no channel normalization. This matches the inspected native evaluation transform. L2 normalization is applied by the common driver, as in the existing feature sweep. `raw` is a separate explicit representation.
 
@@ -63,11 +63,11 @@ Example local sources file (replace the placeholder paths):
 
 ```json
 {
-  "10_inst_disc": "/path/to/instdisc/checkpoint_epoch_200.pth",
-  "13_mocov1": "/path/to/mocov1/checkpoint_epoch_200.pth",
-  "15_mocov2": "/path/to/mocov2/checkpoint_epoch_200.pth",
-  "16_simclrv2": "/path/to/simclrv2/checkpoint_epoch_800.pth",
-  "20_simsiam": "/path/to/simsiam/checkpoint_epoch_100.pth"
+  "inst_disc": "/path/to/instdisc/checkpoint_epoch_200.pth",
+  "mocov1": "/path/to/mocov1/checkpoint_epoch_200.pth",
+  "mocov2": "/path/to/mocov2/checkpoint_epoch_200.pth",
+  "simclrv2": "/path/to/simclrv2/checkpoint_epoch_800.pth",
+  "simsiam": "/path/to/simsiam/checkpoint_epoch_100.pth"
 }
 ```
 

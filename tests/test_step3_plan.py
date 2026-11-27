@@ -23,7 +23,7 @@ session), and these tests make any future drift RED:
     *after* the next pointer (the ones ported ahead of their turn) may not grow
     past a ceiling frozen here in the test, so a new out-of-turn port cannot land
     silently;
-  - **partition** -- every un-numbered directory under `methods/` is accounted
+  - **partition** -- every directory outside the historical cohort is accounted
     for by the plan (as a Step-3 port or as an explicit non-Step-3 exception), so
     a ported Step-3 method cannot go unlisted.
 
@@ -38,6 +38,7 @@ import json
 import re
 import unittest
 from pathlib import Path
+from adapterlib.method_names import HISTORICAL
 
 ROOT = Path(__file__).resolve().parent.parent
 PLAN = ROOT / "docs" / "STEP3_PORTING_PLAN.md"
@@ -103,12 +104,12 @@ def _done_on_disk(item: dict) -> bool:
     return bool(artifact) and (ROOT / artifact).exists()
 
 
-def _unnumbered_dirs() -> "set[str]":
-    """The method directories with no numeric prefix (the Step-3 namespace,
+def _additional_dirs() -> "set[str]":
+    """The method directories outside the historical cohort (the Step-3 namespace,
     plus the off-decade Step-1&2 ports the plan must list as exceptions)."""
     return {p.name for p in METHODS.iterdir()
             if p.is_dir() and not p.name.startswith(".")
-            and not re.match(r"\d+_", p.name)}
+            and p.name not in HISTORICAL}
 
 
 class TestThePlanIsMachineReadable(unittest.TestCase):
@@ -211,25 +212,25 @@ class TestNoNewOutOfOrderWork(unittest.TestCase):
 
 
 class TestEveryPortIsAccountedFor(unittest.TestCase):
-    def test_the_unnumbered_namespace_is_partitioned_by_the_plan(self):
+    def test_additional_directories_are_partitioned_by_the_plan(self):
         plan = _plan()
-        non_step3 = set(plan["non_step3_unnumbered"])
+        non_step3 = set(plan["non_step3_additions"])
         planned = {it["dir"] for it in plan["items"] if it["kind"] == "method"}
         on_disk_planned = {d for d in planned if (METHODS / d).is_dir()}
-        unnumbered = _unnumbered_dirs()
+        additional = _additional_dirs()
 
         self.assertEqual(
-            unnumbered, on_disk_planned | non_step3,
-            "an un-numbered method directory is not accounted for: it is neither "
+            additional, on_disk_planned | non_step3,
+            "an additional directory is not accounted for: it is neither "
             "a Step-3 port in the plan nor an explicit non-Step-3 exception. "
-            f"unlisted: {unnumbered - on_disk_planned - non_step3}; "
-            f"stale: {(on_disk_planned | non_step3) - unnumbered}")
+            f"unlisted: {additional - on_disk_planned - non_step3}; "
+            f"stale: {(on_disk_planned | non_step3) - additional}")
 
     def test_the_two_sets_do_not_overlap(self):
         plan = _plan()
         planned = {it["dir"] for it in plan["items"] if it["kind"] == "method"}
         self.assertEqual(
-            planned & set(plan["non_step3_unnumbered"]), set(),
+            planned & set(plan["non_step3_additions"]), set(),
             "a directory is listed both as a Step-3 port and a non-Step-3 "
             "exception")
 

@@ -17,7 +17,7 @@ backbone (`aimv2_large_patch14_224.apple_pt`) and fits a linear probe on its poo
 features, because the from-scratch pretraining (billions of image-text pairs, many
 GPU-days) is the excluded step. The probed representation is a genuine learned
 feature, so the number **is** comparable — the "pretrained-backbone reuse" row,
-analogous to `eva02` / `36_franca` / `30_aim`.
+analogous to `eva02` / `franca` / `aim`.
 
 ## Why this method, and what is new here
 

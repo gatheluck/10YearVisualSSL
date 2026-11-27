@@ -12,7 +12,7 @@ This file is shared machinery -- it is about the driver, not any one method --
 so it names no method: the synthetic directories below use invented names, and
 the one real-tree check discovers rather than names. A given method's provider
 is proven end to end in that method's own test file, where naming it is
-allowed (`tests/test_method_14_simclrv1.py`).
+allowed (`tests/test_method_simclrv1.py`).
 
 The pure control logic -- discovery, run planning, the manifest, and the
 exit-status decision -- is tested here with the standard library only, using

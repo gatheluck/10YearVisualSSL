@@ -447,7 +447,7 @@ push validation remains required; focused checks do not replace it.
 
 Run the bound-model contracts in the same downstream environment:
 
-`OMP_NUM_THREADS=1 .venvs/downstream/bin/python -m unittest tests.test_cvpr_bound_runtime tests.test_cvpr_hf_bindings tests.test_method_cvpr_native_bindings tests.test_cvpr_rae_bindings`
+`OMP_NUM_THREADS=1 .venvs/downstream/bin/python -m unittest tests.test_cvpr_bound_runtime tests.test_cvpr_hf_bindings tests.test_method_cvpr_native_bindings tests.test_method_cvpr_rae_bindings`
 
 The `cvpr-bound-runtime`, `cvpr-hf-bindings`, `cvpr-native-bindings` and
 `cvpr-rae-bindings` mutation specifications cover the new behavior. Run each

@@ -2,7 +2,7 @@
   "targets": [
     {
       "label": "unknown recipe",
-      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "file": "methods/inst_disc/idv2_scaling.py",
       "old": "if profile not in (\"in21k90\", \"in1k300_vitl\"):",
       "new": "if False:",
       "tests": [
@@ -11,7 +11,7 @@
     },
     {
       "label": "large only",
-      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "file": "methods/inst_disc/idv2_scaling.py",
       "old": "if profile == \"in1k300_vitl\" and config[\"model\"] != \"vit_large_patch16_224\":",
       "new": "if False:",
       "tests": [
@@ -20,7 +20,7 @@
     },
     {
       "label": "recipe endpoint",
-      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "file": "methods/inst_disc/idv2_scaling.py",
       "old": "if config[\"epochs\"] > horizon:",
       "new": "if False:",
       "tests": [
@@ -29,7 +29,7 @@
     },
     {
       "label": "fixed 300 horizon",
-      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "file": "methods/inst_disc/idv2_scaling.py",
       "old": "schedule(global_step, 300 * steps, warmup_steps=10 * steps)",
       "new": "schedule(global_step, config[\"epochs\"] * steps, warmup_steps=10 * steps)",
       "tests": [
@@ -38,7 +38,7 @@
     },
     {
       "label": "ten epoch warmup",
-      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "file": "methods/inst_disc/idv2_scaling.py",
       "old": "warmup_steps=10 * steps",
       "new": "warmup_steps=10000",
       "tests": [
@@ -47,7 +47,7 @@
     },
     {
       "label": "folder selection",
-      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "file": "methods/inst_disc/idv2_scaling.py",
       "old": "reader = FrozenImageFolder if recipe(config)[0] == \"in1k300_vitl\" else IndexedTarDataset",
       "new": "reader = IndexedTarDataset",
       "tests": [
@@ -56,7 +56,7 @@
     },
     {
       "label": "retained epochs",
-      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "file": "methods/inst_disc/idv2_scaling.py",
       "old": "(100, 200, 300) if profile",
       "new": "(30, 60, 90) if profile",
       "tests": [
@@ -65,7 +65,7 @@
     },
     {
       "label": "resume clock identity",
-      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "file": "methods/inst_disc/idv2_scaling.py",
       "old": "steps_per_epoch=steps, schedule_epochs=horizon",
       "new": "steps_per_epoch=steps, schedule_epochs=90",
       "tests": [
@@ -74,7 +74,7 @@
     },
     {
       "label": "delivery recipe",
-      "file": "methods/10_inst_disc/idv2_scaling.py",
+      "file": "methods/inst_disc/idv2_scaling.py",
       "old": "\"profile\": profile, \"schedule_epochs\": horizon",
       "new": "\"profile\": \"in21k90\", \"schedule_epochs\": horizon",
       "tests": [
@@ -83,7 +83,7 @@
     },
     {
       "label": "output isolation",
-      "file": "methods/10_inst_disc/data/imagefolder_scaling.py",
+      "file": "methods/inst_disc/data/imagefolder_scaling.py",
       "old": "    validate_output(output, train_root, validation_root)",
       "new": "    pass",
       "tests": [
@@ -92,7 +92,7 @@
     },
     {
       "label": "val existence",
-      "file": "methods/10_inst_disc/data/imagefolder_scaling.py",
+      "file": "methods/inst_disc/data/imagefolder_scaling.py",
       "old": "    if not validation_root.is_dir():",
       "new": "    if False:",
       "tests": [
@@ -101,7 +101,7 @@
     },
     {
       "label": "source ordering",
-      "file": "methods/10_inst_disc/data/imagefolder_scaling.py",
+      "file": "methods/inst_disc/data/imagefolder_scaling.py",
       "old": "for path, label in folder.samples:",
       "new": "for path, label in reversed(folder.samples):",
       "tests": [
@@ -110,7 +110,7 @@
     },
     {
       "label": "val prefix",
-      "file": "methods/10_inst_disc/data/imagefolder_scaling.py",
+      "file": "methods/inst_disc/data/imagefolder_scaling.py",
       "old": "path.name.startswith(\"ILSVRC2012_val_\")",
       "new": "False",
       "tests": [
@@ -119,7 +119,7 @@
     },
     {
       "label": "val exact filename",
-      "file": "methods/10_inst_disc/data/imagefolder_scaling.py",
+      "file": "methods/inst_disc/data/imagefolder_scaling.py",
       "old": "or path.name in names",
       "new": "or False",
       "tests": [
@@ -128,7 +128,7 @@
     },
     {
       "label": "no stem exclusion",
-      "file": "methods/10_inst_disc/data/imagefolder_scaling.py",
+      "file": "methods/inst_disc/data/imagefolder_scaling.py",
       "old": "names = {p.name for p in validation_root.rglob(\"*\") if p.is_file()}",
       "new": "names = {v for p in validation_root.rglob(\"*\") if p.is_file() for v in (p.name, p.stem + \".png\")}",
       "tests": [
@@ -137,7 +137,7 @@
     },
     {
       "label": "empty freeze",
-      "file": "methods/10_inst_disc/data/imagefolder_scaling.py",
+      "file": "methods/inst_disc/data/imagefolder_scaling.py",
       "old": "    if not rows:",
       "new": "    if False:",
       "tests": [
@@ -146,7 +146,7 @@
     },
     {
       "label": "no overwrite",
-      "file": "methods/10_inst_disc/data/imagefolder_scaling.py",
+      "file": "methods/inst_disc/data/imagefolder_scaling.py",
       "old": "exist_ok=False",
       "new": "exist_ok=True",
       "tests": [
@@ -155,7 +155,7 @@
     },
     {
       "label": "class labels",
-      "file": "methods/10_inst_disc/data/imagefolder_scaling.py",
+      "file": "methods/inst_disc/data/imagefolder_scaling.py",
       "old": "\"class_index\": label,",
       "new": "\"class_index\": 0,",
       "tests": [
@@ -164,7 +164,7 @@
     },
     {
       "label": "manifest hash",
-      "file": "methods/10_inst_disc/data/imagefolder_scaling.py",
+      "file": "methods/inst_disc/data/imagefolder_scaling.py",
       "old": "hashlib.sha256(data).hexdigest()",
       "new": "\"0\" * 64",
       "tests": [
@@ -173,7 +173,7 @@
     },
     {
       "label": "instance order",
-      "file": "methods/10_inst_disc/data/imagefolder_scaling.py",
+      "file": "methods/inst_disc/data/imagefolder_scaling.py",
       "old": "row[\"instance_id\"] != i",
       "new": "False",
       "tests": [
@@ -182,7 +182,7 @@
     },
     {
       "label": "class integer",
-      "file": "methods/10_inst_disc/data/imagefolder_scaling.py",
+      "file": "methods/inst_disc/data/imagefolder_scaling.py",
       "old": "type(row.get(\"class_index\")) is not int",
       "new": "False",
       "tests": [
@@ -191,7 +191,7 @@
     },
     {
       "label": "class nonnegative",
-      "file": "methods/10_inst_disc/data/imagefolder_scaling.py",
+      "file": "methods/inst_disc/data/imagefolder_scaling.py",
       "old": "row[\"class_index\"] < 0",
       "new": "False",
       "tests": [
@@ -200,7 +200,7 @@
     },
     {
       "label": "absolute path",
-      "file": "methods/10_inst_disc/data/imagefolder_scaling.py",
+      "file": "methods/inst_disc/data/imagefolder_scaling.py",
       "old": "Path(relative).is_absolute()",
       "new": "False",
       "tests": [
@@ -209,7 +209,7 @@
     },
     {
       "label": "parent path",
-      "file": "methods/10_inst_disc/data/imagefolder_scaling.py",
+      "file": "methods/inst_disc/data/imagefolder_scaling.py",
       "old": "\"..\" in Path(relative).parts",
       "new": "False",
       "tests": [
@@ -218,7 +218,7 @@
     },
     {
       "label": "symlink containment",
-      "file": "methods/10_inst_disc/data/imagefolder_scaling.py",
+      "file": "methods/inst_disc/data/imagefolder_scaling.py",
       "old": "if not path.is_relative_to(self.root):",
       "new": "if False:",
       "tests": [
@@ -227,7 +227,7 @@
     },
     {
       "label": "corrupt image",
-      "file": "methods/10_inst_disc/data/imagefolder_scaling.py",
+      "file": "methods/inst_disc/data/imagefolder_scaling.py",
       "old": "raise ValueError(f\"unreadable frozen image {index}: {type(exc).__name__}\") from exc",
       "new": "image = Image.new(\"RGB\", (256, 256))",
       "tests": [
@@ -236,7 +236,7 @@
     },
     {
       "label": "instance integer",
-      "file": "methods/10_inst_disc/data/imagefolder_scaling.py",
+      "file": "methods/inst_disc/data/imagefolder_scaling.py",
       "old": "type(row.get(\"instance_id\")) is not int",
       "new": "False",
       "tests": [
@@ -245,7 +245,7 @@
     },
     {
       "label": "relative path required",
-      "file": "methods/10_inst_disc/data/imagefolder_scaling.py",
+      "file": "methods/inst_disc/data/imagefolder_scaling.py",
       "old": "not isinstance(relative, str) or not relative",
       "new": "False",
       "tests": [
@@ -254,7 +254,7 @@
     },
     {
       "label": "empty frozen file",
-      "file": "methods/10_inst_disc/data/imagefolder_scaling.py",
+      "file": "methods/inst_disc/data/imagefolder_scaling.py",
       "old": "if not self.entries:",
       "new": "if False:",
       "tests": [

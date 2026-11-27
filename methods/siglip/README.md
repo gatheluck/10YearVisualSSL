@@ -20,13 +20,13 @@ image tower (`vit_base_patch16_siglip_224.webli`) and fits a linear probe on its
 pooled image embedding, because the from-scratch pretraining (the WebLI image-text
 corpus, many TPU-days) is the excluded step. The probed representation is a genuine
 learned feature, so the number **is** comparable — the multimodal
-"pretrained-backbone reuse" row, the SigLIP sibling of `38_clip`.
+"pretrained-backbone reuse" row, the SigLIP sibling of `clip`.
 
 ## Why this method, and what is new here
 
 **siglip is the third pure eval-only Step-3 port** (after `eva02` and `aimv2`), and
 the first from the **CompEval / multimodal** family: it probes an image-text
-backbone rather than a self-supervised one, the same as-is shape `38_clip` uses for
+backbone rather than a self-supervised one, the same as-is shape `clip` uses for
 its Step-1 row (`docs/EVAL_DOWNLOAD.md`). It is a new **unnumbered** port under the
 naming decision that new methods take a bare name (`methods/siglip`, like `eva02` /
 `aimv2` / `image_gpt` / `mar` / `var`) rather than a capture number.
