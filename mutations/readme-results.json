@@ -3,37 +3,37 @@
     {
       "label": "Chart removed from the introduction",
       "file": "README.md",
-      "old": "![Figure 3 classification comparison.",
-      "new": "[Figure 3 classification comparison.",
-      "tests": ["tests.test_readme_results.ReadmeResults.test_accessible_results_precede_figure_index"]
+      "old": "<img src=\"docs/figures/extended-transfer.png\"",
+      "new": "<a href=\"docs/figures/extended-transfer.png\"",
+      "tests": ["tests.test_readme_results.ReadmeResults.test_accessible_extended_results_precede_the_rankings"]
     },
     {
-      "label": "Omitted uncertainty described as plotted",
+      "label": "Wrong number of runs",
       "file": "README.md",
-      "old": "with standard deviations omitted",
-      "new": "with standard deviations shown",
-      "tests": ["tests.test_readme_results.ReadmeResults.test_accessible_results_precede_figure_index"]
+      "old": "standard deviation over three runs",
+      "new": "standard deviation over two runs",
+      "tests": ["tests.test_readme_results.ReadmeResults.test_results_pair_lp_and_lora_for_each_model"]
     },
     {
-      "label": "Wrong ASIS configuration count",
+      "label": "Missing model at the rank cutoff",
       "file": "README.md",
-      "old": "113 configurations evaluated",
-      "new": "109 configurations evaluated",
-      "tests": ["tests.test_readme_results.ReadmeResults.test_findings_correspond_to_the_three_figures"]
+      "old": "| 30 | CLIP | 27 | 40 | 8 | 109 | 5 |",
+      "new": "",
+      "tests": ["tests.test_readme_results.ReadmeResults.test_rankings_include_every_model_through_rank_thirty"]
     },
     {
       "label": "Wrong SSv2 reversal count",
       "file": "README.md",
-      "old": "4/10 model pairs on SSv2",
-      "new": "1/10 model pairs on SSv2",
-      "tests": ["tests.test_readme_results.ReadmeResults.test_findings_correspond_to_the_three_figures"]
+      "old": "4 of 10 model pairs",
+      "new": "1 of 10 model pairs",
+      "tests": ["tests.test_readme_results.ReadmeResults.test_highlights_correspond_to_their_sources"]
     },
     {
       "label": "Wrong held-out family correlation",
       "file": "README.md",
       "old": "0.19 to 0.75 on ADE20K",
       "new": "0.19 to 0.69 on ADE20K",
-      "tests": ["tests.test_readme_results.ReadmeResults.test_findings_correspond_to_the_three_figures"]
+      "tests": ["tests.test_readme_results.ReadmeResults.test_highlights_correspond_to_their_sources"]
     },
     {
       "label": "Different adopted score",

@@ -28,3 +28,19 @@ The first GitHub check showed main at the S9 merge `7329a77` and no S10 PR. The 
 The initial S11 worktree lacked the pinned third-party checkouts. The license inventory's Git-object check reproduced the missing dependency failures (17 subtest failures and three errors). After S10's whole-suite run finished, S11 used independent copies of the already verified S2 Git objects. All 20 checkout revisions and the links in their parent indexes matched the inventory. All seven license inventory tests passed with those checkouts. The setup used no network retrieval.
 
 The first populated pre-commit run executed 4,632 tests and reported one failure and 2,341 skips. The new renderer was missing from the operating guide's tool layout. The operating guide now lists it, and the layout check passes.
+
+## Follow-up from the reviewed README preview
+
+The follow-up uses the reviewed public layout and the supplied Extended transfer
+figure. Model rankings includes every model through overall rank 30. The full
+table lists all 109 models in the adopted order, including ties. The 50 LP and
+LoRA results match Figure 3 and Supplement Tables 22 and 25 at printed precision,
+including standard deviations and both shortened DINOv3-7B schedules. The earlier
+classification chart remains available through the reproduction guide. The two PNG
+assets contain image data, standard PNG headers and pixel density only.
+
+The preview starts from main at the merge of PR #298. It retains the previous
+README fragment links and leaves the anonymous reviewer README in place. Two
+targeted tests first failed because the old README did not contain the ranked
+models and paired LP and LoRA tables. The follow-up worktree uses 20 locally
+verified pinned dependency checkouts.

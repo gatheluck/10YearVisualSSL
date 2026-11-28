@@ -390,8 +390,8 @@
     {
       "label": "README notice duplicates license again",
       "file": "README.md",
-      "old": "in [LICENSE](LICENSE).",
-      "new": "in [LICENSE](LICENSE).\nCopyright (c) 2026 Example holder",
+      "old": "under the [MIT License](LICENSE).",
+      "new": "under the [MIT License](LICENSE).\nCopyright (c) 2026 Example holder",
       "tests": [
         "tests.test_submission_archive.TestSubmissionArchive.test_root_readme_can_reference_license_without_duplicating_notice"
       ]

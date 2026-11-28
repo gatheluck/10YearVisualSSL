@@ -37,36 +37,66 @@ class ReadmeResults(unittest.TestCase):
     def setUp(self):
         self.readme = (ROOT / 'README.md').read_text(encoding='utf-8')
 
-    def test_accessible_results_precede_figure_index(self):
-        intro = self.readme.split('## Find a figure or table\n')[0]
-        image = re.search(r'^!\[([^\]]+)\]\(([^)]+)\)$', intro, re.M)
-        self.assertIsNotNone(image, 'The README introduction has no results chart')
-        self.assertLess(intro.index('[Project Page]'), image.start())
-        alt, target = image.groups()
-        for label in ('ImageNet-1K', 'SSv2', 'linear', 'attentive', 'top-1'):
-            self.assertIn(label.lower(), alt.lower())
-        self.assertEqual(target, CHART)
-        self.assertTrue((ROOT / target).is_file())
-        self.assertIn(f']({MEANS})', intro)
-        self.assertIn('Tables 22 and 23', intro)
-        self.assertRegex(intro, r'means across three runs.*standard deviations omitted')
+    def test_rankings_include_every_model_through_rank_thirty(self):
+        section = self.readme.partition('## Model rankings\n')[2].split('\n## ', 1)[0]
+        self.assertTrue(section, 'The public README must show model rankings')
+        path = 'docs/BASIC_FIVE_RANKS.md'
+        self.assertIn(f']({path})', section)
+        full = self.table_rows((ROOT / path).read_text(encoding='utf-8'))
+        self.assertEqual(len(full), 109)
+        expected = [(rank, name, *scores) for name, rank, *scores in full if int(rank) <= 30]
+        self.assertEqual(self.table_rows(section), expected)
+        self.assertIn(f'{len(expected)} of {len(full)} models', section)
+        self.assertEqual(expected[-1][:2], ('30', 'CLIP'))
 
-    def test_findings_correspond_to_the_three_figures(self):
-        intro = self.readme.split('## Find a figure or table\n')[0]
-        bullets = dict(re.findall(r'^- \*\*(Figure [237])\.\*\* (.+)$', intro, re.M))
-        self.assertEqual(set(bullets), {'Figure 2', 'Figure 3', 'Figure 7'})
-        for label in ('113', 'ASIS', 'family-specific', '2.83%', '84.47%'):
-            self.assertIn(label, bullets['Figure 2'])
-        for dataset, scores in EXPECTED.items():
-            flips = sum(
-                (float(a_lp) > float(b_lp)) != (float(a_ap) > float(b_ap))
-                for (a_lp, a_ap), (b_lp, b_ap) in combinations(scores.values(), 2)
-            )
-            self.assertRegex(bullets['Figure 3'],
-                             rf'\b{flips}/10 (?:model pairs )?on {re.escape(dataset)}\b')
-        for label in ('image-level', 'patch-level', 'leave-one-family-out', 'Spearman',
+    def test_results_pair_lp_and_lora_for_each_model(self):
+        section = self.readme.partition('## Results\n')[2].split('\n## ', 1)[0]
+        self.assertTrue(section, 'The public README must show the five-task results')
+        rows = self.table_rows(section)
+        models = ['DINOv3-7B', 'VGGT-Ω', 'RAEv2', 'V-JEPA 2.1-G', 'SigLIP 2-G']
+        self.assertEqual([row[:2] for row in rows],
+                         [(model, method) for model in models for method in ('LP', 'LoRA')])
+        self.assertIn('| Model | Method | ImageNet-1K ↑ | COCO ↑ | ADE20K ↑ | NYUv2 ↓ | SSv2 ↑ |',
+                      section)
+        scores = [re.sub(r'<[^>]+>', '', value) for row in rows for value in row[2:]]
+        self.assertEqual(len(scores), 50)
+        for value in scores:
+            self.assertRegex(value, r'^\d+\.\d+†?±\d+\.\d+$')
+        self.assertEqual([score for score in scores if '†' in score], ['87.90†±0.03', '56.12†±0.11'])
+        self.assertIn('standard deviation over three runs', section)
+        self.assertIn('50 epochs on ImageNet-1K and 24 on SSv2', section)
+
+    @staticmethod
+    def table_rows(section):
+        return [tuple(cell.strip() for cell in line.strip('|').split('|'))
+                for line in section.splitlines() if line.startswith('| ')][2:]
+
+    def test_accessible_extended_results_precede_the_rankings(self):
+        intro = self.readme.split('## Model rankings\n', 1)[0]
+        image = re.search(r'<img src="([^"]+)" alt="([^"]+)">', intro)
+        self.assertIsNotNone(image, 'The README introduction has no results chart')
+        self.assertLess(intro.index('>Project Page</a>'), image.start())
+        target, alt = image.groups()
+        self.assertEqual(target, 'docs/figures/extended-transfer.png')
+        self.assertIn(f']({target})', intro)
+        self.assertTrue((ROOT / target).is_file())
+        for label in ('40 evaluation settings', 'linear', 'attentive'):
+            self.assertIn(label, alt.lower())
+
+    def test_highlights_correspond_to_their_sources(self):
+        highlights = self.readme.split('## Highlights\n', 1)[1].split('## Model rankings', 1)[0]
+        ranks = self.table_rows((ROOT / 'docs/BASIC_FIVE_RANKS.md').read_text(encoding='utf-8'))
+        rae = next(row for row in ranks if row[0] == 'RAEv2')
+        self.assertEqual((rae[4], rae[6]), ('1', '100'))
+        self.assertIn('RAEv2 ranks first on ADE20K segmentation and 100th on SSv2', highlights)
+        flips = sum(
+            (float(a_lp) > float(b_lp)) != (float(a_ap) > float(b_ap))
+            for (a_lp, a_ap), (b_lp, b_ap) in combinations(EXPECTED['SSv2'].values(), 2)
+        )
+        self.assertIn(f'{flips} of 10 model pairs', highlights)
+        for label in ('image-level', 'patch-level', 'held-out model families', 'Spearman',
                       '0.19 to 0.75 on ADE20K', '0.01 to 0.67 on NYUv2'):
-            self.assertIn(label, bullets['Figure 7'])
+            self.assertIn(label, highlights)
 
     def test_linked_data_has_all_twenty_reported_means(self):
         self.assertTrue((ROOT / MEANS).is_file(), 'The chart data is missing')
